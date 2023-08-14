@@ -511,7 +511,7 @@ public class ARGToAutomatonConverter {
     Collection<Integer> siblings =
         from(pDependencies.get(s).getParents())
             .transformAndConcat(p -> pDependencies.get(p).getNextStates())
-            .transform(n -> sizeOfBranch(n))
+            .transform(this::sizeOfBranch)
             .toSet();
     if (Collections.max(siblings) - Collections.min(siblings) > siblingRatio * rootSize) {
       // export states where siblings are very different in size

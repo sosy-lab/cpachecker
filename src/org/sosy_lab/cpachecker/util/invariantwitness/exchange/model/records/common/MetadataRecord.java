@@ -65,14 +65,11 @@ public class MetadataRecord {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o) {
       return true;
     }
-    if (!(o instanceof MetadataRecord)) {
-      return false;
-    }
-    MetadataRecord invariantStoreEntryMetadata = (MetadataRecord) o;
-    return Objects.equals(formatVersion, invariantStoreEntryMetadata.formatVersion)
+    return o instanceof MetadataRecord invariantStoreEntryMetadata
+        && Objects.equals(formatVersion, invariantStoreEntryMetadata.formatVersion)
         && Objects.equals(uuid, invariantStoreEntryMetadata.uuid)
         && Objects.equals(creationTime, invariantStoreEntryMetadata.creationTime)
         && Objects.equals(producer, invariantStoreEntryMetadata.producer)

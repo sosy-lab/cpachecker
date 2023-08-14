@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
@@ -16,6 +15,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
@@ -39,7 +39,7 @@ public class VariableCountScoring implements FaultScoring {
                         tokenCount.keySet(), FaultRankingUtils.findTokensInFault(fault)))
             + "]";
     return FaultInfo.rankInfo(
-        "Statements contains symbols also used in other faults: " + usedTokens,
+        "Statement contains symbols also used in other faults: " + usedTokens,
         scores.getOrDefault(fault, 0d));
   }
 
@@ -68,17 +68,20 @@ public class VariableCountScoring implements FaultScoring {
       handleToken(
           joined, s -> scores.merge(fault, (double) tokenCount.getOrDefault(s, 0), Double::sum));
     }
+    if (tokenCount.isEmpty()) {
+      faults.forEach(f -> scores.put(f, 1d));
+    }
     FaultScoring.super.balancedScore(faults);
   }
 
-  private void handleToken(String ast, Function<String, ?> handler) {
+  private void handleToken(String ast, Consumer<String> handler) {
     ast = ast.replaceAll(FaultRankingUtils.NON_VARIABLE_TOKENS, " ");
     for (String s : Splitter.on(FaultRankingUtils.BLANK_CHARACTERS).split(ast)) {
       if (s.isBlank()) {
         continue;
       }
       s = s.replaceAll(FaultRankingUtils.NON_VARIABLE_TOKENS, " ");
-      handler.apply(s);
+      handler.accept(s);
     }
   }
 }

@@ -431,12 +431,7 @@ public final class ValueAnalysisState
     if (this == other) {
       return true;
     }
-
-    if (other == null) {
-      return false;
-    }
-
-    if (!getClass().equals(other.getClass())) {
+    if (other == null || getClass() != other.getClass()) {
       return false;
     }
 
@@ -900,12 +895,9 @@ public final class ValueAnalysisState
       if (this == o) {
         return true;
       }
-      if (!(o instanceof ValueAndType)) {
-        return false;
-      }
-
-      ValueAndType other = (ValueAndType) o;
-      return Objects.equals(value, other.value) && Objects.equals(type, other.type);
+      return o instanceof ValueAndType other
+          && Objects.equals(value, other.value)
+          && Objects.equals(type, other.type);
     }
 
     @Override

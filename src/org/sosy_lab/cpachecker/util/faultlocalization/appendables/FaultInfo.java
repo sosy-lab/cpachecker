@@ -32,6 +32,8 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
   protected String description;
   private final InfoType type;
 
+  private static final int SCORE_FACTOR = 10000;
+
   protected FaultInfo(InfoType pType) {
     type = pType;
   }
@@ -80,21 +82,21 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
   @Override
   public int compareTo(FaultInfo info) {
     return Comparator.comparing(FaultInfo::getType)
-        .thenComparingDouble(FaultInfo::getScore)
+        .thenComparingInt(i -> (int) (i.getScore() * SCORE_FACTOR))
         .compare(this, info);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(31, description, (int) (score * 10000), type);
+    return Objects.hash(31, description, (int) (score * SCORE_FACTOR), type);
   }
 
   @Override
   public boolean equals(Object q) {
-    if ((q instanceof FaultInfo r) && type.equals(r.type)) {
+    if (q instanceof FaultInfo r && type.equals(r.type)) {
       // prevent unequals if 5th digit after comma does not fit.
-      int scoreThis = (int) (score * 10000);
-      int scoreOther = (int) (r.score * 10000);
+      int scoreThis = (int) (score * SCORE_FACTOR);
+      int scoreOther = (int) (r.score * SCORE_FACTOR);
       return r.description.equals(description) && scoreThis == scoreOther;
     }
     return false;
@@ -102,7 +104,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
 
   @Override
   public String toString() {
-    String percent = ((int) (score * 10000)) / 100d + "%";
+    String percent = ((int) (score * SCORE_FACTOR)) / 100d + "%";
     return type + ": " + description + " (" + percent + ")";
   }
 }

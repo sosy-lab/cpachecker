@@ -307,8 +307,7 @@ public class BDDVectorCExpressionVisitor
 
   @Override
   public Region[] visit(CIdExpression idExp) {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
     }
 

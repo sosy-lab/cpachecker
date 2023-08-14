@@ -208,10 +208,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
   static List<Loop> getLoopsOfNode(LoopStructure loopStructure, final CFANode node) {
     return from(loopStructure.getAllLoops())
         .filter(pInput -> pInput.getLoopNodes().contains(node))
-        .toSortedList(
-            (loop1, loop2) -> {
-              return isOuterLoopOf(loop1, loop2) ? -1 : 1;
-            });
+        .toSortedList((loop1, loop2) -> (isOuterLoopOf(loop1, loop2) ? -1 : 1));
   }
 
   static boolean isOuterLoopOf(Loop outer, Loop inner) {

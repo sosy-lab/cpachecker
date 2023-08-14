@@ -102,10 +102,7 @@ public class CHCState implements AbstractState {
   }
 
   public boolean isBottom() {
-    if (constraint.isFalse()) {
-      return true;
-    }
-    return false;
+    return constraint.isFalse();
   }
 
   @Override

@@ -287,7 +287,7 @@ public class CFAToCTranslator {
 
   private FluentIterable<CFANode> getPredecessorNodes(CFANode pN) {
     FluentIterable<CFANode> predecessors =
-        getRelevantEnteringEdges(pN).transform(e -> e.getPredecessor());
+        getRelevantEnteringEdges(pN).transform(CFAEdge::getPredecessor);
     if (pN.getEnteringSummaryEdge() != null) {
       predecessors = predecessors.append(pN.getEnteringSummaryEdge().getPredecessor());
     }

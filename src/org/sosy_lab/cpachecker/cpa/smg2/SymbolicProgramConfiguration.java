@@ -624,7 +624,7 @@ public class SymbolicProgramConfiguration {
         FluentIterable.concat(
                 globalVariableMapping.values(),
                 FluentIterable.from(stackVariableMapping)
-                    .transformAndConcat(stackFrame -> stackFrame.getAllObjects()))
+                    .transformAndConcat(StackFrame::getAllObjects))
             .toSet();
     SMGObjectsAndValues reachable = smg.collectReachableObjectsAndValues(visibleObjects);
     Set<SMGObject> unreachableObjects =
@@ -634,7 +634,7 @@ public class SymbolicProgramConfiguration {
     // Remove 0 Value and object
     unreachableObjects =
         unreachableObjects.stream()
-            .filter(o -> isObjectValid(o))
+            .filter(this::isObjectValid)
             .collect(ImmutableSet.toImmutableSet());
     unreachableValues =
         unreachableValues.stream().filter(v -> !v.isZero()).collect(ImmutableSet.toImmutableSet());

@@ -975,7 +975,7 @@ public class FormulaManagerView {
    *
    * @param term The term that should be in the range.
    * @param start The inclusive start value of the range.
-   * @param end The exclusive end value of the range.
+   * @param end The inclusive end value of the range.
    * @param signed Whether the arithmetic should be signed or unsigned.
    * @return A BooleanFormula representing a constraint about term.
    */

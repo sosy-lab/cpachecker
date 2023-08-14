@@ -1557,11 +1557,20 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     createLoop(doStatement.getCondition(), fileloc);
 
+    FileLocation dummyLoc = onlyFirstLine(fileloc);
+
+    // Add additional blank edge between the AssumeEdge and the loop head as detected by
+    // LoopStructure. This is not necessary, but works better for analyses that want to re-add the
+    // parents of loop heads to the waitlist, which is problematic if that parent has two outgoing
+    // edges. Cf. #1113 for more information.
+    CFANode firstLoopNode = locStack.pop();
+    CFANode newFirstLoopNode = newCFANode();
+    locStack.push(newFirstLoopNode);
+    addToCFA(new BlankEdge("", dummyLoc, firstLoopNode, newFirstLoopNode, "do"));
+
     // connect CFA with first node inside the loop
     // (so the condition will be skipped in the first iteration)
-    final BlankEdge blankEdge =
-        new BlankEdge("", onlyFirstLine(fileloc), prevNode, locStack.peek(), "do");
-    addToCFA(blankEdge);
+    addToCFA(new BlankEdge("", dummyLoc, prevNode, newFirstLoopNode, "do"));
   }
 
   /**
@@ -1594,6 +1603,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
     CFANode postLoopNode = loopNextStack.peek();
+    if (postLoopNode == null) {
+      throw parseContext.parseError("Invalid 'break' outside loop", breakStatement);
+    }
 
     // on "return" we add the OOSVars after the return edge, because the return can access all vars.
     // on "break" we add the OOSVars before the break edge, because nothing happens along the edge.
@@ -1615,6 +1627,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
     CFANode loopStartNode = loopStartStack.peek();
+    if (loopStartNode == null) {
+      throw parseContext.parseError("Invalid 'continue' outside loop", continueStatement);
+    }
 
     BlankEdge blankEdge =
         new BlankEdge(
@@ -1892,12 +1907,15 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category switchstatement
    */
   private void handleCaseStatement(final IASTCaseStatement statement, FileLocation fileLocation) {
+    if (switchCaseStack.isEmpty()) {
+      throw parseContext.parseError("Invalid 'case' outside switch", statement);
+    }
 
     // condition, right part, "2" or 'a' or 'a'...'c'
     IASTExpression right = statement.getExpression();
 
     CFANode rootNode = switchCaseStack.pop();
-    final CExpression switchExpr = switchExprStack.peek();
+    final CExpression switchExpr = checkNotNull(switchExprStack.peek());
     final CFANode caseNode = newCFANode();
     final CFANode notCaseNode = newCFANode();
     final CFANode nextCaseStartsAtNode;

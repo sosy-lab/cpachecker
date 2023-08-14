@@ -33,10 +33,7 @@ public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
 
   @Override
   public boolean hasNext() {
-    if (current < size) {
-      return true;
-    }
-    return false;
+    return current < size;
   }
 
   @Nullable

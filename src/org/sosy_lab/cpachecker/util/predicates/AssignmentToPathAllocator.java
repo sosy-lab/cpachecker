@@ -148,8 +148,7 @@ public class AssignmentToPathAllocator {
       createAssignments(terms, variableEnvironment, variables, functionEnvironment, memory);
       removeDeallocatedVariables(ssaMap, variableEnvironment, variables);
       ImmutableMap<String, Memory> allocatedMemory =
-          ImmutableMap.copyOf(
-              Maps.transformEntries(memory, (name, heap) -> new Memory(name, heap)));
+          ImmutableMap.copyOf(Maps.transformEntries(memory, Memory::new));
 
       ConcreteState concreteState =
           new ConcreteState(

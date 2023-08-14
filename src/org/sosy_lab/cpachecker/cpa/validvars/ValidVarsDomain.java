@@ -30,9 +30,8 @@ public class ValidVarsDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
       throws CPAException, InterruptedException {
-    if (pState1 instanceof ValidVarsState v1 && pState2 instanceof ValidVarsState v2) {
-      return v1.getValidVariables().isSubsetOf(v2.getValidVariables());
-    }
-    return false;
+    return pState1 instanceof ValidVarsState v1
+        && pState2 instanceof ValidVarsState v2
+        && v1.getValidVariables().isSubsetOf(v2.getValidVariables());
   }
 }

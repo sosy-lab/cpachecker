@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
@@ -311,19 +312,6 @@ abstract class AbstractBMCAlgorithm
         invariantGeneratorShutdownManager =
             ShutdownManager.createWithParent(pShutdownManager.getNotifier());
       }
-      propagateSafetyInterrupt =
-          new ShutdownRequestListener() {
-
-            @Override
-            public void shutdownRequested(String pReason) {
-              if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
-                pShutdownManager.requestShutdown(pReason);
-              }
-            }
-          };
-      invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
-    } else {
-      propagateSafetyInterrupt = null;
     }
 
     if (pIsInvariantGenerator && addInvariantsByInduction) {
@@ -342,7 +330,7 @@ abstract class AbstractBMCAlgorithm
             String.format("Cannot load configuration from file %s", invariantGeneratorConfig), e);
       }
     }
-    invariantGenerator =
+    final InvariantGenerator invGen =
         invariantGenerationStrategy.createInvariantGenerator(
             invGenConfig,
             pLogger,
@@ -352,6 +340,19 @@ abstract class AbstractBMCAlgorithm
             pSpecification,
             pAggregatedReachedSets,
             targetLocationProvider);
+    // do not inline invGen, we need a local final variable for the ShutdownRequestListener
+    invariantGenerator = invGen;
+    if (addInvariantsByInduction) {
+      propagateSafetyInterrupt =
+          pReason -> {
+            if (invGen.isProgramSafe()) {
+              pShutdownManager.requestShutdown(pReason);
+            }
+          };
+      invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
+    } else {
+      propagateSafetyInterrupt = null;
+    }
     if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
       conditionAdjustmentEventSubscribers.add(
           (ConditionAdjustmentEventSubscriber) invariantGenerator);
@@ -864,18 +865,17 @@ abstract class AbstractBMCAlgorithm
     try {
       Set<ARGState> targetStates =
           from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
-      redundantStates.forEach(
-          state -> {
-            state.removeFromARG();
-          });
+      Set<ARGState> redundantStates = filterAncestors(targetStates);
+      redundantStates.forEach(ARGState::removeFromARG);
       pReachedSet.removeAll(redundantStates);
 
       try (Model model = pProver.getModel()) {
         ARGState root = (ARGState) pReachedSet.getFirstState();
 
         try {
-          targetPath = pmgr.getARGPathFromModel(model, root);
+          targetPath =
+              pmgr.getARGPathFromModel(
+                  model, root, ARGUtils.getAllStatesOnPathsTo(targetStates)::contains);
         } catch (IllegalArgumentException e) {
           logger.logUserException(Level.WARNING, e, "Could not create error path");
           return Optional.empty();
@@ -1214,7 +1214,7 @@ abstract class AbstractBMCAlgorithm
       reachedK = ImmutableMap.of();
     }
     int finalMaxK = maxK;
-    return (candidate) -> {
+    return candidate -> {
       if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
         return true;
       }
@@ -1363,17 +1363,20 @@ abstract class AbstractBMCAlgorithm
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Obligation other) {
+
+      if (pOther instanceof Obligation other
+          && blockingClause.equals(other.blockingClause)
+          && weakenings.equals(other.weakenings)) {
+
+        // If we have a causing obligation we can just delegate the rest to it.
         if (causingObligation == null) {
           return other.causingObligation == null
-              && causingCandidateInvariant.equals(other.causingCandidateInvariant)
-              && blockingClause.equals(other.blockingClause)
-              && weakenings.equals(other.weakenings);
+              && causingCandidateInvariant.equals(other.causingCandidateInvariant);
+        } else {
+          return causingObligation.equals(other.causingObligation);
         }
-        return causingObligation.equals(other.causingObligation)
-            && blockingClause.equals(other.blockingClause)
-            && weakenings.equals(other.weakenings);
       }
+
       return false;
     }
 
@@ -1446,13 +1449,7 @@ abstract class AbstractBMCAlgorithm
 
       @Override
       public InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
-        return new InvariantGeneratorHeadStart() {
-
-          @Override
-          public void waitForInvariantGenerator() throws InterruptedException {
-            // Return immediately
-          }
-        };
+        return () -> {}; // Returns immediately
       }
     },
 

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -51,17 +51,26 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public abstract class PathTranslator {
 
   protected static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
     // We assume, that each node has one location.
     // TODO: the location is invalid for all concurrent programs,
-    //       because interleaving threads are not handled.
+    // because interleaving threads are not handled.
     return FluentIterable.from(extractLocations(state))
         .filter(CFunctionEntryNode.class)
         .first()
         .orNull();
+  }
+
+  protected static AFunctionDeclaration extractFunctionDeclaration(ARGState state) {
+    // We assume, that each node has one location.
+    // TODO: the location is invalid for all concurrent programs,
+    //       because interleaving threads are not handled.
+    AFunctionDeclaration funcDec = AbstractStates.extractLocation(state).getFunction();
+    return funcDec;
   }
 
   protected final List<String> mGlobalDefinitionsList = new ArrayList<>();
@@ -160,12 +169,10 @@ public abstract class PathTranslator {
   protected String startFunction(
       ARGState firstFunctionElement, Deque<FunctionBody> functionStack, CFANode predecessor) {
     // create the first stack element using the first element of the function
-    CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
-    String freshFunctionName = getFreshFunctionName(functionStartNode);
+    AFunctionDeclaration functionDeclaration = extractFunctionDeclaration(firstFunctionElement);
 
-    String lFunctionHeader =
-        functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
-    // lFunctionHeader is for example "void foo_99(int a)"
+    String freshFunctionName = getFreshFunctionName(functionDeclaration);
+    String lFunctionHeader = functionDeclaration.getType().toASTString(freshFunctionName);
 
     // create a new function
     FunctionBody newFunction = new FunctionBody(firstFunctionElement.getStateId(), lFunctionHeader);
@@ -470,8 +477,8 @@ public abstract class PathTranslator {
     }
   }
 
-  protected final String getFreshFunctionName(FunctionEntryNode functionStartNode) {
-    return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
+  protected final String getFreshFunctionName(AFunctionDeclaration pFunctionDeclaration) {
+    return pFunctionDeclaration.getQualifiedName() + "_" + mFunctionIndex++;
   }
 
   private Deque<FunctionBody> cloneStack(Deque<FunctionBody> pStack) {

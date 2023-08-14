@@ -180,7 +180,7 @@ public final class ExpressionTrees {
 
   public static <LeafType> Iterable<ExpressionTree<LeafType>> traverseRecursively(
       ExpressionTree<LeafType> pExpressionTree) {
-    return Traverser.<ExpressionTree<LeafType>>forTree(node -> getChildren(node))
+    return Traverser.<ExpressionTree<LeafType>>forTree(ExpressionTrees::getChildren)
         .depthFirstPreOrder(pExpressionTree);
   }
 
@@ -193,7 +193,7 @@ public final class ExpressionTrees {
             // A clause may be a single literal or a disjunction of literals
             assert getChildren(pAnd).allMatch(pClause -> !isAnd(pClause))
                 : "A conjunction must not contain child conjunctions";
-            return getChildren(pAnd).allMatch(pClause -> isCNFClause(pClause));
+            return getChildren(pAnd).allMatch(ExpressionTrees::isCNFClause);
           }
 
           @Override
@@ -237,7 +237,7 @@ public final class ExpressionTrees {
             // A clause may be a single literal or a conjunction of literals
             assert getChildren(pOr).allMatch(pClause -> !isOr(pClause))
                 : "A disjunction must not contain child disjunctions";
-            return getChildren(pOr).allMatch(pClause -> isDNFClause(pClause));
+            return getChildren(pOr).allMatch(ExpressionTrees::isDNFClause);
           }
 
           @Override
@@ -267,7 +267,7 @@ public final class ExpressionTrees {
       return pExpressionTree;
     }
     if (isOr(pExpressionTree)) {
-      return Or.of(getChildren(pExpressionTree).transform(pExprTree -> toDNF(pExprTree)));
+      return Or.of(getChildren(pExpressionTree).transform(ExpressionTrees::toDNF));
     }
     assert isAnd(pExpressionTree);
     Iterator<ExpressionTree<LeafType>> elementIterator = getChildren(pExpressionTree).iterator();
@@ -309,7 +309,7 @@ public final class ExpressionTrees {
       return pExpressionTree;
     }
     if (isAnd(pExpressionTree)) {
-      return And.of(getChildren(pExpressionTree).transform(pExprTree -> toCNF(pExprTree)));
+      return And.of(getChildren(pExpressionTree).transform(ExpressionTrees::toCNF));
     }
     assert isOr(pExpressionTree);
     Iterator<ExpressionTree<LeafType>> elementIterator = getChildren(pExpressionTree).iterator();

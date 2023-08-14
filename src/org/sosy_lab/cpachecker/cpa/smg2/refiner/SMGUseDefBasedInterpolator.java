@@ -194,7 +194,8 @@ public class SMGUseDefBasedInterpolator {
         null,
         null,
         (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
-        ImmutableSet.of());
+        ImmutableSet.of(),
+        ImmutableList.of());
   }
 
   /**

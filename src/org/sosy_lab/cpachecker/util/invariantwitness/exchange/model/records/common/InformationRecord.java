@@ -45,14 +45,11 @@ public class InformationRecord {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o) {
       return true;
     }
-    if (!(o instanceof InformationRecord)) {
-      return false;
-    }
-    InformationRecord invariantStoreEntryLoopInvariant = (InformationRecord) o;
-    return string.equals(invariantStoreEntryLoopInvariant.string)
+    return o instanceof InformationRecord invariantStoreEntryLoopInvariant
+        && string.equals(invariantStoreEntryLoopInvariant.string)
         && type.equals(invariantStoreEntryLoopInvariant.type)
         && format.equals(invariantStoreEntryLoopInvariant.format);
   }

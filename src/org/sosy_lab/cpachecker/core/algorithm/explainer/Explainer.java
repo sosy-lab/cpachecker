@@ -158,7 +158,7 @@ public class Explainer extends NestingAlgorithm {
             .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
             .filter(x -> x.getChildren().isEmpty())
             .filter(x -> !x.isTarget())
-            .filter(x -> x.wasExpanded())
+            .filter(ARGState::wasExpanded)
             .toList();
 
     ARGState rootNode =

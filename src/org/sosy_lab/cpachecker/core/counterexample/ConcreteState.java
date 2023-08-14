@@ -100,7 +100,7 @@ public final class ConcreteState {
     variableAddressMap = ImmutableMap.of();
     allocatedMemory = ImmutableMap.of();
     variables = ImmutableMap.of();
-    memoryNameAllocator = (pExp) -> "";
+    memoryNameAllocator = pExp -> "";
     analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
     machineModel = null;
   }

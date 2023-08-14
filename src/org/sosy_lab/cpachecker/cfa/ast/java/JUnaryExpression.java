@@ -84,10 +84,6 @@ public final class JUnaryExpression extends AUnaryExpression implements JExpress
       return true;
     }
 
-    if (!(obj instanceof JUnaryExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JUnaryExpression && super.equals(obj);
   }
 }

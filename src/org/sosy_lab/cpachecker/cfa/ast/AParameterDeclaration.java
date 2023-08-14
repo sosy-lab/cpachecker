@@ -50,10 +50,6 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
       return true;
     }
 
-    if (!(obj instanceof AParameterDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof AParameterDeclaration && super.equals(obj);
   }
 }

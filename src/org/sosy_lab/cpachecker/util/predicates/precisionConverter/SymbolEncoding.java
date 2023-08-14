@@ -115,14 +115,14 @@ public class SymbolEncoding {
     decls = getAllDeclarations(pCfa.nodes());
     machineModel = pCfa.getMachineModel();
 
-    encodedSymbols.put("true", new Type<FormulaType<?>>(FormulaType.BooleanType));
-    encodedSymbols.put("false", new Type<FormulaType<?>>(FormulaType.BooleanType));
+    encodedSymbols.put("true", new Type<>(FormulaType.BooleanType));
+    encodedSymbols.put("false", new Type<>(FormulaType.BooleanType));
   }
 
   private final Map<String, Type<FormulaType<?>>> encodedSymbols = new HashMap<>();
 
   public void put(String symbol, int length) {
-    put(symbol, new Type<FormulaType<?>>(getBitvectorTypeWithSize(length)));
+    put(symbol, new Type<>(getBitvectorTypeWithSize(length)));
   }
 
   public void put(String symbol, FormulaType<?> pReturnType, ImmutableList<FormulaType<?>> pArgs) {
@@ -280,14 +280,11 @@ public class SymbolEncoding {
       return returnType + " " + parameterTypes;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object other) {
-      if (other instanceof Type) {
-        Type<T> t = (Type<T>) other;
-        return returnType.equals(t.returnType) && parameterTypes.equals(t.parameterTypes);
-      }
-      return false;
+      return other instanceof Type<?> t
+          && returnType.equals(t.returnType)
+          && parameterTypes.equals(t.parameterTypes);
     }
 
     @Override

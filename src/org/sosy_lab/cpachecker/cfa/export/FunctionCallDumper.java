@@ -113,17 +113,19 @@ public final class FunctionCallDumper {
       final Set<String> functionNames,
       final String calleeFunctionName,
       final String callee) {
-    String label = calleeFunctionName;
+    StringBuilder label = new StringBuilder(calleeFunctionName);
     Collection<String> origNames = finder.originalNames.get(calleeFunctionName);
     origNames.remove(calleeFunctionName);
     if (!origNames.isEmpty()) {
-      label += "\\n(" + Joiner.on(", ").join(origNames) + ")";
+      label.append("\\n(");
+      Joiner.on(", ").appendTo(label, origNames);
+      label.append(")");
     }
     // different format for call to external function
     final String format =
         functionNames.contains(calleeFunctionName) ? "" : "shape=\"box\", color=grey";
     return String.format(
-        "%s [label=\"%s\", %s];%n", callee, escapeGraphvizLabel(label, " "), format);
+        "%s [label=\"%s\", %s];%n", callee, escapeGraphvizLabel(label.toString(), " "), format);
   }
 
   /**

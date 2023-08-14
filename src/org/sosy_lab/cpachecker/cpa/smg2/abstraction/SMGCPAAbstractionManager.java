@@ -409,7 +409,7 @@ public class SMGCPAAbstractionManager {
                 candi.getSuspectedNfo(),
                 finalCandidates,
                 pState,
-                new HashSet<SMGObject>());
+                new HashSet<>());
       }
     }
     return finalCandidates;

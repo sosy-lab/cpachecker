@@ -1274,8 +1274,8 @@ public class CFloatImpl extends CFloat {
 
       man &= intMask;
 
-      long carryMask;
-      if ((carryMask = ((intMask >> 1) & fractionalPart)) != 0) {
+      long carryMask = ((intMask >> 1) & fractionalPart);
+      if (carryMask != 0) {
         man += (carryMask << 1);
         if ((man & intMask) == 0) {
           exp++;

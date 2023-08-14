@@ -927,10 +927,9 @@ public class HarnessExporter {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof State other) {
-        return argState.equals(other.argState) && testVector.equals(other.testVector);
-      }
-      return false;
+      return pObj instanceof State other
+          && argState.equals(other.argState)
+          && testVector.equals(other.testVector);
     }
 
     @Override

@@ -599,11 +599,39 @@ public class CFAUtils {
     return blankPaths;
   }
 
+  /** Sees whether the file locations of two {@link CFANode} are disjoint or not. */
+  public static boolean disjointFileLocations(CFANode pNode1, CFANode pNode2) {
+    Set<FileLocation> allFileLocationFirstNode =
+        FluentIterable.concat(
+                CFAUtils.allEnteringEdges(pNode1)
+                    .append(CFAUtils.allLeavingEdges(pNode1))
+                    .transform(e -> CFAUtils.getFileLocationsFromCfaEdge(e)))
+            .toSet();
+    Set<FileLocation> allFileLocationSecondtNode =
+        FluentIterable.concat(
+                CFAUtils.allEnteringEdges(pNode2)
+                    .append(CFAUtils.allLeavingEdges(pNode2))
+                    .transform(e -> CFAUtils.getFileLocationsFromCfaEdge(e)))
+            .toSet();
+
+    for (FileLocation file1 : allFileLocationFirstNode) {
+      for (FileLocation file2 : allFileLocationSecondtNode) {
+        // Check if the ranges overlap
+        if (file1.getStartingLineInOrigin() <= file2.getEndingLineInOrigin()
+            && file1.getEndingLineInOrigin() >= file2.getStartingLineInOrigin()) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   /** Get all {@link FileLocation} objects that are attached to an edge or its AST nodes. */
   public static ImmutableSet<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
     ImmutableSet<FileLocation> result =
         from(getAstNodesFromCfaEdge(pEdge))
-            .transformAndConcat(node -> traverseRecursively(node))
+            .transformAndConcat(CFAUtils::traverseRecursively)
             .transform(AAstNode::getFileLocation)
             .append(pEdge.getFileLocation())
             .filter(FileLocation::isRealLocation)

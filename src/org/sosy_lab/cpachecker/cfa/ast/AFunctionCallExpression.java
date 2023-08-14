@@ -85,13 +85,9 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
       return true;
     }
 
-    if (!(obj instanceof AFunctionCallExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AFunctionCallExpression other = (AFunctionCallExpression) obj;
-
-    return Objects.equals(other.declaration, declaration)
+    return obj instanceof AFunctionCallExpression other
+        && super.equals(obj)
+        && Objects.equals(other.declaration, declaration)
         && Objects.equals(other.functionName, functionName)
         && Objects.equals(other.parameters, parameters);
   }

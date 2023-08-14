@@ -20,9 +20,6 @@ public class CHCPrecision implements Precision {
   }
 
   public boolean isDisabled() {
-    if (Vars == null) {
-      return true;
-    }
-    return false;
+    return Vars == null;
   }
 }

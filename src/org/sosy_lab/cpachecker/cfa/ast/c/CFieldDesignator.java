@@ -65,12 +65,8 @@ public final class CFieldDesignator extends CDesignator {
       return true;
     }
 
-    if (!(obj instanceof CFieldDesignator) || !super.equals(obj)) {
-      return false;
-    }
-
-    CFieldDesignator other = (CFieldDesignator) obj;
-
-    return Objects.equals(other.name, name);
+    return obj instanceof CFieldDesignator other
+        && super.equals(obj)
+        && Objects.equals(other.name, name);
   }
 }

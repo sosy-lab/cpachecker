@@ -1,0 +1,67 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: violation_sequence
+  metadata:
+    format_version: 0.1
+    uuid: 91023a0f-9f45-4385-88c4-1152ade45537
+    creation_time: 2021-05-05T15:18:43+02:00
+    producer:
+      name: CPAchecker
+      version: 2.0.1-svn
+      configuration: (Optional) svcomp21--04-kInduction
+      description: (Optional)
+      command_line: (Optional)
+    task:
+      input_files: 
+        - multivar_1-1.c
+      input_file_hashes:
+        multivar_1-1.c: 511f45a8d763ef520f6d92e4135c8572805994a66531c6216b17157d0dde2f9c
+      specification: CHECK( init(main()), LTL(G ! call(reach_error())) )
+      data_model: 32bit
+      language: C
+  sequence:
+    - type: assumption
+      location:
+        file_name: multivar_1-1.c
+        line: 22
+        column: 0
+        function: main
+      constraint:
+        string: (x >= 1024U)
+        format: C
+    - type: branching
+      location:
+        file_name: multivar_1-1.c
+        line: 23
+      constraint:
+        string: true
+    - action: avoid
+      type: assumption
+      location:
+        file_name: multivar_1-1.c
+        line: 24
+      constraint:
+        string: x > 2
+        format: C
+    - type: function_return
+      location:
+        file_name: multivar_1-1.c
+        line: 25
+        function: main
+      constraint:
+        string: \return == 4
+    - type: identifier_evaluation
+      location:
+        file_name: multivar_1-1.c
+        line: 25
+    - action: target
+      location:
+        file_name: multivar_1-1.c
+        line: 26
+

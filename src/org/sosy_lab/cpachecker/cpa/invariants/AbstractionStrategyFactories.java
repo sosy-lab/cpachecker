@@ -390,12 +390,10 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
               if (this == pO) {
                 return true;
               }
-              if (pO instanceof EnteringEdgesBasedAbstractionState other) {
-                return wideningTargets.equals(other.wideningTargets)
-                    && visitedEdges.equals(other.visitedEdges)
-                    && wideningHints.equals(other.wideningHints);
-              }
-              return false;
+              return pO instanceof EnteringEdgesBasedAbstractionState other
+                  && wideningTargets.equals(other.wideningTargets)
+                  && visitedEdges.equals(other.visitedEdges)
+                  && wideningHints.equals(other.wideningHints);
             }
 
             @Override

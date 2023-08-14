@@ -41,6 +41,7 @@ public class ValueAndValueSize {
 
   @Override
   public boolean equals(Object other) {
+    // FIXME violates contract because null check is not symmetric
     if (!(other instanceof ValueAndValueSize)) {
       return false;
     }

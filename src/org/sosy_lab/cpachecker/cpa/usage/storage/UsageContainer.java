@@ -68,10 +68,10 @@ public class UsageContainer {
 
   public UsageContainer(UsageConfiguration config, LogManager l, UnsafeDetector unsafeDetector) {
     this(
-        new TreeMap<SingleIdentifier, UnrefinedUsagePointSet>(),
-        new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeSet<SingleIdentifier>(),
+        new TreeMap<>(),
+        new TreeMap<>(),
+        new TreeMap<>(),
+        new TreeSet<>(),
         l,
         config,
         unsafeDetector);

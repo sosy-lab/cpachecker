@@ -69,10 +69,6 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
       return true;
     }
 
-    if (!(obj instanceof CFunctionCallAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CFunctionCallAssignmentStatement && super.equals(obj);
   }
 }

@@ -220,7 +220,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
       throws InterruptedException {
     // TODO do we really want to/need to start skipping at the beginning?
     return new ModificationsPropState(
-        node, cfaOrig.getMainFunction(), ImmutableSet.of(), new ArrayDeque<CFANode>(), helper);
+        node, cfaOrig.getMainFunction(), ImmutableSet.of(), new ArrayDeque<>(), helper);
   }
 
   @Override
@@ -290,8 +290,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
                 .filter(state -> ((ARGState) state).isTarget())
                 .transform(state -> (ARGState) state)
                 .toList();
-        return transformedImmutableSetCopy(
-            errorStates, errorState -> AbstractStates.extractLocation(errorState));
+        return transformedImmutableSetCopy(errorStates, AbstractStates::extractLocation);
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
         logger.logException(Level.SEVERE, e, "Failed to determine relevant edges");
       }

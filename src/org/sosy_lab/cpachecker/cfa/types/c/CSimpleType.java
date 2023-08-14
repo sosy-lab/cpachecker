@@ -138,17 +138,12 @@ public final class CSimpleType implements CType, Serializable {
    */
   @Override
   public boolean equals(@Nullable Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CSimpleType)) {
-      return false;
-    }
-
-    CSimpleType other = (CSimpleType) obj;
-
-    return isComplex == other.isComplex
+    return obj instanceof CSimpleType other
+        && isComplex == other.isComplex
         && isConst == other.isConst
         && isVolatile == other.isVolatile
         && isImaginary == other.isImaginary

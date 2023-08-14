@@ -58,16 +58,12 @@ public final class CArrayDesignator extends CDesignator {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CArrayDesignator) || !super.equals(obj)) {
-      return false;
-    }
-
-    CArrayDesignator other = (CArrayDesignator) obj;
-
-    return Objects.equals(other.subscriptExpression, subscriptExpression);
+    return obj instanceof CArrayDesignator other
+        && super.equals(obj)
+        && Objects.equals(other.subscriptExpression, subscriptExpression);
   }
 }

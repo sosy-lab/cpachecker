@@ -156,7 +156,7 @@ public class IntConverter extends Converter {
 
   @Override
   public Pair<String, Type<FormulaType<?>>> convertNumeral(String num) {
-    return Pair.of(num, new Type<FormulaType<?>>(FormulaType.IntegerType));
+    return Pair.of(num, new Type<>(FormulaType.IntegerType));
   }
 
   @Override
@@ -187,8 +187,7 @@ public class IntConverter extends Converter {
         && terms.get(0).getFirst().startsWith("bv")) {
       // we convert "(_ bvN L)" into "N" and ignore the bit-length L.
       assert op.getSecond() == null : "type of BV-NUMBER should be unknown.";
-      return Pair.of(
-          terms.get(0).getFirst().substring(2), new Type<FormulaType<?>>(FormulaType.IntegerType));
+      return Pair.of(terms.get(0).getFirst().substring(2), new Type<>(FormulaType.IntegerType));
 
     } else if (terms.size() == 1 && unaryOps.containsKey(op.getFirst())) {
       return Pair.of(
@@ -230,14 +229,14 @@ public class IntConverter extends Converter {
       }
       return Pair.of(
           format("(ite %s %s %s)", cond.getFirst(), eIf.getFirst(), eElse.getFirst()),
-          new Type<FormulaType<?>>(type));
+          new Type<>(type));
 
     } else if (binBooleanOps.contains(op.getFirst())) {
       return Pair.of(
           format(
               "(%s %s)",
               op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
-          new Type<FormulaType<?>>(FormulaType.BooleanType));
+          new Type<>(FormulaType.BooleanType));
 
     } else if (symbolEncoding.containsSymbol(op.getFirst())) {
       // UF --> cast every parameter to correct bitsize

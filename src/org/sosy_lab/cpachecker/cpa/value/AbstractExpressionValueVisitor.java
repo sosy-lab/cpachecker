@@ -1564,8 +1564,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       // TODO rewrite CEnumerator to handle abstract type Value and not just Long
       return new NumericValue(enumerator.getValue());
     }

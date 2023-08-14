@@ -76,12 +76,10 @@ public class PartialEvaluator
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof PartialEvaluator other) {
-      return compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory)
-          && compoundIntervalFormulaManager.equals(other.compoundIntervalFormulaManager)
-          && environment.equals(other.environment);
-    }
-    return false;
+    return pObj instanceof PartialEvaluator other
+        && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory)
+        && compoundIntervalFormulaManager.equals(other.compoundIntervalFormulaManager)
+        && environment.equals(other.environment);
   }
 
   @Override

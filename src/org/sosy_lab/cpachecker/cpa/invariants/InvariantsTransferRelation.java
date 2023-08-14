@@ -376,8 +376,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (pEdge.getStatement() instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) pEdge.getStatement();
+    if (pEdge.getStatement() instanceof CAssignment assignment) {
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();

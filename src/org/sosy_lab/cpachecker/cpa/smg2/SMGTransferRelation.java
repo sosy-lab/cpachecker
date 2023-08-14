@@ -725,7 +725,7 @@ public class SMGTransferRelation
           builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
     }
     return Collections3.transformedImmutableListCopy(
-        uselessValuesAndStates, valAndState -> valAndState.getState());
+        uselessValuesAndStates, ValueAndSMGState::getState);
   }
 
   @Override

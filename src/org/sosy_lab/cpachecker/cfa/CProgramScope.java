@@ -655,7 +655,7 @@ public class CProgramScope implements Scope {
                   CIdExpression idExpression = (CIdExpression) astNode;
                   return idExpression.getDeclaration();
                 },
-                astNode -> astNode.getFileLocation()));
+                CAstNode::getFileLocation));
   }
 
   private static <T extends CType> void putIfUnique(

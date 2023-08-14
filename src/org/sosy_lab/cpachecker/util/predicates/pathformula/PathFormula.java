@@ -115,12 +115,8 @@ public final class PathFormula implements Serializable {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof PathFormula)) {
-      return false;
-    }
-
-    PathFormula other = (PathFormula) obj;
-    return (length == other.length)
+    return obj instanceof PathFormula other
+        && (length == other.length)
         && formula.equals(other.formula)
         && ssa.equals(other.ssa)
         && pts.equals(other.pts);

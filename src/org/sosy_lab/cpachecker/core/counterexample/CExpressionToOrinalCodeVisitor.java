@@ -183,21 +183,21 @@ public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String
       return substitute;
     }
 
-    String suffix = "";
+    StringBuilder result = new StringBuilder(pIntegerLiteralExpression.getValue().toString());
 
     CType cType = pIntegerLiteralExpression.getExpressionType();
     if (cType instanceof CSimpleType type) {
       if (type.isUnsigned()) {
-        suffix += "U";
+        result.append("U");
       }
       if (type.isLong()) {
-        suffix += "L";
+        result.append("L");
       } else if (type.isLongLong()) {
-        suffix += "LL";
+        result.append("LL");
       }
     }
 
-    return pIntegerLiteralExpression.getValue().toString() + suffix;
+    return result.toString();
   }
 
   @Override
@@ -207,7 +207,7 @@ public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String
       return substitute;
     }
     // Includes quotation marks
-    return pStringLiteralExpression.getValue();
+    return pStringLiteralExpression.toASTString();
   }
 
   @Override

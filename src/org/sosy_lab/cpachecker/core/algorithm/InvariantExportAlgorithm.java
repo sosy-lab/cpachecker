@@ -45,6 +45,17 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWr
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 
+/**
+ * Rudimentary version of InvariantExportAlgorithm.
+ *
+ * <p>The algorithm basically mimics BMC with auxiliary invariants, but exports them instead of
+ * using them for BMC. The goal is to use the invariants for coop. verification (through the
+ * invariant store).
+ *
+ * <p>The algorithm is rudimentary because it is only a proof of concept impl. Most missing parts
+ * are marked with todo comments in the code. There is an example configuration
+ * (invariantExport.prop) for trying out the new algorithm.
+ */
 @Options(prefix = "invariantStore")
 public class InvariantExportAlgorithm implements Algorithm {
 
@@ -104,23 +115,18 @@ public class InvariantExportAlgorithm implements Algorithm {
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
     generator.start(cfa.getMainFunction());
-    try {
-      // TODO replace polling with a smarter strategy!
-      for (int i = 0; i < Integer.MAX_VALUE; i++) {
-        handleNewInvariants();
-
-        Thread.sleep(2000);
-      }
+    // TODO replace polling with a smarter strategy!
+    for (int i = 0; i < Integer.MAX_VALUE; i++) {
       handleNewInvariants();
-    } catch (IOException e) {
-      logger.logException(Level.SEVERE, e, "Cannot write inavariant witnesses");
-      generator.cancel();
+
+      Thread.sleep(2000);
     }
+    handleNewInvariants();
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void handleNewInvariants() throws IOException, InterruptedException {
+  private void handleNewInvariants() throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     if (!generator.isStarted()) {
       return;
@@ -153,7 +159,7 @@ public class InvariantExportAlgorithm implements Algorithm {
     return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 
-  private void exportWitnesses(final Set<InvariantWitness> witnesses) throws IOException {
+  private void exportWitnesses(final Set<InvariantWitness> witnesses) {
     // TODO: Possibly run multithreaded ?
     if (witnesses.isEmpty()) {
       return;
