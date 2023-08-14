@@ -320,6 +320,18 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     throws InterruptedException, SolverException {
     BooleanFormula forwardImage = pDualSequence.getForwardReachVector().get(0);
     BooleanFormula backwardImage = pDualSequence.getBackwardReachVector().get(0);
+    for (int i = 1; i < pDualSequence.getSize(); i++){
+      // SSA map went wrong and we computed wrongly backward sequence
+      //if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
+      //  isDAREnabled = false;
+      //  return false;
+      //}
+      if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
+        finalFixedPoint = backwardImage;
+        return true;
+      }
+      backwardImage = bfmgr.or(pDualSequence.getBackwardReachVector().get(i), backwardImage);
+    }
 
     for (int i = 1; i < pDualSequence.getSize(); i++){
       if (solver.implies(pDualSequence.getForwardReachVector().get(i), forwardImage)){
@@ -328,25 +340,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       forwardImage = bfmgr.or(pDualSequence.getForwardReachVector().get(i), forwardImage);
     }
-    for (int i = 1; i < pDualSequence.getSize(); i++){
-      // SSA map went wrong and we computed wrongly backward sequence
-      if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
-        isDAREnabled = false;
-        return false;
-      }
-      if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
-        finalFixedPoint = backwardImage;
-        return true;
-      }
-      backwardImage = bfmgr.or(pDualSequence.getBackwardReachVector().get(i), backwardImage);
-    }
     return false;
   }
 
   private void initializeBRS
       (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
     BooleanFormula assertionFormula = pPartitionedFormulas.getAssertionFormula();
-    //assertionFormula = fmgr.uninstantiate(assertionFormula);
     pDualSequence.increaseBackwardReachVector(assertionFormula);
   }
   private void initializeFRS

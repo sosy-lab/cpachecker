@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -51,7 +52,7 @@ class PartitionedFormulas {
   private boolean isInitialized;
   private BooleanFormula prefixFormula;
   private SSAMap prefixSsaMap;
-  private ImmutableList<SSAMap>  loopFormulasSsaMap;
+  private List<SSAMap>  loopFormulasSsaMap;
   private ImmutableList<BooleanFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
@@ -64,7 +65,7 @@ class PartitionedFormulas {
     isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
-    loopFormulasSsaMap = ImmutableList.of();
+    loopFormulasSsaMap = new ArrayList<>();
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
   }
@@ -147,11 +148,8 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
-    loopFormulasSsaMap =
-        transformedImmutableListCopy(
-            abstractionStates.subList(2, abstractionStates.size() - 1),
-            absState ->
-                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
+    loopFormulasSsaMap.add(InterpolationHelper
+        .getPredicateAbstractionBlockFormula(targetStatesAfterLoop.stream().toList().get(0)).getSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
