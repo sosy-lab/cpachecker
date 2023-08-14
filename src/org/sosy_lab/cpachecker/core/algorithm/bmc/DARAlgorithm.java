@@ -328,7 +328,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       forwardImage = bfmgr.or(pDualSequence.getForwardReachVector().get(i), forwardImage);
     }
-
+    /*
     for (int i = 1; i < pDualSequence.getSize(); i++){
       if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
         finalFixedPoint = backwardImage;
@@ -336,6 +336,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       backwardImage = bfmgr.or(pDualSequence.getBackwardReachVector().get(i), backwardImage);
     }
+    */
     return false;
   }
 
