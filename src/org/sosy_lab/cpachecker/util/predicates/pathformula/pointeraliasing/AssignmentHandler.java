@@ -398,7 +398,7 @@ class AssignmentHandler {
                 lhsBaseResolutionMap,
                 rhsBaseResolutionMap);
         // Assigning a field of a struct
-        if (!(lhsSlice.modifiers().isEmpty())) {
+        if (!lhsSlice.modifiers().isEmpty()) {
           final ResolvedSlice lhsResolved =
               assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
                   resolvedLhsBase, lhsSlice);
