@@ -141,9 +141,8 @@ public class BackwardBMCAlgorithm implements Algorithm {
         if (loopHeadsSafe) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-      }
-      // target not safe: found error path
-      else {
+      } else {
+        // target not safe: found error path
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
 
