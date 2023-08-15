@@ -47,8 +47,8 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
     return PointerTargetSet.emptyPointerTargetSet();
   }
 
-  public List<String> getViolations() {
-    return (List) getPayload().get("violations"); //TODO ändern sehr schlecht!
+  public String getViolations() {
+    return Objects.requireNonNull(getPayload().get("violations")).toString(); //TODO ändern sehr schlecht!
   }
 
   public boolean isFirst() {

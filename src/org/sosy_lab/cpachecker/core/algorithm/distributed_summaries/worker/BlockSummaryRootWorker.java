@@ -48,7 +48,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private final AbstractState topState;
   private boolean shutdown;
   private final boolean defaultRootWorker;
-  public Set<List<String>> collectedBlockSummaryErrorMessages = new HashSet<>();
+  public Set<String> collectedBlockSummaryErrorMessages = new HashSet<>();
 
   BlockSummaryRootWorker(
       String pId,
@@ -107,6 +107,11 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
           collectedBlockSummaryErrorMessages.add(
               ((BlockSummaryErrorConditionMessage) pMessage).getViolations());
           //getLogger().log(Level.INFO,collectedBlockSummaryErrorMessages);
+        }
+        else{
+          if (processing.end()) {
+            yield processing;
+          }
         }
         yield ImmutableSet.of(
             BlockSummaryMessage.newResultMessage(

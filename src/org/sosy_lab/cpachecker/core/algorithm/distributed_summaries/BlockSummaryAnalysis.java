@@ -232,7 +232,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           new BlockSummaryWorkerBuilder(
                   cfa,
                   new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
-                  specification,configuration)
+                  specification, configuration)
               .createAdditionalConnections(1)
               .addRootWorker(blockGraph.getRoot(), options);
       for (BlockNode distinctNode : blocks) {
