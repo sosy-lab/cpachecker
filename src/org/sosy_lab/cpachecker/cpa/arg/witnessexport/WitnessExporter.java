@@ -231,22 +231,19 @@ public class WitnessExporter {
   }
 
   protected boolean isBackward(ARGState pRootState) {
-    boolean backwardARG = false;
     CFANode rootNode = AbstractStates.extractLocation(pRootState);
     Iterator<ARGState> rootChildren = pRootState.getChildren().iterator();
 
     // Check if any child node has a leaving edge to the root node
-    outer:
     while (rootChildren.hasNext()) {
       CFANode childNode = AbstractStates.extractLocation(rootChildren.next());
       for (CFANode childSuc : CFAUtils.successorsOf(childNode)) {
         if (childSuc.equals(rootNode)) {
-          backwardARG = true;
-          break outer;
+          return true;
         }
       }
     }
 
-    return backwardARG;
+    return false;
   }
 }
