@@ -192,7 +192,7 @@ public class TestTargetProvider implements Statistics {
         initialTestTargets.isEmpty() ? 0 : (double) numCovered / initialTestTargets.size();
     pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
     if (numNonOptimizedTargets >= 0) {
-      pOut.println("Number of total test targets before optimization: " + numNonOptimizedTargets);
+      pOut.println("Number of total original test targets: " + numNonOptimizedTargets);
       if (trackCoverageOfRedundantTargets) {
         pOut.println(
             "Number of covered original test targets:"
