@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -317,9 +318,8 @@ public class DCPAAlgorithm {
                 .addAllEntries(initial)
                 .addEntry(
                     "violations",
-                    FluentIterable.from(violations)
-                        .transform(v -> AbstractStates.extractLocation(v))
-                        .toList())
+                    transformedImmutableListCopy(
+                        violations, v -> AbstractStates.extractLocation(v)))
                 .buildPayload();
       }
       answers.add(
