@@ -238,7 +238,8 @@ public class CExpressionInvariantExporter {
             }
             output.append(line).append('\n');
           }
-          logger.log(Level.INFO, "Added " + numInvariants + " invariants to " + fileName);
+          logger.log(
+              Level.INFO, "Added " + numInvariants + " invariants to " + sourceFile.getFileName());
         }
       }
     }
