@@ -183,6 +183,10 @@ algorithm.parallelBam.runningRSESeriesFile = "RSESeries.csv"
 # has finished, works only with PredicateCPA
 analysis.algorithm.BMC = false
 
+# use a backwards BMC like algorithm that checks for satisfiability after the
+# analysis has finished, works only with PredicateCPA
+analysis.algorithm.BackwardBMC = false
+
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
@@ -332,6 +336,14 @@ analysis.interprocedural = true
 
 # Runs an algorithm that produces and exports invariants
 analysis.invariantExport = false
+
+# for benchmarking, the argument to -spec needs to be defined in the task
+# definitions. However, the goal of the backwards analysis is mostly not
+# equivalent to the defined specifications in the benchmark set. With this
+# property, the argument of -spec will be used to find target states if
+# analysis.initialStatesFor=TARGET. The backward specification will then be
+# used to create the CPA algorithm.
+analysis.invertSpecifications = false
 
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
@@ -583,6 +595,10 @@ assumptions.file = "assumptions.txt"
 # If it is enabled, check if a state that should lead to false state indeed
 # has successors.
 assumptions.removeNonExploredWithoutSuccessors = false
+
+# Try to simplify the structure of formulas for the sat check of Backward
+# BMC. The improvement depends on the underlying SMT solver.
+backwardBMC.simplifyBooleanFormula = false
 
 # comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the analysis starts at the target states!
@@ -1934,6 +1950,9 @@ cpa.loopbound.startAtBound = 0
 
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
+
+# Analyse the CFA backwards
+cpa.loopbound.traverseBackwards = false
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD

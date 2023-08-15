@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorith
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BackwardBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
@@ -155,6 +156,14 @@ public class CoreComponentsFactory {
           "use a BMC like algorithm that checks for satisfiability "
               + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.BackwardBMC",
+      description =
+          "use a backwards BMC like algorithm that checks for satisfiability "
+              + "after the analysis has finished, works only with PredicateCPA")
+  private boolean useBackwardBMC = false;
 
   @Option(
       secure = true,
@@ -448,7 +457,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useInvariantExportAlgorithm);
+        && (useBMC || useBackwardBMC || useIMC || useInvariantExportAlgorithm);
   }
 
   public Algorithm createAlgorithm(
@@ -606,6 +615,11 @@ public class CoreComponentsFactory {
                 cfa,
                 specification,
                 aggregatedReachedSets);
+      }
+
+      if (useBackwardBMC) {
+        verifyNotNull(shutdownManager);
+        algorithm = new BackwardBMCAlgorithm(algorithm, cpa, config, logger, shutdownManager, cfa);
       }
 
       if (useIMC) {
