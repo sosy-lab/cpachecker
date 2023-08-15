@@ -224,6 +224,7 @@ public class CExpressionInvariantExporter {
                     prefix.getPath(sourceFile.getFileName()), Charset.defaultCharset());
             BufferedReader reader = Files.newBufferedReader(sourceFile)) {
           int counter = 1;
+          int numInvariants = 0;
           output.append("extern void __VERIFIER_assume(int expression);\n");
           String line;
           while ((line = reader.readLine()) != null) {
@@ -233,9 +234,11 @@ public class CExpressionInvariantExporter {
                   .append("__VERIFIER_assume(")
                   .append(convertInvariantToSingleLineString(invariantsPerLine.get(invariantKey)))
                   .append(");\n");
+              numInvariants++;
             }
             output.append(line).append('\n');
           }
+          logger.log(Level.INFO, "Added " + numInvariants + " invariants to " + fileName);
         }
       }
     }
