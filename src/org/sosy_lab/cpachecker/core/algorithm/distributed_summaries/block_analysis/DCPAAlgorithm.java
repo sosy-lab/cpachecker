@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="dcpa")
+@Options(prefix = "dcpa")
 public class DCPAAlgorithm {
 
   private final DistributedConfigurableProgramAnalysis dcpa;
@@ -312,10 +312,15 @@ public class DCPAAlgorithm {
       if (!isInfer) {
         initial = DCPAAlgorithms.appendStatus(status, initial);
       } else {
-        initial = BlockSummaryMessagePayload.builder()
-            .addAllEntries(initial)
-            .addEntry("violations", FluentIterable.from(violations).transform(v -> AbstractStates.extractLocation(v)).toList())
-            .buildPayload();
+        initial =
+            BlockSummaryMessagePayload.builder()
+                .addAllEntries(initial)
+                .addEntry(
+                    "violations",
+                    FluentIterable.from(violations)
+                        .transform(v -> AbstractStates.extractLocation(v))
+                        .toList())
+                .buildPayload();
       }
       answers.add(
           BlockSummaryMessage.newErrorConditionMessage(

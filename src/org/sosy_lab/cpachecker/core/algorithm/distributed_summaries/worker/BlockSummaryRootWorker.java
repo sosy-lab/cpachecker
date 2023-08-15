@@ -100,14 +100,12 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
     return switch (pMessage.getType()) {
       case ERROR_CONDITION -> {
         AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
-        BlockSummaryMessageProcessing processing =
-            dcpa.getProceedOperator().proceed(currentState);
+        BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(currentState);
         if (!defaultRootWorker) {
           collectedBlockSummaryErrorMessages.add(
               ((BlockSummaryErrorConditionMessage) pMessage).getViolations());
-          //getLogger().log(Level.INFO,collectedBlockSummaryErrorMessages);
-        }
-        else {
+          // getLogger().log(Level.INFO,collectedBlockSummaryErrorMessages);
+        } else {
           if (processing.end()) {
             yield processing;
           }

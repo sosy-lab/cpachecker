@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix = "workerBuilder")
 public class BlockSummaryWorkerBuilder {
 
-  @Option(
-      description = "allow to choose the behaviour of the root worker. "
-  )
+  @Option(description = "allow to choose the behaviour of the root worker. ")
   private boolean Infer = true;
 
   public record Components(
@@ -49,7 +47,8 @@ public class BlockSummaryWorkerBuilder {
       CFA pCFA,
       BlockSummaryConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
-      Configuration pConfiguration) throws InvalidConfigurationException {
+      Configuration pConfiguration)
+      throws InvalidConfigurationException {
     pConfiguration.inject(this);
     cfa = pCFA;
     specification = pSpecification;
@@ -115,7 +114,13 @@ public class BlockSummaryWorkerBuilder {
     workerGenerators.add(
         connection ->
             new BlockSummaryRootWorker(
-                nextId(pNode.getId()), Infer, connection, pOptions, pNode, cfa, ShutdownManager.create()));
+                nextId(pNode.getId()),
+                Infer,
+                connection,
+                pOptions,
+                pNode,
+                cfa,
+                ShutdownManager.create()));
     return this;
   }
 
