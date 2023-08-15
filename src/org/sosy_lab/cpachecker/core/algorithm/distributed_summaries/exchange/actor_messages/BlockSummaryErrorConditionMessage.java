@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
@@ -48,7 +47,7 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
   }
 
   public String getViolations() {
-    return Objects.requireNonNull(getPayload().get("violations")).toString(); //TODO ändern sehr schlecht!
+    return Objects.requireNonNull(getPayload().get("violations")).toString();
   }
 
   public boolean isFirst() {

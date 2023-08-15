@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
@@ -108,7 +107,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
               ((BlockSummaryErrorConditionMessage) pMessage).getViolations());
           //getLogger().log(Level.INFO,collectedBlockSummaryErrorMessages);
         }
-        else{
+        else {
           if (processing.end()) {
             yield processing;
           }
