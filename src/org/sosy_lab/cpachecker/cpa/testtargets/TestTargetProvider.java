@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetAdaption;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class TestTargetProvider implements Statistics {

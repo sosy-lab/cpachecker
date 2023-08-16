@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetAdaption;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options(prefix = "testcase")
