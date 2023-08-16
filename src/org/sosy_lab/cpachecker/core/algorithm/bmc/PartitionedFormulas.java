@@ -52,7 +52,7 @@ class PartitionedFormulas {
   private boolean isInitialized;
   private BooleanFormula prefixFormula;
   private SSAMap prefixSsaMap;
-  private List<SSAMap>  loopFormulasSsaMap;
+  private ImmutableList<SSAMap> loopFormulasSsaMap;
   private ImmutableList<BooleanFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
@@ -65,7 +65,7 @@ class PartitionedFormulas {
     isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
-    loopFormulasSsaMap = new ArrayList<>();
+    loopFormulasSsaMap = ImmutableList.of();
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
   }
@@ -148,8 +148,11 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
-    loopFormulasSsaMap.add(InterpolationHelper
-        .getPredicateAbstractionBlockFormula(targetStatesAfterLoop.stream().toList().get(0)).getSsa());
+    loopFormulasSsaMap =
+        transformedImmutableListCopy(
+            abstractionStates.subList(2, abstractionStates.size() - 1),
+            absState ->
+                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =

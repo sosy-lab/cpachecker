@@ -352,6 +352,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void initializeFRS
       (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence){
     BooleanFormula prefixFormula = pPartitionedFormulas.getPrefixFormula();
+    prefixFormula = fmgr.uninstantiate(prefixFormula);
     pDualSequence.increaseForwardReachVector(prefixFormula);
   }
 
@@ -389,8 +390,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     while (indexFRS < lastIndexOfSequences) {
       BooleanFormula resultingForwardFormula = pDualSequence.getForwardReachVector().get(indexFRS + 1);
-      BooleanFormula interpolant = fmgr.uninstantiate(constructForwardInterpolant
-          (pDualSequence, pPartitionedFormulas, indexFRS));
+      BooleanFormula interpolant = constructForwardInterpolant
+          (pDualSequence, pPartitionedFormulas, indexFRS);
       resultingForwardFormula = bfmgr.and(resultingForwardFormula, interpolant);
       pDualSequence.updateForwardReachVector(resultingForwardFormula, indexFRS + 1);
       indexFRS++;
@@ -420,17 +421,28 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, InterruptedException {
     int lastIndexOfSequences = pDualSequence.getForwardReachVector().size() - 1;
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
-    List<SSAMap> transitionSsaMap = pPartitionedFormulas.getLoopFormulasSsaMap();
     BooleanFormula forwardFormula = pDualSequence.getForwardReachVector().get(pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector()
         .get(lastIndexOfSequences - pIndex);
 
+    SSAMap forwardSsa;
+    SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(pIndex);
+    if (pIndex == 0){
+      forwardSsa = pPartitionedFormulas.getPrefixSsaMap();
+    }
+    else {
+      forwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(pIndex-1);
+    }
+
     Optional<ImmutableList<BooleanFormula>> interpolants =
-        itpMgr.interpolate(ImmutableList.of(forwardFormula, transitionFormulae.get(pIndex),
-            fmgr.instantiate(fmgr.uninstantiate(backwardFormula), transitionSsaMap.get(pIndex))));
+        itpMgr.interpolate(ImmutableList.of(
+            fmgr.instantiate(fmgr.uninstantiate(forwardFormula), forwardSsa),
+            transitionFormulae.get(pIndex),
+            fmgr.instantiate(fmgr.uninstantiate(backwardFormula), backwardSsa)));
     assert interpolants.isPresent();
-    assert interpolants.orElseThrow().size() == 2;
-    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+    assert interpolants.orElseThrow().size() == 1;
+    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    interpolant = fmgr.uninstantiate(interpolant);
 
     return interpolant;
   }
@@ -442,18 +454,27 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, InterruptedException {
     int lastIndexOfSequences = pDualSequence.getBackwardReachVector().size() - 1;
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
-    List<SSAMap> transitionSsaMap = pPartitionedFormulas.getLoopFormulasSsaMap();
     BooleanFormula forwardFormula = pDualSequence.getForwardReachVector()
         .get(lastIndexOfSequences - pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pIndex);
 
+    SSAMap forwardSsa;
+    SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(lastIndexOfSequences - pIndex);
+    if (pIndex == 0){
+      forwardSsa = pPartitionedFormulas.getPrefixSsaMap();
+    }
+    else {
+      forwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(lastIndexOfSequences - pIndex-1);
+    }
+
     Optional<ImmutableList<BooleanFormula>> interpolants =
-        itpMgr.interpolate(ImmutableList.of(fmgr.instantiate(fmgr.uninstantiate(backwardFormula),
-                transitionSsaMap.get(lastIndexOfSequences - pIndex)),
-                transitionFormulae.get(lastIndexOfSequences - pIndex), forwardFormula));
+        itpMgr.interpolate(ImmutableList.of(
+            fmgr.instantiate(fmgr.uninstantiate(backwardFormula),backwardSsa),
+            transitionFormulae.get(lastIndexOfSequences - pIndex),
+            fmgr.instantiate(fmgr.uninstantiate(forwardFormula), forwardSsa)));
     assert interpolants.isPresent();
-    assert interpolants.orElseThrow().size() == 2;
-    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+    assert interpolants.orElseThrow().size() == 1;
+    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
     interpolant = fmgr.uninstantiate(interpolant);
 
     return interpolant;
@@ -479,10 +500,18 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.assertionsCheck.start();
 
       try {
-        isNotReachableWithOneTransition =
-            solver.isUnsat(bfmgr.and(FRS.get(i),
-                fmgr.instantiate(fmgr.uninstantiate(BRS.get(n-i)), transitionSsaMap.get(i)),
-                transitionFormulae.get(i)));
+        if (i == 0){
+          isNotReachableWithOneTransition =
+              solver.isUnsat(bfmgr.and(transitionFormulae.get(i),
+                  fmgr.instantiate(fmgr.uninstantiate(BRS.get(n-i)), transitionSsaMap.get(i)),
+                  fmgr.instantiate(fmgr.uninstantiate(FRS.get(i)), pPartitionedFormulas.getPrefixSsaMap())));
+        }
+        else {
+          isNotReachableWithOneTransition =
+              solver.isUnsat(bfmgr.and(transitionFormulae.get(i),
+                  fmgr.instantiate(fmgr.uninstantiate(BRS.get(n-i)), transitionSsaMap.get(i)),
+                  fmgr.instantiate(fmgr.uninstantiate(FRS.get(i)), transitionSsaMap.get(i-1))));
+        }
       } finally {
         stats.assertionsCheck.stop();
       }
