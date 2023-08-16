@@ -481,7 +481,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       try {
         isNotReachableWithOneTransition =
             solver.isUnsat(bfmgr.and(FRS.get(i),
-                fmgr.instantiate(fmgr.uninstantiate(BRS.get(n-i)), transitionSsaMap.get(i)), transitionFormulae.get(i)));
+                fmgr.instantiate(fmgr.uninstantiate(BRS.get(n-i)), transitionSsaMap.get(i)),
+                transitionFormulae.get(i)));
       } finally {
         stats.assertionsCheck.stop();
       }
