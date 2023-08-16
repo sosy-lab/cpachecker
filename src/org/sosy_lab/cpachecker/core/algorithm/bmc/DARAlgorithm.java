@@ -460,7 +460,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     SSAMap forwardSsa;
     SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(lastIndexOfSequences - pIndex);
-    if (pIndex == 0){
+    if (lastIndexOfSequences - pIndex == 0){
       forwardSsa = pPartitionedFormulas.getPrefixSsaMap();
     }
     else {
