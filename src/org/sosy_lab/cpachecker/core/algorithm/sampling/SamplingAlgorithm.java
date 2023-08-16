@@ -244,10 +244,10 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         relevantVariableBuilder.addAll(
             getRelevantVariablesForFormulas(forwardSolver, node, formulas));
         if (loop.getLoopHeads().contains(node)) {
+          relevantVariablePosBuilder.putAll(loop, relevantVariableBuilder.build());
           positiveFormulaBuilder.put(node, formulas);
         }
       }
-      relevantVariablePosBuilder.putAll(loop, relevantVariableBuilder.build());
     }
     formulasForPositiveSamples = positiveFormulaBuilder.buildOrThrow();
     relevantVariablesPositive = relevantVariablePosBuilder.build();

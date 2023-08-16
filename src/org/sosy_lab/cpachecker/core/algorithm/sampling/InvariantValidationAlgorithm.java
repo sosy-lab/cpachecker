@@ -354,14 +354,13 @@ public class InvariantValidationAlgorithm implements Algorithm {
     // Any models satisfying this formula are precondition counterexamples: !(P => I)
     BooleanFormula preconditionFormula =
         bfmgr.and(preconditionFulfilled, bfmgr.not(invariantHolds));
-    // Any models satisfying this formula are counterexamples to inductiveness
+    // Any models satisfying this formula are counterexamples to inductiveness (B & I(x)) -> I(x')
     BooleanFormula invariantHoldsAfter =
         fmgr.instantiate(fmgr.uninstantiate(invariantHolds), pathFormula.getSsa());
     BooleanFormula inductivenessFormula =
         bfmgr.and(invariantHolds, pathFormula.getFormula(), bfmgr.not(invariantHoldsAfter));
     // Any models satisfying this formula are postcondition counterexamples: !(I & !B => Q)
     BooleanFormula postconditionFormula = bfmgr.and(invariantHolds, bfmgr.not(programSafe));
-
     // TODO: Could also obtain more than one counterexample for each formula if it exists
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.push(preconditionFormula);
