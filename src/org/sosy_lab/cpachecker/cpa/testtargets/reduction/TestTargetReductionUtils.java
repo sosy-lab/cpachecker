@@ -202,6 +202,10 @@ public final class TestTargetReductionUtils {
       return incoming ? FluentIterable.from(predecessors) : FluentIterable.from(successors);
     }
 
+    public boolean isRoot() {
+      return predecessors.isEmpty();
+    }
+
     public boolean isLeave() {
       return successors.isEmpty();
     }
