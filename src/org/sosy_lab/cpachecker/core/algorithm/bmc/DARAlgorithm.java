@@ -322,10 +322,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula backwardImage = pDualSequence.getBackwardReachVector().get(0);
     for (int i = 1; i < pDualSequence.getSize(); i++){
       // SSA map went wrong and we computed wrongly backward sequence
-      //if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
-      //  isDAREnabled = false;
-      //  return false;
-      //}
+      if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
+        isDAREnabled = false;
+        return false;
+      }
       if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
         finalFixedPoint = backwardImage;
         return true;
@@ -389,8 +389,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     while (indexFRS < lastIndexOfSequences) {
       BooleanFormula resultingForwardFormula = pDualSequence.getForwardReachVector().get(indexFRS + 1);
-      BooleanFormula interpolant = constructForwardInterpolant
-          (pDualSequence, pPartitionedFormulas, indexFRS);
+      BooleanFormula interpolant = fmgr.uninstantiate(constructForwardInterpolant
+          (pDualSequence, pPartitionedFormulas, indexFRS));
       resultingForwardFormula = bfmgr.and(resultingForwardFormula, interpolant);
       pDualSequence.updateForwardReachVector(resultingForwardFormula, indexFRS + 1);
       indexFRS++;
@@ -401,8 +401,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     while (indexBRS < lastIndexOfSequences) {
       BooleanFormula resultingBackwardFormula = pDualSequence.getBackwardReachVector().get(indexBRS + 1);
-      BooleanFormula interpolant = fmgr.uninstantiate(constructBackwardInterpolant
-          (pDualSequence, pPartitionedFormulas, indexBRS));
+      BooleanFormula interpolant = constructBackwardInterpolant
+          (pDualSequence, pPartitionedFormulas, indexBRS);
       resultingBackwardFormula = bfmgr.and(resultingBackwardFormula, interpolant);
       pDualSequence.updateBackwardReachVector(resultingBackwardFormula, indexBRS + 1);
       indexBRS++;
