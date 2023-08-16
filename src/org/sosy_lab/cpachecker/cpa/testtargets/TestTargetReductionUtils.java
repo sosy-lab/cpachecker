@@ -158,6 +158,20 @@ public final class TestTargetReductionUtils {
       pCopiedEdgeToTestTargetsMap.remove(unreachTarget);
     }
 
+    toDelete.clear();
+    for (CFANode succ : visited) {
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(succ)) {
+        if (!visited.contains(enteringEdge.getPredecessor())) {
+          toDelete.add(enteringEdge);
+        }
+      }
+    }
+
+    for (CFAEdge removeEdge : toDelete) {
+      removeEdge.getPredecessor().removeLeavingEdge(removeEdge);
+      removeEdge.getSuccessor().removeEnteringEdge(removeEdge);
+    }
+
     return visited.contains(pExit);
   }
 
