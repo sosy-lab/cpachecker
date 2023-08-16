@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -182,33 +182,71 @@ public final class TestTargetReductionUtils {
     return newEdge;
   }
 
-  public static void drawGraph(final Path pOutputfile, final CFANode pEntry) throws IOException {
-    try (Writer sb = IO.openOutputFile(pOutputfile, Charset.defaultCharset())) {
-      sb.append("digraph CFA {\n");
-      // define the graphic representation for all subsequent nodes
-      sb.append("node [shape=\"circle\"]\n");
+  static class CFAEdgeNode {
+    private final CFAEdge representativeTarget;
+    private final Collection<CFAEdgeNode> predecessors;
+    private final Collection<CFAEdgeNode> successors;
 
-      Set<CFANode> visited = new HashSet<>();
-      Deque<CFANode> waitlist = new ArrayDeque<>();
+    public CFAEdgeNode(final CFAEdge pTarget) {
+      representativeTarget = pTarget;
+      predecessors = new ArrayList<>();
+      successors = new ArrayList<>();
+    }
 
-      visited.add(pEntry);
-      waitlist.add(pEntry);
-      sb.append(pEntry.getNodeNumber() + " [shape=\"circle\"]\n");
+    public void addEdgeTo(final CFAEdgeNode succ) {
+      successors.add(succ);
+      succ.predecessors.add(this);
+    }
 
-      CFANode pred;
-      while (!waitlist.isEmpty()) {
-        pred = waitlist.poll();
-        for (CFANode succ : CFAUtils.allSuccessorsOf(pred)) {
-          if (visited.add(succ)) {
-            sb.append(succ.getNodeNumber() + " [shape=\"circle\"]\n");
-            waitlist.add(succ);
-          }
-          sb.append(pred.getNodeNumber() + " -> " + succ.getNodeNumber() + "\n");
+    public FluentIterable<CFAEdgeNode> edges(final boolean incoming) {
+      return incoming ? FluentIterable.from(predecessors) : FluentIterable.from(successors);
+    }
+
+    public boolean isLeave() {
+      return successors.isEmpty();
+    }
+
+    public static CFAEdgeNode merge(final Collection<CFAEdgeNode> pComponent) {
+      Preconditions.checkArgument(!pComponent.isEmpty());
+      CFAEdgeNode superNode = new CFAEdgeNode(pComponent.iterator().next().representativeTarget);
+
+      Set<CFAEdgeNode> newPred = new HashSet<>();
+      Set<CFAEdgeNode> newSucc = new HashSet<>();
+      for (CFAEdgeNode elem : pComponent) {
+        newPred.addAll(elem.predecessors);
+        newSucc.addAll(elem.successors);
+        for (CFAEdgeNode pred : elem.predecessors) {
+          pred.successors.remove(pred);
         }
-
-        // add edges
+        for (CFAEdgeNode succ : elem.successors) {
+          succ.predecessors.remove(succ);
+        }
       }
-      sb.append("}");
+
+      newPred.removeAll(pComponent);
+      newSucc.removeAll(pComponent);
+      for (CFAEdgeNode pred : newPred) {
+        pred.addEdgeTo(superNode);
+      }
+      for (CFAEdgeNode succ : newSucc) {
+        superNode.addEdgeTo(succ);
+      }
+
+      return superNode;
+    }
+
+    @Override
+    public String toString() {
+      return representativeTarget
+          + "\n predecessors:"
+          + from(predecessors)
+              .transform(edgeNode -> edgeNode.representativeTarget)
+              .join(Joiner.on('\t'))
+          + "\n successors:"
+          + from(successors)
+              .transform(edgeNode -> edgeNode.representativeTarget)
+              .join(Joiner.on('\t'))
+          + "\n";
     }
   }
 }
