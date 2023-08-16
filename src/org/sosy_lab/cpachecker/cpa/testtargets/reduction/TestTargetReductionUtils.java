@@ -206,6 +206,10 @@ public final class TestTargetReductionUtils {
       return successors.isEmpty();
     }
 
+    public CFAEdge getRepresentedEdge() {
+      return representativeTarget;
+    }
+
     public static CFAEdgeNode merge(final Collection<CFAEdgeNode> pComponent) {
       Preconditions.checkArgument(!pComponent.isEmpty());
       CFAEdgeNode superNode = new CFAEdgeNode(pComponent.iterator().next().representativeTarget);

@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -18,7 +15,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.ImmutableSet;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -29,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetReductionUtils.CFAEdgeNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
@@ -195,75 +192,7 @@ public class TestTargetReductionSpanningSet {
     return new HashSet<>(
         FluentIterable.from(pNodes)
             .filter(CFAEdgeNode::isLeave)
-            .transform(node -> node.representativeTarget)
+            .transform(node -> node.getRepresentedEdge())
             .toSet());
-  }
-
-  private static class CFAEdgeNode {
-    private final CFAEdge representativeTarget;
-    private final Collection<CFAEdgeNode> predecessors;
-    private final Collection<CFAEdgeNode> successors;
-
-    public CFAEdgeNode(final CFAEdge pTarget) {
-      representativeTarget = pTarget;
-      predecessors = new ArrayList<>();
-      successors = new ArrayList<>();
-    }
-
-    public void addEdgeTo(final CFAEdgeNode succ) {
-      successors.add(succ);
-      succ.predecessors.add(this);
-    }
-
-    public FluentIterable<CFAEdgeNode> edges(final boolean incoming) {
-      return incoming ? FluentIterable.from(predecessors) : FluentIterable.from(successors);
-    }
-
-    public boolean isLeave() {
-      return successors.isEmpty();
-    }
-
-    public static CFAEdgeNode merge(final Collection<CFAEdgeNode> pComponent) {
-      Preconditions.checkArgument(!pComponent.isEmpty());
-      CFAEdgeNode superNode = new CFAEdgeNode(pComponent.iterator().next().representativeTarget);
-
-      Set<CFAEdgeNode> newPred = new HashSet<>();
-      Set<CFAEdgeNode> newSucc = new HashSet<>();
-      for (CFAEdgeNode elem : pComponent) {
-        newPred.addAll(elem.predecessors);
-        newSucc.addAll(elem.successors);
-        for (CFAEdgeNode pred : elem.predecessors) {
-          pred.successors.remove(pred);
-        }
-        for (CFAEdgeNode succ : elem.successors) {
-          succ.predecessors.remove(succ);
-        }
-      }
-
-      newPred.removeAll(pComponent);
-      newSucc.removeAll(pComponent);
-      for (CFAEdgeNode pred : newPred) {
-        pred.addEdgeTo(superNode);
-      }
-      for (CFAEdgeNode succ : newSucc) {
-        superNode.addEdgeTo(succ);
-      }
-
-      return superNode;
-    }
-
-    @Override
-    public String toString() {
-      return representativeTarget
-          + "\n predecessors:"
-          + from(predecessors)
-              .transform(edgeNode -> edgeNode.representativeTarget)
-              .join(Joiner.on('\t'))
-          + "\n successors:"
-          + from(successors)
-              .transform(edgeNode -> edgeNode.representativeTarget)
-              .join(Joiner.on('\t'))
-          + "\n";
-    }
   }
 }
