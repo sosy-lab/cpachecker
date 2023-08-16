@@ -269,13 +269,13 @@ public class TestTargetMinimizerEssential {
     toRemove.getPredecessor().removeLeavingEdge(toRemove);
     succ.removeEnteringEdge(toRemove);
 
-    while(succ.getNumLeavingEdges()>0) {
+    while (succ.getNumLeavingEdges() > 0) {
       redirectEdgeToNewPredecessor(
           succ.getLeavingEdge(0), toRemove.getPredecessor(), copiedEdgeToTestTargetsMap);
     }
 
     if (mayBeLoopHead) {
-      while(succ.getNumEnteringEdges()>0) {
+      while (succ.getNumEnteringEdges() > 0) {
         /*if (toRemove == enteringEdge) {
           continue;
         }*/
