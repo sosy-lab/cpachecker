@@ -33,16 +33,16 @@ public class TestTargetReductionSpanningForest {
     Set<CFAEdge> visited = Sets.newHashSetWithExpectedSize(pTargets.size());
     Map<CFAEdge, CFAEdgeNode> targetsAsNodes = Maps.newHashMapWithExpectedSize(pTargets.size());
 
-    for(CFAEdge target:pTargets) {
+    for (CFAEdge target : pTargets) {
       targetsAsNodes.put(target, new CFAEdgeNode(target));
     }
 
     SubsumptionOracle oracle = new SubsumptionOracle(entryExit, copyToTarget);
 
-    for(CFAEdge target:pTargets) {
-      if(visited.contains(target)) {
-        for(CFAEdge target2:pTargets) {
-          if(target==target2 || visited.contains(target2)) {
+    for (CFAEdge target : pTargets) {
+      if (visited.contains(target)) {
+        for (CFAEdge target2 : pTargets) {
+          if (target == target2 || visited.contains(target2)) {
             continue;
           }
           // TODO currently only approximation via dominator trees on nodes, not on edges
@@ -59,8 +59,8 @@ public class TestTargetReductionSpanningForest {
   private Set<CFAEdge> getRootNodes(final Collection<CFAEdgeNode> forestNodes) {
     return new HashSet<>(
         FluentIterable.from(forestNodes)
-        .filter(CFAEdgeNode::isRoot)
-        .transform(node -> node.getRepresentedEdge())
-        .toSet());
+            .filter(CFAEdgeNode::isRoot)
+            .transform(node -> node.getRepresentedEdge())
+            .toSet());
   }
 }
