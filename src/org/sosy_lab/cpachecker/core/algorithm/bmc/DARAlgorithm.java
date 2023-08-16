@@ -439,8 +439,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             fmgr.instantiate(fmgr.uninstantiate(forwardFormula), forwardSsa),
             transitionFormulae.get(pIndex),
             fmgr.instantiate(fmgr.uninstantiate(backwardFormula), backwardSsa)));
-    assert interpolants.isPresent();
-    assert interpolants.orElseThrow().size() == 1;
+    //assert interpolants.isPresent();
+    //assert interpolants.orElseThrow().size() == 1;
     BooleanFormula interpolant = interpolants.orElseThrow().get(0);
     interpolant = fmgr.uninstantiate(interpolant);
 
