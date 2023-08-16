@@ -426,12 +426,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .get(lastIndexOfSequences - pIndex);
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
-        itpMgr.interpolate(ImmutableList.of(
-            bfmgr.and(forwardFormula, transitionFormulae.get(pIndex)),
+        itpMgr.interpolate(ImmutableList.of(forwardFormula, transitionFormulae.get(pIndex),
             fmgr.instantiate(fmgr.uninstantiate(backwardFormula), transitionSsaMap.get(pIndex))));
     assert interpolants.isPresent();
-    assert interpolants.orElseThrow().size() == 1;
-    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    assert interpolants.orElseThrow().size() == 2;
+    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
 
     return interpolant;
   }
@@ -449,12 +448,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pIndex);
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
-        itpMgr.interpolate(ImmutableList.of
-            (bfmgr.and(fmgr.instantiate(fmgr.uninstantiate(backwardFormula),transitionSsaMap.get(lastIndexOfSequences - pIndex)),
-                transitionFormulae.get(lastIndexOfSequences - pIndex)), forwardFormula));
+        itpMgr.interpolate(ImmutableList.of(fmgr.instantiate(fmgr.uninstantiate(backwardFormula),
+                transitionSsaMap.get(lastIndexOfSequences - pIndex)),
+                transitionFormulae.get(lastIndexOfSequences - pIndex), forwardFormula));
     assert interpolants.isPresent();
-    assert interpolants.orElseThrow().size() == 1;
-    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    assert interpolants.orElseThrow().size() == 2;
+    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
     interpolant = fmgr.uninstantiate(interpolant);
 
     return interpolant;
