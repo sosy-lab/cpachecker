@@ -352,7 +352,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void initializeFRS
       (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence){
     BooleanFormula prefixFormula = pPartitionedFormulas.getPrefixFormula();
-    prefixFormula = fmgr.uninstantiate(prefixFormula);
     pDualSequence.increaseForwardReachVector(prefixFormula);
   }
 
@@ -390,8 +389,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     while (indexFRS < lastIndexOfSequences) {
       BooleanFormula resultingForwardFormula = pDualSequence.getForwardReachVector().get(indexFRS + 1);
-      BooleanFormula interpolant = fmgr.uninstantiate(constructForwardInterpolant
-          (pDualSequence, pPartitionedFormulas, indexFRS));
+      BooleanFormula interpolant = constructForwardInterpolant
+          (pDualSequence, pPartitionedFormulas, indexFRS);
       resultingForwardFormula = bfmgr.and(resultingForwardFormula, interpolant);
       pDualSequence.updateForwardReachVector(resultingForwardFormula, indexFRS + 1);
       indexFRS++;
@@ -456,6 +455,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     assert interpolants.isPresent();
     assert interpolants.orElseThrow().size() == 1;
     BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    interpolant = fmgr.uninstantiate(interpolant);
 
     return interpolant;
   }

@@ -149,7 +149,7 @@ class PartitionedFormulas {
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
     loopFormulasSsaMap.add(InterpolationHelper
-        .getPredicateAbstractionBlockFormula(targetStatesAfterLoop.stream().toList().get(1)).getSsa());
+        .getPredicateAbstractionBlockFormula(targetStatesAfterLoop.stream().toList().get(0)).getSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
