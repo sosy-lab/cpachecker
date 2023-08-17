@@ -30,7 +30,8 @@ public class SubsumptionOracle {
   private final ImmutableSet<CFAEdge> reachedFromExit;
   private final Map<CFAEdge, CFAEdge> originalTargetToCopiedTarget;
 
-  public SubsumptionOracle(final Pair<CFANode, CFANode> pEntryExit, final Map<CFAEdge, CFAEdge> pCopyToTarget) {
+  public SubsumptionOracle(
+      final Pair<CFANode, CFANode> pEntryExit, final Map<CFAEdge, CFAEdge> pCopyToTarget) {
     originalTargetToCopiedTarget = Maps.newHashMapWithExpectedSize(pCopyToTarget.size());
     for (Entry<CFAEdge, CFAEdge> entry : pCopyToTarget.entrySet()) {
       originalTargetToCopiedTarget.put(entry.getValue(), entry.getKey());
@@ -95,12 +96,10 @@ public class SubsumptionOracle {
                 && inverseDomTree.isAncestorOf(
                     originalTargetToCopiedTarget.get(origEdgeSubsumed).getSuccessor(),
                     originalTargetToCopiedTarget.get(origEdgeSubsumer).getSuccessor())));
-      /*
-       * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
-       * entry arc to e contains e’ or else if every path from e to the exit arc contains e’
-       * [4], i.e., if AL(eo,e’,e) or AL(e,e’,e~).
-       */
+    /*
+     * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
+     * entry arc to e contains e’ or else if every path from e to the exit arc contains e’
+     * [4], i.e., if AL(eo,e’,e) or AL(e,e’,e~).
+     */
   }
-
-
 }

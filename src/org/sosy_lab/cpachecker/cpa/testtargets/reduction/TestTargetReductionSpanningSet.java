@@ -47,7 +47,6 @@ public class TestTargetReductionSpanningSet {
     Pair<CFANode, CFANode> entryExit =
         TestTargetReductionUtils.buildTestGoalGraph(pTargets, copyToTarget, pStartNode);
 
-
     for (CFAEdge target : pTargets) {
       node = new CFAEdgeNode(target);
       edgeToNode.put(target, node);
