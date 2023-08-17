@@ -323,10 +323,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     for (int i = 1; i < pDualSequence.getSize(); i++){
       // SSA map went wrong and we computed wrongly backward sequence
-      if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
-        isDAREnabled = false;
-        return false;
-      }
+      //if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
+      //  isDAREnabled = false;
+      //  return false;
+      //}
       if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
         finalFixedPoint = backwardImage;
         return true;
