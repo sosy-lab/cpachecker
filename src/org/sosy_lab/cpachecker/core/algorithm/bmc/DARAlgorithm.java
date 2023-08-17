@@ -299,10 +299,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           // BMC Global Phase to validate local unsafety (keep this as option and compare later with
           // Global phase from paper) BMC has already verified, that the program is safe in
           // current number of steps, so we can perform interpolation.
-          List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas);
+          List<BooleanFormula> itpSequence = getForwardInterpolationSequence(partitionedFormulas);
           updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
-          iterativeLocalStrengthening(
-              dualSequence, partitionedFormulas, dualSequence.getSize()-1);
+          itpSequence = getBackwardInterpolationSequence(partitionedFormulas);
+          updateReachabilityVector(dualSequence.getBackwardReachVector(), itpSequence);
+          //iterativeLocalStrengthening(
+          //    dualSequence, partitionedFormulas, dualSequence.getSize()-1);
           }
         if (checkFixedPoint(dualSequence)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
@@ -434,7 +436,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         itpMgr.interpolate(ImmutableList.of(
             forwardFormula,
             transitionFormulae.get(pIndex),
-            fmgr.instantiate(fmgr.uninstantiate(backwardFormula), backwardSsa)));
+            backwardFormula));
     //assert interpolants.isPresent();
     //assert interpolants.orElseThrow().size() == 1;
     BooleanFormula interpolant = interpolants.orElseThrow().get(1);
@@ -457,7 +459,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(
-            fmgr.instantiate(fmgr.uninstantiate(backwardFormula),backwardSsa),
+            backwardFormula,
             transitionFormulae.get(lastIndexOfSequences - pIndex),
             forwardFormula));
     //assert interpolants.isPresent();
@@ -490,7 +492,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       try {
           isNotReachableWithOneTransition =
               solver.isUnsat(bfmgr.and(transitionFormulae.get(i),
-                  fmgr.instantiate(fmgr.uninstantiate(BRS.get(n-i)), transitionSsaMap.get(i)),
+                  BRS.get(n-i),
                   FRS.get(i)));
       } finally {
         stats.assertionsCheck.stop();
@@ -507,7 +509,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @throws InterruptedException On shutdown request.
    */
-  private ImmutableList<BooleanFormula> getInterpolationSequence(PartitionedFormulas pFormulas)
+  private ImmutableList<BooleanFormula> getForwardInterpolationSequence(PartitionedFormulas pFormulas)
       throws InterruptedException, CPAException {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     ImmutableList<BooleanFormula> formulasToPush =
@@ -519,6 +521,33 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     return itpSequence;
+  }
+
+  /**
+   * A helper method to derive an s sequence.
+   *
+   * @throws InterruptedException On shutdown request.
+   */
+  private List<BooleanFormula> getBackwardInterpolationSequence(PartitionedFormulas pFormulas)
+      throws InterruptedException, CPAException {
+    logger.log(Level.FINE, "Extracting interpolation-sequence");
+    List<BooleanFormula> formulasToPush = new ArrayList<>();
+
+    formulasToPush.add(bfmgr.and(pFormulas.getAssertionFormula(),
+        pFormulas.getLoopFormulas().get(pFormulas.getNumLoops()-1)));
+    for (int i = pFormulas.getNumLoops()-2; i >= 0; i--){
+      formulasToPush.add(pFormulas.getLoopFormulas().get(i));
+    }
+    formulasToPush.add(pFormulas.getPrefixFormula());
+
+    List<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
+    List<BooleanFormula> itpSequence2 = new ArrayList<>();
+    for (BooleanFormula e : itpSequence) {
+      itpSequence2.add(fmgr.uninstantiate(e));
+    }
+
+    logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
+    return itpSequence2;
   }
 
   /**
