@@ -323,10 +323,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     for (int i = 1; i < pDualSequence.getSize(); i++){
       // SSA map went wrong and we computed wrongly backward sequence
-      //if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
-      //  isDAREnabled = false;
-      //  return false;
-      //}
+      if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
+        isDAREnabled = false;
+        return false;
+      }
       if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
         finalFixedPoint = backwardImage;
         return true;
@@ -429,14 +429,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector()
         .get(lastIndexOfSequences - pIndex);
 
-    SSAMap forwardSsa;
     SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(pIndex);
-    if (pIndex == 0){
-      forwardSsa = pPartitionedFormulas.getPrefixSsaMap();
-    }
-    else {
-      forwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(pIndex-1);
-    }
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(
             forwardFormula,
@@ -461,14 +454,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .get(lastIndexOfSequences - pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pIndex);
 
-    SSAMap forwardSsa;
     SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(lastIndexOfSequences - pIndex);
-    if (lastIndexOfSequences - pIndex == 0){
-      forwardSsa = pPartitionedFormulas.getPrefixSsaMap();
-    }
-    else {
-      forwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(lastIndexOfSequences - pIndex-1);
-    }
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(
@@ -503,18 +489,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.assertionsCheck.start();
 
       try {
-        if (i == 0){
           isNotReachableWithOneTransition =
               solver.isUnsat(bfmgr.and(transitionFormulae.get(i),
                   fmgr.instantiate(fmgr.uninstantiate(BRS.get(n-i)), transitionSsaMap.get(i)),
                   FRS.get(i)));
-        }
-        else {
-          isNotReachableWithOneTransition =
-              solver.isUnsat(bfmgr.and(transitionFormulae.get(i),
-                  fmgr.instantiate(fmgr.uninstantiate(BRS.get(n-i)), transitionSsaMap.get(i)),
-                  FRS.get(i)));
-        }
       } finally {
         stats.assertionsCheck.stop();
       }
