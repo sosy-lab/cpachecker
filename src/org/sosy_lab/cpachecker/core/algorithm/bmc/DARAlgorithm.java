@@ -320,6 +320,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     throws InterruptedException, SolverException {
     BooleanFormula forwardImage = pDualSequence.getForwardReachVector().get(0);
     BooleanFormula backwardImage = pDualSequence.getBackwardReachVector().get(0);
+
     for (int i = 1; i < pDualSequence.getSize(); i++){
       // SSA map went wrong and we computed wrongly backward sequence
       if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
@@ -441,7 +442,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             fmgr.instantiate(fmgr.uninstantiate(backwardFormula), backwardSsa)));
     //assert interpolants.isPresent();
     //assert interpolants.orElseThrow().size() == 1;
-    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
     interpolant = fmgr.uninstantiate(interpolant);
 
     return interpolant;
@@ -474,7 +475,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             fmgr.instantiate(fmgr.uninstantiate(forwardFormula), forwardSsa)));
     //assert interpolants.isPresent();
     //assert interpolants.orElseThrow().size() == 1;
-    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
     interpolant = fmgr.uninstantiate(interpolant);
 
     return interpolant;
