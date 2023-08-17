@@ -335,6 +335,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     for (int i = 1; i < pDualSequence.getSize(); i++){
+      if (solver.isUnsat(pDualSequence.getForwardReachVector().get(i))){
+        isDAREnabled = false;
+        return false;
+      }
       if (solver.implies(pDualSequence.getForwardReachVector().get(i), forwardImage)){
         finalFixedPoint = forwardImage;
         return true;
