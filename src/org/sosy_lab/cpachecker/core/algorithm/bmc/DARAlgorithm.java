@@ -514,8 +514,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
-            .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
-            .addAll(pFormulas.getLoopFormulas().subList(1, pFormulas.getNumLoops()))
+            .add(pFormulas.getPrefixFormula())
+            .addAll(pFormulas.getLoopFormulas().subList(0, pFormulas.getNumLoops()))
             .add(pFormulas.getAssertionFormula())
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
@@ -533,9 +533,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     List<BooleanFormula> formulasToPush = new ArrayList<>();
 
-    formulasToPush.add(bfmgr.and(pFormulas.getAssertionFormula(),
-        pFormulas.getLoopFormulas().get(pFormulas.getNumLoops()-1)));
-    for (int i = pFormulas.getNumLoops()-2; i >= 0; i--){
+    formulasToPush.add(pFormulas.getAssertionFormula());
+    for (int i = pFormulas.getNumLoops()-1; i >= 0; i--){
       formulasToPush.add(pFormulas.getLoopFormulas().get(i));
     }
     formulasToPush.add(pFormulas.getPrefixFormula());
