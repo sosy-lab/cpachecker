@@ -4824,10 +4824,17 @@ testcase.targets.edge = no default value
 # Name of target function if target type is FUN_CALL
 testcase.targets.funName = no default value
 
-# Which strategy to use to optimize set of test target edges
-testcase.targets.optimization.strategy = NONE
-  enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE_ORIGINAL,
-             ESSENTIAL_EDGE, PORTFOLIO, SPANNING_SET, TESTCOMP]
+# Set to enable optimizations to be applied to result of previous
+# optimizations
+testcase.targets.optimization.nested = false
+
+# Which strategy or which strategies (comma separated list of strategies) to
+# use to optimize set of test target edges. If more than one strategy is
+# provided, all strategies are applied and if targets.optimization.nested is
+# disabled the smallest result is taken otherwise see description of option
+# targets.optimization.nested.If no strategy is provided, no optimization is
+# performed. 
+testcase.targets.optimization.strategy = []
 
 # enable to track coverage of test targets removed in optimization
 testcase.targets.optimization.trackAll = false
