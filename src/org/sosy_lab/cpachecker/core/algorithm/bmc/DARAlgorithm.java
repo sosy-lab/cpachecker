@@ -317,7 +317,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           //iterativeLocalStrengthening(
           //    dualSequence, partitionedFormulas, dualSequence.getSize()-1);
           }
-        if (solver.isUnsat(partitionedFormulas.getAssertionFormula()) || checkFixedPoint(dualSequence)) {
+        if (checkFixedPoint(dualSequence)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           //InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
           //    pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
