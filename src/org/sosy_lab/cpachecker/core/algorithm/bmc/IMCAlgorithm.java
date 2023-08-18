@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -528,9 +529,51 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
       pReachedSet.clearWaitlist();
+      logger.log(Level.INFO, "Empty target set");
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
+    adjustConfigsAccordingToCFA();
+    // Initialize variables for IMC/ISMC
+    List<BooleanFormula> reachVector = new ArrayList<>();
+    PartitionedFormulas partitionedFormulas =
+        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
+    logger.log(Level.FINE, "Performing interpolation-based model checking");
+    do {
+      unrollProgram(pReachedSet);
+      if (findCexByBMC(pReachedSet)) {
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      }
+      adjustConfigsAccordingToARG(pReachedSet);
+      // Forward-condition check
+      if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+      if (loopBoundMgr.getCurrentMaxLoopIterations() > 1
+          && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
+        shutdownNotifier.shutdownIfNecessary();
+        stats.interpolationPreparation.start();
+        partitionedFormulas.collectFormulasFromARG(pReachedSet);
+        stats.interpolationPreparation.stop();
+        // k-induction
+        if (checkPropertyInductiveness
+            && loopBoundMgr.performKIAtCurrentIteration()
+            && isPropertyInductive(pReachedSet, partitionedFormulas)) {
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
+        // Interpolation
+        if (isInterpolationEnabled()
+            && reachFixedPoint(pReachedSet, partitionedFormulas, reachVector)) {
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
+      }
+      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+      loopBoundMgr.incrementLoopBoundsToCheck();
+    } while (adjustConditions());
+    return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
 
+  /** Check the loop structure of the input program and adjust configurations accordingly */
+  private void adjustConfigsAccordingToCFA() throws CPAException {
     if (!cfa.getAllLoopHeads().isPresent()) {
       if (isInterpolationEnabled()) {
         logger.log(
@@ -557,105 +600,32 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         checkPropertyInductiveness = false;
       }
     }
+  }
 
-    logger.log(Level.FINE, "Performing interpolation-based model checking");
-    List<BooleanFormula> reachVector = new ArrayList<>();
-    PartitionedFormulas partitionedFormulas =
-        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
-    do {
-      // Unroll
-      shutdownNotifier.shutdownIfNecessary();
-      stats.bmcPreparation.start();
-      try {
-        BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
-      } finally {
-        stats.bmcPreparation.stop();
+  /**
+   * Determine if interpolation or forward-condition check is applicable with the current unrolled
+   * ARG and adjust configurations accordingly
+   */
+  private void adjustConfigsAccordingToARG(ReachedSet pReachedSet)
+      throws CPAException, SolverException, InterruptedException {
+    // Check if interpolation or forward-condition check is applicable
+    if (isInterpolationEnabled()
+        && !InterpolationHelper.checkAndAdjustARG(
+            logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
+      if (fallBack) {
+        fallBackToBMC("The check of ARG failed");
+      } else {
+        throw new CPAException("ARG does not meet the requirements");
       }
-      shutdownNotifier.shutdownIfNecessary();
-      // BMC
-      if (loopBoundMgr.performBMCAtCurrentIteration()) {
-        try (ProverEnvironment bmcProver =
-            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-          BooleanFormula targetFormula =
-              InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
-          stats.satCheck.start();
-          final boolean isTargetStateReachable;
-          try {
-            bmcProver.push(targetFormula);
-            isTargetStateReachable = !bmcProver.isUnsat();
-          } finally {
-            stats.satCheck.stop();
-          }
-          if (isTargetStateReachable) {
-            logger.log(Level.FINE, "A target state is reached by BMC");
-            analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          }
-        }
+    }
+    if (checkForwardConditions && InterpolationHelper.hasCoveredStates(pReachedSet)) {
+      if (fallBack) {
+        fallBackToBMCWithoutForwardCondition(
+            "Covered states in ARG: forward-condition might be unsound!");
+      } else {
+        throw new CPAException("ARG does not meet the requirements");
       }
-      // Check if interpolation or forward-condition check is applicable
-      if (isInterpolationEnabled()
-          && !InterpolationHelper.checkAndAdjustARG(
-              logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
-        if (fallBack) {
-          fallBackToBMC("The check of ARG failed");
-        } else {
-          throw new CPAException("ARG does not meet the requirements");
-        }
-      }
-      if (checkForwardConditions && InterpolationHelper.hasCoveredStates(pReachedSet)) {
-        if (fallBack) {
-          fallBackToBMCWithoutForwardCondition(
-              "Covered states in ARG: forward-condition might be unsound!");
-        } else {
-          throw new CPAException("ARG does not meet the requirements");
-        }
-      }
-      // Forward-condition check
-      if (checkForwardConditions) {
-        stats.assertionsCheck.start();
-        final boolean isStopStateUnreachable;
-        try {
-          isStopStateUnreachable =
-              solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
-        } finally {
-          stats.assertionsCheck.stop();
-        }
-        if (isStopStateUnreachable) {
-          logger.log(Level.FINE, "The program cannot be further unrolled");
-          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-      }
-      if (loopBoundMgr.getCurrentMaxLoopIterations() > 1
-          && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        stats.interpolationPreparation.start();
-        partitionedFormulas.collectFormulasFromARG(pReachedSet);
-        stats.interpolationPreparation.stop();
-        // k-induction
-        if (checkPropertyInductiveness
-            && loopBoundMgr.performKIAtCurrentIteration()
-            && isPropertyInductive(partitionedFormulas)) {
-          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-          logger.log(Level.FINE, "The safety property is inductive");
-          // unlike IMC/ISMC, we cannot obtain a more precise fixed point here
-          finalFixedPoint = bfmgr.makeTrue();
-          InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-              pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-        // Interpolation
-        if (isInterpolationEnabled() && reachFixedPoint(partitionedFormulas, reachVector)) {
-          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-          InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-              pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-      }
-      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-      loopBoundMgr.incrementLoopBoundsToCheck();
-    } while (adjustConditions());
-    return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    }
   }
 
   private void fallBackToBMC(final String pReason) {
@@ -672,7 +642,65 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     checkForwardConditions = false;
   }
 
-  private boolean isPropertyInductive(final PartitionedFormulas formulas)
+  private void unrollProgram(ReachedSet pReachedSet) throws InterruptedException, CPAException {
+    stats.bmcPreparation.start();
+    try {
+      BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
+    } finally {
+      stats.bmcPreparation.stop();
+    }
+  }
+
+  /**
+   * Check if a target (error) state is reachable by BMC within current unrolling bound
+   *
+   * @return {@code true} if a counterexample is found, i.e., property is violated; {@code false}
+   *     otherwise
+   * @throws InterruptedException On shutdown request.
+   */
+  private boolean findCexByBMC(ReachedSet pReachedSet)
+      throws InterruptedException, CPATransferException, SolverException {
+    if (!loopBoundMgr.performBMCAtCurrentIteration()) {
+      return false;
+    }
+    final boolean isTargetStateReachable;
+    try (ProverEnvironment bmcProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      BooleanFormula targetFormula =
+          InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+      stats.satCheck.start();
+      try {
+        bmcProver.push(targetFormula);
+        isTargetStateReachable = !bmcProver.isUnsat();
+      } finally {
+        stats.satCheck.stop();
+      }
+      if (isTargetStateReachable) {
+        logger.log(Level.FINE, "A target state is reached by BMC");
+        analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+      }
+    }
+    return isTargetStateReachable;
+  }
+
+  /** Check forward conditions, i.e. if the program can be further unrolled */
+  private boolean isFurtherUnrollingPossible(ReachedSet pReachedSet)
+      throws SolverException, InterruptedException {
+    stats.assertionsCheck.start();
+    final boolean isStopStateUnreachable;
+    try {
+      isStopStateUnreachable =
+          solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+    } finally {
+      stats.assertionsCheck.stop();
+    }
+    if (isStopStateUnreachable) {
+      logger.log(Level.INFO, "The program cannot be further unrolled");
+      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+    }
+    return !isStopStateUnreachable;
+  }
+
+  private boolean isPropertyInductive(ReachedSet pReachedSet, PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
     boolean isInductive;
     try (ProverEnvironment inductionProver = solver.newProverEnvironment()) {
@@ -686,11 +714,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         stats.satCheck.stop();
       }
     }
+    if (isInductive) {
+      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+      logger.log(Level.FINE, "The safety property is inductive");
+      // unlike IMC/ISMC, we cannot obtain a more precise fixed point here
+      finalFixedPoint = bfmgr.makeTrue();
+      InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+          pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
+    }
     return isInductive;
   }
 
   private boolean reachFixedPoint(
-      final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
+      ReachedSet pReachedSet, PartitionedFormulas formulas, List<BooleanFormula> reachVector)
       throws CPAException, SolverException, InterruptedException {
     stats.fixedPointComputation.start();
     try {
@@ -713,12 +749,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         default:
           throw new AssertionError("Unknown fixed-point strategy " + fixedPointComputeStrategy);
       }
-
       if (hasReachedFixedPoint) {
-        return true;
+        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+        InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+            pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
+      } else {
+        logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       }
-      logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
-      return false;
+      return hasReachedFixedPoint;
     } catch (RefinementFailedException e) {
       if (fallBack) {
         logger.logDebugException(e);
@@ -878,6 +916,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       for (int i = 1; i < reachVector.size(); ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(imageAtI, currentImage)) {
+          logger.log(Level.INFO, "Fixed point reached");
           finalFixedPoint = currentImage;
           return true;
         }
