@@ -3672,6 +3672,9 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 # toggle asserting targets at every iteration for DAR
 dar.assertTargetsAtEveryIteration = false
 
+# toggle checking forward conditions
+dar.checkForwardConditions = true
+
 # toggle checking whether the safety property is inductive
 dar.checkPropertyInductiveness = false
 
@@ -3681,6 +3684,12 @@ dar.fallBack = true
 # toggle which strategy is used for computing fixed points in order to verify
 # programs with loops. If it is not set to true, DAR is not used.
 dar.isDAREnabled = true
+
+# Toggle if the algorithm should perform only global strengthening phase.
+dar.isLocalPhaseEnabled = true
+
+# toggle removing unreachable stop states in ARG
+dar.removeUnreachableStopStates = false
 
 # When checking for the data race property, use this configuration file
 # instead of the current one.
