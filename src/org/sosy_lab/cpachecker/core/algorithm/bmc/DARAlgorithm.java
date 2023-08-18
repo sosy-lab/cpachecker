@@ -82,6 +82,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(
       secure = true,
+      description =
+          "Toggle if the algorithm should perform only global strengthening phase.")
+  private boolean isLocalPhaseEnabled = true;
+
+  @Option(
+      secure = true,
       description = "toggle falling back if interpolation or forward-condition is disabled")
   private boolean fallBack = true;
 
@@ -291,8 +297,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           isDualSequenceInitialized = true;
         }
 
-        localStrengtheningPhase(dualSequence, partitionedFormulas);
-        if (dualSequence.isLocallyUnsafe()) {
+        if (isLocalPhaseEnabled) {
+          localStrengtheningPhase(dualSequence, partitionedFormulas);
+        }
+
+        if (!isLocalPhaseEnabled || dualSequence.isLocallyUnsafe()) {
           //TODO: Add Global phase, but in the meanwhile, try to just test it with BMC
           // (it should do the same, but slower)
 
@@ -303,6 +312,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
           itpSequence = getBackwardInterpolationSequence(partitionedFormulas);
           updateReachabilityVector(dualSequence.getBackwardReachVector(), itpSequence);
+          dualSequence.setLocallySafe();
+          isLocalPhaseEnabled = true;
           //iterativeLocalStrengthening(
           //    dualSequence, partitionedFormulas, dualSequence.getSize()-1);
           }
@@ -326,7 +337,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     for (int i = 1; i < pDualSequence.getSize(); i++){
       // SSA map went wrong and we computed wrongly backward sequence
       if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
-        isDAREnabled = false;
+        isLocalPhaseEnabled = false;
         return false;
       }
       if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
