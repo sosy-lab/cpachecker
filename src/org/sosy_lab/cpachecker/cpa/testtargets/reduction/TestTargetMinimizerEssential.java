@@ -30,10 +30,11 @@ public class TestTargetMinimizerEssential {
 
   // only works correctly if DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(
-      final Set<CFAEdge> testTargets, final CFA pCfa, final boolean fullCFACopy) {
+      final Set<CFAEdge> pTestTargets, final CFA pCfa, final boolean fullCFACopy) {
     // maps a copied edge to the testTarget that can be removed if its dominated by another
     // testTarget
     Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap = new HashMap<>();
+    Set<CFAEdge> testTargets = new HashSet<>(pTestTargets);
 
     // create a copy of the cfa graph that can be minimized using the essential Branch rules
     Pair<CFANode, CFANode> copiedFunctionEntryExit;
@@ -42,7 +43,7 @@ public class TestTargetMinimizerEssential {
           copyCFA(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
     } else {
       copiedFunctionEntryExit =
-          TestTargetReductionUtils.buildTestGoalGraph(
+          TestTargetReductionUtils.buildEdgeBasedTestGoalGraph(
               testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
     }
 

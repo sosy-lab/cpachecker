@@ -23,14 +23,14 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
-public class SubsumptionOracle {
+public class SubsumptionOracleForTargetsAsEdges {
 
   private final DomTree<CFANode> domTree;
   private final DomTree<CFANode> inverseDomTree;
   private final ImmutableSet<CFAEdge> reachedFromExit;
   private final Map<CFAEdge, CFAEdge> originalTargetToCopiedTarget;
 
-  public SubsumptionOracle(
+  public SubsumptionOracleForTargetsAsEdges(
       final Pair<CFANode, CFANode> pEntryExit, final Map<CFAEdge, CFAEdge> pCopyToTarget) {
     originalTargetToCopiedTarget = Maps.newHashMapWithExpectedSize(pCopyToTarget.size());
     for (Entry<CFAEdge, CFAEdge> entry : pCopyToTarget.entrySet()) {

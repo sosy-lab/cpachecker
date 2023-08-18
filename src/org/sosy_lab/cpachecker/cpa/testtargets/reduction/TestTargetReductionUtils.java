@@ -13,13 +13,17 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -32,12 +36,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public final class TestTargetReductionUtils {
 
   private TestTargetReductionUtils() {}
 
-  public static Pair<CFANode, CFANode> buildTestGoalGraph(
+  public static Pair<CFANode, CFANode> buildEdgeBasedTestGoalGraph(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> pCopiedEdgeToTestTargetsMap,
       final FunctionEntryNode pEntryNode) {
@@ -175,6 +180,82 @@ public final class TestTargetReductionUtils {
     return visited.contains(pExit);
   }
 
+  public static Pair<CFAEdgeNode, CFAEdgeNode> buildNodeBasedTestGoalGraph(
+      final Set<CFAEdge> pTestTargets,
+      final FunctionEntryNode pEntryNode,
+      final Map<CFAEdge, CFAEdgeNode> pTargetToGoalGraphNode) {
+    Set<CFAEdge> reachableTargets = getReachableTestGoals(pEntryNode, pTestTargets);
+    CFAEdgeNode graphStartNode = CFAEdgeNode.makeStartOrEndNode(true);
+    CFAEdgeNode graphEndNode = CFAEdgeNode.makeStartOrEndNode(false);
+
+    for (CFAEdge target : reachableTargets) {
+      pTargetToGoalGraphNode.put(target, new CFAEdgeNode(target));
+    }
+
+    exploreSegment(pEntryNode, graphStartNode, graphEndNode, pTargetToGoalGraphNode);
+
+    for (CFAEdge target : reachableTargets) {
+      exploreSegment(target.getSuccessor(), graphStartNode, graphEndNode, pTargetToGoalGraphNode);
+    }
+
+    return Pair.of(graphStartNode, graphEndNode);
+  }
+
+  private static void exploreSegment(
+      final CFANode pSegmentStartNode,
+      final CFAEdgeNode pPredecessor,
+      final CFAEdgeNode pGraphEndNode,
+      final Map<CFAEdge, CFAEdgeNode> pTargetToGoalGraphNode) {
+    Set<CFANode> visited = new HashSet<>();
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.add(pSegmentStartNode);
+    visited.add(pSegmentStartNode);
+
+    CFANode currentNode;
+    boolean reachesEndNode = false;
+    while (!waitlist.isEmpty()) {
+      currentNode = waitlist.poll();
+      if (currentNode.getNumLeavingEdges() == 0) {
+        reachesEndNode = true;
+      }
+      for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
+        if (pTargetToGoalGraphNode.containsKey(leaving)) {
+          pPredecessor.addEdgeTo(pTargetToGoalGraphNode.get(leaving));
+        } else {
+          if (visited.add(leaving.getSuccessor())) {
+            waitlist.add(leaving.getSuccessor());
+          }
+        }
+      }
+    }
+    if (reachesEndNode) {
+      pPredecessor.addEdgeTo(pGraphEndNode);
+    }
+  }
+
+  public static Set<CFAEdge> getReachableTestGoals(
+      final FunctionEntryNode pEntryNode, final Set<CFAEdge> pTargets) {
+    Set<CFAEdge> seenTargets = new HashSet<>();
+    Set<CFANode> visited = new HashSet<>();
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.add(pEntryNode);
+    visited.add(pEntryNode);
+
+    CFANode currentNode;
+    while (!waitlist.isEmpty()) {
+      currentNode = waitlist.poll();
+      for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
+        if (pTargets.contains(leaving)) {
+          seenTargets.add(leaving);
+        }
+        if (visited.add(leaving.getSuccessor())) {
+          waitlist.add(leaving.getSuccessor());
+        }
+      }
+    }
+    return seenTargets;
+  }
+
   public static CFAEdge copyAsDummyEdge(final CFANode pred, final CFANode succ) {
     CFAEdge newEdge = new DummyCFAEdge(pred, succ);
     pred.addLeavingEdge(newEdge);
@@ -182,12 +263,38 @@ public final class TestTargetReductionUtils {
     return newEdge;
   }
 
+  public static <E> Set<E> getLeavesOfDomintorTree(final DomTree<E> pDomTree) {
+    Set<E> nonLeaves = Sets.newHashSetWithExpectedSize(pDomTree.getNodeCount());
+    for (E domTreeEntry : pDomTree) {
+      pDomTree.getParent(domTreeEntry).ifPresent(parent -> nonLeaves.add(parent));
+    }
+
+    return FluentIterable.from(pDomTree).filter(node -> !(nonLeaves.contains(node))).toSet();
+  }
+
   static class CFAEdgeNode {
     private final CFAEdge representativeTarget;
     private final Collection<CFAEdgeNode> predecessors;
     private final Collection<CFAEdgeNode> successors;
 
+    private CFAEdgeNode(final boolean isStart, final boolean isEnd) {
+      Preconditions.checkArgument(isStart || isEnd);
+      if (isStart) {
+        predecessors = ImmutableList.of();
+      } else {
+        predecessors = new ArrayList<>();
+      }
+
+      if (isEnd) {
+        successors = ImmutableList.of();
+      } else {
+        successors = new ArrayList<>();
+      }
+      representativeTarget = null;
+    }
+
     public CFAEdgeNode(final CFAEdge pTarget) {
+      Preconditions.checkNotNull(pTarget);
       representativeTarget = pTarget;
       predecessors = new ArrayList<>();
       successors = new ArrayList<>();
@@ -196,6 +303,23 @@ public final class TestTargetReductionUtils {
     public void addEdgeTo(final CFAEdgeNode succ) {
       successors.add(succ);
       succ.predecessors.add(this);
+    }
+
+    public void removeEdgeTo(final CFAEdgeNode succ) {
+      Preconditions.checkArgument(successors.contains(succ));
+      successors.remove(succ);
+      succ.predecessors.remove(succ);
+    }
+
+    public void removeDuplicateSuccessors() {
+      List<CFAEdgeNode> orderedSuccessors = new ArrayList<>(successors);
+      Collections.sort(orderedSuccessors, Comparator.comparingInt(elem -> elem.hashCode()));
+      for (int i = 1; i < orderedSuccessors.size(); i++) {
+        if (orderedSuccessors.get(i) == orderedSuccessors.get(i - 1)) {
+          removeEdgeTo(orderedSuccessors.get(i));
+          Preconditions.checkState(successors.contains(orderedSuccessors.get(i)));
+        }
+      }
     }
 
     public FluentIterable<CFAEdgeNode> edges(final boolean incoming) {
@@ -212,6 +336,18 @@ public final class TestTargetReductionUtils {
 
     public CFAEdge getRepresentedEdge() {
       return representativeTarget;
+    }
+
+    public static FluentIterable<CFAEdgeNode> allPredecessorsOf(final CFAEdgeNode node) {
+      return FluentIterable.from(node.predecessors);
+    }
+
+    public static FluentIterable<CFAEdgeNode> allSuccessorsOf(final CFAEdgeNode node) {
+      return FluentIterable.from(node.successors);
+    }
+
+    public static CFAEdgeNode makeStartOrEndNode(final boolean isStart) {
+      return new CFAEdgeNode(isStart, !isStart);
     }
 
     public static CFAEdgeNode merge(final Collection<CFAEdgeNode> pComponent) {
