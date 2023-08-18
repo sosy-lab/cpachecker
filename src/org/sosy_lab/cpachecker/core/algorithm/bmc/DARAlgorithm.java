@@ -309,15 +309,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           // Global phase from paper) BMC has already verified, that the program is safe in
           // current number of steps, so we can perform interpolation.
           List<BooleanFormula> itpSequence = getForwardInterpolationSequence(partitionedFormulas);
-          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
+          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, isLocalPhaseEnabled);
           itpSequence = getBackwardInterpolationSequence(partitionedFormulas);
-          updateReachabilityVector(dualSequence.getBackwardReachVector(), itpSequence);
+          updateReachabilityVector(dualSequence.getBackwardReachVector(), itpSequence, isLocalPhaseEnabled);
           dualSequence.setLocallySafe();
           isLocalPhaseEnabled = true;
           //iterativeLocalStrengthening(
           //    dualSequence, partitionedFormulas, dualSequence.getSize()-1);
           }
-        if (checkFixedPoint(dualSequence)) {
+        if (solver.isUnsat(partitionedFormulas.getAssertionFormula()) || checkFixedPoint(dualSequence)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           //InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
           //    pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
@@ -567,7 +567,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @param itpSequence the interpolation sequence derived at the current iteration
    */
   private void updateReachabilityVector(
-      List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence) {
+      List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence,
+      boolean keepPreviousInterpolants) {
     logger.log(Level.FINE, "Updating reachability vector");
 
     while (reachVector.size() < itpSequence.size()) {
@@ -575,7 +576,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     for (int i = 1; i < reachVector.size(); ++i) {
       BooleanFormula image = reachVector.get(i);
-      reachVector.set(i, bfmgr.and(image, itpSequence.get(i-1)));
+      if (keepPreviousInterpolants) {
+        reachVector.set(i, bfmgr.and(image, itpSequence.get(i - 1)));
+      }
+      else {
+        reachVector.set(i, itpSequence.get(i - 1));
+      }
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
   }
