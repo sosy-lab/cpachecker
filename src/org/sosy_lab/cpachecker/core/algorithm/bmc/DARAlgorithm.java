@@ -317,8 +317,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           }
         if (checkFixedPoint(dualSequence) || solver.isUnsat(partitionedFormulas.getAssertionFormula())) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-          //InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-          //    pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
