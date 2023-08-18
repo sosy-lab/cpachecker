@@ -12,8 +12,8 @@
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="1">
 
     <option name="-noout"/>
-    <option name="-heap">2000M</option>
     <option name="-timelimit">900 s</option>
+    <option name="-heap">2000M</option>
 
     <rundefinition name="dar">
         <option name="-bmc-interpolationDualSequence"/>
