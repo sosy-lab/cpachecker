@@ -335,19 +335,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula backwardImage = pDualSequence.getBackwardReachVector().get(0);
 
     for (int i = 1; i < pDualSequence.getSize(); i++){
-      // SSA map went wrong and we computed wrongly backward sequence
-      if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
-        isLocalPhaseEnabled = false;
-        return false;
-      }
-      if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
-        finalFixedPoint = backwardImage;
-        return true;
-      }
-      backwardImage = bfmgr.or(pDualSequence.getBackwardReachVector().get(i), backwardImage);
-    }
-
-    for (int i = 1; i < pDualSequence.getSize(); i++){
       //if (solver.isUnsat(pDualSequence.getForwardReachVector().get(i))){
       //  isDAREnabled = false;
       //  return false;
@@ -358,6 +345,20 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       forwardImage = bfmgr.or(pDualSequence.getForwardReachVector().get(i), forwardImage);
     }
+
+    for (int i = 1; i < pDualSequence.getSize(); i++){
+      // SSA map went wrong and we computed wrongly backward sequence
+      if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
+        isLocalPhaseEnabled = false;
+        return false;
+      }
+      //if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
+      //  finalFixedPoint = backwardImage;
+      //  return true;
+      //}
+      backwardImage = bfmgr.or(pDualSequence.getBackwardReachVector().get(i), backwardImage);
+    }
+
     return false;
   }
 
