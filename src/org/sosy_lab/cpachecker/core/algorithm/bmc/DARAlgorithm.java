@@ -309,13 +309,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           // Global phase from paper) BMC has already verified, that the program is safe in
           // current number of steps, so we can perform interpolation.
           List<BooleanFormula> itpSequence = getForwardInterpolationSequence(partitionedFormulas);
-          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, false);
+          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, isLocalPhaseEnabled);
           itpSequence = getBackwardInterpolationSequence(partitionedFormulas);
-          updateReachabilityVector(dualSequence.getBackwardReachVector(), itpSequence, false);
+          updateReachabilityVector(dualSequence.getBackwardReachVector(), itpSequence, isLocalPhaseEnabled);
           dualSequence.setLocallySafe();
           isLocalPhaseEnabled = true;
-          //iterativeLocalStrengthening(
-          //    dualSequence, partitionedFormulas, dualSequence.getSize()-1);
           }
         if (checkFixedPoint(dualSequence) || solver.isUnsat(partitionedFormulas.getAssertionFormula())) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
