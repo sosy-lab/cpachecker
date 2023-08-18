@@ -13,6 +13,7 @@
 
     <option name="-noout"/>
     <option name="-heap">2000M</option>
+    <option name="-timelimit">900 s</option>
 
     <rundefinition name="dar">
         <option name="-bmc-interpolationDualSequence"/>
