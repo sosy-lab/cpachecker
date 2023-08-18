@@ -317,7 +317,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           //iterativeLocalStrengthening(
           //    dualSequence, partitionedFormulas, dualSequence.getSize()-1);
           }
-        if (checkFixedPoint(dualSequence)) {
+        if (checkFixedPoint(dualSequence) || solver.isUnsat(partitionedFormulas.getAssertionFormula())) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           //InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
           //    pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
@@ -349,13 +349,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     for (int i = 1; i < pDualSequence.getSize(); i++){
       // SSA map went wrong and we computed wrongly backward sequence
       if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))){
-        isLocalPhaseEnabled = false;
+        isDAREnabled= false;
         return false;
       }
-      //if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
-      //  finalFixedPoint = backwardImage;
-      //  return true;
-      //}
+      if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)){
+        finalFixedPoint = backwardImage;
+        return true;
+      }
       backwardImage = bfmgr.or(pDualSequence.getBackwardReachVector().get(i), backwardImage);
     }
 
