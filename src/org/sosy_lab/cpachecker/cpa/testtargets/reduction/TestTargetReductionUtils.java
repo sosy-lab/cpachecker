@@ -269,7 +269,7 @@ public final class TestTargetReductionUtils {
       pDomTree.getParent(domTreeEntry).ifPresent(parent -> nonLeaves.add(parent));
     }
 
-    return FluentIterable.from(pDomTree).filter(node -> !(nonLeaves.contains(node))).toSet();
+    return FluentIterable.from(pDomTree).filter(node -> !nonLeaves.contains(node)).toSet();
   }
 
   static class CFAEdgeNode {

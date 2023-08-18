@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
@@ -60,7 +63,7 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
 
     // no reachable test targets
     if (domLeaves.isEmpty() || postDomLeaves.isEmpty()) {
-      return Set.of();
+      return ImmutableSet.of();
     }
 
     if (computeMinimumKernel) {
@@ -73,9 +76,8 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
       // Paper unconstraint edges (unconstraint arcs):
       // Automatic Generation of Path Covers Based on the Control Flow Analysis of Computer Programs
       return new HashSet<>(
-          FluentIterable.from(Sets.intersection(domLeaves, postDomLeaves))
-              .transform(node -> node.getRepresentedEdge())
-              .toSet());
+          transformedImmutableSetCopy(
+              Sets.intersection(domLeaves, postDomLeaves), node -> node.getRepresentedEdge()));
     }
   }
 
