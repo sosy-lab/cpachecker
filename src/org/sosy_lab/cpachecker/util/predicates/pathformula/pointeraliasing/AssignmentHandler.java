@@ -32,10 +32,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -231,9 +231,17 @@ class AssignmentHandler {
     final Map<CRightHandSide, ResolvedSlice> rhsBaseResolutionMap = new HashMap<>();
     final List<CompositeField> rhsAddressedFields = new ArrayList<>();
 
+    // this flag is for backward analyses
+    // only on the first of multiple assignments should ssa indices be updated
+    boolean firstAssignment = true;
     for (SliceAssignment assignment : assignments) {
       resolveAssignmentBases(
-          assignment, lhsBaseResolutionMap, rhsBaseResolutionMap, rhsAddressedFields);
+          assignment,
+          lhsBaseResolutionMap,
+          rhsBaseResolutionMap,
+          rhsAddressedFields,
+          firstAssignment);
+      firstAssignment = false;
     }
 
     // note that after resolving the slice bases, we can no longer modify them,
@@ -357,7 +365,8 @@ class AssignmentHandler {
       SliceAssignment assignment,
       Map<CRightHandSide, ResolvedSlice> lhsBaseResolutionMap,
       Map<CRightHandSide, ResolvedSlice> rhsBaseResolutionMap,
-      List<CompositeField> rhsAddressedFields)
+      List<CompositeField> rhsAddressedFields,
+      final boolean firstAssignment)
       throws UnrecognizedCodeException, InterruptedException {
     // resolve LHS base using visitor
     final CExpressionVisitorWithPointerAliasing lhsBaseVisitor =
@@ -366,39 +375,35 @@ class AssignmentHandler {
     final CRightHandSide lhsBase = assignment.lhs.base();
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
 
-    if (conv.direction == AnalysisDirection.BACKWARD && !(edge instanceof CFunctionCallEdge)) {
-      Expression lhsExpression = resolvedLhsBase.expression();
-      CType lhsType = resolvedLhsBase.type();
-      // simple unaliased LHS
-      if (lhsExpression instanceof UnaliasedLocation
-          // if it's a composite type, it's a field of a struct or union
-          // which we will handle later
-          && !(resolvedLhsBase.type() instanceof CCompositeType)) {
-        conv.makeFreshIndex(
-            lhsExpression.asUnaliasedLocation().getVariableName(),
-            CTypes.adjustFunctionOrArrayType(lhsType),
-            ssa);
-      }
-      // unaliased struct field LHS
-      // or struct assigned as a whole
-      else if (lhsExpression instanceof UnaliasedLocation
-          && resolvedLhsBase.type() instanceof CCompositeType lhsCompositeType) {
-        final SliceExpression lhsSlice = assignment.lhs;
-        final AssignmentQuantifierHandler assignmentQuantifierHandler =
-            new AssignmentQuantifierHandler(
-                conv,
-                edge,
-                function,
-                ssa,
-                pts,
-                constraints,
-                errorConditions,
-                regionMgr,
-                assignmentOptions,
-                lhsBaseResolutionMap,
-                rhsBaseResolutionMap);
-        // Assigning a field of a struct
-        if (!lhsSlice.modifiers().isEmpty()) {
+    // In backward analysis, update the SSA indices at this point
+    // to ensure that the right indices are given to the RHS of the assignment
+    if (conv.direction == AnalysisDirection.BACKWARD && firstAssignment) {
+      Expression resolvedLhsExpression = resolvedLhsBase.expression();
+      CType resolvedLhsType = resolvedLhsBase.type();
+      if (resolvedLhsExpression instanceof UnaliasedLocation) {
+        if (resolvedLhsType instanceof CSimpleType) {
+          conv.makeFreshIndex(
+              resolvedLhsExpression.asUnaliasedLocation().getVariableName(),
+              CTypes.adjustFunctionOrArrayType(resolvedLhsType),
+              ssa);
+        } else if (resolvedLhsType instanceof CCompositeType) {
+          // For assignment to the field of a struct, first resolve the modifiers
+          // to get the actual field
+          final SliceExpression lhsSlice = assignment.lhs;
+          final AssignmentQuantifierHandler assignmentQuantifierHandler =
+              new AssignmentQuantifierHandler(
+                  conv,
+                  edge,
+                  function,
+                  ssa,
+                  pts,
+                  constraints,
+                  errorConditions,
+                  regionMgr,
+                  assignmentOptions,
+                  lhsBaseResolutionMap,
+                  rhsBaseResolutionMap);
+
           final ResolvedSlice lhsResolved =
               assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
                   resolvedLhsBase, lhsSlice);
@@ -407,30 +412,13 @@ class AssignmentHandler {
               lhsResolved.type(),
               ssa);
         }
-        // assigning a struct as a whole
-        else {
-          // We increment the index for each member
-          for (CCompositeTypeMemberDeclaration lhsMember : lhsCompositeType.getMembers()) {
-            final SliceExpression lhsMemberSlice = assignment.lhs().withFieldAccess(lhsMember);
-            final ResolvedSlice lhsResolvedMemberSlice =
-                assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
-                    resolvedLhsBase, lhsMemberSlice);
-            conv.makeFreshIndex(
-                lhsResolvedMemberSlice.expression().asUnaliasedLocation().getVariableName(),
-                lhsResolvedMemberSlice.type(),
-                ssa);
-          }
+      } else if (resolvedLhsExpression instanceof AliasedLocation) {
+        MemoryRegion region = resolvedLhsExpression.asAliasedLocation().getMemoryRegion();
+        if (region == null) {
+          region = regionMgr.makeMemoryRegion(resolvedLhsType);
         }
-      } else if (resolvedLhsBase.expression() instanceof AliasedLocation) {
-        // simple aliased LHS
-        if (!(resolvedLhsBase.type() instanceof CCompositeType)) {
-          MemoryRegion region = lhsExpression.asAliasedLocation().getMemoryRegion();
-          if (region == null) {
-            region = regionMgr.makeMemoryRegion(lhsType);
-          }
-          String targetName = regionMgr.getPointerAccessName(region);
-          conv.makeFreshIndex(targetName, lhsType, ssa);
-        }
+        String targetName = regionMgr.getPointerAccessName(region);
+        conv.makeFreshIndex(targetName, resolvedLhsType, ssa);
       }
     }
 
