@@ -140,7 +140,7 @@ public class TestTargetProvider implements Statistics {
     return instance.uncoveredTargets.size();
   }
 
-  public static Set<CFAEdge> getTestTargets(
+  public static synchronized Set<CFAEdge> getTestTargets(
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
