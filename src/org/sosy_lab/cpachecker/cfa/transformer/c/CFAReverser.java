@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -165,8 +164,7 @@ public class CFAReverser {
     private CFA createCfa() {
 
       // create a dummy main
-      CFunctionEntryNode reverseMainEntry = null; // = newDummyMain();
-
+      CFunctionEntryNode reverseMainEntry = null;
       // Reverse each Function's CFA
       for (Map.Entry<String, FunctionEntryNode> function : pCfa.getAllFunctions().entrySet()) {
         String name = function.getKey();
@@ -202,62 +200,36 @@ public class CFAReverser {
     /////////////////////////////////////////////////////////////////////////////
     private final class CfaFunctionBuilder {
 
-      private Map<String, CVariableDeclaration> variables; // function scope
-      private CFunctionEntryNode oldEntryNode;
+      private Map<String, CVariableDeclaration> variables; // Function scope
+      private CFunctionEntryNode oldEntryNode; // Entry node for the old Function CFA
+      private int branchCnt; // How many branch in this function
+      private Set<CFANode> localTargets;
 
       private CfaFunctionBuilder(CFunctionEntryNode oldEntryNode) {
         this.variables = new HashMap<>();
         this.oldEntryNode = oldEntryNode;
+        this.branchCnt = 0;
+        this.localTargets = new HashSet<>();
       }
 
-      private CFunctionEntryNode reverse() {
-        String funcName = oldEntryNode.getFunctionName();
+      // BFS the old CFA to create the new CFA
+      private CFunctionEntryNode bfs(
+          String funcName,
+          FunctionExitNode oldExitNode,
+          CFunctionEntryNode newEntryNode,
+          CFunctionDeclaration newFuncDecl) {
 
-        CFunctionDeclaration oldDecl = oldEntryNode.getFunctionDefinition();
-        CFunctionDeclaration newDecl = reverseFunctionDeclaration(oldDecl);
-        funcDeclMap.put(oldDecl, newDecl);
-
-        FunctionExitNode oldExitNode = oldEntryNode.getExitNode().orElseThrow();
-
-        CFunctionEntryNode newEntry =
-            new CFunctionEntryNode(FileLocation.DUMMY, newDecl, null, Optional.empty());
-        nodes.put(funcName, newEntry);
-
-        CFANode initStartNode = new CFANode(newDecl); // node before variable initialization
-        nodes.put(funcName, initStartNode);
-
-        // initStartNode --> int i --> initDoneNode --> target
-        BlankEdge initStartEdge =
-            new BlankEdge("", FileLocation.DUMMY, newEntry, initStartNode, "INIT GLOBAL VARS");
-
-        addToCFA(initStartEdge);
-
-        CFANode varInitStartNode = new CFANode(newDecl);
-        nodes.put(varInitStartNode.getFunctionName(), varInitStartNode);
-
-        // node after function initialization.
-        // real function body begin here
-        CFANode initDoneNode = new CFANode(newDecl);
-        nodeMap.put(oldExitNode, initDoneNode);
-        nodes.put(funcName, initDoneNode);
-
-        int branchCnt = 0; // how many branching in this function
-
-        // =============================================================================
-        // BFS the old CFA and create the new CFA
         Set<CFANode> visited = new HashSet<>();
         Deque<CFANode> waitList = new ArrayDeque<>();
         waitList.add(oldExitNode);
         visited.add(oldExitNode);
-
-        Set<CFANode> localTargets = new HashSet<>();
 
         while (!waitList.isEmpty()) {
           CFANode oldhead = waitList.remove();
           CFANode newhead = nodeMap.get(oldhead);
 
           if (oldhead instanceof CFunctionEntryNode) {
-            ((FunctionExitNode) newhead).setEntryNode(newEntry);
+            ((FunctionExitNode) newhead).setEntryNode(newEntryNode);
           }
 
           if (targets.contains(oldhead)) {
@@ -291,12 +263,12 @@ public class CFAReverser {
                     false,
                     CStorageClass.AUTO,
                     intType,
-                    "branch_" + branchCnt,
-                    "branch_" + branchCnt,
-                    newDecl.getName() + "::" + "branch_" + branchCnt,
+                    "Branch__" + branchCnt,
+                    "Branch__" + branchCnt,
+                    newFuncDecl.getName() + "::" + "Branch__" + branchCnt,
                     null);
 
-            variables.put("branch_", ndetBranchVarDecl);
+            variables.put("Branch__", ndetBranchVarDecl);
             ndetBranchVarExpr = new CIdExpression(FileLocation.DUMMY, ndetBranchVarDecl);
             branchNode = createNoDetAssign(ndetBranchVarExpr, newhead);
           }
@@ -309,14 +281,14 @@ public class CFAReverser {
             if (oldNext instanceof CFunctionEntryNode
                 && oldEntryNode.equals(pCfa.getMainFunction())) {
               // insert the error label
-              CFALabelNode errorLabelNode = new CFALabelNode(newDecl, "ERROR");
+              CFALabelNode errorLabelNode = new CFALabelNode(newFuncDecl, "ERROR");
               nodes.put(funcName, errorLabelNode);
 
               BlankEdge errorLabelEdge =
                   new BlankEdge("ERROR", FileLocation.DUMMY, newhead, errorLabelNode, "ERROR");
               addToCFA(errorLabelEdge);
 
-              FunctionExitNode newExit = new FunctionExitNode(newDecl);
+              FunctionExitNode newExit = new FunctionExitNode(newFuncDecl);
 
               BlankEdge exitEdge =
                   new BlankEdge("", FileLocation.DUMMY, errorLabelNode, newExit, "return");
@@ -328,7 +300,6 @@ public class CFAReverser {
             } else {
               // branch = 0
               if (usingBranch) {
-                pLog.log(Level.INFO, "OLDHEAD TYPE: " + (oldhead instanceof CFATerminationNode));
                 CIntegerLiteralExpression ndetBranchIdExpr =
                     new CIntegerLiteralExpression(
                         FileLocation.DUMMY, intType, BigInteger.valueOf(branchid));
@@ -355,6 +326,43 @@ public class CFAReverser {
           }
         }
 
+        return newEntryNode;
+      }
+
+      private CFunctionEntryNode reverse() {
+        String funcName = oldEntryNode.getFunctionName();
+
+        // get the new function declaration
+        CFunctionDeclaration oldFuncDecl = oldEntryNode.getFunctionDefinition();
+        CFunctionDeclaration newFuncDecl = reverseFunctionDeclaration(oldFuncDecl);
+        funcDeclMap.put(oldFuncDecl, newFuncDecl);
+
+        // new entry node should be reverse to the old exit node
+        // TODO: old exit node may not exist
+        FunctionExitNode oldExitNode = oldEntryNode.getExitNode().orElseThrow();
+        CFunctionEntryNode newEntryNode =
+            new CFunctionEntryNode(FileLocation.DUMMY, newFuncDecl, null, Optional.empty());
+        nodes.put(funcName, newEntryNode);
+
+        // create two dummy node, in order to insert initialization edges between those
+        // initStartNode --> int i --> initDoneNode --> target
+        CFANode initStartNode = new CFANode(newFuncDecl); // node before variable initialization
+        nodes.put(funcName, initStartNode);
+        BlankEdge initStartEdge =
+            new BlankEdge("", FileLocation.DUMMY, newEntryNode, initStartNode, "INIT VARS");
+        addToCFA(initStartEdge);
+
+        CFANode varInitStartNode = new CFANode(newFuncDecl);
+        nodes.put(varInitStartNode.getFunctionName(), varInitStartNode);
+
+        // node after function initialization.
+        // real function body begin here
+        CFANode initDoneNode = new CFANode(newFuncDecl);
+        nodeMap.put(oldExitNode, initDoneNode);
+        nodes.put(funcName, initDoneNode);
+
+        newEntryNode = bfs(funcName, oldExitNode, newEntryNode, newFuncDecl);
+
         // =============================================================================
         // Declare function
         CFANode curr = initStartNode;
@@ -372,7 +380,7 @@ public class CFAReverser {
         next = new CFANode(curr.getFunction());
         nodes.put(next.getFunctionName(), next);
         CDeclarationEdge funcDeclEdge =
-            new CDeclarationEdge("", newDecl.getFileLocation(), curr, next, newDecl);
+            new CDeclarationEdge("", newFuncDecl.getFileLocation(), curr, next, newFuncDecl);
 
         addToCFA(funcDeclEdge);
         curr = next;
@@ -390,13 +398,14 @@ public class CFAReverser {
                 false,
                 CStorageClass.AUTO,
                 intType,
-                "target__" + branchCnt,
-                "target__" + branchCnt,
-                newDecl.getName() + "::" + "target__" + branchCnt,
+                "TARGET__" + branchCnt,
+                "TARGET__" + branchCnt,
+                newFuncDecl.getName() + "::" + "TARGET__" + branchCnt,
                 null);
-        variables.put("target__", targetBranchVarDecl);
+        variables.put("TARGET__", targetBranchVarDecl);
         CIdExpression targetBranchVarExpr =
             new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
+
         // =============================================================================
         // Declare variable
         for (CVariableDeclaration decl : variables.values()) {
@@ -440,17 +449,17 @@ public class CFAReverser {
                     FileLocation.DUMMY,
                     curr,
                     localTarget,
-                    "jump to target [" + targetCnt + "]");
+                    "Jump to target [" + targetCnt + "]");
             addToCFA(jumpTargetEdge);
             curr = targetBranchNode;
           }
         }
 
-        return newEntry;
+        return newEntryNode;
       }
 
       /////////////////////////////////////////////////////////////////////////////
-      // Edge Reverser
+      // Edge Reversing
       /////////////////////////////////////////////////////////////////////////////
       private CFANode reverseEdge(CFAEdge edge, CFANode from) {
 
@@ -461,7 +470,8 @@ public class CFAReverser {
           to = new CFANode(from.getFunction());
         }
 
-        pLog.log(Level.INFO, "Reversing: " + edge + " " + edge.getClass());
+        pLog.log(Level.INFO, "Reversing Edge: " + edge + " " + edge.getClass());
+
         if (edge instanceof BlankEdge) {
           reverseBlankEdge((BlankEdge) edge, from, to);
         } else if (edge instanceof CDeclarationEdge) {
@@ -485,9 +495,7 @@ public class CFAReverser {
         return to;
       }
 
-      /////////////////////////////////////////////////////////////////////////////
-      // New Node Creator
-      /////////////////////////////////////////////////////////////////////////////
+      // TODO: reverseFunctionDeclaration
       private CFunctionDeclaration reverseFunctionDeclaration(CFunctionDeclaration fdef) {
         return new CFunctionDeclaration(
             fdef.getFileLocation(),
@@ -598,7 +606,7 @@ public class CFAReverser {
         } else if (stmt instanceof CFunctionCallAssignmentStatement) {
           handleCallAssignStmt((CFunctionCallAssignmentStatement) stmt, from);
         } else if (stmt instanceof CFunctionCallStatement) {
-          handleCallStmt((CFunctionCallStatement) stmt, from);
+          handleCallStmt((CFunctionCallStatement) stmt, from, to);
         }
       }
 
@@ -654,6 +662,7 @@ public class CFAReverser {
 
       private CFANode handleCallAssignStmt(CFunctionCallAssignmentStatement stmt, CFANode from) {
         // TODO: handleCallAssignStmt
+
         checkNotNull(from);
         CExpression lvalue = stmt.getLeftHandSide();
         CFunctionCallExpression rvalue = stmt.getRightHandSide();
@@ -664,9 +673,11 @@ public class CFAReverser {
         return null;
       }
 
-      private CFANode handleCallStmt(CFunctionCallStatement stmt, CFANode from) {
+      private CFANode handleCallStmt(CFunctionCallStatement stmt, CFANode from, CFANode to) {
         // TODO: handleCallAssignStmt
-        checkNotNull(stmt, from);
+        BlankEdge blankEdge =
+            new BlankEdge(stmt.toString(), FileLocation.DUMMY, from, to, stmt.toString());
+        addToCFA(blankEdge);
         return null;
       }
 
