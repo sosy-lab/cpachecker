@@ -437,10 +437,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(
-            forwardFormula,
-            transitionFormulae.get(pIndex),
+            bfmgr.and(forwardFormula,
+            transitionFormulae.get(pIndex)),
             backwardFormula));
-    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
 
     return interpolant;
   }
@@ -458,10 +458,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(
-            backwardFormula,
-            transitionFormulae.get(lastIndexOfSequences - pIndex),
+            bfmgr.and(backwardFormula,
+            transitionFormulae.get(lastIndexOfSequences - pIndex)),
             forwardFormula));
-    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
     interpolant = fmgr.uninstantiate(interpolant);
 
     return interpolant;
