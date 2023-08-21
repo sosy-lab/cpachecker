@@ -212,12 +212,106 @@ public class CFAReverser {
         this.localTargets = new HashSet<>();
       }
 
+      private CFunctionEntryNode reverse() {
+        String funcName = oldEntryNode.getFunctionName();
+
+        // get the new function declaration
+        CFunctionDeclaration oldFuncDecl = oldEntryNode.getFunctionDefinition();
+        CFunctionDeclaration newFuncDecl = reverseFunctionDeclaration(oldFuncDecl);
+        funcDeclMap.put(oldFuncDecl, newFuncDecl);
+
+        // new entry node should be reverse to the old exit node
+        // TODO: old exit node may not exist
+        FunctionExitNode oldExitNode = oldEntryNode.getExitNode().orElseThrow();
+        CFunctionEntryNode newEntryNode =
+            new CFunctionEntryNode(FileLocation.DUMMY, newFuncDecl, null, Optional.empty());
+        nodes.put(funcName, newEntryNode);
+
+        // create two dummy node, in order to insert initialization edges between those
+        // initStartNode --> int i --> initDoneNode --> target
+        CFANode initStartNode = new CFANode(newFuncDecl); // node before variable initialization
+        nodes.put(funcName, initStartNode);
+        BlankEdge initStartEdge =
+            new BlankEdge("", FileLocation.DUMMY, newEntryNode, initStartNode, "INIT VARS");
+        addToCFA(initStartEdge);
+
+        // node after function initialization.
+        // real function body begin here
+        CFANode initDoneNode = new CFANode(newFuncDecl);
+        nodeMap.put(oldExitNode, initDoneNode);
+        nodes.put(funcName, initDoneNode);
+
+        // BFS the CFA
+        newEntryNode = bfs(funcName, oldExitNode, newEntryNode, newFuncDecl);
+
+        // Create a ndet variable for target branching
+        CVariableDeclaration targetBranchVarDecl =
+            new CVariableDeclaration(
+                FileLocation.DUMMY,
+                false,
+                CStorageClass.AUTO,
+                intType,
+                "TARGET__" + branchCnt,
+                "TARGET__" + branchCnt,
+                newFuncDecl.getName() + "::" + "TARGET__" + branchCnt,
+                null);
+        variables.put("TARGET__", targetBranchVarDecl);
+        CIdExpression targetBranchVarExpr =
+            new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
+
+        // Declare variable
+        CFANode curr = initStartNode;
+        curr = createVariableDeclaration(curr);
+
+        // =============================================================================
+        // Create non det branch for each target
+        CFANode targetBranchNode = curr;
+
+        int targetCnt = 0;
+        CIntegerLiteralExpression targetBranchID =
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
+        curr = createAssumeEdge(targetBranchVarExpr, targetBranchID, curr, true);
+        curr = createAssumeEdge(targetBranchVarExpr, targetBranchVarExpr, curr, false);
+        BlankEdge initDoneEdge =
+            new BlankEdge("init done", FileLocation.DUMMY, curr, initDoneNode, "INIT DONE");
+        addToCFA(initDoneEdge);
+
+        curr = targetBranchNode;
+        if (!localTargets.isEmpty()) {
+          for (CFANode localTarget : localTargets) {
+            CIntegerLiteralExpression lastBranchID =
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
+            curr = createAssumeEdge(targetBranchVarExpr, lastBranchID, curr, false);
+            targetCnt += 1;
+            CIntegerLiteralExpression currBranchID =
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
+            curr = createAssumeEdge(targetBranchVarExpr, currBranchID, curr, true);
+            BlankEdge jumpTargetEdge =
+                new BlankEdge(
+                    "",
+                    FileLocation.DUMMY,
+                    curr,
+                    localTarget,
+                    "Jump to target [" + targetCnt + "]");
+            addToCFA(jumpTargetEdge);
+            curr = targetBranchNode;
+          }
+        }
+
+        return newEntryNode;
+      }
+
       // BFS the old CFA to create the new CFA
       private CFunctionEntryNode bfs(
           String funcName,
           FunctionExitNode oldExitNode,
           CFunctionEntryNode newEntryNode,
           CFunctionDeclaration newFuncDecl) {
+
+        checkNotNull(oldExitNode, newEntryNode);
 
         Set<CFANode> visited = new HashSet<>();
         Deque<CFANode> waitList = new ArrayDeque<>();
@@ -276,7 +370,7 @@ public class CFAReverser {
           int branchid = 0;
 
           for (CFAEdge oldEdge : CFAUtils.allEnteringEdges(oldhead)) {
-            CFANode oldNext = oldEdge.getPredecessor(); // forward edge
+            CFANode oldNext = oldEdge.getPredecessor();
 
             if (oldNext instanceof CFunctionEntryNode
                 && oldEntryNode.equals(pCfa.getMainFunction())) {
@@ -325,89 +419,12 @@ public class CFAReverser {
             }
           }
         }
-
         return newEntryNode;
       }
 
-      private CFunctionEntryNode reverse() {
-        String funcName = oldEntryNode.getFunctionName();
-
-        // get the new function declaration
-        CFunctionDeclaration oldFuncDecl = oldEntryNode.getFunctionDefinition();
-        CFunctionDeclaration newFuncDecl = reverseFunctionDeclaration(oldFuncDecl);
-        funcDeclMap.put(oldFuncDecl, newFuncDecl);
-
-        // new entry node should be reverse to the old exit node
-        // TODO: old exit node may not exist
-        FunctionExitNode oldExitNode = oldEntryNode.getExitNode().orElseThrow();
-        CFunctionEntryNode newEntryNode =
-            new CFunctionEntryNode(FileLocation.DUMMY, newFuncDecl, null, Optional.empty());
-        nodes.put(funcName, newEntryNode);
-
-        // create two dummy node, in order to insert initialization edges between those
-        // initStartNode --> int i --> initDoneNode --> target
-        CFANode initStartNode = new CFANode(newFuncDecl); // node before variable initialization
-        nodes.put(funcName, initStartNode);
-        BlankEdge initStartEdge =
-            new BlankEdge("", FileLocation.DUMMY, newEntryNode, initStartNode, "INIT VARS");
-        addToCFA(initStartEdge);
-
-        CFANode varInitStartNode = new CFANode(newFuncDecl);
-        nodes.put(varInitStartNode.getFunctionName(), varInitStartNode);
-
-        // node after function initialization.
-        // real function body begin here
-        CFANode initDoneNode = new CFANode(newFuncDecl);
-        nodeMap.put(oldExitNode, initDoneNode);
-        nodes.put(funcName, initDoneNode);
-
-        newEntryNode = bfs(funcName, oldExitNode, newEntryNode, newFuncDecl);
-
-        // =============================================================================
-        // Declare function
-        CFANode curr = initStartNode;
+      private CFANode createVariableDeclaration(CFANode curr) {
         CFANode next = null;
 
-        for (CFunctionDeclaration decl : funcDecls.values()) {
-          next = new CFANode(curr.getFunction());
-          nodes.put(next.getFunctionName(), next);
-          CDeclarationEdge declEdge =
-              new CDeclarationEdge("", FileLocation.DUMMY, curr, next, decl);
-          addToCFA(declEdge);
-          curr = next;
-        }
-
-        next = new CFANode(curr.getFunction());
-        nodes.put(next.getFunctionName(), next);
-        CDeclarationEdge funcDeclEdge =
-            new CDeclarationEdge("", newFuncDecl.getFileLocation(), curr, next, newFuncDecl);
-
-        addToCFA(funcDeclEdge);
-        curr = next;
-
-        BlankEdge functionStartDummyEdge =
-            new BlankEdge(
-                "", FileLocation.DUMMY, curr, varInitStartNode, "Function start dummy edge");
-        addToCFA(functionStartDummyEdge);
-        curr = varInitStartNode;
-        // =============================================================================
-        // Create a ndet variable for target branching
-        CVariableDeclaration targetBranchVarDecl =
-            new CVariableDeclaration(
-                FileLocation.DUMMY,
-                false,
-                CStorageClass.AUTO,
-                intType,
-                "TARGET__" + branchCnt,
-                "TARGET__" + branchCnt,
-                newFuncDecl.getName() + "::" + "TARGET__" + branchCnt,
-                null);
-        variables.put("TARGET__", targetBranchVarDecl);
-        CIdExpression targetBranchVarExpr =
-            new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
-
-        // =============================================================================
-        // Declare variable
         for (CVariableDeclaration decl : variables.values()) {
           next = new CFANode(curr.getFunction());
           nodes.put(next.getFunctionName(), next);
@@ -416,46 +433,7 @@ public class CFAReverser {
           addToCFA(ndeclEdge);
           curr = next;
         }
-
-        // =============================================================================
-        // Create non det branch for each target
-        CFANode targetBranchNode = curr;
-
-        int targetCnt = 0;
-        CIntegerLiteralExpression targetBranchID =
-            new CIntegerLiteralExpression(
-                FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
-        curr = createAssumeEdge(targetBranchVarExpr, targetBranchID, curr, true);
-        curr = createAssumeEdge(targetBranchVarExpr, targetBranchVarExpr, curr, false);
-        BlankEdge initDoneEdge =
-            new BlankEdge("init done", FileLocation.DUMMY, curr, initDoneNode, "INIT DONE");
-        addToCFA(initDoneEdge);
-
-        curr = targetBranchNode;
-        if (!localTargets.isEmpty()) {
-          for (CFANode localTarget : localTargets) {
-            CIntegerLiteralExpression lastBranchID =
-                new CIntegerLiteralExpression(
-                    FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
-            curr = createAssumeEdge(targetBranchVarExpr, lastBranchID, curr, false);
-            targetCnt += 1;
-            CIntegerLiteralExpression currBranchID =
-                new CIntegerLiteralExpression(
-                    FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
-            curr = createAssumeEdge(targetBranchVarExpr, currBranchID, curr, true);
-            BlankEdge jumpTargetEdge =
-                new BlankEdge(
-                    "",
-                    FileLocation.DUMMY,
-                    curr,
-                    localTarget,
-                    "Jump to target [" + targetCnt + "]");
-            addToCFA(jumpTargetEdge);
-            curr = targetBranchNode;
-          }
-        }
-
-        return newEntryNode;
+        return curr;
       }
 
       /////////////////////////////////////////////////////////////////////////////
