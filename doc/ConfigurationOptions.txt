@@ -183,10 +183,6 @@ algorithm.parallelBam.runningRSESeriesFile = "RSESeries.csv"
 # has finished, works only with PredicateCPA
 analysis.algorithm.BMC = false
 
-# use a backwards BMC like algorithm that checks for satisfiability after the
-# analysis has finished, works only with PredicateCPA
-analysis.algorithm.BackwardBMC = false
-
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
@@ -207,6 +203,10 @@ analysis.algorithm.MPV = false
 # use a analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
+
+# use a backwards BMC algorithm that unrolls a program starting from error
+# locations and tests the satisfiability of paths to the program entry
+analysis.algorithm.backwardBMC = false
 
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false

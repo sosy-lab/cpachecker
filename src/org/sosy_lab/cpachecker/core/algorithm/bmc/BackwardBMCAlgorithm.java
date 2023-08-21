@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -42,6 +43,18 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * This class implements a backward bounded model checking (BBMC) algorithm as described in section
+ * 2 and 3 of the paper "Backward Symbolic Execution with Loop Folding" by Marek Chalupa and Jan
+ * Strejček.
+ *
+ * <p>The algorithm unrolls the CFA backwards, starting from the error locations, up to a loop
+ * bound. It then considers paths from an error location to the entry of the program. If the path
+ * formula of a target (entry) state is SAT, the property is false, i.e. an error location is
+ * reachable. Otherwise, the algorithm tests the path formulas corresponding to the loop heads for
+ * satisfiability. If both the entry of the program and the loop heads are unreachable, the property
+ * is proved. Else, the loop bound is incremented and the CFA is unrolled further.
+ */
 @Options(prefix = "backwardBMC")
 public class BackwardBMCAlgorithm implements Algorithm {
 
@@ -100,15 +113,13 @@ public class BackwardBMCAlgorithm implements Algorithm {
 
     // These are the states with error labels
     Set<AbstractState> errorEntryStates = reachedSet.asCollection();
-    if (reachedSet.isEmpty()) {
+    if (errorEntryStates.isEmpty()) {
       logger.log(Level.INFO, "No starting error locations found...");
-      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+      return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
     AlgorithmStatus status;
-    int it = 0;
     do {
-      it++;
       status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
 
       if (FluentIterable.from(reachedSet)
@@ -125,24 +136,26 @@ public class BackwardBMCAlgorithm implements Algorithm {
       }
       shutdownNotifier.shutdownIfNecessary();
 
-      FluentIterable<AbstractState> targetState = getTarget(reachedSet);
-      if (targetState.isEmpty()) {
+      FluentIterable<AbstractState> targetStates = getTargetStates(reachedSet);
+      if (targetStates.isEmpty()) {
         logger.log(Level.INFO, "No path to target found...");
         continue;
       }
-      FluentIterable<AbstractState> loopHeads = getRecentLoopHeadStates(reachedSet, it);
+      // Only consider the loop head states that were most recently unrolled
+      // as the algorithm only wants to test whether the loop heads
+      // of the most recent unrolling are satisfiable
+      FluentIterable<AbstractState> latestLoopHeadStates = getRecentLoopHeadStates(reachedSet);
 
-      final boolean targetSafe = isSafe(targetState, solver);
-      final boolean loopHeadsSafe = isSafe(loopHeads, solver);
-
-      if (targetSafe) {
+      final boolean targetReachable = isAnyReachable(targetStates);
+      final boolean loopHeadsReachable = isAnyReachable(latestLoopHeadStates);
+      if (targetReachable) {
         InterpolationHelper.removeUnreachableTargetStates(reachedSet);
-        // if all targets and loop heads are safe, the result is sound
-        if (loopHeadsSafe) {
+        // if all targets and loop heads are unreachable, the result is sound
+        if (loopHeadsReachable) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       } else {
-        // target not safe: found error path
+        // target is reachable: found error path
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
 
@@ -152,11 +165,11 @@ public class BackwardBMCAlgorithm implements Algorithm {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  private FluentIterable<AbstractState> getTarget(final ReachedSet reachedSet) {
+  private FluentIterable<AbstractState> getTargetStates(final ReachedSet reachedSet) {
     return FluentIterable.from(reachedSet).filter(AbstractStates::isTargetState);
   }
 
-  private boolean isSafe(FluentIterable<AbstractState> pStates, Solver pSolver)
+  private boolean isAnyReachable(FluentIterable<AbstractState> pStates)
       throws CPAException, InterruptedException {
     // Returns disjunction of path formulas
     BooleanFormula formula =
@@ -177,7 +190,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
     stats.satCheck.start();
     final boolean safe;
     try {
-      safe = pSolver.isUnsat(formula);
+      safe = solver.isUnsat(formula);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
@@ -187,12 +200,14 @@ public class BackwardBMCAlgorithm implements Algorithm {
     return safe;
   }
 
-  private FluentIterable<AbstractState> getRecentLoopHeadStates(
-      final ReachedSet reachedSet, final int pIt) {
+  // Returns the abstract states corresponding to loop head locations
+  // of the most recent unrolling of the program loops
+  private FluentIterable<AbstractState> getRecentLoopHeadStates(final ReachedSet pReachedSet) {
     Set<CFANode> loopHeadNodes = BMCHelper.getLoopHeads(cfa, targetLocationProvider);
     FluentIterable<AbstractState> allLoopHeadStates =
-        AbstractStates.filterLocations(reachedSet, loopHeadNodes);
-    return BMCHelper.filterIteration(allLoopHeadStates, pIt, loopHeadNodes);
+        AbstractStates.filterLocations(pReachedSet, loopHeadNodes);
+    final int currentIteration = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
+    return BMCHelper.filterIteration(allLoopHeadStates, currentIteration, loopHeadNodes);
   }
 
   /**

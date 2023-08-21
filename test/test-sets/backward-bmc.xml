@@ -22,14 +22,10 @@ SPDX-License-Identifier: Apache-2.0
   
   <rundefinition name="backward-bmc-incremental">
     <option name="-backward-bmc-incremental"/>
-    <option name="-setprop">cpa.loopbound.maxLoopIterationsUpperBound=0</option>
-    <!-- We use invertSpecifications to use unreach-call on a backward analysis -->
-    <option name="-setprop">analysis.invertSpecifications=true</option>
   </rundefinition>
   
   <rundefinition name="bmc-incremental">
     <option name="-bmc-incremental"/>
-    <option name="-setprop">cpa.loopbound.maxLoopIterationsUpperBound=0</option>
   </rundefinition>
   
   <rundefinition name="ki-plain">

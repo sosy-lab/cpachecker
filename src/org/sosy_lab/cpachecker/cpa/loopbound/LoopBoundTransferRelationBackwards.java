@@ -38,6 +38,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+/**
+ * This class implements the transfer relation for LoopBoundCPA for a backward analysis. In a
+ * backward analysis, loops are entered through loopExitEdges and are exited through loopEntryEdges.
+ * It is currently used by the BBMC algorithm, but can be used by any backward analysis requiring
+ * the LoopBoundCPA.
+ */
 @Options(prefix = "cpa.loopbound")
 public class LoopBoundTransferRelationBackwards extends SingleEdgeTransferRelation {
 
@@ -130,7 +136,6 @@ public class LoopBoundTransferRelationBackwards extends SingleEdgeTransferRelati
 
     // Check if we need to increment the loop counter
     Collection<Loop> visitedLoops = loopHeads.get(loc);
-
     assert newLoop == null || visitedLoops.contains(newLoop);
     for (Loop loop : visitedLoops) {
       state = state.visitLoopHead(loop);
