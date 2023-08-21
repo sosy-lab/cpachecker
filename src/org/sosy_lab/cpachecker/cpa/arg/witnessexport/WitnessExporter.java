@@ -16,7 +16,6 @@ import com.google.common.collect.Queues;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -256,16 +255,10 @@ public class WitnessExporter {
 
   protected boolean isARGFromBackwardAnalysis(ARGState pRootState) {
     CFANode rootNode = AbstractStates.extractLocation(pRootState);
-    Iterator<ARGState> rootChildren = pRootState.getChildren().iterator();
+    // Any child of the root node will have a leaving edge to the root node
+    // in a backward analysis
+    CFANode childNode = AbstractStates.extractLocation(pRootState.getChildren().iterator().next());
 
-    // Check if any child node has a leaving edge to the root node
-    while (rootChildren.hasNext()) {
-      CFANode childNode = AbstractStates.extractLocation(rootChildren.next());
-      if (CFAUtils.allSuccessorsOf(childNode).contains(rootNode)) {
-        return true;
-      }
-    }
-
-    return false;
+    return CFAUtils.allSuccessorsOf(childNode).contains(rootNode);
   }
 }
