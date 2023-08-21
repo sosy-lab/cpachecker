@@ -12,7 +12,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Queues;
 import java.util.Collection;
 import java.util.Deque;
@@ -112,9 +111,11 @@ public class WitnessExporter {
       CounterexampleInfo pCounterExample)
       throws InterruptedException {
 
-    final boolean backwardARG = isBackward(pRootState);
-
-    String defaultFileName = getInitialFileName(pRootState, backwardARG);
+    final boolean fromBackwardAnalysis = isARGFromBackwardAnalysis(pRootState);
+    String defaultFileName =
+        fromBackwardAnalysis
+            ? getInitialFileNameForBackwardARG(pRootState)
+            : getInitialFileName(pRootState);
     WitnessFactory writer =
         new WitnessFactory(
             options,
@@ -134,7 +135,7 @@ public class WitnessExporter {
         Optional.empty(),
         Optional.ofNullable(pCounterExample),
         GraphBuilder.ARG_PATH,
-        backwardARG);
+        fromBackwardAnalysis);
   }
 
   public Witness generateTerminationErrorWitness(
@@ -145,8 +146,11 @@ public class WitnessExporter {
       final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
       throws InterruptedException {
 
-    final boolean backwardARG = isBackward(pRootState);
-    String defaultFileName = getInitialFileName(pRootState, backwardARG);
+    final boolean fromBackwardAnalysis = isARGFromBackwardAnalysis(pRootState);
+    String defaultFileName =
+        fromBackwardAnalysis
+            ? getInitialFileNameForBackwardARG(pRootState)
+            : getInitialFileName(pRootState);
     WitnessFactory writer =
         new WitnessFactory(
             options,
@@ -166,7 +170,7 @@ public class WitnessExporter {
         Optional.of(toQuasiInvariant),
         Optional.empty(),
         GraphBuilder.ARG_PATH,
-        backwardARG);
+        fromBackwardAnalysis);
   }
 
   public Witness generateProofWitness(
@@ -181,9 +185,11 @@ public class WitnessExporter {
     Preconditions.checkNotNull(pIsRelevantEdge);
     Preconditions.checkNotNull(pInvariantProvider);
 
-    final boolean backwardARG = isBackward(pRootState);
-
-    String defaultFileName = getInitialFileName(pRootState, backwardARG);
+    final boolean fromBackwardAnalysis = isARGFromBackwardAnalysis(pRootState);
+    String defaultFileName =
+        fromBackwardAnalysis
+            ? getInitialFileNameForBackwardARG(pRootState)
+            : getInitialFileName(pRootState);
     WitnessFactory writer =
         new WitnessFactory(
             options,
@@ -203,26 +209,23 @@ public class WitnessExporter {
         Optional.empty(),
         Optional.empty(),
         GraphBuilder.CFA_FULL,
-        backwardARG);
+        fromBackwardAnalysis);
   }
 
-  protected String getInitialFileName(ARGState pRootState, final boolean backwardARG) {
+  protected String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
     Set<CFANode> visited = new HashSet<>();
 
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
       visited.add(l);
-      FluentIterable<CFAEdge> edges =
-          backwardARG ? CFAUtils.enteringEdges(l) : CFAUtils.leavingEdges(l);
-      for (CFAEdge e : edges) {
+      for (CFAEdge e : CFAUtils.leavingEdges(l)) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (!fileLocations.isEmpty()) {
           return fileLocations.iterator().next().getFileName().toString();
         }
-        CFANode node = backwardARG ? e.getPredecessor() : e.getSuccessor();
-        if (!visited.contains(node)) {
-          worklist.push(node);
+        if (!visited.contains(e.getSuccessor())) {
+          worklist.push(e.getSuccessor());
         }
       }
     }
@@ -230,17 +233,36 @@ public class WitnessExporter {
     throw new RuntimeException("Could not determine file name based on abstract state!");
   }
 
-  protected boolean isBackward(ARGState pRootState) {
+  protected String getInitialFileNameForBackwardARG(ARGState pRootState) {
+    Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
+    Set<CFANode> visited = new HashSet<>();
+
+    while (!worklist.isEmpty()) {
+      CFANode l = worklist.pop();
+      visited.add(l);
+      for (CFAEdge e : CFAUtils.enteringEdges(l)) {
+        Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
+        if (!fileLocations.isEmpty()) {
+          return fileLocations.iterator().next().getFileName().toString();
+        }
+        if (!visited.contains(e.getPredecessor())) {
+          worklist.push(e.getPredecessor());
+        }
+      }
+    }
+
+    throw new RuntimeException("Could not determine file name based on abstract state!");
+  }
+
+  protected boolean isARGFromBackwardAnalysis(ARGState pRootState) {
     CFANode rootNode = AbstractStates.extractLocation(pRootState);
     Iterator<ARGState> rootChildren = pRootState.getChildren().iterator();
 
     // Check if any child node has a leaving edge to the root node
     while (rootChildren.hasNext()) {
       CFANode childNode = AbstractStates.extractLocation(rootChildren.next());
-      for (CFANode childSuc : CFAUtils.successorsOf(childNode)) {
-        if (childSuc.equals(rootNode)) {
-          return true;
-        }
+      if (CFAUtils.allSuccessorsOf(childNode).contains(rootNode)) {
+        return true;
       }
     }
 
