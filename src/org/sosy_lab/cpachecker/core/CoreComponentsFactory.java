@@ -159,10 +159,10 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.BackwardBMC",
+      name = "algorithm.backwardBMC",
       description =
-          "use a backwards BMC like algorithm that checks for satisfiability "
-              + "after the analysis has finished, works only with PredicateCPA")
+          "use a backwards BMC algorithm that unrolls a program starting "
+              + "from error locations and tests the satisfiability of paths to the program entry")
   private boolean useBackwardBMC = false;
 
   @Option(
