@@ -247,7 +247,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
       // Forward-condition check
-      if (!isDAREnabled && checkForwardConditions) {
+      if (checkForwardConditions) {
         stats.assertionsCheck.start();
         final boolean isStopStateUnreachable;
         try {
