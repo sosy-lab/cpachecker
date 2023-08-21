@@ -82,12 +82,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(
       secure = true,
-      description =
-          "Toggle if the algorithm should perform only global strengthening phase.")
-  private boolean isLocalPhaseEnabled = true;
-
-  @Option(
-      secure = true,
       description = "toggle falling back if interpolation or forward-condition is disabled")
   private boolean fallBack = true;
 
@@ -297,11 +291,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           isDualSequenceInitialized = true;
         }
 
-        if (isLocalPhaseEnabled) {
-          localStrengtheningPhase(dualSequence, partitionedFormulas);
-        }
+        localStrengtheningPhase(dualSequence, partitionedFormulas);
 
-        if (!isLocalPhaseEnabled || dualSequence.isLocallyUnsafe()) {
+        if (dualSequence.isLocallyUnsafe()) {
           //TODO: Add Global phase, but in the meanwhile, try to just test it with BMC
           // (it should do the same, but slower)
 
@@ -309,11 +301,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           // Global phase from paper) BMC has already verified, that the program is safe in
           // current number of steps, so we can perform interpolation.
           List<BooleanFormula> itpSequence = getForwardInterpolationSequence(partitionedFormulas);
-          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, isLocalPhaseEnabled);
+          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
           itpSequence = getBackwardInterpolationSequence(partitionedFormulas);
-          updateReachabilityVector(dualSequence.getBackwardReachVector(), itpSequence, isLocalPhaseEnabled);
+          updateReachabilityVector(dualSequence.getBackwardReachVector(), itpSequence);
           dualSequence.setLocallySafe();
-          isLocalPhaseEnabled = true;
           }
         if (checkFixedPoint(dualSequence) || solver.isUnsat(partitionedFormulas.getAssertionFormula())) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
@@ -553,8 +544,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @param itpSequence the interpolation sequence derived at the current iteration
    */
   private void updateReachabilityVector(
-      List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence,
-      boolean keepPreviousInterpolants) {
+      List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence) {
     logger.log(Level.FINE, "Updating reachability vector");
 
     while (reachVector.size() < itpSequence.size()) {
@@ -562,12 +552,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     for (int i = 1; i < reachVector.size(); ++i) {
       BooleanFormula image = reachVector.get(i);
-      if (keepPreviousInterpolants) {
-        reachVector.set(i, bfmgr.and(image, itpSequence.get(i - 1)));
-      }
-      else {
-        reachVector.set(i, itpSequence.get(i - 1));
-      }
+      reachVector.set(i, bfmgr.and(image, itpSequence.get(i - 1)));
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
   }
