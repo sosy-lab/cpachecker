@@ -404,7 +404,7 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
         Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
-    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult) && witnessExport == true) {
+    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult) && witnessExport) {
       try {
         final Witness witness =
             argWitnessExporter.generateProofWitness(

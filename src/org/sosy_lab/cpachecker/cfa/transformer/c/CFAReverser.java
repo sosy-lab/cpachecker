@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -125,11 +126,22 @@ public class CFAReverser {
     return cfabBuilder.createCfa().immutableCopy();
   }
 
+  /**
+   * Add sv-comp-errorlabel to the original specification
+   *
+   * @param pSpecification the original specification
+   */
+  public static Specification updateSpecForReverseCFA(Specification pSpecification) {
+    return pSpecification.withAdditionalProperties(
+        ImmutableSet.of(CommonVerificationProperty.REACHABILITY_LABEL));
+  }
+
   /** The reverse CFA builder */
   private static final class CfaBuilder {
     private final CFA pCfa;
     private final Specification pSpec;
     private final LogManager pLog;
+
     private final TargetLocationProvider targetFinder;
     private final NavigableMap<String, FunctionEntryNode> functions;
     private final TreeMultimap<String, CFANode> nodes;
@@ -137,6 +149,7 @@ public class CFAReverser {
     private final Map<CFANode, CFANode> nodeMap;
     private final ImmutableSet<CFANode> targets;
     private final Map<String, CFunctionDeclaration> funcDecls;
+
     private static CType intType =
         new CSimpleType(
             false, false, CBasicType.INT, false, false, false, false, false, false, false);
@@ -161,10 +174,45 @@ public class CFAReverser {
       this.targets = targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec);
     }
 
+    /**
+     * @return the main entry node for the new CFA
+     */
+    private FunctionEntryNode findMainEntry() {
+      String oldMainName = pCfa.getMainFunction().getFunctionName();
+      return functions.get(oldMainName);
+    }
+
+    /**
+     * Insert the error label in main function
+     *
+     * @param mainEntryNode the main entry node for the new CFA
+     */
+    private void insertErrorState(FunctionEntryNode mainEntryNode) {
+
+      // exitNode
+      FunctionExitNode exitNode = (FunctionExitNode) nodeMap.get(pCfa.getMainFunction());
+      assert exitNode.getNumEnteringEdges() == 1;
+      // exitEdge
+      CFAEdge exitEdge = exitNode.getEnteringEdge(0);
+      assert exitEdge instanceof BlankEdge;
+      CFANode predeccsorNode = exitEdge.getPredecessor();
+      CFACreationUtils.removeEdgeFromNodes(exitEdge);
+
+      CFALabelNode errorLabelNode = new CFALabelNode(mainEntryNode.getFunction(), "ERROR");
+      nodes.put(mainEntryNode.getFunctionName(), errorLabelNode);
+
+      BlankEdge errorLabelEdge =
+          new BlankEdge("", FileLocation.DUMMY, predeccsorNode, errorLabelNode, "ERROR");
+
+      addToCFA(errorLabelEdge);
+
+      exitEdge =
+          new BlankEdge("", FileLocation.DUMMY, errorLabelNode, exitNode, "Exit main function");
+      addToCFA(exitEdge);
+    }
+
     private CFA createCfa() {
 
-      // create a dummy main
-      CFunctionEntryNode reverseMainEntry = null;
       // Reverse each Function's CFA
       for (Map.Entry<String, FunctionEntryNode> function : pCfa.getAllFunctions().entrySet()) {
         String name = function.getKey();
@@ -172,10 +220,15 @@ public class CFAReverser {
         CfaFunctionBuilder cfaFuncBuilder = new CfaFunctionBuilder(entryNode);
         CFunctionEntryNode reverseEntryNode = cfaFuncBuilder.reverse();
         functions.put(name, reverseEntryNode);
-        reverseMainEntry = reverseEntryNode;
       }
 
+      // Get the main entry node for the new CFA
+      FunctionEntryNode reverseMainEntry = findMainEntry();
+
       checkNotNull(reverseMainEntry);
+
+      // Insert Error State
+      insertErrorState(reverseMainEntry);
 
       MutableCFA newMutableCfa =
           new MutableCFA(
@@ -212,6 +265,7 @@ public class CFAReverser {
         this.localTargets = new HashSet<>();
       }
 
+      /** reverse the function CFA */
       private CFunctionEntryNode reverse() {
         String funcName = oldEntryNode.getFunctionName();
 
@@ -357,9 +411,9 @@ public class CFAReverser {
                     false,
                     CStorageClass.AUTO,
                     intType,
-                    "Branch__" + branchCnt,
-                    "Branch__" + branchCnt,
-                    newFuncDecl.getName() + "::" + "Branch__" + branchCnt,
+                    "__b__" + branchCnt,
+                    "__b__" + branchCnt,
+                    newFuncDecl.getName() + "::" + "__b__" + branchCnt,
                     null);
 
             variables.put("Branch__", ndetBranchVarDecl);
@@ -372,53 +426,32 @@ public class CFAReverser {
           for (CFAEdge oldEdge : CFAUtils.allEnteringEdges(oldhead)) {
             CFANode oldNext = oldEdge.getPredecessor();
 
-            if (oldNext instanceof CFunctionEntryNode
-                && oldEntryNode.equals(pCfa.getMainFunction())) {
-              // insert the error label
-              CFALabelNode errorLabelNode = new CFALabelNode(newFuncDecl, "ERROR");
-              nodes.put(funcName, errorLabelNode);
+            // branch = 0
+            if (usingBranch) {
+              CIntegerLiteralExpression ndetBranchIdExpr =
+                  new CIntegerLiteralExpression(
+                      FileLocation.DUMMY, intType, BigInteger.valueOf(branchid));
+              branchid += 1;
+              CFANode branchIdHead =
+                  createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, true);
 
-              BlankEdge errorLabelEdge =
-                  new BlankEdge("ERROR", FileLocation.DUMMY, newhead, errorLabelNode, "ERROR");
-              addToCFA(errorLabelEdge);
+              branchNode = createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
 
-              FunctionExitNode newExit = new FunctionExitNode(newFuncDecl);
-
-              BlankEdge exitEdge =
-                  new BlankEdge("", FileLocation.DUMMY, errorLabelNode, newExit, "return");
-
-              addToCFA(exitEdge);
-              nodeMap.put(oldNext, newExit);
-              nodes.put(funcName, newExit);
-
-            } else {
-              // branch = 0
-              if (usingBranch) {
-                CIntegerLiteralExpression ndetBranchIdExpr =
-                    new CIntegerLiteralExpression(
-                        FileLocation.DUMMY, intType, BigInteger.valueOf(branchid));
-                branchid += 1;
-                CFANode branchIdHead =
-                    createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, true);
-
-                branchNode =
-                    createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
-
-                newhead = branchIdHead;
-              }
-
-              CFANode newNext = reverseEdge(oldEdge, newhead);
-
-              checkNotNull(newNext);
-              nodes.put(funcName, newNext);
-              nodeMap.put(oldNext, newNext);
+              newhead = branchIdHead;
             }
+
+            CFANode newNext = reverseEdge(oldEdge, newhead);
+
+            checkNotNull(newNext);
+            nodes.put(funcName, newNext);
+            nodeMap.put(oldNext, newNext);
 
             if (visited.add(oldNext)) {
               waitList.add(oldNext);
             }
           }
         }
+
         return newEntryNode;
       }
 
@@ -439,14 +472,10 @@ public class CFAReverser {
       /////////////////////////////////////////////////////////////////////////////
       // Edge Reversing
       /////////////////////////////////////////////////////////////////////////////
+
       private CFANode reverseEdge(CFAEdge edge, CFANode from) {
 
-        CFANode to;
-        if (nodeMap.containsKey(edge.getPredecessor())) {
-          to = nodeMap.get(edge.getPredecessor());
-        } else {
-          to = new CFANode(from.getFunction());
-        }
+        CFANode to = reverseCFANode(edge.getPredecessor());
 
         pLog.log(Level.INFO, "Reversing Edge: " + edge + " " + edge.getClass());
 
@@ -471,6 +500,28 @@ public class CFAReverser {
         }
 
         return to;
+      }
+
+      private CFANode reverseCFANode(CFANode oldNode) {
+        // already created
+        if (nodeMap.containsKey(oldNode)) {
+          return nodeMap.get(oldNode);
+        }
+
+        CFunctionDeclaration newFuncDecl = funcDeclMap.get(oldNode.getFunction());
+
+        CFANode newNode;
+        // old : function entry node
+        // new : function exit node
+        if (oldNode instanceof CFunctionEntryNode) {
+          newNode = new FunctionExitNode(newFuncDecl);
+        } else {
+          newNode = new CFANode(newFuncDecl);
+        }
+
+        nodeMap.put(oldNode, newNode);
+        nodes.put(newNode.getFunctionName(), newNode);
+        return newNode;
       }
 
       // TODO: reverseFunctionDeclaration
@@ -1085,7 +1136,6 @@ public class CFAReverser {
           new CStatementEdge("", ndetAssign, FileLocation.DUMMY, curr, next);
 
       addToCFA(assignEdge);
-      pLog.log(Level.INFO, "NEW NONDET: " + assignEdge);
       return next;
     }
 
