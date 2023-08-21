@@ -69,8 +69,7 @@ public abstract class PathTranslator {
     // We assume, that each node has one location.
     // TODO: the location is invalid for all concurrent programs,
     //       because interleaving threads are not handled.
-    AFunctionDeclaration funcDec = AbstractStates.extractLocation(state).getFunction();
-    return funcDec;
+    return AbstractStates.extractLocation(state).getFunction();
   }
 
   protected final List<String> mGlobalDefinitionsList = new ArrayList<>();
