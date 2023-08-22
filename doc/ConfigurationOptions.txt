@@ -3685,9 +3685,6 @@ dar.fallBack = true
 # programs with loops. If it is not set to true, DAR is not used.
 dar.isDAREnabled = true
 
-# Toggle if the algorithm should perform only global strengthening phase.
-dar.isLocalPhaseEnabled = true
-
 # toggle removing unreachable stop states in ARG
 dar.removeUnreachableStopStates = false
 

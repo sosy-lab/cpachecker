@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -50,9 +49,7 @@ public class DualInterpolationSequence {
     return isLocallyUnsafe;
   }
   public int getSize() {return forwardReachVector.size(); }
-  public List<BooleanFormula> getForwardReachVector() {
-    return forwardReachVector;
-  }
+  public List<BooleanFormula> getForwardReachVector() { return forwardReachVector; }
   public List<BooleanFormula> getBackwardReachVector() {
     return backwardReachVector;
   }
