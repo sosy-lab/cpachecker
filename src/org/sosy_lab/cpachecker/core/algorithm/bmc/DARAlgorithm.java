@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -322,7 +323,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula backwardImage = pDualSequence.getBackwardReachVector().get(0);
 
     for (int i = 1; i < pDualSequence.getSize(); i++){
-      if (solver.implies(fmgr.uninstantiate(pDualSequence.getForwardReachVector().get(i)), forwardImage)){
+      if (solver.implies(pDualSequence.getForwardReachVector().get(i), forwardImage)){
         finalFixedPoint = forwardImage;
         return true;
       }
