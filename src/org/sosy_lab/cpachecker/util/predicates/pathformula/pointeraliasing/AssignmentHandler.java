@@ -380,6 +380,7 @@ class AssignmentHandler {
     if (conv.direction == AnalysisDirection.BACKWARD && firstAssignment) {
       Expression resolvedLhsExpression = resolvedLhsBase.expression();
       CType resolvedLhsType = resolvedLhsBase.type();
+
       if (resolvedLhsExpression instanceof UnaliasedLocation) {
         if (resolvedLhsType instanceof CSimpleType) {
           conv.makeFreshIndex(
@@ -387,9 +388,6 @@ class AssignmentHandler {
               CTypes.adjustFunctionOrArrayType(resolvedLhsType),
               ssa);
         } else if (resolvedLhsType instanceof CCompositeType) {
-          // For assignment to the field of a struct, first resolve the modifiers
-          // to get the actual field
-          final SliceExpression lhsSlice = assignment.lhs;
           final AssignmentQuantifierHandler assignmentQuantifierHandler =
               new AssignmentQuantifierHandler(
                   conv,
@@ -403,7 +401,9 @@ class AssignmentHandler {
                   assignmentOptions,
                   lhsBaseResolutionMap,
                   rhsBaseResolutionMap);
-
+          // For assignment to the field of a struct, first resolve the modifiers
+          // to get the actual field to be updated
+          final SliceExpression lhsSlice = assignment.lhs;
           final ResolvedSlice lhsResolved =
               assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
                   resolvedLhsBase, lhsSlice);
@@ -413,12 +413,15 @@ class AssignmentHandler {
               ssa);
         }
       } else if (resolvedLhsExpression instanceof AliasedLocation) {
-        MemoryRegion region = resolvedLhsExpression.asAliasedLocation().getMemoryRegion();
-        if (region == null) {
-          region = regionMgr.makeMemoryRegion(resolvedLhsType);
+        if (resolvedLhsType instanceof CSimpleType) {
+          MemoryRegion region = resolvedLhsExpression.asAliasedLocation().getMemoryRegion();
+          if (region == null) {
+            region = regionMgr.makeMemoryRegion(resolvedLhsType);
+          }
+          String targetName = regionMgr.getPointerAccessName(region);
+          conv.makeFreshIndex(targetName, resolvedLhsType, ssa);
         }
-        String targetName = regionMgr.getPointerAccessName(region);
-        conv.makeFreshIndex(targetName, resolvedLhsType, ssa);
+        // TODO: handle the case of composite types for aliased locations
       }
     }
 
