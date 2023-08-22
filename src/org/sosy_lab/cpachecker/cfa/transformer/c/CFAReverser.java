@@ -414,37 +414,43 @@ public class CFAReverser {
             branchCnt += 1;
             usingBranch = true;
             // Create a ndet variable
+            String branchVarname = newFuncDecl.getName() + "::" + "BRANCH__" + branchCnt;
+
             ndetBranchVarDecl =
                 new CVariableDeclaration(
                     FileLocation.DUMMY,
                     false,
                     CStorageClass.AUTO,
                     intType,
-                    "__b__" + branchCnt,
-                    "__b__" + branchCnt,
-                    newFuncDecl.getName() + "::" + "__b__" + branchCnt,
+                    branchVarname,
+                    branchVarname,
+                    branchVarname,
                     null);
-
-            variables.put("Branch__", ndetBranchVarDecl);
+            variables.put(branchVarname, ndetBranchVarDecl);
             ndetBranchVarExpr = new CIdExpression(FileLocation.DUMMY, ndetBranchVarDecl);
             branchNode = createNoDetAssign(ndetBranchVarExpr, newhead);
           }
 
           int branchid = 0;
+          CIntegerLiteralExpression ndetBranchIdExpr = null;
 
           for (CFAEdge oldEdge : CFAUtils.allEnteringEdges(oldhead)) {
             CFANode oldNext = oldEdge.getPredecessor();
 
-            // branch = 0
             if (usingBranch) {
-              CIntegerLiteralExpression ndetBranchIdExpr =
+              if (ndetBranchIdExpr != null) {
+                branchNode =
+                    createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
+              }
+
+              ndetBranchIdExpr =
                   new CIntegerLiteralExpression(
                       FileLocation.DUMMY, intType, BigInteger.valueOf(branchid));
+
               branchid += 1;
+
               CFANode branchIdHead =
                   createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, true);
-
-              branchNode = createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
 
               newhead = branchIdHead;
             }
