@@ -3982,6 +3982,12 @@ invariantGeneration.kInduction.terminateOnCounterexample = false
 
 # The directory where the invariants are stored.
 invariantStore.export.outDir = "invariantWitnesses"
+
+# If enabled, this option will not just output loop invariants,but also
+# general location invariants at other locations.
+invariantStore.export.writeLocationInvariants = false
+
+# The directory where the invariants are stored.
 invariantStore.import.storeDirectory = "invariantWitnesses"
 
 # Strategy for generating invariants
