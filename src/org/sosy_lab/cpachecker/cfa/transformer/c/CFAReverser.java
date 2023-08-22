@@ -146,7 +146,7 @@ public class CFAReverser {
     private final NavigableMap<String, FunctionEntryNode> functions;
     private final TreeMultimap<String, CFANode> nodes;
     private final Map<CFunctionDeclaration, CFunctionDeclaration> funcDeclMap;
-    private final Map<CFANode, CFANode> nodeMap;
+
     private final ImmutableSet<CFANode> targets;
     private final Map<String, CFunctionDeclaration> funcDecls;
 
@@ -168,7 +168,6 @@ public class CFAReverser {
       this.functions = new TreeMap<>();
       this.nodes = TreeMultimap.create();
       this.funcDeclMap = new HashMap<>();
-      this.nodeMap = new HashMap<>();
       this.funcDecls = new HashMap<>();
       // Search for the target in the original CFA
       this.targets = targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec);
@@ -190,10 +189,11 @@ public class CFAReverser {
     private void insertErrorState(FunctionEntryNode mainEntryNode) {
 
       // exitNode
-      FunctionExitNode exitNode = (FunctionExitNode) nodeMap.get(pCfa.getMainFunction());
+      FunctionExitNode exitNode = mainEntryNode.getExitNode().orElseThrow();
       assert exitNode.getNumEnteringEdges() == 1;
       // exitEdge
       CFAEdge exitEdge = exitNode.getEnteringEdge(0);
+      // TODO: possible to be return edge
       assert exitEdge instanceof BlankEdge;
       CFANode predeccsorNode = exitEdge.getPredecessor();
       CFACreationUtils.removeEdgeFromNodes(exitEdge);
@@ -257,12 +257,14 @@ public class CFAReverser {
       private CFunctionEntryNode oldEntryNode; // Entry node for the old Function CFA
       private int branchCnt; // How many branch in this function
       private Set<CFANode> localTargets;
+      private final Map<CFANode, CFANode> nodeMap;
 
       private CfaFunctionBuilder(CFunctionEntryNode oldEntryNode) {
         this.variables = new HashMap<>();
         this.oldEntryNode = oldEntryNode;
         this.branchCnt = 0;
         this.localTargets = new HashSet<>();
+        this.nodeMap = new HashMap<>();
       }
 
       /** reverse the function CFA */
@@ -274,12 +276,19 @@ public class CFAReverser {
         CFunctionDeclaration newFuncDecl = reverseFunctionDeclaration(oldFuncDecl);
         funcDeclMap.put(oldFuncDecl, newFuncDecl);
 
-        // new entry node should be reverse to the old exit node
-        // TODO: old exit node may not exist
+        // old entry <-> new exit
+        // old exit  <-> new entry
+        FunctionExitNode newExitNode = new FunctionExitNode(newFuncDecl);
+        nodeMap.put(oldEntryNode, newExitNode);
+        nodes.put(newExitNode.getFunctionName(), newExitNode);
+
         FunctionExitNode oldExitNode = oldEntryNode.getExitNode().orElseThrow();
         CFunctionEntryNode newEntryNode =
-            new CFunctionEntryNode(FileLocation.DUMMY, newFuncDecl, null, Optional.empty());
+            new CFunctionEntryNode(
+                FileLocation.DUMMY, newFuncDecl, newExitNode, Optional.ofNullable(null));
         nodes.put(funcName, newEntryNode);
+
+        newExitNode.setEntryNode(newEntryNode);
 
         // create two dummy node, in order to insert initialization edges between those
         // initStartNode --> int i --> initDoneNode --> target
@@ -377,7 +386,7 @@ public class CFAReverser {
           CFANode newhead = nodeMap.get(oldhead);
 
           if (oldhead instanceof CFunctionEntryNode) {
-            ((FunctionExitNode) newhead).setEntryNode(newEntryNode);
+            assert newhead instanceof FunctionExitNode;
           }
 
           if (targets.contains(oldhead)) {
@@ -502,22 +511,23 @@ public class CFAReverser {
         return to;
       }
 
+      /**
+       * @param oldNode node in the original CFA
+       * @return the corresponding node in the reverse CFA
+       */
       private CFANode reverseCFANode(CFANode oldNode) {
         // already created
         if (nodeMap.containsKey(oldNode)) {
           return nodeMap.get(oldNode);
         }
 
+        assert !(oldNode instanceof CFunctionEntryNode);
+
         CFunctionDeclaration newFuncDecl = funcDeclMap.get(oldNode.getFunction());
 
-        CFANode newNode;
-        // old : function entry node
-        // new : function exit node
-        if (oldNode instanceof CFunctionEntryNode) {
-          newNode = new FunctionExitNode(newFuncDecl);
-        } else {
-          newNode = new CFANode(newFuncDecl);
-        }
+        checkNotNull(newFuncDecl);
+
+        CFANode newNode = new CFANode(newFuncDecl);
 
         nodeMap.put(oldNode, newNode);
         nodes.put(newNode.getFunctionName(), newNode);
