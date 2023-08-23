@@ -1,4 +1,4 @@
-// TRUE
+extern void reach_error();
 
 int 
 main()
@@ -8,6 +8,6 @@ main()
         a *= 2; 
     } 
 
-    if (a == 1024) { ERROR : ; }
+    if (a == 1024) { reach_error(); }
     
-}	
+}

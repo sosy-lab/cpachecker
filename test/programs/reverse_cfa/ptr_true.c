@@ -1,3 +1,6 @@
+extern void reach_error();
+
+
 int main() {
     
     int *p;
@@ -6,7 +9,7 @@ int main() {
         *p *= 2;
     }
 
-    if (*p != 1024) { ERROR : ;}
+    if (*p != 1024) {  reach_error(); }
     
 }
 

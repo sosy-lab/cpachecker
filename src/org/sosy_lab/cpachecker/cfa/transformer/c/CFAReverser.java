@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -24,8 +25,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -87,7 +90,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -126,14 +128,21 @@ public class CFAReverser {
     return cfabBuilder.createCfa().immutableCopy();
   }
 
-  /**
-   * Add sv-comp-errorlabel to the original specification
-   *
-   * @param pSpecification the original specification
-   */
-  public static Specification updateSpecForReverseCFA(Specification pSpecification) {
-    return pSpecification.withAdditionalProperties(
-        ImmutableSet.of(CommonVerificationProperty.REACHABILITY_LABEL));
+  /** Add sv-comp-errorlabel to the original specification */
+  public static Specification updateSpecForReverseCFA(
+      Iterable<Path> pSpecFiles,
+      CFA cfa,
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(pSpecFiles);
+    Path path =
+        Classes.getCodeLocation(CFAReverser.class)
+            .resolveSibling("config")
+            .resolve("properties")
+            .resolve("unreach-label.prp");
+    return Specification.fromFiles(ImmutableSet.of(path), cfa, config, logger, pShutdownNotifier);
   }
 
   /** The reverse CFA builder */
@@ -171,6 +180,8 @@ public class CFAReverser {
       this.funcDecls = new HashMap<>();
       // Search for the target in the original CFA
       this.targets = targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec);
+
+      assert targets.size() >= 1;
     }
 
     /**
