@@ -963,8 +963,6 @@ class AssignmentFormulaHandler {
             conv.direction == AnalysisDirection.FORWARD
                 ? oldIndex
                 : conv.getPreviousIndex(targetName, lvalueType, ssa);
-        ;
-
       } else if (options.useArraysForHeap()) {
         assert updatedRegions == null : "Return updated regions is only for UF encoding";
         if (rhs == null) {
