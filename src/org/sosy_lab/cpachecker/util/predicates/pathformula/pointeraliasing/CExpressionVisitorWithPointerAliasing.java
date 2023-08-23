@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
@@ -386,6 +388,15 @@ class CExpressionVisitorWithPointerAliasing
     final CType resultType = typeHandler.getSimplifiedType(e);
 
     final String variableName = e.getDeclaration().getQualifiedName();
+    // In backward analysis, if a variable is ever addressed, we always
+    // work with the aliased location to avoid issues with converting
+    // between direct encoding and address encoding
+    if (conv.direction == AnalysisDirection.BACKWARD
+        && e.getDeclaration() instanceof CDeclaration
+        && conv.isAddressedVariable((CDeclaration) e.getDeclaration())) {
+      final Formula address = conv.makeBaseAddress(variableName, resultType);
+      return AliasedLocation.ofAddress(address);
+    }
     if (!pts.isActualBase(variableName)
         && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {

@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -115,6 +114,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @SuppressWarnings("hiding")
   final ShutdownNotifier shutdownNotifier = super.shutdownNotifier;
 
+  @SuppressWarnings("hiding")
+  final AnalysisDirection direction = super.direction;
+
   private final @Nullable ArrayFormulaManagerView afmgr;
   final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManager ptsMgr;
@@ -131,8 +133,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final LogManager logger,
       final ShutdownNotifier pShutdownNotifier,
       final TypeHandlerWithPointerAliasing pTypeHandler,
-      final AnalysisDirection pDirection)
-      throws InvalidConfigurationException {
+      final AnalysisDirection pDirection) {
     super(
         pOptions,
         formulaManagerView,
@@ -144,8 +145,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         pDirection);
 
     if (pDirection == AnalysisDirection.BACKWARD) {
-      throw new InvalidConfigurationException(
-          "Backward formula construction is not yet implemented for pointer aliasing.");
+      logger.log(
+          Level.INFO,
+          "Support for pointer aliasing is a work-in-progress feature for backward analysis");
     }
 
     variableClassification = pVariableClassification;
@@ -390,7 +392,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param var The variable declaration to check.
    * @return Whether the variable declaration is addressed or not.
    */
-  private boolean isAddressedVariable(CDeclaration var) {
+  protected boolean isAddressedVariable(CDeclaration var) {
     return !variableClassification.isPresent()
         || variableClassification
             .orElseThrow()
@@ -1335,6 +1337,34 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeVariable(pName, pType, pSsa);
+  }
+
+  /**
+   * This method returns the previous index of the given variable in the ssa map, if there is none,
+   * it creates one with the value 1. This method should be used only for creating proper formulas
+   * for a backward analysis, where ssa indices are flipped.
+   *
+   * @return the previous index of the variable
+   */
+  protected int getPreviousIndex(String name, CType type, SSAMapBuilder ssa) {
+    checkSsaSavedType(name, type, ssa.getType(name));
+    int idx = ssa.getPreviousIndex(name);
+    if (idx == 0) {
+      return 1;
+    } else if (idx < 0) {
+      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
+      idx = VARIABLE_UNINITIALIZED;
+
+      // It is important to store the index in the variable here.
+      // If getPreviousIndex() was called with a specific name,
+      // this means that name@idx will appear in formulas.
+      // Thus we need to make sure that calls to FormulaManagerView.instantiate()
+      // will also add indices for this name,
+      // which it does exactly if the name is in the SSAMap.
+      ssa.setIndex(name, type, idx);
+    }
+
+    return idx;
   }
 
   /** {@inheritDoc} */

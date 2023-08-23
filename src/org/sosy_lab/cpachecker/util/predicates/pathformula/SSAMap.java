@@ -113,6 +113,11 @@ public final class SSAMap implements Serializable {
           variable, SSAMap.getIndex(variable, vars, ssa.defaultValue));
     }
 
+    public int getPreviousIndex(String variable) {
+      return SSAMap.getIndex(variable, vars, ssa.defaultValue)
+          - FreshValueProvider.DEFAULT_INCREMENT;
+    }
+
     public CType getType(String name) {
       return varTypes.get(name);
     }

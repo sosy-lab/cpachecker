@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -237,6 +238,7 @@ class AssignmentFormulaHandler {
     // an initialization assignment
     // unaliased locations do not get any improvement from using old SSA indices
     final Location lhsLocation = lhsResolved.expression().asLocation();
+    // Never use in case of backward analysis
     final boolean useOldSSAIndices =
         assignmentOptions.useOldSSAIndicesIfAliased() && lhsLocation.isAliased();
 
@@ -253,8 +255,7 @@ class AssignmentFormulaHandler {
             rhsResult.type(),
             lhsLocation,
             rhsResult.expression(),
-            assignmentOptions.useOldSSAIndicesIfAliased()
-                && lhsResolved.expression().isAliasedLocation(),
+            useOldSSAIndices,
             updatedRegions,
             conditionFormula,
             useQuantifiers);
@@ -919,7 +920,11 @@ class AssignmentFormulaHandler {
       assert !useOldSSAIndices;
 
       final String targetName = lvalue.asUnaliased().getVariableName();
-      final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+      final int newIndex =
+          conv.direction == AnalysisDirection.FORWARD
+              ? conv.makeFreshIndex(targetName, lvalueType, ssa)
+              // in backward analysis we have already incremented the index
+              : conv.getPreviousIndex(targetName, lvalueType, ssa);
 
       if (rhs != null) {
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
@@ -929,11 +934,12 @@ class AssignmentFormulaHandler {
       }
 
       // This check is in principle redundant, but is required in order to avoid #1102.
-      if (!bfmgr.isTrue(condition)) {
+      if (!bfmgr.isTrue(condition) && conv.direction == AnalysisDirection.FORWARD) {
         // add the condition
         // either the condition holds and the assignment should be done,
         // or the condition does not hold and the previous value should be copied
         final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+
         Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
 
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
@@ -953,7 +959,11 @@ class AssignmentFormulaHandler {
       final int newIndex;
       if (useOldSSAIndices) {
         assert updatedRegions == null : "Returning updated regions is only for new indices";
-        newIndex = oldIndex;
+        newIndex =
+            conv.direction == AnalysisDirection.FORWARD
+                ? oldIndex
+                : conv.getPreviousIndex(targetName, lvalueType, ssa);
+        ;
 
       } else if (options.useArraysForHeap()) {
         assert updatedRegions == null : "Return updated regions is only for UF encoding";
@@ -964,7 +974,11 @@ class AssignmentFormulaHandler {
           rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
           rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
-        newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+        newIndex =
+            conv.direction == AnalysisDirection.FORWARD
+                ? conv.makeFreshIndex(targetName, lvalueType, ssa)
+                // in backward analysis we have already incremented the index
+                : conv.getPreviousIndex(targetName, lvalueType, ssa);
 
       } else {
         assert updatedRegions != null : "UF encoding needs to update regions for new indices";
