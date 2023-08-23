@@ -335,7 +335,9 @@ public class CPAchecker {
         if (useReverseCFA) {
           logger.log(Level.INFO, "Using Reverse CFA.");
           cfa = CFAReverser.reverseCfa(config, specification, logger, cfa, shutdownNotifier);
-          specification = CFAReverser.updateSpecForReverseCFA(specification);
+          specification =
+              CFAReverser.updateSpecForReverseCFA(
+                  specificationFiles, cfa, config, logger, shutdownNotifier);
         }
         cpa = factory.createCPA(cfa, specification);
       } finally {
