@@ -21,8 +21,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.MutableGraph;
 import com.google.common.graph.Traverser;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
@@ -1473,14 +1476,21 @@ public final class LoopStructure implements Serializable {
 
     // TODO: use `CfaNetwork` and transposed `CfaNetwork` to basically halve the amount of code
 
+    enum BranchingNodeType {
+      BRANCH,
+      MERGE
+    }
+
+    record BranchingNode(BranchingNodeType type, CFANode cfaNode) {}
+
     private final @Nullable CFANode startNode;
     private final NodeChainLoopFreeSectionFinder nodeChainFinder;
 
-    // Maps branch/merge nodes to their corresponding merge/branch nodes, so we can skip a
-    // branching. `Optional.empty()` means that there is no corresponding merge/branch node or the
-    // branching isn't loop-free.
-    private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode = new HashMap<>();
-    private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode = new HashMap<>();
+    // This graph represents the mapping between branch nodes and their corresponding merge nodes.
+    // If a node in this graph isn't connected to any other node, we don't know its corresponding
+    // partner node. If a node is connected to another node, the other node is its corresponding
+    // partner node.
+    private final MutableGraph<BranchingNode> branchMergeGraph = GraphBuilder.undirected().build();
 
     /**
      * Creates a new {@link BranchingLoopFreeSectionFinder} instance.
@@ -1508,20 +1518,20 @@ public final class LoopStructure implements Serializable {
           for (CFANode postOrderNode :
               Traverser.<CFANode>forGraph(CFAUtils::successorsOf).depthFirstPostOrder(entryNode)) {
             if (postOrderNode.getNumLeavingEdges() > 1) {
-              // analyze branch node `postOrderNode` and its corresponding merge node (if it exists)
-              mergeNode(postOrderNode).ifPresent(this::branchNode);
+              mergeNode(postOrderNode);
             }
           }
         }
       }
-      // For all branch/merge nodes with unknown corresponding merge/branch nodes, we update the
-      // mappings to indicate that combining the branching into a loop-free section isn't possible.
+      // We've already discovered all possible branch/merge node mappings, so we just add the
+      // remaining branch/merge nodes to indicate that we don't know their corresponding partner
+      // nodes.
       for (CFANode node : pNodes) {
         if (node.getNumEnteringEdges() > 1) {
-          mergeNodeToBranchNode.putIfAbsent(node, Optional.empty());
+          branchMergeGraph.addNode(new BranchingNode(BranchingNodeType.MERGE, node));
         }
         if (node.getNumLeavingEdges() > 1) {
-          branchNodeToMergeNode.putIfAbsent(node, Optional.empty());
+          branchMergeGraph.addNode(new BranchingNode(BranchingNodeType.BRANCH, node));
         }
       }
     }
@@ -1584,11 +1594,14 @@ public final class LoopStructure implements Serializable {
       int branchingFactor = pMergeNode.getNumEnteringEdges();
       checkArgument(branchingFactor > 1, "Node is not a merge node: %s", pMergeNode);
 
-      if (mergeNodeToBranchNode.containsKey(pMergeNode)) {
-        // we already know the branch node for the merge node
-        return mergeNodeToBranchNode.get(pMergeNode);
+      var mergeNode = new BranchingNode(BranchingNodeType.MERGE, pMergeNode);
+      if (branchMergeGraph.nodes().contains(mergeNode)) {
+        // the merge node has already been analyzed
+        return Optional.ofNullable(
+                Iterables.getOnlyElement(branchMergeGraph.adjacentNodes(mergeNode), null))
+            .map(BranchingNode::cfaNode);
       }
-      mergeNodeToBranchNode.put(pMergeNode, Optional.empty());
+      branchMergeGraph.addNode(mergeNode);
 
       // find branch nodes for branches
       List<CFANode> branchNodeCandidates = new ArrayList<>(branchingFactor);
@@ -1633,7 +1646,8 @@ public final class LoopStructure implements Serializable {
       Optional<CFANode> branchNode = Optional.empty();
       if (acceptCandidates) {
         branchNode = Optional.of(prevBranchNodeCandidate);
-        mergeNodeToBranchNode.put(pMergeNode, branchNode);
+        branchMergeGraph.putEdge(
+            mergeNode, new BranchingNode(BranchingNodeType.BRANCH, prevBranchNodeCandidate));
       }
       return branchNode;
     }
@@ -1654,11 +1668,14 @@ public final class LoopStructure implements Serializable {
       int branchingFactor = pBranchNode.getNumLeavingEdges();
       checkArgument(branchingFactor > 1, "Node is not a branch node: %s", pBranchNode);
 
-      if (branchNodeToMergeNode.containsKey(pBranchNode)) {
-        // we already know the merge node for the branch node
-        return branchNodeToMergeNode.get(pBranchNode);
+      var branchNode = new BranchingNode(BranchingNodeType.BRANCH, pBranchNode);
+      if (branchMergeGraph.nodes().contains(branchNode)) {
+        // the branch node has already been analyzed
+        return Optional.ofNullable(
+                Iterables.getOnlyElement(branchMergeGraph.adjacentNodes(branchNode), null))
+            .map(BranchingNode::cfaNode);
       }
-      branchNodeToMergeNode.put(pBranchNode, Optional.empty());
+      branchMergeGraph.addNode(branchNode);
 
       // find merge nodes for branches
       List<CFANode> mergeNodeCandidates = new ArrayList<>(branchingFactor);
@@ -1702,7 +1719,8 @@ public final class LoopStructure implements Serializable {
       Optional<CFANode> mergeNode = Optional.empty();
       if (acceptCandidates) {
         mergeNode = Optional.of(prevMergeNodeCandidate);
-        branchNodeToMergeNode.put(pBranchNode, mergeNode);
+        branchMergeGraph.putEdge(
+            branchNode, new BranchingNode(BranchingNodeType.MERGE, prevMergeNodeCandidate));
       }
       return mergeNode;
     }
