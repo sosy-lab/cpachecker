@@ -1606,7 +1606,7 @@ public final class LoopStructure implements Serializable {
       // find branch nodes for branches
       List<CFANode> branchNodeCandidates = new ArrayList<>(branchingFactor);
       for (CFANode branchLastNode : CFAUtils.predecessorsOf(pMergeNode)) {
-        if (branchLastNode.getNumLeavingEdges() >= branchingFactor) {
+        if (branchLastNode.getNumLeavingEdges() == branchingFactor) {
           // we are already at a branch node
           branchNodeCandidates.add(branchLastNode);
         } else {
@@ -1614,7 +1614,7 @@ public final class LoopStructure implements Serializable {
           if (branchFirstNode.getNumEnteringEdges() == 1) {
             // the sole predecessor of the first branch node is the branch node candidate
             CFANode branchNode = branchFirstNode.getEnteringEdge(0).getPredecessor();
-            if (branchNode.getNumLeavingEdges() >= branchingFactor) {
+            if (branchNode.getNumLeavingEdges() == branchingFactor) {
               branchNodeCandidates.add(branchNode);
             } else {
               branchNodeCandidates.add(null);
@@ -1680,7 +1680,7 @@ public final class LoopStructure implements Serializable {
       // find merge nodes for branches
       List<CFANode> mergeNodeCandidates = new ArrayList<>(branchingFactor);
       for (CFANode branchFirstNode : CFAUtils.successorsOf(pBranchNode)) {
-        if (branchFirstNode.getNumEnteringEdges() >= branchingFactor) {
+        if (branchFirstNode.getNumEnteringEdges() == branchingFactor) {
           // we are already at a merge node
           mergeNodeCandidates.add(branchFirstNode);
         } else {
@@ -1688,7 +1688,7 @@ public final class LoopStructure implements Serializable {
           if (branchLastNode.getNumLeavingEdges() == 1) {
             // the sole successor of the last branch node is the merge node candidate
             CFANode mergeNode = branchLastNode.getLeavingEdge(0).getSuccessor();
-            if (mergeNode.getNumEnteringEdges() >= branchingFactor) {
+            if (mergeNode.getNumEnteringEdges() == branchingFactor) {
               mergeNodeCandidates.add(mergeNode);
             } else {
               mergeNodeCandidates.add(null);
