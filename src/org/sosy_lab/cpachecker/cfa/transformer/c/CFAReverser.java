@@ -180,8 +180,10 @@ public class CFAReverser {
       this.funcDecls = new HashMap<>();
       // Search for the target in the original CFA
       this.targets = targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec);
-
-      assert targets.size() >= 1;
+      // Should contain at least target in the original CFA
+      if (this.targets.size() < 1) {
+        throw new AssertionError("Not found any target in this CFA");
+      }
     }
 
     /**
@@ -197,7 +199,7 @@ public class CFAReverser {
      *
      * @param mainEntryNode the main entry node for the new CFA
      */
-    private void insertErrorState(FunctionEntryNode mainEntryNode) {
+    private void insertErrorLabel(FunctionEntryNode mainEntryNode) {
 
       // exitNode
       FunctionExitNode exitNode = mainEntryNode.getExitNode().orElseThrow();
@@ -217,8 +219,8 @@ public class CFAReverser {
 
       addToCFA(errorLabelEdge);
 
-      exitEdge =
-          new BlankEdge("", FileLocation.DUMMY, errorLabelNode, exitNode, "Exit main function");
+      exitEdge = new BlankEdge("", FileLocation.DUMMY, errorLabelNode, exitNode, "default return");
+
       addToCFA(exitEdge);
     }
 
@@ -239,7 +241,7 @@ public class CFAReverser {
       checkNotNull(reverseMainEntry);
 
       // Insert Error State
-      insertErrorState(reverseMainEntry);
+      insertErrorLabel(reverseMainEntry);
 
       MutableCFA newMutableCfa =
           new MutableCFA(
@@ -597,7 +599,7 @@ public class CFAReverser {
       private void reverseDeclEdge(CDeclarationEdge edge, CFANode from, CFANode to) {
         CDeclaration decl = edge.getDeclaration();
         if (decl instanceof CTypeDeclaration) {
-          pLog.log(Level.INFO, "TYPE DECL not support" + decl);
+          reverseTypeDeclEdge(edge, from, to);
         } else if (decl instanceof CFunctionDeclaration) {
           reverseFuncDeclEdge(edge, from, to);
         } else {
@@ -605,9 +607,17 @@ public class CFAReverser {
         }
       }
 
+      private void reverseTypeDeclEdge(CDeclarationEdge edge, CFANode from, CFANode to) {
+        BlankEdge blankEdge =
+            new BlankEdge(
+                edge.getRawStatement(), FileLocation.DUMMY, from, to, edge.getDescription());
+        addToCFA(blankEdge);
+      }
+
       private void reverseFuncDeclEdge(CDeclarationEdge edge, CFANode from, CFANode to) {
         BlankEdge blankEdge =
-            new BlankEdge("", FileLocation.DUMMY, from, to, edge.getDescription());
+            new BlankEdge(
+                edge.getRawStatement(), FileLocation.DUMMY, from, to, edge.getDescription());
         addToCFA(blankEdge);
       }
 
@@ -755,7 +765,7 @@ public class CFAReverser {
           CVariableDeclaration newDecl =
               new CVariableDeclaration(
                   decl.getFileLocation(),
-                  false,
+                  decl.isGlobal(),
                   decl.getCStorageClass(),
                   decl.getType(),
                   decl.getName(),
@@ -830,22 +840,23 @@ public class CFAReverser {
         }
 
         @Override
-        public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-            throws NoException {
-          // TODO CAddressOfLabelExpression
-          return null;
+        public CExpression visit(CFieldReference pIastFieldReference) throws NoException {
+          CExpression owner = pIastFieldReference.getFieldOwner().accept(this);
+          CFieldReference newExpr =
+              new CFieldReference(
+                  FileLocation.DUMMY,
+                  pIastFieldReference.getExpressionType(),
+                  pIastFieldReference.getFieldName(),
+                  owner,
+                  pIastFieldReference.isPointerDereference());
+          lvalues.add(newExpr);
+          return newExpr;
         }
 
         @Override
         public CExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
             throws NoException {
           // TODO CArraySubscriptExpression
-          return null;
-        }
-
-        @Override
-        public CExpression visit(CCastExpression pIastCastExpression) throws NoException {
-          // TODO CCastExpression
           return null;
         }
 
@@ -893,14 +904,21 @@ public class CFAReverser {
         }
 
         @Override
-        public CExpression visit(CComplexCastExpression pComplexCastExpression) throws NoException {
-          // TODO : CComplexCastExpression
+        public CExpression visit(CCastExpression pIastCastExpression) throws NoException {
+          // TODO CCastExpression
           return null;
         }
 
         @Override
-        public CExpression visit(CFieldReference pIastFieldReference) throws NoException {
-          // TODO CFieldReference
+        public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
+            throws NoException {
+          // TODO CAddressOfLabelExpression
+          return null;
+        }
+
+        @Override
+        public CExpression visit(CComplexCastExpression pComplexCastExpression) throws NoException {
+          // TODO : CComplexCastExpression
           return null;
         }
 
@@ -1044,22 +1062,25 @@ public class CFAReverser {
         }
 
         @Override
-        public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-            throws NoException {
-          // TODO CAddressOfLabelExpression
-          return null;
+        public CExpression visit(CFieldReference pIastFieldReference) throws NoException {
+          if (lvalues.contains(pIastFieldReference)) {
+            return createTmpValue(pIastFieldReference);
+          }
+
+          CExpression owner = pIastFieldReference.getFieldOwner().accept(this);
+
+          return new CFieldReference(
+              FileLocation.DUMMY,
+              pIastFieldReference.getExpressionType(),
+              pIastFieldReference.getFieldName(),
+              owner,
+              pIastFieldReference.isPointerDereference());
         }
 
         @Override
         public CExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
             throws NoException {
           // TODO CArraySubscriptExpression
-          return null;
-        }
-
-        @Override
-        public CExpression visit(CCastExpression pIastCastExpression) throws NoException {
-          // TODO CCastExpression
           return null;
         }
 
@@ -1107,14 +1128,21 @@ public class CFAReverser {
         }
 
         @Override
+        public CExpression visit(CCastExpression pIastCastExpression) throws NoException {
+          // TODO CCastExpression
+          return null;
+        }
+
+        @Override
         public CExpression visit(CComplexCastExpression pComplexCastExpression) throws NoException {
           // TODO : CComplexCastExpression
           return null;
         }
 
         @Override
-        public CExpression visit(CFieldReference pIastFieldReference) throws NoException {
-          // TODO CFieldReference
+        public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
+            throws NoException {
+          // TODO CAddressOfLabelExpression
           return null;
         }
 
@@ -1166,6 +1194,14 @@ public class CFAReverser {
       return next;
     }
 
+    /**
+     * Helper method to create an Assignment edge
+     *
+     * @param lExpr expression at the left side
+     * @param rExpr expression at the right side
+     * @param curr current CFA node
+     * @return the new CFA node
+     */
     private CFANode createAssignEdge(CLeftHandSide lExpr, CExpression rExpr, CFANode curr) {
 
       CFANode next = new CFANode(curr.getFunction());
@@ -1180,6 +1216,15 @@ public class CFAReverser {
       return next;
     }
 
+    /**
+     * Helper method to create an Assume edge
+     *
+     * @param lExpr expression at the left side
+     * @param rExpr expression at the right side
+     * @param curr the current CFA node
+     * @param assume the assumption towards the expression
+     * @return the new CFA node
+     */
     private CFANode createAssumeEdge(
         CExpression lExpr, CExpression rExpr, CFANode curr, boolean assume) {
 
