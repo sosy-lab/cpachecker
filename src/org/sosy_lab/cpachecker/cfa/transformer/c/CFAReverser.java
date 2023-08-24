@@ -19,6 +19,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -85,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -225,7 +228,6 @@ public class CFAReverser {
     }
 
     private CFA createCfa() {
-
       // Reverse each Function's CFA
       for (Map.Entry<String, FunctionEntryNode> function : pCfa.getAllFunctions().entrySet()) {
         String name = function.getKey();
@@ -280,7 +282,9 @@ public class CFAReverser {
         this.nodeMap = new HashMap<>();
       }
 
-      /** reverse the function CFA */
+      /**
+       * @return main entry node of the reverse CFA
+       */
       private CFunctionEntryNode reverse() {
         String funcName = oldEntryNode.getFunctionName();
 
@@ -426,6 +430,7 @@ public class CFAReverser {
           if (CFAUtils.allEnteringEdges(oldhead).size() > 1) {
             branchCnt += 1;
             usingBranch = true;
+
             // Create a ndet variable
             String branchVarname = newFuncDecl.getName() + "::" + "BRANCH__" + branchCnt;
 
@@ -439,6 +444,7 @@ public class CFAReverser {
                     branchVarname,
                     branchVarname,
                     null);
+
             variables.put(branchVarname, ndetBranchVarDecl);
             ndetBranchVarExpr = new CIdExpression(FileLocation.DUMMY, ndetBranchVarDecl);
             branchNode = createNoDetAssign(ndetBranchVarExpr, newhead);
@@ -451,6 +457,7 @@ public class CFAReverser {
             CFANode oldNext = oldEdge.getPredecessor();
 
             if (usingBranch) {
+
               if (ndetBranchIdExpr != null) {
                 branchNode =
                     createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
@@ -500,7 +507,6 @@ public class CFAReverser {
       /////////////////////////////////////////////////////////////////////////////
       // Edge Reversing
       /////////////////////////////////////////////////////////////////////////////
-
       private CFANode reverseEdge(CFAEdge edge, CFANode from) {
 
         CFANode to = reverseCFANode(edge.getPredecessor());
@@ -553,7 +559,6 @@ public class CFAReverser {
         return newNode;
       }
 
-      // TODO: reverseFunctionDeclaration
       private CFunctionDeclaration reverseFunctionDeclaration(CFunctionDeclaration fdef) {
         return new CFunctionDeclaration(
             fdef.getFileLocation(),
@@ -598,12 +603,13 @@ public class CFAReverser {
 
       private void reverseDeclEdge(CDeclarationEdge edge, CFANode from, CFANode to) {
         CDeclaration decl = edge.getDeclaration();
+
         if (decl instanceof CTypeDeclaration) {
           reverseTypeDeclEdge(edge, from, to);
         } else if (decl instanceof CFunctionDeclaration) {
           reverseFuncDeclEdge(edge, from, to);
         } else {
-          reverseVarDeclEdge((CVariableDeclaration) decl, from, to);
+          reverseVarDeclEdge(edge, from, to);
         }
       }
 
@@ -621,12 +627,14 @@ public class CFAReverser {
         addToCFA(blankEdge);
       }
 
-      private void reverseVarDeclEdge(CVariableDeclaration decl, CFANode from, CFANode to) {
+      private void reverseVarDeclEdge(CDeclarationEdge edge, CFANode from, CFANode to) {
 
+        CVariableDeclaration decl = (CVariableDeclaration) edge.getDeclaration();
         String var = decl.getQualifiedName();
 
+        // Create new variable
         if (!variables.containsKey(var)) {
-          CVariableDeclaration newdecl =
+          CVariableDeclaration newDecl =
               new CVariableDeclaration(
                   decl.getFileLocation(),
                   decl.isGlobal(),
@@ -636,29 +644,64 @@ public class CFAReverser {
                   decl.getOrigName(),
                   decl.getQualifiedName(),
                   null);
-          variables.put(decl.getQualifiedName(), newdecl);
+          variables.put(decl.getQualifiedName(), newDecl);
         }
-
-        // Creating the Assume Edge
-        CFANode curr = from;
 
         CInitializer init = decl.getInitializer();
 
+        if (init == null) {
+          BlankEdge blankEdge =
+              new BlankEdge(
+                  edge.getRawStatement(), FileLocation.DUMMY, from, to, edge.getDescription());
+          addToCFA(blankEdge);
+        }
+
         if (init instanceof CInitializerExpression) {
           RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
-          CIntegerLiteralExpression rvalue =
-              (CIntegerLiteralExpression) ((CInitializerExpression) init).getExpression();
+          CExpression rvalue = ((CInitializerExpression) init).getExpression();
 
-          CExpression rhs = rvalue.accept(rfinder);
+          CExpression rExpr = rvalue.accept(rfinder);
+          CLeftHandSide lExpr = new CIdExpression(FileLocation.DUMMY, variables.get(var));
 
-          CLeftHandSide lhs = new CIdExpression(FileLocation.DUMMY, variables.get(var));
-          curr = createAssumeEdge(lhs, rhs, curr, true);
+          CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
+          CAssumeEdge assumeEdge =
+              new CAssumeEdge("", FileLocation.DUMMY, from, to, assumeExpr, true, false, false);
 
-          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
-          addToCFA(blankEdge);
-        } else {
-          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
-          addToCFA(blankEdge);
+          addToCFA(assumeEdge);
+        }
+
+        // Array initialization
+        if (init instanceof CInitializerList) {
+
+          List<CInitializer> initializerList = ((CInitializerList) init).getInitializers();
+          assert decl.getType() instanceof CArrayType;
+          CArrayType arrayType = (CArrayType) decl.getType();
+          int arrayLength = arrayType.getLengthAsInt().orElseThrow();
+          CType elemType = arrayType.getType();
+
+          CFANode curr = from;
+          CIdExpression arrayExpr = new CIdExpression(FileLocation.DUMMY, variables.get(var));
+
+          for (int i = 0; i < arrayLength; i++) {
+
+            CIntegerLiteralExpression subscriptExpr =
+                new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.valueOf(i));
+            CArraySubscriptExpression lExpr =
+                new CArraySubscriptExpression(
+                    FileLocation.DUMMY, elemType, arrayExpr, subscriptExpr);
+            CExpression rvalue = ((CInitializerExpression) initializerList.get(i)).getExpression();
+            RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
+            CExpression rExpr = rvalue.accept(rfinder);
+
+            if (i != arrayLength - 1) {
+              curr = createAssumeEdge(lExpr, rExpr, curr, true);
+            } else {
+              CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
+              CAssumeEdge assumeEdge =
+                  new CAssumeEdge("", FileLocation.DUMMY, curr, to, assumeExpr, true, false, false);
+              addToCFA(assumeEdge);
+            }
+          }
         }
       }
 
@@ -688,7 +731,7 @@ public class CFAReverser {
         // left hand side
         LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
         CLeftHandSide lhs = (CLeftHandSide) lvalue.accept(lfinder);
-        pLog.log(Level.INFO, "LFINDER VARS: " + lfinder.lvalues);
+
         // right hand side
         RightSideVariableFinder rfinder = new RightSideVariableFinder(lfinder.lvalues);
         CExpression rhs = rvalue.accept(rfinder);
@@ -842,22 +885,30 @@ public class CFAReverser {
         @Override
         public CExpression visit(CFieldReference pIastFieldReference) throws NoException {
           CExpression owner = pIastFieldReference.getFieldOwner().accept(this);
-          CFieldReference newExpr =
+          CFieldReference expr =
               new CFieldReference(
                   FileLocation.DUMMY,
                   pIastFieldReference.getExpressionType(),
                   pIastFieldReference.getFieldName(),
                   owner,
                   pIastFieldReference.isPointerDereference());
-          lvalues.add(newExpr);
-          return newExpr;
+          lvalues.add(expr);
+          return expr;
         }
 
         @Override
         public CExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
             throws NoException {
-          // TODO CArraySubscriptExpression
-          return null;
+          CExpression array = pIastArraySubscriptExpression.getArrayExpression().accept(this);
+          CExpression subscript =
+              pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
+          CType type = pIastArraySubscriptExpression.getExpressionType();
+
+          CArraySubscriptExpression expr =
+              new CArraySubscriptExpression(FileLocation.DUMMY, type, array, subscript);
+          lvalues.add(expr);
+
+          return expr;
         }
 
         @Override
@@ -1030,9 +1081,11 @@ public class CFAReverser {
 
         @Override
         public CExpression visit(CPointerExpression pPointerExpression) throws NoException {
+
           if (lvalues.contains(pPointerExpression)) {
             return createTmpValue(pPointerExpression);
           }
+
           CExpression operand = pPointerExpression.getOperand().accept(this);
 
           return new CPointerExpression(
@@ -1080,8 +1133,17 @@ public class CFAReverser {
         @Override
         public CExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
             throws NoException {
-          // TODO CArraySubscriptExpression
-          return null;
+
+          if (lvalues.contains(pIastArraySubscriptExpression)) {
+            return createTmpValue(pIastArraySubscriptExpression);
+          }
+
+          CExpression array = pIastArraySubscriptExpression.getArrayExpression().accept(this);
+          CExpression subscript =
+              pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
+          CType type = pIastArraySubscriptExpression.getExpressionType();
+
+          return new CArraySubscriptExpression(FileLocation.DUMMY, type, array, subscript);
         }
 
         @Override
@@ -1216,6 +1278,11 @@ public class CFAReverser {
       return next;
     }
 
+    private CBinaryExpression createAssumeExpr(CExpression lExpr, CExpression rExpr) {
+      CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(MachineModel.LINUX64, pLog);
+      return builder.buildBinaryExpressionUnchecked(lExpr, rExpr, BinaryOperator.EQUALS);
+    }
+
     /**
      * Helper method to create an Assume edge
      *
@@ -1228,9 +1295,7 @@ public class CFAReverser {
     private CFANode createAssumeEdge(
         CExpression lExpr, CExpression rExpr, CFANode curr, boolean assume) {
 
-      CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(MachineModel.LINUX64, pLog);
-      CExpression assumeExpr =
-          builder.buildBinaryExpressionUnchecked(lExpr, rExpr, BinaryOperator.EQUALS);
+      CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
 
       CFANode next = new CFANode(curr.getFunction());
       nodes.put(next.getFunctionName(), next);
