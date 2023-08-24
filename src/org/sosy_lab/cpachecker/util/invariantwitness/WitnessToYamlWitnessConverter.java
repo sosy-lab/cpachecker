@@ -25,10 +25,16 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class WitnessToYamlWitnessConverter {
-  private LogManager logger;
+  private final LogManager logger;
+  private final boolean writeLocationInvariants;
 
   public WitnessToYamlWitnessConverter(LogManager pLogger) {
+    this(pLogger, false);
+  }
+
+  public WitnessToYamlWitnessConverter(LogManager pLogger, boolean pWriteLocationInvariants) {
     logger = pLogger;
+    writeLocationInvariants = pWriteLocationInvariants;
   }
 
   public ImmutableList<InvariantWitness> convertProofWitness(Witness pWitness) {
@@ -43,7 +49,7 @@ public class WitnessToYamlWitnessConverter {
                   x ->
                       "true".equalsIgnoreCase(x.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)));
 
-      if (!isLoopHead) {
+      if (!isLoopHead && !writeLocationInvariants) {
         continue;
         // TODO: we might want to export regular invariants as location invariant at some point.
       }

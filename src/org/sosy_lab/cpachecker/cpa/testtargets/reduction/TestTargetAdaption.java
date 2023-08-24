@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.testtargets;
+package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -47,6 +47,20 @@ public enum TestTargetAdaption {
       return newGoals;
     }
   },
+  DOMINATOR_GRAPH {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
+      return new TestTargetReductionSpanningSet_DominatorGraph()
+          .reduceTargets(pTargets, pCfa, false, true);
+    }
+  },
+  DOMINATOR_GRAPH_APPROX {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
+      return new TestTargetReductionSpanningSet_DominatorGraph()
+          .reduceTargets(pTargets, pCfa, true, true);
+    }
+  },
   BASIC_ESSENTIAL_EDGE {
     @Override
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
@@ -71,25 +85,39 @@ public enum TestTargetAdaption {
       return new TestTargetMinimizerEssential().reduceTargets(pTargets, pCfa, false);
     }
   },
-  PORTFOLIO {
+  MINIMUM_KERNEL {
     @Override
     public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
-      Set<CFAEdge> finalResult = COVERED_NEXT_EDGE.adaptTestTargets(pTargets, pCfa);
-      Set<CFAEdge> returnResult =
-          ESSENTIAL_EDGE_ORIGINAL.adaptTestTargets(pTargets, pCfa); // TODO select best
-      finalResult = finalResult.size() > returnResult.size() ? returnResult : finalResult;
-      returnResult = SPANNING_SET.adaptTestTargets(pTargets, pCfa);
-      finalResult = finalResult.size() > returnResult.size() ? returnResult : finalResult;
-      return finalResult;
+      return new TestTargetReductionMinimumKernel_UnconstraintEdges()
+          .reduceTargets(pTargets, pCfa, true);
     }
   },
-  SPANNING_SET { // SUPERBLOCK approach would nearly be identical
+  SPANNING_FOREST {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
+      return new TestTargetReductionSpanningForest().reduceTargets(pTargets, pCfa, false);
+    }
+  },
+  SPANNING_FOREST_APPROX {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
+      return new TestTargetReductionSpanningForest().reduceTargets(pTargets, pCfa, true);
+    }
+  },
+  SPANNING_SET { // DOMINATOR_GRAPH approach would nearly be identical
     @Override
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
-      return new TestTargetReductionSpanningSet().reduceTargets(pTargets, pCfa);
+      return new TestTargetReductionSpanningSet_DominatorGraph()
+          .reduceTargets(pTargets, pCfa, false, false);
     }
   },
-
+  SPANNING_SET_APPROX {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
+      return new TestTargetReductionSpanningSet_DominatorGraph()
+          .reduceTargets(pTargets, pCfa, true, false);
+    }
+  },
   TESTCOMP {
     @Override
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
@@ -112,6 +140,13 @@ public enum TestTargetAdaption {
         }
       }
       return newGoals;
+    }
+  },
+  UNCONSTRAINT_EDGES { // similar to MINIMUM_KERNEL, identical except for computation?
+    @Override
+    public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
+      return new TestTargetReductionMinimumKernel_UnconstraintEdges()
+          .reduceTargets(pTargets, pCfa, false);
     }
   };
 

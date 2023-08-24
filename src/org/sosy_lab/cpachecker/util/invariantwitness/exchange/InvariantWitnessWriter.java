@@ -72,6 +72,13 @@ public final class InvariantWitnessWriter {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path outDir = Path.of("invariantWitnesses");
 
+  @Option(
+      secure = true,
+      description =
+          "If enabled, this option will not just output loop invariants,"
+              + "but also general location invariants at other locations.")
+  private boolean writeLocationInvariants = false;
+
   private InvariantWitnessWriter(
       Configuration pConfig,
       LogManager pLogger,
@@ -177,7 +184,8 @@ public final class InvariantWitnessWriter {
   }
 
   public void exportProofWitnessAsInvariantWitnesses(Witness witness, Path outFile) {
-    WitnessToYamlWitnessConverter conv = new WitnessToYamlWitnessConverter(logger);
+    WitnessToYamlWitnessConverter conv =
+        new WitnessToYamlWitnessConverter(logger, writeLocationInvariants);
     Collection<InvariantWitness> invariantWitnesses = conv.convertProofWitness(witness);
     exportInvariantWitnesses(invariantWitnesses, outFile);
   }
