@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  * BlockSummaryMessage}s are the interface for communication for {@link
  * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor}s
  */
+@SuppressWarnings("unchecked")
 public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMessage> {
 
   private final int targetNodeNumber;
@@ -238,8 +239,8 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return targetNodeNumber;
   }
 
-  public Object getCollectedBlockSummaryErrorMessages() {
-    return getPayload().getOrDefault("violations", ImmutableSet.of());
+  public Set<String> getCollectedBlockSummaryErrorMessages() {
+    return (Set<String>) getPayload().getOrDefault("violations", ImmutableSet.of());
   } // TODO vlt noch einen Failsafe einbauen oder so
 
   protected BlockSummaryMessagePayload getPayload() {
