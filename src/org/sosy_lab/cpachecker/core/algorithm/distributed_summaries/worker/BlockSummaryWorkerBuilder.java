@@ -42,12 +42,14 @@ public class BlockSummaryWorkerBuilder {
   private final List<WorkerGenerator> workerGenerators;
   private final BlockSummaryConnectionProvider<?> connectionProvider;
   private int additionalConnections;
+  private final int numberWorkers;
 
   public BlockSummaryWorkerBuilder(
       CFA pCFA,
       BlockSummaryConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
-      Configuration pConfiguration)
+      Configuration pConfiguration,
+      int numberWorker)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     cfa = pCFA;
@@ -55,6 +57,7 @@ public class BlockSummaryWorkerBuilder {
     // only one available for now
     connectionProvider = pConnectionProvider;
     workerGenerators = new ArrayList<>();
+    numberWorkers = numberWorker;
   }
 
   public Components build()
@@ -120,6 +123,7 @@ public class BlockSummaryWorkerBuilder {
                 pOptions,
                 pNode,
                 cfa,
+                numberWorkers,
                 ShutdownManager.create()));
     return this;
   }

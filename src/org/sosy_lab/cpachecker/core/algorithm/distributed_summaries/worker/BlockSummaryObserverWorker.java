@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
@@ -33,8 +34,9 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private final Map<String, Map<String, Object>> stats = new HashMap<>();
 
   private final int numberOfBlocks;
+  private Set<String> collectedBlockSummaryErrorMessages;
 
-  public record StatusAndResult(AlgorithmStatus status, Result result) {}
+  public record StatusAndResult(AlgorithmStatus status, Result result, Set<String> violations) {}
 
   public BlockSummaryObserverWorker(
       String pId,
@@ -56,6 +58,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
       case FOUND_RESULT -> {
         result = Optional.of(((BlockSummaryResultMessage) pMessage).getResult());
         statusObserver.updateStatus(pMessage);
+        collectedBlockSummaryErrorMessages = pMessage.getCollectedBlockSummaryErrorMessages();
       }
       case ERROR_CONDITION_UNREACHABLE, ERROR_CONDITION, BLOCK_POSTCONDITION -> statusObserver
           .updateStatus(pMessage);
@@ -80,7 +83,8 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
     if (result.isEmpty()) {
       throw new CPAException("Analysis finished but no result is present...");
     }
-    return new StatusAndResult(statusObserver.finish(), result.orElseThrow());
+    return new StatusAndResult(
+        statusObserver.finish(), result.orElseThrow(), collectedBlockSummaryErrorMessages);
   }
 
   public Map<String, Map<String, Object>> getStats() {

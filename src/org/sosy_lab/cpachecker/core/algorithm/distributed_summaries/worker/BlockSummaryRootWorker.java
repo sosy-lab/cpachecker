@@ -48,6 +48,8 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private boolean shutdown;
   private final boolean defaultRootWorker;
   public Set<String> collectedBlockSummaryErrorMessages = new HashSet<>();
+  private int BlockCount = 0;
+  public Set<String> MessageID = new HashSet<>();
 
   BlockSummaryRootWorker(
       String pId,
@@ -56,6 +58,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       BlockSummaryAnalysisOptions pOptions,
       BlockNode pNode,
       CFA pCfa,
+      int pNumberWorkers,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     super("root-worker-" + pId, pOptions);
@@ -77,6 +80,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
             pShutdownManager.getNotifier());
     connection = pConnection;
     defaultRootWorker = !Infer;
+    BlockCount = pNumberWorkers;
     shutdown = false;
     root = pNode;
     AnalysisComponents parts =
@@ -102,23 +106,52 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
         BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(currentState);
         if (!defaultRootWorker) {
+          MessageID.add(pMessage.getBlockId());
           collectedBlockSummaryErrorMessages.add(
               ((BlockSummaryErrorConditionMessage) pMessage).getViolations());
-          // getLogger().log(Level.INFO,collectedBlockSummaryErrorMessages);
+          if (BlockCount + 1 == MessageID.size()) {
+            yield ImmutableSet.of(
+                BlockSummaryMessage.newResultMessage(
+                    root.getId(),
+                    root.getLast().getNodeNumber(),
+                    collectedBlockSummaryErrorMessages,
+                    Result.FALSE));
+          }
+          yield ImmutableSet.of();
         } else {
           if (processing.end()) {
             yield processing;
           }
+          yield ImmutableSet.of(
+              BlockSummaryMessage.newResultMessage(
+                  root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
         }
-        yield ImmutableSet.of(
-            BlockSummaryMessage.newResultMessage(
-                root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
       }
       case FOUND_RESULT, EXCEPTION -> {
         shutdown = true;
+        MessageID.add(pMessage.getBlockId());
+        if (BlockCount + 1 == MessageID.size() && !collectedBlockSummaryErrorMessages.isEmpty()) {
+          yield ImmutableSet.of(
+              BlockSummaryMessage.newResultMessage(
+                  root.getId(),
+                  root.getLast().getNodeNumber(),
+                  collectedBlockSummaryErrorMessages,
+                  Result.FALSE));
+        }
         yield ImmutableSet.of();
       }
-      case STATISTICS, ERROR_CONDITION_UNREACHABLE, BLOCK_POSTCONDITION -> ImmutableSet.of();
+      case STATISTICS, ERROR_CONDITION_UNREACHABLE, BLOCK_POSTCONDITION -> {
+        MessageID.add(pMessage.getBlockId());
+        if (BlockCount + 1 == MessageID.size() && !collectedBlockSummaryErrorMessages.isEmpty()) {
+          yield ImmutableSet.of(
+              BlockSummaryMessage.newResultMessage(
+                  root.getId(),
+                  root.getLast().getNodeNumber(),
+                  collectedBlockSummaryErrorMessages,
+                  Result.FALSE));
+        }
+        yield ImmutableSet.of();
+      }
     };
   }
 

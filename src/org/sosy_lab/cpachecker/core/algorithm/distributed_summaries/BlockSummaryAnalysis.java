@@ -207,7 +207,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       if (decompositionType == DecompositionType.FUNCTION_DECOMPOSITION) {
         // Consistency check doesn´t work for Function Decomposer (more than one root node)
-
+        // TODO leere if clause wegen umgehung (verneinnung oder besser Lösung?)
       } else {
         blockGraph.checkConsistency(shutdownManager.getNotifier());
       }
@@ -228,12 +228,14 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();
+      int numberWorkersInfer = blockGraph.getNodes().size();
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
                   cfa,
                   new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
                   specification,
-                  configuration)
+                  configuration,
+                  numberWorkersInfer)
               .createAdditionalConnections(1)
               .addRootWorker(blockGraph.getRoot(), options);
       for (BlockNode distinctNode : blocks) {
@@ -267,6 +269,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         Result result = resultPair.result();
         stats.putAll(observer.getStats());
         if (result == Result.FALSE) {
+          logger.logf(Level.INFO, "Error Nodes: %s", resultPair.violations());
           ARGState state = (ARGState) reachedSet.getFirstState();
           assert state != null;
           CompositeState cState = (CompositeState) state.getWrappedState();

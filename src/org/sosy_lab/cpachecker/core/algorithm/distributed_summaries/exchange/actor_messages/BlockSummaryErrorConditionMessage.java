@@ -47,7 +47,7 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
   }
 
   public String getViolations() {
-    return Objects.requireNonNull(getPayload().get("violations")).toString();
+    return getPayload().getOrDefault("violations", "").toString();
   }
 
   public boolean isFirst() {

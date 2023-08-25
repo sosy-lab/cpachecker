@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,6 +30,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -54,6 +56,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   // forwards an immutable hashmap
   private final BlockSummaryMessagePayload payload;
   private final Instant timestamp;
+  private Set<String> collectedBlockSummaryErrorMessages;
 
   /**
    * Messages transports information between different {@link
@@ -184,6 +187,19 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
   }
 
+  public static BlockSummaryMessage newResultMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      Set<String> collectedBlockSummaryErrorMessages,
+      Result pResult) {
+    BlockSummaryMessagePayload payload =
+        BlockSummaryMessagePayload.builder()
+            .addEntry(BlockSummaryMessagePayload.RESULT, pResult.name())
+            .addEntry("violations", collectedBlockSummaryErrorMessages)
+            .buildPayload();
+    return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
+  }
+
   public static BlockSummaryMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
     return new BlockSummaryExceptionMessage(
         pUniqueBlockId,
@@ -222,6 +238,10 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   public int getTargetNodeNumber() {
     return targetNodeNumber;
   }
+
+  public Set<String> getCollectedBlockSummaryErrorMessages() {
+    return (Set<String>) getPayload().getOrDefault("violations", ImmutableSet.of());
+  } // TODO vlt noch einen Failsafe einbauen oder so
 
   protected BlockSummaryMessagePayload getPayload() {
     return payload;

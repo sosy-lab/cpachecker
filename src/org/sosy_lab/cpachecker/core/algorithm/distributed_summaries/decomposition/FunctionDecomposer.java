@@ -51,8 +51,12 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
         for (CFAEdge e : CFAUtils.allLeavingEdges(temp)) {
 
           // Check if Function Call Edge or Duplicate
-          if (edges.contains(e) || e instanceof FunctionCallEdge) {
+          if (edges.contains(e)) {
             // Ignore this cases
+          } else if (e instanceof FunctionCallEdge fce) {
+            if (fce.getSuccessor().getFunctionName().equals("reach_error")) {
+              edges.add(e);
+            }
 
           } else {
             edges.add(e);
