@@ -526,7 +526,7 @@ public class CFAReverser {
         } else if (edge instanceof CFunctionSummaryEdge) {
           pLog.log(Level.INFO, "CFunctionSummaryEdge: " + edge);
         } else if (edge instanceof CReturnStatementEdge) {
-          pLog.log(Level.INFO, "CReturnStatementEdge: " + edge);
+          reverseReturnStmtEdge((CReturnStatementEdge) edge, from, to);
         } else if (edge instanceof CFunctionSummaryStatementEdge) {
           pLog.log(Level.INFO, "CFunctionSummaryStatementEdge: " + edge);
         } else {
@@ -567,6 +567,13 @@ public class CFAReverser {
             fdef.getOrigName(),
             fdef.getParameters(),
             fdef.getAttributes());
+      }
+
+      // TODO: reverseReturnStmtEdge
+      private void reverseReturnStmtEdge(CReturnStatementEdge edge, CFANode from, CFANode to) {
+        BlankEdge blankEdge =
+            new BlankEdge("", FileLocation.DUMMY, from, to, edge.getDescription() + "_");
+        addToCFA(blankEdge);
       }
 
       /////////////////////////////////////////////////////////////////////////////
@@ -674,33 +681,65 @@ public class CFAReverser {
           List<CInitializer> initializerList = ((CInitializerList) init).getInitializers();
           assert decl.getType() instanceof CArrayType;
           CArrayType arrayType = (CArrayType) decl.getType();
-          int arrayLength = arrayType.getLengthAsInt().orElseThrow();
-          CType elemType = arrayType.getType();
 
           CFANode curr = from;
           CIdExpression arrayExpr = new CIdExpression(FileLocation.DUMMY, variables.get(var));
 
-          for (int i = 0; i < arrayLength; i++) {
+          curr = handleInitializerList(initializerList, arrayExpr, arrayType, curr);
 
+          BlankEdge dummyEdge =
+              new BlankEdge("", FileLocation.DUMMY, curr, to, edge.getDescription());
+          addToCFA(dummyEdge);
+        }
+      }
+
+      // recursive handling the initializer list
+      private CFANode handleInitializerList(
+          List<CInitializer> initializerList,
+          CExpression arrayExpr,
+          CArrayType arrayType,
+          CFANode curr) {
+        int arrayLength = arrayType.getLengthAsInt().orElseThrow();
+
+        for (int i = arrayLength - 1; i >= 0; i--) {
+          CInitializer initializer = initializerList.get(i);
+          if (initializer instanceof CInitializerList) {
+            CType elemType = arrayType.getType();
+            assert elemType instanceof CArrayType;
             CIntegerLiteralExpression subscriptExpr =
                 new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.valueOf(i));
-            CArraySubscriptExpression lExpr =
+
+            CExpression elemExpr =
                 new CArraySubscriptExpression(
                     FileLocation.DUMMY, elemType, arrayExpr, subscriptExpr);
-            CExpression rvalue = ((CInitializerExpression) initializerList.get(i)).getExpression();
-            RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
-            CExpression rExpr = rvalue.accept(rfinder);
-
-            if (i != arrayLength - 1) {
-              curr = appendAssumeEdge(lExpr, rExpr, curr, true);
-            } else {
-              CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
-              CAssumeEdge assumeEdge =
-                  new CAssumeEdge("", FileLocation.DUMMY, curr, to, assumeExpr, true, false, false);
-              addToCFA(assumeEdge);
-            }
+            curr =
+                handleInitializerList(
+                    ((CInitializerList) initializer).getInitializers(),
+                    elemExpr,
+                    (CArrayType) elemType,
+                    curr);
+            continue;
           }
+
+          assert initializer instanceof CInitializerExpression;
+
+          // Bottom Case
+          CType elemType = arrayType.getType();
+          assert !(elemType instanceof CArrayType);
+          CIntegerLiteralExpression subscriptExpr =
+              new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.valueOf(i));
+
+          CArraySubscriptExpression lExpr =
+              new CArraySubscriptExpression(FileLocation.DUMMY, elemType, arrayExpr, subscriptExpr);
+
+          CExpression rvalue = ((CInitializerExpression) initializer).getExpression();
+          RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
+          CExpression rExpr = rvalue.accept(rfinder);
+
+          curr = appendAssumeEdge(lExpr, rExpr, curr, true);
         }
+
+        return curr;
       }
 
       private void reverseStmtEdge(CStatementEdge edge, CFANode from, CFANode to) {
