@@ -56,7 +56,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   // forwards an immutable hashmap
   private final BlockSummaryMessagePayload payload;
   private final Instant timestamp;
-  private Set<String> collectedBlockSummaryErrorMessages;
 
   /**
    * Messages transports information between different {@link
@@ -239,8 +238,8 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return targetNodeNumber;
   }
 
-  public Set<String> getCollectedBlockSummaryErrorMessages() {
-    return (Set<String>) getPayload().getOrDefault("violations", ImmutableSet.of());
+  public Object getCollectedBlockSummaryErrorMessages() {
+    return getPayload().getOrDefault("violations", ImmutableSet.of());
   } // TODO vlt noch einen Failsafe einbauen oder so
 
   protected BlockSummaryMessagePayload getPayload() {

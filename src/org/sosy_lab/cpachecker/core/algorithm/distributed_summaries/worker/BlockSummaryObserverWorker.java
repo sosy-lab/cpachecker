@@ -34,9 +34,9 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private final Map<String, Map<String, Object>> stats = new HashMap<>();
 
   private final int numberOfBlocks;
-  private Set<String> collectedBlockSummaryErrorMessages;
+  private Object collectedBlockSummaryErrorMessages;
 
-  public record StatusAndResult(AlgorithmStatus status, Result result, Set<String> violations) {}
+  public record StatusAndResult(AlgorithmStatus status, Result result, Object violations) {}
 
   public BlockSummaryObserverWorker(
       String pId,
