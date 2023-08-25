@@ -351,8 +351,8 @@ public class CFAReverser {
         CIntegerLiteralExpression targetBranchID =
             new CIntegerLiteralExpression(
                 FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
-        curr = createAssumeEdge(targetBranchVarExpr, targetBranchID, curr, true);
-        curr = createAssumeEdge(targetBranchVarExpr, targetBranchVarExpr, curr, false);
+        curr = appendAssumeEdge(targetBranchVarExpr, targetBranchID, curr, true);
+        curr = appendAssumeEdge(targetBranchVarExpr, targetBranchVarExpr, curr, false);
         BlankEdge initDoneEdge =
             new BlankEdge("init done", FileLocation.DUMMY, curr, initDoneNode, "INIT DONE");
         addToCFA(initDoneEdge);
@@ -363,12 +363,12 @@ public class CFAReverser {
             CIntegerLiteralExpression lastBranchID =
                 new CIntegerLiteralExpression(
                     FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
-            curr = createAssumeEdge(targetBranchVarExpr, lastBranchID, curr, false);
+            curr = appendAssumeEdge(targetBranchVarExpr, lastBranchID, curr, false);
             targetCnt += 1;
             CIntegerLiteralExpression currBranchID =
                 new CIntegerLiteralExpression(
                     FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
-            curr = createAssumeEdge(targetBranchVarExpr, currBranchID, curr, true);
+            curr = appendAssumeEdge(targetBranchVarExpr, currBranchID, curr, true);
             BlankEdge jumpTargetEdge =
                 new BlankEdge(
                     "",
@@ -447,7 +447,7 @@ public class CFAReverser {
 
             variables.put(branchVarname, ndetBranchVarDecl);
             ndetBranchVarExpr = new CIdExpression(FileLocation.DUMMY, ndetBranchVarDecl);
-            branchNode = createNoDetAssign(ndetBranchVarExpr, newhead);
+            branchNode = appendNonDetAssignEdge(ndetBranchVarExpr, newhead);
           }
 
           int branchid = 0;
@@ -460,7 +460,7 @@ public class CFAReverser {
 
               if (ndetBranchIdExpr != null) {
                 branchNode =
-                    createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
+                    appendAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
               }
 
               ndetBranchIdExpr =
@@ -470,7 +470,7 @@ public class CFAReverser {
               branchid += 1;
 
               CFANode branchIdHead =
-                  createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, true);
+                  appendAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, true);
 
               newhead = branchIdHead;
             }
@@ -636,7 +636,7 @@ public class CFAReverser {
         if (!variables.containsKey(var)) {
           CVariableDeclaration newDecl =
               new CVariableDeclaration(
-                  decl.getFileLocation(),
+                  FileLocation.DUMMY,
                   decl.isGlobal(),
                   decl.getCStorageClass(),
                   decl.getType(),
@@ -657,17 +657,15 @@ public class CFAReverser {
         }
 
         if (init instanceof CInitializerExpression) {
+          CFANode curr = from;
           RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
           CExpression rvalue = ((CInitializerExpression) init).getExpression();
 
           CExpression rExpr = rvalue.accept(rfinder);
           CLeftHandSide lExpr = new CIdExpression(FileLocation.DUMMY, variables.get(var));
 
-          CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
-          CAssumeEdge assumeEdge =
-              new CAssumeEdge("", FileLocation.DUMMY, from, to, assumeExpr, true, false, false);
-
-          addToCFA(assumeEdge);
+          curr = appendAssumeEdge(lExpr, rExpr, curr, true);
+          createNonDetAssignEdge(lExpr, curr, to);
         }
 
         // Array initialization
@@ -694,7 +692,7 @@ public class CFAReverser {
             CExpression rExpr = rvalue.accept(rfinder);
 
             if (i != arrayLength - 1) {
-              curr = createAssumeEdge(lExpr, rExpr, curr, true);
+              curr = appendAssumeEdge(lExpr, rExpr, curr, true);
             } else {
               CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
               CAssumeEdge assumeEdge =
@@ -738,11 +736,11 @@ public class CFAReverser {
 
         CFANode curr = from;
 
-        curr = createAssumeEdge(lhs, rhs, curr, true);
+        curr = appendAssumeEdge(lhs, rhs, curr, true);
 
-        // reset the left side
+        //   the left side
         if (rfinder.tmpVarMap.size() == 0) {
-          curr = createNoDetAssign(lhs, curr);
+          curr = appendNonDetAssignEdge(lhs, curr);
         } else { // i <- tmp_i;
           curr = rfinder.createTmpAssignEdge(curr);
           curr = rfinder.resetTmpVar(curr);
@@ -1002,7 +1000,7 @@ public class CFAReverser {
           for (Map.Entry<CLeftHandSide, CIdExpression> e : tmpVarMap.entrySet()) {
             CLeftHandSide lExpr = e.getKey();
             CExpression rExpr = e.getValue();
-            curr = createAssignEdge(lExpr, rExpr, curr);
+            curr = appendAssignEdge(lExpr, rExpr, curr);
           }
           return curr;
         }
@@ -1010,7 +1008,7 @@ public class CFAReverser {
         private CFANode resetTmpVar(CFANode from) {
           CFANode curr = from;
           for (CIdExpression tmpExpr : tmpVarMap.values()) {
-            curr = createNoDetAssign(tmpExpr, curr);
+            curr = appendNonDetAssignEdge(tmpExpr, curr);
           }
           return curr;
         }
@@ -1243,12 +1241,25 @@ public class CFAReverser {
           FileLocation.DUMMY, type, funcexpr, ImmutableList.of(), decl);
     }
 
-    private CFANode createNoDetAssign(CLeftHandSide lhs, CFANode curr) {
+    private void createNonDetAssignEdge(CLeftHandSide lhs, CFANode from, CFANode to) {
       CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(lhs.getExpressionType());
       CFunctionCallAssignmentStatement ndetAssign =
           new CFunctionCallAssignmentStatement(FileLocation.DUMMY, lhs, ndetCallExpr);
+
+      CStatementEdge ndetAssignEdge =
+          new CStatementEdge("", ndetAssign, FileLocation.DUMMY, from, to);
+
+      addToCFA(ndetAssignEdge);
+    }
+
+    private CFANode appendNonDetAssignEdge(CLeftHandSide lhs, CFANode curr) {
+      CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(lhs.getExpressionType());
+      CFunctionCallAssignmentStatement ndetAssign =
+          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, lhs, ndetCallExpr);
+
       CFANode next = new CFANode(curr.getFunction());
       nodes.put(next.getFunctionName(), next);
+
       CStatementEdge assignEdge =
           new CStatementEdge("", ndetAssign, FileLocation.DUMMY, curr, next);
 
@@ -1257,14 +1268,14 @@ public class CFAReverser {
     }
 
     /**
-     * Helper method to create an Assignment edge
+     * Append an Assignment edge
      *
      * @param lExpr expression at the left side
      * @param rExpr expression at the right side
      * @param curr current CFA node
      * @return the new CFA node
      */
-    private CFANode createAssignEdge(CLeftHandSide lExpr, CExpression rExpr, CFANode curr) {
+    private CFANode appendAssignEdge(CLeftHandSide lExpr, CExpression rExpr, CFANode curr) {
 
       CFANode next = new CFANode(curr.getFunction());
       nodes.put(next.getFunctionName(), next);
@@ -1284,7 +1295,7 @@ public class CFAReverser {
     }
 
     /**
-     * Helper method to create an Assume edge
+     * Append an Assume edge
      *
      * @param lExpr expression at the left side
      * @param rExpr expression at the right side
@@ -1292,7 +1303,7 @@ public class CFAReverser {
      * @param assume the assumption towards the expression
      * @return the new CFA node
      */
-    private CFANode createAssumeEdge(
+    private CFANode appendAssumeEdge(
         CExpression lExpr, CExpression rExpr, CFANode curr, boolean assume) {
 
       CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
