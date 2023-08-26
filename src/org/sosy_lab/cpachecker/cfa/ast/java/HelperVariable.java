@@ -19,11 +19,15 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 // TODO better variable names and check variable visibility
 public class HelperVariable {
+  // das hier alles ist anscheinend problematisch -> nach ner idee suchen wie ich das fixen kan
+  // problem -> throwable ist hier schon mit dabei und kann dann anscheinend nicht als subclasse da
+  // hinzugefügt werden -> schauen wie ich den JClassType von der exception bekomme
   private static Set<JInterfaceType> newSet = new HashSet<>();
+
   public static JClassType jct =
       new JClassType(
-          "java.lang.Throwable",
-          "Throwable",
+          "java.lang.Throwabl",
+          "Throwabl",
           VisibilityModifier.PUBLIC,
           false,
           false,
@@ -34,6 +38,7 @@ public class HelperVariable {
   public static JNullLiteralExpression tempNull = new JNullLiteralExpression(FileLocation.DUMMY);
 
   public static AInitializer temp = new JInitializerExpression(FileLocation.DUMMY, tempNull);
+
   public static JSimpleDeclaration declaration =
       new JVariableDeclaration(
           FileLocation.DUMMY, true, jct, "MainApp_helper", "helper", "helper", temp, false);
@@ -43,10 +48,15 @@ public class HelperVariable {
 
   public static JRunTimeTypeExpression jre = new JVariableRunTimeType(FileLocation.DUMMY, jie);
 
-  public static JExpression et = new JRunTimeTypeEqualsType(FileLocation.DUMMY, jre, jct);
+  public static JExpression getRunTimeTypeEqualsExpression(JClassType exception) {
+    return new JRunTimeTypeEqualsType(FileLocation.DUMMY, jre, exception);
+  }
 
-  public static JStatement runTimeTypeEqualsStatement =
-      new JExpressionStatement(FileLocation.DUMMY, et);
+  public static JStatement getRunTimeTypeEqualsStatement(JClassType exception) {
+
+    JExpression runTimeTypeEquals = getRunTimeTypeEqualsExpression(exception);
+    return new JExpressionStatement(FileLocation.DUMMY, runTimeTypeEquals);
+  }
 
   // TODO check if ADeclaration/JSimpleDeclaration can be changed to this
   public static JFieldDeclaration jfd =
