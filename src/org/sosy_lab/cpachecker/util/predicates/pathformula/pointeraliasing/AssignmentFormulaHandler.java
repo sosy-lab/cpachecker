@@ -920,10 +920,10 @@ class AssignmentFormulaHandler {
 
       final String targetName = lvalue.asUnaliased().getVariableName();
       final int newIndex =
-          conv.direction == AnalysisDirection.FORWARD
-              ? conv.makeFreshIndex(targetName, lvalueType, ssa)
-              // in backward analysis we have already incremented the index
-              : conv.getPreviousIndex(targetName, lvalueType, ssa);
+          switch (conv.direction) {
+            case FORWARD -> conv.makeFreshIndex(targetName, lvalueType, ssa);
+            case BACKWARD -> conv.getPreviousIndex(targetName, rvalueType, ssa);
+          };
 
       if (rhs != null) {
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
@@ -972,10 +972,10 @@ class AssignmentFormulaHandler {
           rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
         newIndex =
-            conv.direction == AnalysisDirection.FORWARD
-                ? conv.makeFreshIndex(targetName, lvalueType, ssa)
-                // in backward analysis we have already incremented the index
-                : conv.getPreviousIndex(targetName, lvalueType, ssa);
+            switch (conv.direction) {
+              case FORWARD -> conv.makeFreshIndex(targetName, lvalueType, ssa);
+              case BACKWARD -> conv.getPreviousIndex(targetName, rvalueType, ssa);
+            };
 
       } else {
         assert updatedRegions != null : "UF encoding needs to update regions for new indices";
@@ -983,7 +983,11 @@ class AssignmentFormulaHandler {
         // For UFs, we use a new index without storing it such that we use the same index
         // for multiple writes that are part of the same assignment.
         // The new index will be stored in the SSAMap later.
-        newIndex = conv.getFreshIndex(targetName, lvalueType, ssa);
+        newIndex =
+            switch (conv.direction) {
+              case FORWARD -> conv.getFreshIndex(targetName, rvalueType, ssa);
+              case BACKWARD -> conv.getPreviousIndex(targetName, rvalueType, ssa);
+            };
       }
 
       final Formula address = lvalue.asAliased().getAddress();
