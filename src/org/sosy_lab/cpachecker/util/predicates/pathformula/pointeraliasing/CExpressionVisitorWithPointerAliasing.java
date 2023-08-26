@@ -392,8 +392,8 @@ class CExpressionVisitorWithPointerAliasing
     // work with the aliased location to avoid issues with converting
     // between direct encoding and address encoding
     if (conv.direction == AnalysisDirection.BACKWARD
-        && e.getDeclaration() instanceof CDeclaration
-        && conv.isAddressedVariable((CDeclaration) e.getDeclaration())) {
+        && e.getDeclaration() instanceof CDeclaration declaration
+        && conv.isAddressedVariable(declaration)) {
       final Formula address = conv.makeBaseAddress(variableName, resultType);
       return AliasedLocation.ofAddress(address);
     }
