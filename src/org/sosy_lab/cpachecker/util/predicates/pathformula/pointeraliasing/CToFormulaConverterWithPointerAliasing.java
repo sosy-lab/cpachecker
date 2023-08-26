@@ -146,7 +146,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (pDirection == AnalysisDirection.BACKWARD) {
       logger.log(
-          Level.INFO,
+          Level.WARNING,
           "Support for pointer aliasing is a work-in-progress feature for backward analysis");
     }
 
