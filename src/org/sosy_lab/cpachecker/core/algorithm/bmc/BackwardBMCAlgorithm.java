@@ -146,12 +146,12 @@ public class BackwardBMCAlgorithm implements Algorithm {
       // of the most recent unrolling are satisfiable
       FluentIterable<AbstractState> latestLoopHeadStates = getRecentLoopHeadStates(reachedSet);
 
-      final boolean targetReachable = isAnyReachable(targetStates);
-      final boolean loopHeadsReachable = isAnyReachable(latestLoopHeadStates);
-      if (targetReachable) {
+      final boolean targetsUnreachable = checkReachability(targetStates);
+      final boolean loopHeadsUnreachable = checkReachability(latestLoopHeadStates);
+      if (targetsUnreachable) {
         InterpolationHelper.removeUnreachableTargetStates(reachedSet);
         // if all targets and loop heads are unreachable, the result is sound
-        if (loopHeadsReachable) {
+        if (loopHeadsUnreachable) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       } else {
@@ -169,7 +169,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
     return FluentIterable.from(reachedSet).filter(AbstractStates::isTargetState);
   }
 
-  private boolean isAnyReachable(FluentIterable<AbstractState> pStates)
+  private boolean checkReachability(FluentIterable<AbstractState> pStates)
       throws CPAException, InterruptedException {
     // Returns disjunction of path formulas
     BooleanFormula formula =
