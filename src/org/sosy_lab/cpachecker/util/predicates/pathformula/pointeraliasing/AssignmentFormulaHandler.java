@@ -238,7 +238,6 @@ class AssignmentFormulaHandler {
     // an initialization assignment
     // unaliased locations do not get any improvement from using old SSA indices
     final Location lhsLocation = lhsResolved.expression().asLocation();
-    // Never use in case of backward analysis
     final boolean useOldSSAIndices =
         assignmentOptions.useOldSSAIndicesIfAliased() && lhsLocation.isAliased();
 
