@@ -129,12 +129,16 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try & catch blocks
-  private boolean inTryBlock = false;
+  private Deque<Boolean> inTryBlock = new ArrayDeque<>();
+  private int numberNestedTryCatch = 0;
+  private int numberCatches = 0;
 
-  private CFANode helperNotNull =
-      null; // probably n Deque draus machen wenn try catch in catchblock ist
-  private CFANode afterStatement = null;
-  private CFANode endOfCatch = null;
+  private Deque<CFANode> helperNotNull = new ArrayDeque<>();
+  private Deque<CFANode> afterStatement = new ArrayDeque<>();
+  private Deque<CFANode> endOfCatch = new ArrayDeque<>();
+
+  private CFANode nextCatchBlockOrError = null;
+  private boolean firstCatchBlock = false;
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
@@ -356,10 +360,12 @@ class CFAMethodBuilder extends ASTVisitor {
       cfa.removeExitNode();
     }
 
-    if (endOfCatch != null) {
-      BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, endOfCatch, lastNode, "");
-      addToCFA(bEdge);
-      endOfCatch = null;
+    if (!endOfCatch.isEmpty()) {
+      for (int i = 0; i <= endOfCatch.size(); i++) {
+        CFANode temp = endOfCatch.pop();
+        BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, temp, lastNode, "");
+        addToCFA(bEdge);
+      }
     }
 
     scope.leaveMethod();
@@ -822,7 +828,8 @@ class CFAMethodBuilder extends ASTVisitor {
           locStack.push(lastNode);
       }
 
-      if (inTryBlock
+      if (!inTryBlock.isEmpty()
+          && inTryBlock.size() == numberNestedTryCatch
           && expressionStatement
               .getExpression()
               .getClass()
@@ -830,15 +837,16 @@ class CFAMethodBuilder extends ASTVisitor {
               .equals("MethodInvocation")) { // TODO rewrite with instanceof or similar
         CFANode current = locStack.pop();
 
-        afterStatement = new CFANode(cfa.getFunction());
-        cfaNodes.add(afterStatement);
+        CFANode nodeAfterStatement = new CFANode(cfa.getFunction());
+        afterStatement.push(nodeAfterStatement);
+        cfaNodes.add(nodeAfterStatement);
 
         JAssumeEdge notEqualsNullFalse =
             new JAssumeEdge(
                 HelperVariable.helperNotEqualsStatement.toString(),
                 FileLocation.DUMMY,
                 current,
-                afterStatement,
+                nodeAfterStatement,
                 HelperVariable.helperNotEquals,
                 false);
 
@@ -849,12 +857,12 @@ class CFAMethodBuilder extends ASTVisitor {
                 HelperVariable.helperNotEqualsStatement.toString(),
                 FileLocation.DUMMY,
                 current,
-                helperNotNull,
+                helperNotNull.peek(),
                 HelperVariable.helperNotEquals,
                 true);
         addToCFA(notEqualsNullTrue);
 
-        locStack.push(afterStatement);
+        locStack.push(nodeAfterStatement);
       }
     }
 
@@ -2722,28 +2730,30 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(TryStatement tryStatement) {
 
-    helperNotNull = new CFANode(cfa.getFunction());
-    cfaNodes.add(helperNotNull);
+    firstCatchBlock = true;
 
-    inTryBlock = true;
+    CFANode helperNotNullNode = new CFANode(cfa.getFunction());
+    helperNotNull.push(helperNotNullNode); ;
+    cfaNodes.add(helperNotNullNode);
+
+    inTryBlock.push(true);
+    numberNestedTryCatch +=1;
     tryStatement.getBody().accept(this);
-    inTryBlock = false;
+    inTryBlock.push(false);
+    numberNestedTryCatch -= 1;
 
-    addCatchClauses(tryStatement);
-
-    return SKIP_CHILDREN;
-  }
-
-  private void addCatchClauses(TryStatement tryStatement) {
+    numberCatches = tryStatement.catchClauses().size();
 
     for (Object cc : tryStatement.catchClauses()) {
       ((CatchClause) cc).accept(this);
     }
+
+    return SKIP_CHILDREN;
   }
 
   @Override
   public void endVisit(TryStatement tryStatement) {
-    helperNotNull = null;
+    helperNotNull.pop();
   }
 
   @Override
@@ -2760,12 +2770,23 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode dummyExceptionEquals = new CFANode(cfa.getFunction());
     cfaNodes.add(dummyExceptionEquals);
 
+    nextCatchBlockOrError = new CFANode(cfa.getFunction());
+    cfaNodes.add(nextCatchBlockOrError);
+
+    CFANode start = null;
+
+    if (firstCatchBlock) {
+      start = helperNotNull.peek();
+    } else {
+      start = locStack.pop();
+    }
+
     JAssumeEdge exceptionIsNotInstance =
         new JAssumeEdge(
             exception.toString(),
             FileLocation.DUMMY,
-            helperNotNull,
-            afterStatement,
+            start,
+            nextCatchBlockOrError,
             catchException,
             false);
     addToCFA(exceptionIsNotInstance);
@@ -2774,7 +2795,7 @@ class CFAMethodBuilder extends ASTVisitor {
         new JAssumeEdge(
             exception.toString(),
             FileLocation.DUMMY,
-            helperNotNull,
+            start,
             dummyExceptionEquals,
             catchException,
             true);
@@ -2788,7 +2809,20 @@ class CFAMethodBuilder extends ASTVisitor {
 
   @Override
   public void endVisit(CatchClause cc) {
-    endOfCatch = locStack.pop();
+
+    numberCatches -= 1;
+
+    firstCatchBlock = false;
+
+    endOfCatch.push(locStack.pop());
+
+    if (numberCatches != 0) {
+      locStack.push(nextCatchBlockOrError);
+    } else {
+      BlankEdge temp =
+          new BlankEdge("", FileLocation.DUMMY, nextCatchBlockOrError, afterStatement.pop(), "");
+      addToCFA(temp);
+    }
   }
 
   @Override
