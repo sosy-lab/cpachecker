@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
@@ -250,6 +251,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         op = "0 ==";
         break;
       case ITE:
+      case BV_EXTRACT:
         // Special-case that is to be handled separately
         // below
         break;
@@ -276,6 +278,19 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       if (!fmgr.visit(pArgs.get(2), this)) {
         return Boolean.FALSE;
       }
+    } else if (pArgs.size() == 1 && kind == FunctionDeclarationKind.BV_EXTRACT) {
+      final List<String> funcNameArgs =
+          Splitter.on('_').splitToList(pFunctionDeclaration.getName());
+      final int startIdx = Integer.parseInt(funcNameArgs.get(1));
+      final int endIdx = Integer.parseInt(funcNameArgs.get(2));
+      final int extractedBvWidth = startIdx - endIdx + 1;
+      final int extractedBvMask = (1 << extractedBvWidth) - 1;
+      builder.append("( ");
+      if (!fmgr.visit(pArgs.get(0), this)) {
+        return Boolean.FALSE;
+      }
+      builder.append(" >> " + startIdx + " )");
+      builder.append(" & " + extractedBvMask);
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
       builder.append(op).append(" ");
       if (!fmgr.visit(pArgs.get(0), this)) {
