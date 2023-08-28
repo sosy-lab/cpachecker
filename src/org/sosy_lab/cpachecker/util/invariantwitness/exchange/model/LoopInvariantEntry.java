@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
@@ -16,6 +17,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 
 @Immutable
+@JsonPropertyOrder({"entry_type", "metadata", "location", "loop_invariant"})
 public class LoopInvariantEntry extends AbstractEntry {
 
   private static final String LOOP_INVARIANT_ENTRY_IDENTIFIER = "loop_invariant";
