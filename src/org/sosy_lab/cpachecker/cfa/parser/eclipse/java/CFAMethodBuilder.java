@@ -130,6 +130,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   // Data structure for handling try & catch blocks
   private Deque<Boolean> inTryBlock = new ArrayDeque<>();
+  private Deque<Integer> numberCatchesNested = new ArrayDeque<>();
   private int numberNestedTryCatch = 0;
   private int numberCatches = 0;
 
@@ -137,7 +138,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private Deque<CFANode> afterStatement = new ArrayDeque<>();
   private Deque<CFANode> endOfCatch = new ArrayDeque<>();
 
-  private CFANode nextCatchBlockOrError = null;
+  private Deque<CFANode> nextCatchBlockOrError = new ArrayDeque<>();
   private boolean firstCatchBlock = false;
 
   // Data structures for label , continue , break
@@ -1440,9 +1441,9 @@ class CFAMethodBuilder extends ASTVisitor {
         break;
 
       case ALWAYS_TRUE:
-        final BlankEdge trueEdge =
-            new BlankEdge(rawSignature, fileLocation, rootNode, thenNode, "");
-        addToCFA(trueEdge);
+          final BlankEdge trueEdge =
+              new BlankEdge(rawSignature, fileLocation, rootNode, thenNode, "");
+          addToCFA(trueEdge);
 
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
@@ -2733,18 +2734,24 @@ class CFAMethodBuilder extends ASTVisitor {
     firstCatchBlock = true;
 
     CFANode helperNotNullNode = new CFANode(cfa.getFunction());
-    helperNotNull.push(helperNotNullNode); ;
+    helperNotNull.push(helperNotNullNode);
     cfaNodes.add(helperNotNullNode);
 
     inTryBlock.push(true);
     numberNestedTryCatch +=1;
     tryStatement.getBody().accept(this);
-    inTryBlock.push(false);
+    inTryBlock.pop();
     numberNestedTryCatch -= 1;
 
-    numberCatches = tryStatement.catchClauses().size();
+    if (!numberCatchesNested.isEmpty()) {
+      numberCatchesNested.pop();
+      numberCatchesNested.push(numberCatches);
+    }
+
+    numberCatchesNested.push(tryStatement.catchClauses().size());
 
     for (Object cc : tryStatement.catchClauses()) {
+      numberCatches = numberCatchesNested.peek();
       ((CatchClause) cc).accept(this);
     }
 
@@ -2770,8 +2777,8 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode dummyExceptionEquals = new CFANode(cfa.getFunction());
     cfaNodes.add(dummyExceptionEquals);
 
-    nextCatchBlockOrError = new CFANode(cfa.getFunction());
-    cfaNodes.add(nextCatchBlockOrError);
+    nextCatchBlockOrError.push(new CFANode(cfa.getFunction()));
+    cfaNodes.add(nextCatchBlockOrError.peek());
 
     CFANode start = null;
 
@@ -2786,7 +2793,7 @@ class CFAMethodBuilder extends ASTVisitor {
             exception.toString(),
             FileLocation.DUMMY,
             start,
-            nextCatchBlockOrError,
+            nextCatchBlockOrError.peek(),
             catchException,
             false);
     addToCFA(exceptionIsNotInstance);
@@ -2817,10 +2824,17 @@ class CFAMethodBuilder extends ASTVisitor {
     endOfCatch.push(locStack.pop());
 
     if (numberCatches != 0) {
-      locStack.push(nextCatchBlockOrError);
+      locStack.push(nextCatchBlockOrError.peek());
     } else {
+      numberCatchesNested.pop();
+
+      if(!numberCatchesNested.isEmpty()) {
+        numberCatches = numberCatchesNested.peek();
+      }
+
       BlankEdge temp =
-          new BlankEdge("", FileLocation.DUMMY, nextCatchBlockOrError, afterStatement.pop(), "");
+          new BlankEdge(
+              "", FileLocation.DUMMY, nextCatchBlockOrError.pop(), afterStatement.pop(), "");
       addToCFA(temp);
     }
   }
