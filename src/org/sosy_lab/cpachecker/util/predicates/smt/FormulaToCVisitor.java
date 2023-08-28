@@ -252,6 +252,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         break;
       case ITE:
       case BV_EXTRACT:
+      case BV_ZERO_EXTENSION:
         // Special-case that is to be handled separately
         // below
         break;
@@ -291,6 +292,12 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       }
       builder.append(" >> " + startIdx + " )");
       builder.append(" & " + extractedBvMask);
+    } else if (pArgs.size() == 1 && kind == FunctionDeclarationKind.BV_ZERO_EXTENSION) {
+      // we assume all bit-vectors are unsigned
+      // this translation might be unsound, but should work for Btor2C tasks
+      if (bvSigned || signedCarryThrough || !fmgr.visit(pArgs.get(0), this)) {
+        return Boolean.FALSE;
+      }
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
       builder.append(op).append(" ");
       if (!fmgr.visit(pArgs.get(0), this)) {
