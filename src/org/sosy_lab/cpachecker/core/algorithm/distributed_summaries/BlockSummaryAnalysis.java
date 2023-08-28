@@ -269,6 +269,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         Result result = resultPair.result();
         stats.putAll(observer.getStats());
         if (result == Result.FALSE) {
+          logger.logf(Level.INFO, "Number of Found Error: %s", resultPair.violations().size());
           logger.logf(Level.INFO, "Error Nodes: %s", resultPair.violations());
           ARGState state = (ARGState) reachedSet.getFirstState();
           assert state != null;
