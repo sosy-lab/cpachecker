@@ -42,6 +42,10 @@ public class WaypointRecord {
     this.location = location;
   }
 
+  public static WaypointRecord withAction(WaypointRecord old, WaypointAction action) {
+    return new WaypointRecord(old.getType(), action, old.getConstraint(), old.getLocation());
+  }
+
   public WaypointType getType() {
     return type;
   }

@@ -20,10 +20,13 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -67,6 +70,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointAction;
 
 /**
  * Class to export invariants in the invariant-witness format.
@@ -218,8 +222,7 @@ public final class InvariantWitnessWriter {
           }
 
           @Override
-          public Iterable<String> getSuccessors(String pCurrent)
-              throws YamlWitnessExportException {
+          public Iterable<String> getSuccessors(String pCurrent) throws YamlWitnessExportException {
             Collection<Edge> outEdges = pWitness.getLeavingEdges().get(pCurrent);
             if (outEdges.size() > 2) {
               // we assume that violation witnesses only contain branchings at conditions,
@@ -236,9 +239,10 @@ public final class InvariantWitnessWriter {
                 continue; // we ignore sink nodes for now
               }
               if (attrs.get(FUNCTIONENTRY) != null) {
-                continue; // we do not support function entry nodes currently
+                ; // ignore
               } else if (attrs.get(CONTROLCASE) != null) {
                 WaypointRecord waypoint = makeBranchingWaypoint(pWitness, attrs);
+                waypoints.add(waypoint);
               } else if (attrs.get(ASSUMPTION) != null) {
                 WaypointRecord waypoint = makeAssumptionWaypoint(pWitness, attrs);
                 waypoints.add(waypoint);
@@ -248,10 +252,14 @@ public final class InvariantWitnessWriter {
             return builder.build();
           }
 
-          private WaypointRecord
-              makeBranchingWaypoint(Witness pWitness, Map<KeyDef, String> pAttrs) {
-            InformationRecord info = null;
-            LocationRecord location = null;
+          private WaypointRecord makeBranchingWaypoint(Witness witness, Map<KeyDef, String> attrs) {
+            Preconditions.checkState(
+                ImmutableSet.of("condition-true", "condition-false")
+                    .contains(attrs.get(CONTROLCASE)));
+            InformationRecord info =
+                new InformationRecord(
+                    attrs.get(CONTROLCASE).equals("condition-true") ? "true" : "false", null, null);
+            LocationRecord location = createLocationRecord(witness, attrs);
             WaypointRecord waypoint =
                 new WaypointRecord(
                     WaypointRecord.WaypointType.BRANCHING,
@@ -262,18 +270,8 @@ public final class InvariantWitnessWriter {
           }
 
           private WaypointRecord makeAssumptionWaypoint(
-              Witness pWitness, Map<KeyDef, String> attrs) {
-            String function = attrs.get(ASSUMPTIONSCOPE);
-            int startline = Integer.parseInt(attrs.get(STARTLINE));
-            int lineoffset = lineOffsetsByFile.get(pWitness.getOriginFile()).get(startline - 1);
-            int column = Integer.parseInt(attrs.get(OFFSET)) - lineoffset;
-            LocationRecord location =
-                new LocationRecord(
-                    pWitness.getOriginFile(),
-                    getProgramHash(pWitness),
-                    startline,
-                    column,
-                    function);
+              Witness witness, Map<KeyDef, String> attrs) {
+            LocationRecord location = createLocationRecord(witness, attrs);
             InformationRecord inv = new InformationRecord(attrs.get(ASSUMPTION), null, "C");
             WaypointRecord waypoint =
                 new WaypointRecord(
@@ -282,6 +280,17 @@ public final class InvariantWitnessWriter {
                     inv,
                     location);
             return waypoint;
+          }
+
+          private LocationRecord createLocationRecord(Witness witness, Map<KeyDef, String> attrs) {
+            @Nullable String function = attrs.get(ASSUMPTIONSCOPE);
+            int startline = Integer.parseInt(attrs.get(STARTLINE));
+            int lineoffset = lineOffsetsByFile.get(witness.getOriginFile()).get(startline - 1);
+            int column = Integer.parseInt(attrs.get(OFFSET)) - lineoffset;
+            LocationRecord location =
+                new LocationRecord(
+                    witness.getOriginFile(), getProgramHash(witness), startline, column, function);
+            return location;
           }
 
           private String getProgramHash(Witness pWitness) {
@@ -298,11 +307,20 @@ public final class InvariantWitnessWriter {
         };
     try {
       traverser.traverse();
+      if (waypoints.size() == 0) {
+        throw new YamlWitnessExportException(
+            "Empty waypoint sequence generated for yaml witness, cannot export");
+      }
     } catch (YamlWitnessExportException e) {
       logger.logfException(
           WARNING, e, "Problem encountered during export of error witness into yaml format");
       return;
     }
+
+    // Change the action of the last waypoint to TARGET:
+    WaypointRecord last = waypoints.remove(waypoints.size() - 1);
+    waypoints.add(WaypointRecord.withAction(last, WaypointAction.TARGET));
+
     ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), waypoints);
     try {
       pApp.append(mapper.writeValueAsString(ImmutableList.of(entry)));
@@ -345,8 +363,7 @@ public final class InvariantWitnessWriter {
     InformationRecord invariant =
         new InformationRecord(invariantWitness.getFormula().toString(), "assertion", "C");
 
-    LoopInvariantEntry entry =
-        new LoopInvariantEntry(metadata, location, invariant);
+    LoopInvariantEntry entry = new LoopInvariantEntry(metadata, location, invariant);
 
     return entry;
   }
@@ -365,13 +382,14 @@ public final class InvariantWitnessWriter {
     return metadata;
   }
 
-  public class YamlWitnessExportException extends Exception {
+  public static class YamlWitnessExportException extends Exception {
     private static final long serialVersionUID = -5647551194742587246L;
 
     public YamlWitnessExportException(String pReason) {
       super(pReason);
     }
   }
+
   abstract static class GraphTraverser<NodeType, E extends Throwable> {
 
     private List<NodeType> waitlist;

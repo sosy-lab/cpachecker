@@ -305,7 +305,9 @@ public class CEXExporter {
       }
     }
 
-    if (options.getWitnessFile() != null || options.getWitnessDotFile() != null) {
+    if (options.getWitnessFile() != null
+        || options.getWitnessDotFile() != null
+        || options.getYamlWitnessFile() != null) {
       try {
         final Witness witness =
             witnessExporter.generateErrorWitness(
