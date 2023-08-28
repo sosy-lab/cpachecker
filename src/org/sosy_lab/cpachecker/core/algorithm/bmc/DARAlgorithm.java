@@ -317,15 +317,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean checkFixedPoint(DualInterpolationSequence pDualSequence)
     throws InterruptedException, SolverException {
-    BooleanFormula forwardImage = fmgr.uninstantiate(pDualSequence.getForwardReachVector().get(0));
+    BooleanFormula forwardImage = pDualSequence.getForwardReachVector().get(0);
     BooleanFormula backwardImage = pDualSequence.getBackwardReachVector().get(0);
 
     for (int i = 1; i < pDualSequence.getSize(); i++) {
-      if (solver.implies(fmgr.uninstantiate(pDualSequence.getForwardReachVector().get(i)), forwardImage)) {
+      if (solver.implies(pDualSequence.getForwardReachVector().get(i), forwardImage)) {
         finalFixedPoint = forwardImage;
         return true;
       }
-      forwardImage = bfmgr.or(fmgr.uninstantiate(pDualSequence.getForwardReachVector().get(i)), forwardImage);
+      forwardImage = bfmgr.or(pDualSequence.getForwardReachVector().get(i), forwardImage);
     }
 
     for (int i = 1; i < pDualSequence.getSize(); i++) {
