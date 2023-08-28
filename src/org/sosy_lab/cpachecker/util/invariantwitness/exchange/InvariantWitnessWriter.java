@@ -306,11 +306,11 @@ public final class InvariantWitnessWriter {
             return location;
           }
 
-          private String getProgramHash(Witness pWitness) {
+          private String getProgramHash(Witness witness) {
             String programHash;
             try {
               programHash =
-                  AutomatonGraphmlCommon.computeHash(pWitness.getCfa().getFileNames().get(0));
+                  AutomatonGraphmlCommon.computeHash(witness.getCfa().getFileNames().get(0));
             } catch (IOException e1) {
               programHash = "";
               logger.logfException(WARNING, e1, "Could not compute program hash!");
@@ -438,12 +438,18 @@ public final class InvariantWitnessWriter {
       }
     }
 
-    public boolean stop(NodeType successor) throws E {
+    /**
+     * This method returns true whenever a node's successors shall not be explored any further. The
+     * default behavior is to return true if the successor is already in the set of reached nodes.
+     *
+     * @throws E in an exceptional state needs to be communicated to the caller
+     */
+    protected boolean stop(NodeType successor) throws E {
       return reached.contains(successor);
     }
 
     protected abstract NodeType visit(NodeType pSuccessor) throws E;
 
-    public abstract Iterable<NodeType> getSuccessors(NodeType pCurrent) throws E;
+    protected abstract Iterable<NodeType> getSuccessors(NodeType pCurrent) throws E;
   }
 }

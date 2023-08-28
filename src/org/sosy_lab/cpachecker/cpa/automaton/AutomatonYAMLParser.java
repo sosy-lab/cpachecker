@@ -332,7 +332,8 @@ public class AutomatonYAMLParser {
       follow = entry.getKey();
       List<WaypointRecord> avoids = entry.getValue();
       if (!avoids.isEmpty()) {
-        logger.log(Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
+        logger.log(
+            Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
       }
       String nextStateId = getStateName(counter++);
       if (follow.getType().equals(WaypointType.TARGET)) {
