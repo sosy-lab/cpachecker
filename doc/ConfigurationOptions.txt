@@ -1397,6 +1397,9 @@ cpa.arg.witness.exportThreadId = false
 # names for concurrent tasks for debugging?
 cpa.arg.witness.exportThreadName = false
 
+# Shrink ARG graph into a smaller witness graph by merging edges
+cpa.arg.witness.minimizeARG = true
+
 # Produce an invariant witness instead of a correctness witness. Constructing
 # an invariant witness makes use of a different merge for quasi-invariants:
 # Instead of computing the disjunction of two invariants present when merging
