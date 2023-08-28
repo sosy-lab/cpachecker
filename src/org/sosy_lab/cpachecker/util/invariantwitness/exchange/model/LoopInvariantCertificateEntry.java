@@ -36,11 +36,10 @@ public class LoopInvariantCertificateEntry extends AbstractEntry {
   private final InformationRecord certification;
 
   public LoopInvariantCertificateEntry(
-      @JsonProperty("entry_type") String entryType,
       @JsonProperty("metadata") MetadataRecord metadata,
       @JsonProperty("target") TargetRecord target,
       @JsonProperty("certification") InformationRecord certification) {
-    super(entryType);
+    super("loop-invariant_certificate");
     this.metadata = metadata;
     this.target = target;
     this.certification = certification;

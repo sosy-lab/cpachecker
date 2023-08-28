@@ -28,11 +28,10 @@ public class LoopInvariantEntry extends AbstractEntry {
   private final InformationRecord loopInvariant;
 
   public LoopInvariantEntry(
-      @JsonProperty("entry_type") String entryType,
       @JsonProperty("metadata") MetadataRecord metadata,
       @JsonProperty("location") LocationRecord location,
       @JsonProperty("loop_invariant") InformationRecord loopInvariant) {
-    super(entryType);
+    super("loop_invariant");
     this.metadata = metadata;
     this.location = location;
     this.loopInvariant = loopInvariant;

@@ -225,7 +225,7 @@ public final class InvariantWitnessWriter {
         new InformationRecord(invariantWitness.getFormula().toString(), "assertion", "C");
 
     LoopInvariantEntry entry =
-        new LoopInvariantEntry("loop_invariant", metadata, location, invariant);
+        new LoopInvariantEntry(metadata, location, invariant);
 
     return entry;
   }

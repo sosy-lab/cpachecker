@@ -24,10 +24,9 @@ public class ViolationSequenceEntry extends AbstractEntry {
   private final List<WaypointRecord> sequence;
 
   public ViolationSequenceEntry(
-      @JsonProperty("entry_type") String entryType,
       @JsonProperty("metadata") MetadataRecord metadata,
       @JsonProperty("sequence") List<WaypointRecord> sequence) {
-    super(entryType);
+    super("violation_sequence");
     this.metadata = metadata;
     this.sequence = sequence;
   }
