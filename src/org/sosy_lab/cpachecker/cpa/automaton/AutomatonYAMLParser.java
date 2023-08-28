@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,6 +59,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointAction;
 
 @Options(prefix = "witness")
 public class AutomatonYAMLParser {
@@ -127,6 +130,19 @@ public class AutomatonYAMLParser {
     return entries;
   }
 
+  public static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries)
+      throws InterruptedException {
+    if (entries.isEmpty()) {
+      return Optional.empty();
+
+    } else if (FluentIterable.from(entries).allMatch(e -> e instanceof ViolationSequenceEntry)) {
+      return Optional.of(WitnessType.VIOLATION_WITNESS);
+    } else if (FluentIterable.from(entries).allMatch(e -> !(e instanceof ViolationSequenceEntry))) {
+      return Optional.of(WitnessType.CORRECTNESS_WITNESS);
+    }
+    return Optional.empty();
+  }
+
   public static Optional<WitnessType> getWitnessTypeIfYAML(Path pPath) throws InterruptedException {
     List<AbstractEntry> entries;
     try {
@@ -136,14 +152,9 @@ public class AutomatonYAMLParser {
               AutomatonYAMLParser::parseYAML,
               WitnessParseException::new);
     } catch (WitnessParseException e) {
-      return Optional.empty();
+      entries = ImmutableList.of();
     }
-
-    if (FluentIterable.from(entries).anyMatch(e -> e instanceof ViolationSequenceEntry)) {
-      return Optional.of(WitnessType.VIOLATION_WITNESS);
-    }
-
-    return Optional.of(WitnessType.CORRECTNESS_WITNESS);
+    return getWitnessTypeIfYAML(entries);
   }
 
   public static boolean isYAMLWitness(Path pPath)
@@ -199,7 +210,15 @@ public class AutomatonYAMLParser {
   private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
     List<AbstractEntry> entries = parseYAML(pInputStream);
+    if (getWitnessTypeIfYAML(entries).orElseThrow().equals(WitnessType.CORRECTNESS_WITNESS)) {
+      return createCorrectnessAutomatonFromEntries(entries);
+    } else {
+      return createViolationAutomatonFromEntries(entries);
+    }
+  }
 
+  private Automaton createCorrectnessAutomatonFromEntries(List<AbstractEntry> entries)
+      throws InterruptedException, WitnessParseException {
     String automatonName = "No Loop Invariant Present";
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     String entryStateId = "singleState";
@@ -288,5 +307,76 @@ public class AutomatonYAMLParser {
     }
 
     return automaton;
+  }
+
+  private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
+      throws WitnessParseException, InterruptedException {
+    Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
+    String automatonName = "YAML VIOLATION WITNESS AUTOMATON";
+
+    int counter = 0;
+    String initState = getStateName(counter++);
+
+    List<AutomatonInternalState> automatonStates = new ArrayList<>();
+    String currentStateId = initState;
+    for (Map.Entry<WaypointRecord, List<WaypointRecord>> entry : segments.entrySet()) {
+      List<AutomatonTransition> transitions = new ArrayList<>();
+      WaypointRecord follow = entry.getKey();
+      List<WaypointRecord> avoids = entry.getValue();
+      String nextStateId = getStateName(counter++);
+      int line = follow.getLocation().getLine();
+      transitions.add(
+          new AutomatonTransition.Builder(new CheckCoversLines(ImmutableSet.of(line)), nextStateId)
+              .build());
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              transitions,
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ true));
+      currentStateId = nextStateId;
+    }
+
+    Automaton automaton;
+    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
+
+    // new AutomatonInternalState(entryStateId, transitions, false, false, true)
+    try {
+      automaton = new Automaton(automatonName, automatonVariables, automatonStates, initState);
+    } catch (InvalidAutomatonException e) {
+      throw new WitnessParseException(
+          "The witness automaton generated from the provided YAML Witness is invalid!", e);
+    }
+
+    automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
+
+    return automaton;
+  }
+
+  private Map<WaypointRecord, List<WaypointRecord>> segmentize(List<AbstractEntry> pEntries) {
+    Map<WaypointRecord, List<WaypointRecord>> segments = new LinkedHashMap<>();
+    for (AbstractEntry entry : pEntries) {
+      if (entry instanceof ViolationSequenceEntry violationEntry) {
+
+        List<WaypointRecord> avoids = new ArrayList<>();
+        for (WaypointRecord waypoint : violationEntry.getSequence()) {
+          if (waypoint.getAction().equals(WaypointAction.AVOID)) {
+            avoids.add(waypoint);
+            continue;
+          } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
+            segments.put(waypoint, avoids);
+            avoids = new ArrayList<>();
+            continue;
+          }
+        }
+        break; // for now just take the first ViolationSequenceEntry in the yaml witness
+      }
+    }
+    return segments;
+  }
+
+  private static String getStateName(int i) {
+    return "S" + i;
   }
 }
