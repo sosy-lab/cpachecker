@@ -534,9 +534,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     adjustConfigsAccordingToCFA();
     // Initialize variables for IMC/ISMC
-    List<BooleanFormula> reachVector = new ArrayList<>();
     PartitionedFormulas partitionedFormulas =
         new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
+    // Store the reachability vector for ISMC and/or prefix formula
+    // approximation for IMC
+    List<BooleanFormula> reachVector = new ArrayList<>();
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     do {
       unrollProgram(pReachedSet);
@@ -733,7 +735,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       boolean hasReachedFixedPoint = false;
       switch (fixedPointComputeStrategy) {
         case ITP:
-          hasReachedFixedPoint = reachFixedPointByInterpolation(formulas);
+          hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector);
           break;
         case ITPSEQ:
           hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
@@ -741,7 +743,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         case ITPSEQ_AND_ITP:
           hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
           if (!hasReachedFixedPoint) {
-            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas);
+            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector);
           }
           break;
         case NONE:
@@ -777,14 +779,21 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *     the current over-approximation is unsafe.
    * @throws InterruptedException On shutdown request.
    */
-  private boolean reachFixedPointByInterpolation(final PartitionedFormulas formulas)
+  private boolean reachFixedPointByInterpolation(
+      final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
       throws InterruptedException, CPAException, SolverException {
     if (!loopBoundMgr.performIMCAtCurrentIteration()) {
       return false;
     }
+    assert !(fixedPointComputeStrategy.isISMCEnabled() && reachVector.isEmpty());
+    if (reachVector.isEmpty()) {
+      reachVector.add(bfmgr.makeTrue());
+    }
+
     logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
-    BooleanFormula currentImage = formulas.getPrefixFormula();
+    final BooleanFormula prefixFormula = formulas.getPrefixFormula();
+    BooleanFormula accumImage = bfmgr.makeFalse();
 
     List<BooleanFormula> loops = formulas.getLoopFormulas();
     // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn) && ~P(Sn)
@@ -793,7 +802,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
-        itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
+        itpMgr.interpolate(ImmutableList.of(prefixFormula, loops.get(0), suffixFormula));
     assert interpolants.isPresent();
     final int initialIMCIter = stats.numOfIMCInnerIterations;
     while (interpolants.isPresent()) {
@@ -805,18 +814,23 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           "[ accumulated:",
           stats.numOfIMCInnerIterations,
           "]");
-      logger.log(Level.ALL, "The current image is", currentImage);
+      logger.log(Level.ALL, "The current image is", accumImage);
       assert interpolants.orElseThrow().size() == 2;
+      if (!fixedPointComputeStrategy.isISMCEnabled()) {
+        final BooleanFormula prefixApproximation =
+            bfmgr.and(reachVector.get(0), fmgr.uninstantiate(interpolants.orElseThrow().get(0)));
+        reachVector.set(0, prefixApproximation);
+      }
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
-      if (solver.implies(interpolant, currentImage)) {
+      if (solver.implies(interpolant, bfmgr.or(prefixFormula, accumImage))) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
-        finalFixedPoint = fmgr.uninstantiate(currentImage);
+        finalFixedPoint = bfmgr.or(reachVector.get(0), fmgr.uninstantiate(accumImage));
         return true;
       }
-      currentImage = bfmgr.or(currentImage, interpolant);
+      accumImage = bfmgr.or(accumImage, interpolant);
       interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
     }
     logger.log(
@@ -857,8 +871,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
-            .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
-            .addAll(pFormulas.getLoopFormulas().subList(1, pFormulas.getNumLoops()))
+            .add(pFormulas.getPrefixFormula())
+            .addAll(pFormulas.getLoopFormulas().subList(0, pFormulas.getNumLoops()))
             .add(pFormulas.getAssertionFormula())
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
@@ -882,8 +896,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     assert reachVector.size() == itpSequence.size();
     for (int i = 0; i < reachVector.size(); ++i) {
-      BooleanFormula image = reachVector.get(i);
-      BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
+      final BooleanFormula image = reachVector.get(i);
+      final BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
       reachVector.set(i, bfmgr.and(image, itp));
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
