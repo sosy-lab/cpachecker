@@ -270,8 +270,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
 
       // DAR
-      if (isDAREnabled && getCurrentMaxLoopIterations() > 1) { //&& !InterpolationHelper.checkAndAdjustARG
-          //(logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
+      if (isDAREnabled && getCurrentMaxLoopIterations() > 1) { //&&
+          //!InterpolationHelper.checkAndAdjustARG(logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
         // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
         // is safe.
         if (partitionedFormulas.getLoopFormulas().isEmpty()) {
@@ -423,12 +423,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula forwardFormula = pDualSequence.getForwardReachVector().get(pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector()
         .get(lastIndexOfSequences - pIndex);
+    List<SSAMap> transitionSsa = pPartitionedFormulas.getLoopFormulasSsaMap();
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(
             bfmgr.and(forwardFormula,
             transitionFormulae.get(pIndex)),
-            fmgr.instantiate(backwardFormula, pPartitionedFormulas.getLoopFormulasSsaMap().get(pIndex))));
+            fmgr.instantiate(backwardFormula, transitionSsa.get(pIndex))));
     BooleanFormula interpolant = interpolants.orElseThrow().get(0);
 
     return interpolant;
@@ -477,9 +478,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       try {
           isNotReachableWithOneTransition =
-              solver.isUnsat(bfmgr.and(transitionFormulae.get(i),
-                  fmgr.instantiate(BRS.get(n-i), transitionSsaMap.get(i)),
-                  FRS.get(i)));
+              solver.isUnsat(
+                  bfmgr.and(
+                      transitionFormulae.get(i),
+                      fmgr.instantiate(BRS.get(n - i), transitionSsaMap.get(i)),
+                      FRS.get(i)));
       } finally {
         stats.assertionsCheck.stop();
       }
@@ -494,13 +497,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                                  DualInterpolationSequence pDualSequence)
       throws InterruptedException, SolverException {
     boolean counterexampleIsSpurious;
-    for (int i = 0; i < pDualSequence.getSize(); i++) {
-      BooleanFormula backwardFormula = fmgr.instantiate(pDualSequence.getBackwardReachVector().get(i),
-          pFormulas.getLoopFormulasSsaMap().get(i));
+    for (int i = 2; i <= pDualSequence.getSize() + 1; i++) {
+      BooleanFormula backwardFormula = fmgr.instantiate(pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - i + 1),
+          pFormulas.getLoopFormulasSsaMap().get(i - 2));
       BooleanFormula unrolledConcretePaths =
           bfmgr.and(new ImmutableList.Builder<BooleanFormula>()
               .add(pFormulas.getPrefixFormula())
-              .addAll(pFormulas.getLoopFormulas().subList(0, i+1))
+              .addAll(pFormulas.getLoopFormulas().subList(0, i - 1))
               .add(backwardFormula)
               .build());
       stats.assertionsCheck.start();
@@ -534,13 +537,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     BooleanFormula backwardFormula = fmgr.instantiate(pDualSequence
             .getBackwardReachVector()
-            .get(indexOfGlobalViolation),
-            pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation));
+            .get(pDualSequence.getSize() - indexOfGlobalViolation + 1),
+            pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation - 2));
 
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
             .add(bfmgr.and(pFormulas.getPrefixFormula()), pFormulas.getLoopFormulas().get(0))
-            .addAll(pFormulas.getLoopFormulas().subList(1, indexOfGlobalViolation + 1))
+            .addAll(pFormulas.getLoopFormulas().subList(1, indexOfGlobalViolation - 1))
             .add(backwardFormula)
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
@@ -558,12 +561,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence) {
     logger.log(Level.FINE, "Updating reachability vector");
 
-    while (itpSequence.size() < reachVector.size()) {
-      itpSequence.add(bfmgr.makeTrue());
-    }
-    for (int i = 1; i < reachVector.size(); ++i) {
+    int i = 1;
+    while ((i < reachVector.size()) && (i < itpSequence.size())) {
       BooleanFormula image = reachVector.get(i);
-      reachVector.set(i, bfmgr.and(image, itpSequence.get(i - 1)));
+      reachVector.set(i, bfmgr.and(image, itpSequence.get(i)));
+      ++i;
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
   }
