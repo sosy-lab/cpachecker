@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 // making sequence an ImmutableList
 public class ViolationSequenceEntry extends AbstractEntry {
 
+  private static final String VIOLATION_SEQUENCE_ENTRY_IDENTIFIER = "violation_sequence";
+
   @JsonProperty("metadata")
   private final MetadataRecord metadata;
 
@@ -26,7 +28,7 @@ public class ViolationSequenceEntry extends AbstractEntry {
   public ViolationSequenceEntry(
       @JsonProperty("metadata") MetadataRecord metadata,
       @JsonProperty("sequence") List<WaypointRecord> sequence) {
-    super("violation_sequence");
+    super(VIOLATION_SEQUENCE_ENTRY_IDENTIFIER);
     this.metadata = metadata;
     this.sequence = sequence;
   }

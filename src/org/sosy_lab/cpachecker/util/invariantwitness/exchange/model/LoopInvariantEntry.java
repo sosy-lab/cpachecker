@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 @Immutable
 public class LoopInvariantEntry extends AbstractEntry {
 
+  private static final String LOOP_INVARIANT_ENTRY_IDENTIFIER = "loop_invariant";
+
   @JsonProperty("metadata")
   private final MetadataRecord metadata;
 
@@ -31,7 +33,7 @@ public class LoopInvariantEntry extends AbstractEntry {
       @JsonProperty("metadata") MetadataRecord metadata,
       @JsonProperty("location") LocationRecord location,
       @JsonProperty("loop_invariant") InformationRecord loopInvariant) {
-    super("loop_invariant");
+    super(LOOP_INVARIANT_ENTRY_IDENTIFIER);
     this.metadata = metadata;
     this.location = location;
     this.loopInvariant = loopInvariant;

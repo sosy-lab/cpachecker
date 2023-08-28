@@ -26,6 +26,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 @Immutable
 public class LoopInvariantCertificateEntry extends AbstractEntry {
 
+  private static final String LOOP_INVARIANT_CERTIFICATE_ENTRY_IDENTIFIER = "loop-invariant_certificate";
+
   @JsonProperty("metadata")
   private final MetadataRecord metadata;
 
@@ -39,7 +41,7 @@ public class LoopInvariantCertificateEntry extends AbstractEntry {
       @JsonProperty("metadata") MetadataRecord metadata,
       @JsonProperty("target") TargetRecord target,
       @JsonProperty("certification") InformationRecord certification) {
-    super("loop-invariant_certificate");
+    super(LOOP_INVARIANT_CERTIFICATE_ENTRY_IDENTIFIER);
     this.metadata = metadata;
     this.target = target;
     this.certification = certification;
