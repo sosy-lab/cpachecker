@@ -90,8 +90,8 @@ public class WaypointRecord {
   public int hashCode() {
     int hashCode = type.hashCode();
     hashCode = 31 * hashCode + action.hashCode();
-    hashCode = 31 * hashCode + constraint.hashCode();
-    hashCode = 31 * hashCode + location.hashCode();
+    hashCode = 31 * hashCode + (constraint != null ? constraint.hashCode() : 0);
+    hashCode = 31 * hashCode + (location != null ? location.hashCode() : 0);
     return hashCode;
   }
 
