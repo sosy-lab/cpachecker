@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvarian
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointAction;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
 
 @Options(prefix = "witness")
 public class AutomatonYAMLParser {
@@ -316,18 +317,26 @@ public class AutomatonYAMLParser {
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws WitnessParseException, InterruptedException {
     Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
-    String automatonName = "YAML VIOLATION WITNESS AUTOMATON";
+    // this needs to be called exactly WitnessAutomaton for the option
+    // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
+    final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
     int counter = 0;
-    String initState = getStateName(counter++);
+    final String initState = getStateName(counter++);
 
-    List<AutomatonInternalState> automatonStates = new ArrayList<>();
+    final List<AutomatonInternalState> automatonStates = new ArrayList<>();
     String currentStateId = initState;
+    WaypointRecord follow = null;
+
     for (Map.Entry<WaypointRecord, List<WaypointRecord>> entry : segments.entrySet()) {
       List<AutomatonTransition> transitions = new ArrayList<>();
-      WaypointRecord follow = entry.getKey();
+      follow = entry.getKey();
       List<WaypointRecord> avoids = entry.getValue();
       String nextStateId = getStateName(counter++);
+      if (follow.getType().equals(WaypointType.TARGET)) {
+        nextStateId = "X";
+        // TODO: handle this more elegantly / add check that we are really in the last segment!
+      }
       int line = follow.getLocation().getLine();
       transitions.add(
           new AutomatonTransition.Builder(new CheckCoversLines(ImmutableSet.of(line)), nextStateId)
@@ -338,8 +347,22 @@ public class AutomatonYAMLParser {
               transitions,
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
-              /* pIsCycleStart= */ true));
+              /* pIsCycleStart= */ false));
       currentStateId = nextStateId;
+    }
+
+    // add last state and stutter in it:
+    if (follow != null) {
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                  new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
+                      .withAssertion(createViolationAssertion())
+                      .build()),
+              /* pIsTarget= */ false && follow.getType().equals(WaypointType.TARGET),
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
     }
 
     Automaton automaton;
@@ -384,5 +407,19 @@ public class AutomatonYAMLParser {
 
   private static String getStateName(int i) {
     return "S" + i;
+  }
+
+  private static AutomatonBoolExpr createViolationAssertion() {
+    return not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY));
+  }
+
+  private static AutomatonBoolExpr not(AutomatonBoolExpr pA) {
+    if (pA.equals(AutomatonBoolExpr.TRUE)) {
+      return AutomatonBoolExpr.FALSE;
+    }
+    if (pA.equals(AutomatonBoolExpr.FALSE)) {
+      return AutomatonBoolExpr.TRUE;
+    }
+    return new AutomatonBoolExpr.Negation(pA);
   }
 }
