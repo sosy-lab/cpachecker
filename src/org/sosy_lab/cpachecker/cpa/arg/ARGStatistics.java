@@ -414,7 +414,7 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
-        if (witness != null && yamlProofWitness != null) {
+        if (witness != null && yamlProofWitness != null && invariantWitnessWriter != null) {
           invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(witness, yamlProofWitness);
         }
 
