@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 @Immutable
 public class InformationRecord {
@@ -50,9 +50,9 @@ public class InformationRecord {
       return true;
     }
     return o instanceof InformationRecord invariantStoreEntryLoopInvariant
-        && Objects.equal(string, invariantStoreEntryLoopInvariant.string)
-        && Objects.equal(type, invariantStoreEntryLoopInvariant.type)
-        && Objects.equal(format, invariantStoreEntryLoopInvariant.format);
+        && Objects.equals(string, invariantStoreEntryLoopInvariant.string)
+        && Objects.equals(type, invariantStoreEntryLoopInvariant.type)
+        && Objects.equals(format, invariantStoreEntryLoopInvariant.format);
   }
 
   @Override

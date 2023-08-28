@@ -360,7 +360,7 @@ public class AutomatonYAMLParser {
                   new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
                       .withAssertion(createViolationAssertion())
                       .build()),
-              /* pIsTarget= */ false && follow.getType().equals(WaypointType.TARGET),
+              /* pIsTarget= */ follow.getType().equals(WaypointType.TARGET),
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
     }

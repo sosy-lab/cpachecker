@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 @Immutable
 public class LocationRecord {
@@ -72,7 +72,7 @@ public class LocationRecord {
         && fileHash.equals(other.fileHash)
         && line == other.line
         && column == other.column
-        && Objects.equal(function, other.function);
+        && Objects.equals(function, other.function);
   }
 
   @Override

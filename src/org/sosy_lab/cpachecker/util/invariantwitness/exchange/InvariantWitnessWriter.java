@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -43,6 +42,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -320,7 +320,7 @@ public final class InvariantWitnessWriter {
         };
     try {
       traverser.traverse();
-      if (waypoints.size() == 0) {
+      if (waypoints.isEmpty()) {
         throw new YamlWitnessExportException(
             "Empty waypoint sequence generated for yaml witness, cannot export");
       }
@@ -413,7 +413,7 @@ public final class InvariantWitnessWriter {
     private Set<NodeType> reached;
 
     public GraphTraverser(NodeType startNode) {
-      waitlist = new ArrayList<>(List.of(startNode));
+      waitlist = new ArrayList<>(ImmutableList.of(startNode));
       reached = new HashSet<>(waitlist);
     }
 
