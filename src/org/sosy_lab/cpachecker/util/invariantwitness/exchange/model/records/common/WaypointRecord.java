@@ -42,8 +42,16 @@ public class WaypointRecord {
     this.location = location;
   }
 
-  public static WaypointRecord withAction(WaypointRecord old, WaypointAction action) {
-    return new WaypointRecord(old.getType(), action, old.getConstraint(), old.getLocation());
+  public WaypointRecord withAction(WaypointAction pAction) {
+    return new WaypointRecord(this.getType(), pAction, this.getConstraint(), this.getLocation());
+  }
+
+  public WaypointRecord withType(WaypointType pType) {
+    return new WaypointRecord(pType, this.getAction(), this.getConstraint(), this.getLocation());
+  }
+
+  public WaypointRecord withConstraint(InformationRecord pConstraint) {
+    return new WaypointRecord(this.getType(), this.getAction(), pConstraint, this.getLocation());
   }
 
   public WaypointType getType() {
@@ -104,6 +112,7 @@ public class WaypointRecord {
     VISIT("visit"),
     BRANCHING("branching"),
     ASSUMPTION("assumption"),
+    TARGET("target"),
     UNKNOWN("unknown");
 
     private static final Map<String, WaypointType> map;
@@ -137,7 +146,6 @@ public class WaypointRecord {
   public enum WaypointAction {
     FOLLOW("follow"),
     AVOID("avoid"),
-    TARGET("target"),
     UNKNOWN("unknown");
 
     private static final Map<String, WaypointAction> map;

@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointAction;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
 
 /**
  * Class to export invariants in the invariant-witness format.
@@ -317,9 +317,9 @@ public final class InvariantWitnessWriter {
       return;
     }
 
-    // Change the action of the last waypoint to TARGET:
+    // Change the type of the last waypoint to TARGET, and remove constraints if any:
     WaypointRecord last = waypoints.remove(waypoints.size() - 1);
-    waypoints.add(WaypointRecord.withAction(last, WaypointAction.TARGET));
+    waypoints.add(last.withType(WaypointType.TARGET).withConstraint(null));
 
     ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), waypoints);
     try {
