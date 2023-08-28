@@ -112,6 +112,7 @@ public class WaypointRecord {
     VISIT("visit"),
     BRANCHING("branching"),
     ASSUMPTION("assumption"),
+    FUNCTION_ENTER("function_enter"),
     TARGET("target"),
     UNKNOWN("unknown");
 

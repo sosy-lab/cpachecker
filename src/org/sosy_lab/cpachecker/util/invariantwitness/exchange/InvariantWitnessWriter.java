@@ -239,7 +239,8 @@ public final class InvariantWitnessWriter {
                 continue; // we ignore sink nodes for now
               }
               if (attrs.get(FUNCTIONENTRY) != null) {
-                ; // ignore
+                WaypointRecord waypoint = makeFunctionEntryWaypoint(pWitness, attrs);
+                waypoints.add(waypoint);
               } else if (attrs.get(CONTROLCASE) != null) {
                 WaypointRecord waypoint = makeBranchingWaypoint(pWitness, attrs);
                 waypoints.add(waypoint);
@@ -282,6 +283,18 @@ public final class InvariantWitnessWriter {
             return waypoint;
           }
 
+          private WaypointRecord makeFunctionEntryWaypoint(
+              Witness witness, Map<KeyDef, String> attrs) {
+            LocationRecord location = createLocationRecord(witness, attrs);
+            WaypointRecord waypoint =
+                new WaypointRecord(
+                    WaypointRecord.WaypointType.FUNCTION_ENTER,
+                    WaypointRecord.WaypointAction.FOLLOW,
+                    null,
+                    location);
+            return waypoint;
+          }
+
           private LocationRecord createLocationRecord(Witness witness, Map<KeyDef, String> attrs) {
             @Nullable String function = attrs.get(ASSUMPTIONSCOPE);
             int startline = Integer.parseInt(attrs.get(STARTLINE));
@@ -320,6 +333,10 @@ public final class InvariantWitnessWriter {
     // Change the type of the last waypoint to TARGET, and remove constraints if any:
     WaypointRecord last = waypoints.remove(waypoints.size() - 1);
     waypoints.add(last.withType(WaypointType.TARGET).withConstraint(null));
+
+    // We only added FUNCTION_ENTER nodes for constructing the TARGET node above, so for now we
+    // remove them again here:
+    waypoints.removeIf(x -> x.getType().equals(WaypointType.FUNCTION_ENTER));
 
     ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), waypoints);
     try {
