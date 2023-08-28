@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
@@ -106,6 +107,7 @@ public class CEXExporter {
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
+  private final InvariantWitnessWriter invariantWitnessWriter;
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
@@ -117,13 +119,15 @@ public class CEXExporter {
       CFA cfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
-      ExtendedWitnessExporter pExtendedWitnessExporter)
+      ExtendedWitnessExporter pExtendedWitnessExporter,
+      @Nullable InvariantWitnessWriter pInvariantWitnessWriter)
       throws InvalidConfigurationException {
     config.inject(this);
     options = pOptions;
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
+    invariantWitnessWriter = pInvariantWitnessWriter;
 
     if (!options.disabledCompletely()) {
       cexFilter =
@@ -318,6 +322,17 @@ public class CEXExporter {
             uniqueId,
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
+
+        if (invariantWitnessWriter != null) {
+          writeErrorPathFile(
+              options.getYamlWitnessFile(),
+              uniqueId,
+              (Appender)
+                  pApp -> {
+                    invariantWitnessWriter.exportErrorWitnessAsYamlWitness(witness, pApp);
+                  },
+              compressWitness);
+        }
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
       }

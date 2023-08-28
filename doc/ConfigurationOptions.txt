@@ -1101,6 +1101,9 @@ counterexample.export.exportTestCase = false
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 
+# export counterexample as witness/yaml file
+counterexample.export.exportYamlWitness = false
+
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1146,6 +1149,9 @@ counterexample.export.source = "Counterexample.%d.c"
 
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
+
+# export counterexample witness as GraphML automaton
+counterexample.export.yaml = "Counterexample.%d.yaml"
 
 # If continueAfterInfeasibleError is true, remove the error state that is
 # proven to be unreachable before continuing. Set this to false if
