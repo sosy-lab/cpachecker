@@ -291,6 +291,12 @@ public class AutomatonYAMLParser {
 
     automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
 
+    dumpAutomatonIfRequested(automaton);
+
+    return automaton;
+  }
+
+  private void dumpAutomatonIfRequested(Automaton automaton) {
     if (automatonDumpFile != null) {
       try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
         automaton.writeDotFile(w);
@@ -305,8 +311,6 @@ public class AutomatonYAMLParser {
         logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
       }
     }
-
-    return automaton;
   }
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
@@ -350,6 +354,8 @@ public class AutomatonYAMLParser {
     }
 
     automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
+
+    dumpAutomatonIfRequested(automaton);
 
     return automaton;
   }
