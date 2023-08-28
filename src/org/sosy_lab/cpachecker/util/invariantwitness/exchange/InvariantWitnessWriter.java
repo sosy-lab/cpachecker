@@ -206,16 +206,7 @@ public final class InvariantWitnessWriter {
   }
 
   private LoopInvariantEntry invariantWitnessToStoreEnty(InvariantWitness invariantWitness) {
-    ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
-    String creationTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-
-    final MetadataRecord metadata =
-        new MetadataRecord(
-            "0.1",
-            UUID.randomUUID().toString(),
-            creationTime,
-            producerDescription,
-            taskDescription);
+    final MetadataRecord metadata = createMetadataRecord();
 
     final String fileName = invariantWitness.getLocation().getFileName().toString();
     final int lineNumber = invariantWitness.getLocation().getStartingLineInOrigin();
@@ -237,5 +228,19 @@ public final class InvariantWitnessWriter {
         new LoopInvariantEntry("loop_invariant", metadata, location, invariant);
 
     return entry;
+  }
+
+  private MetadataRecord createMetadataRecord() {
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
+    String creationTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+    final MetadataRecord metadata =
+        new MetadataRecord(
+            "0.1",
+            UUID.randomUUID().toString(),
+            creationTime,
+            producerDescription,
+            taskDescription);
+    return metadata;
   }
 }
