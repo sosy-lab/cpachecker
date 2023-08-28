@@ -1275,6 +1275,9 @@ cpa.arg.dumpAfterIteration = false
 # cache-hit-rate for BAM and a faster sub-analysis for blocks.
 cpa.arg.enableStateReduction = true
 
+# enable witness generation in the new yaml format.
+cpa.arg.enableYamlWitnesses = false
+
 # export final ARG as .dot file
 cpa.arg.export = true
 
