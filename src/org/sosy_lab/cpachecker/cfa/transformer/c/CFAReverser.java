@@ -145,6 +145,7 @@ public class CFAReverser {
             .resolveSibling("config")
             .resolve("properties")
             .resolve("unreach-label.prp");
+
     return Specification.fromFiles(ImmutableSet.of(path), cfa, config, logger, pShutdownNotifier);
   }
 
@@ -287,6 +288,7 @@ public class CFAReverser {
        */
       private CFunctionEntryNode reverse() {
         String funcName = oldEntryNode.getFunctionName();
+        pLog.log(Level.INFO, "reversing function " + funcName);
 
         // get the new function declaration
         CFunctionDeclaration oldFuncDecl = oldEntryNode.getFunctionDefinition();
@@ -335,6 +337,7 @@ public class CFAReverser {
                 "TARGET__" + branchCnt,
                 newFuncDecl.getName() + "::" + "TARGET__" + branchCnt,
                 null);
+
         variables.put("TARGET__", targetBranchVarDecl);
         CIdExpression targetBranchVarExpr =
             new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
@@ -404,6 +407,8 @@ public class CFAReverser {
 
           if (oldhead instanceof CFunctionEntryNode) {
             assert newhead instanceof FunctionExitNode;
+            // handle function call in second pass
+            continue;
           }
 
           if (targets.contains(oldhead)) {
@@ -750,7 +755,7 @@ public class CFAReverser {
         } else if (stmt instanceof CExpressionStatement) {
           handleExprStmt((CExpressionStatement) stmt, from, to);
         } else if (stmt instanceof CFunctionCallAssignmentStatement) {
-          handleCallAssignStmt((CFunctionCallAssignmentStatement) stmt, from);
+          handleCallAssignStmt((CFunctionCallAssignmentStatement) stmt, from, to);
         } else if (stmt instanceof CFunctionCallStatement) {
           handleCallStmt((CFunctionCallStatement) stmt, from, to);
         }
@@ -759,7 +764,7 @@ public class CFAReverser {
       /////////////////////////////////////////////////////////////////////////////
       // Statement Handlers
       /////////////////////////////////////////////////////////////////////////////
-      private CFANode handleExprAssignStmt(
+      private void handleExprAssignStmt(
           CExpressionAssignmentStatement stmt, CFANode from, CFANode to) {
         checkNotNull(from, to);
         CLeftHandSide lvalue = stmt.getLeftHandSide();
@@ -788,11 +793,9 @@ public class CFAReverser {
         // exit this edge
         BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
         addToCFA(dummyEdge);
-
-        return to;
       }
 
-      private CFANode handleExprStmt(CExpressionStatement stmt, CFANode from, CFANode to) {
+      private void handleExprStmt(CExpressionStatement stmt, CFANode from, CFANode to) {
         checkNotNull(from, to);
         RightSideVariableFinder finder = new RightSideVariableFinder(new HashSet<>());
         CExpression expr = stmt.getExpression().accept(finder);
@@ -802,29 +805,69 @@ public class CFAReverser {
         CStatementEdge stmtEdge =
             new CStatementEdge("", exprStatement, FileLocation.DUMMY, from, to);
         addToCFA(stmtEdge);
-
-        return to;
       }
 
-      private CFANode handleCallAssignStmt(CFunctionCallAssignmentStatement stmt, CFANode from) {
-        // TODO: handleCallAssignStmt
+      private void handleCallAssignStmt(
+          CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
 
-        checkNotNull(from);
-        CExpression lvalue = stmt.getLeftHandSide();
-        CFunctionCallExpression rvalue = stmt.getRightHandSide();
-        pLog.log(Level.INFO, "call assign stmt: " + stmt);
-        pLog.log(Level.INFO, "lvalue:" + lvalue + " " + lvalue.getClass());
-        pLog.log(Level.INFO, "rvalue:" + rvalue + " " + rvalue.getClass());
+        CFunctionCallExpression callExpr = stmt.getFunctionCallExpression();
+        CFunctionCallExpression rExpr = reverseFunctionCallExpression(callExpr);
 
-        return null;
+        LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
+        CLeftHandSide lExpr = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
+
+        CFunctionCallAssignmentStatement callAssignmentStatement =
+            new CFunctionCallAssignmentStatement(FileLocation.DUMMY, lExpr, rExpr);
+
+        CStatementEdge newStmtEdge =
+            new CStatementEdge("", callAssignmentStatement, FileLocation.DUMMY, from, to);
+
+        addToCFA(newStmtEdge);
       }
 
-      private CFANode handleCallStmt(CFunctionCallStatement stmt, CFANode from, CFANode to) {
-        // TODO: handleCallAssignStmt
-        BlankEdge blankEdge =
-            new BlankEdge(stmt.toString(), FileLocation.DUMMY, from, to, stmt.toString());
-        addToCFA(blankEdge);
-        return null;
+      private void handleCallStmt(CFunctionCallStatement stmt, CFANode from, CFANode to) {
+
+        CFunctionCallExpression callExpr = stmt.getFunctionCallExpression();
+
+        CFunctionCallExpression newCallExpr = reverseFunctionCallExpression(callExpr);
+
+        CFunctionCallStatement newCallStmt =
+            new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
+        CStatementEdge newStmtEdge =
+            new CStatementEdge("", newCallStmt, FileLocation.DUMMY, from, to);
+
+        addToCFA(newStmtEdge);
+      }
+
+      private CFunctionCallExpression reverseFunctionCallExpression(
+          CFunctionCallExpression callExpr) {
+        pLog.log(Level.INFO, "FUNC CALL EXPR: " + callExpr);
+        CFunctionDeclaration decl = callExpr.getDeclaration();
+
+        String funcName = decl.getName();
+        CFunctionDeclaration funcDecl = funcDecls.get(funcName);
+        if (funcDecl == null) {
+          CFunctionDeclaration newDecl =
+              new CFunctionDeclaration(
+                  FileLocation.DUMMY,
+                  decl.getType(),
+                  decl.getName(),
+                  decl.getOrigName(),
+                  ImmutableList.of(),
+                  decl.getAttributes());
+
+          funcDecls.put(funcName, newDecl);
+          funcDecl = newDecl;
+        }
+
+        CIdExpression funcExpr = new CIdExpression(FileLocation.DUMMY, funcDecl);
+
+        return new CFunctionCallExpression(
+            FileLocation.DUMMY,
+            callExpr.getExpressionType(),
+            funcExpr,
+            ImmutableList.of(),
+            funcDecl);
       }
 
       /////////////////////////////////////////////////////////////////////////////
