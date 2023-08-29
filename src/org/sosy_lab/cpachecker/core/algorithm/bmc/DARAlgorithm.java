@@ -266,9 +266,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (getCurrentMaxLoopIterations() > 1) {
         stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
-        if (dualSequence.getSize() > 0) {
-          dualSequence.getBackwardReachVector().set(0, partitionedFormulas.getAssertionFormula());
-        }
         stats.interpolationPreparation.stop();
       }
 
@@ -303,7 +300,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           }
-          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
+          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, partitionedFormulas);
           iterativeLocalStrengthening(dualSequence, partitionedFormulas, itpSequence.size()-2);
 
           dualSequence.setLocallySafe();
@@ -350,7 +347,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void initializeBRS
       (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
     BooleanFormula assertionFormula = pPartitionedFormulas.getAssertionFormula();
-    //assertionFormula = fmgr.uninstantiate(assertionFormula);
     pDualSequence.increaseBackwardReachVector(assertionFormula);
   }
   private void initializeFRS
@@ -426,39 +422,14 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula forwardFormula = pDualSequence.getForwardReachVector().get(pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector()
         .get(lastIndexOfSequences - pIndex);
-    List<SSAMap> transitionSsa = pPartitionedFormulas.getLoopFormulasSsaMap();
-    BooleanFormula interpolant;
 
-    if (lastIndexOfSequences - pIndex == 0) {
-      if (pIndex == 0) {
-        Optional<ImmutableList<BooleanFormula>> interpolants =
-            itpMgr.interpolate(
-                ImmutableList.of(
-                    bfmgr.and(
-                            forwardFormula,
-                            transitionFormulae.get(pIndex)),
-                            backwardFormula));
-        interpolant = interpolants.orElseThrow().get(0);
-      } else {
-        Optional<ImmutableList<BooleanFormula>> interpolants =
-            itpMgr.interpolate(
-                ImmutableList.of(
-                    bfmgr.and(
-                        fmgr.instantiate(
-                            fmgr.uninstantiate(forwardFormula),
-                            pPartitionedFormulas.getLoopFormulasSsaMap().get(pIndex - 1)),
-                        transitionFormulae.get(pIndex)),
-                    backwardFormula));
-        interpolant = interpolants.orElseThrow().get(0);
-      }
-    } else {
-      Optional<ImmutableList<BooleanFormula>> interpolants =
-          itpMgr.interpolate(
-              ImmutableList.of(
-                  bfmgr.and(forwardFormula, transitionFormulae.get(pIndex)),
-                  fmgr.instantiate(backwardFormula, transitionSsa.get(pIndex))));
-      interpolant = interpolants.orElseThrow().get(0);
-    }
+    Optional<ImmutableList<BooleanFormula>> interpolants =
+        itpMgr.interpolate(
+            ImmutableList.of(
+                bfmgr.and(forwardFormula, transitionFormulae.get(0)),
+                backwardFormula));
+    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), pPartitionedFormulas.getPrefixSsaMap());
 
     return interpolant;
   }
@@ -473,45 +444,16 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula forwardFormula = pDualSequence.getForwardReachVector()
         .get(lastIndexOfSequences - pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pIndex);
-    BooleanFormula interpolant;
 
-    if (pIndex == 0) {
-      if (lastIndexOfSequences - pIndex == 0) {
-        Optional<ImmutableList<BooleanFormula>> interpolants =
-            itpMgr.interpolate(
-                ImmutableList.of(
-                    bfmgr.and(
-                        backwardFormula, transitionFormulae.get(0)),
-                        forwardFormula));
-        interpolant = interpolants.orElseThrow().get(0);
-      } else {
-        Optional<ImmutableList<BooleanFormula>> interpolants =
-            itpMgr.interpolate(
-                ImmutableList.of(
-                    bfmgr.and(
-                        backwardFormula, transitionFormulae.get(lastIndexOfSequences - pIndex)),
-                    fmgr.instantiate(
-                        fmgr.uninstantiate(forwardFormula),
-                        pPartitionedFormulas
-                            .getLoopFormulasSsaMap()
-                            .get(lastIndexOfSequences - pIndex - 1))));
-        interpolant = interpolants.orElseThrow().get(0);
-      }
-    } else {
-      Optional<ImmutableList<BooleanFormula>> interpolants =
-          itpMgr.interpolate(
-              ImmutableList.of(
-                  bfmgr.and(
-                      fmgr.instantiate(
-                          backwardFormula,
-                          pPartitionedFormulas
-                              .getLoopFormulasSsaMap()
-                              .get(lastIndexOfSequences - pIndex)),
-                          transitionFormulae.get(lastIndexOfSequences - pIndex)),
-                          forwardFormula));
-      interpolant = interpolants.orElseThrow().get(0);
-    }
-    interpolant = fmgr.uninstantiate(interpolant);
+    Optional<ImmutableList<BooleanFormula>> interpolants =
+        itpMgr.interpolate(
+            ImmutableList.of(
+                bfmgr.and(
+                    backwardFormula,
+                    transitionFormulae.get(0)),
+                forwardFormula));
+    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), pPartitionedFormulas.getLoopFormulasSsaMap().get(0));
 
     return interpolant;
   }
@@ -527,39 +469,20 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     List<BooleanFormula> FRS = pDualSequence.getForwardReachVector();
     List<BooleanFormula> BRS = pDualSequence.getBackwardReachVector();
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
-    List<SSAMap> transitionSsaMap = pPartitionedFormulas.getLoopFormulasSsaMap();
 
     int n = FRS.size() - 1;
 
     for (int i = FRS.size() - 1; i >= 0; i--) {
-      boolean isNotReachableWithOneTransition;
       stats.assertionsCheck.start();
+      boolean isNotReachableWithOneTransition;
 
       try {
-        if (n-i == 0) {
-          if (i == 0) {
-            isNotReachableWithOneTransition =
-                solver.isUnsat(
-                    bfmgr.and(
-                        transitionFormulae.get(i),
-                        BRS.get(0),
-                        FRS.get(i)));
-          } else {
-            isNotReachableWithOneTransition =
-                solver.isUnsat(
-                    bfmgr.and(
-                        transitionFormulae.get(i),
-                        BRS.get(0),
-                        fmgr.instantiate(fmgr.uninstantiate(FRS.get(i)), transitionSsaMap.get(i-1))));
-          }
-        } else {
-          isNotReachableWithOneTransition =
-              solver.isUnsat(
-                  bfmgr.and(
-                      transitionFormulae.get(i),
-                      fmgr.instantiate(BRS.get(n - i), transitionSsaMap.get(i)),
-                      FRS.get(i)));
-        }
+        isNotReachableWithOneTransition =
+            solver.isUnsat(
+                bfmgr.and(
+                    transitionFormulae.get(0),
+                    BRS.get(n - i),
+                    FRS.get(i)));
       } finally {
         stats.assertionsCheck.stop();
       }
@@ -576,12 +499,16 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     boolean counterexampleIsSpurious;
     for (int i = 2; i <= pDualSequence.getSize() + 1; i++) {
       BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - i + 1);
+
       if (pDualSequence.getSize() - i + 1 > 0) {
         backwardFormula =
             fmgr.instantiate(
-                backwardFormula,
+                fmgr.uninstantiate(backwardFormula),
                 pFormulas.getLoopFormulasSsaMap().get(i - 2));
+      } else {
+        backwardFormula = pFormulas.getAssertionFormula();
       }
+
       BooleanFormula unrolledConcretePaths =
           bfmgr.and(new ImmutableList.Builder<BooleanFormula>()
               .add(pFormulas.getPrefixFormula())
@@ -623,7 +550,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (pDualSequence.getSize() - indexOfGlobalViolation + 1 > 0) {
       backwardFormula =
           fmgr.instantiate(
-              backwardFormula, pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation - 2));
+              fmgr.uninstantiate(backwardFormula), pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation - 2));
+    } else {
+      backwardFormula = pFormulas.getAssertionFormula();
     }
 
     ImmutableList<BooleanFormula> formulasToPush =
@@ -644,13 +573,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @param itpSequence the interpolation sequence derived at the current iteration
    */
   private void updateReachabilityVector(
-      List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence) {
+      List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence, PartitionedFormulas pFormulas) {
     logger.log(Level.FINE, "Updating reachability vector");
-
+    SSAMap prefixSsaMap = pFormulas.getPrefixSsaMap();
     int i = 1;
+
     while ((i < reachVector.size()) && (i < itpSequence.size())) {
       BooleanFormula image = reachVector.get(i);
-      reachVector.set(i, bfmgr.and(image, itpSequence.get(i)));
+      reachVector.set(i, bfmgr.and(image,
+          fmgr.instantiate(fmgr.uninstantiate(itpSequence.get(i)), prefixSsaMap)));
       ++i;
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
