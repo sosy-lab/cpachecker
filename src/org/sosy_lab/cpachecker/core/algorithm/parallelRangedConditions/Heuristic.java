@@ -260,7 +260,8 @@ abstract class Heuristic {
       for (Loop loop : loops) {
         Set<CFAPath> incommingPaths = new HashSet<>();
         for (CFAEdge entryEdge : loop.getIncomingEdges()) {
-          Set<CFAPath.Builder> pathsForEdge = getPathsWithoutLoop(entryEdge.getPredecessor());
+          Set<CFAPath.Builder> pathsForEdge =
+              getPathsWithoutLoop(entryEdge.getPredecessor(), ImmutableSet.of());
           pathsForEdge.forEach(pathBuilder -> pathBuilder.add(entryEdge.getSuccessor()));
           incommingPaths.addAll(
               pathsForEdge.stream()
@@ -286,7 +287,8 @@ abstract class Heuristic {
       return limitPaths.stream().sorted().collect(ImmutableList.toImmutableList());
     }
 
-    private Set<CFAPath.Builder> getPathsWithoutLoop(CFANode targetNode) {
+    private Set<CFAPath.Builder> getPathsWithoutLoop(
+        CFANode targetNode, ImmutableSet<CFANode> visited) {
       if (targetNode == cfa.getMainFunction()) {
         return ImmutableSet.of(new CFAPath.Builder().add(targetNode));
       }
@@ -295,12 +297,16 @@ abstract class Heuristic {
         CFAEdge enteringEdge = targetNode.getEnteringEdge(i);
         CFANode predecessor = enteringEdge.getPredecessor();
         if (loopNodes.contains(predecessor)
-            || enteringEdge instanceof CFunctionSummaryStatementEdge) {
+            || enteringEdge instanceof CFunctionSummaryStatementEdge
+            || visited.contains(predecessor)) {
           // ignore paths leading to this loop, which traverse through other loops or are
           // FunctionSummaryStatementEdges
           continue;
         }
-        pathBuilders.addAll(getPathsWithoutLoop(predecessor));
+        ImmutableSet.Builder<CFANode> visitedBuilder = ImmutableSet.builder();
+        visitedBuilder.addAll(visited);
+        visitedBuilder.add(predecessor);
+        pathBuilders.addAll(getPathsWithoutLoop(predecessor, visitedBuilder.build()));
       }
       pathBuilders.forEach(path -> path.add(targetNode));
       return pathBuilders;
