@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
@@ -212,7 +213,7 @@ public final class InvariantWitnessWriter {
 
   public void exportErrorWitnessAsYamlWitness(Witness pWitness, Appendable pApp) {
     String startNode = pWitness.getEntryStateNodeId();
-    List<WaypointRecord> waypoints = new ArrayList<>();
+    List<SegmentRecord> segments = new ArrayList<>();
     GraphTraverser<String, YamlWitnessExportException> traverser =
         new GraphTraverser<>(startNode) {
 
@@ -239,21 +240,21 @@ public final class InvariantWitnessWriter {
                 continue; // we ignore sink nodes for now
               }
               if (attrs.get(FUNCTIONENTRY) != null) {
-                WaypointRecord waypoint = makeFunctionEntryWaypoint(pWitness, attrs);
-                waypoints.add(waypoint);
+                SegmentRecord segement = makeFunctionEntryWaypoint(pWitness, attrs);
+                segments.add(segement);
               } else if (attrs.get(CONTROLCASE) != null) {
-                WaypointRecord waypoint = makeBranchingWaypoint(pWitness, attrs);
-                waypoints.add(waypoint);
+                SegmentRecord waypoint = makeBranchingWaypoint(pWitness, attrs);
+                segments.add(waypoint);
               } else if (attrs.get(ASSUMPTION) != null) {
-                WaypointRecord waypoint = makeAssumptionWaypoint(pWitness, attrs);
-                waypoints.add(waypoint);
+                SegmentRecord waypoint = makeAssumptionWaypoint(pWitness, attrs);
+                segments.add(waypoint);
               }
               builder.add(successor);
             }
             return builder.build();
           }
 
-          private WaypointRecord makeBranchingWaypoint(Witness witness, Map<KeyDef, String> attrs) {
+          private SegmentRecord makeBranchingWaypoint(Witness witness, Map<KeyDef, String> attrs) {
             Preconditions.checkState(
                 ImmutableSet.of("condition-true", "condition-false")
                     .contains(attrs.get(CONTROLCASE)));
@@ -267,11 +268,10 @@ public final class InvariantWitnessWriter {
                     WaypointRecord.WaypointAction.FOLLOW,
                     info,
                     location);
-            return waypoint;
+            return new SegmentRecord(ImmutableList.of(waypoint));
           }
 
-          private WaypointRecord makeAssumptionWaypoint(
-              Witness witness, Map<KeyDef, String> attrs) {
+          private SegmentRecord makeAssumptionWaypoint(Witness witness, Map<KeyDef, String> attrs) {
             LocationRecord location = createLocationRecord(witness, attrs);
             InformationRecord inv = new InformationRecord(attrs.get(ASSUMPTION), null, "C");
             WaypointRecord waypoint =
@@ -280,10 +280,10 @@ public final class InvariantWitnessWriter {
                     WaypointRecord.WaypointAction.FOLLOW,
                     inv,
                     location);
-            return waypoint;
+            return new SegmentRecord(ImmutableList.of(waypoint));
           }
 
-          private WaypointRecord makeFunctionEntryWaypoint(
+          private SegmentRecord makeFunctionEntryWaypoint(
               Witness witness, Map<KeyDef, String> attrs) {
             LocationRecord location = createLocationRecord(witness, attrs);
             WaypointRecord waypoint =
@@ -292,7 +292,7 @@ public final class InvariantWitnessWriter {
                     WaypointRecord.WaypointAction.FOLLOW,
                     null,
                     location);
-            return waypoint;
+            return new SegmentRecord(ImmutableList.of(waypoint));
           }
 
           private LocationRecord createLocationRecord(Witness witness, Map<KeyDef, String> attrs) {
@@ -320,7 +320,7 @@ public final class InvariantWitnessWriter {
         };
     try {
       traverser.traverse();
-      if (waypoints.isEmpty()) {
+      if (segments.isEmpty()) {
         throw new YamlWitnessExportException(
             "Empty waypoint sequence generated for yaml witness, cannot export");
       }
@@ -331,14 +331,18 @@ public final class InvariantWitnessWriter {
     }
 
     // Change the type of the last waypoint to TARGET, and remove constraints if any:
-    WaypointRecord last = waypoints.remove(waypoints.size() - 1);
-    waypoints.add(last.withType(WaypointType.TARGET).withConstraint(null));
+    SegmentRecord last = segments.remove(segments.size() - 1);
+    segments.add(
+        SegmentRecord.ofOnlyElement(
+            last.getSegment().get(0).withType(WaypointType.TARGET).withConstraint(null)));
 
     // We only added FUNCTION_ENTER nodes for constructing the TARGET node above, so for now we
     // remove them again here:
-    waypoints.removeIf(x -> x.getType().equals(WaypointType.FUNCTION_ENTER));
+    segments.removeIf(x -> x.getSegment().get(0).getType().equals(WaypointType.FUNCTION_ENTER));
+    // TODO: the above only checks the first element in the segment which will become a problem
+    // once we have segments with multiple waypoints inside
 
-    ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), waypoints);
+    ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), segments);
     try {
       pApp.append(mapper.writeValueAsString(ImmutableList.of(entry)));
     } catch (IOException e) {

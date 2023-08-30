@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntr
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantCertificateEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 
 public class InvariantWitnessTest {
 
@@ -51,9 +51,11 @@ public class InvariantWitnessTest {
     Queue<AbstractEntry> loadedEntries = testParsingFile("violation-witness.yml");
     for (AbstractEntry e : loadedEntries) {
       if (e instanceof ViolationSequenceEntry) {
-        List<WaypointRecord> sequence = ((ViolationSequenceEntry) e).getSequence();
-        assertThat(sequence).hasSize(6);
-        assertThat(sequence.get(0).getConstraint().getString()).isEqualTo("(x >= 1024U)");
+        List<SegmentRecord> sequence = ((ViolationSequenceEntry) e).getContent();
+        assertThat(sequence).hasSize(5);
+        assertThat(sequence.get(0).getSegment().size()).isAtLeast(1);
+        assertThat(sequence.get(0).getSegment().get(0).getConstraint().getString())
+            .isEqualTo("(x >= 1024U)");
       }
     }
   }

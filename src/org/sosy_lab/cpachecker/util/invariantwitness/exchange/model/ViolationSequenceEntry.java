@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 
 // TODO: find out how to serialize ImmutableList such that we can mark this class as @Immutable by
 // making sequence an ImmutableList
@@ -24,22 +24,22 @@ public class ViolationSequenceEntry extends AbstractEntry {
   @JsonProperty("metadata")
   private final MetadataRecord metadata;
 
-  @JsonProperty("sequence")
-  private final List<WaypointRecord> sequence;
+  @JsonProperty("content")
+  private final List<SegmentRecord> content;
 
   public ViolationSequenceEntry(
       @JsonProperty("metadata") MetadataRecord metadata,
-      @JsonProperty("sequence") List<WaypointRecord> sequence) {
+      @JsonProperty("sequence") List<SegmentRecord> sequence) {
     super(VIOLATION_SEQUENCE_ENTRY_IDENTIFIER);
     this.metadata = metadata;
-    this.sequence = sequence;
+    this.content = sequence;
   }
 
   public MetadataRecord getMetadata() {
     return metadata;
   }
 
-  public List<WaypointRecord> getSequence() {
-    return sequence;
+  public List<SegmentRecord> getContent() {
+    return content;
   }
 }

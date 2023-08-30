@@ -11,11 +11,26 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.com
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.Immutable;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointDeserializer;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointSerializer;
 
 @Immutable
+@JsonDeserialize(using = WaypointDeserializer.class)
+@JsonSerialize(using = WaypointSerializer.class)
 public class WaypointRecord {
   @JsonProperty("type")
   private final WaypointType type;
@@ -171,6 +186,69 @@ public class WaypointRecord {
     @JsonValue
     String getKeyword() {
       return keyword;
+    }
+  }
+
+  public static class WaypointDeserializer extends JsonDeserializer<WaypointRecord> {
+    @Override
+    public WaypointRecord deserialize(JsonParser jp, DeserializationContext ctxt)
+        throws IOException {
+      ObjectMapper mapper = (ObjectMapper) jp.getCodec();
+      JsonNode node = mapper.readTree(jp);
+
+      // The node should now be the 'waypoint' node. Move one level deeper to its children.
+      JsonNode waypointNode = node.get("waypoint");
+      assert waypointNode != null;
+
+      // Delegate the actual object mapping back to Jackson:
+      // WaypointRecord result = mapper.treeToValue(waypointNode, WaypointRecord.class);
+      // CAVEAT: does not work, since this would use the custom deserializer.
+      // Using the original deserializer is apparently very hard.
+      // For now just manually construct this
+      // (less elegant, but we probably never touch that code again, so it is fine):
+      WaypointRecord result =
+          new WaypointRecord(
+              mapper.treeToValue(waypointNode.get("type"), WaypointType.class),
+              mapper.treeToValue(waypointNode.get("action"), WaypointAction.class),
+              mapper.treeToValue(waypointNode.get("constraint"), InformationRecord.class),
+              mapper.treeToValue(waypointNode.get("location"), LocationRecord.class));
+
+      return result;
+    }
+  }
+
+  public static class WaypointSerializer extends JsonSerializer<WaypointRecord> {
+
+    public WaypointSerializer() {}
+
+    @Override
+    public void serialize(WaypointRecord value, JsonGenerator gen, SerializerProvider serializers)
+        throws IOException {
+
+      // Start a wrapper object for "waypoint"
+      gen.writeStartObject();
+      gen.writeFieldName("waypoint");
+
+      // start the actual WaypointRecord object
+      gen.writeStartObject();
+      gen.writeFieldName("type");
+      serializers.defaultSerializeValue(value.getType(), gen);
+
+      gen.writeFieldName("action");
+      serializers.defaultSerializeValue(value.getAction(), gen);
+
+      if (value.getConstraint() != null) {
+        gen.writeFieldName("constraint");
+        serializers.defaultSerializeValue(value.getConstraint(), gen);
+      }
+
+      gen.writeFieldName("location");
+      serializers.defaultSerializeValue(value.getLocation(), gen);
+      // end the WaypointRecord object
+      gen.writeEndObject();
+
+      // End the wrapper object
+      gen.writeEndObject();
     }
   }
 }

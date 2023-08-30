@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
@@ -392,14 +393,16 @@ public class AutomatonYAMLParser {
       if (entry instanceof ViolationSequenceEntry violationEntry) {
 
         List<WaypointRecord> avoids = new ArrayList<>();
-        for (WaypointRecord waypoint : violationEntry.getSequence()) {
-          if (waypoint.getAction().equals(WaypointAction.AVOID)) {
-            avoids.add(waypoint);
-            continue;
-          } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-            segments.put(waypoint, avoids);
-            avoids = new ArrayList<>();
-            continue;
+        for (SegmentRecord segmentRecord : violationEntry.getContent()) {
+          for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+            if (waypoint.getAction().equals(WaypointAction.AVOID)) {
+              avoids.add(waypoint);
+              continue;
+            } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
+              segments.put(waypoint, avoids);
+              avoids = new ArrayList<>();
+              continue;
+            }
           }
         }
         break; // for now just take the first ViolationSequenceEntry in the yaml witness
