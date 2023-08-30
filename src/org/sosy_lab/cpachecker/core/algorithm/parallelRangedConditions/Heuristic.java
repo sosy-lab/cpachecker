@@ -400,7 +400,7 @@ abstract class Heuristic {
 
         Set<CFANode> candidates = new HashSet<>();
         for (int j = 0; j < predecessor.getNumLeavingEdges(); j++) {
-          CFAEdge edge = currentNode.getLeavingEdge(j);
+          CFAEdge edge = predecessor.getLeavingEdge(j);
           if (!(edge instanceof CFunctionSummaryStatementEdge)) {
             CFANode candidate = edge.getSuccessor();
             if (candidate.compareTo(current) > 0) {
