@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.List;
+import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 
@@ -41,5 +43,27 @@ public class ViolationSequenceEntry extends AbstractEntry {
 
   public List<SegmentRecord> getContent() {
     return content;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((content == null) ? 0 : content.hashCode());
+    result = prime * result + ((metadata == null) ? 0 : metadata.hashCode());
+    return result;
+  }
+
+  @Override
+  @SuppressWarnings("EqualsGetClass")
+  public boolean equals(@Nullable Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    if (pOther == null || getClass() != pOther.getClass()) {
+      return false;
+    }
+    ViolationSequenceEntry other = (ViolationSequenceEntry) pOther;
+    return Objects.equals(metadata, other.metadata) && Objects.equals(content, other.content);
   }
 }
