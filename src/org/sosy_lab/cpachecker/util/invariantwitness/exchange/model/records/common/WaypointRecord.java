@@ -128,6 +128,7 @@ public class WaypointRecord {
     BRANCHING("branching"),
     ASSUMPTION("assumption"),
     FUNCTION_ENTER("function_enter"),
+    FUNCTION_RETURN("function_return"),
     TARGET("target"),
     UNKNOWN("unknown");
 
@@ -149,6 +150,10 @@ public class WaypointRecord {
     public static WaypointType fromKeyword(String keyword) {
       if (keyword == null) {
         return VISIT;
+      }
+      if (keyword.equals("identifier_evaluation")) {
+        // handle deprecated old keyword name
+        return FUNCTION_ENTER;
       }
       return map.getOrDefault(keyword, UNKNOWN);
     }
