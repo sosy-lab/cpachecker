@@ -226,24 +226,27 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
 
       // BMC
-      try (ProverEnvironment bmcProver =
-          solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        BooleanFormula targetFormula =
-            InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
-        stats.satCheck.start();
-        final boolean isTargetStateReachable;
-        try {
-          bmcProver.push(targetFormula);
-          isTargetStateReachable = !bmcProver.isUnsat();
-        } finally {
-          stats.satCheck.stop();
-        }
-        if (isTargetStateReachable) {
-          logger.log(Level.FINE, "A target state is reached by BMC");
-          analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
-          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      if (fallBack) {
+        try (ProverEnvironment bmcProver =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          BooleanFormula targetFormula =
+              InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+          stats.satCheck.start();
+          final boolean isTargetStateReachable;
+          try {
+            bmcProver.push(targetFormula);
+            isTargetStateReachable = !bmcProver.isUnsat();
+          } finally {
+            stats.satCheck.stop();
+          }
+          if (isTargetStateReachable) {
+            logger.log(Level.FINE, "A target state is reached by BMC");
+            analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+          }
         }
       }
+
       // Forward-condition check
       if (checkForwardConditions) {
         stats.assertionsCheck.start();
@@ -321,11 +324,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula backwardImage = pDualSequence.getBackwardReachVector().get(0);
 
     for (int i = 1; i < pDualSequence.getSize(); i++) {
-      if (solver.implies(pDualSequence.getForwardReachVector().get(i), forwardImage)) {
+      BooleanFormula forwardFormula = pDualSequence.getForwardReachVector().get(i);
+      if (solver.implies(forwardFormula, forwardImage)) {
         finalFixedPoint = forwardImage;
         return true;
       }
-      forwardImage = bfmgr.or(pDualSequence.getForwardReachVector().get(i), forwardImage);
+      forwardImage = bfmgr.or(forwardFormula, forwardImage);
     }
 
     for (int i = 1; i < pDualSequence.getSize(); i++) {
@@ -334,11 +338,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       //  isDAREnabled= false;
       //  return false;
       //}
-      if (solver.implies(pDualSequence.getBackwardReachVector().get(i), backwardImage)) {
+      BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(i);
+      if (solver.implies(backwardFormula, backwardImage)) {
         finalFixedPoint = backwardImage;
         return true;
       }
-      backwardImage = bfmgr.or(pDualSequence.getBackwardReachVector().get(i), backwardImage);
+      backwardImage = bfmgr.or(backwardFormula, backwardImage);
     }
 
     return false;
@@ -557,8 +562,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
-            .add(bfmgr.and(pFormulas.getPrefixFormula()), pFormulas.getLoopFormulas().get(0))
-            .addAll(pFormulas.getLoopFormulas().subList(1, indexOfGlobalViolation - 1))
+            .add(pFormulas.getPrefixFormula())
+            .addAll(pFormulas.getLoopFormulas().subList(0, indexOfGlobalViolation - 1))
             .add(backwardFormula)
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
