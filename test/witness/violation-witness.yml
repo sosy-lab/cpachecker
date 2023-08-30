@@ -25,43 +25,60 @@
       specification: CHECK( init(main()), LTL(G ! call(reach_error())) )
       data_model: 32bit
       language: C
-  sequence:
-    - type: assumption
-      location:
-        file_name: multivar_1-1.c
-        line: 22
-        column: 0
-        function: main
-      constraint:
-        string: (x >= 1024U)
-        format: C
-    - type: branching
-      location:
-        file_name: multivar_1-1.c
-        line: 23
-      constraint:
-        string: true
-    - action: avoid
-      type: assumption
-      location:
-        file_name: multivar_1-1.c
-        line: 24
-      constraint:
-        string: x > 2
-        format: C
-    - type: function_return
-      location:
-        file_name: multivar_1-1.c
-        line: 25
-        function: main
-      constraint:
-        string: \return == 4
-    - type: identifier_evaluation
-      location:
-        file_name: multivar_1-1.c
-        line: 25
-    - action: target
-      location:
-        file_name: multivar_1-1.c
-        line: 26
+  content:
+    - segment:
+      - waypoint:
+          action: follow
+          type: assumption
+          location:
+            file_name: multivar_1-1.c
+            line: 22
+            column: 0
+            function: main
+          constraint:
+            string: (x >= 1024U)
+            format: C
+    - segment:
+      - waypoint:
+          action: follow
+          type: branching
+          location:
+            file_name: multivar_1-1.c
+            line: 23
+          constraint:
+            string: true
+    - segment:
+      - waypoint:
+          action: avoid
+          type: assumption
+          location:
+            file_name: multivar_1-1.c
+            line: 24
+          constraint:
+            string: x > 2
+            format: C
+      - waypoint:
+          action: follow
+          type: function_return
+          location:
+            file_name: multivar_1-1.c
+            line: 25
+            function: main
+          constraint:
+            string: \return == 4
+            format: C
+    - segment:
+      - waypoint:
+          action: follow
+          type: identifier_evaluation
+          location:
+            file_name: multivar_1-1.c
+            line: 25
+    - segment:
+      - waypoint:
+          action: follow
+          type: target
+          location:
+            file_name: multivar_1-1.c
+            line: 26
 
