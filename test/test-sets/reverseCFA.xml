@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
+
+  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+
+  <option name="-heap">13000M</option>
+  <option name="-benchmark"/>
+  <option name="config"> ../../config/reverseCFA.properties</option>
+
+  <rundefinition name="bmc">
+  </rundefinition>
+
+  <tasks name="ReachSafety-Loops">
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-ControlFlow">
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+
+</benchmark>
