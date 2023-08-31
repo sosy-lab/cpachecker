@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import com.google.common.collect.FluentIterable;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -19,6 +18,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -62,8 +62,7 @@ public class InferWorker extends BlockSummaryWorker {
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
-      ShutdownManager pShutdownManager
-      )
+      ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     super("infer-worker-" + pId, new BlockSummaryAnalysisOptions(pOptions.getParentConfig()));
     block = pBlock;
@@ -92,9 +91,17 @@ public class InferWorker extends BlockSummaryWorker {
     return switch (message.getType()) {
       case ERROR_CONDITION, BLOCK_POSTCONDITION -> {
         AbstractState state = dcpaAlgorithm.getDCPA().getDeserializeOperator().deserialize(message);
-        yield dcpaAlgorithm.runAnalysisUnderCondition(Optional.of(state));
+        String messageFunction =
+            (String) message.getPayload().get(InferDCPAAlgorithm.MESSAGE_FUNCTION);
+
+        Collection<BlockSummaryMessage> messages =
+            dcpaAlgorithm.runAnalysisUnderCondition(
+                Optional.of(state), message.getType(), messageFunction);
+        yield messages;
       }
-      default -> ImmutableSet.of();
+      default -> {
+        yield ImmutableSet.of();
+      }
     };
   }
 
@@ -133,7 +140,8 @@ public class InferWorker extends BlockSummaryWorker {
   }
 
   private boolean isCalled(BlockSummaryMessage message) {
-    String messageFunction = (String) message.getPayload().getOrDefault(InferDCPAAlgorithm.MESSAGE_FUNCTION, "");
+    String messageFunction =
+        (String) message.getPayload().getOrDefault(InferDCPAAlgorithm.MESSAGE_FUNCTION, "");
     return calledFunctions().contains(messageFunction);
   }
 
@@ -141,6 +149,7 @@ public class InferWorker extends BlockSummaryWorker {
     return FluentIterable.from(block.getEdges())
         .filter(FunctionSummaryEdge.class)
         .transform(edge -> edge.getFunctionEntry().getFunctionName())
+        .filter(name -> !name.equals(block.getFirst().getFunctionName()))
         .toSet();
   }
 }

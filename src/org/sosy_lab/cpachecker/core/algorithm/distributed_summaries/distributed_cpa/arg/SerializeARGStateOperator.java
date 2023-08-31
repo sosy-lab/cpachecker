@@ -23,36 +23,14 @@ public class SerializeARGStateOperator implements SerializeOperator {
 
   private final DistributedConfigurableProgramAnalysis wrapped;
 
-  public static final String COUNTEREXAMPLE_PATH = "counterexample_path";
-
   public SerializeARGStateOperator(DistributedConfigurableProgramAnalysis pWrapped) {
     wrapped = pWrapped;
   }
 
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
-    ImmutableSet<CFANode> path = buildCounterExamplePath((ARGState) pState);
     BlockSummaryMessagePayload payload =
         wrapped.getSerializeOperator().serialize(((ARGState) pState).getWrappedState());
-    if (!path.isEmpty()) {
-      payload =
-          BlockSummaryMessagePayload.builder()
-              .addAllEntries(payload)
-              .addEntry(COUNTEREXAMPLE_PATH, path)
-              .buildPayload();
-    }
     return payload;
-  }
-
-  private ImmutableSet<CFANode> buildCounterExamplePath(ARGState pState) {
-    ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
-    Optional<CounterexampleInfo> info = pState.getCounterexampleInformation();
-    if (info.isPresent()) {
-      PathIterator iterator = info.orElseThrow().getTargetPath().fullPathIterator();
-      do {
-        builder.add(iterator.getLocation());
-      } while (iterator.advanceIfPossible());
-    }
-    return builder.build();
   }
 }

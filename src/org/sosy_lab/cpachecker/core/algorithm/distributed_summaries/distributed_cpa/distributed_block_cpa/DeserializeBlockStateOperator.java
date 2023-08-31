@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
+import java.util.HashMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -41,6 +41,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         blockNode,
         direction,
         BlockStateType.INITIAL,
-        Optional.empty());
+        new HashMap<>(),
+        new HashMap<>());
   }
 }

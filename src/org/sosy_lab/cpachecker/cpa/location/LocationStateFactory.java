@@ -35,7 +35,7 @@ public class LocationStateFactory {
           "With this option enabled, function calls that occur"
               + " in the CFA are followed. By disabling this option one can traverse a function"
               + " without following function calls (in this case FunctionSummaryEdges are used)")
-  private boolean followFunctionCalls = true;
+  private boolean followFunctionCalls = false;
 
   public LocationStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
       throws InvalidConfigurationException {

@@ -1872,7 +1872,7 @@ cpa.local.localvariables = {}
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without
 # following function calls (in this case FunctionSummaryEdges are used)
-cpa.location.followFunctionCalls = true
+cpa.location.followFunctionCalls = false
 
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE

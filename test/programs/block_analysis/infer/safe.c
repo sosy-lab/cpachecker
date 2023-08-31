@@ -16,16 +16,29 @@ void __VERIFIER_assert(int cond) {
   }
   return;
 }
-int __VERIFIER_nondet_int();
 
-int main() {
-  int n = __VERIFIER_nondet_int();
-  int x = 0;
-  int y = 1;
-  while (n) {
-    x++;
-    y++;
-  }
-  __VERIFIER_assert(x != y);
+int __VERIFIER_nondet_int();
+int __VERIFIER_nondet_int2();
+
+int grandom(){
+  // return __VERIFIER_nondet_int();
   return 0;
 }
+
+int grandom2(){
+  // return __VERIFIER_nondet_int();
+  return 1;
+}
+
+int main() {
+  int x = grandom();
+  int y = grandom2();
+  int z = x == y;
+  __VERIFIER_assert(z);
+  if (!(z)) {
+    ERROR: {reach_error();abort();}
+  }
+  __VERIFIER_assert(z);
+  return 0;
+}
+

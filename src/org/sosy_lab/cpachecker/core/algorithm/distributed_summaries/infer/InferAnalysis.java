@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,6 +58,7 @@ public class InferAnalysis extends BlockSummaryAnalysis
   private final Specification specification;
   private final ShutdownManager shutdownManager;
   private final InferOptions options;
+  private final Configuration parentConfig;
   private final BlockSummaryAnalysisOptions blockSummaryOptions;
 
   private final Map<String, Object> stats;
@@ -85,6 +87,7 @@ public class InferAnalysis extends BlockSummaryAnalysis
     specification = pSpecification;
     shutdownManager = pShutdownManager;
     options = new InferOptions(pConfig);
+    parentConfig = pConfig;
     blockSummaryOptions = new BlockSummaryAnalysisOptions(pConfig);
     stats = new HashMap<>();
   }
@@ -94,7 +97,8 @@ public class InferAnalysis extends BlockSummaryAnalysis
     logger.log(Level.INFO, "Starting infer analysis...");
     try {
       // create blockGraph and reduce to relevant parts
-      ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
+      ParallelBlockNodeDecomposition decomposer =
+          new ParallelBlockNodeDecomposition(shutdownManager.getNotifier());
       ParallelBlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier());
       logger.logf(
@@ -115,7 +119,6 @@ public class InferAnalysis extends BlockSummaryAnalysis
               .addInferRootWorker(
                   blockGraph.getRoot(),
                   options,
-                  blocks.size(),
                   expectedRootStrengthens,
                   entryFunctionName);
       for (BlockNode distinctNode : blocks) {

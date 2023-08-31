@@ -8,24 +8,39 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferErrorConditionTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
 public class BlockState
@@ -38,19 +53,23 @@ public class BlockState
     ABSTRACTION
   }
 
+  public record StrengtheningInfo(Map<String, Formula> params, String strengtheningFunction) {}
+
   private final CFANode targetCFANode;
   private final CFANode node;
   private final AnalysisDirection direction;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private Optional<AbstractState> errorCondition;
+  private Map<String, AbstractState> errorConditions;
+  private Map<String, MessageType> strengthenTypes;
 
   public BlockState(
       CFANode pNode,
       BlockNode pTargetNode,
       AnalysisDirection pDirection,
       BlockStateType pType,
-      Optional<AbstractState> pErrorCondition) {
+      Map<String, AbstractState> pErrorConditions,
+      Map<String, MessageType> pStrengthenTypes) {
     node = pNode;
     direction = pDirection;
     type = pType;
@@ -63,11 +82,32 @@ public class BlockState
               : pTargetNode.getFirst();
     }
     blockNode = pTargetNode;
-    errorCondition = pErrorCondition;
+    errorConditions = pErrorConditions;
+    strengthenTypes = pStrengthenTypes;
   }
 
-  public void setErrorCondition(Optional<AbstractState> pErrorCondition) {
-    errorCondition = pErrorCondition;
+  public void setErrorConditions(Map<String, AbstractState> pErrorConditions) {
+    errorConditions = pErrorConditions;
+  }
+
+  public void setErrorCondition(AbstractState pErrorCondition) {
+    errorConditions = Map.of("single_element_map", pErrorCondition);
+  }
+
+  public void addErrorCondition(String pFunctionName, AbstractState pErrorCondition) {
+    errorConditions.put(pFunctionName, pErrorCondition);
+  }
+
+  public void setStrengthenTypes(Map<String, MessageType> pStrengthenTypes) {
+    strengthenTypes = pStrengthenTypes;
+  }
+
+  public Map<String, MessageType> getStrengthenTypes() {
+    return strengthenTypes;
+  }
+
+  public void setStrengthenType(String pFunctionName, MessageType pFunctionType) {
+    strengthenTypes.put(pFunctionName, pFunctionType);
   }
 
   public BlockNode getBlockNode() {
@@ -99,32 +139,49 @@ public class BlockState
 
   @Override
   public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
-    return isTarget()
-        ? ImmutableSet.of(
+    ImmutableSet.Builder<TargetInformation> targetInformation = ImmutableSet.builder();
+    if (!isTarget()) {
+      return ImmutableSet.of();
+    } else {
+      if (isSatisfiesErrorConditionState()) {
+        targetInformation.add(new InferErrorConditionTargetInformation());
+      }
+      if (isBlockEntryReached()) {
+        targetInformation.add(
             new BlockEntryReachedTargetInformation(
-                targetCFANode, type == BlockStateType.ABSTRACTION))
-        : ImmutableSet.of();
+                targetCFANode, type == BlockStateType.ABSTRACTION));
+      }
+    }
+    return targetInformation.build();
   }
 
-  public Optional<AbstractState> getErrorCondition() {
-    return errorCondition;
+  public Map<String, AbstractState> getErrorConditions() {
+    return errorConditions;
   }
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     if (isTarget()
-        && errorCondition.isPresent()
+        && !errorConditions.isEmpty()
         && direction == AnalysisDirection.FORWARD
         && !blockNode.getLast().equals(blockNode.getAbstractionLocation())
         && !blockNode.getLast().equals(node)
         && !isStartNodeOfBlock()) {
-      FluentIterable<BooleanFormula> approximations =
-          AbstractStates.asIterable(errorCondition.orElseThrow())
-              .filter(FormulaReportingState.class)
-              .transform(s -> s.getFormulaApproximation(manager));
-      return manager.getBooleanFormulaManager().and(approximations.toList());
+      ImmutableList<BooleanFormula> approximations =
+          errorConditions.values().stream()
+              .filter(FormulaReportingState.class::isInstance)
+              .map(FormulaReportingState.class::cast)
+              .map(s -> s.getFormulaApproximation(manager))
+              .collect(ImmutableList.toImmutableList());
+      return manager.getBooleanFormulaManager().and(approximations);
     }
-    return manager.getBooleanFormulaManager().makeTrue();
+
+    // TODO we could cache this so that it only gets updated when a new errorCondition is added
+    ImmutableList.Builder<BooleanFormula> approximations = new ImmutableList.Builder<>();
+    for (AbstractState state : errorConditions.values()) {
+      approximations.add(AbstractStates.extractReportedFormulas(manager, state));
+    }
+    return manager.getBooleanFormulaManager().and(approximations.build());
   }
 
   // error condition intentionally left out as it is mutable
@@ -161,7 +218,62 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
+    return isSatisfiesErrorConditionState() || isBlockEntryReached();
+  }
+
+  private boolean isBlockEntryReached() {
     return isLocatedOnTargetNode()
         || (direction == AnalysisDirection.FORWARD ? isLastNodeOfBlock() : isStartNodeOfBlock());
+  }
+
+  public boolean isSatisfiesErrorConditionState() {
+    return CFAUtils.allEnteringEdges(node)
+        .filter(FunctionSummaryEdge.class)
+        .anyMatch(
+            fse ->
+                errorConditions.keySet().contains(fse.getFunctionEntry().getFunctionName())
+                    && strengthenTypes.keySet().contains(fse.getFunctionEntry().getFunctionName())
+                    && strengthenTypes
+                        .get(fse.getFunctionEntry().getFunctionName())
+                        .equals(MessageType.ERROR_CONDITION));
+  }
+
+  public Set<StrengtheningInfo> getStrengtheningInfo(
+      PathFormulaManager pPathFormulaManager, PathFormula pPathFormula)
+      throws CPATransferException {
+    Set<StrengtheningInfo> strengtheningInfos = new HashSet<>();
+
+    for (String ec : errorConditions.keySet()) {
+      String strengtheningFunction = ec;
+      List<CFunctionSummaryEdge> cfses =
+          blockNode.getEdges().stream()
+              .filter(CFunctionSummaryEdge.class::isInstance)
+              .map(CFunctionSummaryEdge.class::cast)
+              .filter(cfse -> cfse.getFunctionEntry().getFunctionName().equals(ec))
+              .toList();
+
+      for (CFunctionSummaryEdge cfse : cfses) {
+        Map<String, Formula> paramMappings = new HashMap<>();
+        List<CExpression> paramExps =
+            cfse.getExpression().getFunctionCallExpression().getParameterExpressions();
+        ImmutableList<String> paramNames =
+            cfse.getFunctionEntry().getFunctionParameters().stream()
+                .map(CParameterDeclaration::getQualifiedName)
+                .collect(ImmutableList.toImmutableList());
+
+        if (paramExps.size() != paramNames.size()) {
+          throw new CPATransferException("Number of parameters does not match number of arguments");
+        } else {
+          for (int i = 0; i < paramNames.size(); i++) {
+            Formula paramExpFormula =
+                pPathFormulaManager.expressionToFormula(
+                    pPathFormula, (CIdExpression) paramExps.get(i), cfse);
+            paramMappings.put(paramNames.get(i), paramExpFormula);
+          }
+          strengtheningInfos.add(new StrengtheningInfo(paramMappings, strengtheningFunction));
+        }
+      }
+    }
+    return strengtheningInfos;
   }
 }

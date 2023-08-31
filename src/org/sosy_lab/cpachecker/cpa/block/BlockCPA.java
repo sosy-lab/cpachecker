@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
-import java.util.Optional;
+import java.util.HashMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -42,7 +42,12 @@ public class BlockCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new BlockState(
-        node, blockNode, AnalysisDirection.FORWARD, BlockStateType.INITIAL, Optional.empty());
+        node,
+        blockNode,
+        AnalysisDirection.FORWARD,
+        BlockStateType.INITIAL,
+        new HashMap<>(),
+        new HashMap<>());
   }
 
   public static BlockCPA create() {

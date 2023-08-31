@@ -105,7 +105,6 @@ public class BlockSummaryWorkerBuilder {
   public BlockSummaryWorkerBuilder addInferRootWorker(
       BlockNode pNode,
       InferOptions pOptions,
-      int numWorkers,
       int pExpectedStrengthens,
       String pFunctionEntry) {
     workerGenerators.add(
@@ -114,7 +113,6 @@ public class BlockSummaryWorkerBuilder {
                 nextId(pNode.getId()),
                 connection,
                 pOptions,
-                numWorkers,
                 pExpectedStrengthens,
                 pFunctionEntry));
     return this;

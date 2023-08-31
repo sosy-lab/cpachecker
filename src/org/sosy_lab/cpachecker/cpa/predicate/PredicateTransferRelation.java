@@ -14,7 +14,9 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNon
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -31,6 +33,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.StrengtheningInfo;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -417,7 +421,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private PredicateAbstractState strengthen(
-      PredicateAbstractState pElement, FormulaReportingState pFormulaReportingState) {
+      PredicateAbstractState pElement, FormulaReportingState pFormulaReportingState)
+      throws CPATransferException {
 
     BooleanFormula formula = pFormulaReportingState.getFormulaApproximation(fmgr);
 
@@ -431,7 +436,12 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
     // when using infer, the variables in uninstantiatedPredicates are not linked to the pathFormula
     // this function links them
-    PathFormula linkedFormula = PredicateOperatorUtil.linkedFormula(newPathFormula, fmgr);
+    Set<StrengtheningInfo> strengtheningInfos = new HashSet<>();
+    if (pFormulaReportingState instanceof BlockState bstate) {
+      strengtheningInfos = bstate.getStrengtheningInfo(pathFormulaManager, previousPathFormula);
+    }
+    PathFormula linkedFormula =
+        PredicateOperatorUtil.linkedFormula(newPathFormula, formula, fmgr, strengtheningInfos);
 
     return replacePathFormula(pElement, linkedFormula);
   }

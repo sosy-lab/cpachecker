@@ -201,7 +201,7 @@ public class DCPAAlgorithm {
                 abstractState ->
                     Objects.requireNonNull(
                             AbstractStates.extractStateByType(abstractState, BlockState.class))
-                        .setErrorCondition(errorCondition)));
+                        .setErrorCondition(errorCondition.get())));
 
     BlockAnalysisIntermediateResult result =
         DCPAAlgorithms.findReachableTargetStatesInBlock(

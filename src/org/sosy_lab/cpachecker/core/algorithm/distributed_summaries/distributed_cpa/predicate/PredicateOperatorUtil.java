@@ -9,14 +9,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.StrengtheningInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -28,7 +30,9 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class PredicateOperatorUtil {
 
-  public static final String INDEX_SEPARATOR = ".";
+  private static final String INDEX_SEPARATOR = ".";
+  private static final String FUNCTION_SEPARATOR = "::";
+  private static final String RETURN_VAR_NAME = "__retval__";
 
   private PredicateOperatorUtil() {}
 
@@ -173,70 +177,98 @@ public class PredicateOperatorUtil {
    * If no variables with INDEX_SEPARATOR (.) exist in the formula the formula remains unchanged
    */
   public static PathFormula linkedFormula(
-      PathFormula pPathFormula, FormulaManagerView pFormulaManagerView) {
-    SSAMap ssa = pPathFormula.getSsa();
-    BooleanFormula pathFormula = pPathFormula.getFormula();
+      PathFormula pNewFormula,
+      BooleanFormula pStrengtheningFormula,
+      FormulaManagerView pFormulaManagerView,
+      Set<StrengtheningInfo> pStrInfo) {
+
+    Map<String, Formula> strengtheningFormulaMap =
+        pFormulaManagerView.extractVariables(pStrengtheningFormula);
+
+    Map<String, Formula> newFormulaMap =
+        pFormulaManagerView.extractVariables(pNewFormula.getFormula());
+
     BooleanFormula formulaBuilder = pFormulaManagerView.getBooleanFormulaManager().makeTrue();
-    SSAMapBuilder ssaBuilder = ssa.builder();
-    ImmutableSet<String> newFormulaVars =
-        ImmutableSet.copyOf(pFormulaManagerView.extractVariables(pathFormula).keySet());
 
-    for (String var : ssa.allVariables()) {
-      int highestUninstantiatedIndex = highestUninstantiatedIndex(newFormulaVars, var);
-      if (highestUninstantiatedIndex == -1) {
-        // If the value never got updated in the strengthening formula then no need to add anything
-        continue;
+    for (StrengtheningInfo strengtheningInfo : pStrInfo) {
+
+      // First we need to link the parameters
+      Map<String, Formula> params = strengtheningInfo.params();
+      for (String qualifiedParamName : params.keySet()) {
+        if (strengtheningFormulaMap.containsKey(qualifiedParamName)) {
+          Formula lhs = strengtheningFormulaMap.get(qualifiedParamName);
+          Formula rhs = params.get(qualifiedParamName);
+          BooleanFormula madeEqual = pFormulaManagerView.makeEqual(lhs, rhs);
+          formulaBuilder = pFormulaManagerView.makeAnd(formulaBuilder, madeEqual);
+        }
       }
-      int newIndex = ssa.getIndex(var) + 1;
 
-      // x@max+1
-      BooleanFormula newLhs =
-          pFormulaManagerView.makeVariable(
-              pFormulaManagerView.getFormulaType(formulaBuilder), var, newIndex);
-
-      // x.uninstantiatedMax
-      BooleanFormula newRhs =
-          pFormulaManagerView.makeVariableWithoutSSAIndex(
-              pFormulaManagerView.getFormulaType(formulaBuilder),
-              var + INDEX_SEPARATOR + highestUninstantiatedIndex);
-
-      // x@max+1 = x.uninstatiatedMax
-      BooleanFormula newEqual = pFormulaManagerView.makeEqual(newLhs, newRhs);
-
-      // builder ^ x@max+1 = x.uninstantiatedMax
-      formulaBuilder = pFormulaManagerView.makeAnd(formulaBuilder, newEqual);
-      ssaBuilder = ssaBuilder.setIndex(var, ssa.getType(var), newIndex);
+      // Next link return values
+      // The strengthening function might have uninstantiated rturn values
+      // We need to link those to the instantiated return values in the new formula
+      String varName =
+          strengtheningInfo.strengtheningFunction() + FUNCTION_SEPARATOR + RETURN_VAR_NAME;
+      Optional<Formula> maybeRhs = highestUninstantiatedIndex(strengtheningFormulaMap, varName);
+      Optional<Formula> maybeLhs = declaredFormula(newFormulaMap, varName, pNewFormula.getSsa());
+      if (maybeRhs.isPresent() && maybeLhs.isPresent()) {
+        Formula rhs = maybeRhs.get();
+        Formula lhs = maybeLhs.get();
+        BooleanFormula madeEqual = pFormulaManagerView.makeEqual(lhs, rhs);
+        formulaBuilder = pFormulaManagerView.makeAnd(formulaBuilder, madeEqual);
+      }
     }
 
-    // original ^ builder
-    BooleanFormula finalFormula = pFormulaManagerView.makeAnd(pathFormula, formulaBuilder);
+    // newFormula ^ builder
+    BooleanFormula newBool = pNewFormula.getFormula();
+    BooleanFormula linkedFormula = pFormulaManagerView.makeAnd(newBool, formulaBuilder);
+    PathFormula finalFormula = pNewFormula.withFormula(linkedFormula);
 
-    SSAMap finalSsa = ssaBuilder.build();
-    PathFormula returnFormula =
-        pPathFormula
-            .withFormula(finalFormula)
-            .withContext(finalSsa, pPathFormula.getPointerTargetSet());
-    return returnFormula;
+    return finalFormula;
   }
 
   // utility method that searches for for the highest <idx> for a variable of the form
   // <varName>.<idx>
-  // If no variable of the form <varName>.<idx> exists, then it returns -1
-  private static int highestUninstantiatedIndex(Set<String> varsWithIndices, String varName) {
+  // The lowest idx will be of the form <varName>, so if nothing is found then we return pVarName
+  private static Optional<Formula> highestUninstantiatedIndex(
+      Map<String, Formula> pVarsWithIndices, String pVarName) {
     // Iterate through all variables and find the highest index for the variable
-    int highestIndex = -1;
-    for (String name : varsWithIndices) {
-      List<String> nameAndIndex = Splitter.on(INDEX_SEPARATOR).limit(2).splitToList(name);
-      name = nameAndIndex.get(0);
-      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || !varName.equals(name)) {
-        continue;
-      }
-      int index = Integer.parseInt(nameAndIndex.get(1));
-      if (index > highestIndex) {
-        highestIndex = index;
-      }
+    Splitter splitter = Splitter.on(INDEX_SEPARATOR).limit(2);
+    Optional<String> maybeKey =
+        pVarsWithIndices.keySet().stream()
+            .filter(
+                v -> {
+                  List<String> nameAndIndex = splitter.splitToList(v);
+                  return nameAndIndex.get(0).equals(pVarName) ? true : false;
+                })
+            .max(
+                Comparator.comparingInt(
+                    x -> {
+                      List<String> nameAndIndex = splitter.splitToList(x);
+                      if (nameAndIndex.size() < 2) {
+                        return 0;
+                      }
+                      return Integer.parseInt(nameAndIndex.get(1));
+                    }));
+    if (maybeKey.isPresent()) {
+      return Optional.of(pVarsWithIndices.get(maybeKey.get()));
+    } else {
+      return Optional.empty();
     }
-    return highestIndex;
+  }
+
+  private static Optional<Formula> declaredFormula(
+      Map<String, Formula> pVarsWithIndices, String pVarName, SSAMap pSSA) {
+    if (!pSSA.containsVariable(pVarName)) {
+      return Optional.empty();
+    }
+    int index = pSSA.getIndex(pVarName);
+    String varWithIndex = pVarName + FormulaManagerView.INDEX_SEPARATOR + index;
+
+    if (!pVarsWithIndices.containsKey(varWithIndex)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(pVarsWithIndices.get(varWithIndex));
   }
 
   public record SubstitutedBooleanFormula(BooleanFormula booleanFormula, SSAMap ssaMap) {}

@@ -93,7 +93,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     Set<CFAEdge> computePossibleSuccessors(CFANode pNode) {
-      return CFAUtils.leavingEdges(pNode).toSet();
+      return CFAUtils.allLeavingEdges(pNode).toSet();
     }
 
     @Override
@@ -104,7 +104,8 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
           AnalysisDirection.FORWARD,
           getBlockStateTypeOfLocation(
               AnalysisDirection.FORWARD, pBlockState.getBlockNode(), pCFAEdge.getSuccessor()),
-          pBlockState.getErrorCondition());
+          pBlockState.getErrorConditions(),
+          pBlockState.getStrengthenTypes());
     }
 
     @Override
@@ -133,7 +134,8 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
           AnalysisDirection.BACKWARD,
           getBlockStateTypeOfLocation(
               AnalysisDirection.BACKWARD, pBlockState.getBlockNode(), pCFAEdge.getPredecessor()),
-          pBlockState.getErrorCondition());
+          pBlockState.getErrorConditions(),
+          pBlockState.getStrengthenTypes());
     }
 
     @Override

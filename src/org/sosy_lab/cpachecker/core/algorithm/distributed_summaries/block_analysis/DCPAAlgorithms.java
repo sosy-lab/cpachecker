@@ -120,7 +120,7 @@ public class DCPAAlgorithms {
    * @throws CPAException wrapper exception
    * @throws InterruptedException thread interrupted
    */
-  static BlockAnalysisIntermediateResult findReachableTargetStatesInBlock(
+  public static BlockAnalysisIntermediateResult findReachableTargetStatesInBlock(
       Algorithm pAlgorithm,
       ReachedSet pReachedSet,
       BlockNode pBlockNode,

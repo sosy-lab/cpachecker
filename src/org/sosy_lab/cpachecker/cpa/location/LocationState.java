@@ -82,7 +82,12 @@ public class LocationState
       return leavingEdges(locationNode);
 
     } else {
-      return allLeavingEdges(locationNode).filter(LocationState::isNoFunctionCall);
+      return allLeavingEdges(locationNode)
+          .filter(
+              e ->
+                  LocationState.isNoFunctionCall(e)
+                      || (e instanceof FunctionCallEdge fce
+                          && fce.getSuccessor().getFunctionName().equals("reach_error")));
     }
   }
 

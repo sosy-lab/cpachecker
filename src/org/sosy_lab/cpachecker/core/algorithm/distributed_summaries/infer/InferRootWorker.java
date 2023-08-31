@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
@@ -24,11 +26,13 @@ public class InferRootWorker extends BlockSummaryWorker {
 
   private final BlockSummaryConnection connection;
   private boolean shutdown;
-  // private ImmutableSet.Builder<ImmutableSet<CFANode>> violationPathsBuilder;
-  // private Map<String, ImmutableSet<CFANode>> violationPaths;
   private final int expectedStrengthens;
   private int strengthenCounter;
   private final String functionEntry;
+
+  // A single strengthen can send multiple messages
+  // We only want to increment the strengthen counter once per strengthen
+  private Set<String> uniqueStrengthens;
 
   private static final String VIOLATION_PATHS = "violation_paths";
 
@@ -36,21 +40,16 @@ public class InferRootWorker extends BlockSummaryWorker {
       String pId,
       BlockSummaryConnection pConnection,
       InferOptions pOptions,
-      int pNumBlocks,
       int pExpectedStrengthens,
       String pFunctionEntry)
       throws InvalidConfigurationException {
     super("infer-root-worker-" + pId, new BlockSummaryAnalysisOptions(pOptions.getParentConfig()));
-    // violationPathsBuilder = ImmutableSet.builder();
     connection = pConnection;
     shutdown = false;
     functionEntry = pFunctionEntry;
-    if(pNumBlocks == 1) {
-      expectedStrengthens = 1;
-    } else {
-      expectedStrengthens = pExpectedStrengthens + 1;
-    }
+    expectedStrengthens = pExpectedStrengthens;
     strengthenCounter = 0;
+    uniqueStrengthens = new HashSet<>();
   }
 
   @Override
@@ -58,7 +57,7 @@ public class InferRootWorker extends BlockSummaryWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException, IOException {
 
-    if (!messageFromEntryFunction(pMessage)) {
+    if (!messageFromEntryFunction(pMessage) || !isUniqueStrengthn(pMessage)) {
       return ImmutableSet.of();
     }
 
@@ -69,23 +68,12 @@ public class InferRootWorker extends BlockSummaryWorker {
     } else {
       return switch (pMessage.getType()) {
         case ERROR_CONDITION -> {
-          // BlockSummaryMessagePayload payload = pMessage.getPayload();
-          // if (payload.containsKey(SerializeARGStateOperator.COUNTEREXAMPLE_PATH)) {
-          //   Object obj = payload.get(SerializeARGStateOperator.COUNTEREXAMPLE_PATH);
-          //   ImmutableSet<CFANode> path = (ImmutableSet<CFANode>) obj;
-          //   violationPathsBuilder.add(path);
-          //   violationPaths.put(pMessage.getUniqueBlockId(), path);
-          // } else {
-          //   violationPaths.put(pMessage.getUniqueBlockId(), ImmutableSet.of());
-          // }
           yield ImmutableSet.of(violationResult(ImmutableSet.of()));
         }
         case BLOCK_POSTCONDITION -> {
-          // violationPaths.remove(pMessage.getUniqueBlockId());
           yield ImmutableSet.of(proofResult());
         }
         default -> {
-          // TODO we shouldn't get here. Maybe throw an error
           shutdown = true;
           yield ImmutableSet.of();
         }
@@ -124,5 +112,13 @@ public class InferRootWorker extends BlockSummaryWorker {
     String messageFunction =
         (String) pMessage.getPayload().getOrDefault(InferDCPAAlgorithm.MESSAGE_FUNCTION, "");
     return messageFunction.equals(functionEntry);
+  }
+
+  private boolean isUniqueStrengthn(BlockSummaryMessage pMessage) {
+    String strengthenUUUID =
+        (String) pMessage.getPayload().get(InferDCPAAlgorithm.UNIQUE_STRENGTHEN_ID);
+    boolean isUnique = !uniqueStrengthens.contains(strengthenUUUID);
+    uniqueStrengthens.add(strengthenUUUID);
+    return isUnique;
   }
 }

@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferDeserializePredicateStateOperator;
 
 @Options(prefix = "cpa.predicate")
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -38,7 +39,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final SerializeOperator serialize;
 
   private final SerializePrecisionOperator serializePrecisionOperator;
-  private final DeserializePredicateStateOperator deserialize;
+  private final DeserializeOperator deserialize;
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ProceedOperator proceed;
@@ -67,7 +68,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     config.inject(this);
     predicateCPA = pPredicateCPA;
     serialize = initSerializer(pCFA, pDirection);
-    deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
+    deserialize = initDeserializer(pCFA, pNode);
 
     proceed = new AlwaysProceed();
     serializePrecisionOperator =
@@ -135,6 +136,13 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     return switch (serializer) {
       case DEFAULT -> new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
       case INFER -> new InferSerializePredicateStateOperator(predicateCPA, pCFA);
+    };
+  }
+
+  private DeserializeOperator initDeserializer(CFA pCFA, BlockNode pNode) {
+    return switch (serializer) {
+      case DEFAULT -> new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
+      case INFER -> new InferDeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     };
   }
 }
