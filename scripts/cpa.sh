@@ -162,7 +162,6 @@ exec "$JAVA" \
     -Xss${JAVA_STACK_SIZE} \
     -Xmx${JAVA_HEAP_SIZE} \
     $JAVA_ASSERTIONS \
-    -Djava.library.path=/Users/georgegranberry/sosy/cpachecker/lib \
     org.sosy_lab.cpachecker.cmdline.CPAMain \
     "${OPTIONS[@]}" \
     $CPACHECKER_ARGUMENTS
