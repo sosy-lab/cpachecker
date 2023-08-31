@@ -194,10 +194,11 @@ public class PredicateOperatorUtil {
 
       // First we need to link the parameters
       Map<String, Formula> params = strengtheningInfo.params();
-      for (String qualifiedParamName : params.keySet()) {
-        if (strengtheningFormulaMap.containsKey(qualifiedParamName)) {
-          Formula lhs = strengtheningFormulaMap.get(qualifiedParamName);
-          Formula rhs = params.get(qualifiedParamName);
+      // for (String qualifiedParamName : params.keySet()) {
+      for (Entry<String, Formula> entry : params.entrySet()) {
+        if (strengtheningFormulaMap.containsKey(entry.getKey())) {
+          Formula lhs = strengtheningFormulaMap.get(entry.getKey());
+          Formula rhs = entry.getValue();
           BooleanFormula madeEqual = pFormulaManagerView.makeEqual(lhs, rhs);
           formulaBuilder = pFormulaManagerView.makeAnd(formulaBuilder, madeEqual);
         }

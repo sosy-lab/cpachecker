@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.parallel_decomposition;
 
-
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
