@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -31,7 +30,7 @@ public class ParallelBlockNodeDecomposition implements BlockSummaryCFADecomposer
   @Override
   public ParallelBlockGraph decompose(CFA cfa) throws InterruptedException {
     FunctionEntryNode entry = cfa.getMainFunction();
-    Builder<FunctionEntryNode> functionBlocks = new ImmutableList.Builder<>();
+    ImmutableList.Builder<FunctionEntryNode> functionBlocks = new ImmutableList.Builder<>();
 
     for (FunctionEntryNode fn : cfa.getAllFunctions().values()) {
       boolean existsPath = CFAUtils.existsPath(entry, fn, CFAUtils::leavingEdges, shutdownNotifier);

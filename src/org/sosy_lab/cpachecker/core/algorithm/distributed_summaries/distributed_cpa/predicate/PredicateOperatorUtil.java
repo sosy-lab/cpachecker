@@ -238,7 +238,7 @@ public class PredicateOperatorUtil {
             .filter(
                 v -> {
                   List<String> nameAndIndex = splitter.splitToList(v);
-                  return nameAndIndex.get(0).equals(pVarName) ? true : false;
+                  return nameAndIndex.get(0).equals(pVarName);
                 })
             .max(
                 Comparator.comparingInt(
