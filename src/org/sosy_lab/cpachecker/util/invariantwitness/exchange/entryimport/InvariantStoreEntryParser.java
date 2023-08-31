@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 
 class InvariantStoreEntryParser {
@@ -110,15 +110,13 @@ class InvariantStoreEntryParser {
    * @return collection of invariants that might be represented by the given entry
    * @throws InterruptedException if this thread was interrputed during parsing
    */
-  Collection<InvariantWitness> parseStoreEntry(LoopInvariantEntry entry)
-      throws InterruptedException {
+  Collection<InvariantWitness> parseStoreEntry(InvariantEntry entry) throws InterruptedException {
     final LocationRecord location = entry.getLocation();
 
     // Currently we only do very minimal validation of the witnesses we read.
     // If the witness was produced for another file we can just ignore it.
     if (!lineOffsetsByFile.containsKey(location.getFileName())) {
-      logger.log(
-          Level.INFO, "Invariant", entry.getLoopInvariant(), "does not apply to any input file");
+      logger.log(Level.INFO, "Invariant", entry.getInvariant(), "does not apply to any input file");
       return ImmutableSet.of();
     }
 
@@ -136,7 +134,7 @@ class InvariantStoreEntryParser {
 
       ExpressionTree<AExpression> invariantFormula =
           CParserUtils.parseStatementsAsExpressionTree(
-              ImmutableSet.of(entry.getLoopInvariant().getString()),
+              ImmutableSet.of(entry.getInvariant().getString()),
               Optional.empty(),
               parser,
               scopeWithPredicate,

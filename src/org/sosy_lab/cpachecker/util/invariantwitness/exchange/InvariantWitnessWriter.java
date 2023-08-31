@@ -62,6 +62,8 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.WitnessToYamlWitnessConverter;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LocationInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
@@ -195,7 +197,7 @@ public final class InvariantWitnessWriter {
         Level.INFO, "Exporting %d invariant witnesses to %s", invariantWitnesses.size(), outFile);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
       for (InvariantWitness invariantWitness : invariantWitnesses) {
-        LoopInvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
+        InvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
         String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
         writer.write(entryYaml);
       }
@@ -360,12 +362,12 @@ public final class InvariantWitnessWriter {
    *     definition of the invariant-witness format) invalid.
    */
   public void exportInvariantWitness(InvariantWitness invariantWitness) {
-    LoopInvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
+    InvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
     Path outFile = outDir.resolve(entry.getMetadata().getUuid() + ".invariantwitness.yaml");
     exportInvariantWitnesses(ImmutableList.of(invariantWitness), outFile);
   }
 
-  private LoopInvariantEntry invariantWitnessToStoreEnty(InvariantWitness invariantWitness) {
+  private InvariantEntry invariantWitnessToStoreEnty(InvariantWitness invariantWitness) {
     final MetadataRecord metadata = createMetadataRecord();
 
     final String fileName = invariantWitness.getLocation().getFileName().toString();
@@ -384,7 +386,12 @@ public final class InvariantWitnessWriter {
     InformationRecord invariant =
         new InformationRecord(invariantWitness.getFormula().toString(), "assertion", "C");
 
-    LoopInvariantEntry entry = new LoopInvariantEntry(metadata, location, invariant);
+    InvariantEntry entry;
+    if (invariantWitness.getNode().isLoopStart()) {
+      entry = new LoopInvariantEntry(metadata, location, invariant);
+    } else {
+      entry = new LocationInvariantEntry(metadata, location, invariant);
+    }
 
     return entry;
   }

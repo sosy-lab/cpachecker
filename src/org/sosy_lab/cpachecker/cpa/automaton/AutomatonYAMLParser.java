@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
@@ -229,11 +229,11 @@ public class AutomatonYAMLParser {
     Map<Integer, Set<Pair<String, String>>> lineToSeenInvariants = new HashMap<>();
 
     for (AbstractEntry entry : entries) {
-      if (entry instanceof LoopInvariantEntry loopInvariantEntry) {
+      if (entry instanceof InvariantEntry invariantEntry) {
         Optional<String> resultFunction =
-            Optional.of(loopInvariantEntry.getLocation().getFunction());
-        String invariantString = loopInvariantEntry.getLoopInvariant().getString();
-        Integer line = loopInvariantEntry.getLocation().getLine();
+            Optional.of(invariantEntry.getLocation().getFunction());
+        String invariantString = invariantEntry.getInvariant().getString();
+        Integer line = invariantEntry.getLocation().getLine();
 
         if (!lineToSeenInvariants.containsKey(line)) {
           lineToSeenInvariants.put(line, new HashSet<>());
@@ -251,7 +251,7 @@ public class AutomatonYAMLParser {
         LineMatcher lineMatcher = new LineMatcher(Optional.empty(), line, line);
 
         Deque<String> callStack = new ArrayDeque<>();
-        callStack.push(loopInvariantEntry.getLocation().getFunction());
+        callStack.push(invariantEntry.getLocation().getFunction());
 
         Scope candidateScope = determineScope(resultFunction, callStack, lineMatcher, scope);
 
@@ -272,7 +272,7 @@ public class AutomatonYAMLParser {
                     new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
                 .withCandidateInvariants(invariant)
                 .build());
-        automatonName = loopInvariantEntry.getMetadata().getUuid();
+        automatonName = invariantEntry.getMetadata().getUuid();
       } else {
         throw new WitnessParseException(
             "The witness contained other statements than Loop Invariants!");

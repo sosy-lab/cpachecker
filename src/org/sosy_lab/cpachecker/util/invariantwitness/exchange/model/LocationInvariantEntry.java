@@ -17,15 +17,15 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 
 @Immutable
 @JsonPropertyOrder({"entry_type", "metadata", "location", "invariant"})
-public class LoopInvariantEntry extends InvariantEntry {
+public class LocationInvariantEntry extends InvariantEntry {
 
-  private static final String LOOP_INVARIANT_ENTRY_IDENTIFIER = "loop_invariant";
+  private static final String LOCATION_INVARIANT_ENTRY_IDENTIFIER = "location_invariant";
 
-  public LoopInvariantEntry(
+  public LocationInvariantEntry(
       @JsonProperty("metadata") MetadataRecord metadata,
       @JsonProperty("location") LocationRecord location,
       @JsonProperty("invariant") InformationRecord loopInvariant) {
-    super(metadata, location, loopInvariant, LOOP_INVARIANT_ENTRY_IDENTIFIER);
+    super(metadata, location, loopInvariant, LOCATION_INVARIANT_ENTRY_IDENTIFIER);
   }
 
   @Override
