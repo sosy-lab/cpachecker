@@ -510,6 +510,30 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                                  DualInterpolationSequence pDualSequence)
       throws InterruptedException, SolverException {
     boolean counterexampleIsSpurious;
+
+    if (globalCheckAsBMC) {
+      BooleanFormula unrolledConcretePaths =
+          bfmgr.and(new ImmutableList.Builder<BooleanFormula>()
+              .add(pFormulas.getPrefixFormula())
+              .addAll(pFormulas.getLoopFormulas().subList(0, pDualSequence.getSize()))
+              .add(pFormulas.getAssertionFormula())
+              .build());
+      stats.assertionsCheck.start();
+
+      try {
+        counterexampleIsSpurious =
+            solver.isUnsat(unrolledConcretePaths);
+      } finally {
+        stats.assertionsCheck.stop();
+      }
+      if (counterexampleIsSpurious) {
+        return pDualSequence.getSize() + 1;
+      }
+      else {
+        return -1;
+      }
+    }
+
     for (int i = 2; i <= pDualSequence.getSize() + 1; i++) {
       BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - i + 1);
 
