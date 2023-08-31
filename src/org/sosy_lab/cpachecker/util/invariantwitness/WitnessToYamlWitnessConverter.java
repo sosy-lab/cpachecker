@@ -13,6 +13,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -54,6 +56,7 @@ public class WitnessToYamlWitnessConverter {
         // TODO: we might want to export regular invariants as location invariant at some point.
       }
 
+      Set<FileLocation> exportedInvariantsAtFilelocation = new HashSet<>();
       Collection<Edge> edges = pWitness.getLeavingEdges().get(invexpstate);
       for (Edge e : edges) {
         Collection<CFAEdge> cfaEdges = pWitness.getCFAEdgeFor(e);
@@ -71,6 +74,14 @@ public class WitnessToYamlWitnessConverter {
         FileLocation loc =
             new FileLocation(
                 Path.of(pWitness.getOriginFile()), startoffset, 0, startline, startline);
+
+        // See if we already exported the invariant for this location, else export it
+        if (exportedInvariantsAtFilelocation.contains(loc)) {
+          continue;
+        } else {
+          exportedInvariantsAtFilelocation.add(loc);
+        }
+
         builder.add(new InvariantWitness(invariantExpression, loc, firstNode));
       }
     }
