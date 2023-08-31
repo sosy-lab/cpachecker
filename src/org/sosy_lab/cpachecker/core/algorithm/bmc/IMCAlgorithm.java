@@ -431,6 +431,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle Impact-like covering for the ISMC fixed-point check")
   private boolean impactLikeCovering = false;
 
+  @Option(
+      secure = true,
+      description =
+          "toggle whether to compute fixed-point backward by swapping initial-state (prefix) and"
+              + " assertion (target) formulas")
+  private boolean backwardAnalysis = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -494,7 +501,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(
           Level.WARNING,
           "Cannot assert targets at every iteration with current strategy for computing fixed"
-              + " point.");
+              + " point. Setting imc.assertTargetsAtEveryIteration to false.");
+      assertTargetsAtEveryIteration = false;
+    }
+    if (assertTargetsAtEveryIteration && backwardAnalysis) {
+      logger.log(
+          Level.WARNING,
+          "Cannot assert targets at every iteration when performing backward analysis. Setting"
+              + " imc.assertTargetsAtEveryIteration to false.");
       assertTargetsAtEveryIteration = false;
     }
     if (fixedPointComputeStrategy.isIMCEnabled()) {
@@ -535,7 +549,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     adjustConfigsAccordingToCFA();
     // Initialize variables for IMC/ISMC
     PartitionedFormulas partitionedFormulas =
-        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
+        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration, backwardAnalysis);
     // Store the reachability vector for ISMC and/or prefix formula
     // approximation for IMC
     List<BooleanFormula> reachVector = new ArrayList<>();
@@ -754,7 +768,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (hasReachedFixedPoint) {
         InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
         InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-            pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
+            pReachedSet,
+            backwardAnalysis ? bfmgr.not(finalFixedPoint) : finalFixedPoint,
+            predAbsMgr,
+            pfmgr);
       } else {
         logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       }
