@@ -227,7 +227,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
 
       // BMC
-      if (fallBack) {
+      if (fallBack || getCurrentMaxLoopIterations() <= 1) {
         try (ProverEnvironment bmcProver =
             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           BooleanFormula targetFormula =
