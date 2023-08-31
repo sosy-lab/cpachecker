@@ -22,9 +22,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class WitnessToYamlWitnessConverter {
   private final LogManager logger;
@@ -45,23 +47,46 @@ public class WitnessToYamlWitnessConverter {
     for (String invexpstate : pWitness.getInvariantExportStates()) {
       ExpressionTree<Object> invariantExpression = pWitness.getStateInvariant(invexpstate);
 
+      // True invariants do not add any information in order to proof the program
+      if (invariantExpression.equals(ExpressionTrees.getTrue())) {
+        continue;
+      }
+
       boolean isLoopHead =
           pWitness.getEnteringEdges().get(invexpstate).stream()
               .anyMatch(
                   x ->
                       "true".equalsIgnoreCase(x.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)));
 
-      if (!isLoopHead && !writeLocationInvariants) {
+      Collection<Edge> edges;
+      if (!isLoopHead && writeLocationInvariants) {
+        // For Location invariants, we need to consider certain
+        edges = pWitness.getEnteringEdges().get(invexpstate);
+      } else if (!isLoopHead && !writeLocationInvariants) {
         continue;
-        // TODO: we might want to export regular invariants as location invariant at some point.
+      } else {
+        edges = pWitness.getLeavingEdges().get(invexpstate);
       }
 
       Set<FileLocation> exportedInvariantsAtFilelocation = new HashSet<>();
-      Collection<Edge> edges = pWitness.getEnteringEdges().get(invexpstate);
       for (Edge e : edges) {
         Collection<CFAEdge> cfaEdges = pWitness.getCFAEdgeFor(e);
-        ImmutableSet<CFANode> cfaNodes =
-            cfaEdges.stream().map(CFAEdge::getSuccessor).collect(ImmutableSet.toImmutableSet());
+        ImmutableSet<CFANode> cfaNodes;
+        if (isLoopHead) {
+          // There is a blank edge between the loop start node and the actual node in the CFA, which
+          // is different to the witness automaton which does not consider these.
+          // This makes it such that CFANode is the loop start node in the CFA
+          cfaNodes =
+              cfaEdges.stream()
+                  .map(CFAEdge::getPredecessor)
+                  .map(CFAUtils::enteringEdges)
+                  .flatMap(x -> x.stream())
+                  .map(CFAEdge::getPredecessor)
+                  .collect(ImmutableSet.toImmutableSet());
+        } else {
+          cfaNodes =
+              cfaEdges.stream().map(CFAEdge::getSuccessor).collect(ImmutableSet.toImmutableSet());
+        }
         if (cfaNodes.size() != 1) {
           logger.logf(
               Level.WARNING,
@@ -69,7 +94,15 @@ public class WitnessToYamlWitnessConverter {
               cfaNodes.size());
         }
         CFANode firstNode = cfaNodes.asList().get(0);
+
         int startline = Integer.parseInt(e.getLabel().getMapping().get(KeyDef.STARTLINE));
+        if (isLoopHead) {
+          // The witness removes the actual loop start node opting for the edge to already contain
+          // the
+          // next actual statement being executed and not the loop start node
+          startline -= 1;
+        }
+
         int startoffset = Integer.parseInt(e.getLabel().getMapping().get(KeyDef.OFFSET));
         FileLocation loc =
             new FileLocation(
