@@ -247,23 +247,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
 
-      // Forward-condition check
-      if (checkForwardConditions) {
-        stats.assertionsCheck.start();
-        final boolean isStopStateUnreachable;
-        try {
-          isStopStateUnreachable =
-              solver.isUnsat(
-                  InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
-        } finally {
-          stats.assertionsCheck.stop();
-        }
-        if (isStopStateUnreachable) {
-          logger.log(Level.FINE, "The program cannot be further unrolled");
-          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-      }
       shutdownNotifier.shutdownIfNecessary();
 
       if (getCurrentMaxLoopIterations() > 1) {
@@ -300,7 +283,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           // current number of steps, so we can perform interpolation.
           List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas, dualSequence);
           if (itpSequence.isEmpty()) {
-            InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+            BooleanFormula targetFormula =
+                InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+            ProverEnvironment bmcProver =
+                solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+            bmcProver.push(targetFormula);
+            bmcProver.isUnsat();
+            analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           }
           updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, partitionedFormulas);
@@ -313,6 +302,25 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
+
+      // Forward-condition check
+      if (checkForwardConditions) {
+        stats.assertionsCheck.start();
+        final boolean isStopStateUnreachable;
+        try {
+          isStopStateUnreachable =
+              solver.isUnsat(
+                  InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+        } finally {
+          stats.assertionsCheck.stop();
+        }
+        if (isStopStateUnreachable) {
+          logger.log(Level.FINE, "The program cannot be further unrolled");
+          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
+      }
+
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
     return null;
@@ -562,8 +570,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
-            .add(pFormulas.getPrefixFormula())
-            .addAll(pFormulas.getLoopFormulas().subList(0, indexOfGlobalViolation - 1))
+            .add(bfmgr.and(pFormulas.getPrefixFormula()), pFormulas.getLoopFormulas().get(0))
+            .addAll(pFormulas.getLoopFormulas().subList(1, indexOfGlobalViolation - 1))
             .add(backwardFormula)
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
