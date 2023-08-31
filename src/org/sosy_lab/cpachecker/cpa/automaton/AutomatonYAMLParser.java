@@ -134,8 +134,7 @@ public class AutomatonYAMLParser {
 
   public static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {
     if (entries.isEmpty()) {
-      return Optional.empty();
-
+      return Optional.of(WitnessType.CORRECTNESS_WITNESS);
     } else if (FluentIterable.from(entries).allMatch(e -> e instanceof ViolationSequenceEntry)) {
       return Optional.of(WitnessType.VIOLATION_WITNESS);
     } else if (FluentIterable.from(entries).allMatch(e -> !(e instanceof ViolationSequenceEntry))) {
