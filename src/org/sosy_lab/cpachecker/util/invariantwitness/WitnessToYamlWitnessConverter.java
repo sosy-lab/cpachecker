@@ -57,7 +57,7 @@ public class WitnessToYamlWitnessConverter {
       }
 
       Set<FileLocation> exportedInvariantsAtFilelocation = new HashSet<>();
-      Collection<Edge> edges = pWitness.getLeavingEdges().get(invexpstate);
+      Collection<Edge> edges = pWitness.getEnteringEdges().get(invexpstate);
       for (Edge e : edges) {
         Collection<CFAEdge> cfaEdges = pWitness.getCFAEdgeFor(e);
         ImmutableSet<CFANode> cfaNodes =
