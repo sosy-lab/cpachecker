@@ -294,11 +294,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           }
           updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, partitionedFormulas);
-          iterativeLocalStrengthening(dualSequence, partitionedFormulas, itpSequence.size()-2);
+          iterativeLocalStrengthening(dualSequence, partitionedFormulas, itpSequence.size()-1);
 
           dualSequence.setLocallySafe();
         }
-        if (checkFixedPoint(dualSequence) || solver.isUnsat(partitionedFormulas.getAssertionFormula())) {
+        if (checkFixedPoint(dualSequence)
+            || solver.isUnsat(partitionedFormulas.getAssertionFormula())) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
@@ -342,11 +343,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     for (int i = 1; i < pDualSequence.getSize(); i++) {
-      // SSA map went wrong and we computed wrongly backward sequence
-      //if (solver.isUnsat(pDualSequence.getBackwardReachVector().get(i))) {
-      //  isDAREnabled= false;
-      //  return false;
-      //}
       BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(i);
       if (solver.implies(backwardFormula, backwardImage)) {
         finalFixedPoint = backwardImage;
@@ -571,7 +567,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
-            .add(bfmgr.and(pFormulas.getPrefixFormula()), pFormulas.getLoopFormulas().get(0))
+            .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
             .addAll(pFormulas.getLoopFormulas().subList(1, indexOfGlobalViolation - 1))
             .add(backwardFormula)
             .build();
@@ -595,7 +591,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     while ((i < reachVector.size()) && (i < itpSequence.size())) {
       BooleanFormula image = reachVector.get(i);
       reachVector.set(i, bfmgr.and(image,
-          fmgr.instantiate(fmgr.uninstantiate(itpSequence.get(i)), prefixSsaMap)));
+          fmgr.instantiate(fmgr.uninstantiate(itpSequence.get(i-1)), prefixSsaMap)));
       ++i;
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
