@@ -12,23 +12,20 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
 /**
- * Distributed analyses use independent blocks for analyzing simultaneously. This kind of 
- * target means that an error condition was satisfiable while using infer analysis
+ * Distributed analyses use independent blocks for analyzing simultaneously. This kind of target
+ * means that an error condition was satisfiable while using infer analysis
  */
 public class InferErrorConditionTargetInformation implements TargetInformation {
 
-
   public InferErrorConditionTargetInformation() {}
 
-  public BlockSummaryMessagePayload getErrorConditionPayload(){
+  public BlockSummaryMessagePayload getErrorConditionPayload() {
     BlockSummaryMessagePayload.Builder payloadBuilder = BlockSummaryMessagePayload.builder();
     return payloadBuilder.buildPayload();
   }
-
 
   @Override
   public String toString() {
     return "Reached an error condition while using infer analysis";
   }
 }
-

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -117,10 +116,7 @@ public class InferAnalysis extends BlockSummaryAnalysis
                   specification)
               .createAdditionalConnections(1)
               .addInferRootWorker(
-                  blockGraph.getRoot(),
-                  options,
-                  expectedRootStrengthens,
-                  entryFunctionName);
+                  blockGraph.getRoot(), options, expectedRootStrengthens, entryFunctionName);
       for (BlockNode distinctNode : blocks) {
         averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
         builder = builder.addInferWorker(distinctNode, options);

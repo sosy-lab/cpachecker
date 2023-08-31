@@ -24,12 +24,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferDeserializePredicateStateOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferSerializePredicateStateOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferDeserializePredicateStateOperator;
 
 @Options(prefix = "cpa.predicate")
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
