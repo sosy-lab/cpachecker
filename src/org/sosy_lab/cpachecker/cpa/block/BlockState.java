@@ -82,16 +82,18 @@ public class BlockState
               : pTargetNode.getFirst();
     }
     blockNode = pTargetNode;
-    errorConditions = pErrorConditions;
+    errorConditions = new HashMap<>(pErrorConditions);
     strengthenTypes = pStrengthenTypes;
   }
 
   public void setErrorConditions(Map<String, AbstractState> pErrorConditions) {
-    errorConditions = pErrorConditions;
+    errorConditions.clear();
+    errorConditions.putAll(pErrorConditions);
   }
 
   public void setErrorCondition(AbstractState pErrorCondition) {
-    errorConditions = Map.of("single_element_map", pErrorCondition);
+    errorConditions.clear();
+    errorConditions.put("single_element_map", pErrorCondition);
   }
 
   public void addErrorCondition(String pFunctionName, AbstractState pErrorCondition) {

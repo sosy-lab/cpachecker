@@ -57,7 +57,6 @@ public class InferAnalysis extends BlockSummaryAnalysis
   private final Specification specification;
   private final ShutdownManager shutdownManager;
   private final InferOptions options;
-  private final Configuration parentConfig;
   private final BlockSummaryAnalysisOptions blockSummaryOptions;
 
   private final Map<String, Object> stats;
@@ -86,7 +85,6 @@ public class InferAnalysis extends BlockSummaryAnalysis
     specification = pSpecification;
     shutdownManager = pShutdownManager;
     options = new InferOptions(pConfig);
-    parentConfig = pConfig;
     blockSummaryOptions = new BlockSummaryAnalysisOptions(pConfig);
     stats = new HashMap<>();
   }

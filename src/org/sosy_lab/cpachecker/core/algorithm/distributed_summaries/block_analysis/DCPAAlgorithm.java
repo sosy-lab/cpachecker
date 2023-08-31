@@ -293,8 +293,7 @@ public class DCPAAlgorithm {
         true);
   }
 
-  protected Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations)
-      throws InterruptedException {
+  protected Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations) {
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     for (ARGState targetState : violations) {
       Optional<CFANode> targetNode = DCPAAlgorithms.abstractStateToLocation(targetState);

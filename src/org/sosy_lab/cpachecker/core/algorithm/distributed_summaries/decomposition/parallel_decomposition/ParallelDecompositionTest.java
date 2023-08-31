@@ -48,7 +48,7 @@ public class ParallelDecompositionTest {
   }
 
   @Test
-  public void testDecomposeMulti()
+  public void testDecomposeMultiNotConnected()
       throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
         TestDataTools.configurationForTest().setOption("language", "C").build();
@@ -60,7 +60,7 @@ public class ParallelDecompositionTest {
     final ParallelBlockNodeDecomposition decomposer =
         new ParallelBlockNodeDecomposition(ShutdownNotifier.createDummy());
     final BlockGraph decomposed = decomposer.decompose(created);
-    assertThat(decomposed.getNodes()).hasSize(3);
+    assertThat(decomposed.getNodes()).hasSize(1);
     for (BlockNode n : decomposed.getNodes()) {
       n.getEdges()
           .forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));

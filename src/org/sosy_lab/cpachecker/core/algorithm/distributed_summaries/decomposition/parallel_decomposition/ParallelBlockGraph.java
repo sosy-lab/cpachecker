@@ -14,6 +14,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -22,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -42,13 +42,12 @@ public class ParallelBlockGraph extends BlockGraph {
   public ParallelBlockGraph(
       BlockNode pRoot, ImmutableSet<BlockNode> pNodes, String pEntryFunction) {
     super(pRoot, pNodes);
-    functionToBlock =
-        pNodes.stream().collect(Collectors.toMap(n -> n.getFirst().getFunctionName(), n -> n));
+    functionToBlock = Maps.uniqueIndex(pNodes, n -> n.getFirst().getFunctionName());
     Optional<BlockNode> maybeEntryBlock =
         pNodes.stream()
             .filter(n -> n.getFirst().getFunctionName().equals(pEntryFunction))
             .findFirst();
-    entryBlock = maybeEntryBlock.isPresent() ? maybeEntryBlock.get() : pRoot;
+    entryBlock = maybeEntryBlock.isPresent() ? maybeEntryBlock.orElseThrow() : pRoot;
     uniquePaths = uniquePaths(pNodes);
   }
 
