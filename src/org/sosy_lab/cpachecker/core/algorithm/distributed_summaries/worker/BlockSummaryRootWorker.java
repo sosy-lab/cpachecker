@@ -47,9 +47,9 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private final AbstractState topState;
   private boolean shutdown;
   private final boolean defaultRootWorker;
-  public Set<String> collectedBlockSummaryErrorMessages = new HashSet<>();
-  private int BlockCount = 0;
-  public Set<String> MessageID = new HashSet<>();
+  private final Set<String> collectedBlockSummaryErrorMessages = new HashSet<>();
+  private int blockCount = 0;
+  private final Set<String> messageID = new HashSet<>();
 
   BlockSummaryRootWorker(
       String pId,
@@ -80,7 +80,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
             pShutdownManager.getNotifier());
     connection = pConnection;
     defaultRootWorker = !Infer;
-    BlockCount = pNumberWorkers;
+    blockCount = pNumberWorkers;
     shutdown = false;
     root = pNode;
     AnalysisComponents parts =
@@ -106,10 +106,13 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
         BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(currentState);
         if (!defaultRootWorker) {
-          MessageID.add(pMessage.getBlockId());
-          collectedBlockSummaryErrorMessages.add(
-              ((BlockSummaryErrorConditionMessage) pMessage).getViolations());
-          if (BlockCount + 1 == MessageID.size()) {
+          messageID.add(pMessage.getBlockId());
+          BlockSummaryErrorConditionMessage m = (BlockSummaryErrorConditionMessage) pMessage;
+          String violations = m.getViolations();
+          if (m.isFirst()) {
+            collectedBlockSummaryErrorMessages.add(violations);
+          }
+          if (blockCount + 1 == messageID.size()) {
             yield ImmutableSet.of(
                 BlockSummaryMessage.newResultMessage(
                     root.getId(),
@@ -129,8 +132,8 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       }
       case FOUND_RESULT, EXCEPTION -> {
         shutdown = true;
-        MessageID.add(pMessage.getBlockId());
-        if (BlockCount + 1 == MessageID.size() && !collectedBlockSummaryErrorMessages.isEmpty()) {
+        messageID.add(pMessage.getBlockId());
+        if (blockCount + 1 == messageID.size() && !collectedBlockSummaryErrorMessages.isEmpty()) {
           yield ImmutableSet.of(
               BlockSummaryMessage.newResultMessage(
                   root.getId(),
@@ -141,8 +144,8 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         yield ImmutableSet.of();
       }
       case STATISTICS, ERROR_CONDITION_UNREACHABLE, BLOCK_POSTCONDITION -> {
-        MessageID.add(pMessage.getBlockId());
-        if (BlockCount + 1 == MessageID.size() && !collectedBlockSummaryErrorMessages.isEmpty()) {
+        messageID.add(pMessage.getBlockId());
+        if (blockCount + 1 == messageID.size() && !collectedBlockSummaryErrorMessages.isEmpty()) {
           yield ImmutableSet.of(
               BlockSummaryMessage.newResultMessage(
                   root.getId(),
