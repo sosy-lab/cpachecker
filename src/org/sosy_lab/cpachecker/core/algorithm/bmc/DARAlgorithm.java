@@ -92,6 +92,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle checking whether the safety property is inductive")
   private boolean checkPropertyInductiveness = false;
 
+  @Option(secure = true, description = "toggle turning off global phase an perform BMC instead")
+  private boolean globalCheckAsBMC = true;
+
   @Option(secure = true, description = "toggle asserting targets at every iteration for DAR")
   private boolean assertTargetsAtEveryIteration = false;
 
@@ -557,12 +560,18 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .getBackwardReachVector()
         .get(pDualSequence.getSize() - indexOfGlobalViolation + 1);
 
-    if (pDualSequence.getSize() - indexOfGlobalViolation + 1 > 0) {
-      backwardFormula =
-          fmgr.instantiate(
-              fmgr.uninstantiate(backwardFormula), pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation - 2));
-    } else {
+    if (globalCheckAsBMC) {
       backwardFormula = pFormulas.getAssertionFormula();
+      indexOfGlobalViolation = pDualSequence.getSize() + 1;
+    } else {
+      if (pDualSequence.getSize() - indexOfGlobalViolation + 1 > 0) {
+        backwardFormula =
+            fmgr.instantiate(
+                fmgr.uninstantiate(backwardFormula),
+                pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation - 2));
+      } else {
+        backwardFormula = pFormulas.getAssertionFormula();
+      }
     }
 
     ImmutableList<BooleanFormula> formulasToPush =
