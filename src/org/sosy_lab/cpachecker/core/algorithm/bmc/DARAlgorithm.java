@@ -187,6 +187,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(
             Level.WARNING, "Disable interpolation as loop structure could not be determined");
         isDAREnabled = false;
+        fallBack = true;
       }
       if (checkPropertyInductiveness) {
         logger.log(
