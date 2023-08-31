@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -38,6 +40,8 @@ public class InferWorker extends BlockSummaryWorker {
   private boolean shutdown;
 
   private final BlockSummaryConnection connection;
+
+  private List<String> blockPath;
 
   /**
    * {@link InferWorker}s trigger CEGAR refinement using forward and backward analyses to find a
@@ -74,6 +78,8 @@ public class InferWorker extends BlockSummaryWorker {
     dcpaAlgorithm =
         new InferDCPAAlgorithm(
             getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
+
+    blockPath = new ArrayList<>();
   }
 
   /*
