@@ -450,6 +450,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final InterpolationManager itpMgr;
   private final CFA cfa;
 
+  /**
+   * A Boolean variable to track whether the initial-state (prefix) formula approximated by
+   * interpolants is precise enough, i.e. whether prefix &hArr; itp-approx.
+   */
+  private boolean isPrefixItpPrecise;
+
   private BooleanFormula finalFixedPoint;
   private LoopBoundManager loopBoundMgr;
 
@@ -493,6 +499,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         new InterpolationManager(
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
+    isPrefixItpPrecise = false;
     finalFixedPoint = bfmgr.makeFalse();
     loopBoundMgr = new LoopBoundManager(pConfig);
 
@@ -581,6 +588,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             && reachFixedPoint(pReachedSet, partitionedFormulas, reachVector)) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
+      }
+      if (!isPrefixItpPrecise && !reachVector.isEmpty()) {
+        isPrefixItpPrecise =
+            solver.implies(reachVector.get(0), partitionedFormulas.getPrefixFormula());
       }
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
       loopBoundMgr.incrementLoopBoundsToCheck();
@@ -833,7 +844,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           "]");
       logger.log(Level.ALL, "The current image is", accumImage);
       assert interpolants.orElseThrow().size() == 2;
-      if (!fixedPointComputeStrategy.isISMCEnabled()) {
+      if (!fixedPointComputeStrategy.isISMCEnabled() && !isPrefixItpPrecise) {
         final BooleanFormula prefixApproximation =
             bfmgr.and(reachVector.get(0), fmgr.uninstantiate(interpolants.orElseThrow().get(0)));
         reachVector.set(0, prefixApproximation);
@@ -912,7 +923,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       reachVector.add(bfmgr.makeTrue());
     }
     assert reachVector.size() == itpSequence.size();
-    for (int i = 0; i < reachVector.size(); ++i) {
+    final int startIdx = isPrefixItpPrecise ? 1 : 0;
+    for (int i = startIdx; i < reachVector.size(); ++i) {
       final BooleanFormula image = reachVector.get(i);
       final BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
       reachVector.set(i, bfmgr.and(image, itp));
