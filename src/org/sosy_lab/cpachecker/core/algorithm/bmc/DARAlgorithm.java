@@ -497,17 +497,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws InterruptedException, SolverException, CPAException {
     boolean counterexampleIsSpurious;
 
-    for (int i = 2; i <= pDualSequence.getSize() + 1; i++) {
+    for (int i = 2; i <= pDualSequence.getSize(); i++) {
       BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - i + 1);
-
-      if (pDualSequence.getSize() - i + 1 > 0) {
-        backwardFormula =
-            fmgr.instantiate(
-                fmgr.uninstantiate(backwardFormula),
-                pFormulas.getLoopFormulasSsaMap().get(i - 2));
-      } else {
-        backwardFormula = pFormulas.getAssertionFormula();
-      }
+      backwardFormula =
+          fmgr.instantiate(
+              fmgr.uninstantiate(backwardFormula),
+              pFormulas.getLoopFormulasSsaMap().get(i - 2));
 
       BooleanFormula unrolledConcretePaths =
           bfmgr.and(new ImmutableList.Builder<BooleanFormula>()
@@ -516,14 +511,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               .add(backwardFormula)
               .build());
       stats.assertionsCheck.start();
-
-      try (ProverEnvironment bmcProver =
-               solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        bmcProver.push(unrolledConcretePaths);
-        counterexampleIsSpurious = bmcProver.isUnsat();
-        if (!counterexampleIsSpurious && i == pDualSequence.getSize() + 1) {
-          analyzeCounterexample(unrolledConcretePaths, pReachedSet, bmcProver);
-        }
+      try {
+        counterexampleIsSpurious = solver.isUnsat(unrolledConcretePaths);
       } finally {
         stats.assertionsCheck.stop();
       }
@@ -531,6 +520,24 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return i;
       }
     }
+    //BMC check in the end, for B_0
+    BooleanFormula unrolledConcretePaths =
+        bfmgr.and(new ImmutableList.Builder<BooleanFormula>()
+            .add(pFormulas.getPrefixFormula())
+            .addAll(pFormulas.getLoopFormulas().subList(0, pDualSequence.getSize()))
+            .add(pFormulas.getAssertionFormula())
+            .build());
+    stats.assertionsCheck.start();
+    try (ProverEnvironment bmcProver =
+             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      bmcProver.push(unrolledConcretePaths);
+      if (!bmcProver.isUnsat()) {
+        analyzeCounterexample(unrolledConcretePaths, pReachedSet, bmcProver);
+      }
+    } finally {
+      stats.assertionsCheck.stop();
+    }
+
     return -1;
   }
 
