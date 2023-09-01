@@ -27,12 +27,4 @@ public class LoopInvariantEntry extends InvariantEntry {
       @JsonProperty("invariant") InformationRecord loopInvariant) {
     super(metadata, location, loopInvariant, LOOP_INVARIANT_ENTRY_IDENTIFIER);
   }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    return super.equals(obj);
-  }
 }
