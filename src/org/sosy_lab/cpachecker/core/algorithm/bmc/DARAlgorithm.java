@@ -531,13 +531,16 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try (ProverEnvironment bmcProver =
              solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       bmcProver.push(unrolledConcretePaths);
-      if (!bmcProver.isUnsat()) {
+      counterexampleIsSpurious = bmcProver.isUnsat();
+      if (!counterexampleIsSpurious) {
         analyzeCounterexample(unrolledConcretePaths, pReachedSet, bmcProver);
       }
     } finally {
       stats.assertionsCheck.stop();
     }
-
+    if (counterexampleIsSpurious) {
+      return pDualSequence.getSize() + 1;
+    }
     return -1;
   }
 
