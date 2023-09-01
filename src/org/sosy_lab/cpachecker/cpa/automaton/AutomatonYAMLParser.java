@@ -285,6 +285,15 @@ public class AutomatonYAMLParser {
     return automaton;
   }
 
+  /**
+   * Parse the input file into invariants. These are temporary classes only used for the transport
+   * of information.
+   *
+   * @param pInputFile The File with the YAML witness
+   * @return The Invariants present in the YAML witness
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   * @throws InterruptedException if the C-Parser is interrupted.
+   */
   public Set<Invariant> generateInvariants(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
