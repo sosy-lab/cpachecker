@@ -16,7 +16,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * This class provides a sequence representation for {@link DARAlgorithm}. It stores forward and
  * backward reachability sequences. It can also strengthen the sequences by forward and backward
  * interpolants.
-*/
+ */
 public class DualInterpolationSequence {
   private boolean isLocallyUnsafe;
   private List<BooleanFormula> forwardReachVector;
@@ -27,33 +27,43 @@ public class DualInterpolationSequence {
     forwardReachVector = new ArrayList<>();
     backwardReachVector = new ArrayList<>();
   }
+
   public void setLocallyUnsafe() {
     isLocallyUnsafe = true;
   }
+
   public void setLocallySafe() {
     isLocallyUnsafe = false;
   }
+
   public void updateForwardReachVector(BooleanFormula pNewFormula, int pIndex) {
     forwardReachVector.set(pIndex, pNewFormula);
   }
+
   public void increaseForwardReachVector(BooleanFormula pNewFormula) {
     forwardReachVector.add(pNewFormula);
   }
+
   public void updateBackwardReachVector(BooleanFormula pNewFormula, int pIndex) {
     backwardReachVector.set(pIndex, pNewFormula);
   }
+
   public void increaseBackwardReachVector(BooleanFormula pNewFormula) {
     backwardReachVector.add(pNewFormula);
   }
+
   public boolean isLocallyUnsafe() {
     return isLocallyUnsafe;
   }
+
   public int getSize() {
     return forwardReachVector.size();
   }
+
   public List<BooleanFormula> getForwardReachVector() {
     return forwardReachVector;
   }
+
   public List<BooleanFormula> getBackwardReachVector() {
     return backwardReachVector;
   }
