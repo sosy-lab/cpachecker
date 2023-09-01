@@ -227,7 +227,7 @@ public class WitnessInvariantsExtractor {
     // edge match the lines present in the invariant, then the invariant is a
     // candidate for the node
     Optional<ImmutableSet<CFANode>> loopHeads = cfa.getAllLoopHeads();
-    for (Invariant invariant: invariants) {
+    for (Invariant invariant : invariants) {
       // For efficiency purposes, we match loop invariants differently to location invariants
       ImmutableSet<CFANode> candidateNodes;
       if (invariant.isLoopInvariant() && loopHeads.isPresent()) {

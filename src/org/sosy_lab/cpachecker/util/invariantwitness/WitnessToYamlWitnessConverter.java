@@ -173,7 +173,7 @@ public class WitnessToYamlWitnessConverter {
       } else {
         // If they do not come from if statements and are merely present, then we need to use
         // the GraphML format
-        enteringEdges = pWitness.getCFAEdgeFor(e).stream().collect(ImmutableSet.toImmutableSet());
+        enteringEdges = ImmutableSet.copyOf(pWitness.getCFAEdgeFor(e));
       }
 
       if (enteringEdges.size() != 1) {
