@@ -48,8 +48,12 @@ public class DualInterpolationSequence {
   public boolean isLocallyUnsafe() {
     return isLocallyUnsafe;
   }
-  public int getSize() {return forwardReachVector.size(); }
-  public List<BooleanFormula> getForwardReachVector() { return forwardReachVector; }
+  public int getSize() {
+    return forwardReachVector.size();
+  }
+  public List<BooleanFormula> getForwardReachVector() {
+    return forwardReachVector;
+  }
   public List<BooleanFormula> getBackwardReachVector() {
     return backwardReachVector;
   }

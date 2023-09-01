@@ -102,12 +102,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
-  private final PredicateAbstractionManager predAbsMgr;
   private final InterpolationManager itpMgr;
   private final CFA cfa;
 
   private boolean isDualSequenceInitialized;
-  private BooleanFormula finalFixedPoint;
 
 
   public DARAlgorithm(
@@ -143,7 +141,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, DARAlgorithm.class);
     solver = predCpa.getSolver();
     pfmgr = predCpa.getPathFormulaManager();
-    predAbsMgr = predCpa.getPredicateManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     itpMgr =
@@ -151,7 +148,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig,
             shutdownNotifier, logger);
 
-    finalFixedPoint = bfmgr.makeFalse();
     isDualSequenceInitialized = false;
   }
   
@@ -222,7 +218,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
       shutdownNotifier.shutdownIfNecessary();
-
       // Check if interpolation or forward-condition check is applicable
       if (isDAREnabled
           && !InterpolationHelper.checkAndAdjustARG(
@@ -241,13 +236,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           throw new CPAException("ARG does not meet the requirements");
         }
       }
-
       if (getCurrentMaxLoopIterations() > 1) {
         stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
         stats.interpolationPreparation.stop();
       }
-
       // DAR
       if (isDAREnabled && getCurrentMaxLoopIterations() > 1) {
         if (!isDualSequenceInitialized) {
@@ -267,7 +260,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           }
           updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, partitionedFormulas);
-          iterativeLocalStrengthening(dualSequence, partitionedFormulas, itpSequence.size()-1);
+          iterativeLocalStrengthening(dualSequence, partitionedFormulas, itpSequence.size() - 1);
 
           dualSequence.setLocallySafe();
         }
@@ -277,7 +270,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-
       // Forward-condition check
       if (checkForwardConditions) {
         stats.assertionsCheck.start();
@@ -295,7 +287,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
     return null;
@@ -308,32 +299,24 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     for (int i = 1; i < pDualSequence.getSize(); i++) {
       BooleanFormula forwardFormula = pDualSequence.getForwardReachVector().get(i);
-      if (solver.implies(forwardFormula, forwardImage)) {
-        finalFixedPoint = forwardImage;
+      BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(i);
+      if (solver.implies(forwardFormula, forwardImage) ||
+          solver.implies(backwardFormula, backwardImage)) {
         return true;
       }
       forwardImage = bfmgr.or(forwardFormula, forwardImage);
-    }
-
-    for (int i = 1; i < pDualSequence.getSize(); i++) {
-      BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(i);
-      if (solver.implies(backwardFormula, backwardImage)) {
-        finalFixedPoint = backwardImage;
-        return true;
-      }
       backwardImage = bfmgr.or(backwardFormula, backwardImage);
     }
-
     return false;
   }
 
-  private void initializeBRS
-      (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
+  private void initializeBRS(
+      PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
     BooleanFormula assertionFormula = pPartitionedFormulas.getAssertionFormula();
     pDualSequence.increaseBackwardReachVector(assertionFormula);
   }
-  private void initializeFRS
-      (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
+  private void initializeFRS(
+      PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
     BooleanFormula prefixFormula = pPartitionedFormulas.getPrefixFormula();
     pDualSequence.increaseForwardReachVector(prefixFormula);
   }
@@ -342,8 +325,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * Checks local safety of the sequences. Further, it extends them by new overapproximating
    * formulas.
    */
-  private void localStrengtheningPhase(DualInterpolationSequence pDualSequence,
-                                       PartitionedFormulas pPartitionedFormulas)
+  private void localStrengtheningPhase(
+      DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
       throws CPAException, SolverException, InterruptedException {
     int indexOfLocalContradiction;
     indexOfLocalContradiction = findIndexOfUnsatisfiableLocalCheck(pDualSequence, pPartitionedFormulas);
@@ -365,37 +348,41 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                                            PartitionedFormulas pPartitionedFormulas,
                                            int pIndexOfLocalContradiction)
       throws CPAException, InterruptedException {
-    int lastIndexOfSequences = pDualSequence.getForwardReachVector().size() - 1;
-    int indexFRS = pIndexOfLocalContradiction;
-    int indexBRS = lastIndexOfSequences - pIndexOfLocalContradiction;
+    List<BooleanFormula> FRS = pDualSequence.getForwardReachVector();
+    List<BooleanFormula> BRS = pDualSequence.getBackwardReachVector();
+    int lastIndexOfSequences = pDualSequence.getSize() - 1;
+    int forwardSequenceIndex = pIndexOfLocalContradiction;
+    int backwardSequenceIndex = lastIndexOfSequences - pIndexOfLocalContradiction;
 
-    while (indexFRS < lastIndexOfSequences) {
-      BooleanFormula resultingForwardFormula = pDualSequence.getForwardReachVector().get(indexFRS + 1);
-      BooleanFormula interpolant = constructForwardInterpolant(pDualSequence,
-          pPartitionedFormulas, indexFRS);
+    while (forwardSequenceIndex < lastIndexOfSequences) {
+      BooleanFormula resultingForwardFormula = FRS.get(forwardSequenceIndex + 1);
+      BooleanFormula interpolant = constructForwardInterpolant(
+          pDualSequence, pPartitionedFormulas, forwardSequenceIndex);
       resultingForwardFormula = bfmgr.and(resultingForwardFormula, interpolant);
-      pDualSequence.updateForwardReachVector(resultingForwardFormula, indexFRS + 1);
-      indexFRS++;
+      pDualSequence.updateForwardReachVector(resultingForwardFormula, forwardSequenceIndex + 1);
+      forwardSequenceIndex++;
     }
-    BooleanFormula newForwardReachFormula =  constructForwardInterpolant(pDualSequence,
-        pPartitionedFormulas, indexFRS);
+    BooleanFormula newForwardReachFormula =  constructForwardInterpolant(
+        pDualSequence, pPartitionedFormulas, forwardSequenceIndex);
     pDualSequence.increaseForwardReachVector(newForwardReachFormula);
 
-    while (indexBRS < lastIndexOfSequences) {
-      BooleanFormula resultingBackwardFormula = pDualSequence.getBackwardReachVector().get(indexBRS + 1);
-      BooleanFormula interpolant = constructBackwardInterpolant(pDualSequence,
-          pPartitionedFormulas, indexBRS);
+    while (backwardSequenceIndex < lastIndexOfSequences) {
+      BooleanFormula resultingBackwardFormula = BRS.get(backwardSequenceIndex + 1);
+      BooleanFormula interpolant = constructBackwardInterpolant(
+          pDualSequence, pPartitionedFormulas, backwardSequenceIndex);
       resultingBackwardFormula = bfmgr.and(resultingBackwardFormula, interpolant);
-      pDualSequence.updateBackwardReachVector(resultingBackwardFormula, indexBRS + 1);
-      indexBRS++;
+      pDualSequence.updateBackwardReachVector(resultingBackwardFormula, backwardSequenceIndex + 1);
+      backwardSequenceIndex++;
     }
-    BooleanFormula newBackwardReachFormula =  constructBackwardInterpolant(pDualSequence,
-        pPartitionedFormulas, indexBRS);
+    BooleanFormula newBackwardReachFormula =  constructBackwardInterpolant(
+        pDualSequence, pPartitionedFormulas, backwardSequenceIndex);
     pDualSequence.increaseBackwardReachVector(newBackwardReachFormula);
   }
 
   /**
-   * Creates forward interpolant (denoted as FI in the paper) of the contradictory formulas (F and TR, B)
+   * Creates forward interpolant (denoted as FI in the paper) of the contradictory formulas (F and TR, B).
+   * Interpolant is instantiated with prefix SSA, so then it can be checked for satisfiability with backward
+   * interpolant that has SSA indices of the first transition formula.
    */
   private BooleanFormula constructForwardInterpolant(
       DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
@@ -418,6 +405,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
   /**
    * Creates backward interpolant (denoted as BI in the paper) of the contradictory formulas (B and TR, F)
+   * Interpolant is instantiated with SSA of first transition, so then it can be checked for satisfiability
+   * with forward interpolant that has SSA indices of the prefix formula.
    */
   private BooleanFormula constructBackwardInterpolant(
       DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
@@ -427,16 +416,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula forwardFormula = pDualSequence.getForwardReachVector()
         .get(lastIndexOfSequences - pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pIndex);
+    SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(0);
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(
             ImmutableList.of(
-                bfmgr.and(
-                    backwardFormula,
-                    transitionFormulae.get(0)),
+                bfmgr.and(backwardFormula, transitionFormulae.get(0)),
                 forwardFormula));
     BooleanFormula interpolant = interpolants.orElseThrow().get(0);
-    interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), pPartitionedFormulas.getLoopFormulasSsaMap().get(0));
+    interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), backwardSsa);
 
     return interpolant;
   }
@@ -472,25 +460,22 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * from the dual sequence that does not have a transition between them. By that we can conclude
    * that no counterexample of length n+1 exists.
    */
-  private int findIndexOfUnsatisfiableLocalCheck(DualInterpolationSequence pDualSequence,
-                                                 PartitionedFormulas pPartitionedFormulas)
+  private int findIndexOfUnsatisfiableLocalCheck(
+      DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
       throws SolverException, InterruptedException {
     List<BooleanFormula> FRS = pDualSequence.getForwardReachVector();
     List<BooleanFormula> BRS = pDualSequence.getBackwardReachVector();
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
 
-    int n = FRS.size() - 1;
-
-    for (int i = FRS.size() - 1; i >= 0; i--) {
+    for (int i = pDualSequence.getSize() - 1; i >= 0; i--) {
       stats.assertionsCheck.start();
       boolean isNotReachableWithOneTransition;
-
       try {
         isNotReachableWithOneTransition =
             solver.isUnsat(
                 bfmgr.and(
                     transitionFormulae.get(0),
-                    BRS.get(n - i),
+                    BRS.get(pDualSequence.getSize() - i - 1),
                     FRS.get(i)));
       } finally {
         stats.assertionsCheck.stop();
@@ -502,18 +487,21 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return -1;
   }
 
-  private int performGlobalCheck(PartitionedFormulas pFormulas,
-                                 DualInterpolationSequence pDualSequence,
-                                 ReachedSet pReachedSet)
+  /**
+   * Iteratively unrolls backward sequence and checks if it is reachable from initial states.
+   * In the end, it checks against B_0, which is a target formula and therefore performs BMC check.
+   */
+  private int performGlobalCheck(
+      PartitionedFormulas pFormulas, DualInterpolationSequence pDualSequence, ReachedSet pReachedSet)
       throws InterruptedException, SolverException, CPAException {
     boolean counterexampleIsSpurious;
+    List<SSAMap> transitionSsaMaps = pFormulas.getLoopFormulasSsaMap();
 
     for (int i = 2; i <= pDualSequence.getSize(); i++) {
-      BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - i + 1);
-      backwardFormula =
-          fmgr.instantiate(
-              fmgr.uninstantiate(backwardFormula),
-              pFormulas.getLoopFormulasSsaMap().get(i - 2));
+      BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector()
+                                                    .get(pDualSequence.getSize() - i + 1);
+      backwardFormula = fmgr.instantiate(
+              fmgr.uninstantiate(backwardFormula), transitionSsaMaps.get(i - 2));
 
       BooleanFormula unrolledConcretePaths =
           bfmgr.and(new ImmutableList.Builder<BooleanFormula>()
@@ -539,7 +527,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to derive an s sequence.
+   * A helper method to derive an interpolation sequence once global check shows there is no
+   * counterexample of length n.
    *
    * @throws InterruptedException On shutdown request.
    */
@@ -549,12 +538,14 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     int indexOfGlobalViolation = performGlobalCheck(pFormulas, pDualSequence, pReachedSet);
     if (indexOfGlobalViolation == -1) {
+      // A counterexample was found
       return ImmutableList.of();
     }
     BooleanFormula backwardFormula = pDualSequence
         .getBackwardReachVector()
         .get(pDualSequence.getSize() - indexOfGlobalViolation + 1);
 
+    // We cannot uninstantiate B_0, so we check if the global phase was unsat with B_0 or some B_i
     if (pDualSequence.getSize() - indexOfGlobalViolation + 1 > 0) {
       backwardFormula =
           fmgr.instantiate(
@@ -590,7 +581,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     while ((i < reachVector.size()) && (i < itpSequence.size())) {
       BooleanFormula image = reachVector.get(i);
       reachVector.set(i, bfmgr.and(image,
-          fmgr.instantiate(fmgr.uninstantiate(itpSequence.get(i-1)), prefixSsaMap)));
+          fmgr.instantiate(fmgr.uninstantiate(itpSequence.get(i - 1)), prefixSsaMap)));
       ++i;
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
