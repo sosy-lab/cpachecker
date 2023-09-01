@@ -89,9 +89,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
 
-  @Option(secure = true, description = "toggle turning off global phase an perform BMC instead")
-  private boolean globalCheckAsBMC = true;
-
   @Option(secure = true, description = "toggle asserting targets at every iteration for DAR")
   private boolean assertTargetsAtEveryIteration = false;
 
@@ -275,22 +272,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           initializeBRS(partitionedFormulas, dualSequence);
           isDualSequenceInitialized = true;
         }
-
         localStrengtheningPhase(dualSequence, partitionedFormulas);
-
         if (dualSequence.isLocallyUnsafe()) {
-          // BMC Global Phase to validate local unsafety (keep this as option and compare later with
-          // Global phase from paper) BMC has already verified, that the program is safe in
-          // current number of steps, so we can perform interpolation.
-          List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas, dualSequence);
+          // Global phase of DAR
+          List<BooleanFormula> itpSequence = getInterpolationSequence(
+              partitionedFormulas, dualSequence, pReachedSet);
           if (itpSequence.isEmpty()) {
-            BooleanFormula targetFormula =
-                InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
-            ProverEnvironment bmcProver =
-                solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-            bmcProver.push(targetFormula);
-            bmcProver.isUnsat();
-            analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+            // Counterexample was not spurious
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           }
           updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence, partitionedFormulas);
@@ -424,8 +412,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   /**
    * Creates forward interpolant (denoted as FI in the paper) of the contradictory formulas (F and TR, B)
    */
-  private BooleanFormula constructForwardInterpolant(DualInterpolationSequence pDualSequence,
-                                        PartitionedFormulas pPartitionedFormulas, int pIndex)
+  private BooleanFormula constructForwardInterpolant(
+      DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
       throws CPAException, InterruptedException {
     int lastIndexOfSequences = pDualSequence.getForwardReachVector().size() - 1;
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
@@ -446,8 +434,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   /**
    * Creates backward interpolant (denoted as BI in the paper) of the contradictory formulas (B and TR, F)
    */
-  private BooleanFormula constructBackwardInterpolant(DualInterpolationSequence pDualSequence,
-                                                        PartitionedFormulas pPartitionedFormulas, int pIndex)
+  private BooleanFormula constructBackwardInterpolant(
+      DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
       throws CPAException, InterruptedException {
     int lastIndexOfSequences = pDualSequence.getBackwardReachVector().size() - 1;
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
@@ -504,32 +492,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private int performGlobalCheck(PartitionedFormulas pFormulas,
-                                 DualInterpolationSequence pDualSequence)
-      throws InterruptedException, SolverException {
+                                 DualInterpolationSequence pDualSequence,
+                                 ReachedSet pReachedSet)
+      throws InterruptedException, SolverException, CPAException {
     boolean counterexampleIsSpurious;
-
-    if (globalCheckAsBMC) {
-      BooleanFormula unrolledConcretePaths =
-          bfmgr.and(new ImmutableList.Builder<BooleanFormula>()
-              .add(pFormulas.getPrefixFormula())
-              .addAll(pFormulas.getLoopFormulas().subList(0, pDualSequence.getSize()))
-              .add(pFormulas.getAssertionFormula())
-              .build());
-      stats.assertionsCheck.start();
-
-      try {
-        counterexampleIsSpurious =
-            solver.isUnsat(unrolledConcretePaths);
-      } finally {
-        stats.assertionsCheck.stop();
-      }
-      if (counterexampleIsSpurious) {
-        return pDualSequence.getSize() + 1;
-      }
-      else {
-        return -1;
-      }
-    }
 
     for (int i = 2; i <= pDualSequence.getSize() + 1; i++) {
       BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - i + 1);
@@ -551,9 +517,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               .build());
       stats.assertionsCheck.start();
 
-      try {
-        counterexampleIsSpurious =
-            solver.isUnsat(unrolledConcretePaths);
+      try (ProverEnvironment bmcProver =
+               solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        bmcProver.push(unrolledConcretePaths);
+        counterexampleIsSpurious = bmcProver.isUnsat();
+        if (!counterexampleIsSpurious && i == pDualSequence.getSize() + 1) {
+          analyzeCounterexample(unrolledConcretePaths, pReachedSet, bmcProver);
+        }
       } finally {
         stats.assertionsCheck.stop();
       }
@@ -569,11 +539,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @throws InterruptedException On shutdown request.
    */
-  private ImmutableList<BooleanFormula> getInterpolationSequence(PartitionedFormulas pFormulas,
-                                                            DualInterpolationSequence pDualSequence)
+  private ImmutableList<BooleanFormula> getInterpolationSequence(
+      PartitionedFormulas pFormulas, DualInterpolationSequence pDualSequence, ReachedSet pReachedSet)
       throws InterruptedException, CPAException, SolverException {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
-    int indexOfGlobalViolation = performGlobalCheck(pFormulas, pDualSequence);
+    int indexOfGlobalViolation = performGlobalCheck(pFormulas, pDualSequence, pReachedSet);
     if (indexOfGlobalViolation == -1) {
       return ImmutableList.of();
     }
@@ -581,18 +551,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .getBackwardReachVector()
         .get(pDualSequence.getSize() - indexOfGlobalViolation + 1);
 
-    if (globalCheckAsBMC) {
-      backwardFormula = pFormulas.getAssertionFormula();
-      indexOfGlobalViolation = pDualSequence.getSize() + 1;
+    if (pDualSequence.getSize() - indexOfGlobalViolation + 1 > 0) {
+      backwardFormula =
+          fmgr.instantiate(
+              fmgr.uninstantiate(backwardFormula),
+              pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation - 2));
     } else {
-      if (pDualSequence.getSize() - indexOfGlobalViolation + 1 > 0) {
-        backwardFormula =
-            fmgr.instantiate(
-                fmgr.uninstantiate(backwardFormula),
-                pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation - 2));
-      } else {
-        backwardFormula = pFormulas.getAssertionFormula();
-      }
+      backwardFormula = pFormulas.getAssertionFormula();
     }
 
     ImmutableList<BooleanFormula> formulasToPush =
