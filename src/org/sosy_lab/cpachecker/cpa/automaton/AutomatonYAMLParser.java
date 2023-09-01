@@ -56,8 +56,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
@@ -247,20 +249,7 @@ public class AutomatonYAMLParser {
           lineToSeenInvariants.get(line).add(lookupKey);
         }
 
-        LineMatcher lineMatcher = new LineMatcher(Optional.empty(), line, line);
-
-        Deque<String> callStack = new ArrayDeque<>();
-        callStack.push(invariantEntry.getLocation().getFunction());
-
-        Scope candidateScope = determineScope(resultFunction, callStack, lineMatcher, scope);
-
-        ExpressionTree<AExpression> invariant =
-            CParserUtils.parseStatementsAsExpressionTree(
-                ImmutableSet.of(invariantString),
-                resultFunction,
-                cparser,
-                candidateScope,
-                parserTools);
+        ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
 
         if (invariant.equals(ExpressionTrees.getTrue())) {
           continue;
@@ -294,6 +283,69 @@ public class AutomatonYAMLParser {
     dumpAutomatonIfRequested(automaton);
 
     return automaton;
+  }
+
+  public Set<Invariant> generateInvariants(Path pInputFile)
+      throws InvalidConfigurationException, InterruptedException {
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pInputFile), this::generateInvariants, WitnessParseException::new);
+  }
+
+  private Set<Invariant> generateInvariants(InputStream pInputStream)
+      throws IOException, InterruptedException {
+    List<AbstractEntry> entries = parseYAML(pInputStream);
+    return generateInvariantsFromEntries(entries);
+  }
+
+  private Set<Invariant> generateInvariantsFromEntries(List<AbstractEntry> pEntries)
+      throws InterruptedException {
+    Set<Invariant> invariants = new HashSet<>();
+
+    Map<Integer, Set<String>> lineToSeenInvariants = new HashMap<>();
+
+    for (AbstractEntry entry : pEntries) {
+      if (entry instanceof InvariantEntry invariantEntry) {
+        Integer line = invariantEntry.getLocation().getLine();
+        String invariantString = invariantEntry.getInvariant().getString();
+
+        // Parsing is expensive, therefore cache everything we can
+        if (lineToSeenInvariants.get(line).contains(invariantString)) {
+          continue;
+        }
+
+        ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
+
+        FileLocation loc =
+            new FileLocation(
+                Path.of(invariantEntry.getLocation().getFileName()),
+                -1, // The offset is currently not important enough to warrant computing it
+                -1, // The length is currently not important enough to warrant computing it
+                line,
+                line);
+        invariants.add(new Invariant(invariant, loc, invariantEntry instanceof LoopInvariantEntry));
+
+        lineToSeenInvariants.get(line).add(invariantString);
+      }
+    }
+    return invariants;
+  }
+
+  private ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
+      throws InterruptedException {
+    Integer line = pInvariantEntry.getLocation().getLine();
+    LineMatcher lineMatcher = new LineMatcher(Optional.empty(), line, line);
+    Optional<String> resultFunction = Optional.of(pInvariantEntry.getLocation().getFunction());
+    String invariantString = pInvariantEntry.getInvariant().getString();
+
+    Deque<String> callStack = new ArrayDeque<>();
+    callStack.push(pInvariantEntry.getLocation().getFunction());
+
+    Scope candidateScope = determineScope(resultFunction, callStack, lineMatcher, scope);
+
+    ExpressionTree<AExpression> invariant =
+        CParserUtils.parseStatementsAsExpressionTree(
+            ImmutableSet.of(invariantString), resultFunction, cparser, candidateScope, parserTools);
+    return invariant;
   }
 
   private void dumpAutomatonIfRequested(Automaton automaton) {
