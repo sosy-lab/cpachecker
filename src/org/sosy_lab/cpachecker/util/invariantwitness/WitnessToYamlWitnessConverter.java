@@ -106,7 +106,13 @@ public class WitnessToYamlWitnessConverter {
       int minimalLoopSize = Integer.MAX_VALUE;
       Optional<Loop> tightestFittingLoop = Optional.empty();
       for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-        if (loop.getLoopNodes().contains(node) && loop.getLoopNodes().size() < minimalLoopSize) {
+        // The node can also be present in the leaving edges, since the invariant should also be
+        // valid if we are not even executing the loop once
+        if ((loop.getLoopNodes().contains(node)
+                || FluentIterable.from(loop.getOutgoingEdges())
+                    .transform(e -> e.getSuccessor())
+                    .anyMatch(n -> n == node))
+            && loop.getLoopNodes().size() < minimalLoopSize) {
           tightestFittingLoop = Optional.of(loop);
           minimalLoopSize = loop.getLoopNodes().size();
         }
@@ -117,12 +123,15 @@ public class WitnessToYamlWitnessConverter {
     }
 
     for (Loop loop : allPossibleLoops) {
-      ImmutableSet<CFAEdge> enteringEdges =
-          FluentIterable.from(loop.getLoopHeads()).transform(CFAUtils::enteringEdges).stream()
+      // For loops the edges leaving the loop heads are the ones usually containing either
+      // a blank edge or the loop boundary condition. Therefore they contain the line where
+      // the loop head is actually present
+      ImmutableSet<CFAEdge> leavingEdges =
+          FluentIterable.from(loop.getLoopHeads()).transform(CFAUtils::leavingEdges).stream()
               .flatMap(x -> x.stream())
               .collect(ImmutableSet.toImmutableSet());
 
-      for (CFAEdge edge : enteringEdges) {
+      for (CFAEdge edge : leavingEdges) {
         FileLocation loc = edge.getFileLocation();
         if (loc == FileLocation.DUMMY || loc == FileLocation.MULTIPLE_FILES) {
           continue;
@@ -130,7 +139,7 @@ public class WitnessToYamlWitnessConverter {
 
         invariants.add(
             new InvariantWitness(
-                pInvariantExpression, edge.getFileLocation(), edge.getSuccessor()));
+                pInvariantExpression, edge.getFileLocation(), edge.getPredecessor()));
       }
     }
 
