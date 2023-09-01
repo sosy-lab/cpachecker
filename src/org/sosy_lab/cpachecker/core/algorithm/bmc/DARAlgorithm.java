@@ -217,23 +217,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       shutdownNotifier.shutdownIfNecessary();
       // BMC
       if (AllowBMC || getCurrentMaxLoopIterations() <= 1) {
-        try (ProverEnvironment bmcProver =
-            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-          BooleanFormula targetFormula =
-              InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
-          stats.satCheck.start();
-          final boolean isTargetStateReachable;
-          try {
-            bmcProver.push(targetFormula);
-            isTargetStateReachable = !bmcProver.isUnsat();
-          } finally {
-            stats.satCheck.stop();
-          }
-          if (isTargetStateReachable) {
-            logger.log(Level.FINE, "A target state is reached by BMC");
-            analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          }
+        if (isBMCCheckSat(pReachedSet)) {
+          return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
       }
       shutdownNotifier.shutdownIfNecessary();
@@ -456,6 +441,32 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return interpolant;
   }
 
+  private boolean isBMCCheckSat(ReachedSet pReachedSet)
+    throws InterruptedException, SolverException, CPAException {
+    stats.bmcPreparation.start();
+    try (ProverEnvironment bmcProver =
+             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      BooleanFormula targetFormula =
+          InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+      stats.satCheck.start();
+      final boolean isTargetStateReachable;
+      try {
+        bmcProver.push(targetFormula);
+        isTargetStateReachable = !bmcProver.isUnsat();
+      } finally {
+        stats.satCheck.stop();
+      }
+      if (isTargetStateReachable) {
+        logger.log(Level.FINE, "A target state is reached by BMC");
+        analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+        stats.bmcPreparation.stop();
+        return true;
+      }
+    }
+    stats.bmcPreparation.stop();
+    return false;
+  }
+
   /**
    * A method that looks for two consecutive formulas over-approximating sets of reachable states
    * from the dual sequence that does not have a transition between them. By that we can conclude
@@ -521,27 +532,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     }
     //BMC check in the end, for B_0
-    BooleanFormula unrolledConcretePaths =
-        bfmgr.and(new ImmutableList.Builder<BooleanFormula>()
-            .add(pFormulas.getPrefixFormula())
-            .addAll(pFormulas.getLoopFormulas().subList(0, pDualSequence.getSize()))
-            .add(pFormulas.getAssertionFormula())
-            .build());
-    stats.assertionsCheck.start();
-    try (ProverEnvironment bmcProver =
-             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      bmcProver.push(unrolledConcretePaths);
-      counterexampleIsSpurious = bmcProver.isUnsat();
-      if (!counterexampleIsSpurious) {
-        analyzeCounterexample(unrolledConcretePaths, pReachedSet, bmcProver);
-      }
-    } finally {
-      stats.assertionsCheck.stop();
+    if (isBMCCheckSat(pReachedSet)) {
+      return -1;
     }
-    if (counterexampleIsSpurious) {
-      return pDualSequence.getSize() + 1;
-    }
-    return -1;
+    return pDualSequence.getSize() + 1;
   }
 
   /**
