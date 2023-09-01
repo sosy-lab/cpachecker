@@ -52,7 +52,6 @@ public class WitnessToYamlWitnessConverter {
     for (String invexpstate : pWitness.getInvariantExportStates()) {
       ExpressionTree<Object> invariantExpression = pWitness.getStateInvariant(invexpstate);
 
-
       // True invariants do not add any information in order to proof the program
       if (invariantExpression.equals(ExpressionTrees.getTrue())) {
         continue;
@@ -94,13 +93,13 @@ public class WitnessToYamlWitnessConverter {
     if (cfa.getLoopStructure().isEmpty()) {
       logger.log(
           Level.WARNING,
-          "Could not export the Loop Invariant, since Loop Structures have been disabled in the CFA!");
+          "Could not export the Loop Invariant, since Loop Structures have been disabled in the"
+              + " CFA!");
       return invariants;
     }
 
-
     Set<Loop> allPossibleLoops = new HashSet<>();
-    for (CFANode node: cfaNodes) {
+    for (CFANode node : cfaNodes) {
       // Since we now that the CFANode we have is very close to the actual Loop head node
       // we need to find the Loop which is the smallest possible, but still contains the CFANode
       // in question. Since this will be the for which the invariant should hold
@@ -171,7 +170,8 @@ public class WitnessToYamlWitnessConverter {
       if (enteringEdges.size() != 1) {
         logger.logf(
             Level.WARNING,
-            "Expected one CFA entering edge matching the location invariant in the witness, but identified %d!",
+            "Expected one CFA entering edge matching the location invariant in the witness, but"
+                + " identified %d!",
             enteringEdges.size());
       }
 
