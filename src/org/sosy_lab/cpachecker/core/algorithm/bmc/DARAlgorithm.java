@@ -89,14 +89,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
 
-  @Option(secure = true, description = "toggle checking whether the safety property is inductive")
-  private boolean checkPropertyInductiveness = false;
-
   @Option(secure = true, description = "toggle turning off global phase an perform BMC instead")
   private boolean globalCheckAsBMC = true;
 
   @Option(secure = true, description = "toggle asserting targets at every iteration for DAR")
   private boolean assertTargetsAtEveryIteration = false;
+
+  private boolean AllowBMC = false;
 
   private final ConfigurableProgramAnalysis cpa;
 
@@ -163,7 +162,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
     try {
-      return dualapproximatedreachabilityModelChecking(pReachedSet);
+      return dualApproximatedReachabilityModelChecking(pReachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
@@ -178,25 +177,20 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
    *     unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e., safe.
    */
-  private AlgorithmStatus dualapproximatedreachabilityModelChecking(ReachedSet pReachedSet)
+  private AlgorithmStatus dualApproximatedReachabilityModelChecking(ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
       pReachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    if (cfa.getAllLoopHeads().orElseThrow().size() < 1) {
+    if (cfa.getAllLoopHeads().isEmpty()) {
       if (isDAREnabled) {
         logger.log(
             Level.WARNING, "Disable interpolation as loop structure could not be determined");
         isDAREnabled = false;
-        fallBack = true;
       }
-      if (checkPropertyInductiveness) {
-        logger.log(
-            Level.WARNING, "Disable induction check as loop structure could not be determined");
-        checkPropertyInductiveness = false;
-      }
+      AllowBMC = true;
     }
     if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
       if (isDAREnabled) {
@@ -205,11 +199,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         } else {
           throw new CPAException("Multi-loop programs are not supported yet");
         }
-      }
-      if (checkPropertyInductiveness) {
-        logger.log(
-            Level.WARNING, "Disable induction check because the program contains multiple loops");
-        checkPropertyInductiveness = false;
       }
     }
 
@@ -221,16 +210,16 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     do {
       shutdownNotifier.shutdownIfNecessary();
-      // Unrolling twice, so that we can obtain TR formula for another iteration from PartitionedFormulas
+
       stats.bmcPreparation.start();
       try {
         BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
       } finally {
         stats.bmcPreparation.stop();
       }
-
+      shutdownNotifier.shutdownIfNecessary();
       // BMC
-      if (fallBack || getCurrentMaxLoopIterations() <= 1) {
+      if (AllowBMC || getCurrentMaxLoopIterations() <= 1) {
         try (ProverEnvironment bmcProver =
             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           BooleanFormula targetFormula =
@@ -250,8 +239,26 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           }
         }
       }
-
       shutdownNotifier.shutdownIfNecessary();
+
+      // Check if interpolation or forward-condition check is applicable
+      if (isDAREnabled
+          && !InterpolationHelper.checkAndAdjustARG(
+          logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
+        if (fallBack) {
+          fallBackToBMC("The check of ARG failed");
+        } else {
+          throw new CPAException("ARG does not meet the requirements");
+        }
+      }
+      if (checkForwardConditions && InterpolationHelper.hasCoveredStates(pReachedSet)) {
+        if (fallBack) {
+          fallBackToBMCWithoutForwardCondition(
+              "Covered states in ARG: forward-condition might be unsound!");
+        } else {
+          throw new CPAException("ARG does not meet the requirements");
+        }
+      }
 
       if (getCurrentMaxLoopIterations() > 1) {
         stats.interpolationPreparation.start();
@@ -260,17 +267,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
 
       // DAR
-      if (isDAREnabled && getCurrentMaxLoopIterations() > 1) { //&&
-          //!InterpolationHelper.checkAndAdjustARG(logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
-        // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
-        // is safe.
-        if (partitionedFormulas.getLoopFormulas().isEmpty()) {
-          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-          InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-              pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-
+      if (isDAREnabled && getCurrentMaxLoopIterations() > 1) {
         if (!isDualSequenceInitialized) {
           // Initialize FRS to [INIT]
           initializeFRS(partitionedFormulas, dualSequence);
@@ -638,6 +635,16 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(
         Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
     isDAREnabled = false;
+    AllowBMC = true;
+  }
+
+  private void fallBackToBMCWithoutForwardCondition(final String pReason) {
+    logger.log(
+        Level.WARNING,
+        "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
+    isDAREnabled = false;
+    AllowBMC = true;
+    checkForwardConditions = false;
   }
 
   @Override
