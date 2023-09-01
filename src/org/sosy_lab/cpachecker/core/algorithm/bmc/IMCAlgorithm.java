@@ -955,12 +955,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
     } else {
-      BooleanFormula currentImage = reachVector.get(0);
-      for (int i = 1; i < reachVector.size(); ++i) {
+      BooleanFormula currentImage = reachVector.get(1);
+      for (int i = 2; i < reachVector.size(); ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(imageAtI, currentImage)) {
           logger.log(Level.INFO, "Fixed point reached");
-          finalFixedPoint = currentImage;
+          finalFixedPoint = bfmgr.or(currentImage, reachVector.get(0));
           return true;
         }
         currentImage = bfmgr.or(currentImage, imageAtI);
