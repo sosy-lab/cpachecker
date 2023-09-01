@@ -9,20 +9,25 @@
 package org.sosy_lab.cpachecker.util.invariantwitness;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.nio.file.Path;
-import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -47,6 +52,7 @@ public class WitnessToYamlWitnessConverter {
     for (String invexpstate : pWitness.getInvariantExportStates()) {
       ExpressionTree<Object> invariantExpression = pWitness.getStateInvariant(invexpstate);
 
+
       // True invariants do not add any information in order to proof the program
       if (invariantExpression.equals(ExpressionTrees.getTrue())) {
         continue;
@@ -57,68 +63,128 @@ public class WitnessToYamlWitnessConverter {
               .anyMatch(
                   x ->
                       "true".equalsIgnoreCase(x.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)));
-
-      Collection<Edge> edges;
-      if (!isLoopHead && writeLocationInvariants) {
-        // For Location invariants, we need to consider certain
-        edges = pWitness.getEnteringEdges().get(invexpstate);
-      } else if (!isLoopHead && !writeLocationInvariants) {
-        continue;
-      } else {
-        edges = pWitness.getLeavingEdges().get(invexpstate);
-      }
-
-      Set<FileLocation> exportedInvariantsAtFilelocation = new HashSet<>();
-      for (Edge e : edges) {
-        Collection<CFAEdge> cfaEdges = pWitness.getCFAEdgeFor(e);
-        ImmutableSet<CFANode> cfaNodes;
-        if (isLoopHead) {
-          // There is a blank edge between the loop start node and the actual node in the CFA, which
-          // is different to the witness automaton which does not consider these.
-          // This makes it such that CFANode is the loop start node in the CFA
-          cfaNodes =
-              cfaEdges.stream()
-                  .map(CFAEdge::getPredecessor)
-                  .map(CFAUtils::enteringEdges)
-                  .flatMap(x -> x.stream())
-                  .map(CFAEdge::getPredecessor)
-                  .collect(ImmutableSet.toImmutableSet());
-        } else {
-          cfaNodes =
-              cfaEdges.stream().map(CFAEdge::getSuccessor).collect(ImmutableSet.toImmutableSet());
-        }
-        if (cfaNodes.size() != 1) {
-          logger.logf(
-              Level.WARNING,
-              "Expected one CFA node matching invariant in witness, but identified %d!",
-              cfaNodes.size());
-        }
-        CFANode firstNode = cfaNodes.asList().get(0);
-
-        int startline = Integer.parseInt(e.getLabel().getMapping().get(KeyDef.STARTLINE));
-        if (isLoopHead) {
-          // The witness removes the actual loop start node opting for the edge to already contain
-          // the
-          // next actual statement being executed and not the loop start node
-          startline -= 1;
-        }
-
-        int startoffset = Integer.parseInt(e.getLabel().getMapping().get(KeyDef.OFFSET));
-        FileLocation loc =
-            new FileLocation(
-                Path.of(pWitness.getOriginFile()), startoffset, 0, startline, startline);
-
-        // See if we already exported the invariant for this location, else export it
-        if (exportedInvariantsAtFilelocation.contains(loc)) {
-          continue;
-        } else {
-          exportedInvariantsAtFilelocation.add(loc);
-        }
-
-        builder.add(new InvariantWitness(invariantExpression, loc, firstNode));
+      if (isLoopHead) {
+        builder.addAll(handleLoopInvariant(invariantExpression, invexpstate, pWitness));
+      } else if (writeLocationInvariants) {
+        builder.addAll(handleLocationInvariant(invariantExpression, invexpstate, pWitness));
       }
     }
 
     return builder.build().asList();
+  }
+
+  private Set<InvariantWitness> handleLoopInvariant(
+      ExpressionTree<Object> pInvariantExpression, String pInvexpstate, Witness pWitness) {
+    // Loop Invariants should be at the loop head i.e. at the statement where the CFA
+    // says there is a Loop Start node. This cannot be done through the witness,
+    // we therefore project the witness away and work diorectly on the CFA.
+    // The semantics are when a node is matched in the witness only when coming from the
+    // incoming edge, therefore edges should be at the loop heads.
+    ImmutableSet<CFANode> cfaNodes =
+        FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
+            .transform(x -> AbstractStates.asIterable(x).filter(LocationState.class))
+            .stream()
+            .flatMap(x -> x.stream())
+            .map(x -> x.getLocationNode())
+            .collect(ImmutableSet.toImmutableSet());
+
+    Set<InvariantWitness> invariants = new HashSet<>();
+
+    CFA cfa = pWitness.getCfa();
+    if (cfa.getLoopStructure().isEmpty()) {
+      logger.log(
+          Level.WARNING,
+          "Could not export the Loop Invariant, since Loop Structures have been disabled in the CFA!");
+      return invariants;
+    }
+
+
+    Set<Loop> allPossibleLoops = new HashSet<>();
+    for (CFANode node: cfaNodes) {
+      // Since we now that the CFANode we have is very close to the actual Loop head node
+      // we need to find the Loop which is the smallest possible, but still contains the CFANode
+      // in question. Since this will be the for which the invariant should hold
+      int minimalLoopSize = Integer.MAX_VALUE;
+      Optional<Loop> tightestFittingLoop = Optional.empty();
+      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+        if (loop.getLoopNodes().contains(node) && loop.getLoopNodes().size() < minimalLoopSize) {
+          tightestFittingLoop = Optional.of(loop);
+          minimalLoopSize = loop.getLoopNodes().size();
+        }
+      }
+      if (tightestFittingLoop.isPresent()) {
+        allPossibleLoops.add(tightestFittingLoop.orElseThrow());
+      }
+    }
+
+    for (Loop loop : allPossibleLoops) {
+      ImmutableSet<CFAEdge> enteringEdges =
+          FluentIterable.from(loop.getLoopHeads()).transform(CFAUtils::enteringEdges).stream()
+              .flatMap(x -> x.stream())
+              .collect(ImmutableSet.toImmutableSet());
+
+      for (CFAEdge edge : enteringEdges) {
+        FileLocation loc = edge.getFileLocation();
+        if (loc == FileLocation.DUMMY || loc == FileLocation.MULTIPLE_FILES) {
+          continue;
+        }
+
+        invariants.add(
+            new InvariantWitness(
+                pInvariantExpression, edge.getFileLocation(), edge.getSuccessor()));
+      }
+    }
+
+    return invariants;
+  }
+
+  private Set<InvariantWitness> handleLocationInvariant(
+      ExpressionTree<Object> pInvariantExpression, String pInvexpstate, Witness pWitness) {
+    // To handle location invariants, we need to discover which statement they come from
+    ImmutableSet<CFAEdge> enteringEdges;
+    Set<InvariantWitness> invariants = new HashSet<>();
+
+    List<Edge> enteringEdgeWitness = (List<Edge>) pWitness.getEnteringEdges().get(pInvexpstate);
+    for (Edge e : enteringEdgeWitness) {
+      if (e.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE)) {
+        // If they come from only a single branch of a if statement, then using the Witness
+        // to discover where they come from is hard, therefore we need to use the CFA
+        ImmutableSet<CFANode> cfaNodes =
+            FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
+                .transform(x -> AbstractStates.asIterable(x).filter(LocationState.class))
+                .stream()
+                .flatMap(x -> x.stream())
+                .map(x -> x.getLocationNode())
+                .collect(ImmutableSet.toImmutableSet());
+
+        enteringEdges =
+            FluentIterable.from(cfaNodes).transform(CFAUtils::enteringEdges).stream()
+                .flatMap(x -> x.stream())
+                .collect(ImmutableSet.toImmutableSet());
+
+      } else {
+        // If they do not come from if statements and are merely present, then we need to use
+        // the GraphML format
+        enteringEdges = pWitness.getCFAEdgeFor(e).stream().collect(ImmutableSet.toImmutableSet());
+      }
+
+      if (enteringEdges.size() != 1) {
+        logger.logf(
+            Level.WARNING,
+            "Expected one CFA entering edge matching the location invariant in the witness, but identified %d!",
+            enteringEdges.size());
+      }
+
+      for (CFAEdge edge : enteringEdges) {
+        FileLocation loc = edge.getFileLocation();
+        if (loc == FileLocation.DUMMY || loc == FileLocation.MULTIPLE_FILES) {
+          continue;
+        }
+
+        invariants.add(new InvariantWitness(pInvariantExpression, loc, edge.getSuccessor()));
+      }
+    }
+
+    return invariants;
   }
 }
