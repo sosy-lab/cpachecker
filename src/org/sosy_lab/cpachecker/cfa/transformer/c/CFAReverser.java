@@ -16,6 +16,7 @@ import com.google.common.collect.TreeMultimap;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -189,10 +191,6 @@ public class CFAReverser {
       this.nodeMap = new HashMap<>();
       // Search for the target in the original CFA
       this.targets = targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec);
-      // Should contain at least target in the original CFA
-      if (this.targets.size() < 1) {
-        throw new AssertionError("Not found any target in this CFA");
-      }
     }
 
     /**
@@ -217,7 +215,7 @@ public class CFAReverser {
       // exitEdge
       CFAEdge exitEdge = exitNode.getEnteringEdge(0);
 
-      // TODO: possible to be return edge
+      // TODO: possible to be return edge in the future
       assert exitEdge instanceof BlankEdge;
       CFANode predeccsorNode = exitEdge.getPredecessor();
       CFACreationUtils.removeEdgeFromNodes(exitEdge);
@@ -292,13 +290,15 @@ public class CFAReverser {
     /////////////////////////////////////////////////////////////////////////////
     private final class CfaFunctionBuilder {
 
-      private Map<String, CVariableDeclaration> variables; // Function scope
+      private Map<String, CVariableDeclaration> variables; // Function scope variables
       private CFunctionEntryNode oldEntryNode; // Entry node for the old Function CFA
       private int branchCnt; // How many branch in this function
       private Set<CFANode> localTargets;
+      private Map<CParameterDeclaration, CVariableDeclaration> parameters; // Function parameters
 
       private CfaFunctionBuilder(CFunctionEntryNode oldEntryNode) {
         this.variables = new HashMap<>();
+        this.parameters = new HashMap<>();
         this.oldEntryNode = oldEntryNode;
         this.branchCnt = 0;
         this.localTargets = new HashSet<>();
@@ -309,7 +309,6 @@ public class CFAReverser {
        */
       private CFunctionEntryNode reverse() {
         String funcName = oldEntryNode.getFunctionName();
-        pLog.log(Level.INFO, "reversing function " + funcName);
 
         // get the new function declaration
         CFunctionDeclaration oldFuncDecl = oldEntryNode.getFunctionDefinition();
@@ -363,15 +362,47 @@ public class CFAReverser {
         CIdExpression targetBranchVarExpr =
             new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
 
-        // Declare variable
+        // Declare local variables
         CFANode curr = initStartNode;
         curr = createVariableDeclaration(curr);
 
-        // =============================================================================
         // Create non det branch for each target
-        curr = jumpToTargets(targetBranchVarExpr, curr, initDoneNode);
+        jumpToTargets(targetBranchVarExpr, curr, initDoneNode);
+
+        // insert function epilogue
+        insertFuncEpilogue(newEntryNode);
 
         return newEntryNode;
+      }
+
+      /**
+       * insert the function epilogue
+       *
+       * @param entryNode Function CFA entry node
+       */
+      private void insertFuncEpilogue(CFunctionEntryNode entryNode) {
+        // exitNode
+        FunctionExitNode exitNode = entryNode.getExitNode().orElseThrow();
+        assert exitNode.getNumEnteringEdges() == 1;
+
+        // exitEdge
+        CFAEdge exitEdge = exitNode.getEnteringEdge(0);
+
+        // TODO: possible to be return edge in the future
+        assert exitEdge instanceof BlankEdge;
+
+        CFACreationUtils.removeEdgeFromNodes(exitEdge);
+
+        CFANode curr = exitEdge.getPredecessor();
+
+        for (Map.Entry<CParameterDeclaration, CVariableDeclaration> e : parameters.entrySet()) {
+          CIdExpression para = new CIdExpression(FileLocation.DUMMY, e.getKey());
+          CIdExpression vara = new CIdExpression(FileLocation.DUMMY, e.getValue());
+          curr = appendAssumeEdge(para, vara, curr, true);
+        }
+
+        exitEdge = new BlankEdge("", FileLocation.DUMMY, curr, exitNode, "default return");
+        addToCFA(exitEdge);
       }
 
       private CFANode jumpToTargets(
@@ -422,7 +453,15 @@ public class CFAReverser {
         return curr;
       }
 
-      // BFS the old CFA to create the new CFA
+      /**
+       * bfs the function CFA to create the reverse function CFA
+       *
+       * @param funcName currnet function name
+       * @param oldExitNode exit node for the original function CFA
+       * @param newEntryNode entry node for the reverse function CFA
+       * @param newFuncDecl reverse function declaration
+       * @return reverse CFA entry node
+       */
       private CFunctionEntryNode bfs(
           String funcName,
           FunctionExitNode oldExitNode,
@@ -493,7 +532,7 @@ public class CFAReverser {
 
             CFANode oldNext = oldEdge.getPredecessor();
 
-            if (oldNext.getFunctionName() != oldhead.getFunctionName()) {
+            if (!oldNext.getFunctionName().equals(oldhead.getFunctionName())) {
               continue;
             }
 
@@ -523,7 +562,6 @@ public class CFAReverser {
             nodeMap.put(oldNext, newNext);
 
             // do not enter in other functions
-
             if (visited.add(oldNext)) {
               waitList.add(oldNext);
             }
@@ -557,6 +595,7 @@ public class CFAReverser {
         pLog.log(Level.INFO, "Reversing Edge: " + edge + " " + edge.getClass());
 
         assert !(edge instanceof CFunctionCallEdge || edge instanceof CFunctionReturnEdge);
+
         if (edge instanceof BlankEdge) {
           reverseBlankEdge((BlankEdge) edge, from, to);
         } else if (edge instanceof CDeclarationEdge) {
@@ -590,6 +629,7 @@ public class CFAReverser {
         String funcName = oldFuncDecl.getName();
 
         CFunctionDeclaration newFuncDecl = funcDecls.get(funcName);
+
         if (newFuncDecl == null) {
           newFuncDecl =
               new CFunctionDeclaration(
@@ -597,7 +637,7 @@ public class CFAReverser {
                   oldFuncDecl.getType(),
                   oldFuncDecl.getName(),
                   oldFuncDecl.getOrigName(),
-                  ImmutableList.of(),
+                  oldFuncDecl.getParameters(),
                   oldFuncDecl.getAttributes());
           funcDecls.put(funcName, newFuncDecl);
         }
@@ -621,14 +661,14 @@ public class CFAReverser {
         return newNode;
       }
 
-      private CFunctionDeclaration reverseFunctionDeclaration(CFunctionDeclaration fdef) {
+      private CFunctionDeclaration reverseFunctionDeclaration(CFunctionDeclaration funcDecl) {
         return new CFunctionDeclaration(
-            fdef.getFileLocation(),
-            fdef.getType(),
-            fdef.getName(),
-            fdef.getOrigName(),
-            fdef.getParameters(),
-            fdef.getAttributes());
+            funcDecl.getFileLocation(),
+            funcDecl.getType(),
+            funcDecl.getName(),
+            funcDecl.getOrigName(),
+            funcDecl.getParameters(),
+            funcDecl.getAttributes());
       }
 
       private void reverseFunctionSummaryEdge(CFunctionSummaryEdge edge, CFANode from, CFANode to) {
@@ -920,6 +960,22 @@ public class CFAReverser {
         addToCFA(newCallStmtEdge);
       }
 
+      private List<CExpression> handleFunctionArgs(List<CExpression> argsList) {
+        List<CExpression> newArgsList = new ArrayList<>();
+
+        for (CExpression arg : argsList) {
+          LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
+          CExpression newArg = arg.accept(lfinder);
+          newArgsList.add(newArg);
+        }
+
+        return newArgsList;
+      }
+
+      /**
+       * @param callExpr the original function call expression
+       * @return the reverse function call expression
+       */
       private CFunctionCallExpression reverseFunctionCallExpression(
           CFunctionCallExpression callExpr) {
 
@@ -935,7 +991,7 @@ public class CFAReverser {
                   decl.getType(),
                   decl.getName(),
                   decl.getOrigName(),
-                  ImmutableList.of(),
+                  decl.getParameters(),
                   decl.getAttributes());
           funcDecls.put(funcName, newDecl);
           funcDecl = newDecl;
@@ -948,7 +1004,7 @@ public class CFAReverser {
             FileLocation.DUMMY,
             callExpr.getExpressionType(),
             funcExpr,
-            ImmutableList.of(),
+            handleFunctionArgs(callExpr.getParameterExpressions()),
             funcDecl);
       }
 
@@ -982,8 +1038,8 @@ public class CFAReverser {
           return newDecl;
         }
 
-        private CIdExpression handleVarDeclExpr(CIdExpression pIastIdExpression) {
-          CVariableDeclaration decl = (CVariableDeclaration) pIastIdExpression.getDeclaration();
+        private CIdExpression handleVarDeclExpr(CIdExpression expr) {
+          CVariableDeclaration decl = (CVariableDeclaration) expr.getDeclaration();
 
           CVariableDeclaration newDecl;
 
@@ -1000,6 +1056,25 @@ public class CFAReverser {
           return newExpr;
         }
 
+        private CIdExpression handleParaDeclExpr(CIdExpression expr) {
+
+          CParameterDeclaration paraDecl = (CParameterDeclaration) expr.getDeclaration();
+          CVariableDeclaration varaDecl = variables.get(paraDecl.getQualifiedName());
+
+          // handle new parameter
+          if (varaDecl == null) {
+            varaDecl = paraDecl.asVariableDeclaration();
+            CParameterDeclaration newParaDecl =
+                new CParameterDeclaration(
+                    FileLocation.DUMMY,
+                    paraDecl.getType(),
+                    "PARAMETER__" + paraDecl.getQualifiedName());
+            parameters.put(newParaDecl, varaDecl);
+          }
+
+          return new CIdExpression(FileLocation.DUMMY, varaDecl);
+        }
+
         @Override
         public CExpression visit(CIdExpression pIastIdExpression) throws NoException {
 
@@ -1007,6 +1082,8 @@ public class CFAReverser {
 
           if (decl instanceof CVariableDeclaration) {
             return handleVarDeclExpr(pIastIdExpression);
+          } else if (decl instanceof CParameterDeclaration) {
+            return handleParaDeclExpr(pIastIdExpression);
           }
 
           return null;
@@ -1201,7 +1278,7 @@ public class CFAReverser {
           CVariableDeclaration newDecl =
               new CVariableDeclaration(
                   decl.getFileLocation(),
-                  false,
+                  decl.isGlobal(),
                   decl.getCStorageClass(),
                   decl.getType(),
                   decl.getName(),
@@ -1212,13 +1289,13 @@ public class CFAReverser {
           return newDecl;
         }
 
-        private CExpression handleVarDecl(CIdExpression pIastCIdExpression) {
+        private CExpression handleVarDecl(CIdExpression expr) {
 
-          if (lvalues.contains(pIastCIdExpression)) {
-            return createTmpValue(pIastCIdExpression);
+          if (lvalues.contains(expr)) {
+            return createTmpValue(expr);
           }
 
-          CVariableDeclaration decl = (CVariableDeclaration) pIastCIdExpression.getDeclaration();
+          CVariableDeclaration decl = (CVariableDeclaration) expr.getDeclaration();
 
           CVariableDeclaration newDecl = variables.get(decl.getQualifiedName());
 
@@ -1226,7 +1303,34 @@ public class CFAReverser {
             newDecl = createNewVar(decl);
           }
 
-          return new CIdExpression(pIastCIdExpression.getFileLocation(), newDecl);
+          return new CIdExpression(expr.getFileLocation(), newDecl);
+        }
+
+        private CIdExpression handleParaDeclExpr(CIdExpression expr) {
+
+          CParameterDeclaration paraDecl = (CParameterDeclaration) expr.getDeclaration();
+          CVariableDeclaration varaDecl = variables.get(paraDecl.getQualifiedName());
+
+          // handle new parameter
+          if (varaDecl == null) {
+            varaDecl =
+                new CVariableDeclaration(
+                    FileLocation.DUMMY,
+                    false,
+                    CStorageClass.AUTO,
+                    paraDecl.getType(),
+                    paraDecl.getName() + "__PARAMETER",
+                    paraDecl.getOrigName() + "__PARAMETER",
+                    paraDecl.getQualifiedName() + "__PARAMETER",
+                    null);
+            CParameterDeclaration newParaDecl =
+                new CParameterDeclaration(
+                    FileLocation.DUMMY, paraDecl.getType(), paraDecl.getName());
+            newParaDecl.setQualifiedName(paraDecl.getQualifiedName());
+            parameters.put(newParaDecl, varaDecl);
+          }
+
+          return new CIdExpression(FileLocation.DUMMY, varaDecl);
         }
 
         @Override
@@ -1236,6 +1340,8 @@ public class CFAReverser {
 
           if (decl instanceof CVariableDeclaration) {
             return handleVarDecl(pIastIdExpression);
+          } else if (decl instanceof CParameterDeclaration) {
+            return handleParaDeclExpr(pIastIdExpression);
           }
 
           return null;
@@ -1381,7 +1487,6 @@ public class CFAReverser {
     /////////////////////////////////////////////////////////////////////////////
     // Helper methods
     /////////////////////////////////////////////////////////////////////////////
-    /** Add edge to the leaving and entering edges of its predecessor and successor. */
     private void addToCFA(CFAEdge edge) {
       CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
     }
@@ -1405,6 +1510,13 @@ public class CFAReverser {
           FileLocation.DUMMY, type, funcexpr, ImmutableList.of(), decl);
     }
 
+    /**
+     * Create an ndet assignment edge
+     *
+     * @param lhs expression at the left side
+     * @param from start node
+     * @param to end node
+     */
     private void createNonDetAssignEdge(CLeftHandSide lhs, CFANode from, CFANode to) {
       CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(lhs.getExpressionType());
       CFunctionCallAssignmentStatement ndetAssign =
@@ -1416,6 +1528,13 @@ public class CFAReverser {
       addToCFA(ndetAssignEdge);
     }
 
+    /**
+     * Appednd an ndet assignment edge
+     *
+     * @param lhs expression at the left side
+     * @param curr curr CFA node
+     * @return the next CFA node
+     */
     private CFANode appendNonDetAssignEdge(CLeftHandSide lhs, CFANode curr) {
       CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(lhs.getExpressionType());
       CFunctionCallAssignmentStatement ndetAssign =
@@ -1432,12 +1551,12 @@ public class CFAReverser {
     }
 
     /**
-     * Append an Assignment edge
+     * Append an assignment edge
      *
      * @param lExpr expression at the left side
      * @param rExpr expression at the right side
      * @param curr current CFA node
-     * @return the new CFA node
+     * @return the next CFA node
      */
     private CFANode appendAssignEdge(CLeftHandSide lExpr, CExpression rExpr, CFANode curr) {
 
