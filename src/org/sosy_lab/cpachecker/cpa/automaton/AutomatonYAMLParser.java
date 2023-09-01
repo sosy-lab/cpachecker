@@ -316,6 +316,9 @@ public class AutomatonYAMLParser {
       if (entry instanceof InvariantEntry invariantEntry) {
         Integer line = invariantEntry.getLocation().getLine();
         String invariantString = invariantEntry.getInvariant().getString();
+        if (!lineToSeenInvariants.containsKey(line)) {
+          lineToSeenInvariants.put(line, new HashSet<>());
+        }
 
         // Parsing is expensive, therefore cache everything we can
         if (lineToSeenInvariants.get(line).contains(invariantString)) {
