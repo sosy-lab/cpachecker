@@ -105,7 +105,6 @@ public class InferAnalysis extends BlockSummaryAnalysis
 
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();
-      int expectedRootStrengthens = blockGraph.getUniquePaths();
       String entryFunctionName = blockGraph.getEntryBlock().getFirst().getFunctionName();
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
@@ -113,8 +112,7 @@ public class InferAnalysis extends BlockSummaryAnalysis
                   new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
                   specification)
               .createAdditionalConnections(1)
-              .addInferRootWorker(
-                  blockGraph.getRoot(), options, expectedRootStrengthens, entryFunctionName);
+              .addInferRootWorker(blockGraph.getRoot(), options, entryFunctionName);
       for (BlockNode distinctNode : blocks) {
         averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
         builder = builder.addInferWorker(distinctNode, options);

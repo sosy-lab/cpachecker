@@ -309,7 +309,13 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
      * Messages of this type transport the result from the root worker indicating violations were
      * found
      */
-    INFER_ROOT_VIOLATIONS
+    INFER_ROOT_VIOLATIONS,
+
+    /**
+     * Messages of this type transport an acknoledgement from an InferWorker that it is finished
+     * sending messages
+     */
+    INFER_ACKNOWLEDGMENT
   }
 
   public static class MessageConverter {

@@ -12,6 +12,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -21,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorker;
@@ -38,6 +42,14 @@ public class InferWorker extends BlockSummaryWorker {
   private boolean shutdown;
 
   private final BlockSummaryConnection connection;
+
+  private final String workerFunction;
+
+  static final String TOTAL_BLOCK_MESSAGES = "total_block_messages";
+
+  private Map<String, Optional<Integer>> expectedMessages;
+  private Map<String, Integer> messagesReceived;
+  private int messagesSent;
 
   /**
    * {@link InferWorker}s trigger CEGAR refinement using forward and backward analyses to find a
@@ -74,6 +86,11 @@ public class InferWorker extends BlockSummaryWorker {
     dcpaAlgorithm =
         new InferDCPAAlgorithm(
             getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
+    workerFunction = block.getFirst().getFunctionName();
+    expectedMessages = getInitialExpectedMessages();
+    messagesReceived = getInitialReceivedMessages();
+
+    messagesSent = 0;
   }
 
   /*
@@ -90,14 +107,35 @@ public class InferWorker extends BlockSummaryWorker {
 
     return switch (message.getType()) {
       case ERROR_CONDITION, BLOCK_POSTCONDITION -> {
-        AbstractState state = dcpaAlgorithm.getDCPA().getDeserializeOperator().deserialize(message);
         String messageFunction =
             (String) message.getPayload().get(InferDCPAAlgorithm.MESSAGE_FUNCTION);
+        int incrementedReceivedCount = messagesReceived.get(messageFunction) + 1;
+        messagesReceived.put(messageFunction, incrementedReceivedCount);
+
+        AbstractState state = dcpaAlgorithm.getDCPA().getDeserializeOperator().deserialize(message);
 
         Collection<BlockSummaryMessage> messages =
             dcpaAlgorithm.runAnalysisUnderCondition(
                 Optional.of(state), message.getType(), messageFunction);
+        messagesSent += messages.size();
+
+        if (allAcknowledged() && allReceived()) {
+          BlockSummaryMessage ackMessage = createAcknowledgementMessage(messagesSent);
+          messages = FluentIterable.from(messages).append(ackMessage).toList();
+        }
+
         yield messages;
+      }
+      case INFER_ACKNOWLEDGMENT -> {
+        String messageFunction =
+            (String) message.getPayload().get(InferDCPAAlgorithm.MESSAGE_FUNCTION);
+        Integer ackCount = (Integer) message.getPayload().get(TOTAL_BLOCK_MESSAGES);
+        expectedMessages.put(messageFunction, Optional.of(ackCount));
+
+        if (allAcknowledged() && allReceived()) {
+          yield ImmutableSet.of(createAcknowledgementMessage(messagesSent));
+        }
+        yield ImmutableSet.of();
       }
       default -> {
         yield ImmutableSet.of();
@@ -119,7 +157,16 @@ public class InferWorker extends BlockSummaryWorker {
   public void run() {
     try {
       Collection<BlockSummaryMessage> messages = dcpaAlgorithm.runInitialAnalysis();
-      broadcast(messages);
+      int initialSize = messages.size();
+      messagesSent += initialSize;
+      if (isLeafWorker()) {
+        BlockSummaryMessage acknowledgement = createAcknowledgementMessage(initialSize);
+        List<BlockSummaryMessage> messagesWithAck =
+            FluentIterable.from(messages).append(acknowledgement).toList();
+        broadcast(messagesWithAck);
+      } else {
+        broadcast(messages);
+      }
       super.run();
     } catch (CPAException e) {
       getLogger().logException(Level.SEVERE, e, "Worker stopped working...");
@@ -149,7 +196,51 @@ public class InferWorker extends BlockSummaryWorker {
     return FluentIterable.from(block.getEdges())
         .filter(FunctionSummaryEdge.class)
         .transform(edge -> edge.getFunctionEntry().getFunctionName())
-        .filter(name -> !name.equals(block.getFirst().getFunctionName()))
+        .filter(name -> !name.equals("reach_error"))
         .toSet();
+  }
+
+  private boolean allAcknowledged() {
+    return !expectedMessages.containsValue(Optional.empty());
+  }
+
+  private boolean allReceived() {
+    for (Map.Entry<String, Integer> entry : messagesReceived.entrySet()) {
+      Optional<Integer> count = expectedMessages.get(entry.getKey());
+      if (count.isEmpty() || count.get() != entry.getValue()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private BlockSummaryMessage createAcknowledgementMessage(int pSize) {
+    BlockSummaryMessagePayload payload =
+        BlockSummaryMessagePayload.builder()
+            .addEntry(InferDCPAAlgorithm.MESSAGE_FUNCTION, workerFunction)
+            .addEntry(TOTAL_BLOCK_MESSAGES, pSize)
+            .buildPayload();
+    return InferAcknowledgementMessage.newAcknowledgement(
+        block.getId(), block.getLast().getNodeNumber(), payload);
+  }
+
+  private Map<String, Optional<Integer>> getInitialExpectedMessages() {
+    Map<String, Optional<Integer>> initial = new HashMap<>();
+    for (String fn : calledFunctions()) {
+      initial.put(fn, Optional.empty());
+    }
+    return initial;
+  }
+
+  private Map<String, Integer> getInitialReceivedMessages() {
+    Map<String, Integer> initial = new HashMap<>();
+    for (String fn : calledFunctions()) {
+      initial.put(fn, 0);
+    }
+    return initial;
+  }
+
+  private boolean isLeafWorker() {
+    return calledFunctions().size() == 0;
   }
 }

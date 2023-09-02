@@ -16,7 +16,6 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,7 +58,8 @@ public class InferDCPAAlgorithm {
 
   // json field which identifies which funciton is sending a message
   public static final String MESSAGE_FUNCTION = "messageFunction";
-  public static final String UNIQUE_STRENGTHEN_ID = "uniqueStrengthId";
+  public static final String RUN_ORDER = "runOrder";
+  public static int runCounter;
 
   public InferDCPAAlgorithm(
       LogManager pLogger,
@@ -89,6 +89,7 @@ public class InferDCPAAlgorithm {
     blockStartPrecision =
         dcpa.getInitialPrecision(block.getFirst(), StateSpacePartition.getDefaultPartition());
     startState = dcpa.getInitialState(block.getFirst(), StateSpacePartition.getDefaultPartition());
+    runCounter = 0;
   }
 
   public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
@@ -116,12 +117,12 @@ public class InferDCPAAlgorithm {
   }
 
   private BlockSummaryMessage createPostConditionMessage(
-      BlockSummaryMessagePayload pPayload, UUID uuid) {
+      BlockSummaryMessagePayload pPayload, int runCount) {
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
             .addAllEntries(pPayload)
             .addEntry(MESSAGE_FUNCTION, functionName)
-            .addEntry(UNIQUE_STRENGTHEN_ID, uuid.toString())
+            .addEntry(RUN_ORDER, runCount)
             .buildPayload();
     return BlockSummaryMessage.newBlockPostCondition(
         block.getId(),
@@ -132,7 +133,7 @@ public class InferDCPAAlgorithm {
 
   private Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations) {
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
-    UUID uuid = UUID.randomUUID();
+    int runCount = runCounter++;
     for (ARGState targetState : violations) {
       Optional<CFANode> targetNode = DCPAAlgorithms.abstractStateToLocation(targetState);
       if (targetNode.isEmpty()) {
@@ -144,7 +145,7 @@ public class InferDCPAAlgorithm {
           BlockSummaryMessagePayload.builder()
               .addAllEntries(initial)
               .addEntry(MESSAGE_FUNCTION, functionName)
-              .addEntry(UNIQUE_STRENGTHEN_ID, uuid.toString())
+              .addEntry(RUN_ORDER, runCount)
               .buildPayload();
       BlockSummaryMessagePayload withStatus = DCPAAlgorithms.appendStatus(status, withName);
       answers.add(
@@ -155,11 +156,10 @@ public class InferDCPAAlgorithm {
   }
 
   private Collection<BlockSummaryMessage> reportUnreachableBlockEnd() {
-    UUID uuid = UUID.randomUUID();
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
             .addEntry(MESSAGE_FUNCTION, functionName)
-            .addEntry(UNIQUE_STRENGTHEN_ID, uuid.toString())
+            .addEntry(RUN_ORDER, runCounter++)
             .buildPayload();
 
     return ImmutableSet.of(
@@ -187,10 +187,10 @@ public class InferDCPAAlgorithm {
     // empty block ends imply that there was no abstraction node reached
     assert !result.getBlockEnds().isEmpty() || result.getBlockTargets().isEmpty();
     if (!result.getBlockEnds().isEmpty()) {
-      UUID uuid = UUID.randomUUID();
+      int runCount = runCounter++;
       return FluentIterable.from(result.getBlockEnds())
           .transform(state -> dcpa.serialize(state, reachedSet.getPrecision(state)))
-          .transform(p -> createPostConditionMessage(p, uuid))
+          .transform(p -> createPostConditionMessage(p, runCount))
           .toList();
     } else {
       return reportUnreachableBlockEnd();

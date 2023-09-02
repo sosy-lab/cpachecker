@@ -12,20 +12,13 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
@@ -35,20 +28,16 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
  */
 public class ParallelBlockGraph extends BlockGraph {
 
-  private final int uniquePaths;
   private final BlockNode entryBlock;
-  private final Map<String, BlockNode> functionToBlock;
 
   public ParallelBlockGraph(
       BlockNode pRoot, ImmutableSet<BlockNode> pNodes, String pEntryFunction) {
     super(pRoot, pNodes);
-    functionToBlock = Maps.uniqueIndex(pNodes, n -> n.getFirst().getFunctionName());
     Optional<BlockNode> maybeEntryBlock =
         pNodes.stream()
             .filter(n -> n.getFirst().getFunctionName().equals(pEntryFunction))
             .findFirst();
     entryBlock = maybeEntryBlock.isPresent() ? maybeEntryBlock.orElseThrow() : pRoot;
-    uniquePaths = uniquePaths(pNodes);
   }
 
   public static ParallelBlockGraph fromBlockNodesWithoutGraphInformation(
@@ -103,64 +92,7 @@ public class ParallelBlockGraph extends BlockGraph {
     return new ParallelBlockGraph(root, blockNodes, entryFunction);
   }
 
-  public int getUniquePaths() {
-    return uniquePaths;
-  }
-
   public BlockNode getEntryBlock() {
     return entryBlock;
-  }
-
-  /*Unique paths is the number of paths from the entry to the exit of the program.
-   * It is calculated by a topological sort of the program graph.
-   * The path count of a node is the sum of the path counts of its predecessors.
-   * The path count of the exit nodes is the number of paths from the entry to the exit.
-   */
-  private int uniquePaths(ImmutableSet<BlockNode> nodes) {
-    Map<BlockNode, Integer> pathCount = new HashMap<>(nodes.size());
-    nodes.forEach(n -> pathCount.put(n, 0));
-    pathCount.put(entryBlock, 1);
-
-    // perform a topological sort
-    List<BlockNode> sortedNodes = new ArrayList<>();
-    sortedNodes.add(entryBlock);
-    sortedNodes = ImmutableList.copyOf(topologicalSort(sortedNodes, entryBlock));
-
-    // iterate over the sorted nodes and update the path count
-    for (BlockNode node : sortedNodes) {
-      for (BlockNode succ : getSummarySuccessors(node)) {
-        pathCount.put(succ, pathCount.get(succ) + pathCount.get(node));
-      }
-    }
-
-    return nodes.stream().mapToInt(n -> pathCount.get(n)).sum();
-  }
-
-  // Recursive bfs for topological sort
-  private List<BlockNode> topologicalSort(List<BlockNode> builder, BlockNode root) {
-    ImmutableSet<BlockNode> successorBlocks = getSummarySuccessors(root);
-    for (BlockNode successor : successorBlocks) {
-      if (!builder.contains(successor)) {
-        builder.add(successor);
-      }
-    }
-
-    for (BlockNode successor : successorBlocks) {
-      builder = topologicalSort(builder, successor);
-    }
-    return builder;
-  }
-
-  private ImmutableSet<BlockNode> getSummarySuccessors(BlockNode root) {
-    return root.getEdges().stream()
-        .filter(
-            e ->
-                e instanceof FunctionSummaryEdge fce
-                    && !fce.getFunctionEntry().getFunctionName().equals("reach_error"))
-        .map(FunctionSummaryEdge.class::cast)
-        .map(e -> e.getFunctionEntry().getFunctionName())
-        .distinct()
-        .map(name -> functionToBlock.get(name))
-        .collect(ImmutableSet.toImmutableSet());
   }
 }

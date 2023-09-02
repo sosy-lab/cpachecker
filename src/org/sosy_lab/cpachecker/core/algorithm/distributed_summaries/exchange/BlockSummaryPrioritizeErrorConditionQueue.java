@@ -67,7 +67,8 @@ public class BlockSummaryPrioritizeErrorConditionQueue
             FOUND_RESULT,
             ERROR,
             ERROR_CONDITION_UNREACHABLE,
-            INFER_ROOT_PROOF -> highestPriority.add(message);
+            INFER_ROOT_PROOF,
+            INFER_ACKNOWLEDGMENT -> highestPriority.add(message);
         case ERROR_CONDITION, BLOCK_POSTCONDITION, INFER_ROOT_VIOLATIONS -> next.get(
                 message.getType())
             .add(message);

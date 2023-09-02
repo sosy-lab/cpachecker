@@ -11,13 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorker;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -26,30 +26,25 @@ public class InferRootWorker extends BlockSummaryWorker {
 
   private final BlockSummaryConnection connection;
   private boolean shutdown;
-  private final int expectedStrengthens;
   private int strengthenCounter;
   private final String functionEntry;
-
-  // A single strengthen can send multiple messages
-  // We only want to increment the strengthen counter once per strengthen
-  private Set<String> uniqueStrengthens;
+  private Optional<Integer> expectedStrengthens;
+  private MessageType lastReceivedType;
+  private int currentMaxRun;
 
   private static final String VIOLATION_PATHS = "violation_paths";
 
   public InferRootWorker(
-      String pId,
-      BlockSummaryConnection pConnection,
-      InferOptions pOptions,
-      int pExpectedStrengthens,
-      String pFunctionEntry)
+      String pId, BlockSummaryConnection pConnection, InferOptions pOptions, String pFunctionEntry)
       throws InvalidConfigurationException {
     super("infer-root-worker-" + pId, new BlockSummaryAnalysisOptions(pOptions.getParentConfig()));
     connection = pConnection;
     shutdown = false;
     functionEntry = pFunctionEntry;
-    expectedStrengthens = pExpectedStrengthens;
+    expectedStrengthens = Optional.empty();
     strengthenCounter = 0;
-    uniqueStrengthens = new HashSet<>();
+    lastReceivedType = MessageType.BLOCK_POSTCONDITION;
+    currentMaxRun = 0;
   }
 
   @Override
@@ -57,28 +52,40 @@ public class InferRootWorker extends BlockSummaryWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException, IOException {
 
-    if (!messageFromEntryFunction(pMessage) || !isUniqueStrengthn(pMessage)) {
+    if (!messageFromEntryFunction(pMessage)) {
       return ImmutableSet.of();
     }
 
-    strengthenCounter++;
+    return switch (pMessage.getType()) {
+      case ERROR_CONDITION, BLOCK_POSTCONDITION -> {
+        strengthenCounter++;
+        int runOrder = (int) pMessage.getPayload().get(InferDCPAAlgorithm.RUN_ORDER);
+        if (runOrder >= currentMaxRun) {
+          lastReceivedType = pMessage.getType();
+          currentMaxRun = runOrder;
+        }
 
-    if (strengthenCounter < expectedStrengthens) {
-      return ImmutableSet.of();
-    } else {
-      return switch (pMessage.getType()) {
-        case ERROR_CONDITION -> {
-          yield ImmutableSet.of(violationResult(ImmutableSet.of()));
-        }
-        case BLOCK_POSTCONDITION -> {
-          yield ImmutableSet.of(proofResult());
-        }
-        default -> {
+        if (expectedStrengthens.isPresent() && strengthenCounter >= expectedStrengthens.get()) {
           shutdown = true;
-          yield ImmutableSet.of();
+          yield ImmutableSet.of(resultMessage());
         }
-      };
-    }
+        yield ImmutableSet.of();
+      }
+      case INFER_ACKNOWLEDGMENT -> {
+        expectedStrengthens =
+            Optional.of((int) pMessage.getPayload().get(InferWorker.TOTAL_BLOCK_MESSAGES));
+        if (strengthenCounter >= expectedStrengthens.get()) {
+          shutdown = true;
+          yield ImmutableSet.of(resultMessage());
+        }
+
+        yield ImmutableSet.of();
+      }
+      default -> {
+        shutdown = true;
+        yield ImmutableSet.of();
+      }
+    };
   }
 
   @Override
@@ -114,11 +121,9 @@ public class InferRootWorker extends BlockSummaryWorker {
     return messageFunction.equals(functionEntry);
   }
 
-  private boolean isUniqueStrengthn(BlockSummaryMessage pMessage) {
-    String strengthenUUUID =
-        (String) pMessage.getPayload().get(InferDCPAAlgorithm.UNIQUE_STRENGTHEN_ID);
-    boolean isUnique = !uniqueStrengthens.contains(strengthenUUUID);
-    uniqueStrengthens.add(strengthenUUUID);
-    return isUnique;
+  private BlockSummaryMessage resultMessage() {
+    return lastReceivedType == MessageType.ERROR_CONDITION
+        ? violationResult(ImmutableSet.of())
+        : proofResult();
   }
 }
