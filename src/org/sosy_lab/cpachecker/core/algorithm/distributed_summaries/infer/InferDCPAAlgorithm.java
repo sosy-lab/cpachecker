@@ -59,7 +59,7 @@ public class InferDCPAAlgorithm {
   // json field which identifies which funciton is sending a message
   public static final String MESSAGE_FUNCTION = "messageFunction";
   public static final String RUN_ORDER = "runOrder";
-  public static int runCounter;
+  public int runCounter;
 
   public InferDCPAAlgorithm(
       LogManager pLogger,
