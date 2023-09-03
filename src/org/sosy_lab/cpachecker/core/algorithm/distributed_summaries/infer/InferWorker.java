@@ -208,7 +208,7 @@ public class InferWorker extends BlockSummaryWorker {
   private boolean allReceived() {
     for (Map.Entry<String, Integer> entry : messagesReceived.entrySet()) {
       Optional<Integer> count = expectedMessages.get(entry.getKey());
-      if (count.isEmpty() || count.orElseThrow() != entry.getValue()) {
+      if (count.isEmpty() || count.orElseThrow().equals(entry.getValue())) {
         return false;
       }
     }

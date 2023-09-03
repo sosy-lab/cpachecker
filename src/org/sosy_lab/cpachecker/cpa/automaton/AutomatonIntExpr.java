@@ -112,7 +112,9 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
     /** log a warning and return a failure value. */
     @FormatMethod
     private ResultValue<Integer> logAndReturn(
-        AutomatonExpressionArguments pArgs, @FormatString String message, Object... pObjects) {
+        AutomatonExpressionArguments pArgs,
+        @FormatString final String message,
+        Object... pObjects) {
       pArgs.getLogger().logf(Level.WARNING, message, pObjects);
       return new ResultValue<>(message, "AutomatonIntExpr.VarAccess");
     }
