@@ -171,11 +171,11 @@ public class WitnessToYamlWitnessConverter {
         // in multiple cases and contains superflows nodes/edges
         Set<CFANode> cfaNodes = new HashSet<>();
         for (CFANode n : cfaNodesCandidates) {
-          if (!cfaNodesCandidates.stream()
+          if (cfaNodesCandidates.stream()
               .map(CFAUtils::leavingEdges)
               .flatMap(x -> x.stream())
               .map(x -> x.getSuccessor())
-              .anyMatch(x -> x == n)) {
+              .noneMatch(x -> x == n)) {
             cfaNodes.add(n);
           }
         }
