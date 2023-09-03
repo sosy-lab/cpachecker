@@ -65,7 +65,8 @@ public class InferRootWorker extends BlockSummaryWorker {
           currentMaxRun = runOrder;
         }
 
-        if (expectedStrengthens.isPresent() && strengthenCounter >= expectedStrengthens.orElseThrow()) {
+        if (expectedStrengthens.isPresent()
+            && strengthenCounter >= expectedStrengthens.orElseThrow()) {
           shutdown = true;
           yield ImmutableSet.of(resultMessage());
         }

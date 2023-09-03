@@ -163,8 +163,7 @@ public class InferWorker extends BlockSummaryWorker {
       messagesSent += initialSize;
       if (isLeafWorker()) {
         BlockSummaryMessage acknowledgement = createAcknowledgementMessage(initialSize);
-        List<BlockSummaryMessage> messagesWithAck =
-            listAndElement(messages, acknowledgement);
+        List<BlockSummaryMessage> messagesWithAck = listAndElement(messages, acknowledgement);
         broadcast(messagesWithAck);
       } else {
         broadcast(messages);
