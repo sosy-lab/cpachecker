@@ -157,13 +157,28 @@ public class WitnessToYamlWitnessConverter {
       if (e.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE)) {
         // If they come from only a single branch of a if statement, then using the Witness
         // to discover where they come from is hard, therefore we need to use the CFA
-        ImmutableSet<CFANode> cfaNodes =
+        ImmutableSet<CFANode> cfaNodesCandidates =
             FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
                 .transform(x -> AbstractStates.asIterable(x).filter(LocationState.class))
                 .stream()
                 .flatMap(x -> x.stream())
                 .map(x -> x.getLocationNode())
                 .collect(ImmutableSet.toImmutableSet());
+
+        // Remove all nodes which can be reached from the other nodes, since
+        // we want the earliest possible position for the invariant. This needs
+        // to be done since the mapping between Witness and CFA is wrong
+        // in multiple cases and contains superflows nodes/edges
+        Set<CFANode> cfaNodes = new HashSet<>();
+        for (CFANode n : cfaNodesCandidates) {
+          if (!cfaNodesCandidates.stream()
+              .map(CFAUtils::leavingEdges)
+              .flatMap(x -> x.stream())
+              .map(x -> x.getSuccessor())
+              .anyMatch(x -> x == n)) {
+            cfaNodes.add(n);
+          }
+        }
 
         enteringEdges =
             FluentIterable.from(cfaNodes).transform(CFAUtils::enteringEdges).stream()
