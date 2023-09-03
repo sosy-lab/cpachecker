@@ -14,6 +14,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
@@ -307,8 +309,10 @@ public class AutomatonYAMLParser {
   }
 
   private Set<Invariant> generateInvariantsFromEntries(List<AbstractEntry> pEntries)
-      throws InterruptedException {
+      throws InterruptedException, IOException {
     Set<Invariant> invariants = new HashSet<>();
+    ListMultimap<String, Integer> lineToOffset =
+        InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames());
 
     Map<Integer, Set<String>> lineToSeenInvariants = new HashMap<>();
 
@@ -330,7 +334,8 @@ public class AutomatonYAMLParser {
         FileLocation loc =
             new FileLocation(
                 Path.of(invariantEntry.getLocation().getFileName()),
-                -1, // The offset is currently not important enough to warrant computing it
+                lineToOffset.get(invariantEntry.getLocation().getFileName()).get(line - 1)
+                    + invariantEntry.getLocation().getColumn(),
                 -1, // The length is currently not important enough to warrant computing it
                 line,
                 line);

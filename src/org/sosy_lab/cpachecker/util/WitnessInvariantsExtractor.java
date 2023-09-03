@@ -251,7 +251,10 @@ public class WitnessInvariantsExtractor {
           if (e.getFileLocation().getEndingLineInOrigin()
                   == invariant.getLocation().getEndingLineInOrigin()
               && e.getFileLocation().getStartingLineInOrigin()
-                  == invariant.getLocation().getStartingLineInOrigin()) {
+                  == invariant.getLocation().getStartingLineInOrigin()
+              && (e.getFileLocation().isOffsetRelatedToOrigin()
+                  ? e.getFileLocation().getNodeOffset() == invariant.getLocation().getNodeOffset()
+                  : true)) {
             candidateInvariants.add(
                 new ExpressionTreeLocationInvariant(
                     "" + randomGroupId, node, invariant.getFormula(), toCodeVisitorCache));
