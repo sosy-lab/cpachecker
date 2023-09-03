@@ -3916,6 +3916,10 @@ heuristicSelection.singleLoopConfig = no default value
 # toggle asserting targets at every iteration for IMC
 imc.assertTargetsAtEveryIteration = false
 
+# toggle whether to compute fixed-point backward by swapping initial-state
+# (prefix) and assertion (target) formulas
+imc.backwardAnalysis = false
+
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
