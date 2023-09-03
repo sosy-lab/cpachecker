@@ -106,7 +106,7 @@ public class InferDCPAAlgorithm {
                   BlockState blockState =
                       Objects.requireNonNull(
                           AbstractStates.extractStateByType(abstractState, BlockState.class));
-                  blockState.addErrorCondition(pMessageFunction, errorCondition.get());
+                  blockState.addErrorCondition(pMessageFunction, errorCondition.orElseThrow());
                   blockState.setStrengthenType(pMessageFunction, pMessageType);
                 }));
 

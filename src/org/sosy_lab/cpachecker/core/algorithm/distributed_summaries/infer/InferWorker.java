@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -121,7 +123,7 @@ public class InferWorker extends BlockSummaryWorker {
 
         if (allAcknowledged() && allReceived()) {
           BlockSummaryMessage ackMessage = createAcknowledgementMessage(messagesSent);
-          messages = FluentIterable.from(messages).append(ackMessage).toList();
+          messages = listAndElement(messages, ackMessage);
         }
 
         yield messages;
@@ -162,7 +164,7 @@ public class InferWorker extends BlockSummaryWorker {
       if (isLeafWorker()) {
         BlockSummaryMessage acknowledgement = createAcknowledgementMessage(initialSize);
         List<BlockSummaryMessage> messagesWithAck =
-            FluentIterable.from(messages).append(acknowledgement).toList();
+            listAndElement(messages, acknowledgement);
         broadcast(messagesWithAck);
       } else {
         broadcast(messages);
@@ -207,7 +209,7 @@ public class InferWorker extends BlockSummaryWorker {
   private boolean allReceived() {
     for (Map.Entry<String, Integer> entry : messagesReceived.entrySet()) {
       Optional<Integer> count = expectedMessages.get(entry.getKey());
-      if (count.isEmpty() || count.get() != entry.getValue()) {
+      if (count.isEmpty() || count.orElseThrow() != entry.getValue()) {
         return false;
       }
     }
@@ -241,6 +243,6 @@ public class InferWorker extends BlockSummaryWorker {
   }
 
   private boolean isLeafWorker() {
-    return calledFunctions().size() == 0;
+    return calledFunctions().isEmpty();
   }
 }

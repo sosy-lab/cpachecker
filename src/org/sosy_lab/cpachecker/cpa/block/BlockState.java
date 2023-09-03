@@ -233,8 +233,8 @@ public class BlockState
         .filter(FunctionSummaryEdge.class)
         .anyMatch(
             fse ->
-                errorConditions.keySet().contains(fse.getFunctionEntry().getFunctionName())
-                    && strengthenTypes.keySet().contains(fse.getFunctionEntry().getFunctionName())
+                errorConditions.containsKey(fse.getFunctionEntry().getFunctionName())
+                    && strengthenTypes.containsKey(fse.getFunctionEntry().getFunctionName())
                     && strengthenTypes
                         .get(fse.getFunctionEntry().getFunctionName())
                         .equals(MessageType.ERROR_CONDITION));

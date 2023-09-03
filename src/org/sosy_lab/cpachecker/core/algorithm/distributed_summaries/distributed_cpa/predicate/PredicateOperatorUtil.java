@@ -212,8 +212,8 @@ public class PredicateOperatorUtil {
       Optional<Formula> maybeRhs = highestUninstantiatedIndex(strengtheningFormulaMap, varName);
       Optional<Formula> maybeLhs = declaredFormula(newFormulaMap, varName, pNewFormula.getSsa());
       if (maybeRhs.isPresent() && maybeLhs.isPresent()) {
-        Formula rhs = maybeRhs.get();
-        Formula lhs = maybeLhs.get();
+        Formula rhs = maybeRhs.orElseThrow();
+        Formula lhs = maybeLhs.orElseThrow();
         BooleanFormula madeEqual = pFormulaManagerView.makeEqual(lhs, rhs);
         formulaBuilder = pFormulaManagerView.makeAnd(formulaBuilder, madeEqual);
       }
@@ -251,7 +251,7 @@ public class PredicateOperatorUtil {
                       return Integer.parseInt(nameAndIndex.get(1));
                     }));
     if (maybeKey.isPresent()) {
-      return Optional.of(pVarsWithIndices.get(maybeKey.get()));
+      return Optional.of(pVarsWithIndices.get(maybeKey.orElseThrow()));
     } else {
       return Optional.empty();
     }

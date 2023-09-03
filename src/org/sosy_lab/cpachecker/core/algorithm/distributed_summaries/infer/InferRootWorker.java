@@ -65,7 +65,7 @@ public class InferRootWorker extends BlockSummaryWorker {
           currentMaxRun = runOrder;
         }
 
-        if (expectedStrengthens.isPresent() && strengthenCounter >= expectedStrengthens.get()) {
+        if (expectedStrengthens.isPresent() && strengthenCounter >= expectedStrengthens.orElseThrow()) {
           shutdown = true;
           yield ImmutableSet.of(resultMessage());
         }
@@ -74,7 +74,7 @@ public class InferRootWorker extends BlockSummaryWorker {
       case INFER_ACKNOWLEDGMENT -> {
         expectedStrengthens =
             Optional.of((int) pMessage.getPayload().get(InferWorker.TOTAL_BLOCK_MESSAGES));
-        if (strengthenCounter >= expectedStrengthens.get()) {
+        if (strengthenCounter >= expectedStrengthens.orElseThrow()) {
           shutdown = true;
           yield ImmutableSet.of(resultMessage());
         }

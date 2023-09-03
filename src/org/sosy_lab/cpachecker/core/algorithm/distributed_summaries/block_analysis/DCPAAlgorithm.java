@@ -201,7 +201,7 @@ public class DCPAAlgorithm {
                 abstractState ->
                     Objects.requireNonNull(
                             AbstractStates.extractStateByType(abstractState, BlockState.class))
-                        .setErrorCondition(errorCondition.get())));
+                        .setErrorCondition(errorCondition.orElseThrow())));
 
     BlockAnalysisIntermediateResult result =
         DCPAAlgorithms.findReachableTargetStatesInBlock(
@@ -249,7 +249,7 @@ public class DCPAAlgorithm {
   }
 
   private Collection<BlockSummaryMessage> processIntermediateResult(
-      BlockAnalysisIntermediateResult result, boolean filter) throws InterruptedException {
+      BlockAnalysisIntermediateResult result, boolean filter) {
     // adapt precision
     isInfeasible = result.wasAbstracted();
     status = status.update(result.getStatus());
