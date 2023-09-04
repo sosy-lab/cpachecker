@@ -160,15 +160,7 @@ class PushValueToEnvironmentVisitor
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pNot);
-    CompoundInterval parameter = compoundIntervalManager.intersect(evaluate(pNot), pParameter);
-    if (parameter.isBottom()) {
-      return false;
-    }
-    if (!pNot.getFlipped().accept(this, parameter.invert())) {
-      return false;
-    }
-    return true;
+    return getCompoundIntervalManager(pNot).doIntersect(evaluate(pNot), pParameter);
   }
 
   @Override
