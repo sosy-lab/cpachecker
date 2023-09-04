@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
@@ -400,6 +401,23 @@ public class AutomatonYAMLParser {
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
+    Map<Integer, Integer> lineFrequencies = new HashMap<>();
+
+    for (CFAEdge edge : cfa.edges()) {
+      int line = edge.getLineNumber();
+      if (lineFrequencies.containsKey(line)) {
+        lineFrequencies.put(line, lineFrequencies.get(line) + 1);
+      } else {
+        int count = lineFrequencies.containsKey(line) ? lineFrequencies.get(line) : 0;
+        lineFrequencies.put(line, count + 1);
+      }
+    }
+    Set<Integer> allowedLines =
+        lineFrequencies.entrySet().stream()
+            .filter(entry -> entry.getValue().equals(1))
+            .map(Map.Entry::getKey)
+            .collect(ImmutableSet.toImmutableSet());
+
     int counter = 0;
     final String initState = getStateName(counter++);
 
@@ -423,7 +441,7 @@ public class AutomatonYAMLParser {
       int line = follow.getLocation().getLine();
       AutomatonBoolExpr expr = new CheckCoversLines(ImmutableSet.of(line));
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
-      if (follow.getType().equals(WaypointType.ASSUMPTION)) {
+      if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
         String invariantString = follow.getConstraint().getString();
         Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
         try {
