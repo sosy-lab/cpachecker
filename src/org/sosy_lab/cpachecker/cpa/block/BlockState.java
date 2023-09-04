@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -93,11 +94,14 @@ public class BlockState
 
   public void setErrorCondition(AbstractState pErrorCondition) {
     errorConditions.clear();
-    errorConditions.put("single_element_map", Set.of(pErrorCondition));
+    errorConditions.put("single_element_map", ImmutableSet.of(pErrorCondition));
   }
 
   public void addErrorConditionToFunction(String pFunctionName, AbstractState pErrorCondition) {
-    errorConditions.get(pFunctionName).add(pErrorCondition);
+    Builder<AbstractState> builder = ImmutableSet.builder();
+    ImmutableSet<AbstractState> newSet =
+        builder.addAll(errorConditions.get(pFunctionName)).add(pErrorCondition).build();
+    errorConditions.put(pFunctionName, newSet);
   }
 
   public void setStrengthenTypes(Map<String, MessageType> pStrengthenTypes) {
