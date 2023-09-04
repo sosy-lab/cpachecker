@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
@@ -135,7 +136,8 @@ public class WitnessToYamlWitnessConverter {
       // a blank edge or the loop boundary condition. Therefore they contain the line where
       // the loop head is actually present
       ImmutableSet<CFAEdge> leavingEdges =
-          FluentIterable.from(loop.getLoopHeads()).transform(CFAUtils::leavingEdges).stream()
+          loop.getLoopHeads().stream()
+              .map(CFAUtils::leavingEdges)
               .flatMap(x -> x.stream())
               .collect(ImmutableSet.toImmutableSet());
 
@@ -239,6 +241,12 @@ public class WitnessToYamlWitnessConverter {
       }
 
       for (CFAEdge edge : enteringEdges) {
+        if (edge instanceof FunctionReturnEdge) {
+          // In case the edge we are considering is a function we want
+          // the summary edge which called it and not the actual function edge
+          edge = ((FunctionReturnEdge) edge).getSummaryEdge();
+        }
+
         FileLocation loc = edge.getFileLocation();
         if (loc == FileLocation.DUMMY || loc == FileLocation.MULTIPLE_FILES) {
           continue;
