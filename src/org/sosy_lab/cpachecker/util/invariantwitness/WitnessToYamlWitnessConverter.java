@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -161,6 +162,24 @@ public class WitnessToYamlWitnessConverter {
 
     List<Edge> enteringEdgeWitness = (List<Edge>) pWitness.getEnteringEdges().get(pInvexpstate);
     for (Edge e : enteringEdgeWitness) {
+      // We ignore all invariants which depend on the internal of CPAchecker to be useful
+      if (pWitness.getCFAEdgeFor(e).stream()
+          .anyMatch(
+              x ->
+                  (x instanceof CAssumeEdge)
+                      && ((CAssumeEdge) x)
+                          .getExpression()
+                          .toString()
+                          .matches(".*__CPAchecker_TMP.*"))) {
+        logger.log(
+            Level.WARNING,
+            "Ignoring invariant '"
+                + pInvariantExpression
+                + "' due to the edge which enters the state in the witness "
+                + "containing a dependency on CPAchecker internal datastructures!");
+        continue;
+      }
+
       if (e.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE)) {
         // If they come from only a single branch of a if statement, then using the Witness
         // to discover where they come from is hard, therefore we need to use the CFA
@@ -191,7 +210,6 @@ public class WitnessToYamlWitnessConverter {
             FluentIterable.from(cfaNodes).transform(CFAUtils::enteringEdges).stream()
                 .flatMap(x -> x.stream())
                 .collect(ImmutableSet.toImmutableSet());
-
       } else {
         // If they do not come from if statements and are merely present, then we need to use
         // the GraphML format
