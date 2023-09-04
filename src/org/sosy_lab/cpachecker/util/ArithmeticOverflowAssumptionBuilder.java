@@ -102,6 +102,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
   @Option(description = "Simplify overflow assumptions.", secure = true)
   private boolean simplifyExpressions = true;
 
+  @Option(description = "Check for unsigned integer overflows", secure = true)
+  private boolean checkUnsigned = false;
+
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
   private final Map<CType, CLiteralExpression> width;
@@ -145,6 +148,12 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     trackType(CNumericTypes.SIGNED_LONG_INT);
     trackType(CNumericTypes.LONG_LONG_INT);
     trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
+
+    if (checkUnsigned) {
+        trackType(CNumericTypes.UNSIGNED_INT);
+        trackType(CNumericTypes.UNSIGNED_LONG_INT);
+        trackType(CNumericTypes.UNSIGNED_LONG_LONG_INT);
+    }
 
     ofmgr = new OverflowAssumptionManager(machineModel, logger);
     simplificationVisitor =

@@ -4161,6 +4161,9 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
+# Check for unsigned integer overflows
+overflow.checkUnsigned = false
+
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
 overflow.config = no default value
