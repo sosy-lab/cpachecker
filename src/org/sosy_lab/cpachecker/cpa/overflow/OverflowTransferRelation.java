@@ -84,15 +84,4 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       throw new AssertionError(e);
     }
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState state,
-      Iterable<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
-      Precision precision)
-      throws CPATransferException, InterruptedException {
-    OverflowState overflowState = (OverflowState) state;
-    return Collections.singleton(overflowState);
-  }
 }
