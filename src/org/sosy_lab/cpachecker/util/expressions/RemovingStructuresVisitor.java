@@ -23,7 +23,7 @@ public class RemovingStructuresVisitor<LeafType, E extends Throwable>
   }
 
   private List<ExpressionTree<LeafType>> getRemainingOperands(
-      Iterator<ExpressionTree<LeafType>> iterator) {
+      Iterator<ExpressionTree<LeafType>> iterator) throws E {
     List<ExpressionTree<LeafType>> newOperands = new ArrayList<>();
     while (iterator.hasNext()) {
       ExpressionTree<LeafType> operand = iterator.next();
@@ -31,6 +31,8 @@ public class RemovingStructuresVisitor<LeafType, E extends Throwable>
         if (removeLeaf.apply(leaf.getExpression())) {
           continue;
         }
+      } else {
+        operand = operand.accept(this);
       }
       newOperands.add(operand);
     }
