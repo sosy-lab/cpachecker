@@ -234,7 +234,8 @@ public class AutomatonYAMLParser {
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantEntry invariantEntry) {
-        Optional<String> resultFunction = Optional.of(invariantEntry.getLocation().getFunction());
+        Optional<String> resultFunction =
+            Optional.ofNullable(invariantEntry.getLocation().getFunction());
         String invariantString = invariantEntry.getInvariant().getString();
         Integer line = invariantEntry.getLocation().getLine();
 
