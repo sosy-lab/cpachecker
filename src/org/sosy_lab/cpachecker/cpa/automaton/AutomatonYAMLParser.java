@@ -351,18 +351,26 @@ public class AutomatonYAMLParser {
   private ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
       throws InterruptedException {
     Integer line = pInvariantEntry.getLocation().getLine();
-    LineMatcher lineMatcher = new LineMatcher(Optional.empty(), line, line);
     Optional<String> resultFunction = Optional.of(pInvariantEntry.getLocation().getFunction());
     String invariantString = pInvariantEntry.getInvariant().getString();
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
 
-    Scope candidateScope = determineScope(resultFunction, callStack, lineMatcher, scope);
+    return createExpressionTreeFromString(resultFunction, invariantString, line, callStack);
+  }
 
+  private ExpressionTree<AExpression> createExpressionTreeFromString(
+      Optional<String> resultFunction, String invariantString, int line, Deque<String> callStack)
+      throws InterruptedException {
+    LineMatcher lineMatcher = new LineMatcher(Optional.empty(), line, line);
     ExpressionTree<AExpression> invariant =
         CParserUtils.parseStatementsAsExpressionTree(
-            ImmutableSet.of(invariantString), resultFunction, cparser, candidateScope, parserTools);
+            ImmutableSet.of(invariantString),
+            resultFunction,
+            cparser,
+            determineScope(resultFunction, callStack, lineMatcher, scope),
+            parserTools);
     return invariant;
   }
 
