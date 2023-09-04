@@ -244,6 +244,10 @@ public class WitnessToYamlWitnessConverter {
       } else {
         // If they do not come from if statements and are merely present, then we need to use
         // the GraphML format
+        // This case may or may not be obsolete currently. But since there is no clear analysis of
+        // what is present in the GraphML witnesses and is mostly done through heuristics, this case
+        // will remain until there is a clear indication that it cannot be reached or that it
+        // generates errors.
         enteringEdges = ImmutableSet.copyOf(pWitness.getCFAEdgeFor(e));
       }
 
