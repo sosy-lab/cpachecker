@@ -195,7 +195,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     logger.log(Level.FINE, "Performing dual approximated reachability model checking");
     PartitionedFormulas partitionedFormulas =
-        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
+        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration, false);
     DualInterpolationSequence dualSequence = new DualInterpolationSequence();
 
     do {

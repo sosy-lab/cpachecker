@@ -101,7 +101,6 @@ class PartitionedFormulas {
 
   /** Return the SSA maps of collected loop formulas (T1, T2, ..., Tn). */
   List<SSAMap> getLoopFormulasSsaMap() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
     return loopFormulasSsaMap;
   }
 
