@@ -3096,7 +3096,7 @@ public class SMGState
     return memoryModel.getNumberOfVariables();
   }
 
-  public SMGInterpolant createInterpolant() {
+  public SMGInterpolant createInterpolant(boolean isMemorySafety) {
     PersistentStack<CFunctionDeclarationAndOptionalValue> funDecls =
         memoryModel.getFunctionDeclarationsFromStackFrames();
     Iterator<CFunctionDeclarationAndOptionalValue> funDeclsIter = funDecls.iterator();
@@ -3112,7 +3112,8 @@ public class SMGState
         funDecls,
         funDeclsIter.next().getCFunctionDeclaration(),
         getTrackedHeapValues(),
-        memoryModel);
+        memoryModel,
+        isMemorySafety ? errorInfo : ImmutableList.of());
   }
 
   /**

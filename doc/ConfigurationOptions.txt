@@ -1106,6 +1106,9 @@ counterexample.export.exportTestCase = false
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 
+# export counterexample as witness/yaml file
+counterexample.export.exportYamlWitness = false
+
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1151,6 +1154,9 @@ counterexample.export.source = "Counterexample.%d.c"
 
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
+
+# export counterexample witness as GraphML automaton
+counterexample.export.yaml = "Counterexample.%d.yaml"
 
 # If continueAfterInfeasibleError is true, remove the error state that is
 # proven to be unreachable before continuing. Set this to false if
@@ -1280,6 +1286,9 @@ cpa.arg.dumpAfterIteration = false
 # cache-hit-rate for BAM and a faster sub-analysis for blocks.
 cpa.arg.enableStateReduction = true
 
+# enable witness generation in the new yaml format.
+cpa.arg.enableYamlWitnesses = false
+
 # export final ARG as .dot file
 cpa.arg.export = true
 
@@ -1401,6 +1410,9 @@ cpa.arg.witness.exportThreadId = false
 # Verification witness: Include (not necessarily globally unique) thread
 # names for concurrent tasks for debugging?
 cpa.arg.witness.exportThreadName = false
+
+# Shrink ARG graph into a smaller witness graph by merging edges
+cpa.arg.witness.minimizeARG = true
 
 # Produce an invariant witness instead of a correctness witness. Constructing
 # an invariant witness makes use of a different merge for quasi-invariants:
@@ -3094,7 +3106,8 @@ cpa.smg2.handleUnknownFunctions = STRICT
 # If this option is enabled, a memory allocation (e.g. malloc or array
 # declaration) for unknown memory sizes does not abort, but also does not
 # create any memory.
-cpa.smg2.ignoreUnknownMemoryAllocation = false
+cpa.smg2.handleUnknownMemoryAllocation = IGNORE
+  enum:     [IGNORE, MEMORY_ERROR, STOP_ANALYSIS]
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -3924,6 +3937,10 @@ heuristicSelection.singleLoopConfig = no default value
 # toggle asserting targets at every iteration for IMC
 imc.assertTargetsAtEveryIteration = false
 
+# toggle whether to compute fixed-point backward by swapping initial-state
+# (prefix) and assertion (target) formulas
+imc.backwardAnalysis = false
+
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
@@ -4002,6 +4019,12 @@ invariantGeneration.kInduction.terminateOnCounterexample = false
 
 # The directory where the invariants are stored.
 invariantStore.export.outDir = "invariantWitnesses"
+
+# If enabled, this option will not just output loop invariants,but also
+# general location invariants at other locations.
+invariantStore.export.writeLocationInvariants = false
+
+# The directory where the invariants are stored.
 invariantStore.import.storeDirectory = "invariantWitnesses"
 
 # Strategy for generating invariants
@@ -4844,10 +4867,17 @@ testcase.targets.edge = no default value
 # Name of target function if target type is FUN_CALL
 testcase.targets.funName = no default value
 
-# Which strategy to use to optimize set of test target edges
-testcase.targets.optimization.strategy = NONE
-  enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE_ORIGINAL,
-             ESSENTIAL_EDGE, PORTFOLIO, SPANNING_SET, TESTCOMP]
+# Set to enable optimizations to be applied to result of previous
+# optimizations
+testcase.targets.optimization.nested = false
+
+# Which strategy or which strategies (comma separated list of strategies) to
+# use to optimize set of test target edges. If more than one strategy is
+# provided, all strategies are applied and if targets.optimization.nested is
+# disabled the smallest result is taken otherwise see description of option
+# targets.optimization.nested.If no strategy is provided, no optimization is
+# performed. 
+testcase.targets.optimization.strategy = []
 
 # enable to track coverage of test targets removed in optimization
 testcase.targets.optimization.trackAll = false
@@ -4924,6 +4954,9 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false
+
+# Whether or not one wants to refine MemorySafety errors.
+util.refinement.refineMemorySafety = false
 
 # Instead of comments, output the assertions into the original program as
 # violations to unreach_call.prp

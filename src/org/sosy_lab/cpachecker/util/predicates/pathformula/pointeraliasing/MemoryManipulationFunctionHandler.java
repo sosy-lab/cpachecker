@@ -415,7 +415,9 @@ class MemoryManipulationFunctionHandler {
   }
 
   /**
-   * Processes a pointer-like argument to memory manipulation functions (destination or source).
+   * Processes a pointer-like argument to memory manipulation functions (destination or source). If
+   * we are using a byte array, it is sufficient to cast to pointer to unsigned char. Otherwise, we
+   * need to figure out the type by the heuristic below.
    *
    * <p>First, if it exists, the outer cast from pointer to {@code void*} / {@code const void*} is
    * removed as it prevents us from discovering the actual type. If it is to {@code const void*} and
@@ -437,6 +439,21 @@ class MemoryManipulationFunctionHandler {
    */
   private CExpression processPointerLikeArgument(
       final CExpression argument, final boolean shouldBeNonconst) throws UnrecognizedCodeException {
+
+    if (conv.options.useByteArrayForHeap()) {
+      // using byte array for heap, we can retype to unsigned char*
+      // and assignments will still be performed correctly
+      // we do not need to worry about unaliased locations being passed as these
+      // must be correctly dereferenced, which turns them into aliased locations
+
+      return new CCastExpression(
+          FileLocation.DUMMY,
+          new CPointerType(
+              argument.getExpressionType().isConst(),
+              argument.getExpressionType().isVolatile(),
+              CNumericTypes.UNSIGNED_CHAR),
+          argument);
+    }
 
     CExpression processedArgument = argument;
 

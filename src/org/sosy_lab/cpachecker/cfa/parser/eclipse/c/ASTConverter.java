@@ -692,10 +692,12 @@ class ASTConverter {
       resultType = ((CArrayType) resultType).getType();
     } else if (resultType instanceof CPointerType) {
       resultType = ((CPointerType) resultType).getType();
-    } else {
+    } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
       resultType = typeConverter.convert(e.getExpressionType());
+    } else {
+      throw parseContext.parseError("Array subscript for non-array type " + resultType, e);
     }
 
     return new CArraySubscriptExpression(getLocation(e), resultType, arrayExpr, subscriptExpr);

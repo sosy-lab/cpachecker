@@ -1557,11 +1557,20 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     createLoop(doStatement.getCondition(), fileloc);
 
+    FileLocation dummyLoc = onlyFirstLine(fileloc);
+
+    // Add additional blank edge between the AssumeEdge and the loop head as detected by
+    // LoopStructure. This is not necessary, but works better for analyses that want to re-add the
+    // parents of loop heads to the waitlist, which is problematic if that parent has two outgoing
+    // edges. Cf. #1113 for more information.
+    CFANode firstLoopNode = locStack.pop();
+    CFANode newFirstLoopNode = newCFANode();
+    locStack.push(newFirstLoopNode);
+    addToCFA(new BlankEdge("", dummyLoc, firstLoopNode, newFirstLoopNode, "do"));
+
     // connect CFA with first node inside the loop
     // (so the condition will be skipped in the first iteration)
-    final BlankEdge blankEdge =
-        new BlankEdge("", onlyFirstLine(fileloc), prevNode, locStack.peek(), "do");
-    addToCFA(blankEdge);
+    addToCFA(new BlankEdge("", dummyLoc, prevNode, newFirstLoopNode, "do"));
   }
 
   /**

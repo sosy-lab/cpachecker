@@ -18,6 +18,7 @@ import java.util.Objects;
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "entry_type", visible = true)
 @JsonSubTypes({
   @JsonSubTypes.Type(value = LoopInvariantEntry.class, name = "loop_invariant"),
+  @JsonSubTypes.Type(value = LocationInvariantEntry.class, name = "location_invariant"),
   @JsonSubTypes.Type(
       value = LoopInvariantCertificateEntry.class,
       name = "loop_invariant_certificate"),

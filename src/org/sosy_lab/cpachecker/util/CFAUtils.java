@@ -601,17 +601,17 @@ public class CFAUtils {
 
   /** Sees whether the file locations of two {@link CFANode} are disjoint or not. */
   public static boolean disjointFileLocations(CFANode pNode1, CFANode pNode2) {
+    // Using the method getFileLocationsFromCfaEdge produces some weird results
+    // when considering the initialized global variables and stuff like that
     Set<FileLocation> allFileLocationFirstNode =
-        FluentIterable.concat(
-                CFAUtils.allEnteringEdges(pNode1)
-                    .append(CFAUtils.allLeavingEdges(pNode1))
-                    .transform(e -> CFAUtils.getFileLocationsFromCfaEdge(e)))
+        CFAUtils.allEnteringEdges(pNode1)
+            .append(CFAUtils.allLeavingEdges(pNode1))
+            .transform(e -> e.getFileLocation())
             .toSet();
     Set<FileLocation> allFileLocationSecondtNode =
-        FluentIterable.concat(
-                CFAUtils.allEnteringEdges(pNode2)
-                    .append(CFAUtils.allLeavingEdges(pNode2))
-                    .transform(e -> CFAUtils.getFileLocationsFromCfaEdge(e)))
+        CFAUtils.allEnteringEdges(pNode2)
+            .append(CFAUtils.allLeavingEdges(pNode2))
+            .transform(e -> e.getFileLocation())
             .toSet();
 
     for (FileLocation file1 : allFileLocationFirstNode) {

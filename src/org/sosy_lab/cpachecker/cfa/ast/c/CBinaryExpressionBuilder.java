@@ -165,7 +165,8 @@ public class CBinaryExpressionBuilder {
     if (expr instanceof CBinaryExpression binExpr) {
       BinaryOperator binOp = binExpr.getOperator();
       // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
-      if (binExpr.getOperator().isLogicalOperator()) {
+      // But for floats, this is not possible because comparisons with NaN always yield false.
+      if (binOp.isLogicalOperator() && CTypes.isIntegerType(binExpr.getCalculationType())) {
         BinaryOperator inverseOperator = binOp.getOppositLogicalOperator();
         return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
       }
