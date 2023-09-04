@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -254,6 +255,9 @@ public class WitnessInvariantsExtractor {
               && (e.getFileLocation().isOffsetRelatedToOrigin()
                   ? e.getFileLocation().getNodeOffset() == invariant.getLocation().getNodeOffset()
                   : true)) {
+            if (e instanceof FunctionCallEdge) {
+              node = e.getPredecessor();
+            }
             candidateInvariants.add(
                 new ExpressionTreeLocationInvariant(
                     "Invariant matched at line "

@@ -22,7 +22,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
@@ -136,8 +137,7 @@ public class WitnessToYamlWitnessConverter {
       // a blank edge or the loop boundary condition. Therefore they contain the line where
       // the loop head is actually present
       ImmutableSet<CFAEdge> leavingEdges =
-          loop.getLoopHeads().stream()
-              .map(CFAUtils::leavingEdges)
+          FluentIterable.from(loop.getLoopHeads()).transform(CFAUtils::leavingEdges).stream()
               .flatMap(x -> x.stream())
               .collect(ImmutableSet.toImmutableSet());
 
@@ -193,39 +193,52 @@ public class WitnessToYamlWitnessConverter {
                 .map(x -> x.getLocationNode())
                 .collect(ImmutableSet.toImmutableSet());
 
-        if (pWitness.getLeavingEdges().get(pInvexpstate).stream()
-            .anyMatch(x -> x.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE))) {
-          // If the leaving edges are control edges we want all nodes which do not contain
-          // any AssumeEdge leaving it. Since these are probably the ones which match the
-          // the leaving edges of the state
-          cfaNodesCandidates =
+        // We need to differentiate between nodes which call a function and those which do not,
+        // since the normal matching returns the last possible node where the invariant is valid
+        // which is already inside the function and therefore not valid
+        if (cfaNodesCandidates.stream().anyMatch(x -> x instanceof FunctionEntryNode)) {
+          // When we call a function we want the edge which enters the function
+          enteringEdges =
               cfaNodesCandidates.stream()
-                  .filter(
-                      x ->
-                          CFAUtils.enteringEdges(x).stream()
-                              .noneMatch(y -> y instanceof CAssumeEdge))
+                  .map(CFAUtils::leavingEdges)
+                  .flatMap(x -> x.stream())
+                  .filter(x -> x instanceof FunctionCallEdge)
+                  .collect(ImmutableSet.toImmutableSet());
+        } else {
+          if (pWitness.getLeavingEdges().get(pInvexpstate).stream()
+              .anyMatch(x -> x.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE))) {
+            // If the leaving edges are control edges we want all nodes which do not contain
+            // any AssumeEdge leaving it. Since these are probably the ones which match the
+            // the leaving edges of the state
+            cfaNodesCandidates =
+                cfaNodesCandidates.stream()
+                    .filter(
+                        x ->
+                            CFAUtils.enteringEdges(x).stream()
+                                .noneMatch(y -> y instanceof CAssumeEdge))
+                    .collect(ImmutableSet.toImmutableSet());
+          }
+
+          // Get the last possible node in which the invariant is valid.
+          // This needs to be done, because sometimes declarations or other
+          // things are needed to express the invariant, but also match the
+          // Witness state
+          Set<CFANode> cfaNodes = new HashSet<>();
+          for (CFANode n : cfaNodesCandidates) {
+            if (cfaNodesCandidates.stream()
+                .map(CFAUtils::enteringEdges)
+                .flatMap(x -> x.stream())
+                .map(x -> x.getPredecessor())
+                .noneMatch(x -> x == n)) {
+              cfaNodes.add(n);
+            }
+          }
+
+          enteringEdges =
+              FluentIterable.from(cfaNodes).transform(CFAUtils::enteringEdges).stream()
+                  .flatMap(x -> x.stream())
                   .collect(ImmutableSet.toImmutableSet());
         }
-
-        // Get the last possible node in which the invariant is valid.
-        // This needs to be done, because sometimes declarations or other
-        // things are needed to express the invariant, but also match the
-        // Witness state
-        Set<CFANode> cfaNodes = new HashSet<>();
-        for (CFANode n : cfaNodesCandidates) {
-          if (cfaNodesCandidates.stream()
-              .map(CFAUtils::enteringEdges)
-              .flatMap(x -> x.stream())
-              .map(x -> x.getPredecessor())
-              .noneMatch(x -> x == n)) {
-            cfaNodes.add(n);
-          }
-        }
-
-        enteringEdges =
-            FluentIterable.from(cfaNodes).transform(CFAUtils::enteringEdges).stream()
-                .flatMap(x -> x.stream())
-                .collect(ImmutableSet.toImmutableSet());
       } else {
         // If they do not come from if statements and are merely present, then we need to use
         // the GraphML format
@@ -241,10 +254,11 @@ public class WitnessToYamlWitnessConverter {
       }
 
       for (CFAEdge edge : enteringEdges) {
-        if (edge instanceof FunctionReturnEdge) {
-          // In case the edge we are considering is a function we want
-          // the summary edge which called it and not the actual function edge
-          edge = ((FunctionReturnEdge) edge).getSummaryEdge();
+        CFANode node;
+        if (edge instanceof FunctionCallEdge) {
+          node = edge.getPredecessor();
+        } else {
+          node = edge.getSuccessor();
         }
 
         FileLocation loc = edge.getFileLocation();
@@ -252,7 +266,7 @@ public class WitnessToYamlWitnessConverter {
           continue;
         }
 
-        invariants.add(new InvariantWitness(pInvariantExpression, loc, edge.getSuccessor()));
+        invariants.add(new InvariantWitness(pInvariantExpression, loc, node));
       }
     }
 
