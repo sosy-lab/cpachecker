@@ -441,19 +441,7 @@ public class AutomatonYAMLParser {
       int line = follow.getLocation().getLine();
       AutomatonBoolExpr expr = new CheckCoversLines(ImmutableSet.of(line));
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
-      if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
-        String invariantString = follow.getConstraint().getString();
-        Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
-        try {
-          AExpression exp =
-              createExpressionTreeFromString(resultFunction, invariantString, line, null)
-                  .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
-          builder.withAssumptions(ImmutableList.of(exp));
-        } catch (UnrecognizedCodeException e) {
-          throw new InvalidConfigurationException(
-              "Could not parse string into valid expression", e);
-        }
-      }
+      handleAssumptionWaypoint(allowedLines, follow, line, builder);
       transitions.add(builder.build());
       automatonStates.add(
           new AutomatonInternalState(
@@ -495,6 +483,26 @@ public class AutomatonYAMLParser {
     dumpAutomatonIfRequested(automaton);
 
     return automaton;
+  }
+
+  private void handleAssumptionWaypoint(
+      Set<Integer> allowedLines,
+      WaypointRecord follow,
+      int line,
+      AutomatonTransition.Builder builder)
+      throws InterruptedException, InvalidConfigurationException {
+    if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
+      String invariantString = follow.getConstraint().getString();
+      Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
+      try {
+        AExpression exp =
+            createExpressionTreeFromString(resultFunction, invariantString, line, null)
+                .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+        builder.withAssumptions(ImmutableList.of(exp));
+      } catch (UnrecognizedCodeException e) {
+        throw new InvalidConfigurationException("Could not parse string into valid expression", e);
+      }
+    }
   }
 
   private Map<WaypointRecord, List<WaypointRecord>> segmentize(List<AbstractEntry> pEntries) {
