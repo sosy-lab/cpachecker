@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
@@ -28,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferDCPAAlgorithm.ConditionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -51,6 +54,7 @@ public class InferWorker extends BlockSummaryWorker {
 
   private Map<String, Optional<Integer>> expectedMessages;
   private Map<String, Integer> messagesReceived;
+  private Map<String, Integer> runCounts;
   private int messagesSent;
 
   /**
@@ -89,8 +93,9 @@ public class InferWorker extends BlockSummaryWorker {
         new InferDCPAAlgorithm(
             getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
     workerFunction = block.getFirst().getFunctionName();
-    expectedMessages = getInitialExpectedMessages();
-    messagesReceived = getInitialReceivedMessages();
+    expectedMessages = initialOptionalIntMap();
+    messagesReceived = initialIntMap();
+    runCounts = initialIntMap();
 
     messagesSent = 0;
   }
@@ -114,19 +119,42 @@ public class InferWorker extends BlockSummaryWorker {
         int incrementedReceivedCount = messagesReceived.get(messageFunction) + 1;
         messagesReceived.put(messageFunction, incrementedReceivedCount);
 
+        int messageRunCount = (int) message.getPayload().get(InferDCPAAlgorithm.RUN_ORDER);
+        int workerRunCount = runCounts.get(messageFunction);
+
+        // If we get a message with a run count lower than the current max run count, then we can
+        // just ignore it since it is less precise than what we already have
+        if (workerRunCount > messageRunCount) {
+          yield ImmutableSet.of();
+        }
+
         AbstractState state = dcpaAlgorithm.getDCPA().getDeserializeOperator().deserialize(message);
 
-        Collection<BlockSummaryMessage> messages =
-            dcpaAlgorithm.runAnalysisUnderCondition(
-                Optional.of(state), message.getType(), messageFunction);
+        Builder<BlockSummaryMessage> messagesBuilder = ImmutableList.builder();
+
+        Collection<BlockSummaryMessage> messages;
+        if (workerRunCount < messageRunCount) {
+          messages =
+              dcpaAlgorithm.runAnalysisUnderCondition(
+                  Optional.of(state),
+                  message.getType(),
+                  messageFunction,
+                  ConditionOperator.REPLACE);
+        } else {
+          messages =
+              dcpaAlgorithm.runAnalysisUnderCondition(
+                  Optional.of(state), message.getType(), messageFunction, ConditionOperator.ADD);
+        }
+
         messagesSent += messages.size();
+        messagesBuilder.addAll(messages);
 
         if (allAcknowledged() && allReceived()) {
           BlockSummaryMessage ackMessage = createAcknowledgementMessage(messagesSent);
-          messages = listAndElement(messages, ackMessage);
+          messagesBuilder.add(ackMessage);
         }
 
-        yield messages;
+        yield messagesBuilder.build();
       }
       case INFER_ACKNOWLEDGMENT -> {
         String messageFunction =
@@ -208,7 +236,7 @@ public class InferWorker extends BlockSummaryWorker {
   private boolean allReceived() {
     for (Map.Entry<String, Integer> entry : messagesReceived.entrySet()) {
       Optional<Integer> count = expectedMessages.get(entry.getKey());
-      if (count.isEmpty() || count.orElseThrow().equals(entry.getValue())) {
+      if (count.isEmpty() || !count.orElseThrow().equals(entry.getValue())) {
         return false;
       }
     }
@@ -225,7 +253,7 @@ public class InferWorker extends BlockSummaryWorker {
         block.getId(), block.getLast().getNodeNumber(), payload);
   }
 
-  private Map<String, Optional<Integer>> getInitialExpectedMessages() {
+  private Map<String, Optional<Integer>> initialOptionalIntMap() {
     Map<String, Optional<Integer>> initial = new HashMap<>();
     for (String fn : calledFunctions()) {
       initial.put(fn, Optional.empty());
@@ -233,7 +261,7 @@ public class InferWorker extends BlockSummaryWorker {
     return initial;
   }
 
-  private Map<String, Integer> getInitialReceivedMessages() {
+  private Map<String, Integer> initialIntMap() {
     Map<String, Integer> initial = new HashMap<>();
     for (String fn : calledFunctions()) {
       initial.put(fn, 0);

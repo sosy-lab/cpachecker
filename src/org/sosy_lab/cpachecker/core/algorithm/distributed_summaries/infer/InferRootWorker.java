@@ -73,8 +73,8 @@ public class InferRootWorker extends BlockSummaryWorker {
         yield ImmutableSet.of();
       }
       case INFER_ACKNOWLEDGMENT -> {
-        expectedStrengthens =
-            Optional.of((int) pMessage.getPayload().get(InferWorker.TOTAL_BLOCK_MESSAGES));
+        int totalMainMessages = (int) pMessage.getPayload().get(InferWorker.TOTAL_BLOCK_MESSAGES);
+        expectedStrengthens = Optional.of(totalMainMessages);
         if (strengthenCounter >= expectedStrengthens.orElseThrow()) {
           shutdown = true;
           yield ImmutableSet.of(resultMessage());

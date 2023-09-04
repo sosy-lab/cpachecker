@@ -56,6 +56,11 @@ public class InferDCPAAlgorithm {
   private final ReachedSet reachedSet;
   protected AlgorithmStatus status;
 
+  public enum ConditionOperator {
+    REPLACE,
+    ADD
+  }
+
   // json field which identifies which funciton is sending a message
   public static final String MESSAGE_FUNCTION = "messageFunction";
   public static final String RUN_ORDER = "runOrder";
@@ -93,7 +98,10 @@ public class InferDCPAAlgorithm {
   }
 
   public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
-      Optional<AbstractState> errorCondition, MessageType pMessageType, String pMessageFunction)
+      Optional<AbstractState> errorCondition,
+      MessageType pMessageType,
+      String pMessageFunction,
+      ConditionOperator pOperator)
       throws CPAException, InterruptedException {
     reachedSet.clear();
     reachedSet.add(startState, blockStartPrecision);
@@ -106,7 +114,11 @@ public class InferDCPAAlgorithm {
                   BlockState blockState =
                       Objects.requireNonNull(
                           AbstractStates.extractStateByType(abstractState, BlockState.class));
-                  blockState.addErrorCondition(pMessageFunction, errorCondition.orElseThrow());
+                  if (pOperator.equals(ConditionOperator.REPLACE)) {
+                    blockState.setErrorConditionsForFunction(pMessageFunction, Set.of(condition));
+                  } else {
+                    blockState.addErrorConditionToFunction(pMessageFunction, condition);
+                  }
                   blockState.setStrengthenType(pMessageFunction, pMessageType);
                 }));
 
@@ -116,13 +128,12 @@ public class InferDCPAAlgorithm {
     return processIntermediateResult(result);
   }
 
-  private BlockSummaryMessage createPostConditionMessage(
-      BlockSummaryMessagePayload pPayload, int runCount) {
+  private BlockSummaryMessage createPostConditionMessage(BlockSummaryMessagePayload pPayload) {
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
             .addAllEntries(pPayload)
             .addEntry(MESSAGE_FUNCTION, functionName)
-            .addEntry(RUN_ORDER, runCount)
+            .addEntry(RUN_ORDER, runCounter)
             .buildPayload();
     return BlockSummaryMessage.newBlockPostCondition(
         block.getId(),
@@ -133,7 +144,7 @@ public class InferDCPAAlgorithm {
 
   private Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations) {
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
-    int runCount = runCounter++;
+    runCounter++;
     for (ARGState targetState : violations) {
       Optional<CFANode> targetNode = DCPAAlgorithms.abstractStateToLocation(targetState);
       if (targetNode.isEmpty()) {
@@ -145,7 +156,7 @@ public class InferDCPAAlgorithm {
           BlockSummaryMessagePayload.builder()
               .addAllEntries(initial)
               .addEntry(MESSAGE_FUNCTION, functionName)
-              .addEntry(RUN_ORDER, runCount)
+              .addEntry(RUN_ORDER, runCounter)
               .buildPayload();
       BlockSummaryMessagePayload withStatus = DCPAAlgorithms.appendStatus(status, withName);
       answers.add(
@@ -156,10 +167,11 @@ public class InferDCPAAlgorithm {
   }
 
   private Collection<BlockSummaryMessage> reportUnreachableBlockEnd() {
+    runCounter++;
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
             .addEntry(MESSAGE_FUNCTION, functionName)
-            .addEntry(RUN_ORDER, runCounter++)
+            .addEntry(RUN_ORDER, runCounter)
             .buildPayload();
 
     return ImmutableSet.of(
@@ -187,10 +199,10 @@ public class InferDCPAAlgorithm {
     // empty block ends imply that there was no abstraction node reached
     assert !result.getBlockEnds().isEmpty() || result.getBlockTargets().isEmpty();
     if (!result.getBlockEnds().isEmpty()) {
-      int runCount = runCounter++;
+      runCounter++;
       return FluentIterable.from(result.getBlockEnds())
           .transform(state -> dcpa.serialize(state, reachedSet.getPrecision(state)))
-          .transform(p -> createPostConditionMessage(p, runCount))
+          .transform(p -> createPostConditionMessage(p))
           .toList();
     } else {
       return reportUnreachableBlockEnd();

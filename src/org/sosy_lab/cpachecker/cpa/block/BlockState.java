@@ -60,7 +60,7 @@ public class BlockState
   private final AnalysisDirection direction;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private Map<String, AbstractState> errorConditions;
+  private Map<String, Set<AbstractState>> errorConditions;
   private Map<String, MessageType> strengthenTypes;
 
   public BlockState(
@@ -68,7 +68,7 @@ public class BlockState
       BlockNode pTargetNode,
       AnalysisDirection pDirection,
       BlockStateType pType,
-      Map<String, AbstractState> pErrorConditions,
+      Map<String, Set<AbstractState>> pErrorConditions,
       Map<String, MessageType> pStrengthenTypes) {
     node = pNode;
     direction = pDirection;
@@ -86,18 +86,18 @@ public class BlockState
     strengthenTypes = pStrengthenTypes;
   }
 
-  public void setErrorConditions(Map<String, AbstractState> pErrorConditions) {
-    errorConditions.clear();
-    errorConditions.putAll(pErrorConditions);
+  public void setErrorConditionsForFunction(
+      String pFunctionName, Set<AbstractState> pErrorConditions) {
+    errorConditions.put(pFunctionName, pErrorConditions);
   }
 
   public void setErrorCondition(AbstractState pErrorCondition) {
     errorConditions.clear();
-    errorConditions.put("single_element_map", pErrorCondition);
+    errorConditions.put("single_element_map", Set.of(pErrorCondition));
   }
 
-  public void addErrorCondition(String pFunctionName, AbstractState pErrorCondition) {
-    errorConditions.put(pFunctionName, pErrorCondition);
+  public void addErrorConditionToFunction(String pFunctionName, AbstractState pErrorCondition) {
+    errorConditions.get(pFunctionName).add(pErrorCondition);
   }
 
   public void setStrengthenTypes(Map<String, MessageType> pStrengthenTypes) {
@@ -157,7 +157,7 @@ public class BlockState
     return targetInformation.build();
   }
 
-  public Map<String, AbstractState> getErrorConditions() {
+  public Map<String, Set<AbstractState>> getErrorConditions() {
     return errorConditions;
   }
 
@@ -170,7 +170,7 @@ public class BlockState
         && !blockNode.getLast().equals(node)
         && !isStartNodeOfBlock()) {
       ImmutableList<BooleanFormula> approximations =
-          errorConditions.values().stream()
+          flattenedConditions().stream()
               .filter(FormulaReportingState.class::isInstance)
               .map(FormulaReportingState.class::cast)
               .map(s -> s.getFormulaApproximation(manager))
@@ -180,7 +180,7 @@ public class BlockState
 
     // TODO we could cache this so that it only gets updated when a new errorCondition is added
     ImmutableList.Builder<BooleanFormula> approximations = new ImmutableList.Builder<>();
-    for (AbstractState state : errorConditions.values()) {
+    for (AbstractState state : flattenedConditions()) {
       approximations.add(AbstractStates.extractReportedFormulas(manager, state));
     }
     return manager.getBooleanFormulaManager().and(approximations.build());
@@ -277,5 +277,11 @@ public class BlockState
       }
     }
     return strengtheningInfos;
+  }
+
+  Set<AbstractState> flattenedConditions() {
+    return errorConditions.values().stream()
+        .flatMap(s -> s.stream())
+        .collect(ImmutableSet.toImmutableSet());
   }
 }
