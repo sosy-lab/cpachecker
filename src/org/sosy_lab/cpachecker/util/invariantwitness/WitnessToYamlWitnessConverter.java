@@ -191,16 +191,30 @@ public class WitnessToYamlWitnessConverter {
                 .map(x -> x.getLocationNode())
                 .collect(ImmutableSet.toImmutableSet());
 
-        // Remove all nodes which can be reached from the other nodes, since
-        // we want the earliest possible position for the invariant. This needs
-        // to be done since the mapping between Witness and CFA is wrong
-        // in multiple cases and contains superflows nodes/edges
+        if (pWitness.getLeavingEdges().get(pInvexpstate).stream()
+            .anyMatch(x -> x.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE))) {
+          // If the leaving edges are control edges we want all nodes which do not contain
+          // any AssumeEdge leaving it. Since these are probably the ones which match the
+          // the leaving edges of the state
+          cfaNodesCandidates =
+              cfaNodesCandidates.stream()
+                  .filter(
+                      x ->
+                          CFAUtils.enteringEdges(x).stream()
+                              .noneMatch(y -> y instanceof CAssumeEdge))
+                  .collect(ImmutableSet.toImmutableSet());
+        }
+
+        // Get the last possible node in which the invariant is valid.
+        // This needs to be done, because sometimes declarations or other
+        // things are needed to express the invariant, but also match the
+        // Witness state
         Set<CFANode> cfaNodes = new HashSet<>();
         for (CFANode n : cfaNodesCandidates) {
           if (cfaNodesCandidates.stream()
-              .map(CFAUtils::leavingEdges)
+              .map(CFAUtils::enteringEdges)
               .flatMap(x -> x.stream())
-              .map(x -> x.getSuccessor())
+              .map(x -> x.getPredecessor())
               .noneMatch(x -> x == n)) {
             cfaNodes.add(n);
           }
