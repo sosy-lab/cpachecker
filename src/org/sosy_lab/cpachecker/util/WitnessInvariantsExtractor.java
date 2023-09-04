@@ -219,7 +219,6 @@ public class WitnessInvariantsExtractor {
 
     Set<Invariant> invariants = automatonYAMLParser.generateInvariants(pPathToWitnessFile);
     Set<ExpressionTreeLocationInvariant> candidateInvariants = new HashSet<>();
-    int randomGroupId = 0;
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
 
     // Match the invariants with their corresponding CFA Nodes
@@ -257,8 +256,13 @@ public class WitnessInvariantsExtractor {
                   : true)) {
             candidateInvariants.add(
                 new ExpressionTreeLocationInvariant(
-                    "" + randomGroupId, node, invariant.getFormula(), toCodeVisitorCache));
-            randomGroupId++;
+                    "Invariant matched at line "
+                        + invariant.getLocation().getStartingLineInOrigin()
+                        + " with Offset "
+                        + invariant.getLocation().getNodeOffset(),
+                    node,
+                    invariant.getFormula(),
+                    toCodeVisitorCache));
             break;
           }
         }
