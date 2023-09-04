@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
@@ -130,7 +129,7 @@ public class InferWorker extends BlockSummaryWorker {
 
         AbstractState state = dcpaAlgorithm.getDCPA().getDeserializeOperator().deserialize(message);
 
-        Builder<BlockSummaryMessage> messagesBuilder = ImmutableList.builder();
+        ImmutableList.Builder<BlockSummaryMessage> messagesBuilder = ImmutableList.builder();
 
         Collection<BlockSummaryMessage> messages;
         if (workerRunCount < messageRunCount) {
