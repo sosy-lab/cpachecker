@@ -12,9 +12,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.InputStream;
@@ -319,15 +321,12 @@ public class AutomatonYAMLParser {
     ListMultimap<String, Integer> lineToOffset =
         InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames());
 
-    Map<Integer, Set<String>> lineToSeenInvariants = new HashMap<>();
+    SetMultimap<Integer, String> lineToSeenInvariants = HashMultimap.create();
 
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantEntry invariantEntry) {
         Integer line = invariantEntry.getLocation().getLine();
         String invariantString = invariantEntry.getInvariant().getString();
-        if (!lineToSeenInvariants.containsKey(line)) {
-          lineToSeenInvariants.put(line, new HashSet<>());
-        }
 
         // Parsing is expensive, therefore cache everything we can
         if (lineToSeenInvariants.get(line).contains(invariantString)) {
