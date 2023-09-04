@@ -51,12 +51,14 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
@@ -392,7 +394,7 @@ public class AutomatonYAMLParser {
   }
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
-      throws WitnessParseException, InterruptedException {
+      throws InterruptedException, InvalidConfigurationException {
     Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
@@ -419,9 +421,22 @@ public class AutomatonYAMLParser {
         // TODO: handle this more elegantly / add check that we are really in the last segment!
       }
       int line = follow.getLocation().getLine();
-      transitions.add(
-          new AutomatonTransition.Builder(new CheckCoversLines(ImmutableSet.of(line)), nextStateId)
-              .build());
+      AutomatonBoolExpr expr = new CheckCoversLines(ImmutableSet.of(line));
+      AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
+      if (follow.getType().equals(WaypointType.ASSUMPTION)) {
+        String invariantString = follow.getConstraint().getString();
+        Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
+        try {
+          AExpression exp =
+              createExpressionTreeFromString(resultFunction, invariantString, line, null)
+                  .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+          builder.withAssumptions(ImmutableList.of(exp));
+        } catch (UnrecognizedCodeException e) {
+          throw new InvalidConfigurationException(
+              "Could not parse string into valid expression", e);
+        }
+      }
+      transitions.add(builder.build());
       automatonStates.add(
           new AutomatonInternalState(
               currentStateId,
