@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
@@ -425,6 +426,8 @@ public class AutomatonYAMLParser {
     String currentStateId = initState;
     WaypointRecord follow = null;
 
+    int distance = segments.size();
+
     for (Map.Entry<WaypointRecord, List<WaypointRecord>> entry : segments.entrySet()) {
       List<AutomatonTransition> transitions = new ArrayList<>();
       follow = entry.getKey();
@@ -442,6 +445,13 @@ public class AutomatonYAMLParser {
       AutomatonBoolExpr expr = new CheckCoversLines(ImmutableSet.of(line));
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
       handleAssumptionWaypoint(allowedLines, follow, line, builder);
+
+      ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
+      actionBuilder.add(
+          new AutomatonAction.Assignment(
+              AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+              new AutomatonIntExpr.Constant(distance--)));
+      builder.withActions(actionBuilder.build());
       transitions.add(builder.build());
       automatonStates.add(
           new AutomatonInternalState(
@@ -462,13 +472,18 @@ public class AutomatonYAMLParser {
                   new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
                       .withAssertion(createViolationAssertion())
                       .build()),
-              /* pIsTarget= */ follow.getType().equals(WaypointType.TARGET),
+              /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
     }
 
     Automaton automaton;
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
+    AutomatonIntVariable distanceVariable =
+        (AutomatonIntVariable)
+            AutomatonVariable.createAutomatonVariable(
+                "int", AutomatonGraphmlParser.DISTANCE_TO_VIOLATION);
+    automatonVariables.put(AutomatonGraphmlParser.DISTANCE_TO_VIOLATION, distanceVariable);
 
     // new AutomatonInternalState(entryStateId, transitions, false, false, true)
     try {
