@@ -56,7 +56,7 @@ class PartitionedFormulas {
   private ImmutableList<BooleanFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
-  PartitionedFormulas(
+  private PartitionedFormulas(
       BooleanFormulaManagerView bfmgr,
       LogManager logger,
       boolean assertAllTargets,
@@ -73,6 +73,20 @@ class PartitionedFormulas {
     loopFormulasSsaMap = ImmutableList.of();
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
+  }
+
+  public static PartitionedFormulas createForwardPartitionedFormulas(
+      BooleanFormulaManagerView bfmgr,
+      LogManager logger,
+      boolean assertAllTargets) {
+      return new PartitionedFormulas(bfmgr, logger, assertAllTargets, false);
+  }
+
+  public static PartitionedFormulas createBackwardPartitionedFormulas(
+      BooleanFormulaManagerView bfmgr,
+      LogManager logger,
+      boolean assertAllTargets) {
+    return new PartitionedFormulas(bfmgr, logger, assertAllTargets, true);
   }
 
   /** Return the number of stored loop formulas. */
@@ -101,6 +115,7 @@ class PartitionedFormulas {
 
   /** Return the SSA maps of collected loop formulas (T1, T2, ..., Tn). */
   List<SSAMap> getLoopFormulasSsaMap() {
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return loopFormulasSsaMap;
   }
 

@@ -73,13 +73,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(
       secure = true,
-      description =
-          "toggle which strategy is used for computing fixed points in order to verify programs"
-              + " with loops. If it is not set to true, DAR is not used.")
-  private boolean isDAREnabled = true;
-
-  @Option(
-      secure = true,
       description = "toggle falling back if interpolation or forward-condition is disabled")
   private boolean fallBack = true;
 
@@ -88,11 +81,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
-
-  @Option(secure = true, description = "toggle asserting targets at every iteration for DAR")
-  private boolean assertTargetsAtEveryIteration = false;
-
-  private boolean AllowBMC = false;
+  private boolean isInterpolationEnabled = true;
 
   private final ConfigurableProgramAnalysis cpa;
 
@@ -176,15 +165,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     if (cfa.getAllLoopHeads().isEmpty()) {
-      if (isDAREnabled) {
-        logger.log(
-            Level.WARNING, "Disable interpolation as loop structure could not be determined");
-        isDAREnabled = false;
-      }
-      AllowBMC = true;
+      logger.log(
+          Level.WARNING, "Disable interpolation as loop structure could not be determined");
+      isInterpolationEnabled = false;
     }
     if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
-      if (isDAREnabled) {
+      if (isInterpolationEnabled) {
         if (fallBack) {
           fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
         } else {
@@ -195,7 +181,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     logger.log(Level.FINE, "Performing dual approximated reachability model checking");
     PartitionedFormulas partitionedFormulas =
-        new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration, false);
+        PartitionedFormulas.createForwardPartitionedFormulas(bfmgr, logger, false);
     DualInterpolationSequence dualSequence = new DualInterpolationSequence();
 
     do {
@@ -209,14 +195,14 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       shutdownNotifier.shutdownIfNecessary();
       // BMC
-      if (AllowBMC || getCurrentMaxLoopIterations() <= 1) {
+      if (!isInterpolationEnabled || getCurrentMaxLoopIterations() <= 1) {
         if (isBMCCheckSat(pReachedSet)) {
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
       }
       shutdownNotifier.shutdownIfNecessary();
       // Check if interpolation or forward-condition check is applicable
-      if (isDAREnabled
+      if (isInterpolationEnabled
           && !InterpolationHelper.checkAndAdjustARG(
               logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
         if (fallBack) {
@@ -239,7 +225,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         stats.interpolationPreparation.stop();
       }
       // DAR
-      if (isDAREnabled && getCurrentMaxLoopIterations() > 1) {
+      if (isInterpolationEnabled && getCurrentMaxLoopIterations() > 1) {
         if (!isDualSequenceInitialized) {
           // Initialize FRS to [INIT]
           initializeFRS(partitionedFormulas, dualSequence);
@@ -604,16 +590,14 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void fallBackToBMC(final String pReason) {
     logger.log(
         Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
-    isDAREnabled = false;
-    AllowBMC = true;
+    isInterpolationEnabled = false;
   }
 
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
     logger.log(
         Level.WARNING,
         "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
-    isDAREnabled = false;
-    AllowBMC = true;
+    isInterpolationEnabled = false;
     checkForwardConditions = false;
   }
 
