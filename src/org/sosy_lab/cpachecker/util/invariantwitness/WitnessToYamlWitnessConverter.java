@@ -62,6 +62,13 @@ public class WitnessToYamlWitnessConverter {
               .anyMatch(
                   x ->
                       "true".equalsIgnoreCase(x.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)));
+
+      // Simplify the invariant such that reading it in afterwards is easier
+      invariantExpression = ExpressionTrees.simplify(invariantExpression);
+
+      // Remove CPAchecker internal values from the invariant expression
+      invariantExpression = ExpressionTrees.removeCPAcheckerInternals(invariantExpression);
+
       if (isLoopHead) {
         builder.addAll(handleLoopInvariant(invariantExpression, invexpstate, pWitness));
       } else if (writeLocationInvariants) {
