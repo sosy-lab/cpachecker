@@ -89,8 +89,18 @@ public class ARGUtils {
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
   public static ImmutableSet<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
+    return getAllStatesOnPathsTo(ImmutableList.of(pLastElement));
+  }
+
+  /**
+   * Get all elements on all paths from the ARG root to a set of given elements.
+   *
+   * @param pLastElements The last elements in the paths.
+   * @return A set of elements, all of which have one of pLastElements as their (transitive) child.
+   */
+  public static ImmutableSet<ARGState> getAllStatesOnPathsTo(Iterable<ARGState> pLastElements) {
     return ImmutableSet.copyOf(
-        Traverser.forGraph(ARGState::getParents).depthFirstPreOrder(pLastElement));
+        Traverser.forGraph(ARGState::getParents).depthFirstPreOrder(pLastElements));
   }
 
   /** Get all abstract states without parents. */

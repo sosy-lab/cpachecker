@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,7 +27,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntr
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantCertificateEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 
 public class InvariantWitnessTest {
 
@@ -51,11 +52,37 @@ public class InvariantWitnessTest {
     Queue<AbstractEntry> loadedEntries = testParsingFile("violation-witness.yml");
     for (AbstractEntry e : loadedEntries) {
       if (e instanceof ViolationSequenceEntry) {
-        List<WaypointRecord> sequence = ((ViolationSequenceEntry) e).getSequence();
-        assertThat(sequence).hasSize(6);
-        assertThat(sequence.get(0).getConstraint().getString()).isEqualTo("(x >= 1024U)");
+        List<SegmentRecord> sequence = ((ViolationSequenceEntry) e).getContent();
+        assertThat(sequence).hasSize(5);
+        assertThat(sequence.get(0).getSegment().size()).isAtLeast(1);
+        assertThat(sequence.get(0).getSegment().get(0).getConstraint().getString())
+            .isEqualTo("(x >= 1024U)");
       }
     }
+  }
+
+  @Test
+  public void testRoundTripParsingOfViolationWitness()
+      throws JsonParseException, JsonMappingException, IOException {
+    Queue<AbstractEntry> entries1 = testParsingFile("violation-witness.yml");
+    assertThat(entries1).hasSize(1);
+    assertThat(entries1.element()).isInstanceOf(ViolationSequenceEntry.class);
+    ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    String yamlString = mapper.writeValueAsString(ImmutableList.of(entries1.element()));
+    ViolationSequenceEntry entry1 = (ViolationSequenceEntry) entries1.element();
+
+    JavaType entryType =
+        mapper.getTypeFactory().constructCollectionType(List.class, AbstractEntry.class);
+    List<AbstractEntry> entries2 = mapper.readValue(yamlString, entryType);
+    assertThat(entries2).hasSize(1);
+    assertThat(entries2.get(0)).isInstanceOf(ViolationSequenceEntry.class);
+    ViolationSequenceEntry entry2 = (ViolationSequenceEntry) entries2.get(0);
+
+    // actual check of both representations
+    assertThat(entry1.getMetadata()).isEqualTo(entry2.getMetadata());
+    // TODO: check also the content for equality once we have decided on default values in case keys
+    // are missing:
+    // assertThat(entry1.getContent()).isEqualTo(entry2.getContent());
   }
 
   private Queue<AbstractEntry> testParsingFile(String filename)

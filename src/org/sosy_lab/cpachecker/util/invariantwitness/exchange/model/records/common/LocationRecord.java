@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 @Immutable
 public class LocationRecord {
@@ -17,6 +19,7 @@ public class LocationRecord {
   private final String fileName;
 
   @JsonProperty("file_hash")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private final String fileHash;
 
   @JsonProperty("line")
@@ -26,6 +29,7 @@ public class LocationRecord {
   private final int column;
 
   @JsonProperty("function")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private final String function;
 
   public LocationRecord(
@@ -71,7 +75,7 @@ public class LocationRecord {
         && fileHash.equals(other.fileHash)
         && line == other.line
         && column == other.column
-        && function.equals(other.function);
+        && Objects.equals(function, other.function);
   }
 
   @Override
@@ -80,7 +84,7 @@ public class LocationRecord {
     hashCode = 31 * hashCode + fileHash.hashCode();
     hashCode = 31 * hashCode + Integer.hashCode(line);
     hashCode = 31 * hashCode + Integer.hashCode(column);
-    hashCode = 31 * hashCode + function.hashCode();
+    hashCode = 31 * hashCode + (function != null ? function.hashCode() : 0);
     return hashCode;
   }
 

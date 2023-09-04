@@ -200,54 +200,53 @@ class SMTHeapWithByteArray implements SMTHeap {
       FormulaType<I> addressType,
       BitvectorType targetType) {
     final int bitLength = targetType.getSize();
-    BitvectorFormula result;
-    // TODO: make one function from the two which depend on the presence of index
-    if (ssaIndex != null) {
-      result = delegate.makePointerDereference(targetName, BYTE_TYPE, ssaIndex, address);
-    } else {
-      result = delegate.makePointerDereference(targetName, BYTE_TYPE, address);
-    }
+    assert (bitLength > 0);
 
-    if (bitLength < BYTE_SIZE) {
-      // if the actual bit size of target type is smaller than the number of bits in byte,
-      // we need to discard the high bits
-      return bfmgr.extract(result, bitLength - 1, 0);
-    } else if (bitLength == BYTE_SIZE) {
-      // if the actual bit size of target type matches the number of bits in byte,
-      // we can just return the result as-is
-      return result;
-    } else {
-      // if the actual bit size of target type is larger than the number of bits in byte,
-      // we have to read from more addresses and concatenate the parts
+    // compute the number of bytes, even partially filled ones
+    final int numPartialBytes = (bitLength / BYTE_SIZE) + ((bitLength % BYTE_SIZE) != 0 ? 1 : 0);
 
-      // TODO: this will fail with bit-fields which contain more bits than byte
-      checkArgument(
-          bitLength % BYTE_SIZE == 0,
-          "Bitvector size %s is not a multiple of %s!",
-          bitLength,
-          BYTE_SIZE);
+    // the result is a null at first, it will be assigned to by the first partial byte
+    BitvectorFormula result = null;
 
-      // result starts with first byte, loop appends the other bytes
-      for (int byteOffset = 1; byteOffset < bitLength / BYTE_SIZE; byteOffset++) {
-        I addressWithOffset =
-            formulaManager.makePlus(address, formulaManager.makeNumber(addressType, byteOffset));
-        final BitvectorFormula nextBVPart;
+    // iterate through all partial bytes
+    for (int partialByte = 0; partialByte < numPartialBytes; partialByte++) {
+      // add the byte offset to address
+      I addressWithOffset =
+          formulaManager.makePlus(address, formulaManager.makeNumber(addressType, partialByte));
 
-        // TODO: make one function from the two which depend on the presence of index
-        if (ssaIndex != null) {
-          nextBVPart =
-              delegate.makePointerDereference(targetName, BYTE_TYPE, ssaIndex, addressWithOffset);
-        } else {
-          nextBVPart = delegate.makePointerDereference(targetName, BYTE_TYPE, addressWithOffset);
-        }
+      // get the partial byte formula
+      BitvectorFormula partialByteFormula;
 
+      // TODO: make one function from the two which depend on the presence of index
+      if (ssaIndex != null) {
+        partialByteFormula =
+            delegate.makePointerDereference(targetName, BYTE_TYPE, ssaIndex, addressWithOffset);
+      } else {
+        partialByteFormula =
+            delegate.makePointerDereference(targetName, BYTE_TYPE, addressWithOffset);
+      }
+
+      // discard the part after the target type length if necessary
+      final int partialByteBitOffset = partialByte * BYTE_SIZE;
+      final int partialByteMaxLength = bitLength - partialByteBitOffset;
+      assert (partialByteMaxLength > 0);
+      if (partialByteMaxLength < BYTE_SIZE) {
+        partialByteFormula = bfmgr.extract(partialByteFormula, partialByteMaxLength - 1, 0);
+      }
+
+      // concatenate with result
+      if (result != null) {
         result =
             (endianness == ByteOrder.BIG_ENDIAN)
-                ? bfmgr.concat(result, nextBVPart)
-                : bfmgr.concat(nextBVPart, result);
+                ? bfmgr.concat(result, partialByteFormula)
+                : bfmgr.concat(partialByteFormula, result);
+      } else {
+        result = partialByteFormula;
       }
-      return result;
     }
+    assert (result != null);
+
+    return result;
   }
 
   private <I extends Formula> BooleanFormula handleBitvectorAssignment(
@@ -264,31 +263,52 @@ class SMTHeapWithByteArray implements SMTHeap {
       throw new UnsupportedOperationException("Byte heap does not support quantified assignments!");
     }
 
-    // since each element is represented by a certain amount of bytes and there is no overlap, there
-    // is no need to obtain the old value and merge them
-    final int bitLength = bfmgr.getLength(value);
-
-    ImmutableList<BitvectorFormula> bytes;
-    if (bitLength < BYTE_SIZE) {
-      BitvectorFormula oldValue =
-          delegate.makePointerDereference(targetName, BYTE_TYPE, oldIndex, address);
-      BitvectorFormula remainingBits = bfmgr.extract(oldValue, (BYTE_SIZE - 1), bitLength);
-      bytes = ImmutableList.of(bfmgr.concat(remainingBits, value));
-    } else if (bitLength == BYTE_SIZE) {
-      bytes = ImmutableList.of(value);
-    } else {
-      bytes = splitBitvectorToBytes(value);
-    }
-
-    // store the value in delegate byte-by-byte
     // make just one delegate assignment so that we do not need to use multiple SSA indices
     ImmutableList.Builder<SMTAddressValue<I, BitvectorFormula>> byteAssignmentsBuilder =
         ImmutableList.builder();
-    int byteOffset = 0;
-    for (BitvectorFormula byteValue : bytes) {
+
+    // split the element into bytes
+    final int bitLength = bfmgr.getLength(value);
+    assert (bitLength > 0);
+
+    // compute the number of bytes, even partially filled ones
+    final int numPartialBytes = (bitLength / BYTE_SIZE) + ((bitLength % BYTE_SIZE) != 0 ? 1 : 0);
+
+    for (int partialByte = 0; partialByte < numPartialBytes; partialByte++) {
+
       I addressWithOffset =
-          formulaManager.makePlus(address, formulaManager.makeNumber(addressType, byteOffset++));
-      byteAssignmentsBuilder.add(new SMTAddressValue<>(addressWithOffset, byteValue));
+          formulaManager.makePlus(address, formulaManager.makeNumber(addressType, partialByte));
+
+      // compute partial byte offset and max length
+      final int partialByteBitOffset = partialByte * BYTE_SIZE;
+      final int partialByteMaxLength = bitLength - partialByteBitOffset;
+      assert (partialByteMaxLength > 0);
+
+      final BitvectorFormula partialByteFormula;
+
+      if (partialByteMaxLength >= BYTE_SIZE) {
+        // we can extract the whole byte from the supplied value
+        partialByteFormula =
+            bfmgr.extract(value, partialByteBitOffset + (BYTE_SIZE - 1), partialByteBitOffset);
+      } else {
+        // we need to fetch the high byts from old value
+        BitvectorFormula newBits =
+            bfmgr.extract(
+                value, partialByteBitOffset + (partialByteMaxLength - 1), partialByteBitOffset);
+
+        BitvectorFormula oldByteFormula =
+            delegate.makePointerDereference(targetName, BYTE_TYPE, oldIndex, addressWithOffset);
+
+        BitvectorFormula oldBits =
+            bfmgr.extract(oldByteFormula, BYTE_SIZE - 1, partialByteMaxLength);
+
+        // concat is high-then-low
+        partialByteFormula = bfmgr.concat(oldBits, newBits);
+      }
+
+      // add assignment
+
+      byteAssignmentsBuilder.add(new SMTAddressValue<>(addressWithOffset, partialByteFormula));
     }
 
     // delegate
@@ -297,21 +317,5 @@ class SMTHeapWithByteArray implements SMTHeap {
             targetName, BYTE_TYPE, oldIndex, newIndex, byteAssignmentsBuilder.build());
 
     return assignmentFormula;
-  }
-
-  private <I extends BitvectorFormula> ImmutableList<BitvectorFormula> splitBitvectorToBytes(
-      I bitvector) {
-    final int bitLength = bfmgr.getLength(bitvector);
-    // TODO: this will fail with bit-fields which contain more bits than byte
-    checkArgument(
-        bitLength % BYTE_SIZE == 0,
-        "Bitvector size %s is not a multiple of %s!",
-        bitLength,
-        BYTE_SIZE);
-    ImmutableList.Builder<BitvectorFormula> builder = ImmutableList.builder();
-    for (int bitOffset = 0; bitOffset < bitLength; bitOffset += BYTE_SIZE) {
-      builder.add(bfmgr.extract(bitvector, bitOffset + (BYTE_SIZE - 1), bitOffset));
-    }
-    return (endianness == ByteOrder.BIG_ENDIAN) ? builder.build().reverse() : builder.build();
   }
 }

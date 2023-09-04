@@ -121,6 +121,9 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path yamlProofWitness = null;
 
+  @Option(secure = true, description = "enable witness generation in the new yaml format.")
+  private boolean enableYamlWitnesses = false;
+
   @Option(
       secure = true,
       description = "when enabled also write invariant true to correctness-witness automata")
@@ -235,7 +238,7 @@ public class ARGStatistics implements Statistics {
 
     try {
       invariantWitnessWriter =
-          yamlProofWitness != null
+          enableYamlWitnesses
               ? InvariantWitnessWriter.getWriter(config, cfa, pSpecification, pLogger)
               : null;
     } catch (IOException e) {
@@ -255,7 +258,8 @@ public class ARGStatistics implements Statistics {
               cfa,
               cpa,
               argWitnessExporter,
-              extendedWitnessExporter);
+              extendedWitnessExporter,
+              invariantWitnessWriter);
     }
 
     argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());
@@ -410,7 +414,7 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
-        if (witness != null && yamlProofWitness != null) {
+        if (witness != null && yamlProofWitness != null && invariantWitnessWriter != null) {
           invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(witness, yamlProofWitness);
         }
 

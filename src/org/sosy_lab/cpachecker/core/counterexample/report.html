@@ -14,7 +14,7 @@ with considerably less effort -->
 
 <!DOCTYPE html>
 <html ng-app="report">
-  <head>
+  <head ng-non-bindable>
     <meta charset="UTF-8" />
     <!-- METATAGS -->
     <title>CPAchecker Report</title>
@@ -33,11 +33,11 @@ with considerably less effort -->
       <a href="https://cpachecker.sosy-lab.org/">
         <img class="logo" ng-src="{{logo}}" />
       </a>
-      <h1>
+      <h1 ng-non-bindable>
         Report for
         <!-- REPORT_NAME -->
       </h1>
-      <span class="badge badge-info generated">
+      <span ng-non-bindable class="badge badge-info generated">
         <!-- GENERATED -->
       </span>
     </header>

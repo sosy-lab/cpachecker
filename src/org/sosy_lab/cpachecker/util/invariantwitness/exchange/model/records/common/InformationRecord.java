@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 @Immutable
 public class InformationRecord {
@@ -17,9 +19,11 @@ public class InformationRecord {
   private final String string;
 
   @JsonProperty("type")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private final String type;
 
   @JsonProperty("format")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private final String format;
 
   public InformationRecord(
@@ -49,16 +53,16 @@ public class InformationRecord {
       return true;
     }
     return o instanceof InformationRecord invariantStoreEntryLoopInvariant
-        && string.equals(invariantStoreEntryLoopInvariant.string)
-        && type.equals(invariantStoreEntryLoopInvariant.type)
-        && format.equals(invariantStoreEntryLoopInvariant.format);
+        && Objects.equals(string, invariantStoreEntryLoopInvariant.string)
+        && Objects.equals(type, invariantStoreEntryLoopInvariant.type)
+        && Objects.equals(format, invariantStoreEntryLoopInvariant.format);
   }
 
   @Override
   public int hashCode() {
     int hashCode = string.hashCode();
-    hashCode = 31 * hashCode + type.hashCode();
-    hashCode = 31 * hashCode + format.hashCode();
+    hashCode = 31 * hashCode + (type != null ? type.hashCode() : 0);
+    hashCode = 31 * hashCode + (format != null ? format.hashCode() : 0);
     return hashCode;
   }
 

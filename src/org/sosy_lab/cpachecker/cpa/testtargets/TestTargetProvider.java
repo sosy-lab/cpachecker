@@ -15,8 +15,11 @@ import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -28,6 +31,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetAdaption;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class TestTargetProvider implements Statistics {
@@ -43,7 +47,8 @@ public class TestTargetProvider implements Statistics {
   private boolean trackCoverageOfRedundantTargets = false;
   private boolean printTargets = false;
   private boolean runParallel;
-  private TestTargetAdaption optimization;
+  private boolean applyOptimizationsNested;
+  private List<TestTargetAdaption> optimizationStrategies;
   private Timer optimizationTimer = new Timer();
 
   private TestTargetProvider(
@@ -51,20 +56,23 @@ public class TestTargetProvider implements Statistics {
       final boolean pRunParallel,
       final TestTargetType pType,
       final String pTargetFun,
-      final TestTargetAdaption pGoalAdaption,
+      final List<TestTargetAdaption> pTargetOptimizationStrategies,
+      final boolean pApplyOptimizationsNested,
       final boolean pTrackRedundantTargets) {
     cfa = pCfa;
     runParallel = pRunParallel;
     type = pType;
-    optimization = pGoalAdaption;
+    optimizationStrategies = pTargetOptimizationStrategies;
     trackCoverageOfRedundantTargets = pTrackRedundantTargets;
+    applyOptimizationsNested = pApplyOptimizationsNested;
 
     Predicate<CFAEdge> edgeCriterion =
         switch (type) {
           case FUN_CALL -> type.getEdgeCriterion(pTargetFun);
           default -> type.getEdgeCriterion();
         };
-    Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, pGoalAdaption, pCfa);
+    Set<CFAEdge> targets =
+        extractEdgesByCriterion(edgeCriterion, pTargetOptimizationStrategies, pCfa);
 
     if (runParallel) {
       uncoveredTargets = Collections.synchronizedSet(targets);
@@ -75,7 +83,9 @@ public class TestTargetProvider implements Statistics {
   }
 
   private Set<CFAEdge> extractEdgesByCriterion(
-      final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption, final CFA pCfa) {
+      final Predicate<CFAEdge> criterion,
+      final List<TestTargetAdaption> pTargetOptimizationStrategies,
+      final CFA pCfa) {
     Set<CFAEdge> edges = Sets.newLinkedHashSet(CFAUtils.allEdges(pCfa).filter(criterion));
 
     numNonOptimizedTargets = edges.size();
@@ -83,12 +93,24 @@ public class TestTargetProvider implements Statistics {
       uncoveredRedundantTargets = new LinkedHashSet<>(edges);
     }
 
-    optimizationTimer.start();
-    try {
-      edges = pAdaption.adaptTestTargets(edges, pCfa);
+    if (pTargetOptimizationStrategies != null) {
+      optimizationTimer.start();
 
-    } finally {
-      optimizationTimer.stopIfRunning();
+      try {
+        Set<CFAEdge> edgesOfCurrentOptimization;
+
+        for (TestTargetAdaption optimizationStrategy : pTargetOptimizationStrategies) {
+          if (applyOptimizationsNested) {
+            edges = optimizationStrategy.adaptTestTargets(edges, pCfa);
+          }
+          edgesOfCurrentOptimization = optimizationStrategy.adaptTestTargets(edges, pCfa);
+          if (edgesOfCurrentOptimization.size() < edges.size()) {
+            edges = edgesOfCurrentOptimization;
+          }
+        }
+      } finally {
+        optimizationTimer.stopIfRunning();
+      }
     }
     if (trackCoverageOfRedundantTargets) {
       uncoveredRedundantTargets.removeAll(edges);
@@ -118,20 +140,44 @@ public class TestTargetProvider implements Statistics {
     return instance.uncoveredTargets.size();
   }
 
-  public static Set<CFAEdge> getTestTargets(
+  public static synchronized Set<CFAEdge> getTestTargets(
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
       final String pTargetFun,
-      TestTargetAdaption pTargetOptimization,
-      final boolean pTrackRedundantTargets) {
+      final List<TestTargetAdaption> pTargetOptimizationStrategies,
+      final boolean pApplyOptimizationsNested,
+      final boolean pTrackRedundantTargets,
+      final LogManager pLogger) {
     if (instance == null
         || pCfa != instance.cfa
         || instance.type != pType
-        || instance.optimization != pTargetOptimization) {
+        || instance.optimizationStrategies != pTargetOptimizationStrategies
+        || instance.applyOptimizationsNested != pApplyOptimizationsNested) {
       instance =
           new TestTargetProvider(
-              pCfa, pRunParallel, pType, pTargetFun, pTargetOptimization, pTrackRedundantTargets);
+              pCfa,
+              pRunParallel,
+              pType,
+              pTargetFun,
+              pTargetOptimizationStrategies,
+              pApplyOptimizationsNested,
+              pTrackRedundantTargets);
+
+      if (pTargetOptimizationStrategies != null
+          && !pTargetOptimizationStrategies.isEmpty()
+          && !(pTargetOptimizationStrategies.size() == 1
+              && pTargetOptimizationStrategies.get(0).equals(TestTargetAdaption.NONE))) {
+        pLogger.log(
+            Level.SEVERE,
+            "Consider "
+                + instance.initialTestTargets.size()
+                + " of "
+                + instance.numNonOptimizedTargets
+                + " original targets computed in "
+                + instance.optimizationTimer.getLengthOfLastInterval()
+                + " seconds.");
+      }
     }
     Preconditions.checkState(instance.runParallel || !pRunParallel);
     Preconditions.checkState(instance.trackCoverageOfRedundantTargets || !pTrackRedundantTargets);
@@ -192,7 +238,7 @@ public class TestTargetProvider implements Statistics {
         initialTestTargets.isEmpty() ? 0 : (double) numCovered / initialTestTargets.size();
     pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
     if (numNonOptimizedTargets >= 0) {
-      pOut.println("Number of total test targets before optimization: " + numNonOptimizedTargets);
+      pOut.println("Number of total original test targets: " + numNonOptimizedTargets);
       if (trackCoverageOfRedundantTargets) {
         pOut.println(
             "Number of covered original test targets:"
