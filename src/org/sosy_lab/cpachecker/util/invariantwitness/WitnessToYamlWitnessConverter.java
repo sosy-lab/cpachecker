@@ -182,7 +182,9 @@ public class WitnessToYamlWitnessConverter {
         continue;
       }
 
-      if (e.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE)) {
+      // We handle entering functions the same way we handle entering and if branch
+      if (e.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE)
+          || e.getLabel().getMapping().containsKey(KeyDef.FUNCTIONENTRY)) {
         // If they come from only a single branch of a if statement, then using the Witness
         // to discover where they come from is hard, therefore we need to use the CFA
         ImmutableSet<CFANode> cfaNodesCandidates =
