@@ -150,9 +150,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
 
     if (checkUnsigned) {
-        trackType(CNumericTypes.UNSIGNED_INT);
-        trackType(CNumericTypes.UNSIGNED_LONG_INT);
-        trackType(CNumericTypes.UNSIGNED_LONG_LONG_INT);
+      trackType(CNumericTypes.UNSIGNED_INT);
+      trackType(CNumericTypes.UNSIGNED_LONG_INT);
+      trackType(CNumericTypes.UNSIGNED_LONG_LONG_INT);
     }
 
     ofmgr = new OverflowAssumptionManager(machineModel, logger);
