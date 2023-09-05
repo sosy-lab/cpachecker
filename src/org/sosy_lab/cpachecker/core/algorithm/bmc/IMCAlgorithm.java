@@ -512,6 +512,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       assertTargetsAtEveryIteration = false;
     }
     if (fixedPointComputeStrategy.isIMCEnabled()) {
+      stats.numOfTotalInterpolants = 0;
       stats.numOfIMCInnerIterations = 0;
     }
   }
@@ -816,7 +817,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     assert interpolants.isPresent();
     final int initialIMCIter = stats.numOfIMCInnerIterations;
+    stats.numOfIMCLastInnerLoopIterations = 0;
     while (interpolants.isPresent()) {
+      stats.numOfIMCLastInnerLoopIterations += 1;
+      stats.numOfTotalInterpolants += 1;
       stats.numOfIMCInnerIterations += 1;
       logger.log(
           Level.ALL,
@@ -863,6 +867,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     logger.log(Level.FINE, "Computing fixed points by interpolation-sequence (ISMC)");
     List<BooleanFormula> itpSequence = getInterpolationSequence(pFormulas);
+    stats.numOfTotalInterpolants += itpSequence.size();
     updateReachabilityVector(reachVector, itpSequence);
     return checkFixedPointOfReachabilityVector(reachVector);
   }

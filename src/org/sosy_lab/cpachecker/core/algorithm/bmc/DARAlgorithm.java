@@ -145,6 +145,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try {
       stats.numOfDARGlobalPhaseIterations = 0;
       stats.numOfDARIterations = 0;
+      stats.numOfTotalInterpolants = 0;
+      stats.numOfDARComputedLocalInterpolants = 0;
       return dualApproximatedReachabilityModelChecking(pReachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
@@ -344,6 +346,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     int forwardSequenceIndex = pIndexOfLocalContradiction;
     int backwardSequenceIndex = lastIndexOfSequences - pIndexOfLocalContradiction;
 
+    stats.numOfDARComputedLocalInterpolants += lastIndexOfSequences - forwardSequenceIndex + 1;
     while (forwardSequenceIndex < lastIndexOfSequences) {
       BooleanFormula resultingForwardFormula = FRS.get(forwardSequenceIndex + 1);
       BooleanFormula interpolant =
@@ -356,6 +359,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         constructForwardInterpolant(pDualSequence, pPartitionedFormulas, forwardSequenceIndex);
     pDualSequence.increaseForwardReachVector(newForwardReachFormula);
 
+    stats.numOfDARComputedLocalInterpolants += lastIndexOfSequences - backwardSequenceIndex + 1;
     while (backwardSequenceIndex < lastIndexOfSequences) {
       BooleanFormula resultingBackwardFormula = BRS.get(backwardSequenceIndex + 1);
       BooleanFormula interpolant =
@@ -557,6 +561,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             .add(backwardFormula)
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
+    stats.numOfTotalInterpolants += itpSequence.size();
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     return itpSequence;
   }
