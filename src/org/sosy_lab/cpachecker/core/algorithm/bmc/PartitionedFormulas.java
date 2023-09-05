@@ -76,15 +76,12 @@ class PartitionedFormulas {
   }
 
   public static PartitionedFormulas createForwardPartitionedFormulas(
-      BooleanFormulaManagerView bfmgr,
-      LogManager logger,
-      boolean assertAllTargets) {
-      return new PartitionedFormulas(bfmgr, logger, assertAllTargets, false);
+      BooleanFormulaManagerView bfmgr, LogManager logger, boolean assertAllTargets) {
+    return new PartitionedFormulas(bfmgr, logger, assertAllTargets, false);
   }
 
   public static PartitionedFormulas createBackwardPartitionedFormulas(
-      BooleanFormulaManagerView bfmgr,
-      LogManager logger) {
+      BooleanFormulaManagerView bfmgr, LogManager logger) {
     return new PartitionedFormulas(bfmgr, logger, false, true);
   }
 
@@ -169,14 +166,16 @@ class PartitionedFormulas {
     if (swapPrefixAndTarget) {
       loopFormulasSsaMap =
           transformedImmutableListCopy(
-              abstractionStates.subList(2, abstractionStates.size() - 1),
-              absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState)
-                  .getSsa()).reverse();
+                  abstractionStates.subList(2, abstractionStates.size() - 1),
+                  absState ->
+                      InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa())
+              .reverse();
     } else {
       loopFormulasSsaMap =
           transformedImmutableListCopy(
               abstractionStates.subList(2, abstractionStates.size() - 1),
-              absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
+              absState ->
+                  InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
     }
 
     // collect target assertion formula

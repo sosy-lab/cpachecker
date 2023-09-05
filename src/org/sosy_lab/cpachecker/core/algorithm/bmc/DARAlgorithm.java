@@ -81,6 +81,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
+
   private boolean isInterpolationEnabled = true;
 
   private final ConfigurableProgramAnalysis cpa;
@@ -167,8 +168,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     if (cfa.getAllLoopHeads().isEmpty()) {
-      logger.log(
-          Level.WARNING, "Disable interpolation as loop structure could not be determined");
+      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
       isInterpolationEnabled = false;
     }
     if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {

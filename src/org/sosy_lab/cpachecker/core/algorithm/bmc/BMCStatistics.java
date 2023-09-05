@@ -63,9 +63,11 @@ public class BMCStatistics implements Statistics {
       out.println("Number of IMC inner iterations:                  " + numOfIMCInnerIterations);
     }
     if (numOfDARIterations >= 0) {
-      out.println("Number of DAR global strengthening phases:       " + numOfDARGlobalPhaseIterations);
-      out.println("Ratio of iterations with global strengthening:   " +
-          (float) numOfDARGlobalPhaseIterations / numOfDARIterations);
+      out.println(
+          "Number of DAR global strengthening phases:       " + numOfDARGlobalPhaseIterations);
+      out.println(
+          "Ratio of iterations with global strengthening:   "
+              + (float) numOfDARGlobalPhaseIterations / numOfDARIterations);
     }
   }
 
