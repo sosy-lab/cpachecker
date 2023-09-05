@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,6 +34,7 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
     Set<CFANode> waitlist = new HashSet<>();
     CFANode temp;
     CFANode exitNode = null;
+    boolean foundExitNode = false;
 
     for (FunctionEntryNode value : cfa.getAllFunctions().values()) {
       // Complete Solution:
@@ -42,7 +42,10 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
       while (!waitlist.isEmpty()) {
         temp = waitlist.iterator().next();
         waitlist.remove(waitlist.iterator().next());
-        if (temp instanceof FunctionExitNode) {
+        if (temp.getNumLeavingEdges() == 0 && !nodes.contains(temp) && !foundExitNode) {
+          if (temp instanceof FunctionExitNode) {
+            foundExitNode = true;
+          }
           exitNode = temp;
           nodes.add(temp);
           continue;
@@ -64,7 +67,6 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
           }
         }
       }
-      Preconditions.checkArgument(nodes.contains(value.getExitNode().orElseThrow()));
       assert exitNode != null;
       BlockNodeWithoutGraphInformation nodeMetaData =
           new BlockNodeWithoutGraphInformation(
@@ -78,6 +80,7 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
       // Clear Nodes & Edges HashMap
       nodes.clear();
       edges.clear();
+      foundExitNode = false;
     }
 
     return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, builder.build());
