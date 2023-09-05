@@ -86,7 +86,7 @@ class PartitionedFormulas {
       BooleanFormulaManagerView bfmgr,
       LogManager logger,
       boolean assertAllTargets) {
-    return new PartitionedFormulas(bfmgr, logger, assertAllTargets, true);
+    return new PartitionedFormulas(bfmgr, logger, false, true);
   }
 
   /** Return the number of stored loop formulas. */
@@ -167,10 +167,18 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
-    loopFormulasSsaMap =
-        transformedImmutableListCopy(
-            abstractionStates.subList(2, abstractionStates.size() - 1),
-            absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
+    if (swapPrefixAndTarget) {
+      loopFormulasSsaMap =
+          transformedImmutableListCopy(
+              abstractionStates.subList(2, abstractionStates.size() - 1),
+              absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState)
+                  .getSsa()).reverse();
+    } else {
+      loopFormulasSsaMap =
+          transformedImmutableListCopy(
+              abstractionStates.subList(2, abstractionStates.size() - 1),
+              absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
+    }
 
     // collect target assertion formula
     BooleanFormula currentAssertion =

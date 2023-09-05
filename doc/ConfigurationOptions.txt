@@ -3682,18 +3682,11 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
-# toggle asserting targets at every iteration for DAR
-dar.assertTargetsAtEveryIteration = false
-
 # toggle checking forward conditions
 dar.checkForwardConditions = true
 
 # toggle falling back if interpolation or forward-condition is disabled
 dar.fallBack = true
-
-# toggle which strategy is used for computing fixed points in order to verify
-# programs with loops. If it is not set to true, DAR is not used.
-dar.isDAREnabled = true
 
 # toggle removing unreachable stop states in ARG
 dar.removeUnreachableStopStates = false

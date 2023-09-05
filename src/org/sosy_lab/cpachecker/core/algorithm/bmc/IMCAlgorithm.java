@@ -549,14 +549,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     adjustConfigsAccordingToCFA();
     // Initialize variables for IMC/ISMC
     List<BooleanFormula> reachVector = new ArrayList<>();
-    PartitionedFormulas partitionedFormulas;
-    if (backwardAnalysis) {
-      partitionedFormulas =
-          PartitionedFormulas.createBackwardPartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
-    } else {
-      partitionedFormulas =
-          PartitionedFormulas.createForwardPartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
-    }
+    PartitionedFormulas partitionedFormulas =
+        backwardAnalysis ?
+        PartitionedFormulas.createBackwardPartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration) :
+        PartitionedFormulas.createForwardPartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     do {
       unrollProgram(pReachedSet);
