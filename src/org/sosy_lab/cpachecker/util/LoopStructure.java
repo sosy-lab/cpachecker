@@ -25,7 +25,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.Graphs;
 import com.google.common.graph.MutableGraph;
+import com.google.common.graph.Network;
 import com.google.common.graph.Traverser;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
@@ -449,10 +451,10 @@ public final class LoopStructure implements Serializable {
     ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-      Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage(), true);
+      Collection<Loop> functionLoops = findLoops(cfa, nodes, cfa.getLanguage(), true);
       Verify.verify(
           ImmutableSet.copyOf(functionLoops)
-              .equals(ImmutableSet.copyOf(findLoops(nodes, cfa.getLanguage(), false))),
+              .equals(ImmutableSet.copyOf(findLoops(cfa, nodes, cfa.getLanguage(), false))),
           "New loop detection approach doesn't find the same loops as the old approach!");
       loops.putAll(functionName, functionLoops);
     }
@@ -463,12 +465,13 @@ public final class LoopStructure implements Serializable {
    * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
    * with any nodes outside of this set. This method tries to differentiate nested loops.
    *
+   * @param pCfa the CFA to analyze for loops
    * @param pNodes the set of nodes to look for loops in
    * @param language The source language.
    * @return A collection of found loops.
    */
   private static Collection<Loop> findLoops(
-      NavigableSet<CFANode> pNodes, Language language, boolean pUseNewApproach)
+      CFA pCfa, NavigableSet<CFANode> pNodes, Language language, boolean pUseNewApproach)
       throws ParserException {
 
     // Two optimizations:
@@ -534,7 +537,7 @@ public final class LoopStructure implements Serializable {
     if (pUseNewApproach) {
       loopFreeSectionFinder =
           new CachingLoopFreeSectionFinder(
-              new NewBranchingLoopFreeSectionFinder(pNodes, nodeAfterInitialChain));
+              new NewBranchingLoopFreeSectionFinder(pCfa, pNodes, nodeAfterInitialChain));
     } else {
       loopFreeSectionFinder =
           new CachingLoopFreeSectionFinder(
@@ -1188,6 +1191,76 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
+   * A {@link LoopFreeSectionFinder} that finds chains of nodes.
+   *
+   * <p>A chain of nodes can be represented by the following diagram:
+   *
+   * <pre>{@code
+   * (multiple in-edges) [entry] ---> [ ] --- ... ---> [ ] ---> [exit] (multiple out-edges)
+   * }</pre>
+   *
+   * <p>A chain that contains a single node can be represented by the following diagram:
+   *
+   * <pre>{@code
+   * (multiple in-edges) [entry == exit] (multiple out-edges)
+   * }</pre>
+   */
+  private static final class NewNodeChainLoopFreeSectionFinder implements LoopFreeSectionFinder {
+
+    private final CFA cfa;
+    private final @Nullable CFANode ignoreNode;
+
+    /**
+     * Creates a new {@link NodeChainLoopFreeSectionFinder} instance.
+     *
+     * @param pCfa the CFA to analyze for loop-free sections
+     * @param pIgnoreNode If {@code pIgnoreNode != null}, the node is ignored during CFA traversal
+     *     (i.e., we pretend the node and its incident edges don't exist). This can be used to
+     *     ignore linear chains of nodes at the function start.
+     */
+    private NewNodeChainLoopFreeSectionFinder(CFA pCfa, @Nullable CFANode pIgnoreNode) {
+      cfa = pCfa;
+      ignoreNode = pIgnoreNode;
+    }
+
+    private CFANode entryNode(Network<CFANode, ?> pNetwork, CFANode pNode) {
+      CFANode currentNode = pNode;
+
+      // the exit can have multiple out-edges, but only a single in-edge for a multi-node chain
+      if (pNetwork.inDegree(currentNode) != 1) {
+        return currentNode;
+      }
+
+      if (currentNode.equals(ignoreNode)) {
+        return currentNode;
+      }
+
+      // nodes between chain entry and exit must have a single in-edge and a single out-edge
+      CFANode nextNode = Iterables.getOnlyElement(pNetwork.predecessors(currentNode));
+      while (pNetwork.inDegree(nextNode) == 1 && pNetwork.outDegree(nextNode) == 1) {
+        currentNode = nextNode;
+        if (nextNode.equals(ignoreNode)) {
+          break;
+        }
+        nextNode = Iterables.getOnlyElement(pNetwork.predecessors(nextNode));
+      }
+
+      // the entry can have multiple in-edges, but only a single out-edge for a multi-node chain
+      return pNetwork.outDegree(nextNode) == 1 ? nextNode : currentNode;
+    }
+
+    @Override
+    public CFANode entryNode(CFANode pNode) {
+      return entryNode(cfa, pNode);
+    }
+
+    @Override
+    public CFANode exitNode(CFANode pNode) {
+      return entryNode(Graphs.transpose(cfa), pNode);
+    }
+  }
+
+  /**
    * Finds loop-free sections that may contain (nested) branchings.
    *
    * <p>This approach only works for branchings if there is a clear correspondence between a
@@ -1474,8 +1547,6 @@ public final class LoopStructure implements Serializable {
    */
   private static final class NewBranchingLoopFreeSectionFinder implements LoopFreeSectionFinder {
 
-    // TODO: use `CfaNetwork` and transposed `CfaNetwork` to basically halve the amount of code
-
     enum BranchingNodeType {
       BRANCH,
       MERGE
@@ -1483,8 +1554,9 @@ public final class LoopStructure implements Serializable {
 
     record BranchingNode(BranchingNodeType type, CFANode cfaNode) {}
 
-    private final @Nullable CFANode startNode;
-    private final NodeChainLoopFreeSectionFinder nodeChainFinder;
+    private final CFA cfa;
+    private final @Nullable CFANode ignoreNode;
+    private final NewNodeChainLoopFreeSectionFinder nodeChainFinder;
 
     // This graph represents the mapping between branch nodes and their corresponding merge nodes.
     // If a node in this graph isn't connected to any other node, we don't know its corresponding
@@ -1496,15 +1568,18 @@ public final class LoopStructure implements Serializable {
      * Creates a new {@link BranchingLoopFreeSectionFinder} instance.
      *
      * @param pNodes the nodes this loop-free section finder should be able to handle
-     * @param pStartNode If {@code pStartNode != null}, we ignore all its predecessors during CFA
-     *     traversal. This can be used to ignore linear chains of nodes at the function start.
+     * @param pCfa the CFA to analyze for loop-free sections
+     * @param pIgnoreNode If {@code pIgnoreNode != null}, the node is ignored during CFA traversal
+     *     (i.e., we pretend the node and its incident edges don't exist). This can be used to
+     *     ignore linear chains of nodes at the function start.
      */
-    private NewBranchingLoopFreeSectionFinder(Set<CFANode> pNodes, @Nullable CFANode pStartNode) {
-      startNode = pStartNode;
-      nodeChainFinder = new NodeChainLoopFreeSectionFinder(pStartNode);
+    private NewBranchingLoopFreeSectionFinder(
+        CFA pCfa, Set<CFANode> pNodes, @Nullable CFANode pIgnoreNode) {
+      cfa = pCfa;
+      ignoreNode = pIgnoreNode;
+      nodeChainFinder = new NewNodeChainLoopFreeSectionFinder(pCfa, pIgnoreNode);
       // If we don't precompute branch/merge node mappings, the recursive implementations of
-      // `branchNode` and `mergeNode` lead to stack overflows if there is a large number of nested
-      // branchings.
+      // `branchNode` leads to stack overflows if there is a large number of nested branchings.
       precomputeMappings(pNodes);
     }
 
@@ -1515,10 +1590,10 @@ public final class LoopStructure implements Serializable {
           // prevents stack overflows if there is a large number of nested branchings (the
           // implementations of `branchNode` and `mergeNode` recursively check inner branchings that
           // have not yet been analyzed).
-          for (CFANode postOrderNode :
-              Traverser.<CFANode>forGraph(CFAUtils::successorsOf).depthFirstPostOrder(entryNode)) {
-            if (postOrderNode.getNumLeavingEdges() > 1) {
-              mergeNode(postOrderNode);
+          for (CFANode postOrderNode : Traverser.forGraph(cfa).depthFirstPostOrder(entryNode)) {
+            if (cfa.outDegree(postOrderNode) > 1) {
+              // `postOrderNode` is a branch node, so we try to find its corresponding merge node
+              branchNode(Graphs.transpose(cfa), true, postOrderNode);
             }
           }
         }
@@ -1527,55 +1602,35 @@ public final class LoopStructure implements Serializable {
       // remaining branch/merge nodes to indicate that we don't know their corresponding partner
       // nodes.
       for (CFANode node : pNodes) {
-        if (node.getNumEnteringEdges() > 1) {
+        if (cfa.inDegree(node) > 1) {
           branchMergeGraph.addNode(new BranchingNode(BranchingNodeType.MERGE, node));
         }
-        if (node.getNumLeavingEdges() > 1) {
+        if (cfa.outDegree(node) > 1) {
           branchMergeGraph.addNode(new BranchingNode(BranchingNodeType.BRANCH, node));
         }
       }
     }
 
-    private CFANode branchFirstNode(CFANode pNode) {
-      CFANode firstNode = nodeChainFinder.entryNode(pNode);
+    private CFANode branchFirstNode(
+        Network<CFANode, ?> pNetwork, boolean pTransposed, CFANode pNode) {
+      CFANode firstNode = nodeChainFinder.entryNode(pNetwork, pNode);
 
       boolean changed;
       do {
         changed = false;
-        int branchingFactor = firstNode.getNumEnteringEdges();
+        int branchingFactor = pNetwork.inDegree(firstNode);
         if (branchingFactor > 1) {
           // `firstNode` is a merge node, so we try to skip the branching
-          @Nullable CFANode branchNode = branchNode(firstNode).orElse(null);
-          if (branchNode != null && branchNode.getNumLeavingEdges() == branchingFactor) {
+          @Nullable CFANode branchNode = branchNode(pNetwork, pTransposed, firstNode).orElse(null);
+          if (branchNode != null && pNetwork.outDegree(branchNode) == branchingFactor) {
             // skip inner branching
-            firstNode = nodeChainFinder.entryNode(branchNode);
+            firstNode = nodeChainFinder.entryNode(pNetwork, branchNode);
             changed = true;
           }
         }
       } while (changed);
 
       return firstNode;
-    }
-
-    private CFANode branchLastNode(CFANode pNode) {
-      CFANode lastNode = nodeChainFinder.exitNode(pNode);
-
-      boolean changed;
-      do {
-        changed = false;
-        int branchingFactor = lastNode.getNumLeavingEdges();
-        if (branchingFactor > 1) {
-          // `lastNode` is a branch node, so we try to skip the branching
-          @Nullable CFANode mergeNode = mergeNode(lastNode).orElse(null);
-          if (mergeNode != null && mergeNode.getNumEnteringEdges() == branchingFactor) {
-            // skip inner branching
-            lastNode = nodeChainFinder.exitNode(mergeNode);
-            changed = true;
-          }
-        }
-      } while (changed);
-
-      return lastNode;
     }
 
     /**
@@ -1590,11 +1645,13 @@ public final class LoopStructure implements Serializable {
      * @throws IllegalArgumentException if {@code pMergeNode} is not a merge node
      * @throws NullPointerException if {@code pMergeNode == null}
      */
-    private Optional<CFANode> branchNode(CFANode pMergeNode) {
-      int branchingFactor = pMergeNode.getNumEnteringEdges();
+    private Optional<CFANode> branchNode(
+        Network<CFANode, ?> pNetwork, boolean pTransposed, CFANode pMergeNode) {
+      int branchingFactor = pNetwork.inDegree(pMergeNode);
       checkArgument(branchingFactor > 1, "Node is not a merge node: %s", pMergeNode);
 
-      var mergeNode = new BranchingNode(BranchingNodeType.MERGE, pMergeNode);
+      var mergeNodeType = pTransposed ? BranchingNodeType.BRANCH : BranchingNodeType.MERGE;
+      var mergeNode = new BranchingNode(mergeNodeType, pMergeNode);
       if (branchMergeGraph.nodes().contains(mergeNode)) {
         // the merge node has already been analyzed
         return Optional.ofNullable(
@@ -1605,16 +1662,16 @@ public final class LoopStructure implements Serializable {
 
       // find branch nodes for branches
       List<CFANode> branchNodeCandidates = new ArrayList<>(branchingFactor);
-      for (CFANode branchLastNode : CFAUtils.predecessorsOf(pMergeNode)) {
-        if (branchLastNode.getNumLeavingEdges() == branchingFactor) {
+      for (CFANode branchLastNode : pNetwork.predecessors(pMergeNode)) {
+        if (pNetwork.outDegree(branchLastNode) == branchingFactor) {
           // we are already at a branch node
           branchNodeCandidates.add(branchLastNode);
         } else {
-          CFANode branchFirstNode = branchFirstNode(branchLastNode);
-          if (branchFirstNode.getNumEnteringEdges() == 1) {
+          CFANode branchFirstNode = branchFirstNode(pNetwork, pTransposed, branchLastNode);
+          if (pNetwork.inDegree(branchFirstNode) == 1) {
             // the sole predecessor of the first branch node is the branch node candidate
-            CFANode branchNode = branchFirstNode.getEnteringEdge(0).getPredecessor();
-            if (branchNode.getNumLeavingEdges() == branchingFactor) {
+            CFANode branchNode = Iterables.getOnlyElement(pNetwork.predecessors(branchFirstNode));
+            if (pNetwork.outDegree(branchNode) == branchingFactor) {
               branchNodeCandidates.add(branchNode);
             } else {
               branchNodeCandidates.add(null);
@@ -1646,103 +1703,31 @@ public final class LoopStructure implements Serializable {
       Optional<CFANode> branchNode = Optional.empty();
       if (acceptCandidates) {
         branchNode = Optional.of(prevBranchNodeCandidate);
+        var branchNodeType = pTransposed ? BranchingNodeType.MERGE : BranchingNodeType.BRANCH;
         branchMergeGraph.putEdge(
-            mergeNode, new BranchingNode(BranchingNodeType.BRANCH, prevBranchNodeCandidate));
+            mergeNode, new BranchingNode(branchNodeType, prevBranchNodeCandidate));
       }
       return branchNode;
     }
 
-    /**
-     * Returns the corresponding merge node for the specified branch node, if all branches are
-     * loop-free.
-     *
-     * @param pBranchNode the branch node to get the merge node for
-     * @return If all branches are loop-free, an optional containing the merge node for the
-     *     specified branch node is returned. Otherwise, if at least one of the branches is not
-     *     loop-free or we are unable to determine whether they are all loop-free, an empty optional
-     *     is returned.
-     * @throws IllegalArgumentException if {@code pBranchNode} is not a branch node
-     * @throws NullPointerException if {@code pBranchNode == null}
-     */
-    private Optional<CFANode> mergeNode(CFANode pBranchNode) {
-      int branchingFactor = pBranchNode.getNumLeavingEdges();
-      checkArgument(branchingFactor > 1, "Node is not a branch node: %s", pBranchNode);
-
-      var branchNode = new BranchingNode(BranchingNodeType.BRANCH, pBranchNode);
-      if (branchMergeGraph.nodes().contains(branchNode)) {
-        // the branch node has already been analyzed
-        return Optional.ofNullable(
-                Iterables.getOnlyElement(branchMergeGraph.adjacentNodes(branchNode), null))
-            .map(BranchingNode::cfaNode);
-      }
-      branchMergeGraph.addNode(branchNode);
-
-      // find merge nodes for branches
-      List<CFANode> mergeNodeCandidates = new ArrayList<>(branchingFactor);
-      for (CFANode branchFirstNode : CFAUtils.successorsOf(pBranchNode)) {
-        if (branchFirstNode.getNumEnteringEdges() == branchingFactor) {
-          // we are already at a merge node
-          mergeNodeCandidates.add(branchFirstNode);
-        } else {
-          CFANode branchLastNode = branchLastNode(branchFirstNode);
-          if (branchLastNode.getNumLeavingEdges() == 1) {
-            // the sole successor of the last branch node is the merge node candidate
-            CFANode mergeNode = branchLastNode.getLeavingEdge(0).getSuccessor();
-            if (mergeNode.getNumEnteringEdges() == branchingFactor) {
-              mergeNodeCandidates.add(mergeNode);
-            } else {
-              mergeNodeCandidates.add(null);
-              break;
-            }
-          } else {
-            mergeNodeCandidates.add(null);
-            break;
-          }
-        }
-      }
-
-      // check whether all merge node candidates are equal and not `null`
-      boolean acceptCandidates = true;
-      @Nullable CFANode prevMergeNodeCandidate = null;
-      for (CFANode mergeNodeCandidate : mergeNodeCandidates) {
-        if (mergeNodeCandidate == null) {
-          acceptCandidates = false;
-          break;
-        }
-        if (prevMergeNodeCandidate != null && !mergeNodeCandidate.equals(prevMergeNodeCandidate)) {
-          acceptCandidates = false;
-          break;
-        }
-        prevMergeNodeCandidate = mergeNodeCandidate;
-      }
-
-      Optional<CFANode> mergeNode = Optional.empty();
-      if (acceptCandidates) {
-        mergeNode = Optional.of(prevMergeNodeCandidate);
-        branchMergeGraph.putEdge(
-            branchNode, new BranchingNode(BranchingNodeType.MERGE, prevMergeNodeCandidate));
-      }
-      return mergeNode;
-    }
-
-    @Override
-    public CFANode entryNode(CFANode pNode) {
-      CFANode sectionEntry = branchFirstNode(pNode);
+    private CFANode entryNode(Network<CFANode, ?> pNetwork, boolean pTransposed, CFANode pNode) {
+      CFANode sectionEntry = branchFirstNode(pNetwork, pTransposed, pNode);
 
       boolean changed;
       do {
         changed = false;
-        if (sectionEntry.getNumEnteringEdges() == 1) {
-          if (sectionEntry.equals(startNode)) {
+        if (pNetwork.inDegree(sectionEntry) == 1) {
+          if (sectionEntry.equals(ignoreNode)) {
             return sectionEntry;
           }
-          CFANode predecessor = sectionEntry.getEnteringEdge(0).getPredecessor();
-          int branchingFactor = predecessor.getNumLeavingEdges();
+          CFANode predecessor = Iterables.getOnlyElement(pNetwork.predecessors(sectionEntry));
+          int branchingFactor = pNetwork.outDegree(predecessor);
           if (branchingFactor > 1) {
-            @Nullable CFANode mergeNode = mergeNode(predecessor).orElse(null);
-            if (mergeNode != null && mergeNode.getNumEnteringEdges() == branchingFactor) {
+            @Nullable CFANode mergeNode =
+                branchNode(Graphs.transpose(pNetwork), !pTransposed, predecessor).orElse(null);
+            if (mergeNode != null && pNetwork.inDegree(mergeNode) == branchingFactor) {
               // go to outer branching
-              sectionEntry = branchFirstNode(predecessor);
+              sectionEntry = branchFirstNode(pNetwork, pTransposed, predecessor);
               changed = true;
             }
           }
@@ -1753,27 +1738,13 @@ public final class LoopStructure implements Serializable {
     }
 
     @Override
+    public CFANode entryNode(CFANode pNode) {
+      return entryNode(cfa, false, pNode);
+    }
+
+    @Override
     public CFANode exitNode(CFANode pNode) {
-      CFANode sectionExit = branchLastNode(pNode);
-
-      boolean changed;
-      do {
-        changed = false;
-        if (sectionExit.getNumLeavingEdges() == 1) {
-          CFANode successor = sectionExit.getLeavingEdge(0).getSuccessor();
-          int branchingFactor = successor.getNumEnteringEdges();
-          if (branchingFactor > 1) {
-            @Nullable CFANode branchNode = branchNode(successor).orElse(null);
-            if (branchNode != null && branchNode.getNumLeavingEdges() == branchingFactor) {
-              // go to outer branching
-              sectionExit = branchLastNode(successor);
-              changed = true;
-            }
-          }
-        }
-      } while (changed);
-
-      return sectionExit;
+      return entryNode(Graphs.transpose(cfa), true, pNode);
     }
   }
 }
