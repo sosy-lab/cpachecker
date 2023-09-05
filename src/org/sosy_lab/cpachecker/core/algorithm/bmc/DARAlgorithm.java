@@ -142,6 +142,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
     try {
+      stats.numOfDARGlobalPhaseIterations = 0;
+      stats.numOfDARIterations = 0;
       return dualApproximatedReachabilityModelChecking(pReachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
@@ -186,7 +188,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     do {
       shutdownNotifier.shutdownIfNecessary();
-
+      stats.numOfDARIterations += 1;
       stats.bmcPreparation.start();
       try {
         BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
@@ -236,6 +238,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         localStrengtheningPhase(dualSequence, partitionedFormulas);
         if (dualSequence.isLocallyUnsafe()) {
           // Global phase of DAR
+          stats.numOfDARGlobalPhaseIterations += 1;
           List<BooleanFormula> itpSequence =
               getInterpolationSequence(partitionedFormulas, dualSequence, pReachedSet);
           if (itpSequence.isEmpty()) {

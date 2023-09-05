@@ -84,8 +84,7 @@ class PartitionedFormulas {
 
   public static PartitionedFormulas createBackwardPartitionedFormulas(
       BooleanFormulaManagerView bfmgr,
-      LogManager logger,
-      boolean assertAllTargets) {
+      LogManager logger) {
     return new PartitionedFormulas(bfmgr, logger, false, true);
   }
 

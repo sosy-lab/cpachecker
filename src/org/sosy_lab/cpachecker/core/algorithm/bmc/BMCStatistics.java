@@ -31,6 +31,8 @@ public class BMCStatistics implements Statistics {
   final Timer interpolationPreparation = new Timer();
   final Timer fixedPointComputation = new Timer();
   int numOfIMCInnerIterations = -1;
+  int numOfDARIterations = -1;
+  int numOfDARGlobalPhaseIterations = -1;
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
@@ -59,6 +61,11 @@ public class BMCStatistics implements Statistics {
     }
     if (numOfIMCInnerIterations >= 0) {
       out.println("Number of IMC inner iterations:                  " + numOfIMCInnerIterations);
+    }
+    if (numOfDARIterations >= 0) {
+      out.println("Number of DAR global strengthening phases:       " + numOfDARGlobalPhaseIterations);
+      out.println("Ratio of iterations with global strengthening:   " +
+          (float) numOfDARGlobalPhaseIterations / numOfDARIterations);
     }
   }
 
