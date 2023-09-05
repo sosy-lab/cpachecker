@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -91,11 +92,9 @@ public class WitnessToYamlWitnessConverter {
     // incoming edge, therefore edges should be at the loop heads.
     ImmutableSet<CFANode> cfaNodes =
         FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
-            .transform(x -> AbstractStates.asIterable(x).filter(LocationState.class))
-            .stream()
-            .flatMap(x -> x.stream())
-            .map(x -> x.getLocationNode())
-            .collect(ImmutableSet.toImmutableSet());
+            .transformAndConcat(x -> AbstractStates.asIterable(x).filter(LocationState.class))
+            .transform(x -> x.getLocationNode())
+            .toSet();
 
     Set<InvariantWitness> invariants = new HashSet<>();
 
@@ -137,9 +136,9 @@ public class WitnessToYamlWitnessConverter {
       // a blank edge or the loop boundary condition. Therefore they contain the line where
       // the loop head is actually present
       ImmutableSet<CFAEdge> leavingEdges =
-          FluentIterable.from(loop.getLoopHeads()).transform(CFAUtils::leavingEdges).stream()
-              .flatMap(x -> x.stream())
-              .collect(ImmutableSet.toImmutableSet());
+          FluentIterable.from(loop.getLoopHeads())
+              .transformAndConcat(CFAUtils::leavingEdges)
+              .toSet();
 
       for (CFAEdge edge : leavingEdges) {
         FileLocation loc = edge.getFileLocation();
@@ -165,20 +164,16 @@ public class WitnessToYamlWitnessConverter {
     List<Edge> enteringEdgeWitness = (List<Edge>) pWitness.getEnteringEdges().get(pInvexpstate);
     for (Edge e : enteringEdgeWitness) {
       // We ignore all invariants which depend on the internal of CPAchecker to be useful
-      if (pWitness.getCFAEdgeFor(e).stream()
-          .anyMatch(
-              x ->
-                  (x instanceof CAssumeEdge)
-                      && ((CAssumeEdge) x)
-                          .getExpression()
-                          .toString()
-                          .matches(".*__CPAchecker_TMP.*"))) {
-        logger.log(
+      if (FluentIterable.from(pWitness.getCFAEdgeFor(e))
+          .filter(AssumeEdge.class)
+          .anyMatch(x -> x.getExpression().toString().matches(".*__CPAchecker_TMP.*"))) {
+        logger.logf(
             Level.WARNING,
-            "Ignoring invariant '"
-                + pInvariantExpression
-                + "' due to the edge which enters the state in the witness "
-                + "containing a dependency on CPAchecker internal datastructures!");
+            "Ignoring invariant at node %s with edge %s in the Witness due to the edge which enters"
+                + " the state in the witness containing a dependency on CPAchecker internal"
+                + " datastructures!",
+            pInvexpstate,
+            e.toString());
         continue;
       }
 
@@ -189,11 +184,9 @@ public class WitnessToYamlWitnessConverter {
         // to discover where they come from is hard, therefore we need to use the CFA
         ImmutableSet<CFANode> cfaNodesCandidates =
             FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
-                .transform(x -> AbstractStates.asIterable(x).filter(LocationState.class))
-                .stream()
-                .flatMap(x -> x.stream())
-                .map(x -> x.getLocationNode())
-                .collect(ImmutableSet.toImmutableSet());
+                .transformAndConcat(x -> AbstractStates.asIterable(x).filter(LocationState.class))
+                .transform(x -> x.getLocationNode())
+                .toSet();
 
         // We need to differentiate between nodes which call a function and those which do not,
         // since the normal matching returns the last possible node where the invariant is valid
@@ -237,9 +230,7 @@ public class WitnessToYamlWitnessConverter {
           }
 
           enteringEdges =
-              FluentIterable.from(cfaNodes).transform(CFAUtils::enteringEdges).stream()
-                  .flatMap(x -> x.stream())
-                  .collect(ImmutableSet.toImmutableSet());
+              FluentIterable.from(cfaNodes).transformAndConcat(CFAUtils::enteringEdges).toSet();
         }
       } else {
         // If they do not come from if statements and are merely present, then we need to use
