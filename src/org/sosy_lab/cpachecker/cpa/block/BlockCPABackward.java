@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.block;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -54,6 +55,7 @@ public class BlockCPABackward extends AbstractCPA {
         AnalysisDirection.BACKWARD,
         BlockStateType.INITIAL,
         new HashMap<>(),
+        new HashSet<>(),
         new HashMap<>());
   }
 

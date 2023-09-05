@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -54,7 +55,13 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     blockStateSupplier =
         node ->
             new BlockState(
-                node, pNode, pDirection, BlockStateType.INITIAL, new HashMap<>(), new HashMap<>());
+                node,
+                pNode,
+                pDirection,
+                BlockStateType.INITIAL,
+                new HashMap<>(),
+                new HashSet<>(),
+                new HashMap<>());
   }
 
   @Override

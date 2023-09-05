@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.block;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -19,7 +18,6 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -55,6 +53,8 @@ public class BlockState
 
   public record StrengtheningInfo(Map<String, Formula> params, String strengtheningFunction) {}
 
+  private Set<StrengtheningInfo> strengtheningInfos;
+
   private final CFANode targetCFANode;
   private final CFANode node;
   private final AnalysisDirection direction;
@@ -69,6 +69,7 @@ public class BlockState
       AnalysisDirection pDirection,
       BlockStateType pType,
       Map<String, Set<AbstractState>> pErrorConditions,
+      Set<StrengtheningInfo> pStrengtheningInfos,
       Map<String, MessageType> pStrengthenTypes) {
     node = pNode;
     direction = pDirection;
@@ -84,6 +85,7 @@ public class BlockState
     blockNode = pTargetNode;
     errorConditions = new HashMap<>(pErrorConditions);
     strengthenTypes = pStrengthenTypes;
+    strengtheningInfos = pStrengtheningInfos;
   }
 
   public void setErrorConditionsForFunction(
@@ -243,42 +245,31 @@ public class BlockState
                         .equals(MessageType.ERROR_CONDITION));
   }
 
-  public Set<StrengtheningInfo> getStrengtheningInfo(
-      PathFormulaManager pPathFormulaManager, PathFormula pPathFormula)
+  public void addStrengtheningInfo(
+      PathFormulaManager pPathFormulaManager, PathFormula pPathFormula, CFunctionSummaryEdge cfse)
       throws CPATransferException {
-    Set<StrengtheningInfo> strengtheningInfos = new HashSet<>();
-
-    for (String ec : errorConditions.keySet()) {
-      String strengtheningFunction = ec;
-      List<CFunctionSummaryEdge> cfses =
-          blockNode.getEdges().stream()
-              .filter(CFunctionSummaryEdge.class::isInstance)
-              .map(CFunctionSummaryEdge.class::cast)
-              .filter(cfse -> cfse.getFunctionEntry().getFunctionName().equals(ec))
-              .toList();
-
-      for (CFunctionSummaryEdge cfse : cfses) {
-        Map<String, Formula> paramMappings = new HashMap<>();
-        List<CExpression> paramExps =
-            cfse.getExpression().getFunctionCallExpression().getParameterExpressions();
-        ImmutableList<String> paramNames =
-            cfse.getFunctionEntry().getFunctionParameters().stream()
-                .map(CParameterDeclaration::getQualifiedName)
-                .collect(ImmutableList.toImmutableList());
-
-        if (paramExps.size() != paramNames.size()) {
-          throw new CPATransferException("Number of parameters does not match number of arguments");
-        } else {
-          for (int i = 0; i < paramNames.size(); i++) {
-            Formula paramExpFormula =
-                pPathFormulaManager.expressionToFormula(
-                    pPathFormula, (CIdExpression) paramExps.get(i), cfse);
-            paramMappings.put(paramNames.get(i), paramExpFormula);
-          }
-          strengtheningInfos.add(new StrengtheningInfo(paramMappings, strengtheningFunction));
-        }
-      }
+    Map<String, Formula> paramMappings = new HashMap<>();
+    List<CExpression> paramExps =
+        cfse.getExpression().getFunctionCallExpression().getParameterExpressions();
+    ImmutableList<String> paramNames =
+        cfse.getFunctionEntry().getFunctionParameters().stream()
+            .map(CParameterDeclaration::getQualifiedName)
+            .collect(ImmutableList.toImmutableList());
+    if (paramExps.size() != paramNames.size()) {
+      throw new CPATransferException("Number of parameters does not match number of arguments");
     }
+    for (int i = 0; i < paramNames.size(); i++) {
+      Formula paramExpFormula =
+          pPathFormulaManager.expressionToFormula(pPathFormula, paramExps.get(i), cfse);
+      paramMappings.put(paramNames.get(i), paramExpFormula);
+    }
+    StrengtheningInfo newStrengtheningInfo =
+        new StrengtheningInfo(paramMappings, cfse.getFunctionEntry().getFunctionName());
+    ImmutableSet.Builder<StrengtheningInfo> builder = ImmutableSet.builder();
+    strengtheningInfos = builder.addAll(strengtheningInfos).add(newStrengtheningInfo).build();
+  }
+
+  public Set<StrengtheningInfo> getStrengtheningInfo() {
     return strengtheningInfos;
   }
 

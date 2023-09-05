@@ -15,7 +15,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -181,7 +180,7 @@ public interface PathFormulaManager {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
-  Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+  Formula expressionToFormula(PathFormula pFormula, CExpression expr, CFAEdge edge)
       throws UnrecognizedCodeException;
 
   /**

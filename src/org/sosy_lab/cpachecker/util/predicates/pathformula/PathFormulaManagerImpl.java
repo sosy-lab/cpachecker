@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -480,7 +479,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public void clearCaches() {}
 
   @Override
-  public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+  public Formula expressionToFormula(PathFormula pFormula, CExpression expr, CFAEdge edge)
       throws UnrecognizedCodeException {
     return converter.buildTermFromPathFormula(pFormula, expr, edge);
   }

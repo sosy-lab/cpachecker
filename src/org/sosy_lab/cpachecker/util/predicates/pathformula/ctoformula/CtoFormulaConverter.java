@@ -1678,7 +1678,7 @@ public class CtoFormulaConverter {
    * @return Created formula.
    */
   public final Formula buildTermFromPathFormula(
-      PathFormula pFormula, CIdExpression expr, CFAEdge edge) throws UnrecognizedCodeException {
+      PathFormula pFormula, CExpression expr, CFAEdge edge) throws UnrecognizedCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
     Constraints constraints = new Constraints(bfmgr);

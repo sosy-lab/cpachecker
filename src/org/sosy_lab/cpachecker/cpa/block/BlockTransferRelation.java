@@ -105,6 +105,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
           getBlockStateTypeOfLocation(
               AnalysisDirection.FORWARD, pBlockState.getBlockNode(), pCFAEdge.getSuccessor()),
           pBlockState.getErrorConditions(),
+          pBlockState.getStrengtheningInfo(),
           pBlockState.getStrengthenTypes());
     }
 
@@ -135,6 +136,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
           getBlockStateTypeOfLocation(
               AnalysisDirection.BACKWARD, pBlockState.getBlockNode(), pCFAEdge.getPredecessor()),
           pBlockState.getErrorConditions(),
+          pBlockState.getStrengtheningInfo(),
           pBlockState.getStrengthenTypes());
     }
 

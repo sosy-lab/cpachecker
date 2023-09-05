@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.block;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -47,6 +48,7 @@ public class BlockCPA extends AbstractCPA {
         AnalysisDirection.FORWARD,
         BlockStateType.INITIAL,
         new HashMap<>(),
+        new HashSet<>(),
         new HashMap<>());
   }
 

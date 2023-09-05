@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.LongAdder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -215,7 +214,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+  public Formula expressionToFormula(PathFormula pFormula, CExpression expr, CFAEdge edge)
       throws UnrecognizedCodeException {
     return delegate.expressionToFormula(pFormula, expr, edge);
   }

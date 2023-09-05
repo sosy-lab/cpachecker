@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 
 // Just a clone of what we had in the linear decomposition. Maybe we can put
@@ -36,7 +37,11 @@ class BlockNodeTracker {
     if (first == null) {
       first = pEdge.getPredecessor();
     }
-    last = pEdge.getSuccessor();
+    if (pEdge.getSuccessor() instanceof FunctionExitNode fen) {
+      last = fen;
+    } else if (last == null || !(last instanceof FunctionExitNode)) {
+      last = pEdge.getSuccessor();
+    }
     nodesInCurrentBlock.add(pEdge.getPredecessor());
     nodesInCurrentBlock.add(pEdge.getSuccessor());
   }

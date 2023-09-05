@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="4">
 <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
 
   <!--
@@ -24,9 +24,6 @@ SPDX-License-Identifier: Apache-2.0
   -->
 
   <!-- For local testing, compressed witnesses are fine: -->
-  <option name="-setprop">cpa.arg.compressWitness=true</option>
-  <option name="-setprop">counterexample.export.compressWitness=true</option>
-  <option name="-setprop">termination.compressWitness=true</option>
 
   <!--
     The remainder of this file should be synced with
@@ -35,11 +32,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <resultfiles>**/*.graphml</resultfiles>
 
-  <option name="-svcomp23"/>
-  <option name="-heap">10000M</option>
-  <option name="-benchmark"/>
-  <option name="-timelimit">900s</option>
-
+<option name="-predicateAnalysis-infer"/>
 <rundefinition name="SV-COMP23_unreach-call">
   <tasks name="ReachSafety-Arrays">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
