@@ -39,7 +39,7 @@ class BlockNodeTracker {
     }
     if (pEdge.getSuccessor() instanceof FunctionExitNode fen) {
       last = fen;
-    } else if (last == null || !(last instanceof FunctionExitNode)) {
+    } else if (!(last instanceof FunctionExitNode)) {
       last = pEdge.getSuccessor();
     }
     nodesInCurrentBlock.add(pEdge.getPredecessor());

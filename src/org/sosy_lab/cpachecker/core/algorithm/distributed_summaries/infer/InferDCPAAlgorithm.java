@@ -115,7 +115,7 @@ public class InferDCPAAlgorithm {
                       Objects.requireNonNull(
                           AbstractStates.extractStateByType(abstractState, BlockState.class));
                   if (pOperator.equals(ConditionOperator.REPLACE)) {
-                    blockState.setErrorConditionsForFunction(pMessageFunction, Set.of(condition));
+                    blockState.setErrorConditionsForFunction(pMessageFunction, ImmutableSet.of(condition));
                   } else {
                     blockState.addErrorConditionToFunction(pMessageFunction, condition);
                   }
