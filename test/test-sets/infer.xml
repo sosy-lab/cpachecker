@@ -33,6 +33,7 @@ SPDX-License-Identifier: Apache-2.0
   <resultfiles>**/*.graphml</resultfiles>
 
 <option name="-predicateAnalysis-infer"/>
+<option name="-disable-java-assertions"/>
 <rundefinition name="SV-COMP23_unreach-call">
   <tasks name="ReachSafety-Arrays">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
