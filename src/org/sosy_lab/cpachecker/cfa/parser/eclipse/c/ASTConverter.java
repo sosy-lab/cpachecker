@@ -286,6 +286,8 @@ class ASTConverter {
             // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/Microsoft-Windows-Function-Attributes.html
             .put("dllexport", Optional.empty())
             .put("dllimport", Optional.empty())
+            // This attribute is only available in the OpenBSD fork of GCC. See https://man.openbsd.org/gcc-local.1
+            .put("bounded", Optional.empty())
             .buildOrThrow();
   }
 
