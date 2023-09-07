@@ -27,15 +27,17 @@ public class BMCStatistics implements Statistics {
   final Timer inductionPreparation = new Timer();
   final Timer inductionCheck = new Timer();
 
-  // IMC/ISMC operations
+  // IMC/ISMC/DAR operations
   final Timer interpolationPreparation = new Timer();
   final Timer fixedPointComputation = new Timer();
-  int numOfIMCInnerIterations = -1;
-  int numOfTotalInterpolants = -1;
-  int numOfIMCLastInnerLoopIterations = -1;
-  int numOfDARComputedLocalInterpolants = -1;
-  int numOfDARIterations = -1;
-  int numOfDARGlobalPhaseIterations = -1;
+  int numOfInterpolationCalls = -1;
+  int numOfInterpolants = -1;
+  int fixedPointConvergenceLength = -1;
+
+  // DAR specific
+  int numOfDARGlobalPhases = -1;
+  int numOfDARLocalPhases = -1;
+  int numOfDARLocalInterpolants = -1;
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
@@ -60,24 +62,30 @@ public class BMCStatistics implements Statistics {
     }
     if (fixedPointComputation.getNumberOfIntervals() > 0) {
       out.println("Time for collecting formulas for interpolation:  " + interpolationPreparation);
-      out.println("Time for computing fixed point by interpolation: " + fixedPointComputation);
+      out.println("Time for computing fixed-point by interpolation: " + fixedPointComputation);
     }
-    if (numOfIMCInnerIterations >= 0) {
-      out.println("Number of IMC inner iterations:                  " + numOfIMCInnerIterations);
-      out.println(
-          "Number of iterations in the last IMC loop:       " + numOfIMCLastInnerLoopIterations);
+    if (numOfInterpolants >= 0) {
+      out.println("Total number of computed interpolants:           " + numOfInterpolants);
     }
-    if (numOfTotalInterpolants >= 0) {
-      out.println("Total number of interpolants computed:           " + numOfTotalInterpolants);
+    if (numOfInterpolationCalls >= 0) {
+      out.println("Total number of interpolation calls:             " + numOfInterpolationCalls);
     }
-    if (numOfDARIterations >= 0) {
+    if (fixedPointConvergenceLength >= 0) {
       out.println(
-          "Number of DAR global strengthening phases:       " + numOfDARGlobalPhaseIterations);
-      out.println(
-          "Number of DAR interpolants from local phase:     " + numOfDARComputedLocalInterpolants);
-      out.println(
-          "Ratio of iterations with global strengthening:   "
-              + (float) numOfDARGlobalPhaseIterations / numOfDARIterations);
+          "Fixed-point convergence length:                  " + fixedPointConvergenceLength);
+    }
+    if (numOfDARGlobalPhases >= 0) {
+      out.println("Number of DAR global strengthening phases:       " + numOfDARGlobalPhases);
+      if (fixedPointConvergenceLength >= 0) {
+        out.println(
+            "  Ratio to convergence length:                   "
+                + (float) numOfDARGlobalPhases / fixedPointConvergenceLength);
+      }
+    }
+    if (numOfDARLocalPhases >= 0) {
+      out.println("Number of DAR local strengthening phases:        " + numOfDARLocalPhases);
+      assert numOfDARLocalInterpolants >= 0;
+      out.println("  Number of local interpolants:                  " + numOfDARLocalInterpolants);
     }
   }
 

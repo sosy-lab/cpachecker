@@ -511,9 +511,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + " imc.assertTargetsAtEveryIteration to false.");
       assertTargetsAtEveryIteration = false;
     }
-    if (fixedPointComputeStrategy.isIMCEnabled()) {
-      stats.numOfTotalInterpolants = 0;
-      stats.numOfIMCInnerIterations = 0;
+    if (fixedPointComputeStrategy.isIMCEnabled() || fixedPointComputeStrategy.isISMCEnabled()) {
+      stats.numOfInterpolants = 0;
+      stats.numOfInterpolationCalls = 0;
     }
   }
 
@@ -816,18 +816,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     assert interpolants.isPresent();
-    final int initialIMCIter = stats.numOfIMCInnerIterations;
-    stats.numOfIMCLastInnerLoopIterations = 0;
+    final int initialIMCIter = stats.numOfInterpolationCalls;
     while (interpolants.isPresent()) {
-      stats.numOfIMCLastInnerLoopIterations += 1;
-      stats.numOfTotalInterpolants += 1;
-      stats.numOfIMCInnerIterations += 1;
+      stats.numOfInterpolationCalls += 1;
+      stats.numOfInterpolants += 1;
       logger.log(
           Level.ALL,
           "IMC inner loop iteration:",
-          stats.numOfIMCInnerIterations - initialIMCIter,
+          stats.numOfInterpolationCalls - initialIMCIter,
           "[ accumulated:",
-          stats.numOfIMCInnerIterations,
+          stats.numOfInterpolationCalls,
           "]");
       logger.log(Level.ALL, "The current image is", currentImage);
       assert interpolants.orElseThrow().size() == 2;
@@ -837,6 +835,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "After changing SSA", interpolant);
       if (solver.implies(interpolant, currentImage)) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
+        stats.fixedPointConvergenceLength = stats.numOfInterpolationCalls - initialIMCIter;
         finalFixedPoint = fmgr.uninstantiate(currentImage);
         return true;
       }
@@ -846,9 +845,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(
         Level.FINE,
         "Attempted to compute fixed point with",
-        stats.numOfIMCInnerIterations - initialIMCIter,
+        stats.numOfInterpolationCalls - initialIMCIter,
         "IMC inner iterations but did not succeed");
-    loopBoundMgr.adjustLoopBoundIncrementValues(stats.numOfIMCInnerIterations - initialIMCIter);
+    loopBoundMgr.adjustLoopBoundIncrementValues(stats.numOfInterpolationCalls - initialIMCIter);
     return false;
   }
 
@@ -867,7 +866,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     logger.log(Level.FINE, "Computing fixed points by interpolation-sequence (ISMC)");
     List<BooleanFormula> itpSequence = getInterpolationSequence(pFormulas);
-    stats.numOfTotalInterpolants += itpSequence.size();
     updateReachabilityVector(reachVector, itpSequence);
     return checkFixedPointOfReachabilityVector(reachVector);
   }
@@ -888,6 +886,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
+    stats.numOfInterpolationCalls += 1;
+    stats.numOfInterpolants += itpSequence.size();
     return itpSequence;
   }
 
@@ -943,6 +943,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (solver.implies(imageAtI, currentImage)) {
           logger.log(Level.INFO, "Fixed point reached");
           finalFixedPoint = currentImage;
+          stats.fixedPointConvergenceLength = reachVector.size();
           return true;
         }
         currentImage = bfmgr.or(currentImage, imageAtI);
