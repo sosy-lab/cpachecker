@@ -96,7 +96,8 @@ class CFABuilder extends ASTVisitor {
       result.add(Pair.of(declaration, entry.getKey()));
     }
 
-    result.add(Pair.of((ADeclaration) HelperVariable.declaration, "helper"));
+    result.add(
+        Pair.of((ADeclaration) HelperVariable.getInstance().getHelperFieldDeclaration(), "helper"));
 
     return result;
   }

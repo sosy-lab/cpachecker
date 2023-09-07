@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
@@ -19,69 +18,115 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 // TODO better variable names and check variable visibility
 public class HelperVariable {
-  // das hier alles ist anscheinend problematisch -> nach ner idee suchen wie ich das fixen kan
-  // problem -> throwable ist hier schon mit dabei und kann dann anscheinend nicht als subclasse da
-  // hinzugefügt werden -> schauen wie ich den JClassType von der exception bekomme
-  private static Set<JInterfaceType> newSet = new HashSet<>();
 
-  public static JClassType jct =
-      new JClassType(
-          "java.lang.Throwabl",
-          "Throwabl",
-          VisibilityModifier.PUBLIC,
-          false,
-          false,
-          false,
-          JClassType.getTypeOfObject(),
-          newSet);
+  private static HelperVariable instance = null;
+  private JClassType currentType = null;
+  private JFieldDeclaration helperFieldDeclaration;
+  private JClassType throwableInstance = null;
 
-  public static JNullLiteralExpression tempNull = new JNullLiteralExpression(FileLocation.DUMMY);
-
-  public static AInitializer temp = new JInitializerExpression(FileLocation.DUMMY, tempNull);
-
-  public static JSimpleDeclaration declaration =
-      new JVariableDeclaration(
-          FileLocation.DUMMY, true, jct, "MainApp_helper", "helper", "helper", temp, false);
-
-  public static JIdExpression jie =
-      new JIdExpression(FileLocation.DUMMY, jct, "MainApp_helper", declaration);
-
-  public static JRunTimeTypeExpression jre = new JVariableRunTimeType(FileLocation.DUMMY, jie);
-
-  public static JExpression getRunTimeTypeEqualsExpression(JClassType exception) {
-    return new JRunTimeTypeEqualsType(FileLocation.DUMMY, jre, exception);
+  private HelperVariable() {
+    helperFieldDeclaration =
+        new JFieldDeclaration(
+            FileLocation.DUMMY,
+            getThrowableInstance(),
+            "MainApp_helper",
+            "helper",
+            false,
+            true,
+            false,
+            false,
+            VisibilityModifier.PUBLIC);
   }
 
-  public static JStatement getRunTimeTypeEqualsStatement(JClassType exception) {
+  public static HelperVariable getInstance() {
+    if (instance == null) {
+      instance = new HelperVariable();
+    }
+    return instance;
+  }
+
+  private JClassType getThrowableInstance() {
+    if (throwableInstance == null) {
+    Set<JInterfaceType> extendsSerializable = new HashSet<>();
+
+    JInterfaceType serializable =
+        JInterfaceType.valueOf(
+            "java.io.Serializable", "Serializable", VisibilityModifier.PUBLIC, extendsSerializable);
+
+    Set<JInterfaceType> throwableInterfaces = new HashSet<>();
+
+    throwableInterfaces.add(serializable);
+
+    return JClassType.valueOf(
+        "java.lang.Throwable",
+        "Throwable",
+        VisibilityModifier.PUBLIC,
+        false,
+        false,
+        false,
+        JClassType.getTypeOfObject(),
+        throwableInterfaces);
+    }
+    return throwableInstance;
+  }
+
+  public JExpression helperNotEqualsExpression() {
+
+    JIdExpression helperIdExpression =
+        new JIdExpression(
+            FileLocation.DUMMY, currentType, "MainApp_helper", helperFieldDeclaration);
+
+    JExpression helperFieldAccess =
+        new JFieldAccess(
+            FileLocation.DUMMY,
+            currentType,
+            "MainApp_helper",
+            helperFieldDeclaration,
+            helperIdExpression);
+
+    JExpression helperNotEqualsExpression =
+        new JBinaryExpression(
+            FileLocation.DUMMY,
+            JSimpleType.getBoolean(),
+            helperFieldAccess,
+            new JNullLiteralExpression(FileLocation.DUMMY),
+            BinaryOperator.NOT_EQUALS);
+
+    return helperNotEqualsExpression;
+  }
+
+  public JStatement helperNotEqualsStatement() {
+
+    JExpression helperNotEqualsExpression = helperNotEqualsExpression();
+
+    JStatement helperNotEqualsTemp =
+        new JExpressionStatement(FileLocation.DUMMY, helperNotEqualsExpression);
+
+    return helperNotEqualsTemp;
+  }
+
+  public JExpression getRunTimeTypeEqualsExpression(JClassType exception) {
+    JIdExpression helperIdExpression =
+        new JIdExpression(
+            FileLocation.DUMMY, currentType, "MainApp_helper", helperFieldDeclaration);
+
+    JRunTimeTypeExpression helperRunTimeType =
+        new JVariableRunTimeType(FileLocation.DUMMY, helperIdExpression);
+
+    return new JRunTimeTypeEqualsType(FileLocation.DUMMY, helperRunTimeType, exception);
+  }
+
+  public JStatement getRunTimeTypeEqualsStatement(JClassType exception) {
 
     JExpression runTimeTypeEquals = getRunTimeTypeEqualsExpression(exception);
     return new JExpressionStatement(FileLocation.DUMMY, runTimeTypeEquals);
   }
 
-  // TODO check if ADeclaration/JSimpleDeclaration can be changed to this
-  public static JFieldDeclaration jfd =
-      new JFieldDeclaration(
-          FileLocation.DUMMY,
-          jct,
-          "MainApp_helper",
-          "helper",
-          false,
-          true,
-          false,
-          false,
-          VisibilityModifier.PUBLIC);
+  public JFieldDeclaration getHelperFieldDeclaration() {
+    return helperFieldDeclaration;
+  }
 
-  public static JExpression d =
-      new JFieldAccess(FileLocation.DUMMY, jct, "MainApp_helper", jfd, jie);
-
-  public static JExpression helperNotEquals =
-      new JBinaryExpression(
-          FileLocation.DUMMY,
-          JSimpleType.getBoolean(),
-          d,
-          new JNullLiteralExpression(FileLocation.DUMMY),
-          BinaryOperator.NOT_EQUALS);
-
-  public static JStatement helperNotEqualsStatement =
-      new JExpressionStatement(FileLocation.DUMMY, helperNotEquals);
+  public void setCurrentJClassType(JClassType type) {
+    currentType = type;
+  }
 }

@@ -844,22 +844,22 @@ class CFAMethodBuilder extends ASTVisitor {
 
         JAssumeEdge notEqualsNullFalse =
             new JAssumeEdge(
-                HelperVariable.helperNotEqualsStatement.toString(),
+                HelperVariable.getInstance().helperNotEqualsStatement().toString(),
                 FileLocation.DUMMY,
                 current,
                 nodeAfterStatement,
-                HelperVariable.helperNotEquals,
+                HelperVariable.getInstance().helperNotEqualsExpression(),
                 false);
 
         addToCFA(notEqualsNullFalse);
 
         JAssumeEdge notEqualsNullTrue =
             new JAssumeEdge(
-                HelperVariable.helperNotEqualsStatement.toString(),
+                HelperVariable.getInstance().helperNotEqualsStatement().toString(),
                 FileLocation.DUMMY,
                 current,
                 helperNotNull.peek(),
-                HelperVariable.helperNotEquals,
+                HelperVariable.getInstance().helperNotEqualsExpression(),
                 true);
         addToCFA(notEqualsNullTrue);
 
@@ -2750,8 +2750,9 @@ class CFAMethodBuilder extends ASTVisitor {
 
     numberCatchesNested.push(tryStatement.catchClauses().size());
 
+    numberCatches = numberCatchesNested.peek();
+
     for (Object cc : tryStatement.catchClauses()) {
-      numberCatches = numberCatchesNested.peek();
       ((CatchClause) cc).accept(this);
     }
 
@@ -2767,12 +2768,14 @@ class CFAMethodBuilder extends ASTVisitor {
   public boolean visit(CatchClause cc) {
 
     JExpression catchException =
-        HelperVariable.getRunTimeTypeEqualsExpression(
-            (JClassType) astCreator.convert(cc.getException()).getType());
+        HelperVariable.getInstance()
+            .getRunTimeTypeEqualsExpression(
+                (JClassType) astCreator.convert(cc.getException()).getType());
 
     JStatement exception =
-        HelperVariable.getRunTimeTypeEqualsStatement(
-            (JClassType) astCreator.convert(cc.getException()).getType());
+        HelperVariable.getInstance()
+            .getRunTimeTypeEqualsStatement(
+                (JClassType) astCreator.convert(cc.getException()).getType());
 
     CFANode dummyExceptionEquals = new CFANode(cfa.getFunction());
     cfaNodes.add(dummyExceptionEquals);
@@ -2817,7 +2820,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public void endVisit(CatchClause cc) {
 
-    numberCatches -= 1;
+    numberCatches = numberCatches - 1;
 
     firstCatchBlock = false;
 
@@ -2841,6 +2844,13 @@ class CFAMethodBuilder extends ASTVisitor {
 
   @Override
   public boolean visit(ThrowStatement throwStatement) {
+
+    HelperVariable.getInstance()
+        .setCurrentJClassType(
+            (JClassType)
+                astCreator
+                    .convertExpressionWithoutSideEffects(throwStatement.getExpression())
+                    .getExpressionType());
 
     FileLocation fileloc = astCreator.getFileLocation(throwStatement);
 
