@@ -70,7 +70,7 @@ public class InferAnalysis extends BlockSummaryAnalysis
           "Whether to spawn util workers. "
               + "Util workers listen to every message and create visual output for debugging. "
               + "Workers consume resources and should not be used for benchmarks.")
-  private boolean spawnUtilWorkers = true;
+  private boolean spawnUtilWorkers = false;
 
   public InferAnalysis(
       Configuration pConfig,
@@ -80,6 +80,7 @@ public class InferAnalysis extends BlockSummaryAnalysis
       Specification pSpecification)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pInitialCFA, pShutdownManager, pSpecification);
+    pConfig.inject(this);
     initialCFA = pInitialCFA;
     logger = pLogger;
     specification = pSpecification;
