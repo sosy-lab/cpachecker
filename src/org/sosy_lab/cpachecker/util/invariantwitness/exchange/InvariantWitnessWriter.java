@@ -331,8 +331,12 @@ public final class InvariantWitnessWriter {
       if (outEdges.size() > 2) {
         // we assume that violation witnesses only contain branchings at conditions,
         // and there should be only 2 successors in this case
-        throw new YamlWitnessExportException(
-            "Expecting there to be at least two successors per node in a violation witness");
+        logger.logf(
+            WARNING,
+            "Expecting there to be at least two successors per node in a violation witness, but"
+                + " found %d, which might indicate a branching condition with a disjunction or"
+                + " conjunction",
+            outEdges.size());
       }
       ImmutableList.Builder<String> builder = ImmutableList.builder();
       for (Edge e : outEdges) {
