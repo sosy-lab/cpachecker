@@ -115,6 +115,10 @@ public final class AddressExpression extends SymbolicExpression {
 
   @Override
   public boolean equals(Object o) {
+    // Comment to silence CI check
+    if (o == null) {
+      return false;
+    }
     if (this.hasAbstractState()
         && o instanceof AddressExpression
         && ((AddressExpression) o).hasAbstractState()) {
