@@ -1250,25 +1250,33 @@ public class SMGState
    * @param otherValue value in otherState
    * @param equalityCache current cache of values that are known to be equal
    * @return true if the entered values are equal.
-   * @throws SMGException for critical errors
    */
   public boolean areValuesEqual(
       SMGState thisState,
       @Nullable Value thisValue,
       SMGState otherState,
       @Nullable Value otherValue,
-      EqualityCache<Value> equalityCache)
-      throws SMGException {
+      EqualityCache<Value> equalityCache) {
     return areValuesEqual(
         thisState, thisValue, otherState, otherValue, equalityCache, new HashSet<>());
   }
 
+  /**
+   * Check the equality of values. Depending on the options symbolics are always equal or only for
+   * ids. Addresses are compared by the shape of their memory. This includes validity of the memory.
+   * Public for tests only!
+   *
+   * @param thisState state of thisValue
+   * @param thisValue value in thisState
+   * @param otherState state for otherValue
+   * @param otherValue value in otherState
+   * @return true if the entered values are equal.
+   */
   public static boolean areValuesEqual(
       SMGState thisState,
       @Nullable Value thisValue,
       SMGState otherState,
-      @Nullable Value otherValue)
-      throws SMGException {
+      @Nullable Value otherValue) {
     return thisState.areValuesEqual(
         thisState, thisValue, otherState, otherValue, new EqualityCache<>(), new HashSet<>());
   }
@@ -1283,7 +1291,6 @@ public class SMGState
    * @param otherValue value in otherState
    * @param equalityCache current cache of values that are known to be equal
    * @return true if the entered values are equal.
-   * @throws SMGException for critical errors
    */
   private boolean areValuesEqual(
       SMGState thisState,
@@ -1291,8 +1298,7 @@ public class SMGState
       SMGState otherState,
       @Nullable Value otherValue,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisAlreadyCheckedPointers)
-      throws SMGException {
+      Set<Value> thisAlreadyCheckedPointers) {
     // Comparing pointers leads to == true, but they may be not equal because of the heap!!!
     if (thisValue == otherValue && thisValue.isExplicitlyKnown()) {
       return true;
@@ -1374,7 +1380,6 @@ public class SMGState
    * @param equalityCache current {@link EqualityCache}
    * @param thisAlreadyCheckedPointers already checked pointers (can be expected to be equal)
    * @return false if not equal. True else.
-   * @throws SMGException for critical errors
    */
   private boolean isHeapEqualForTwoPointersWithTwoStates(
       SMGState thisState,
@@ -1382,8 +1387,7 @@ public class SMGState
       SMGState otherState,
       Value otherAddress,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisAlreadyCheckedPointers)
-      throws SMGException {
+      Set<Value> thisAlreadyCheckedPointers) {
     // Careful, dereference might materialize new memory out of abstractions!
     Optional<SMGStateAndOptionalSMGObjectAndOffset> thisDeref =
         thisState.dereferencePointerWithoutMaterilization(thisAddress);
@@ -1455,8 +1459,7 @@ public class SMGState
       SMGState otherState,
       SMGObject otherObj,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValueAlreadyVisited)
-      throws SMGException {
+      Set<Value> thisPointerValueAlreadyVisited) {
 
     // If one is DLL and the other is SLL, something is wrong
     if ((otherObj instanceof SMGDoublyLinkedListSegment
@@ -1664,7 +1667,6 @@ public class SMGState
    * @param otherState the state to which the other object belongs.
    * @param equalityCache basic value check cache.
    * @return true if the 2 memory sections given are equal. False else.
-   * @throws SMGException for critical errors.
    */
   private boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
@@ -1673,8 +1675,7 @@ public class SMGState
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValuesAlreadyVisited)
-      throws SMGException {
+      Set<Value> thisPointerValuesAlreadyVisited) {
 
     Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
     for (SMGHasValueEdge hve :

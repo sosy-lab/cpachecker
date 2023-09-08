@@ -12,7 +12,6 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -124,18 +123,14 @@ public final class AddressExpression extends SymbolicExpression {
         && ((AddressExpression) o).hasAbstractState()) {
       if (this.getAbstractState() instanceof SMGState
           && ((AddressExpression) o).getAbstractState() instanceof SMGState) {
-        try {
-          // Precondition as this should never fail in SMGs
-          Preconditions.checkArgument(this.getOffset().equals(((AddressExpression) o).getOffset()));
-          // SMG values have the offset baked into them. Only the SMG truly knows equality for them
-          return SMGState.areValuesEqual(
-              (SMGState) this.getAbstractState(),
-              addressValue,
-              (SMGState) ((AddressExpression) o).getAbstractState(),
-              ((AddressExpression) o).addressValue);
-        } catch (SMGException pE) {
-          throw new RuntimeException(pE);
-        }
+        // Precondition as this should never fail in SMGs
+        Preconditions.checkArgument(this.getOffset().equals(((AddressExpression) o).getOffset()));
+        // SMG values have the offset baked into them. Only the SMG truly knows equality for them
+        return SMGState.areValuesEqual(
+            (SMGState) this.getAbstractState(),
+            addressValue,
+            (SMGState) ((AddressExpression) o).getAbstractState(),
+            ((AddressExpression) o).addressValue);
       }
     }
     return super.equals(o);

@@ -12,7 +12,6 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -84,17 +83,13 @@ public abstract sealed class UnarySymbolicExpression extends SymbolicExpression
         && that.hasAbstractState()
         && this.getAbstractState() instanceof SMGState
         && that.getAbstractState() instanceof SMGState) {
-      try {
-        // SMG values do not really care about the type, as the SMG knows their types and checks
-        // that as well
-        return SMGState.areValuesEqual(
-            (SMGState) this.getAbstractState(),
-            operand,
-            (SMGState) that.getAbstractState(),
-            that.operand);
-      } catch (SMGException pE) {
-        throw new RuntimeException(pE);
-      }
+      // SMG values do not really care about the type, as the SMG knows their types and checks
+      // that as well
+      return SMGState.areValuesEqual(
+          (SMGState) this.getAbstractState(),
+          operand,
+          (SMGState) that.getAbstractState(),
+          that.operand);
     }
 
     return super.equals(that) && operand.equals(that.operand) && type.equals(that.type);
