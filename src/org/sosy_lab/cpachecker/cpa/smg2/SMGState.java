@@ -262,9 +262,7 @@ public class SMGState
       return of(Optional.of(pConstraint));
     }
 
-    return of(
-        listAndElement(constraints, pConstraint),
-        Optional.of(pConstraint));
+    return of(listAndElement(constraints, pConstraint), Optional.of(pConstraint));
   }
 
   public SMGState removeConstraint(Constraint pConstraintToRemove) {
