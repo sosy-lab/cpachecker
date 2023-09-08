@@ -16,14 +16,13 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,8 +43,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -62,11 +65,8 @@ public class DCPAAlgorithm {
 
   // forward analysis variables
   private AlgorithmStatus status;
-  private boolean alreadyReportedError;
-  private boolean isInfeasible;
   private boolean alreadyReportedInfeasibility;
   private Precision blockStartPrecision;
-  private boolean hasSentFirstMessages;
 
   public DCPAAlgorithm(
       LogManager pLogger,
@@ -76,9 +76,7 @@ public class DCPAAlgorithm {
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    alreadyReportedError = false;
     alreadyReportedInfeasibility = false;
-    isInfeasible = false;
     AnalysisComponents parts =
         DCPAAlgorithmFactory.createAlgorithm(
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
@@ -120,23 +118,75 @@ public class DCPAAlgorithm {
             false));
   }
 
+  private Collection<BlockSummaryMessage> reportBlockPostConditions(
+      Set<ARGState> blockEnds, boolean allowTop) {
+    ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
+    if (blockEnds.isEmpty()) {
+      messages.addAll(reportUnreachableBlockEnd());
+    } else {
+      for (ARGState blockEndState : blockEnds) {
+        if (!dcpa.isTop(blockEndState) || allowTop) {
+          BlockSummaryMessagePayload serialized =
+              dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
+          messages.add(
+              BlockSummaryMessage.newBlockPostCondition(
+                  block.getId(),
+                  block.getLast().getNodeNumber(),
+                  DCPAAlgorithms.appendStatus(status, serialized),
+                  true));
+        }
+      }
+    }
+    return messages.build();
+  }
+
+  private Collection<BlockSummaryMessage> reportErrorConditions(
+      Set<ARGState> violations, ARGState condition, boolean first)
+      throws CPATransferException, InterruptedException {
+    ImmutableSet<@NonNull ARGPath> pathsToViolations =
+        FluentIterable.from(violations)
+            .transformAndConcat(v -> ARGUtils.getAllPaths(reachedSet, v))
+            .toSet();
+    ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
+    for (ARGPath path : pathsToViolations) {
+      AbstractState abstractState = dcpa.computeVerificationCondition(path, condition);
+      BlockSummaryMessagePayload serialized =
+          dcpa.serialize(abstractState, reachedSet.getPrecision(path.getLastState()));
+      messages.add(
+          BlockSummaryMessage.newErrorConditionMessage(
+              block.getId(),
+              block.getFirst().getNodeNumber(),
+              DCPAAlgorithms.appendStatus(status, serialized),
+              first));
+    }
+    return messages.build();
+  }
+
   public Collection<BlockSummaryMessage> runInitialAnalysis()
       throws CPAException, InterruptedException {
     reachedSet.clear();
     reachedSet.add(startState, blockStartPrecision);
-    Collection<BlockSummaryMessage> results =
-        processIntermediateResult(
-            DCPAAlgorithms.findReachableTargetStatesInBlock(
-                algorithm, reachedSet, block, AnalysisDirection.FORWARD),
-            false);
-    if (results.isEmpty()) {
-      return reportUnreachableBlockEnd();
+
+    BlockAnalysisIntermediateResult result =
+        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
+
+    status = status.update(result.getStatus());
+
+    if (result.getViolationStates().isEmpty()) {
+      return reportBlockPostConditions(result.getBlockEndStates(), true);
     }
-    return results;
+
+    return reportErrorConditions(result.getViolationStates(), (ARGState) startState, true);
   }
 
-  public Collection<BlockSummaryMessage> runAnalysisForMessage(
-      BlockSummaryPostConditionMessage pReceived)
+  /**
+   * Adds a new abstract state to the known start states and execute the configured forward
+   * analysis.
+   *
+   * @param pReceived Current message to process
+   * @return All violations and/or abstractions that occurred while running the forward analysis.
+   */
+  public Collection<BlockSummaryMessage> runAnalysis(BlockSummaryPostConditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException {
     // check if message is meant for this block
     AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
@@ -173,8 +223,19 @@ public class DCPAAlgorithm {
     if (states.size() != predecessors.size()) {
       return ImmutableSet.of();
     }
-    // we do not have any error condition for simple forward analyses
-    return runAnalysisUnderCondition(Optional.empty());
+    if (dcpa.isTop(deserialized)) {
+      return ImmutableSet.of();
+    }
+    prepareReachedSet();
+    BlockAnalysisIntermediateResult result =
+        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
+
+    status = status.update(result.getStatus());
+
+    return ImmutableSet.<BlockSummaryMessage>builder()
+        .addAll(reportBlockPostConditions(result.getBlockEndStates(), false))
+        .addAll(reportErrorConditions(result.getViolationStates(), (ARGState) startState, true))
+        .build();
   }
 
   /**
@@ -182,29 +243,61 @@ public class DCPAAlgorithm {
    * the error condition will be attached to that edge. In case this makes the path formula
    * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
    *
-   * @param errorCondition an abstract state representing an error condition
+   * @param pErrorCondition a message containing an abstract state representing an error condition
    * @return Important messages for other blocks.
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  Collection<BlockSummaryMessage> runAnalysisUnderCondition(Optional<AbstractState> errorCondition)
-      throws CPAException, InterruptedException {
+  public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
+      BlockSummaryErrorConditionMessage pErrorCondition)
+      throws CPAException, InterruptedException, SolverException {
     // merge all states into the reached set
+    AbstractState errorCondition = dcpa.getDeserializeOperator().deserialize(pErrorCondition);
+    BlockSummaryMessageProcessing processing =
+        dcpa.getProceedOperator().proceedBackward(errorCondition);
+    if (processing.end()) {
+      if (predecessors.contains(pErrorCondition.getBlockId())) {
+        // null means that we cannot expect a state from this predecessor
+        states.put(pErrorCondition.getBlockId(), null);
+      }
+      return processing;
+    }
+
+    final AbstractState translatedErrorCondition =
+        dcpa.getDeserializeOperator()
+            .deserialize(
+                BlockSummaryMessage.newBlockPostCondition(
+                    pErrorCondition.getBlockId(),
+                    pErrorCondition.getTargetNodeNumber(),
+                    getDCPA().getSerializeOperator().serialize(errorCondition),
+                    true));
+
     prepareReachedSet();
 
-    // set error condition to all starting states if present
-    errorCondition.ifPresent(
-        condition ->
-            reachedSet.forEach(
-                abstractState ->
-                    Objects.requireNonNull(
-                            AbstractStates.extractStateByType(abstractState, BlockState.class))
-                        .setErrorCondition(errorCondition)));
+    reachedSet.forEach(
+        abstractState ->
+            Objects.requireNonNull(
+                    AbstractStates.extractStateByType(abstractState, BlockState.class))
+                .setErrorCondition(translatedErrorCondition));
 
     BlockAnalysisIntermediateResult result =
-        DCPAAlgorithms.findReachableTargetStatesInBlock(
-            algorithm, reachedSet, block, AnalysisDirection.FORWARD);
-    return processIntermediateResult(result, errorCondition.isPresent());
+        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
+
+    status = status.update(result.getStatus());
+
+    ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
+    if (!block.getAbstractionLocation().equals(block.getLast())
+        && result.getAbstractionStates().isEmpty()
+        && !result.getBlockEndStates().isEmpty()) {
+      messages.add(
+          BlockSummaryMessage.newErrorConditionUnreachableMessage(
+              block.getId(), "Condition unsatisfiable"));
+      messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false));
+    } else {
+      messages.addAll(
+          reportErrorConditions(result.getBlockEndStates(), ((ARGState) errorCondition), false));
+    }
+    return messages.build();
   }
 
   /**
@@ -244,76 +337,6 @@ public class DCPAAlgorithm {
     if (reachedSet.isEmpty()) {
       reachedSet.add(startState, blockStartPrecision);
     }
-  }
-
-  private Collection<BlockSummaryMessage> processIntermediateResult(
-      BlockAnalysisIntermediateResult result, boolean filter) throws InterruptedException {
-    // adapt precision
-    isInfeasible = result.wasAbstracted();
-    status = status.update(result.getStatus());
-    assert reachedSet.getFirstState() != null;
-    if (reachedSet.getLastState() != null) {
-      blockStartPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
-    }
-    // no feasible path to block end ==> block end is unreachable and successors
-    // can remove this block from their predecessor set.
-    if (result.isEmpty()) {
-      return reportUnreachableBlockEnd();
-    }
-    ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
-    // empty block ends imply that there was no abstraction node reached
-    assert !result.getBlockEnds().isEmpty() || result.getBlockTargets().isEmpty();
-    if (!result.getBlockEnds().isEmpty()) {
-      answers.addAll(
-          FluentIterable.from(result.getBlockEnds())
-              .filter(m -> filter || !hasSentFirstMessages || !dcpa.isTop(m))
-              .transform(state -> dcpa.serialize(state, reachedSet.getPrecision(state)))
-              .transform(
-                  p ->
-                      BlockSummaryMessage.newBlockPostCondition(
-                          block.getId(),
-                          block.getLast().getNodeNumber(),
-                          DCPAAlgorithms.appendStatus(status, p),
-                          true)));
-    } else {
-      answers.addAll(reportUnreachableBlockEnd());
-    }
-    // if we encounter an error location for the first time, we notify the same block to start
-    // a backwards analysis from there
-    if (!result.getViolations().isEmpty() && !alreadyReportedError) {
-      alreadyReportedError = true;
-      return createErrorConditionMessages(result.getViolations());
-    }
-    hasSentFirstMessages = true;
-    return answers.build();
-  }
-
-  private Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations)
-      throws InterruptedException {
-    ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
-    for (ARGState targetState : violations) {
-      Optional<CFANode> targetNode = DCPAAlgorithms.abstractStateToLocation(targetState);
-      if (targetNode.isEmpty()) {
-        throw new AssertionError(
-            "States need to have a location but this one does not: " + targetState);
-      }
-      BlockSummaryMessagePayload initial =
-          dcpa.getSerializeOperator()
-              .serialize(
-                  dcpa.getInitialState(
-                      targetNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
-      initial = DCPAAlgorithms.appendStatus(status, initial);
-      answers.add(
-          BlockSummaryMessage.newErrorConditionMessage(
-              block.getId(), targetNode.orElseThrow().getNodeNumber(), initial, true));
-    }
-    return answers.build();
-  }
-
-  boolean isInfeasible() {
-    boolean storage = isInfeasible;
-    isInfeasible = false;
-    return storage;
   }
 
   public DistributedConfigurableProgramAnalysis getDCPA() {

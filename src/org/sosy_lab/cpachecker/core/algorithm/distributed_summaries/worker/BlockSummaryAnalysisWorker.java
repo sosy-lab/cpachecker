@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
@@ -20,7 +19,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPABackwardAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
@@ -37,8 +35,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   private final BlockNode block;
 
   private final DCPAAlgorithm dcpaAlgorithm;
-  private final DCPABackwardAlgorithm dcpaBackwardAlgorithm;
-
   private boolean shutdown;
 
   private final BlockSummaryConnection connection;
@@ -77,32 +73,10 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
-    Configuration backwardConfiguration =
-        Configuration.builder().loadFromFile(pOptions.getBackwardConfiguration()).build();
-
-    Specification backwardSpecification =
-        Specification.fromFiles(
-            ImmutableSet.of(
-                Path.of("config/specification/MainEntry.spc"),
-                Path.of("config/specification/TerminatingFunctions.spc")),
-            pCFA,
-            backwardConfiguration,
-            getLogger(),
-            pShutdownManager.getNotifier());
 
     dcpaAlgorithm =
         new DCPAAlgorithm(
             getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
-
-    dcpaBackwardAlgorithm =
-        new DCPABackwardAlgorithm(
-            getLogger(),
-            pBlock,
-            pCFA,
-            backwardSpecification,
-            backwardConfiguration,
-            dcpaAlgorithm,
-            pShutdownManager);
   }
 
   @Override
@@ -111,7 +85,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       case ERROR_CONDITION -> {
         try {
           backwardAnalysisTime.start();
-          return dcpaBackwardAlgorithm.runAnalysisForMessage(
+          return dcpaAlgorithm.runAnalysisUnderCondition(
               (BlockSummaryErrorConditionMessage) message);
         } catch (Exception | Error e) {
           return ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e));
@@ -122,7 +96,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       case BLOCK_POSTCONDITION -> {
         try {
           forwardAnalysisTime.start();
-          return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
+          return dcpaAlgorithm.runAnalysis((BlockSummaryPostConditionMessage) message);
         } catch (Exception | Error e) {
           return ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e));
         } finally {
@@ -178,10 +152,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     if (dcpaAlgorithm.getDCPA() instanceof DistributedCompositeCPA) {
       forwardDCPA = (DistributedCompositeCPA) dcpaAlgorithm.getDCPA();
     }
-    DistributedCompositeCPA backwardDCPA = null;
-    if (dcpaBackwardAlgorithm.getDCPA() instanceof DistributedCompositeCPA) {
-      backwardDCPA = (DistributedCompositeCPA) dcpaAlgorithm.getDCPA();
-    }
     return ImmutableMap.<String, Object>builder()
         .put(
             BlockSummaryStatisticType.FORWARD_TIME.name(),
@@ -196,9 +166,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         .put(
             BlockSummaryStatisticType.FORWARD_ANALYSIS_STATS.name(),
             forwardDCPA == null ? ImmutableMap.of() : forwardDCPA.getStatistics().getStatistics())
-        .put(
-            BlockSummaryStatisticType.BACKWARD_ANALYSIS_STATS.name(),
-            backwardDCPA == null ? ImmutableMap.of() : backwardDCPA.getStatistics().getStatistics())
         .buildOrThrow();
   }
 }

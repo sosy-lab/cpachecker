@@ -38,7 +38,6 @@ public class BlockState
     ABSTRACTION
   }
 
-  private final CFANode targetCFANode;
   private final CFANode node;
   private final AnalysisDirection direction;
   private final BlockStateType type;
@@ -54,20 +53,12 @@ public class BlockState
     node = pNode;
     direction = pDirection;
     type = pType;
-    if (pTargetNode == null) {
-      targetCFANode = CFANode.newDummyCFANode();
-    } else {
-      targetCFANode =
-          direction == AnalysisDirection.FORWARD
-              ? pTargetNode.getAbstractionLocation()
-              : pTargetNode.getFirst();
-    }
     blockNode = pTargetNode;
     errorCondition = pErrorCondition;
   }
 
-  public void setErrorCondition(Optional<AbstractState> pErrorCondition) {
-    errorCondition = pErrorCondition;
+  public void setErrorCondition(AbstractState pErrorCondition) {
+    errorCondition = Optional.of(pErrorCondition);
   }
 
   public BlockNode getBlockNode() {
@@ -102,7 +93,7 @@ public class BlockState
     return isTarget()
         ? ImmutableSet.of(
             new BlockEntryReachedTargetInformation(
-                targetCFANode, type == BlockStateType.ABSTRACTION))
+                blockNode.getAbstractionLocation(), type == BlockStateType.ABSTRACTION))
         : ImmutableSet.of();
   }
 
@@ -112,12 +103,7 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    if (isTarget()
-        && errorCondition.isPresent()
-        && direction == AnalysisDirection.FORWARD
-        && !blockNode.getLast().equals(blockNode.getAbstractionLocation())
-        && !blockNode.getLast().equals(node)
-        && !isStartNodeOfBlock()) {
+    if (isTarget() && errorCondition.isPresent()) {
       FluentIterable<BooleanFormula> approximations =
           AbstractStates.asIterable(errorCondition.orElseThrow())
               .filter(FormulaReportingState.class)
@@ -131,37 +117,19 @@ public class BlockState
   @Override
   public boolean equals(Object pO) {
     if (pO instanceof BlockState that) {
-      return direction == that.direction
-          && Objects.equals(targetCFANode, that.targetCFANode)
-          && Objects.equals(node, that.node)
-          && type == that.type;
+      return direction == that.direction && Objects.equals(node, that.node) && type == that.type;
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(targetCFANode, node, direction, type);
-  }
-
-  private boolean isLocatedOnTargetNode() {
-    // equal to isLastNodeOfBlock iff there is no artificial block end,
-    // else true iff node is equal to artificial block end
-    return targetCFANode.equals(node);
-  }
-
-  private boolean isLastNodeOfBlock() {
-    // abstract at the real block end (last node, not artificial block end)
-    return blockNode.getLast().equals(node);
-  }
-
-  private boolean isStartNodeOfBlock() {
-    return blockNode.getFirst().equals(node);
+    return Objects.hash(node, direction, type);
   }
 
   @Override
   public boolean isTarget() {
-    return isLocatedOnTargetNode()
-        || (direction == AnalysisDirection.FORWARD ? isLastNodeOfBlock() : isStartNodeOfBlock());
+    return blockNode.getAbstractionLocation().equals(node)
+        || (errorCondition.isEmpty() && blockNode.getLast().equals(node));
   }
 }

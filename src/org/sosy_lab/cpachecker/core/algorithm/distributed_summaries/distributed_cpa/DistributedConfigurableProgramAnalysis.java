@@ -19,6 +19,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
@@ -78,6 +81,16 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);
   }
+
+  /**
+   * Collapse the path such that it can be represented as one state. The state is required to have
+   * the same location as the first state of the ARGPath
+   *
+   * @param pARGPath arg path to collapse
+   * @return verification condition
+   */
+  AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException;
 
   default BlockSummaryMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
     return BlockSummaryMessagePayload.builder()

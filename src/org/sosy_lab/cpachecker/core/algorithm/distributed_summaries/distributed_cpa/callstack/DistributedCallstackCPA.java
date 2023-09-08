@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -23,8 +24,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -107,5 +111,11 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public boolean isTop(AbstractState pAbstractState) {
     return true;
+  }
+
+  @Override
+  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition) {
+    return Objects.requireNonNull(
+        AbstractStates.extractStateByType(pARGPath.getLastState(), getAbstractStateClass()));
   }
 }

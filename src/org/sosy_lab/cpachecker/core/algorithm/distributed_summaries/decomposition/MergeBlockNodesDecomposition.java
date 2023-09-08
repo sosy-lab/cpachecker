@@ -33,23 +33,22 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
 
   private record BlockScope(CFANode start, CFANode last) {}
 
-  public MergeBlockNodesDecomposition(
-      BlockSummaryCFADecomposer pDecomposition, long pTargetNumber) {
-    this(pDecomposition, pTargetNumber, null);
-  }
+  private final boolean allowSingleBlockDecompositio;
 
   public MergeBlockNodesDecomposition(
       BlockSummaryCFADecomposer pDecomposition,
       long pTargetNumber,
-      Comparator<BlockNodeWithoutGraphInformation> pSort) {
+      Comparator<BlockNodeWithoutGraphInformation> pSort,
+      boolean pAllowSingleBlockDecomposition) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     sort = pSort;
+    allowSingleBlockDecompositio = pAllowSingleBlockDecomposition;
   }
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
-    if (targetNumber <= 1) {
+    if (targetNumber <= 1 && allowSingleBlockDecompositio) {
       return new SingleBlockDecomposition().decompose(cfa);
     }
     Collection<? extends BlockNodeWithoutGraphInformation> nodes =

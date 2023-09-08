@@ -58,37 +58,30 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
 
     messageReceived.add(senderId);
     MessageType type = pMessage.getType();
-    switch (type) {
-      case ERROR_CONDITION:
-        boolean newPostCondition = ((BlockSummaryErrorConditionMessage) pMessage).isFirst();
-        if (newPostCondition) {
-          // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
-          expectAnswer.merge(senderId, 1, Integer::sum);
-        } else {
+    return switch (type) {
+      case ERROR_CONDITION -> {
+        if (!((BlockSummaryErrorConditionMessage) pMessage).isFirst()) {
           expectAnswer.merge(senderId, -1, Integer::sum);
-          nodeMap
-              .get(senderId)
-              .getPredecessorIds()
-              .forEach(b -> expectAnswer.merge(b, 1, Integer::sum));
         }
-        return respondTo(pMessage);
-      case ERROR_CONDITION_UNREACHABLE:
+        nodeMap
+            .get(senderId)
+            .getPredecessorIds()
+            .forEach(b -> expectAnswer.merge(b, 1, Integer::sum));
+        yield respondTo(pMessage);
+      }
+      case ERROR_CONDITION_UNREACHABLE -> {
         expectAnswer.merge(senderId, -1, Integer::sum);
-        return respondTo(pMessage);
-      case FOUND_RESULT:
-        // $FALL-THROUGH$
-      case ERROR:
+        yield respondTo(pMessage);
+      }
+      case FOUND_RESULT, ERROR -> {
         shutdown = true;
-        // $FALL-THROUGH$
-      case STATISTICS:
-        return ImmutableSet.of();
-      case BLOCK_POSTCONDITION:
+        yield ImmutableSet.of();
+      }
+      case STATISTICS -> ImmutableSet.of();
         // we need a block to first send an own error condition or the first BLOCK_POSTCONDITION
-        return respondTo(pMessage);
-
-      default:
-        throw new AssertionError(type + " does not exist");
-    }
+      case BLOCK_POSTCONDITION -> respondTo(pMessage);
+      default -> throw new AssertionError(type + " does not exist");
+    };
   }
 
   @Override

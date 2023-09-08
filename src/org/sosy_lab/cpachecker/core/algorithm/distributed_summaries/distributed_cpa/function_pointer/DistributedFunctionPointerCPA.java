@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -16,8 +17,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DistributedFunctionPointerCPA
     implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -62,5 +66,11 @@ public class DistributedFunctionPointerCPA
   @Override
   public boolean isTop(AbstractState pAbstractState) {
     return true;
+  }
+
+  @Override
+  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition) {
+    return Objects.requireNonNull(
+        AbstractStates.extractStateByType(pARGPath.getLastState(), getAbstractStateClass()));
   }
 }

@@ -21,6 +21,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class DistributedARGCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -90,5 +92,12 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
     }
     throw new IllegalArgumentException(
         "DistributedARGCPA can only work on " + getAbstractStateClass());
+  }
+
+  @Override
+  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException {
+    return new ARGState(
+        wrappedCPA.computeVerificationCondition(pARGPath, pPreviousCondition), null);
   }
 }

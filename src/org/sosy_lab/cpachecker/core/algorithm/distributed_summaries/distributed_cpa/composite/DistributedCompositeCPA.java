@@ -26,8 +26,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DistributedCompositeCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -106,6 +110,25 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       }
     }
     return true;
+  }
+
+  @Override
+  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException {
+    ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
+      if (!analyses.containsKey(cpa.getClass())) {
+        states.add(
+            cpa.getInitialState(
+                Objects.requireNonNull(AbstractStates.extractLocation(pARGPath.getFirstState())),
+                StateSpacePartition.getDefaultPartition()));
+      } else {
+        states.add(
+            Objects.requireNonNull(analyses.get(cpa.getClass()))
+                .computeVerificationCondition(pARGPath, pPreviousCondition));
+      }
+    }
+    return new CompositeState(states.build());
   }
 
   @Override

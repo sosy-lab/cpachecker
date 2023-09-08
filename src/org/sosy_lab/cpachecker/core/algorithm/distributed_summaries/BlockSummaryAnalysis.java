@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryDefaultQueue;
@@ -121,7 +121,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       description =
           "The number of blocks is dependent by the number of functions in the program."
               + "A tolerance of 1 means, that we subtract 1 of the total number of functions.")
-  private int tolerance = 0;
+  private boolean allowSingleBlockDecompositionWhenMerging = false;
 
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
@@ -166,32 +166,16 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
     return switch (decompositionType) {
       case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
-      case MERGE_DECOMPOSITION -> {
-        long numberOfRealFunctions =
-            FluentIterable.from(initialCFA.getAllFunctions().entrySet())
-                .filter(
-                    entry ->
-                        !entry.getKey().startsWith("__")
-                            && !entry.getKey().equals("reach_error")
-                            && entry.getValue().getNumEnteringEdges() != 0)
-                .size();
-        yield new MergeBlockNodesDecomposition(
-            new LinearBlockNodeDecomposition(isBlockEnd), numberOfRealFunctions - tolerance);
-      }
-      case BRIDGE_DECOMPOSITION -> {
-        long numberOfRealFunctions =
-            FluentIterable.from(initialCFA.getAllFunctions().entrySet())
-                .filter(
-                    entry ->
-                        !entry.getKey().startsWith("__")
-                            && !entry.getKey().equals("reach_error")
-                            && entry.getValue().getNumEnteringEdges() != 0)
-                .size();
-        yield new MergeBlockNodesDecomposition(
-            new BridgeDecomposition(),
-            Long.max(2, numberOfRealFunctions),
-            Comparator.comparingInt(b -> b.getEdges().size()));
-      }
+      case MERGE_DECOMPOSITION -> new MergeBlockNodesDecomposition(
+          new LinearBlockNodeDecomposition(isBlockEnd),
+          0,
+          Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+          allowSingleBlockDecompositionWhenMerging);
+      case BRIDGE_DECOMPOSITION -> new MergeBlockNodesDecomposition(
+          new BridgeDecomposition(),
+          0,
+          Comparator.comparingInt(b -> b.getEdges().size()),
+          allowSingleBlockDecompositionWhenMerging);
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }
@@ -291,9 +275,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       Map<?, ?> forwardMap =
           ImmutableSortedMap.copyOf(
               (Map<?, ?>) map.remove(BlockSummaryStatisticType.FORWARD_ANALYSIS_STATS.name()));
-      Map<?, ?> backwardMap =
-          ImmutableSortedMap.copyOf(
-              (Map<?, ?>) map.remove(BlockSummaryStatisticType.BACKWARD_ANALYSIS_STATS.name()));
       for (Entry<?, ?> entry : map.entrySet()) {
         writer =
             writer.put(
@@ -306,14 +287,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             writer.put(
                 BlockSummaryStatisticType.valueOf(entry.getKey().toString()).getName()
                     + " (forward)",
-                convert(entry.getKey().toString(), entry.getValue().toString()));
-        mergeInto(overall, entry.getKey().toString(), entry.getValue());
-      }
-      for (Entry<?, ?> entry : backwardMap.entrySet()) {
-        writer =
-            writer.put(
-                BlockSummaryStatisticType.valueOf(entry.getKey().toString()).getName()
-                    + " (backward)",
                 convert(entry.getKey().toString(), entry.getValue().toString()));
         mergeInto(overall, entry.getKey().toString(), entry.getValue());
       }
