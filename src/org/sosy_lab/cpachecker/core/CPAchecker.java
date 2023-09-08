@@ -496,8 +496,7 @@ public class CPAchecker {
     final CFA cfa;
     try {
         cfa = cfaBuilder.build();
-    }
-    catch (InvalidConfigurationException | ParserException | IOException | InterruptedException | ClassNotFoundException e) {
+    } catch (InvalidConfigurationException | ParserException | IOException | InterruptedException | ClassNotFoundException e) {
       logErrorMessage(e, logger);
       return failedResult;
     }
