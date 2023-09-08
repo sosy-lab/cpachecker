@@ -118,7 +118,7 @@ public class PredicateOperatorUtil {
       }
     }
     BooleanFormula substituted =
-        pFormulaManger.substitute(pShift.getFormula(), substitutions.build());
+        pFormulaManger.substitute(pShift.getFormula(), substitutions.buildOrThrow());
     BooleanFormula updated =
         pFormulaManger.getBooleanFormulaManager().and(pFormula.getFormula(), substituted);
     return pShift
