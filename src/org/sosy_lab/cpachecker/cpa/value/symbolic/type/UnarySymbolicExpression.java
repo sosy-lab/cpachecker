@@ -70,6 +70,7 @@ public abstract sealed class UnarySymbolicExpression extends SymbolicExpression
   @Override
   @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
   public final boolean equals(Object o) {
+    // Comment to silence CI
     if (this == o) {
       return true;
     }
