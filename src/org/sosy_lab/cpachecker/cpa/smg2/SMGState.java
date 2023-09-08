@@ -254,7 +254,7 @@ public class SMGState
       return this;
     }
 
-    ImmutableList.Builder builder = ImmutableList.builder();
+    ImmutableList.Builder<Constraint> builder = ImmutableList.builder();
     for (Constraint oldConst : constraints) {
       if (!oldConst.equals(pConstraintToRemove)) {
         builder.add(oldConst);
@@ -2726,7 +2726,7 @@ public class SMGState
   }
 
   /**
-   * Writes the Value given to the memory reserved for the return statement of an stack frame. Make
+   * Writes the Value given to the memory reserved for the return statement of a stack frame. Make
    * sure that there is a return object before calling this. This will check sizes before writing
    * and will map the Value to a SMGValue if there is no mapping. This always assumes offset = 0.
    *
