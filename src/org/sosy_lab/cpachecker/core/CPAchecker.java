@@ -394,11 +394,10 @@ public class CPAchecker {
     return result;
   }
 
-  public CPAcheckerResult run(CFA cfa) {
+  public CPAcheckerResult run(CFA cfa, MainCPAStatistics stats) {
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
-    MainCPAStatistics stats = null;
     Algorithm algorithm = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
@@ -409,7 +408,6 @@ public class CPAchecker {
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      stats = new MainCPAStatistics(config, logger, shutdownNotifier);
 
       // create reached set, cpa, algorithm
       ConfigurableProgramAnalysis cpa;
@@ -508,7 +506,7 @@ public class CPAchecker {
       return failedResult;
     }
 
-    return run(cfa);
+    return run(cfa, stats);
   }
 
   /** Builder for CFAs. This class is used to create CFAs from files. */
