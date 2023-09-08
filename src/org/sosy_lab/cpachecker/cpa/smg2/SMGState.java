@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
@@ -83,6 +86,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinSPC;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * Class holding the SPC (SymbolicProgramConfiguration = memory model) for heap, global
@@ -123,6 +127,20 @@ public class SMGState
   // Transformer for abstracted heap into concrete heap
   private final SMGCPAMaterializer materializer;
 
+  /** The constraints of this state */
+  private ImmutableList<Constraint> constraints;
+
+  /**
+   * The last constraint added to this state. This does not have to be the last constraint in {@link
+   * #constraints}.
+   */
+  // It does not have to be the last constraint contained in 'constraints' because we only
+  // add a constraint to 'constraints' if it's not yet in this list.
+  private Optional<Constraint> lastAddedConstraint = Optional.empty();
+
+  private ImmutableList<ValueAssignment> definiteAssignment;
+  private ImmutableList<ValueAssignment> lastModelAsAssignment = ImmutableList.of();
+
   // Constructor only for NEW/EMPTY SMGStates!
   private SMGState(
       MachineModel pMachineModel,
@@ -135,6 +153,8 @@ public class SMGState
     options = opts;
     errorInfo = ImmutableList.of();
     materializer = new SMGCPAMaterializer(logger);
+    constraints = ImmutableList.of();
+    definiteAssignment = ImmutableList.of();
   }
 
   private SMGState(
@@ -149,6 +169,103 @@ public class SMGState
     options = opts;
     errorInfo = errorInf;
     materializer = new SMGCPAMaterializer(logger);
+  }
+
+  private SMGState(
+      MachineModel pMachineModel,
+      SymbolicProgramConfiguration spc,
+      LogManager logManager,
+      SMGOptions opts,
+      List<SMGErrorInfo> errorInf,
+      SMGCPAMaterializer pMaterializer,
+      ImmutableList<Constraint> pConstraints,
+      Optional<Constraint> pLastAddedConstraint,
+      ImmutableList<ValueAssignment> pDefiniteAssignment,
+      ImmutableList<ValueAssignment> pLastModelAsAssignment) {
+    memoryModel = spc;
+    machineModel = pMachineModel;
+    logger = logManager;
+    options = opts;
+    errorInfo = errorInf;
+    materializer = pMaterializer;
+    constraints = pConstraints;
+    lastAddedConstraint = pLastAddedConstraint;
+    definiteAssignment = pDefiniteAssignment;
+    lastModelAsAssignment = pLastModelAsAssignment;
+  }
+
+  private SMGState of(
+      ImmutableList<Constraint> pConstraints, Optional<Constraint> pLastAddedConstraint) {
+    return new SMGState(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        errorInfo,
+        materializer,
+        pConstraints,
+        pLastAddedConstraint,
+        definiteAssignment,
+        lastModelAsAssignment);
+  }
+
+  private SMGState of(Optional<Constraint> pLastAddedConstraint) {
+    return new SMGState(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        errorInfo,
+        materializer,
+        constraints,
+        pLastAddedConstraint,
+        definiteAssignment,
+        lastModelAsAssignment);
+  }
+
+  private SMGState of(
+      ImmutableList<Constraint> pConstraints, ImmutableList<ValueAssignment> pDefiniteAssignment) {
+    return new SMGState(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        errorInfo,
+        materializer,
+        pConstraints,
+        lastAddedConstraint,
+        pDefiniteAssignment,
+        lastModelAsAssignment);
+  }
+
+  public SMGState addConstraint(Constraint pConstraint) {
+    checkNotNull(pConstraint);
+    if (constraints.contains(pConstraint)) {
+      return of(Optional.of(pConstraint));
+    }
+
+    return of(
+        ImmutableList.<Constraint>builder().addAll(constraints).add(pConstraint).build(),
+        Optional.of(pConstraint));
+  }
+
+  public SMGState removeConstraint(Constraint pConstraintToRemove) {
+    if (!constraints.contains(pConstraintToRemove)) {
+      return this;
+    }
+
+    ImmutableList.Builder builder = ImmutableList.builder();
+    for (Constraint oldConst : constraints) {
+      if (!oldConst.equals(pConstraintToRemove)) {
+        builder.add(oldConst);
+      }
+    }
+
+    return of(builder.build(), ImmutableList.of());
+  }
+
+  Optional<Constraint> getLastAddedConstraint() {
+    return lastAddedConstraint;
   }
 
   @Override
