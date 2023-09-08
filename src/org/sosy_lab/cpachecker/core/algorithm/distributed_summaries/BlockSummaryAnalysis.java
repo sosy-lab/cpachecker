@@ -193,6 +193,15 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
       numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
       if (!abstractionDeadEnds.isEmpty()) {
+        for (String successorId : blockGraph.getRoot().getSuccessorIds()) {
+          for (BlockNode node : blockGraph.getNodes()) {
+            if (node.getId().equals(successorId)) {
+              if (node.getAbstractionLocation().equals(node.getLast())) {
+                throw new AssertionError("Direct successors of the root node are required to have an abstraction location.")
+              }
+            }
+          }
+        }
         logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
       }
       CFA cfa = modification.cfa();
