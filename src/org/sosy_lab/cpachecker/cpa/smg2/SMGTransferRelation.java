@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -876,7 +877,20 @@ public class SMGTransferRelation
       SMGObject addressToWriteTo = targetAndOffsetAndState.getSMGObject();
       BigInteger offsetToWriteTo = targetAndOffsetAndState.getOffsetForObject();
 
-      if (leftHandSideType instanceof CPointerType && rightHandSideType instanceof CArrayType) {
+      if (rValue instanceof CStringLiteralExpression && leftHandSideType instanceof CPointerType && rightHandSideType instanceof CArrayType && lValue instanceof CIdExpression) {
+        // Assignment of a String pointer to an existing variable with a not yet existing String
+        // Create the String, get the address, save address to left hand side var
+        returnStateBuilder.addAll(evaluator.handleStringInitializer(
+              currentState,
+            (CVariableDeclaration) ((CIdExpression) lValue).getDeclaration(),
+              cfaEdge,
+            ((CIdExpression) lValue).getDeclaration().getQualifiedName(),
+            offsetToWriteTo,
+              lValue.getExpressionType(),
+            cfaEdge.getFileLocation(),
+              (CStringLiteralExpression) rValue));
+        continue;
+      } else if (leftHandSideType instanceof CPointerType && rightHandSideType instanceof CArrayType) {
         // Implicit & on the array expr
         for (ValueAndSMGState addressAndState :
             evaluator.createAddress(rValue, currentState, cfaEdge)) {

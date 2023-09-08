@@ -1911,7 +1911,7 @@ public class SMGCPAExpressionEvaluator {
    * else
    *  - create char array from string and call list init for given memory
    */
-  private List<SMGState> handleStringInitializer(
+  public List<SMGState> handleStringInitializer(
       SMGState pState,
       CVariableDeclaration pVarDecl,
       CFAEdge pEdge,
