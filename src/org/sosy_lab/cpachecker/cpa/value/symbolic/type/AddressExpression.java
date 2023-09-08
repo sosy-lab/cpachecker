@@ -113,6 +113,17 @@ public final class AddressExpression extends SymbolicExpression {
   }
 
   @Override
+  public int hashCode() {
+    if (hasAbstractState()) {
+      return addressValue.hashCode() + addressType.hashCode() + getAbstractState().hashCode();
+    } else if (getRepresentedLocation().isEmpty()) {
+      return addressValue.hashCode() + addressType.hashCode();
+    } else {
+      return super.hashCode();
+    }
+  }
+
+  @Override
   public boolean equals(Object o) {
     // Comment to silence CI check
     if (o == null) {
