@@ -15,6 +15,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
@@ -209,6 +210,22 @@ public class SMGState
         lastModelAsAssignment);
   }
 
+  private SMGState ofModelAssignment(
+      ImmutableList<ValueAssignment> pDefiniteAssignment,
+      ImmutableList<ValueAssignment> pLastModelAsAssignment) {
+    return new SMGState(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        errorInfo,
+        materializer,
+        constraints,
+        lastAddedConstraint,
+        pDefiniteAssignment,
+        pLastModelAsAssignment);
+  }
+
   private SMGState of(Optional<Constraint> pLastAddedConstraint) {
     return new SMGState(
         machineModel,
@@ -264,8 +281,44 @@ public class SMGState
     return of(builder.build(), ImmutableList.of());
   }
 
-  Optional<Constraint> getLastAddedConstraint() {
+  public boolean isEmptyConstraints() {
+    return constraints.isEmpty();
+  }
+
+  public Optional<Constraint> getLastAddedConstraint() {
     return lastAddedConstraint;
+  }
+
+  public boolean containsConstraint(Constraint o) {
+    return constraints.contains(o);
+  }
+
+  public ImmutableList<Constraint> getConstraint() {
+    return constraints;
+  }
+
+  /**
+   * Returns the known unambiguous assignment of variables so this state's {@link Constraint}s are
+   * fulfilled. Variables that can have more than one valid assignment are not included in the
+   * returned assignments.
+   *
+   * @return the known assignment of variables that have no other fulfilling assignment
+   */
+  public ImmutableCollection<ValueAssignment> getDefiniteAssignment() {
+    return definiteAssignment;
+  }
+
+  public SMGState copyAndSetDefiniteAssignment(ImmutableCollection<ValueAssignment> pAssignment) {
+    return ofModelAssignment(pAssignment.asList(), lastModelAsAssignment);
+  }
+
+  /** Returns the last model computed for this constraints state. */
+  public ImmutableList<ValueAssignment> getModel() {
+    return lastModelAsAssignment;
+  }
+
+  public SMGState copyAndSetModel(List<ValueAssignment> pModel) {
+    return ofModelAssignment(definiteAssignment, ImmutableList.copyOf(pModel));
   }
 
   @Override
@@ -1208,6 +1261,16 @@ public class SMGState
       throws SMGException {
     return areValuesEqual(
         thisState, thisValue, otherState, otherValue, equalityCache, new HashSet<>());
+  }
+
+  public static boolean areValuesEqual(
+      SMGState thisState,
+      @Nullable Value thisValue,
+      SMGState otherState,
+      @Nullable Value otherValue)
+      throws SMGException {
+    return thisState.areValuesEqual(
+        thisState, thisValue, otherState, otherValue, new EqualityCache<>(), new HashSet<>());
   }
 
   /**
