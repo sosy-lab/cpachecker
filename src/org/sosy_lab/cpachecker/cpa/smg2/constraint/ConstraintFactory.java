@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.constraint;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -107,9 +109,9 @@ public class ConstraintFactory {
     final ExpressionTransformer transformer = getCTransformer();
 
     assert isConstraint(pExpression);
-    return transformer.transform(pExpression).stream()
-        .map(n -> ConstraintAndSMGState.of((Constraint) n.getSymbolicExpression(), n.getState()))
-        .collect(ImmutableList.toImmutableList());
+    return transformedImmutableListCopy(
+        transformer.transform(pExpression),
+        n -> ConstraintAndSMGState.of((Constraint) n.getSymbolicExpression(), n.getState()));
   }
 
   private boolean isConstraint(CBinaryExpression pExpression) {
