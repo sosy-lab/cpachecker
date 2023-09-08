@@ -299,7 +299,8 @@ public class CPAchecker {
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownManager pShutdownManager,
-      CoreComponentsFactory pFactory) throws InvalidConfigurationException {
+      CoreComponentsFactory pFactory)
+      throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
     shutdownManager = pShutdownManager;
@@ -314,15 +315,17 @@ public class CPAchecker {
     StringBuilder msg = new StringBuilder();
     msg.append("Please make sure that the code can be compiled by a compiler.\n");
     switch (e.getLanguage()) {
-      case C -> msg.append("If the code was not preprocessed, please use a C preprocessor\n"
-          + "or specify the -preprocess command-line argument.\n");
-      case LLVM -> msg.append("If you want to use the LLVM frontend, please make sure that\n"
-          + "the code can be compiled by clang or input valid LLVM code.\n");
-      default -> {
-      } // do not log additional messages
+      case C -> msg.append(
+          "If the code was not preprocessed, please use a C preprocessor\n"
+              + "or specify the -preprocess command-line argument.\n");
+      case LLVM -> msg.append(
+          "If you want to use the LLVM frontend, please make sure that\n"
+              + "the code can be compiled by clang or input valid LLVM code.\n");
+      default -> {} // do not log additional messages
     }
-    msg.append("If the error still occurs, please send this error message\n"
-        + "together with the input file to cpachecker-users@googlegroups.com.\n");
+    msg.append(
+        "If the error still occurs, please send this error message\n"
+            + "together with the input file to cpachecker-users@googlegroups.com.\n");
     pLogger.log(Level.INFO, msg);
   }
 
@@ -336,7 +339,7 @@ public class CPAchecker {
       pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
       return;
     }
-    //ClassNotFundException
+    // ClassNotFundException
     if (e instanceof ClassNotFoundException) {
       pLogger.logUserException(Level.SEVERE, e, "Could not read serialized CFA. Class is missing.");
       return;
@@ -372,7 +375,6 @@ public class CPAchecker {
     if (pStatus.wasPropertyChecked()) {
       pStats.resultAnalysisTime.start();
       if (pReached.wasTargetReached()) {
-
 
         if (!pStatus.isPrecise()) {
           result = Result.UNKNOWN;
@@ -485,18 +487,23 @@ public class CPAchecker {
       return failedResult;
     }
 
-    CFABuilder cfaBuilder = cfaBuilder()
-        .setConfiguration(config)
-        .setLogger(logger)
-        .setShutdownNotifier(shutdownNotifier)
-        .setFileNames(programDenotation)
-        .setSerializedCfaFile(serializedCfaFile)
-        .setStats(stats);
+    CFABuilder cfaBuilder =
+        cfaBuilder()
+            .setConfiguration(config)
+            .setLogger(logger)
+            .setShutdownNotifier(shutdownNotifier)
+            .setFileNames(programDenotation)
+            .setSerializedCfaFile(serializedCfaFile)
+            .setStats(stats);
 
     final CFA cfa;
     try {
-        cfa = cfaBuilder.build();
-    } catch (InvalidConfigurationException | ParserException | IOException | InterruptedException | ClassNotFoundException e) {
+      cfa = cfaBuilder.build();
+    } catch (InvalidConfigurationException
+        | ParserException
+        | IOException
+        | InterruptedException
+        | ClassNotFoundException e) {
       logErrorMessage(e, logger);
       return failedResult;
     }
@@ -504,9 +511,7 @@ public class CPAchecker {
     return run(cfa);
   }
 
-  /**
-   * Builder for CFAs. This class is used to create CFAs from files.
-   */
+  /** Builder for CFAs. This class is used to create CFAs from files. */
   public static class CFABuilder {
     @Nullable private Configuration config = null;
     @Nullable private LogManager logger = null;
@@ -515,12 +520,14 @@ public class CPAchecker {
     @Nullable private List<String> fileNames = null;
     @Nullable private Path serializedCfaFile = null;
 
-    public CFABuilder() {
-    }
+    public CFABuilder() {}
 
     public CFA build()
-        throws InvalidConfigurationException, ParserException, IOException, InterruptedException,
-               ClassNotFoundException {
+        throws InvalidConfigurationException,
+            ParserException,
+            IOException,
+            InterruptedException,
+            ClassNotFoundException {
       Preconditions.checkNotNull(config);
       Preconditions.checkNotNull(logger);
       Preconditions.checkNotNull(shutdownNotifier);
@@ -538,8 +545,8 @@ public class CPAchecker {
         // load CFA from serialization file
         logger.logf(Level.INFO, "Reading CFA from file \"%s\"", serializedCfaFile);
         try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
-             InputStream gzipInputStream = new GZIPInputStream(inputStream);
-             ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
+            InputStream gzipInputStream = new GZIPInputStream(inputStream);
+            ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
           cfa = (CFA) ois.readObject();
         }
 
@@ -579,7 +586,6 @@ public class CPAchecker {
       serializedCfaFile = pSerializedCfaFile;
       return this;
     }
-
   }
 
   public static CFABuilder cfaBuilder() {
