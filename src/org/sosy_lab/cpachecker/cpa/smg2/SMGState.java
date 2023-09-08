@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
@@ -262,7 +263,7 @@ public class SMGState
     }
 
     return of(
-        ImmutableList.<Constraint>builder().addAll(constraints).add(pConstraint).build(),
+        listAndElement(constraints, pConstraint),
         Optional.of(pConstraint));
   }
 
