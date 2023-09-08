@@ -411,7 +411,7 @@ public class CPAchecker {
 
       // create reached set, cpa, algorithm
       ConfigurableProgramAnalysis cpa;
-      stats.cpaCreationTime.start();
+      stats.creationTime.start();
       try {
         specification =
             Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
