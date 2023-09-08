@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -222,28 +223,73 @@ public class SMGTransferRelation
     if (state.getMemoryModel().hasReturnObjectForCurrentStackFrame()) {
       // value 0 is the default return value in C
       CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
+      // retType == left hand side type of the return statement, i.e. the type in the function
+      // header
       CType retType = SMGCPAExpressionEvaluator.getCanonicalType(returnExp);
       Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
+      CType rightHandSideType = retType;
       if (returnAssignment.isPresent()) {
         retType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
+        rightHandSideType = returnAssignment.orElseThrow().getRightHandSide().getExpressionType();
       }
 
       SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger, options);
       for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {
         // We get the size per state as it could theoretically change per state (abstraction)
         BigInteger sizeInBits = evaluator.getBitSizeof(state, retType);
-        ValueAndSMGState valueAndStateToWrite =
-            evaluator.unpackAddressExpression(
-                returnValueAndState.getValue(), returnValueAndState.getState());
 
-        successorsBuilder.add(
-            valueAndStateToWrite
-                .getState()
-                .writeToReturn(
-                    sizeInBits,
-                    valueAndStateToWrite.getValue(),
-                    returnExp.getExpressionType(),
-                    returnEdge));
+        // Iff the target and source are a struct, we need to copy the struct.
+        // The value visitor gives us a pointer (singular value) that is then used to find the
+        // memory of the source.
+        if (SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType)
+            && SMGCPAExpressionEvaluator.isStructOrUnionType(retType)) {
+
+          SMGState currentState = returnValueAndState.getState();
+          Value targetPointer = returnValueAndState.getValue();
+
+          if (targetPointer.isUnknown()) {
+            successorsBuilder.add(currentState);
+          }
+
+          Preconditions.checkArgument(targetPointer instanceof SymbolicIdentifier);
+          Preconditions.checkArgument(
+              ((SymbolicIdentifier) targetPointer).getRepresentedLocation().isPresent());
+          MemoryLocation locationInPrevStackFrame =
+              ((SymbolicIdentifier) targetPointer).getRepresentedLocation().orElseThrow();
+          Optional<SMGObject> maybeKnownMemory =
+              currentState
+                  .getMemoryModel()
+                  .getObjectForVisibleVariable(locationInPrevStackFrame.getQualifiedName());
+          if (maybeKnownMemory.isEmpty()) {
+            throw new SMGException("Usage of unknown variable in function " + returnEdge);
+          }
+          // Structs get copies
+          BigInteger offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
+          SMGObject returnMemory =
+              currentState.getMemoryModel().getReturnObjectForCurrentStackFrame().orElseThrow();
+
+          successorsBuilder.add(
+              currentState.copySMGObjectContentToSMGObject(
+                  maybeKnownMemory.orElseThrow(),
+                  offsetSource,
+                  returnMemory,
+                  BigInteger.ZERO,
+                  returnMemory.getSize().subtract(offsetSource)));
+
+        } else {
+          ValueAndSMGState valueAndStateToWrite =
+              evaluator.unpackAddressExpression(
+                  returnValueAndState.getValue(), returnValueAndState.getState());
+
+          successorsBuilder.add(
+              valueAndStateToWrite
+                  .getState()
+                  .writeToReturn(
+                      sizeInBits,
+                      valueAndStateToWrite.getValue(),
+                      returnExp.getExpressionType(),
+                      returnEdge));
+        }
       }
     } else {
       successorsBuilder.add(state);
@@ -284,6 +330,8 @@ public class SMGTransferRelation
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
       CExpression leftValue = funcCallExpr.getLeftHandSide();
+      CType leftValueType =
+          SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
       CType rightValueType =
           SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
       BigInteger sizeInBits = evaluator.getBitSizeof(state, rightValueType);
@@ -294,23 +342,83 @@ public class SMGTransferRelation
       Preconditions.checkArgument(returnObject.isPresent());
       // Read the return object with its type
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (ValueAndSMGState readValueAndState :
-          state.readValue(
-              returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits, rightValueType)) {
+      if (SMGCPAExpressionEvaluator.isStructOrUnionType(leftValueType)
+          && SMGCPAExpressionEvaluator.isStructOrUnionType(rightValueType)) {
 
-        // Now we can drop the stack frame as we left the function and have the return value
-        SMGState currentState = readValueAndState.getState().dropStackFrame();
-        // The memory on the left hand side might not exist because of CEGAR
-        for (SMGState stateWithNewVar : createVariableOnTheSpot(leftValue, currentState)) {
-          stateBuilder.addAll(
-              evaluator.writeValueToExpression(
-                  summaryEdge, leftValue, readValueAndState.getValue(), stateWithNewVar));
+        SMGState currentState = state;
+
+        for (SMGState stateWithNewVar :
+            createVariableOnTheSpotForPreviousStackframe(leftValue, currentState)) {
+          Preconditions.checkArgument(leftValue instanceof CIdExpression);
+          String leftHandSideVarName =
+              ((CIdExpression) leftValue).getDeclaration().getQualifiedName();
+          // We are still on the stackframe of the function call!
+          Optional<SMGObject> maybeTargetVariableMemory =
+              stateWithNewVar
+                  .getMemoryModel()
+                  .getObjectForVisibleVariableFromPreviousStackframe(leftHandSideVarName);
+          Preconditions.checkArgument(maybeTargetVariableMemory.isPresent());
+
+          stateBuilder.add(
+              stateWithNewVar
+                  .copySMGObjectContentToSMGObject(
+                      returnObject.orElseThrow(),
+                      BigInteger.ZERO,
+                      maybeTargetVariableMemory.orElseThrow(),
+                      BigInteger.ZERO,
+                      maybeTargetVariableMemory.orElseThrow().getSize())
+                  .dropStackFrame());
+        }
+      } else {
+        for (ValueAndSMGState readValueAndState :
+            state.readValue(
+                returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits, rightValueType)) {
+
+          // Now we can drop the stack frame as we left the function and have the return value
+          SMGState currentState = readValueAndState.getState().dropStackFrame();
+          // The memory on the left hand side might not exist because of CEGAR
+          for (SMGState stateWithNewVar : createVariableOnTheSpot(leftValue, currentState)) {
+            stateBuilder.addAll(
+                evaluator.writeValueToExpression(
+                    summaryEdge, leftValue, readValueAndState.getValue(), stateWithNewVar));
+          }
         }
       }
       return stateBuilder.build();
     } else {
       return ImmutableList.of(state.dropStackFrame());
     }
+  }
+
+  private List<SMGState> createVariableOnTheSpotForPreviousStackframe(
+      CExpression leftHandSideExpr, SMGState pState) throws CPATransferException {
+    // Remove top stackframe
+    PersistentStack<StackFrame> completeStack = pState.getMemoryModel().getStackFrames();
+    StackFrame topStackframe = completeStack.peek();
+    PersistentStack<StackFrame> stackWOTop = completeStack.popAndCopy();
+    SMGState tempState =
+        SMGState.of(
+            machineModel,
+            pState.getMemoryModel().withNewStackFrame(stackWOTop),
+            logger,
+            options,
+            pState.getErrorInfo());
+
+    // Create variable on the stack below
+    ImmutableList.Builder<SMGState> returnListBuilder = ImmutableList.builder();
+    for (SMGState stateWVar : createVariableOnTheSpot(leftHandSideExpr, tempState)) {
+      // Restore the stack
+      PersistentStack<StackFrame> incompleteStack = stateWVar.getMemoryModel().getStackFrames();
+      PersistentStack<StackFrame> newCompleteStack = incompleteStack.pushAndCopy(topStackframe);
+      returnListBuilder.add(
+          SMGState.of(
+              machineModel,
+              stateWVar.getMemoryModel().withNewStackFrame(newCompleteStack),
+              logger,
+              options,
+              stateWVar.getErrorInfo()));
+    }
+    return returnListBuilder.build();
   }
 
   /**
@@ -438,7 +546,7 @@ public class SMGTransferRelation
         Preconditions.checkArgument(addressesAndStates.size() == 1);
         valueAndState = addressesAndStates.get(0);
       } else {
-        // Evaluator the CExpr into a Value
+        // Evaluate the CExpr into a Value
         // Note: this evaluates local arrays into pointers!!!!!
         List<ValueAndSMGState> valuesAndStates =
             cParamExp.accept(
@@ -877,20 +985,25 @@ public class SMGTransferRelation
       SMGObject addressToWriteTo = targetAndOffsetAndState.getSMGObject();
       BigInteger offsetToWriteTo = targetAndOffsetAndState.getOffsetForObject();
 
-      if (rValue instanceof CStringLiteralExpression && leftHandSideType instanceof CPointerType && rightHandSideType instanceof CArrayType && lValue instanceof CIdExpression) {
+      if (rValue instanceof CStringLiteralExpression
+          && leftHandSideType instanceof CPointerType
+          && rightHandSideType instanceof CArrayType
+          && lValue instanceof CIdExpression) {
         // Assignment of a String pointer to an existing variable with a not yet existing String
         // Create the String, get the address, save address to left hand side var
-        returnStateBuilder.addAll(evaluator.handleStringInitializer(
-              currentState,
-            (CVariableDeclaration) ((CIdExpression) lValue).getDeclaration(),
-              cfaEdge,
-            ((CIdExpression) lValue).getDeclaration().getQualifiedName(),
-            offsetToWriteTo,
-              lValue.getExpressionType(),
-            cfaEdge.getFileLocation(),
-              (CStringLiteralExpression) rValue));
+        returnStateBuilder.addAll(
+            evaluator.handleStringInitializer(
+                currentState,
+                (CVariableDeclaration) ((CIdExpression) lValue).getDeclaration(),
+                cfaEdge,
+                ((CIdExpression) lValue).getDeclaration().getQualifiedName(),
+                offsetToWriteTo,
+                lValue.getExpressionType(),
+                cfaEdge.getFileLocation(),
+                (CStringLiteralExpression) rValue));
         continue;
-      } else if (leftHandSideType instanceof CPointerType && rightHandSideType instanceof CArrayType) {
+      } else if (leftHandSideType instanceof CPointerType
+          && rightHandSideType instanceof CArrayType) {
         // Implicit & on the array expr
         for (ValueAndSMGState addressAndState :
             evaluator.createAddress(rValue, currentState, cfaEdge)) {
