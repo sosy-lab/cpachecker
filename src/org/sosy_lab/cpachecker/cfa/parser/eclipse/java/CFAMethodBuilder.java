@@ -2824,7 +2824,26 @@ class CFAMethodBuilder extends ASTVisitor {
 
     firstCatchBlock = false;
 
-    endOfCatch.push(locStack.pop());
+    CFANode current = locStack.pop();
+    CFANode next = new CFANode(cfa.getFunction());
+
+    cfaNodes.add(current);
+    cfaNodes.add(next);
+
+    JExpressionAssignmentStatement helperNullAssignment =
+        HelperVariable.getInstance().getHelperIsNull();
+
+    JStatementEdge edge =
+        new JStatementEdge(
+            helperNullAssignment.toString(),
+            helperNullAssignment,
+            FileLocation.DUMMY,
+            current,
+            next);
+
+    addToCFA(edge);
+
+    endOfCatch.push(next);
 
     if (numberCatches != 0) {
       locStack.push(nextCatchBlockOrError.peek());
@@ -2861,15 +2880,21 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(throwNode);
 
-    final BlankEdge blankEdge =
-        new BlankEdge(
-            "MainApp_helper = " + throwStatement.getExpression() + ";",
+    JExpression throwExpression =
+        astCreator.convertExpressionWithoutSideEffects(throwStatement.getExpression());
+
+    JExpressionAssignmentStatement currentHelperAssignment =
+        HelperVariable.getInstance().setHelperRightSideExpression(throwExpression);
+
+    JStatementEdge edge =
+        new JStatementEdge(
+            currentHelperAssignment.toString(),
+            currentHelperAssignment,
             fileloc,
             prevNode,
-            throwNode,
-            "MainApp_helper = " + throwStatement.getExpression() + ";");
+            throwNode);
 
-    addToCFA(blankEdge);
+    addToCFA(edge);
     return SKIP_CHILDREN;
   }
 }

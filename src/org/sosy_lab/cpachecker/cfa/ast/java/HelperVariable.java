@@ -57,15 +57,16 @@ public class HelperVariable {
 
     throwableInterfaces.add(serializable);
 
-    return JClassType.valueOf(
-        "java.lang.Throwable",
-        "Throwable",
-        VisibilityModifier.PUBLIC,
-        false,
-        false,
-        false,
-        JClassType.getTypeOfObject(),
-        throwableInterfaces);
+      throwableInstance =
+          JClassType.valueOf(
+              "java.lang.Throwable",
+              "Throwable",
+              VisibilityModifier.PUBLIC,
+              false,
+              false,
+              false,
+              JClassType.getTypeOfObject(),
+              throwableInterfaces);
     }
     return throwableInstance;
   }
@@ -120,6 +121,28 @@ public class HelperVariable {
 
     JExpression runTimeTypeEquals = getRunTimeTypeEqualsExpression(exception);
     return new JExpressionStatement(FileLocation.DUMMY, runTimeTypeEquals);
+  }
+
+  public JExpressionAssignmentStatement getHelperIsNull() {
+    JNullLiteralExpression nullExpression = new JNullLiteralExpression(FileLocation.DUMMY);
+
+    JLeftHandSide helperLeft = new JIdExpression(FileLocation.DUMMY, getThrowableInstance(), "MainApp_helper", helperFieldDeclaration);
+
+    JExpressionAssignmentStatement helperNull =
+        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, nullExpression);
+
+    return helperNull;
+  }
+
+  public JExpressionAssignmentStatement setHelperRightSideExpression(JExpression expression) {
+    JLeftHandSide helperLeft =
+        new JIdExpression(
+            FileLocation.DUMMY, currentType, "MainApp_helper", helperFieldDeclaration);
+
+    JExpressionAssignmentStatement helperExpression =
+        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
+
+    return helperExpression;
   }
 
   public JFieldDeclaration getHelperFieldDeclaration() {
