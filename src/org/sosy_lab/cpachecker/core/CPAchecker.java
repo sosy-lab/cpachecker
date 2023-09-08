@@ -530,6 +530,7 @@ public class CPAchecker {
       Preconditions.checkNotNull(stats);
 
       final CFA cfa;
+      stats.cfaCreationTime.start();
       if (serializedCfaFile == null) {
         Preconditions.checkNotNull(fileNames);
         // parse file and create CFA
@@ -548,6 +549,7 @@ public class CPAchecker {
 
         assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
       }
+      stats.cfaCreationTime.stop();
 
       stats.setCFA(cfa);
       return cfa;
