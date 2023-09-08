@@ -2813,6 +2813,8 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(dummyExceptionEquals);
 
+    cc.getException().accept(this);
+
     cc.getBody().accept(this);
     return SKIP_CHILDREN;
   }
