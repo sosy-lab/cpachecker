@@ -197,7 +197,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           for (BlockNode node : blockGraph.getNodes()) {
             if (node.getId().equals(successorId)) {
               if (node.getAbstractionLocation().equals(node.getLast())) {
-                throw new AssertionError("Direct successors of the root node are required to have an abstraction location.")
+                throw new AssertionError(
+                    "Direct successors of the root node are required to have an abstraction"
+                        + " location.");
               }
             }
           }
