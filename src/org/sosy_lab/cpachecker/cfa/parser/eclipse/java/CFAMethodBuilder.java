@@ -2791,15 +2791,18 @@ class CFAMethodBuilder extends ASTVisitor {
       start = locStack.pop();
     }
 
-    JAssumeEdge exceptionIsNotInstance =
-        new JAssumeEdge(
-            exception.toString(),
-            FileLocation.DUMMY,
-            start,
-            nextCatchBlockOrError.peek(),
-            catchException,
-            false);
-    addToCFA(exceptionIsNotInstance);
+
+      JAssumeEdge exceptionIsNotInstance =
+          new JAssumeEdge(
+              exception.toString(),
+              FileLocation.DUMMY,
+              start,
+              nextCatchBlockOrError.peek(),
+              catchException,
+              false);
+      addToCFA(exceptionIsNotInstance);
+
+
 
     JAssumeEdge exceptionIsInstance =
         new JAssumeEdge(
@@ -2845,7 +2848,8 @@ class CFAMethodBuilder extends ASTVisitor {
 
     addToCFA(edge);
 
-    endOfCatch.push(next);
+    BlankEdge temp = new BlankEdge("", FileLocation.DUMMY, next, locStack.peek(), "");
+    addToCFA(temp);
 
     if (numberCatches != 0) {
       locStack.push(nextCatchBlockOrError.peek());
@@ -2856,10 +2860,7 @@ class CFAMethodBuilder extends ASTVisitor {
         numberCatches = numberCatchesNested.peek();
       }
 
-      BlankEdge temp =
-          new BlankEdge(
-              "", FileLocation.DUMMY, nextCatchBlockOrError.pop(), afterStatement.pop(), "");
-      addToCFA(temp);
+      endOfCatch.add(nextCatchBlockOrError.pop());
     }
   }
 
