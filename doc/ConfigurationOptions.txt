@@ -4428,7 +4428,7 @@ pixelgraphic.export.scaling = 2
 # Highlight not only corresponding graph nodes, but background of
 # corresponding line, too. This may give an better overview, but also
 # introduces more clutter
-pixelgraphic.export.strongHighlight = true
+pixelgraphic.export.strongHighlight = false
 
 # Width of the bitmap in pixels. If set to -1, width is computed in relation
 # to the height. If both are set to -1, the optimal bitmap size to represent
