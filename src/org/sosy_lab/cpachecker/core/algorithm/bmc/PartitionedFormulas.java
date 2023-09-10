@@ -163,20 +163,11 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
-    if (swapPrefixAndTarget) {
-      loopFormulasSsaMap =
-          transformedImmutableListCopy(
-                  abstractionStates.subList(2, abstractionStates.size() - 1),
-                  absState ->
-                      InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa())
-              .reverse();
-    } else {
-      loopFormulasSsaMap =
-          transformedImmutableListCopy(
-              abstractionStates.subList(2, abstractionStates.size() - 1),
-              absState ->
-                  InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
-    }
+    loopFormulasSsaMap =
+        transformedImmutableListCopy(
+            abstractionStates.subList(2, abstractionStates.size() - 1),
+            absState ->
+                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
@@ -195,6 +186,7 @@ class PartitionedFormulas {
       prefixFormula = targetAssertion;
       targetAssertion = tmp;
       loopFormulas = loopFormulas.reverse();
+      loopFormulasSsaMap = loopFormulasSsaMap.reverse();
       prefixSsaMap =
           InterpolationHelper.getPredicateAbstractionBlockFormula(
                   abstractionStates.get(abstractionStates.size() - 2))

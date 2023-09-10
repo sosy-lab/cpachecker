@@ -28,6 +28,11 @@ public class DualInterpolationSequence {
     backwardReachVector = new ArrayList<>();
   }
 
+  public void InitializeSequences(PartitionedFormulas pFormulas) {
+    increaseBackwardReachVector(pFormulas.getAssertionFormula());
+    increaseForwardReachVector(pFormulas.getPrefixFormula());
+  }
+
   public void setLocallyUnsafe() {
     isLocallyUnsafe = true;
   }

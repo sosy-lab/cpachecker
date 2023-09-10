@@ -95,8 +95,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final InterpolationManager itpMgr;
   private final CFA cfa;
 
-  private boolean isDualSequenceInitialized;
-
   public DARAlgorithm(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
@@ -135,8 +133,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     itpMgr =
         new InterpolationManager(
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
-
-    isDualSequenceInitialized = false;
 
     stats.numOfInterpolationCalls = 0;
     stats.numOfInterpolants = 0;
@@ -231,12 +227,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       // DAR
       if (isInterpolationEnabled && getCurrentMaxLoopIterations() > 1) {
-        if (!isDualSequenceInitialized) {
-          // Initialize FRS to [INIT]
-          initializeFRS(partitionedFormulas, dualSequence);
-          // Initialize BRS to [~P]
-          initializeBRS(partitionedFormulas, dualSequence);
-          isDualSequenceInitialized = true;
+        if (dualSequence.getSize() == 0) {
+          dualSequence.InitializeSequences(partitionedFormulas);
         }
         localStrengtheningPhase(dualSequence, partitionedFormulas);
         if (dualSequence.isLocallyUnsafe()) {
@@ -278,7 +270,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
-    return null;
+    return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
   private boolean checkFixedPoint(DualInterpolationSequence pDualSequence)
@@ -298,18 +290,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       backwardImage = bfmgr.or(backwardFormula, backwardImage);
     }
     return false;
-  }
-
-  private void initializeBRS(
-      PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
-    BooleanFormula assertionFormula = pPartitionedFormulas.getAssertionFormula();
-    pDualSequence.increaseBackwardReachVector(assertionFormula);
-  }
-
-  private void initializeFRS(
-      PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
-    BooleanFormula prefixFormula = pPartitionedFormulas.getPrefixFormula();
-    pDualSequence.increaseForwardReachVector(prefixFormula);
   }
 
   /**
