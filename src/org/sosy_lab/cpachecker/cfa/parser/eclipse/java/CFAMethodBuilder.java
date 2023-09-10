@@ -131,6 +131,7 @@ class CFAMethodBuilder extends ASTVisitor {
   // Data structure for handling try & catch blocks
   private Deque<Boolean> inTryBlock = new ArrayDeque<>();
   private Deque<Integer> numberCatchesNested = new ArrayDeque<>();
+  private Deque<JClassType> listExceptions = new ArrayDeque<>();
   private int numberNestedTryCatch = 0;
   private int numberCatches = 0;
 
@@ -2756,6 +2757,11 @@ class CFAMethodBuilder extends ASTVisitor {
       ((CatchClause) cc).accept(this);
     }
 
+    if (tryStatement.getFinally() != null) {
+      tryStatement.getFinally().accept(this);
+      handleAfterFinallyStatement();
+    }
+
     return SKIP_CHILDREN;
   }
 
@@ -2764,18 +2770,99 @@ class CFAMethodBuilder extends ASTVisitor {
     helperNotNull.pop();
   }
 
+  private void handleAfterFinallyStatement() {
+    CFANode correct = new CFANode(cfa.getFunction());
+    cfaNodes.add(correct);
+
+    CFANode incorrect = new CFANode(cfa.getFunction());
+    cfaNodes.add(incorrect);
+
+    CFANode current = locStack.pop();
+
+    CFANode nextExceptionOrEnd = new CFANode(cfa.getFunction());
+    cfaNodes.add(nextExceptionOrEnd);
+
+    JAssumeEdge notEqualsNullFalse =
+        new JAssumeEdge(
+            HelperVariable.getInstance().helperNotEqualsStatement().toString(),
+            FileLocation.DUMMY,
+            current,
+            correct,
+            HelperVariable.getInstance().helperNotEqualsExpression(),
+            false);
+
+    addToCFA(notEqualsNullFalse);
+
+    JAssumeEdge notEqualsNullTrue =
+        new JAssumeEdge(
+            HelperVariable.getInstance().helperNotEqualsStatement().toString(),
+            FileLocation.DUMMY,
+            current,
+            nextExceptionOrEnd,
+            HelperVariable.getInstance().helperNotEqualsExpression(),
+            true);
+    addToCFA(notEqualsNullTrue);
+
+    for (int i = 0; i < listExceptions.size(); i++) {
+      CFANode temp = null;
+
+      if ((i + 1) == listExceptions.size()) {
+        temp = incorrect;
+      } else {
+        temp = new CFANode(cfa.getFunction());
+        cfaNodes.add(temp);
+      }
+
+      JClassType exc = (JClassType) listExceptions.toArray()[i];
+
+      JExpression catchException =
+          HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exc);
+
+      JStatement exception =
+          HelperVariable.getInstance().getRunTimeTypeEqualsStatement(exc);
+
+      JAssumeEdge exceptionIsNotInstance =
+          new JAssumeEdge(
+              exception.toString(),
+              FileLocation.DUMMY,
+              nextExceptionOrEnd,
+              temp,
+              catchException,
+              false);
+        addToCFA(exceptionIsNotInstance);
+
+      JAssumeEdge exceptionIsInstance =
+          new JAssumeEdge(
+              exception.toString(),
+              FileLocation.DUMMY,
+              nextExceptionOrEnd,
+              correct,
+              catchException,
+              true);
+      addToCFA(exceptionIsInstance);
+
+      if (!temp.equals(incorrect)) {
+        nextExceptionOrEnd = temp;
+      }
+    }
+
+    listExceptions.clear();
+
+    endOfCatch.add(incorrect);
+    locStack.push(correct);
+  }
+
   @Override
   public boolean visit(CatchClause cc) {
 
+    JClassType exceptionClassType = (JClassType) astCreator.convert(cc.getException()).getType();
+    listExceptions.add(exceptionClassType);
+
     JExpression catchException =
-        HelperVariable.getInstance()
-            .getRunTimeTypeEqualsExpression(
-                (JClassType) astCreator.convert(cc.getException()).getType());
+        HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
 
     JStatement exception =
-        HelperVariable.getInstance()
-            .getRunTimeTypeEqualsStatement(
-                (JClassType) astCreator.convert(cc.getException()).getType());
+        HelperVariable.getInstance().getRunTimeTypeEqualsStatement(exceptionClassType);
 
     CFANode dummyExceptionEquals = new CFANode(cfa.getFunction());
     cfaNodes.add(dummyExceptionEquals);
@@ -2791,18 +2878,15 @@ class CFAMethodBuilder extends ASTVisitor {
       start = locStack.pop();
     }
 
-
-      JAssumeEdge exceptionIsNotInstance =
-          new JAssumeEdge(
-              exception.toString(),
-              FileLocation.DUMMY,
-              start,
-              nextCatchBlockOrError.peek(),
-              catchException,
-              false);
+    JAssumeEdge exceptionIsNotInstance =
+        new JAssumeEdge(
+            exception.toString(),
+            FileLocation.DUMMY,
+            start,
+            nextCatchBlockOrError.peek(),
+            catchException,
+            false);
       addToCFA(exceptionIsNotInstance);
-
-
 
     JAssumeEdge exceptionIsInstance =
         new JAssumeEdge(
