@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,7 +33,7 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
 
     Set<CFANode> nodes = new HashSet<>();
     Set<CFAEdge> edges = new HashSet<>();
-    Set<CFANode> waitlist = new HashSet<>();
+    List<CFANode> waitlist = new ArrayList<>();
     CFANode temp;
     CFANode exitNode = null;
     boolean foundExitNode = false;
@@ -40,9 +42,11 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
       // Complete Solution:
       waitlist.add(value);
       while (!waitlist.isEmpty()) {
-        temp = waitlist.iterator().next();
-        waitlist.remove(waitlist.iterator().next());
-        if (temp.getNumLeavingEdges() == 0 && !nodes.contains(temp) && !foundExitNode) {
+        temp = waitlist.remove(0);
+        if (nodes.contains(temp)) {
+          continue;
+        }
+        if (temp.getNumLeavingEdges() == 0 && !foundExitNode) {
           if (temp instanceof FunctionExitNode) {
             foundExitNode = true;
           }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
@@ -46,8 +47,12 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
     return PointerTargetSet.emptyPointerTargetSet();
   }
 
-  public String getViolations() {
-    return getPayload().getOrDefault("violations", "").toString();
+  public List<Object> getViolations() {
+    List<Object> violations = new java.util.ArrayList<>(List.of());
+    violations.add(getPayload().getOrDefault("violations", ""));
+    violations.add(getPayload().getOrDefault("violationState", ""));
+    violations.add(getPayload().getOrDefault("violationPath", ""));
+    return violations;
   }
 
   public boolean isFirst() {

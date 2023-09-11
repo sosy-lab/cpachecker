@@ -27,10 +27,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -190,7 +191,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   public static BlockSummaryMessage newResultMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      Set<String> collectedBlockSummaryErrorMessages,
+      HashMap<Integer, List<Object>> collectedBlockSummaryErrorMessages,
       Result pResult) {
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
@@ -239,9 +240,10 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return targetNodeNumber;
   }
 
-  public Set<String> getCollectedBlockSummaryErrorMessages() {
-    return (Set<String>) getPayload().getOrDefault("violations", ImmutableSet.of());
-  } // TODO vlt noch einen Failsafe einbauen oder so
+  public HashMap<Integer, List<Object>> getCollectedBlockSummaryErrorMessages() {
+    return (HashMap<Integer, List<Object>>)
+        getPayload().getOrDefault("violations", ImmutableSet.of());
+  }
 
   protected BlockSummaryMessagePayload getPayload() {
     return payload;

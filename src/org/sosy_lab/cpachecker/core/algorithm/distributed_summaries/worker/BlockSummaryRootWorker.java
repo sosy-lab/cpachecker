@@ -14,7 +14,9 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
@@ -47,7 +49,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private final AbstractState topState;
   private boolean shutdown;
   private final boolean defaultRootWorker;
-  private final Set<String> collectedBlockSummaryErrorMessages = new HashSet<>();
+  private final HashMap<Integer, List<Object>> collectedBlockSummaryErrorMessages = new HashMap<>();
   private int blockCount = 0;
   private final Set<String> messageID = new HashSet<>();
 
@@ -108,9 +110,10 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         if (!defaultRootWorker) {
           messageID.add(pMessage.getBlockId());
           BlockSummaryErrorConditionMessage m = (BlockSummaryErrorConditionMessage) pMessage;
-          String violations = m.getViolations();
+          List<Object> violations = m.getViolations();
           if (m.isFirst()) {
-            collectedBlockSummaryErrorMessages.add(violations);
+            collectedBlockSummaryErrorMessages.put(
+                collectedBlockSummaryErrorMessages.size(), violations);
           }
           if (blockCount + 1 == messageID.size()) {
             yield ImmutableSet.of(
@@ -133,19 +136,29 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       case FOUND_RESULT, EXCEPTION -> {
         shutdown = true;
         messageID.add(pMessage.getBlockId());
-        if (blockCount + 1 == messageID.size() && !collectedBlockSummaryErrorMessages.isEmpty()) {
-          yield ImmutableSet.of(
-              BlockSummaryMessage.newResultMessage(
-                  root.getId(),
-                  root.getLast().getNodeNumber(),
-                  collectedBlockSummaryErrorMessages,
-                  Result.FALSE));
+        if (blockCount + 1 == messageID.size()) {
+          if (!collectedBlockSummaryErrorMessages.isEmpty()) {
+            yield ImmutableSet.of(
+                BlockSummaryMessage.newResultMessage(
+                    root.getId(),
+                    root.getLast().getNodeNumber(),
+                    collectedBlockSummaryErrorMessages,
+                    Result.FALSE));
+          } else {
+            yield ImmutableSet.of(
+                BlockSummaryMessage.newResultMessage(
+                    root.getId(),
+                    root.getLast().getNodeNumber(),
+                    collectedBlockSummaryErrorMessages,
+                    Result.TRUE));
+          }
         }
         yield ImmutableSet.of();
       }
       case STATISTICS, ERROR_CONDITION_UNREACHABLE, BLOCK_POSTCONDITION -> {
         messageID.add(pMessage.getBlockId());
         if (blockCount + 1 == messageID.size() && !collectedBlockSummaryErrorMessages.isEmpty()) {
+          shutdown = true;
           yield ImmutableSet.of(
               BlockSummaryMessage.newResultMessage(
                   root.getId(),

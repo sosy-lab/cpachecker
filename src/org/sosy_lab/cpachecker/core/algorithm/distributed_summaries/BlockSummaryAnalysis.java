@@ -205,10 +205,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create blockGraph and reduce to relevant parts
       BlockSummaryCFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
-      if (decompositionType == DecompositionType.FUNCTION_DECOMPOSITION) {
-        // Consistency check doesn´t work for Function Decomposer (more than one root node)
-        // TODO leere if clause wegen umgehung (verneinnung oder besser Lösung?)
-      } else {
+      if (!(decompositionType == DecompositionType.FUNCTION_DECOMPOSITION)) {
         blockGraph.checkConsistency(shutdownManager.getNotifier());
       }
       Modification modification =
@@ -269,8 +266,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         Result result = resultPair.result();
         stats.putAll(observer.getStats());
         if (result == Result.FALSE) {
-          logger.logf(Level.INFO, "Number of Found Error: %s", resultPair.violations().size());
-          logger.logf(Level.INFO, "Error Nodes: %s", resultPair.violations());
           ARGState state = (ARGState) reachedSet.getFirstState();
           assert state != null;
           CompositeState cState = (CompositeState) state.getWrappedState();
@@ -278,6 +273,13 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           assert cState != null;
           List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
           states.add(DummyTargetState.withoutTargetInformation());
+          logger.logf(Level.INFO, "Number of Found Error: %s", resultPair.violations().size());
+          for (int i = 0; i < resultPair.violations().size(); i++) {
+            logger.logf(Level.INFO, "Error Number: %s", i + 1);
+            logger.logf(Level.INFO, "Error Node: %s", resultPair.violations().get(i).get(0));
+            logger.logf(Level.INFO, "Error Trace: %s", resultPair.violations().get(i).get(2));
+            states.add((ARGState) resultPair.violations().get(i).get(1));
+          }
           reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
         } else if (result == Result.TRUE) {
           reachedSet.clear();

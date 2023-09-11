@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -320,6 +321,9 @@ public class DCPAAlgorithm {
                     "violations",
                     transformedImmutableListCopy(
                         violations, v -> AbstractStates.extractLocation(v)))
+                .addEntry("violationState", violations.toArray()[0])
+                .addEntry(
+                    "violationPath", ARGUtils.getOnePathTo((ARGState) violations.toArray()[0]))
                 .buildPayload();
       }
       answers.add(

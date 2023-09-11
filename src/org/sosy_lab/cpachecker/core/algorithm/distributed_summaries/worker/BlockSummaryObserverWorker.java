@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
@@ -34,9 +34,11 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private final Map<String, Map<String, Object>> stats = new HashMap<>();
 
   private final int numberOfBlocks;
-  private Set<String> collectedBlockSummaryErrorMessages;
+  private HashMap<Integer, List<Object>> collectedBlockSummaryErrorMessages;
+  private boolean foundResult = false;
 
-  public record StatusAndResult(AlgorithmStatus status, Result result, Set<String> violations) {}
+  public record StatusAndResult(
+      AlgorithmStatus status, Result result, HashMap<Integer, List<Object>> violations) {}
 
   public BlockSummaryObserverWorker(
       String pId,
@@ -56,6 +58,8 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage) {
     switch (pMessage.getType()) {
       case FOUND_RESULT -> {
+        foundResult = true;
+        shutdown = stats.keySet().size() == numberOfBlocks;
         result = Optional.of(((BlockSummaryResultMessage) pMessage).getResult());
         statusObserver.updateStatus(pMessage);
         collectedBlockSummaryErrorMessages = pMessage.getCollectedBlockSummaryErrorMessages();
@@ -68,7 +72,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
       }
       case STATISTICS -> {
         stats.put(pMessage.getBlockId(), ((BlockSummaryStatisticsMessage) pMessage).getStats());
-        shutdown = stats.keySet().size() == numberOfBlocks;
+        shutdown = stats.keySet().size() == numberOfBlocks && foundResult;
       }
       default -> throw new AssertionError("Unknown message type: " + pMessage.getType());
     }

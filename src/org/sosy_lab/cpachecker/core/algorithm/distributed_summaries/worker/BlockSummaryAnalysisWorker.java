@@ -42,6 +42,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   private boolean shutdown;
 
   private final BlockSummaryConnection connection;
+  private final boolean isInfer;
 
   private final StatTimer forwardAnalysisTime = new StatTimer("Forward Analysis");
   private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
@@ -69,12 +70,13 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      boolean pInfer)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     super("analysis-worker-" + pId, pOptions);
     block = pBlock;
     connection = pConnection;
-
+    isInfer = pInfer;
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
     Configuration backwardConfiguration =
@@ -154,7 +156,13 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   public void run() {
     try {
       broadcast(dcpaAlgorithm.runInitialAnalysis());
-      super.run();
+      if (isInfer) {
+        broadcast(
+            ImmutableSet.of(BlockSummaryMessage.newStatisticsMessage(getBlockId(), getStats())));
+        shutdown = true;
+      } else {
+        super.run();
+      }
     } catch (CPAException e) {
       getLogger().logException(Level.SEVERE, e, "Worker stopped working...");
       broadcastOrLogException(
