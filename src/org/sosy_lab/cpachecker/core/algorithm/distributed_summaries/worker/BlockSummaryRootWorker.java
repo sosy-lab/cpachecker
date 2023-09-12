@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -49,7 +48,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private final AbstractState topState;
   private boolean shutdown;
   private final boolean defaultRootWorker;
-  private final HashMap<Integer, List<Object>> collectedBlockSummaryErrorMessages = new HashMap<>();
+  private final List<List<Object>> collectedBlockSummaryErrorMessages = new java.util.ArrayList<>(List.of());
   private int blockCount = 0;
   private final Set<String> messageID = new HashSet<>();
 
@@ -112,7 +111,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
           BlockSummaryErrorConditionMessage m = (BlockSummaryErrorConditionMessage) pMessage;
           List<Object> violations = m.getViolations();
           if (m.isFirst()) {
-            collectedBlockSummaryErrorMessages.put(
+            collectedBlockSummaryErrorMessages.add(
                 collectedBlockSummaryErrorMessages.size(), violations);
           }
           if (blockCount + 1 == messageID.size()) {

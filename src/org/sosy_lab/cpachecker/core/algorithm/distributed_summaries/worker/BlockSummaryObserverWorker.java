@@ -34,11 +34,11 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private final Map<String, Map<String, Object>> stats = new HashMap<>();
 
   private final int numberOfBlocks;
-  private HashMap<Integer, List<Object>> collectedBlockSummaryErrorMessages;
+  private List<List<Object>> collectedBlockSummaryErrorMessages;
   private boolean foundResult = false;
 
   public record StatusAndResult(
-      AlgorithmStatus status, Result result, HashMap<Integer, List<Object>> violations) {}
+      AlgorithmStatus status, Result result, List<List<Object>> violations) {}
 
   public BlockSummaryObserverWorker(
       String pId,

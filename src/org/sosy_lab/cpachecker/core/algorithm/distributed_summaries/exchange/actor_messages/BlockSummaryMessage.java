@@ -27,7 +27,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -191,7 +190,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   public static BlockSummaryMessage newResultMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      HashMap<Integer, List<Object>> collectedBlockSummaryErrorMessages,
+      List<List<Object>> collectedBlockSummaryErrorMessages,
       Result pResult) {
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
@@ -240,8 +239,8 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return targetNodeNumber;
   }
 
-  public HashMap<Integer, List<Object>> getCollectedBlockSummaryErrorMessages() {
-    return (HashMap<Integer, List<Object>>)
+  public List<List<Object>> getCollectedBlockSummaryErrorMessages() {
+    return (List<List<Object>>)
         getPayload().getOrDefault("violations", ImmutableSet.of());
   }
 
