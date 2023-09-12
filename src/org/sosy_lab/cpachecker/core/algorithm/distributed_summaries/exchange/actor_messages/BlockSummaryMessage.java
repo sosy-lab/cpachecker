@@ -240,8 +240,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   }
 
   public List<List<Object>> getCollectedBlockSummaryErrorMessages() {
-    return (List<List<Object>>)
-        getPayload().getOrDefault("violations", ImmutableSet.of());
+    return (List<List<Object>>) getPayload().getOrDefault("violations", ImmutableSet.of());
   }
 
   protected BlockSummaryMessagePayload getPayload() {

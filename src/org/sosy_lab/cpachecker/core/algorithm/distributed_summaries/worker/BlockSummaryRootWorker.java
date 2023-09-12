@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -48,7 +49,8 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private final AbstractState topState;
   private boolean shutdown;
   private final boolean defaultRootWorker;
-  private final List<List<Object>> collectedBlockSummaryErrorMessages = new java.util.ArrayList<>(List.of());
+  private final List<List<Object>> collectedBlockSummaryErrorMessages =
+      new java.util.ArrayList<>(ImmutableList.of());
   private int blockCount = 0;
   private final Set<String> messageID = new HashSet<>();
 
