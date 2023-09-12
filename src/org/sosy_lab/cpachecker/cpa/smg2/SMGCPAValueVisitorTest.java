@@ -3315,12 +3315,8 @@ public class SMGCPAValueVisitorTest {
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
     currentState =
-        SMGState.of(
-            MachineModel.LINUX64,
-            spc,
-            logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
-            currentState.getErrorInfo());
+        currentState.copyAndReplaceMemoryModel(
+            spc);
     visitor =
         new SMGCPAValueVisitor(
             evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
@@ -3392,12 +3388,8 @@ public class SMGCPAValueVisitorTest {
             spc.getSMGValueFromValue(valueToWrite).orElseThrow());
 
     currentState =
-        SMGState.of(
-            MachineModel.LINUX64,
-            spc,
-            logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
-            currentState.getErrorInfo());
+        currentState.copyAndReplaceMemoryModel(
+            spc);
     visitor =
         new SMGCPAValueVisitor(
             evaluator, currentState, new DummyCFAEdge(null, null), logger, options);

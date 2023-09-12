@@ -160,11 +160,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       memoryModel =
           SMGState.of(
                   machineModel,
-                  SymbolicProgramConfiguration.of(
-                      BigInteger.valueOf(pMachineModel.getSizeofPtrInBits())),
                   logger,
-                  options,
-                  ImmutableList.of())
+                  options)
               .reconstructStackFrames(stackFrameDeclarations)
               .reconstructSMGStateFromNonHeapAssignments(
                   nonHeapAssignments,
@@ -366,7 +363,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
       // TODO: heap?
-      return SMGState.of(machineModel, memoryModel, logger, options, ImmutableList.of())
+      return SMGState.of(machineModel, logger, options)
           .reconstructStackFrames(stackFrameDeclarations);
       /*.reconstructSMGStateFromNonHeapAssignments(
       nonHeapAssignments,
