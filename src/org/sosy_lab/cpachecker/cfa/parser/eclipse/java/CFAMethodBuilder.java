@@ -823,11 +823,11 @@ class CFAMethodBuilder extends ASTVisitor {
 
       } else {
         JStatementEdge edge =
-              new JStatementEdge(
-                  rawSignature, statement, statement.getFileLocation(), nextNode, lastNode);
+            new JStatementEdge(
+                rawSignature, statement, statement.getFileLocation(), nextNode, lastNode);
 
-          addToCFA(edge);
-          locStack.push(lastNode);
+        addToCFA(edge);
+        locStack.push(lastNode);
       }
 
       if (!inTryBlock.isEmpty()
@@ -1442,9 +1442,9 @@ class CFAMethodBuilder extends ASTVisitor {
         break;
 
       case ALWAYS_TRUE:
-          final BlankEdge trueEdge =
-              new BlankEdge(rawSignature, fileLocation, rootNode, thenNode, "");
-          addToCFA(trueEdge);
+        final BlankEdge trueEdge =
+            new BlankEdge(rawSignature, fileLocation, rootNode, thenNode, "");
+        addToCFA(trueEdge);
 
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
@@ -2739,7 +2739,7 @@ class CFAMethodBuilder extends ASTVisitor {
     cfaNodes.add(helperNotNullNode);
 
     inTryBlock.push(true);
-    numberNestedTryCatch +=1;
+    numberNestedTryCatch += 1;
     tryStatement.getBody().accept(this);
     inTryBlock.pop();
     numberNestedTryCatch -= 1;
@@ -2815,11 +2815,9 @@ class CFAMethodBuilder extends ASTVisitor {
 
       JClassType exc = (JClassType) listExceptions.toArray()[i];
 
-      JExpression catchException =
-          HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exc);
+      JExpression catchException = HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exc);
 
-      JStatement exception =
-          HelperVariable.getInstance().getRunTimeTypeEqualsStatement(exc);
+      JStatement exception = HelperVariable.getInstance().getRunTimeTypeEqualsStatement(exc);
 
       JAssumeEdge exceptionIsNotInstance =
           new JAssumeEdge(
@@ -2829,7 +2827,7 @@ class CFAMethodBuilder extends ASTVisitor {
               temp,
               catchException,
               false);
-        addToCFA(exceptionIsNotInstance);
+      addToCFA(exceptionIsNotInstance);
 
       JAssumeEdge exceptionIsInstance =
           new JAssumeEdge(
@@ -2886,7 +2884,7 @@ class CFAMethodBuilder extends ASTVisitor {
             nextCatchBlockOrError.peek(),
             catchException,
             false);
-      addToCFA(exceptionIsNotInstance);
+    addToCFA(exceptionIsNotInstance);
 
     JAssumeEdge exceptionIsInstance =
         new JAssumeEdge(
@@ -2940,7 +2938,7 @@ class CFAMethodBuilder extends ASTVisitor {
     } else {
       numberCatchesNested.pop();
 
-      if(!numberCatchesNested.isEmpty()) {
+      if (!numberCatchesNested.isEmpty()) {
         numberCatches = numberCatchesNested.peek();
       }
 

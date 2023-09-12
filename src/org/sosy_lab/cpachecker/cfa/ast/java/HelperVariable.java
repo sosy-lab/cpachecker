@@ -47,15 +47,18 @@ public class HelperVariable {
 
   private JClassType getThrowableInstance() {
     if (throwableInstance == null) {
-    Set<JInterfaceType> extendsSerializable = new HashSet<>();
+      Set<JInterfaceType> extendsSerializable = new HashSet<>();
 
-    JInterfaceType serializable =
-        JInterfaceType.valueOf(
-            "java.io.Serializable", "Serializable", VisibilityModifier.PUBLIC, extendsSerializable);
+      JInterfaceType serializable =
+          JInterfaceType.valueOf(
+              "java.io.Serializable",
+              "Serializable",
+              VisibilityModifier.PUBLIC,
+              extendsSerializable);
 
-    Set<JInterfaceType> throwableInterfaces = new HashSet<>();
+      Set<JInterfaceType> throwableInterfaces = new HashSet<>();
 
-    throwableInterfaces.add(serializable);
+      throwableInterfaces.add(serializable);
 
       throwableInstance =
           JClassType.valueOf(
@@ -126,7 +129,9 @@ public class HelperVariable {
   public JExpressionAssignmentStatement getHelperIsNull() {
     JNullLiteralExpression nullExpression = new JNullLiteralExpression(FileLocation.DUMMY);
 
-    JLeftHandSide helperLeft = new JIdExpression(FileLocation.DUMMY, getThrowableInstance(), "MainApp_helper", helperFieldDeclaration);
+    JLeftHandSide helperLeft =
+        new JIdExpression(
+            FileLocation.DUMMY, getThrowableInstance(), "MainApp_helper", helperFieldDeclaration);
 
     JExpressionAssignmentStatement helperNull =
         new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, nullExpression);

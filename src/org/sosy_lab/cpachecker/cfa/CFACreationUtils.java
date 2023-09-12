@@ -46,8 +46,6 @@ public class CFACreationUtils {
       }
 
     } else {
-      if (predecessor.getNumLeavingEdges() > 0) {
-      }
       assert predecessor.getNumLeavingEdges() == 0;
     }
 
