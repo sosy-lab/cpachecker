@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
-import static org.sosy_lab.common.collect.Collections3.subMapWithPrefix;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
@@ -528,7 +527,17 @@ public class SMGState
       LogManager logManager,
       SMGOptions opts,
       List<SMGErrorInfo> pErrorInfo) {
-    return new SMGState(pMachineModel, pSPC, logManager, opts, pErrorInfo, materializer, constraints, lastAddedConstraint, definiteAssignment, lastModelAsAssignment);
+    return new SMGState(
+        pMachineModel,
+        pSPC,
+        logManager,
+        opts,
+        pErrorInfo,
+        materializer,
+        constraints,
+        lastAddedConstraint,
+        definiteAssignment,
+        lastModelAsAssignment);
   }
 
   /**
@@ -537,9 +546,18 @@ public class SMGState
    * @param pSPC a new SPC that has to be consistent with the rest of the state.
    * @return a new state with the spc given
    */
-  public SMGState copyAndReplaceMemoryModel(
-      SymbolicProgramConfiguration pSPC) {
-    return new SMGState(machineModel, pSPC, logger, options, errorInfo, materializer, constraints, lastAddedConstraint, definiteAssignment, lastModelAsAssignment);
+  public SMGState copyAndReplaceMemoryModel(SymbolicProgramConfiguration pSPC) {
+    return new SMGState(
+        machineModel,
+        pSPC,
+        logger,
+        options,
+        errorInfo,
+        materializer,
+        constraints,
+        lastAddedConstraint,
+        definiteAssignment,
+        lastModelAsAssignment);
   }
 
   /**
@@ -815,8 +833,7 @@ public class SMGState
   public SMGState copyAndAddGlobalVariable(
       BigInteger pTypeSizeInBits, String pVarName, CType type) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndAddGlobalObject(newObject, pVarName, type));
+    return copyAndReplaceMemoryModel(memoryModel.copyAndAddGlobalObject(newObject, pVarName, type));
   }
 
   /**
@@ -830,8 +847,7 @@ public class SMGState
   public SMGObjectAndSMGState copyAndAddHeapObject(BigInteger pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return SMGObjectAndSMGState.of(
-        newObject,
-        copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
+        newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
   }
 
   /* Only used by abstraction materialization */
@@ -841,8 +857,7 @@ public class SMGState
 
   // Only to be used by materilization to copy a SMGObject
   public SMGState copyAllValuesFromObjToObj(SMGObject source, SMGObject target) {
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAllValuesFromObjToObj(source, target));
+    return copyAndReplaceMemoryModel(memoryModel.copyAllValuesFromObjToObj(source, target));
   }
 
   // Only to be used by materilization to copy a SMGObject
@@ -863,8 +878,7 @@ public class SMGState
   public SMGObjectAndSMGState copyAndAddStackObject(BigInteger pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return SMGObjectAndSMGState.of(
-        newObject,
-        copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject)));
+        newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject)));
   }
 
   /**
@@ -953,8 +967,7 @@ public class SMGState
               + " to the memory model because there is no stack frame.");
     }
     SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndAddStackObject(newObject, pVarName, type));
+    return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject, pVarName, type));
   }
 
   /**
@@ -974,8 +987,7 @@ public class SMGState
               + pVarName
               + " to the memory model because there is no stack frame.");
     }
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndAddStackObject(object, pVarName, type));
+    return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(object, pVarName, type));
   }
 
   /**
@@ -998,8 +1010,7 @@ public class SMGState
               + " to the memory model because there is no stack frame.");
     }
     SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndAddStackObject(newObject, pVarName, type));
+    return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject, pVarName, type));
   }
 
   private SMGState copyAndAddLocalVariableToSpecificStackframe(
@@ -1780,8 +1791,7 @@ public class SMGState
 
   // Only public for builtin functions
   public SMGState copyAndPruneFunctionStackVariable(String variableName) {
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndRemoveStackVariable(variableName));
+    return copyAndReplaceMemoryModel(memoryModel.copyAndRemoveStackVariable(variableName));
   }
 
   public SMGState dropStackFrame() {
@@ -2241,8 +2251,17 @@ public class SMGState
   }
 
   private SMGState copyWithNewErrorInfo(ImmutableList<SMGErrorInfo> pNewErrorInfo) {
-    return new SMGState(machineModel, memoryModel, logger, options, pNewErrorInfo,
-        materializer, constraints, lastAddedConstraint, definiteAssignment, lastModelAsAssignment);
+    return new SMGState(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        pNewErrorInfo,
+        materializer,
+        constraints,
+        lastAddedConstraint,
+        definiteAssignment,
+        lastModelAsAssignment);
   }
 
   /** Returns memory model, including Heap, stack and global vars. */
@@ -2267,9 +2286,7 @@ public class SMGState
     } else {
       SMGValue newSMGValue = SMGValue.of();
       return SMGValueAndSMGState.of(
-          copyAndReplaceMemoryModel(
-              memoryModel.copyAndPutValue(pValue, newSMGValue)),
-          newSMGValue);
+          copyAndReplaceMemoryModel(memoryModel.copyAndPutValue(pValue, newSMGValue)), newSMGValue);
     }
   }
 

@@ -409,8 +409,7 @@ public class SMGTransferRelation
     StackFrame topStackframe = completeStack.peek();
     PersistentStack<StackFrame> stackWOTop = completeStack.popAndCopy();
     SMGState tempState =
-        pState.copyAndReplaceMemoryModel(
-            pState.getMemoryModel().withNewStackFrame(stackWOTop));
+        pState.copyAndReplaceMemoryModel(pState.getMemoryModel().withNewStackFrame(stackWOTop));
 
     // Create variable on the stack below
     ImmutableList.Builder<SMGState> returnListBuilder = ImmutableList.builder();

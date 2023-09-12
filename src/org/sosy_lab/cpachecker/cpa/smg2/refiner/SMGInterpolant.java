@@ -158,10 +158,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     allowedHeapValues = pAllowedHeapValues;
     try {
       memoryModel =
-          SMGState.of(
-                  machineModel,
-                  logger,
-                  options)
+          SMGState.of(machineModel, logger, options)
               .reconstructStackFrames(stackFrameDeclarations)
               .reconstructSMGStateFromNonHeapAssignments(
                   nonHeapAssignments,
