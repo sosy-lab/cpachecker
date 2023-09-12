@@ -795,6 +795,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
       handleConditionalStatement(prevNode, lastNode, statement);
       lastNode = handleSideassignments(lastNode, rawSignature, statement.getFileLocation());
+      locStack.push(lastNode);
 
     } else {
 
