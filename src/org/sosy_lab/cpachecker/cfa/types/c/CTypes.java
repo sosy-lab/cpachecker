@@ -60,19 +60,6 @@ public final class CTypes {
   }
 
   /**
-   * Check whether a given type is a signed integer type according to the C standard § 6.2.5 (4).
-   * Also returns true for all qualified versions of signed integer types.
-   */
-  public static boolean isSignedIntegerType(CType type) {
-    type = type.getCanonicalType();
-    // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
-    return (type instanceof CBitFieldType && isSignedIntegerType(((CBitFieldType) type).getType()))
-        || (type instanceof CSimpleType
-            && ((CSimpleType) type).getType().isIntegerType()
-            && ((CSimpleType) type).isSigned());
-  }
-
-  /**
    * Check whether a given type is an arithmetic type according to the C standard § 6.2.5 (18). Also
    * returns true for all qualified versions of arithmetic types.
    */
