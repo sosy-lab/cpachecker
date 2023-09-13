@@ -43,7 +43,7 @@ public final class CTypes {
         // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer
         // type"
         || (type instanceof CBitFieldType)
-        || (type instanceof CSimpleType && !((CSimpleType) type).isComplex());
+        || (type instanceof CSimpleType && !((CSimpleType) type).hasComplexSpecifier());
   }
 
   /**
@@ -463,13 +463,13 @@ public final class CTypes {
           constValue,
           t.isVolatile(),
           t.getType(),
-          t.isLong(),
-          t.isShort(),
-          t.isSigned(),
-          t.isUnsigned(),
-          t.isComplex(),
-          t.isImaginary(),
-          t.isLongLong());
+          t.hasLongSpecifier(),
+          t.hasShortSpecifier(),
+          t.hasSignedSpecifier(),
+          t.hasUnsignedSpecifier(),
+          t.hasComplexSpecifier(),
+          t.hasImaginarySpecifier(),
+          t.hasLongLongSpecifier());
     }
 
     @Override
@@ -551,13 +551,13 @@ public final class CTypes {
           t.isConst(),
           volatileValue,
           t.getType(),
-          t.isLong(),
-          t.isShort(),
-          t.isSigned(),
-          t.isUnsigned(),
-          t.isComplex(),
-          t.isImaginary(),
-          t.isLongLong());
+          t.hasLongSpecifier(),
+          t.hasShortSpecifier(),
+          t.hasSignedSpecifier(),
+          t.hasUnsignedSpecifier(),
+          t.hasComplexSpecifier(),
+          t.hasImaginarySpecifier(),
+          t.hasLongLongSpecifier());
     }
 
     @Override

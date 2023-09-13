@@ -100,7 +100,7 @@ public class BuiltinOverflowFunctions {
         return "";
       }
 
-      if (pType.isSigned()) {
+      if (pType.hasSignedSpecifier()) {
         return "s";
       }
 
@@ -112,9 +112,9 @@ public class BuiltinOverflowFunctions {
         return "";
       }
 
-      if (pType.isLong()) {
+      if (pType.hasLongSpecifier()) {
         return "l";
-      } else if (pType.isLongLong()) {
+      } else if (pType.hasLongLongSpecifier()) {
         return "ll";
       }
 

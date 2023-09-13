@@ -952,22 +952,22 @@ public class CustomInstruction {
     }
 
     private boolean isValidSimpleType(final CSimpleType ciST, final CSimpleType pAciType) {
-      return ciST.isComplex() == pAciType.isComplex()
+      return ciST.hasComplexSpecifier() == pAciType.hasComplexSpecifier()
           && ciST.isConst() == pAciType.isConst()
-          && ciST.isImaginary() == pAciType.isImaginary()
-          && ciST.isLong() == pAciType.isLong()
-          && ciST.isLongLong() == pAciType.isLongLong()
-          && ciST.isShort() == pAciType.isShort()
-          && ciST.isSigned() == pAciType.isSigned()
-          && ciST.isUnsigned() == pAciType.isUnsigned()
+          && ciST.hasImaginarySpecifier() == pAciType.hasImaginarySpecifier()
+          && ciST.hasLongSpecifier() == pAciType.hasLongSpecifier()
+          && ciST.hasLongLongSpecifier() == pAciType.hasLongLongSpecifier()
+          && ciST.hasShortSpecifier() == pAciType.hasShortSpecifier()
+          && ciST.hasSignedSpecifier() == pAciType.hasSignedSpecifier()
+          && ciST.hasUnsignedSpecifier() == pAciType.hasUnsignedSpecifier()
           && ciST.isVolatile() == pAciType.isVolatile()
           && (ciST.getType().isIntegerType() || ciST.getType().isFloatingPointType())
-          && ciST.isComplex() == ciST.isImaginary()
-          && ciST.isImaginary() == ciST.isLong()
-          && ciST.isLong() == ciST.isLongLong()
-          && ciST.isLongLong() == ciST.isShort()
-          && ciST.isShort() == ciST.isSigned()
-          && ciST.isSigned() == ciST.isUnsigned();
+          && ciST.hasComplexSpecifier() == ciST.hasImaginarySpecifier()
+          && ciST.hasImaginarySpecifier() == ciST.hasLongSpecifier()
+          && ciST.hasLongSpecifier() == ciST.hasLongLongSpecifier()
+          && ciST.hasLongLongSpecifier() == ciST.hasShortSpecifier()
+          && ciST.hasShortSpecifier() == ciST.hasSignedSpecifier()
+          && ciST.hasSignedSpecifier() == ciST.hasUnsignedSpecifier();
     }
 
     @Override

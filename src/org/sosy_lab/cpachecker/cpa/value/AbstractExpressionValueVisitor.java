@@ -436,7 +436,7 @@ public abstract class AbstractExpressionValueVisitor
     // because Java only has SIGNED_LONGLONG
     CSimpleType st = getArithmeticType(calculationType);
     if (st != null) {
-      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.isUnsigned()) {
+      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.hasUnsignedSpecifier()) {
         switch (op) {
           case DIVIDE:
             if (r == 0) {
@@ -517,7 +517,7 @@ public abstract class AbstractExpressionValueVisitor
 
     checkArgument(
         calculationType.getCanonicalType() instanceof CSimpleType
-            && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
+            && !((CSimpleType) calculationType.getCanonicalType()).hasLongSpecifier(),
         "Value analysis can't compute long double values in a precise manner");
 
     switch (op) {
@@ -679,7 +679,7 @@ public abstract class AbstractExpressionValueVisitor
           }
         case DOUBLE:
           {
-            if (type.isLong()) {
+            if (type.hasLongSpecifier()) {
               return arithmeticOperationForLongDouble(
                   lNum, rNum, op, calculationType, machineModel, logger);
             } else {

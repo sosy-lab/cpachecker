@@ -98,13 +98,13 @@ class ASTLiteralConverter {
             type.isConst(),
             type.isVolatile(),
             type.getType(),
-            type.isLong(),
-            type.isShort(),
-            type.isSigned(),
-            type.isUnsigned(),
-            type.isComplex(),
+            type.hasLongSpecifier(),
+            type.hasShortSpecifier(),
+            type.hasSignedSpecifier(),
+            type.hasUnsignedSpecifier(),
+            type.hasComplexSpecifier(),
             true,
-            type.isLongLong());
+            type.hasLongLongSpecifier());
     switch (exp.getKind()) {
       case IASTLiteralExpression.lk_char_constant:
         return new CImaginaryLiteralExpression(

@@ -331,7 +331,7 @@ public class CtoFormulaConverter {
         case FLOAT:
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
-          if (simpleType.isLong()) {
+          if (simpleType.hasLongSpecifier()) {
             if (machineModel.getSizeofLongDouble() == machineModel.getSizeofDouble()) {
               // architecture without extended precision format
               return FormulaType.getDoublePrecisionFloatingPointType();
