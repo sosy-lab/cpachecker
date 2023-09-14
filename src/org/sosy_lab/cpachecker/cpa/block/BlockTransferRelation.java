@@ -93,7 +93,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     Set<CFAEdge> computePossibleSuccessors(CFANode pNode) {
-      return CFAUtils.leavingEdges(pNode).toSet();
+      return CFAUtils.allLeavingEdges(pNode).toSet();
     }
 
     @Override

@@ -37,6 +37,8 @@ public class LocationStateFactory {
               + " without following function calls (in this case FunctionSummaryEdges are used)")
   private boolean followFunctionCalls = true;
 
+  // TODO new option: private List<String> ignoreFunctions;
+
   public LocationStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);

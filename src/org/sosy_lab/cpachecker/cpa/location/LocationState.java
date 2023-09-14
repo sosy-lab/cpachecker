@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
@@ -65,10 +66,19 @@ public class LocationState
 
   private transient CFANode locationNode;
   private boolean followFunctionCalls;
+  private final List<String> ignoreFunctions;
 
   LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
     locationNode = pLocationNode;
     followFunctionCalls = pFollowFunctionCalls;
+    ignoreFunctions = ImmutableList.of();
+  }
+
+  LocationState(
+      CFANode pLocationNode, boolean pFollowFunctionCalls, List<String> pIgnoreFunctions) {
+    locationNode = pLocationNode;
+    followFunctionCalls = pFollowFunctionCalls;
+    ignoreFunctions = ImmutableList.copyOf(pIgnoreFunctions);
   }
 
   @Override
@@ -82,6 +92,7 @@ public class LocationState
       return leavingEdges(locationNode);
 
     } else {
+      // TODO ignore ignoredEdges
       return allLeavingEdges(locationNode).filter(LocationState::isNoFunctionCall);
     }
   }
@@ -92,6 +103,7 @@ public class LocationState
       return enteringEdges(locationNode);
 
     } else {
+      // TODO: ignore ignoredEdges
       return allEnteringEdges(locationNode).filter(LocationState::isNoFunctionCall);
     }
   }

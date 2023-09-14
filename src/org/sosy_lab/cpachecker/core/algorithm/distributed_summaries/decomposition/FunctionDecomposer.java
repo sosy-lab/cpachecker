@@ -46,7 +46,8 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
         if (nodes.contains(temp)) {
           continue;
         }
-        if (temp.getNumLeavingEdges() == 0 && !foundExitNode) {
+        if ((temp.getNumLeavingEdges() == 0 || temp instanceof FunctionExitNode)
+            && !foundExitNode) {
           if (temp instanceof FunctionExitNode) {
             foundExitNode = true;
           }
