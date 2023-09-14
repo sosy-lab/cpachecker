@@ -3752,7 +3752,7 @@ distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
 # point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
-distributedSummaries.decompositionType = LINEAR_DECOMPOSITION
+distributedSummaries.decompositionType = MERGE_DECOMPOSITION
   enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
              NO_DECOMPOSITION]
 
@@ -3765,7 +3765,7 @@ distributedSummaries.queue = DEFAULT
 # Whether to spawn util workers. Util workers listen to every message and
 # create visual output for debugging. Workers consume resources and should
 # not be used for benchmarks.
-distributedSummaries.spawnUtilWorkers = true
+distributedSummaries.spawnUtilWorkers = false
 
 # Configuration for backward analysis in computation of distributed summaries
 distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"
