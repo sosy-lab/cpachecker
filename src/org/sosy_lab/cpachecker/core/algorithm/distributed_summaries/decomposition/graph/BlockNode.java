@@ -56,6 +56,10 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
     abstractionLocation = pAbstractionLocation;
   }
 
+  public boolean isAbstractionPossible() {
+    return !getLast().equals(getAbstractionLocation());
+  }
+
   @Override
   public CFANode getAbstractionLocation() {
     return abstractionLocation;

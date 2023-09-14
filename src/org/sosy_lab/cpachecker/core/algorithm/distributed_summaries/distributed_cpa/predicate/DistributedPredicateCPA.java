@@ -45,13 +45,10 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final UniqueIndexProvider indexProvider;
-  private final boolean shouldDoubleCheckVerificationCondition;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
     predicateCPA = pPredicateCPA;
-    shouldDoubleCheckVerificationCondition =
-        pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
