@@ -79,6 +79,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
+  @Option(secure = true, description = "toggle replace global phase with BMC")
+  private boolean replaceGlobalPhaseWithBMC = false;
+
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
   private boolean isInterpolationEnabled = true;
@@ -498,6 +501,34 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return adjustConditionsAndCollectFormulas(pReachedSet, pFormulas);
   }
 
+  private boolean isGlobalQuerySat(DualInterpolationSequence pDualSequence,
+                                   int indexOfCheck,
+                                   PartitionedFormulas pFormulas)
+      throws SolverException, InterruptedException {
+    boolean counterexampleIsSpurious;
+    BooleanFormula backwardFormula =
+        pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - indexOfCheck + 1);
+    backwardFormula =
+        fmgr.instantiate(
+            fmgr.uninstantiate(backwardFormula),
+            pFormulas.getLoopFormulasSsaMap().get(indexOfCheck - 2));
+
+    BooleanFormula unrolledConcretePaths =
+        bfmgr.and(
+            new ImmutableList.Builder<BooleanFormula>()
+                .add(pFormulas.getPrefixFormula())
+                .addAll(pFormulas.getLoopFormulas().subList(0, indexOfCheck - 1))
+                .add(backwardFormula)
+                .build());
+    stats.assertionsCheck.start();
+    try {
+      counterexampleIsSpurious = solver.isUnsat(unrolledConcretePaths);
+    } finally {
+      stats.assertionsCheck.stop();
+    }
+    return counterexampleIsSpurious;
+  }
+
   /**
    * Iteratively unrolls backward sequence and checks if it is reachable from initial states. In the
    * end, it checks against B_0, which is a target formula and therefore performs BMC check.
@@ -509,33 +540,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws InterruptedException, SolverException, CPAException {
     boolean counterexampleIsSpurious;
     for (int i = 2; i <= pDualSequence.getSize(); i++) {
-      BooleanFormula backwardFormula =
-          pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - i + 1);
       // Unrolling CFA if necessary
       if (pFormulas.getLoopFormulasSsaMap().size() <= i - 2) {
         if (!unrollProgram(pReachedSet, pFormulas, false)) {
           return -1;
         }
       }
-      backwardFormula =
-          fmgr.instantiate(
-              fmgr.uninstantiate(backwardFormula),
-              pFormulas.getLoopFormulasSsaMap().get(i - 2));
-
-      BooleanFormula unrolledConcretePaths =
-          bfmgr.and(
-              new ImmutableList.Builder<BooleanFormula>()
-                  .add(pFormulas.getPrefixFormula())
-                  .addAll(pFormulas.getLoopFormulas().subList(0, i - 1))
-                  .add(backwardFormula)
-                  .build());
-      stats.assertionsCheck.start();
-      try {
-        counterexampleIsSpurious = solver.isUnsat(unrolledConcretePaths);
-      } finally {
-        stats.assertionsCheck.stop();
-      }
-      if (counterexampleIsSpurious) {
+      if (!replaceGlobalPhaseWithBMC && isGlobalQuerySat(pDualSequence, i, pFormulas)) {
         return i;
       }
     }

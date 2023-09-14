@@ -19,6 +19,12 @@
         <option name="-setprop">dar.fallBack=false</option>
     </rundefinition>
 
+    <rundefinition name="dar-without-global">
+        <option name="-bmc-interpolationDualSequence"/>
+        <option name="-setprop">dar.fallBack=false</option>
+        <option name="-setprop">replaceGlobalPhaseWithBMC=true</option>
+    </rundefinition>
+
     <rundefinition name="imc">
         <option name="-bmc-interpolation"/>
         <option name="-setprop">imc.fallBack=false</option>

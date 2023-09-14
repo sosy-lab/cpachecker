@@ -3691,6 +3691,9 @@ dar.fallBack = true
 # toggle removing unreachable stop states in ARG
 dar.removeUnreachableStopStates = false
 
+# toggle replace global phase with BMC
+dar.replaceGlobalPhaseWithBMC = false
+
 # When checking for the data race property, use this configuration file
 # instead of the current one.
 datarace.config = no default value
