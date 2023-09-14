@@ -188,7 +188,7 @@ public class DCPAAlgorithm {
    * @return All violations and/or abstractions that occurred while running the forward analysis.
    */
   public Collection<BlockSummaryMessage> runAnalysis(BlockSummaryPostConditionMessage pReceived)
-      throws SolverException, InterruptedException, CPAException {
+      throws SolverException, InterruptedException {
     // check if message is meant for this block
     AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
     blockStartPrecision = dcpa.getDeserializePrecisionOperator().deserializePrecision(pReceived);
@@ -222,12 +222,8 @@ public class DCPAAlgorithm {
       states.put(pReceived.getBlockId(), null);
     }
     // if we do not have messages from all predecessors we under-approximate, so we abort!
-    if (states.size() != predecessors.size()) {
-      return ImmutableSet.of();
-    }
-    if (dcpa.isTop(deserialized)) {
-      return ImmutableSet.of();
-    }
+    // if element is top element, we abort
+    // for now we do not analyze at all
     return ImmutableSet.of();
   }
 
