@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
-import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -64,7 +63,6 @@ public class DCPAAlgorithmFactory {
 
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
     Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPA.class)).ifPresent(b -> b.init(node));
-    Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPABackward.class)).ifPresent(b -> b.init(node));
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
     ReachedSet reached =
         createInitialReachedSet(cpa, node.getFirst(), coreComponents, singleLogger);

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -22,15 +21,11 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 public class DeserializeBlockStateOperator implements DeserializeOperator {
 
   private final BlockNode blockNode;
-  private final AnalysisDirection direction;
   private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
 
   public DeserializeBlockStateOperator(
-      BlockNode pBlockNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
-      AnalysisDirection pDirection) {
+      BlockNode pBlockNode, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
     blockNode = pBlockNode;
-    direction = pDirection;
     integerCFANodeMap = pIntegerCFANodeMap;
   }
 
@@ -39,7 +34,6 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     return new BlockState(
         integerCFANodeMap.get(pMessage.getTargetNodeNumber()),
         blockNode,
-        direction,
         BlockStateType.INITIAL,
         Optional.empty());
   }

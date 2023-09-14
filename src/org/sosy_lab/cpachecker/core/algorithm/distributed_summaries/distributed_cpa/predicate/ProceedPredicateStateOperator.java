@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import java.util.Objects;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -25,13 +24,10 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
 
   private final Solver solver;
   private final BlockNode block;
-  private final AnalysisDirection direction;
 
-  public ProceedPredicateStateOperator(
-      Solver pSolver, BlockNode pBlock, AnalysisDirection pDirection) {
+  public ProceedPredicateStateOperator(Solver pSolver, BlockNode pBlock) {
     solver = pSolver;
     block = pBlock;
-    direction = pDirection;
   }
 
   @Override
@@ -69,13 +65,5 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
           BlockSummaryMessage.newErrorConditionUnreachableMessage(block.getId(), "unsat"));
     }
     return BlockSummaryMessageProcessing.proceed();
-  }
-
-  @Override
-  public BlockSummaryMessageProcessing proceed(AbstractState pState)
-      throws InterruptedException, SolverException {
-    return direction == AnalysisDirection.FORWARD
-        ? proceedForward(pState)
-        : proceedBackward(pState);
   }
 }

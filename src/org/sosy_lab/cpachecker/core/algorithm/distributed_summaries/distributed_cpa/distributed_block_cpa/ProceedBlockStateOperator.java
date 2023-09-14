@@ -10,22 +10,18 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class ProceedBlockStateOperator implements ProceedOperator {
 
   private final BlockNode block;
-  private final AnalysisDirection direction;
 
-  public ProceedBlockStateOperator(BlockNode pBlock, AnalysisDirection pDirection) {
+  public ProceedBlockStateOperator(BlockNode pBlock) {
     block = pBlock;
-    direction = pDirection;
   }
 
   @Override
@@ -45,13 +41,5 @@ public class ProceedBlockStateOperator implements ProceedOperator {
       return BlockSummaryMessageProcessing.stop();
     }
     return BlockSummaryMessageProcessing.proceed();
-  }
-
-  @Override
-  public BlockSummaryMessageProcessing proceed(AbstractState pState)
-      throws InterruptedException, SolverException {
-    return direction == AnalysisDirection.FORWARD
-        ? proceedForward(pState)
-        : proceedBackward(pState);
   }
 }

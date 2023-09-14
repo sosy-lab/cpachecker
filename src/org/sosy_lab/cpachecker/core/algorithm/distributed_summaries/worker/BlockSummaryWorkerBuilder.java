@@ -103,8 +103,7 @@ public class BlockSummaryWorkerBuilder {
       BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
-            new BlockSummaryRootWorker(
-                nextId(pNode.getId()), connection, pOptions, pNode, cfa, ShutdownManager.create()));
+            new BlockSummaryRootWorker(nextId(pNode.getId()), connection, pOptions, pNode));
     return this;
   }
 

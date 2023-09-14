@@ -13,7 +13,6 @@ import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
-import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
@@ -42,14 +40,10 @@ public class DCPAFactory {
    *
    * @param pCPA underlying CPA
    * @param pBlockNode block node for which the new DCPA is responsible
-   * @param pDirection analysis direction
    * @return DCPA for pCPA
    */
   public static DistributedConfigurableProgramAnalysis distribute(
-      ConfigurableProgramAnalysis pCPA,
-      BlockNode pBlockNode,
-      AnalysisDirection pDirection,
-      CFA pCFA) {
+      ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, CFA pCFA) {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
     if (pCPA instanceof PredicateCPA predicateCPA) {
@@ -62,16 +56,13 @@ public class DCPAFactory {
       return distribute(functionPointerCPA, integerToNodeMap);
     }
     if (pCPA instanceof BlockCPA blockCPA) {
-      return distribute(blockCPA, pBlockNode, integerToNodeMap, pDirection);
-    }
-    if (pCPA instanceof BlockCPABackward backwardBlockCPA) {
-      return distribute(backwardBlockCPA, pBlockNode, integerToNodeMap, pDirection);
+      return distribute(blockCPA, pBlockNode, integerToNodeMap);
     }
     if (pCPA instanceof ARGCPA argCPA) {
-      return distribute(argCPA, pBlockNode, pDirection, pCFA);
+      return distribute(argCPA, pBlockNode, pCFA);
     }
     if (pCPA instanceof CompositeCPA compositeCPA) {
-      return distribute(compositeCPA, pBlockNode, pDirection, pCFA, integerToNodeMap);
+      return distribute(compositeCPA, pBlockNode, pCFA, integerToNodeMap);
     }
     if (pCPA instanceof ValueAnalysisCPA valueCPA) {
       return distribute(valueCPA);
@@ -88,19 +79,8 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      BlockCPA pBlockCPA,
-      BlockNode pBlockNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
-      AnalysisDirection pDirection) {
-    return new DistributedBlockCPA(pBlockCPA, pBlockNode, pIntegerCFANodeMap, pDirection);
-  }
-
-  private static DistributedConfigurableProgramAnalysis distribute(
-      BlockCPABackward pBlockCPA,
-      BlockNode pBlockNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
-      AnalysisDirection pDirection) {
-    return new DistributedBlockCPA(pBlockCPA, pBlockNode, pIntegerCFANodeMap, pDirection);
+      BlockCPA pBlockCPA, BlockNode pBlockNode, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+    return new DistributedBlockCPA(pBlockCPA, pBlockNode, pIntegerCFANodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -124,29 +104,25 @@ public class DCPAFactory {
   private static DistributedConfigurableProgramAnalysis distribute(
       CompositeCPA pCompositeCPA,
       BlockNode pBlockNode,
-      AnalysisDirection pDirection,
       CFA pCFA,
       ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
     ImmutableMap.Builder<
             Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
         builder = ImmutableMap.builder();
     for (ConfigurableProgramAnalysis wrappedCPA : pCompositeCPA.getWrappedCPAs()) {
-      DistributedConfigurableProgramAnalysis dcpa =
-          distribute(wrappedCPA, pBlockNode, pDirection, pCFA);
+      DistributedConfigurableProgramAnalysis dcpa = distribute(wrappedCPA, pBlockNode, pCFA);
       if (dcpa == null) {
         continue;
       }
       builder.put(wrappedCPA.getClass(), dcpa);
     }
     return new DistributedCompositeCPA(
-        pCompositeCPA, pBlockNode, pIntegerCFANodeMap, pDirection, builder.buildOrThrow());
+        pCompositeCPA, pBlockNode, pIntegerCFANodeMap, builder.buildOrThrow());
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      ARGCPA pARGCPA, BlockNode pBlockNode, AnalysisDirection pDirection, CFA pCFA) {
+      ARGCPA pARGCPA, BlockNode pBlockNode, CFA pCFA) {
     return new DistributedARGCPA(
-        pARGCPA,
-        distribute(
-            Iterables.getOnlyElement(pARGCPA.getWrappedCPAs()), pBlockNode, pDirection, pCFA));
+        pARGCPA, distribute(Iterables.getOnlyElement(pARGCPA.getWrappedCPAs()), pBlockNode, pCFA));
   }
 }

@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -27,7 +26,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
-import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -44,19 +42,15 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   public DistributedBlockCPA(
       ConfigurableProgramAnalysis pBlockCPA,
       BlockNode pNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
-      AnalysisDirection pDirection) {
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
     checkArgument(
-        pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward,
-        "%s is no %s",
-        pBlockCPA.getClass(),
-        BlockCPA.class);
+        pBlockCPA instanceof BlockCPA, "%s is no %s", pBlockCPA.getClass(), BlockCPA.class);
     blockCPA = pBlockCPA;
     serializeOperator = new SerializeBlockStateOperator();
-    deserializeOperator = new DeserializeBlockStateOperator(pNode, pIntegerCFANodeMap, pDirection);
-    proceedOperator = new ProceedBlockStateOperator(pNode, pDirection);
+    deserializeOperator = new DeserializeBlockStateOperator(pNode, pIntegerCFANodeMap);
+    proceedOperator = new ProceedBlockStateOperator(pNode);
     blockStateSupplier =
-        node -> new BlockState(node, pNode, pDirection, BlockStateType.INITIAL, Optional.empty());
+        node -> new BlockState(node, pNode, BlockStateType.INITIAL, Optional.empty());
   }
 
   @Override

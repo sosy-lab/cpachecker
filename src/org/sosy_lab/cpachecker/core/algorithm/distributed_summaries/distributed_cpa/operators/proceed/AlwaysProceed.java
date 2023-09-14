@@ -17,16 +17,11 @@ public class AlwaysProceed implements ProceedOperator {
 
   @Override
   public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
-    return proceed(pState);
+    return BlockSummaryMessageProcessing.proceed();
   }
 
   @Override
   public BlockSummaryMessageProcessing proceedBackward(AbstractState pState) {
-    return proceed(pState);
-  }
-
-  @Override
-  public BlockSummaryMessageProcessing proceed(AbstractState pState) {
     return BlockSummaryMessageProcessing.proceed();
   }
 }

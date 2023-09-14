@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,10 +70,8 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
 
   abstract CFANode getBlockEnd(BlockNode pNode);
 
-  private static BlockStateType getBlockStateTypeOfLocation(
-      AnalysisDirection pDirection, BlockNode pBlockNode, CFANode pNode) {
-    if (pNode.equals(
-        pDirection == AnalysisDirection.FORWARD ? pBlockNode.getLast() : pBlockNode.getFirst())) {
+  private static BlockStateType getBlockStateTypeOfLocation(BlockNode pBlockNode, CFANode pNode) {
+    if (pNode.equals(pBlockNode.getLast())) {
       return BlockStateType.FINAL;
     }
     if (pNode.equals(pBlockNode.getAbstractionLocation())) {
@@ -101,9 +98,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
       return new BlockState(
           pCFAEdge.getSuccessor(),
           pBlockState.getBlockNode(),
-          AnalysisDirection.FORWARD,
-          getBlockStateTypeOfLocation(
-              AnalysisDirection.FORWARD, pBlockState.getBlockNode(), pCFAEdge.getSuccessor()),
+          getBlockStateTypeOfLocation(pBlockState.getBlockNode(), pCFAEdge.getSuccessor()),
           pBlockState.getErrorCondition());
     }
 
@@ -115,35 +110,6 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
     @Override
     CFANode getBlockEnd(BlockNode pNode) {
       return pNode.getLast();
-    }
-  }
-
-  static class BackwardBlockTransferRelation extends BlockTransferRelation {
-
-    @Override
-    Set<CFAEdge> computePossibleSuccessors(CFANode pCFANode) {
-      return CFAUtils.enteringEdges(pCFANode).toSet();
-    }
-
-    @Override
-    BlockState computeSuccessorFor(BlockState pBlockState, CFAEdge pCFAEdge) {
-      return new BlockState(
-          pCFAEdge.getPredecessor(),
-          pBlockState.getBlockNode(),
-          AnalysisDirection.BACKWARD,
-          getBlockStateTypeOfLocation(
-              AnalysisDirection.BACKWARD, pBlockState.getBlockNode(), pCFAEdge.getPredecessor()),
-          pBlockState.getErrorCondition());
-    }
-
-    @Override
-    Collection<BlockState> onTransitionToBlockEnd(BlockState pPossibleSuccessor) {
-      throw new AssertionError("Backward analysis does not support abstraction");
-    }
-
-    @Override
-    CFANode getBlockEnd(BlockNode pNode) {
-      return pNode.getFirst();
     }
   }
 }

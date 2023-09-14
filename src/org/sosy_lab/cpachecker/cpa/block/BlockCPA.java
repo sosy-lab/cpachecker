@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -35,14 +34,13 @@ public class BlockCPA extends AbstractCPA {
   }
 
   public static CPAFactory factory() {
-    return new BlockCPAFactory(AnalysisDirection.FORWARD);
+    return new BlockCPAFactory();
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new BlockState(
-        node, blockNode, AnalysisDirection.FORWARD, BlockStateType.INITIAL, Optional.empty());
+    return new BlockState(node, blockNode, BlockStateType.INITIAL, Optional.empty());
   }
 
   public static BlockCPA create() {

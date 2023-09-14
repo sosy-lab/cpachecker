@@ -23,7 +23,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithmFactory.AnalysisComponents;
@@ -67,7 +66,6 @@ public class DCPAAlgorithm {
   private AlgorithmStatus status;
   private boolean alreadyReportedInfeasibility;
   private Precision blockStartPrecision;
-  private boolean foundInitialViolation;
 
   public DCPAAlgorithm(
       LogManager pLogger,
@@ -86,7 +84,7 @@ public class DCPAAlgorithm {
     algorithm = parts.algorithm();
     cpa = parts.cpa();
     block = pBlock;
-    dcpa = DCPAFactory.distribute(cpa, pBlock, AnalysisDirection.FORWARD, pCFA);
+    dcpa = DCPAFactory.distribute(cpa, pBlock, pCFA);
     // prepare reached set and initial elements
     reachedSet = parts.reached();
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
@@ -179,8 +177,6 @@ public class DCPAAlgorithm {
       return reportBlockPostConditions(result.getBlockEndStates(), true);
     }
 
-    foundInitialViolation = !result.getViolationStates().isEmpty();
-
     return reportErrorConditions(result.getViolationStates(), (ARGState) startState, true);
   }
 
@@ -196,7 +192,8 @@ public class DCPAAlgorithm {
     // check if message is meant for this block
     AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
     blockStartPrecision = dcpa.getDeserializePrecisionOperator().deserializePrecision(pReceived);
-    BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(deserialized);
+    BlockSummaryMessageProcessing processing =
+        dcpa.getProceedOperator().proceedForward(deserialized);
     if (processing.end()) {
       if (predecessors.contains(pReceived.getBlockId())) {
         // null means that we cannot expect a state from this predecessor
@@ -231,18 +228,7 @@ public class DCPAAlgorithm {
     if (dcpa.isTop(deserialized)) {
       return ImmutableSet.of();
     }
-    prepareReachedSet();
-    BlockAnalysisIntermediateResult result =
-        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
-
-    status = status.update(result.getStatus());
-
-    ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
-    if (!foundInitialViolation) {
-      messages.addAll(
-          reportErrorConditions(result.getViolationStates(), (ARGState) startState, true));
-    }
-    return messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false)).build();
+    return ImmutableSet.of();
   }
 
   /**

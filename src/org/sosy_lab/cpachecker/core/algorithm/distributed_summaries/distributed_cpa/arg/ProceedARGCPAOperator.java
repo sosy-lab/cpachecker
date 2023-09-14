@@ -36,11 +36,4 @@ public class ProceedARGCPAOperator implements ProceedOperator {
     assert pState instanceof ARGState : pState + " is not an instance of " + ARGState.class;
     return wrapped.getProceedOperator().proceedBackward(((ARGState) pState).getWrappedState());
   }
-
-  @Override
-  public BlockSummaryMessageProcessing proceed(AbstractState pState)
-      throws InterruptedException, SolverException {
-    assert pState instanceof ARGState : pState + " is not an instance of " + ARGState.class;
-    return wrapped.getProceedOperator().proceed(((ARGState) pState).getWrappedState());
-  }
 }

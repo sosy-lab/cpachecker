@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -53,18 +52,16 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       CompositeCPA pCompositeCPA,
       BlockNode pNode,
       ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
-      AnalysisDirection pDirection,
       ImmutableMap<
               Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           registered) {
-    statistics =
-        new BlockAnalysisStatistics("DCPA-" + pDirection.name().charAt(0) + "-" + pNode.getId());
+    statistics = new BlockAnalysisStatistics("DCPA-" + pNode.getId());
     compositeCPA = pCompositeCPA;
     serialize = new SerializeCompositeStateOperator(registered, statistics);
     deserialize =
         new DeserializeCompositeStateOperator(
             compositeCPA, registered, pIntegerCFANodeMap, statistics);
-    proceed = new ProceedCompositeStateOperator(registered, pDirection, statistics);
+    proceed = new ProceedCompositeStateOperator(registered, statistics);
     serializePrecisionOperator = new SerializeCompositePrecisionOperator(registered);
     deserializePrecisionOperator =
         new DeserializeCompositePrecisionOperator(registered, compositeCPA, pIntegerCFANodeMap);

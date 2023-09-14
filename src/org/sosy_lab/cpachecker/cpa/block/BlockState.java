@@ -16,7 +16,6 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,7 +38,6 @@ public class BlockState
   }
 
   private final CFANode node;
-  private final AnalysisDirection direction;
   private final BlockStateType type;
   private final BlockNode blockNode;
   private Optional<AbstractState> errorCondition;
@@ -47,11 +45,9 @@ public class BlockState
   public BlockState(
       CFANode pNode,
       BlockNode pTargetNode,
-      AnalysisDirection pDirection,
       BlockStateType pType,
       Optional<AbstractState> pErrorCondition) {
     node = pNode;
-    direction = pDirection;
     type = pType;
     blockNode = pTargetNode;
     errorCondition = pErrorCondition;
@@ -117,14 +113,14 @@ public class BlockState
   @Override
   public boolean equals(Object pO) {
     if (pO instanceof BlockState that) {
-      return direction == that.direction && Objects.equals(node, that.node) && type == that.type;
+      return Objects.equals(node, that.node) && type == that.type;
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(node, direction, type);
+    return Objects.hash(node, type);
   }
 
   @Override

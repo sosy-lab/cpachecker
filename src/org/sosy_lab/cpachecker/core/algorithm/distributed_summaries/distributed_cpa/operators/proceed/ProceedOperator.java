@@ -35,17 +35,6 @@ public interface ProceedOperator {
   BlockSummaryMessageProcessing proceedBackward(AbstractState pState)
       throws InterruptedException, SolverException;
 
-  /**
-   * Decide whether to respond to the incoming message {@code pMessage}
-   *
-   * @param pState Incoming state
-   * @return A potentially empty set of responses to {@code pMessage}
-   * @throws InterruptedException thrown if program is interrupted unexpectedly.
-   * @throws SolverException thrown if backwards analysis is infeasible
-   */
-  BlockSummaryMessageProcessing proceed(AbstractState pState)
-      throws InterruptedException, SolverException;
-
   static ProceedOperator always() {
     return new AlwaysProceed();
   }

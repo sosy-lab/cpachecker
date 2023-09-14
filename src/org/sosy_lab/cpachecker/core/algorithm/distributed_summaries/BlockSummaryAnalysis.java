@@ -101,14 +101,14 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + " MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION. The final"
               + " number of blocks should converge to the number of functions in the program."
               + " NO_DECOMPOSITION creates one block around the CFA.")
-  private DecompositionType decompositionType = DecompositionType.LINEAR_DECOMPOSITION;
+  private DecompositionType decompositionType = DecompositionType.MERGE_DECOMPOSITION;
 
   @Option(
       description =
           "Whether to spawn util workers. "
               + "Util workers listen to every message and create visual output for debugging. "
               + "Workers consume resources and should not be used for benchmarks.")
-  private boolean spawnUtilWorkers = true;
+  private boolean spawnUtilWorkers = false;
 
   @Option(
       description =
