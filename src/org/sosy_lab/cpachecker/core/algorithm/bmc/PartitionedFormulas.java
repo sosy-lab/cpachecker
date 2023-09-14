@@ -74,7 +74,9 @@ class PartitionedFormulas {
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
   }
-
+  public boolean isInitialized() {
+    return isInitialized;
+  }
   public static PartitionedFormulas createForwardPartitionedFormulas(
       BooleanFormulaManagerView bfmgr, LogManager logger, boolean assertAllTargets) {
     return new PartitionedFormulas(bfmgr, logger, assertAllTargets, false);
