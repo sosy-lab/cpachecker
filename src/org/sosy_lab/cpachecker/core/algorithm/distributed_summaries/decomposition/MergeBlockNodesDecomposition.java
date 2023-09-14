@@ -55,11 +55,11 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
         decomposer.decompose(cfa).getNodes();
     while (nodes.size() > targetNumber) {
       int sizeBefore = nodes.size();
-      nodes = sorted(mergeHorizontally(nodes));
+      nodes = mergeHorizontally(nodes);
       if (nodes.size() <= targetNumber) {
         break;
       }
-      nodes = sorted(mergeVertically(nodes));
+      nodes = mergeVertically(nodes);
       if (sizeBefore == nodes.size()) {
         // also quit if no more merges are possible
         break;

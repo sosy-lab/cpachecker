@@ -123,6 +123,13 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + "A tolerance of 1 means, that we subtract 1 of the total number of functions.")
   private boolean allowSingleBlockDecompositionWhenMerging = false;
 
+  @Option(
+      description =
+          "Abstraction nodes are added to each block after they are created. "
+              + "They are needed to strengthen the preconditions of blocks. "
+              + "Missing blocks make the analysis slower but not impossible.")
+  private boolean allowMissingAbstractionNodes = true;
+
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
@@ -192,7 +199,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
       numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
-      if (!abstractionDeadEnds.isEmpty()) {
+      if (!abstractionDeadEnds.isEmpty() && !allowMissingAbstractionNodes) {
         for (String successorId : blockGraph.getRoot().getSuccessorIds()) {
           for (BlockNode node : blockGraph.getNodes()) {
             if (node.getId().equals(successorId)) {

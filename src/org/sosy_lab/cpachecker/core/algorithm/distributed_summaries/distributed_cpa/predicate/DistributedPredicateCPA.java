@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -30,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -42,23 +45,24 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final UniqueIndexProvider indexProvider;
+  private final boolean shouldDoubleCheckVerificationCondition;
 
-  public DistributedPredicateCPA(PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA) {
+  public DistributedPredicateCPA(
+      PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
     predicateCPA = pPredicateCPA;
+    shouldDoubleCheckVerificationCondition =
+        // double check if this is the last node before root and there is no abstraction location
+        pNode.getAbstractionLocation().equals(pNode.getLast())
+            && pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
-    ImmutableMap.Builder<Integer, CFANode> idToNodeMap = ImmutableMap.builder();
-    for (CFANode cfaNode : pCFA.nodes()) {
-      idToNodeMap.put(cfaNode.getNodeNumber(), cfaNode);
-    }
     indexProvider = new UniqueIndexProvider(pNode.getId());
+    ImmutableMap<Integer, CFANode> threadSafeCopy = ImmutableMap.copyOf(pIdToNodeMap);
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
-            predicateCPA.getAbstractionManager(),
-            predicateCPA.getSolver(),
-            idToNodeMap.buildOrThrow()::get);
+            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
   }
 
   @Override
@@ -111,7 +115,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException, VerificationConditionException {
     PredicateAbstractState counterexampleState =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pPreviousCondition, PredicateAbstractState.class));
@@ -129,6 +133,16 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             counterexample,
             previousCounterexample,
             indexProvider);
+    if (shouldDoubleCheckVerificationCondition) {
+      try {
+        if (predicateCPA.getSolver().isUnsat(counterexample.getFormula())) {
+          throw new VerificationConditionException(
+              "Infeasible counterexample in verification condition");
+        }
+      } catch (SolverException e) {
+        throw new AssertionError("Cannot check final path formula");
+      }
+    }
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         counterexample,
         (PredicateAbstractState)

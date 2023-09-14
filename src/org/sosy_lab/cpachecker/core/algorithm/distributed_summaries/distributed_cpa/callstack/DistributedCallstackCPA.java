@@ -10,13 +10,17 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -28,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelationBackwards;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -42,6 +48,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
 
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
+  private final CallstackTransferRelationBackwards backwardsTransfer;
 
   public DistributedCallstackCPA(
       CallstackCPA pCallstackCPA,
@@ -53,6 +60,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     blockNode = pBlockNode;
     serialize = new SerializeCallstackStateOperator();
     deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pIdToNodeMap::get);
+    backwardsTransfer = callstackCPA.getTransferRelation().copyBackwards();
   }
 
   @Override
@@ -114,8 +122,22 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition) {
-    return Objects.requireNonNull(
-        AbstractStates.extractStateByType(pARGPath.getLastState(), getAbstractStateClass()));
+  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
+      throws InterruptedException, CPATransferException, VerificationConditionException {
+    AbstractState error =
+        Objects.requireNonNull(
+            AbstractStates.extractStateByType(pPreviousCondition, getAbstractStateClass()));
+    for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
+      Collection<? extends AbstractState> abstractSuccessorsForEdge =
+          backwardsTransfer.getAbstractSuccessorsForEdge(
+              error,
+              getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+              cfaEdge);
+      if (abstractSuccessorsForEdge.isEmpty()) {
+        throw new VerificationConditionException("Callstack not feasible");
+      }
+      error = Iterables.getOnlyElement(abstractSuccessorsForEdge);
+    }
+    return error;
   }
 }

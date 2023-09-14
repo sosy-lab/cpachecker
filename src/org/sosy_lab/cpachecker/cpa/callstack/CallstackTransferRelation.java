@@ -56,6 +56,10 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
+  public CallstackTransferRelationBackwards copyBackwards() {
+    return new CallstackTransferRelationBackwards(options, logger);
+  }
+
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pEdge) throws CPATransferException {

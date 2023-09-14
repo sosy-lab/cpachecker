@@ -90,7 +90,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return verification condition
    */
   AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException, InterruptedException;
+      throws CPATransferException, InterruptedException, VerificationConditionException;
 
   default BlockSummaryMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
     return BlockSummaryMessagePayload.builder()

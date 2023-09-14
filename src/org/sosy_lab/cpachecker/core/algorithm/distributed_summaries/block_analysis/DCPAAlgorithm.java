@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -149,7 +150,13 @@ public class DCPAAlgorithm {
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations) {
-      AbstractState abstractState = dcpa.computeVerificationCondition(path, condition);
+      AbstractState abstractState;
+      try {
+        abstractState = dcpa.computeVerificationCondition(path, condition);
+      } catch (VerificationConditionException e) {
+        // see semantics of VerificationConditionException
+        continue;
+      }
       BlockSummaryMessagePayload serialized =
           dcpa.serialize(abstractState, reachedSet.getPrecision(path.getLastState()));
       messages.add(
@@ -286,8 +293,15 @@ public class DCPAAlgorithm {
               block.getId(), "Condition unsatisfiable"));
       messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false));
     } else {
-      messages.addAll(
-          reportErrorConditions(result.getBlockEndStates(), ((ARGState) errorCondition), false));
+      Collection<BlockSummaryMessage> errorConditions =
+          reportErrorConditions(result.getBlockEndStates(), ((ARGState) errorCondition), false);
+      if (errorConditions.isEmpty()) {
+        messages.add(
+            BlockSummaryMessage.newErrorConditionUnreachableMessage(
+                block.getId(), "VerificationCondition is not reachable."));
+      } else {
+        messages.addAll(errorConditions);
+      }
     }
     return messages.build();
   }
