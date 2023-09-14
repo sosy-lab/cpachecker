@@ -102,14 +102,14 @@ public class DCPAAlgorithms {
         }
         ARGState argState = (ARGState) abstractState;
         if (argState.isTarget()) {
+          if (argState.getTargetInformation().isEmpty()) {
+            violations.add(argState);
+            continue;
+          }
           for (TargetInformation targetInformation : argState.getTargetInformation()) {
-            if (targetInformation instanceof BlockEntryReachedTargetInformation bti) {
+            if (targetInformation instanceof BlockEntryReachedTargetInformation) {
               // only on abstraction locations we can find this information
-              if (bti.isAbstraction()) {
-                abstractions.add(argState);
-              } else {
-                blockEnds.add(argState);
-              }
+              abstractions.add(argState);
             } else {
               // specification violation otherwise
               violations.add(argState);
@@ -145,6 +145,20 @@ public class DCPAAlgorithms {
 
     public ImmutableSet<ARGState> getViolationStates() {
       return violationStates;
+    }
+
+    @Override
+    public String toString() {
+      return "BlockAnalysisIntermediateResult{"
+          + "abstractionStates="
+          + abstractionStates
+          + ", violationStates="
+          + violationStates
+          + ", blockEndStates="
+          + blockEndStates
+          + ", status="
+          + status
+          + '}';
     }
   }
 }

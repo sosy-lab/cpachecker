@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,18 @@ public class PredicateOperatorUtil {
                 .toString());
   }
 
+  private static Map<String, Integer> findMinimumIndices(Collection<String> variablesWithIndex) {
+    ImmutableMap.Builder<String, Integer> minIndex = ImmutableMap.builder();
+    for (String name : variablesWithIndex) {
+      List<String> nameAndIndex =
+          Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(name);
+      if (nameAndIndex.size() == 2 && !nameAndIndex.get(1).isEmpty()) {
+        minIndex.put(nameAndIndex.get(0), 1);
+      }
+    }
+    return minIndex.buildKeepingLast();
+  }
+
   public static PathFormula makeAndByShiftingSecond(
       FormulaManagerView pFormulaManger,
       PathFormula pFormula,
@@ -72,14 +85,7 @@ public class PredicateOperatorUtil {
     SSAMap shiftSSA = pShift.getSsa();
     ImmutableMap.Builder<Formula, Formula> substitutions = ImmutableMap.builder();
     Map<String, Formula> indicesToShift = pFormulaManger.extractVariables(pShift.getFormula());
-    Map<String, Integer> minIndex = new HashMap<>();
-    for (String name : indicesToShift.keySet()) {
-      List<String> nameAndIndex =
-          Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(name);
-      if (nameAndIndex.size() == 2 && !nameAndIndex.get(1).isEmpty()) {
-        minIndex.merge(nameAndIndex.get(0), Integer.parseInt(nameAndIndex.get(1)), Integer::min);
-      }
-    }
+    Map<String, Integer> minIndex = findMinimumIndices(indicesToShift.keySet());
     for (Entry<String, Formula> stringFormulaEntry : indicesToShift.entrySet()) {
       String name = stringFormulaEntry.getKey();
       Formula formula = stringFormulaEntry.getValue();
@@ -107,7 +113,7 @@ public class PredicateOperatorUtil {
     for (String variable : formulaSsa.allVariables()) {
       int offset = 0;
       if (shiftSSA.containsVariable(variable)) {
-        offset = shiftSSA.getIndex(variable) - minIndex.get(variable);
+        offset = shiftSSA.getIndex(variable) - minIndex.getOrDefault(variable, 0);
       }
       updatedSSAMap.setIndex(
           variable, formulaSsa.getType(variable), formulaSsa.getIndex(variable) + offset);
@@ -142,7 +148,7 @@ public class PredicateOperatorUtil {
   }
 
   /**
-   * Uninstantiated a path formula by only keeping the variable with the highest SSA index. All
+   * Uninstantiates a path formula by only keeping the variable with the highest SSA index. All
    * other variables are renamed to variable.index. This does not change the semantics of the
    * formula but allow the formula to be used as condition.
    *
@@ -158,6 +164,7 @@ public class PredicateOperatorUtil {
     Map<String, Formula> variableToFormula = pFormulaManagerView.extractVariables(booleanFormula);
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     Map<Formula, Formula> substitutions = new HashMap<>();
+    Map<String, Integer> lowestIndices = findMinimumIndices(variableToFormula.keySet());
     for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
       String name = stringFormulaEntry.getKey();
       Formula formula = stringFormulaEntry.getValue();
@@ -174,8 +181,8 @@ public class PredicateOperatorUtil {
       }
       name = nameAndIndex.get(0);
       int index = Integer.parseInt(nameAndIndex.get(1));
-      int highestIndex = ssaMap.getIndex(name);
-      if (index != highestIndex) {
+      int minIndex = lowestIndices.getOrDefault(name, -1);
+      if (index != minIndex) {
         substitutions.put(
             formula,
             pFormulaManagerView.makeVariable(

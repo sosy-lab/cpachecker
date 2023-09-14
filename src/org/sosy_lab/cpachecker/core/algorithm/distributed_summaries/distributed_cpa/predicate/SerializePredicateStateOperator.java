@@ -9,10 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import java.io.IOException;
-import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
@@ -24,18 +21,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
 
 public class SerializePredicateStateOperator implements SerializeOperator {
-  private final AnalysisDirection direction;
   private final CFA cfa;
   private final PredicateCPA predicateCPA;
 
-  public SerializePredicateStateOperator(
-      PredicateCPA pPredicateCPA, CFA pCFA, AnalysisDirection pDirection) {
+  public SerializePredicateStateOperator(PredicateCPA pPredicateCPA, CFA pCFA) {
     cfa = pCFA;
     predicateCPA = pPredicateCPA;
-    direction = pDirection;
   }
 
   @Override
@@ -43,32 +36,16 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     BooleanFormula booleanFormula;
-    SSAMap ssaMap;
+    SSAMap ssaMap = state.getPathFormula().getSsa();
     if (state.isAbstractionState()) {
-      if (direction == AnalysisDirection.BACKWARD) {
-        booleanFormula = state.getAbstractionFormula().getBlockFormula().getFormula();
-        ssaMap = state.getAbstractionFormula().getBlockFormula().getSsa();
-      } else {
-        booleanFormula = state.getAbstractionFormula().asFormula();
-        SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
-        for (Entry<String, Formula> formulaEntry :
-            formulaManagerView.extractVariables(booleanFormula).entrySet()) {
-          if (formulaEntry.getKey().contains("__VERIFIER_nondet_")) {
-            continue;
-          }
-          CType variableType =
-              state
-                  .getAbstractionFormula()
-                  .getBlockFormula()
-                  .getSsa()
-                  .getType(formulaEntry.getKey());
-          ssaMapBuilder.setIndex(formulaEntry.getKey(), variableType, 1);
-        }
-        ssaMap = ssaMapBuilder.build();
+      booleanFormula = state.getAbstractionFormula().asFormula();
+      SSAMapBuilder reset = SSAMap.emptySSAMap().builder();
+      for (String variable : ssaMap.allVariables()) {
+        reset.setIndex(variable, ssaMap.getType(variable), ssaMap.getIndex(variable));
       }
+      ssaMap = reset.build();
     } else {
       booleanFormula = state.getPathFormula().getFormula();
-      ssaMap = state.getPathFormula().getSsa();
     }
     String serializedFormula = formulaManagerView.dumpFormula(booleanFormula).toString();
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);

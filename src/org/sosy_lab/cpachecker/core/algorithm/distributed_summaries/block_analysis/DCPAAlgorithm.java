@@ -67,6 +67,7 @@ public class DCPAAlgorithm {
   private AlgorithmStatus status;
   private boolean alreadyReportedInfeasibility;
   private Precision blockStartPrecision;
+  private boolean foundInitialViolation;
 
   public DCPAAlgorithm(
       LogManager pLogger,
@@ -148,6 +149,7 @@ public class DCPAAlgorithm {
             .transformAndConcat(v -> ARGUtils.getAllPaths(reachedSet, v))
             .toSet();
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
+    boolean makeFirst = false;
     for (ARGPath path : pathsToViolations) {
       AbstractState abstractState = dcpa.computeVerificationCondition(path, condition);
       BlockSummaryMessagePayload serialized =
@@ -157,7 +159,8 @@ public class DCPAAlgorithm {
               block.getId(),
               block.getFirst().getNodeNumber(),
               DCPAAlgorithms.appendStatus(status, serialized),
-              first));
+              first || makeFirst));
+      makeFirst = true;
     }
     return messages.build();
   }
@@ -175,6 +178,8 @@ public class DCPAAlgorithm {
     if (result.getViolationStates().isEmpty()) {
       return reportBlockPostConditions(result.getBlockEndStates(), true);
     }
+
+    foundInitialViolation = !result.getViolationStates().isEmpty();
 
     return reportErrorConditions(result.getViolationStates(), (ARGState) startState, true);
   }
@@ -232,10 +237,12 @@ public class DCPAAlgorithm {
 
     status = status.update(result.getStatus());
 
-    return ImmutableSet.<BlockSummaryMessage>builder()
-        .addAll(reportBlockPostConditions(result.getBlockEndStates(), false))
-        .addAll(reportErrorConditions(result.getViolationStates(), (ARGState) startState, true))
-        .build();
+    ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
+    if (!foundInitialViolation) {
+      messages.addAll(
+          reportErrorConditions(result.getViolationStates(), (ARGState) startState, true));
+    }
+    return messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false)).build();
   }
 
   /**
@@ -286,9 +293,12 @@ public class DCPAAlgorithm {
     status = status.update(result.getStatus());
 
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
-    if (!block.getAbstractionLocation().equals(block.getLast())
-        && result.getAbstractionStates().isEmpty()
-        && !result.getBlockEndStates().isEmpty()) {
+    if (result.getBlockEndStates().isEmpty()) {
+      messages.add(
+          BlockSummaryMessage.newErrorConditionUnreachableMessage(
+              block.getId(), "Condition unsatisfiable"));
+    } else if (!block.getAbstractionLocation().equals(block.getLast())
+        && result.getAbstractionStates().isEmpty()) {
       messages.add(
           BlockSummaryMessage.newErrorConditionUnreachableMessage(
               block.getId(), "Condition unsatisfiable"));
@@ -319,7 +329,7 @@ public class DCPAAlgorithm {
         reachedSet.add(value, blockStartPrecision);
       } else {
         // CPA algorithm
-        for (AbstractState abstractState : reachedSet) {
+        for (AbstractState abstractState : ImmutableSet.copyOf(reachedSet)) {
           AbstractState merged =
               cpa.getMergeOperator().merge(value, abstractState, blockStartPrecision);
           if (!merged.equals(abstractState)) {

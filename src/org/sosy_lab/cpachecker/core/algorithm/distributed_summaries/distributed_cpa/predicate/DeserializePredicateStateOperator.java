@@ -12,6 +12,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil.SubstitutedBooleanFormula;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
@@ -26,7 +27,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DeserializePredicateStateOperator implements DeserializeOperator {
 
@@ -79,16 +79,19 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
           PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
               abstraction, previousState);
     } else {
-      BooleanFormula uninstantiated =
-          PredicateOperatorUtil.uninstantiate(abstraction, formulaManagerView).booleanFormula();
-      PathFormula pathFormula =
-          pathFormulaManager
-              .makeEmptyPathFormulaWithContext(map, PointerTargetSet.emptyPointerTargetSet())
-              .withFormula(uninstantiated);
+      SubstitutedBooleanFormula uninstantiated =
+          PredicateOperatorUtil.uninstantiate(abstraction, formulaManagerView);
       deserialized =
           PredicateAbstractState.mkAbstractionState(
               pathFormulaManager.makeEmptyPathFormula(),
-              predicateCPA.getPredicateManager().asAbstraction(uninstantiated, pathFormula),
+              predicateCPA
+                  .getPredicateManager()
+                  .asAbstraction(
+                      uninstantiated.booleanFormula(),
+                      pathFormulaManager
+                          .makeEmptyPathFormulaWithContext(
+                              uninstantiated.ssaMap(), PointerTargetSet.emptyPointerTargetSet())
+                          .withFormula(uninstantiated.booleanFormula())),
               PathCopyingPersistentTreeMap.of(),
               previousState);
     }

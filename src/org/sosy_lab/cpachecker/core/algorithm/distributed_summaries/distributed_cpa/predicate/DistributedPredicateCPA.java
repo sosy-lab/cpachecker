@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -44,10 +43,9 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final UniqueIndexProvider indexProvider;
 
-  public DistributedPredicateCPA(
-      PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, AnalysisDirection pDirection) {
+  public DistributedPredicateCPA(PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA) {
     predicateCPA = pPredicateCPA;
-    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
+    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());

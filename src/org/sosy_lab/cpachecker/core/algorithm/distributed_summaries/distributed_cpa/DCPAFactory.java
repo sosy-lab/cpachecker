@@ -53,7 +53,7 @@ public class DCPAFactory {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
     if (pCPA instanceof PredicateCPA predicateCPA) {
-      return distribute(predicateCPA, pBlockNode, pDirection, pCFA);
+      return distribute(predicateCPA, pBlockNode, pCFA);
     }
     if (pCPA instanceof CallstackCPA callstackCPA) {
       return distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
@@ -104,8 +104,8 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection, CFA pCFA) {
-    return new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pCFA, pDirection);
+      PredicateCPA pPredicateCPA, BlockNode pBlockNode, CFA pCFA) {
+    return new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pCFA);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
