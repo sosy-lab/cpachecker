@@ -33,7 +33,7 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
 
   private record BlockScope(CFANode start, CFANode last) {}
 
-  private final boolean allowSingleBlockDecompositio;
+  private final boolean allowSingleBlockDecomposition;
 
   public MergeBlockNodesDecomposition(
       BlockSummaryCFADecomposer pDecomposition,
@@ -43,23 +43,23 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     sort = pSort;
-    allowSingleBlockDecompositio = pAllowSingleBlockDecomposition;
+    allowSingleBlockDecomposition = pAllowSingleBlockDecomposition;
   }
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
-    if (targetNumber <= 1 && allowSingleBlockDecompositio) {
+    if (targetNumber <= 1 && allowSingleBlockDecomposition) {
       return new SingleBlockDecomposition().decompose(cfa);
     }
     Collection<? extends BlockNodeWithoutGraphInformation> nodes =
         decomposer.decompose(cfa).getNodes();
     while (nodes.size() > targetNumber) {
       int sizeBefore = nodes.size();
-      nodes = mergeHorizontally(nodes);
+      nodes = sorted(mergeHorizontally(nodes));
       if (nodes.size() <= targetNumber) {
         break;
       }
-      nodes = mergeVertically(nodes);
+      nodes = sorted(mergeVertically(nodes));
       if (sizeBefore == nodes.size()) {
         // also quit if no more merges are possible
         break;
