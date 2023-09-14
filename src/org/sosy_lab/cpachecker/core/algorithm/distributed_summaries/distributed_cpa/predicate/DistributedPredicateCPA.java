@@ -51,9 +51,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
     predicateCPA = pPredicateCPA;
     shouldDoubleCheckVerificationCondition =
-        // double check if this is the last node before root and there is no abstraction location
-        pNode.getAbstractionLocation().equals(pNode.getLast())
-            && pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
+        pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
@@ -115,7 +113,10 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException, InterruptedException, VerificationConditionException {
+      throws CPATransferException,
+          InterruptedException,
+          VerificationConditionException,
+          SolverException {
     PredicateAbstractState counterexampleState =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pPreviousCondition, PredicateAbstractState.class));
@@ -133,15 +134,9 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             counterexample,
             previousCounterexample,
             indexProvider);
-    if (shouldDoubleCheckVerificationCondition) {
-      try {
-        if (predicateCPA.getSolver().isUnsat(counterexample.getFormula())) {
-          throw new VerificationConditionException(
-              "Infeasible counterexample in verification condition");
-        }
-      } catch (SolverException e) {
-        throw new AssertionError("Cannot check final path formula");
-      }
+    if (predicateCPA.getSolver().isUnsat(counterexample.getFormula())) {
+      throw new VerificationConditionException(
+          "Infeasible counterexample in verification condition");
     }
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         counterexample,

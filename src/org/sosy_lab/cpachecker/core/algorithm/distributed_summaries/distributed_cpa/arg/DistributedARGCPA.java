@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedARGCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -97,7 +98,10 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
 
   @Override
   public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException, InterruptedException, VerificationConditionException {
+      throws CPATransferException,
+          InterruptedException,
+          VerificationConditionException,
+          SolverException {
     return new ARGState(
         wrappedCPA.computeVerificationCondition(pARGPath, pPreviousCondition), null);
   }

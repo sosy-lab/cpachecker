@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
@@ -90,7 +91,10 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return verification condition
    */
   AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException, InterruptedException, VerificationConditionException;
+      throws CPATransferException,
+          InterruptedException,
+          VerificationConditionException,
+          SolverException;
 
   default BlockSummaryMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
     return BlockSummaryMessagePayload.builder()

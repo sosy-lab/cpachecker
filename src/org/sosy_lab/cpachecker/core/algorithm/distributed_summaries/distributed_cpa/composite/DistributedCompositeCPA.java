@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedCompositeCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -112,7 +113,10 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException, InterruptedException, VerificationConditionException {
+      throws CPATransferException,
+          InterruptedException,
+          VerificationConditionException,
+          SolverException {
     ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
       if (!analyses.containsKey(cpa.getClass())) {

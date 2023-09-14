@@ -142,7 +142,7 @@ public class DCPAAlgorithm {
 
   private Collection<BlockSummaryMessage> reportErrorConditions(
       Set<ARGState> violations, ARGState condition, boolean first)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException, SolverException {
     ImmutableSet<@NonNull ARGPath> pathsToViolations =
         FluentIterable.from(violations)
             .transformAndConcat(v -> ARGUtils.getAllPaths(reachedSet, v))
@@ -171,7 +171,7 @@ public class DCPAAlgorithm {
   }
 
   public Collection<BlockSummaryMessage> runInitialAnalysis()
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, SolverException {
     reachedSet.clear();
     reachedSet.add(startState, blockStartPrecision);
 

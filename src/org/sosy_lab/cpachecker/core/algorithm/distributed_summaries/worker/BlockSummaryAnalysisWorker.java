@@ -129,12 +129,11 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     try {
       broadcast(dcpaAlgorithm.runInitialAnalysis());
       super.run();
-    } catch (CPAException e) {
-      getLogger().logException(Level.SEVERE, e, "Worker stopped working...");
+    } catch (Exception | Error e) {
+      getLogger().logException(Level.SEVERE, e, "Worker stopped working due to an error...");
       broadcastOrLogException(
           ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e)));
-    } catch (InterruptedException e) {
-      getLogger().logException(Level.SEVERE, e, "Thread interrupted unexpectedly.");
+      shutdown = true;
     }
   }
 

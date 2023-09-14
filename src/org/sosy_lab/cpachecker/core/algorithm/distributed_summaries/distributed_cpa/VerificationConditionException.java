@@ -17,8 +17,7 @@ import java.io.Serial;
  */
 public class VerificationConditionException extends Exception {
 
-  @Serial
-  private static final long serialVersionUID = -3488942813490840660L;
+  @Serial private static final long serialVersionUID = -3488942813490840660L;
 
   public VerificationConditionException(String pMessage) {
     super(pMessage);
