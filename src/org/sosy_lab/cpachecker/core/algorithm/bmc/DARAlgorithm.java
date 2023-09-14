@@ -81,7 +81,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
-
   private boolean isInterpolationEnabled = true;
 
   private final ConfigurableProgramAnalysis cpa;
@@ -257,8 +256,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-    } while (!checkFixedPoint(dualSequence)
-        || solver.isUnsat(partitionedFormulas.getAssertionFormula()));
+    } while (!checkFixedPoint(dualSequence));
     InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
@@ -471,11 +469,14 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean adjustConditionsAndCollectFormulas(
       ReachedSet pReachedSet,
       PartitionedFormulas pFormulas) {
+    boolean collectFormulas = (getCurrentMaxLoopIterations() > 1);
     boolean result = adjustConditions();
 
-    stats.interpolationPreparation.start();
-    pFormulas.collectFormulasFromARG(pReachedSet);
-    stats.interpolationPreparation.stop();
+    if (collectFormulas) {
+      stats.interpolationPreparation.start();
+      pFormulas.collectFormulasFromARG(pReachedSet);
+      stats.interpolationPreparation.stop();
+    }
     InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
 
     return result;
