@@ -25,6 +25,10 @@
         <option name="-setprop">replaceGlobalPhaseWithBMC=true</option>
     </rundefinition>
 
+    <rundefinition name="bmc">
+        <option name="-bmc-incremental-ABEl"/>
+    </rundefinition>
+
     <rundefinition name="imc">
         <option name="-bmc-interpolation"/>
         <option name="-setprop">imc.fallBack=false</option>
