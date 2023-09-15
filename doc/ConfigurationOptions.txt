@@ -1871,8 +1871,8 @@ cpa.local.localvariables = {}
 # following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
 
-# With this option enabled, function calls that occur can be allowed by name
-cpa.location.ignoreFunctions=null
+# Function names in this List will be ignored in the analysis process
+cpa.location.ignoreFunctions = new ArrayList<>()
 
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE
