@@ -12,7 +12,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -37,13 +39,15 @@ public class LocationStateFactory {
               + " without following function calls (in this case FunctionSummaryEdges are used)")
   private boolean followFunctionCalls = true;
 
-  // TODO new option: private List<String> ignoreFunctions;
+  @Option(
+      description =
+          "Function names in this List will be ignored in the analysis process")
+  private List<String> ignoreFunctions = new ArrayList<>();
 
   public LocationStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
     locationType = checkNotNull(pLocationType);
-
     ImmutableSortedSet<CFANode> allNodes;
     Collection<CFANode> tmpNodes = pCfa.nodes();
     if (tmpNodes instanceof ImmutableSortedSet) {
@@ -78,7 +82,7 @@ public class LocationStateFactory {
 
   private LocationState createLocationState(CFANode node) {
     return locationType == AnalysisDirection.BACKWARD
-        ? new BackwardsLocationState(node, followFunctionCalls)
-        : new LocationState(node, followFunctionCalls);
+        ? new BackwardsLocationState(node, followFunctionCalls, ignoreFunctions)
+        : new LocationState(node, followFunctionCalls,ignoreFunctions);
   }
 }

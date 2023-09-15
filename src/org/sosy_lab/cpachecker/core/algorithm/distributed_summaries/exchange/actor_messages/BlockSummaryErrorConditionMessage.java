@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
-import com.google.common.collect.ImmutableList;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
