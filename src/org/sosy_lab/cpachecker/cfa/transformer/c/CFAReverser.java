@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -166,7 +167,7 @@ public class CFAReverser {
     private final NavigableMap<String, FunctionEntryNode> functions;
     private final TreeMultimap<String, CFANode> nodes;
 
-    private final ImmutableSet<CFANode> targets;
+    private final Set<CFANode> targets;
     private final Map<String, CFunctionDeclaration> funcDecls;
     private final Map<CFANode, CFANode> nodeMap;
 
@@ -190,7 +191,9 @@ public class CFAReverser {
       this.funcDecls = new HashMap<>();
       this.nodeMap = new HashMap<>();
       // Search for the target in the original CFA
-      this.targets = targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec);
+      this.targets =
+          targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec).stream()
+              .collect(Collectors.toSet());
     }
 
     /**
@@ -239,13 +242,29 @@ public class CFAReverser {
      * @return the reverse CFA
      */
     private CFA createCfa() {
+
+      // Preprocess target
+      Set<CFANode> entryTargets =
+          targets.stream()
+              .filter(node -> node instanceof CFunctionEntryNode)
+              .collect(Collectors.toSet());
+      for (CFANode entryTarget : entryTargets) {
+        for (CFAEdge edge : CFAUtils.allEnteringEdges(entryTarget)) {
+          CFANode caller = edge.getPredecessor();
+          targets.add(caller);
+        }
+        targets.remove(entryTarget);
+      }
+
       // Reverse each function's CFA
       for (Map.Entry<String, FunctionEntryNode> function : pCfa.getAllFunctions().entrySet()) {
         String name = function.getKey();
         CFunctionEntryNode entryNode = (CFunctionEntryNode) function.getValue();
         CfaFunctionBuilder cfaFuncBuilder = new CfaFunctionBuilder(entryNode);
-        CFunctionEntryNode reverseEntryNode = cfaFuncBuilder.reverse();
-        functions.put(name, reverseEntryNode);
+        Optional<CFunctionEntryNode> reverseEntryNode = cfaFuncBuilder.reverse();
+        if (reverseEntryNode.isPresent()) {
+          functions.put(name, reverseEntryNode.orElseThrow());
+        }
       }
 
       // Get the main entry node for the new CFA
@@ -307,8 +326,17 @@ public class CFAReverser {
       /**
        * @return main entry node of the reverse CFA
        */
-      private CFunctionEntryNode reverse() {
+      private Optional<CFunctionEntryNode> reverse() {
         String funcName = oldEntryNode.getFunctionName();
+
+        Set<CFANode> oldLocalTargets =
+            targets.stream()
+                .filter(node -> node.getFunctionName().equals(funcName))
+                .collect(Collectors.toSet());
+
+        if (oldLocalTargets.size() == 0 && oldEntryNode.getExitNode().isEmpty()) {
+          return Optional.empty();
+        }
 
         // get the new function declaration
         CFunctionDeclaration oldFuncDecl = oldEntryNode.getFunctionDefinition();
@@ -321,9 +349,10 @@ public class CFAReverser {
         nodes.put(newExitNode.getFunctionName(), newExitNode);
 
         FunctionExitNode oldExitNode = oldEntryNode.getExitNode().orElseThrow();
+
+        checkNotNull(oldExitNode);
         CFunctionEntryNode newEntryNode =
-            new CFunctionEntryNode(
-                FileLocation.DUMMY, newFuncDecl, newExitNode, Optional.ofNullable(null));
+            new CFunctionEntryNode(FileLocation.DUMMY, newFuncDecl, newExitNode, Optional.empty());
 
         nodes.put(funcName, newEntryNode);
 
@@ -372,7 +401,7 @@ public class CFAReverser {
         // insert function epilogue
         insertFuncEpilogue(newEntryNode);
 
-        return newEntryNode;
+        return Optional.of(newEntryNode);
       }
 
       /**
@@ -474,6 +503,19 @@ public class CFAReverser {
         Deque<CFANode> waitList = new ArrayDeque<>();
         waitList.add(oldExitNode);
         visited.add(oldExitNode);
+
+        Set<CFANode> oldLocalTargets =
+            targets.stream()
+                .filter(node -> node.getFunctionName().equals(funcName))
+                .collect(Collectors.toSet());
+
+        for (CFANode oldLocalTarget : oldLocalTargets) {
+          CFANode newLocalTarget = reverseCFANode(oldLocalTarget);
+          nodes.put(funcName, newLocalTarget);
+          nodeMap.put(oldLocalTarget, newLocalTarget);
+          waitList.add(oldLocalTarget);
+          visited.add(oldLocalTarget);
+        }
 
         while (!waitList.isEmpty()) {
           CFANode oldhead = waitList.remove();
