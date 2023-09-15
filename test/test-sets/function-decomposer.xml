@@ -34,10 +34,13 @@ SPDX-License-Identifier: Apache-2.0
 
   <resultfiles>**/*.graphml</resultfiles>
 
-	<option name="-predicateAnalysis-block"/>
-	<option name="-setprop">staticRefiner.addAllControlFlowAssumes=true</option>
-	<option name="-setprop">distributedSummaries.decompositionType=FUNCTION_DECOMPOSITION</option>
-	<option name="-setprop">distributedSummaries.spawnUtilWorkers=true</option>
+  <option name="-predicateAnalysis-block"/>
+  <option name="-setprop">distributedSummaries.worker.forwardConfiguration=config/distributed-block-summaries/predicateAnalysis-block-forward.properties</option>
+  <option name="-setprop">staticRefiner.addAllControlFlowAssumes=true</option>
+  <option name="-setprop">distributedSummaries.decompositionType=FUNCTION_DECOMPOSITION</option>
+  <option name="-setprop">distributedSummaries.spawnUtilWorkers=true</option>
+  <option name="-setprop">cpa.location.ignoreFunctions=reach_error</option>
+  <option name="-setprop">cpa.location.followFunctionCalls=false</option>
 
 <rundefinition name="SV-COMP23_unreach-call">
   <tasks name="ReachSafety-BitVectors">

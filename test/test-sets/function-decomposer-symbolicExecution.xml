@@ -23,9 +23,12 @@ SPDX-License-Identifier: Apache-2.0
   -->
 
   <!-- For local testing, compressed witnesses are fine: -->
+  <option name="-setprop">distributedSummaries.worker.forwardConfiguration=config/distributed-block-summaries/symbolicExecution-block-forward.properties</option>
   <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
   <option name="-setprop">termination.compressWitness=true</option>
+  <option name="-setprop">cpa.location.ignoreFunctions=reach_error</option>
+  <option name="-setprop">cpa.location.followFunctionCalls=false</option>
 
   <!--
     The remainder of this file should be synced with
