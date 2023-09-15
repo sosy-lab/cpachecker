@@ -45,11 +45,8 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final UniqueIndexProvider indexProvider;
-  private final boolean shouldPerformSatCheck;
-
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
-    shouldPerformSatCheck = !pNode.isAbstractionPossible();
     predicateCPA = pPredicateCPA;
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
@@ -133,7 +130,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             counterexample,
             previousCounterexample,
             indexProvider);
-    if (shouldPerformSatCheck && predicateCPA.getSolver().isUnsat(counterexample.getFormula())) {
+    if (predicateCPA.getSolver().isUnsat(counterexample.getFormula())) {
       throw new VerificationConditionException(
           "Infeasible counterexample in verification condition");
     }
