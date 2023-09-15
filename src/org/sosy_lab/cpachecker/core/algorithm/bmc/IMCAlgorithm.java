@@ -778,6 +778,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       if (hasReachedFixedPoint) {
         InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+        finalFixedPoint = fmgr.simplifyBooleanFormula(finalFixedPoint);
+        finalFixedPoint = fmgr.simplify(finalFixedPoint);
         InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
             pReachedSet,
             backwardAnalysis ? bfmgr.not(finalFixedPoint) : finalFixedPoint,
