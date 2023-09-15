@@ -64,6 +64,10 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pEdge) throws CPATransferException {
 
+    if (options.ignoreForwardCallstackTransfers()) {
+      return ImmutableSet.of(pElement);
+    }
+
     final CallstackState e = (CallstackState) pElement;
     final CFANode pred = pEdge.getPredecessor();
     final CFANode succ = pEdge.getSuccessor();

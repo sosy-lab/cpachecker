@@ -57,6 +57,9 @@ class CallstackOptions {
   @Option(description = "analyse the CFA backwards", secure = true)
   private boolean traverseBackwards = false;
 
+  @Option(description = "whether DCPAs should ignore forward callstack")
+  private boolean ignoreForwardCallstackTransfers = false;
+
   @Option(
       secure = true,
       name = "domain",
@@ -93,6 +96,10 @@ class CallstackOptions {
 
   boolean traverseBackwards() {
     return traverseBackwards;
+  }
+
+  boolean ignoreForwardCallstackTransfers() {
+    return ignoreForwardCallstackTransfers;
   }
 
   String getDomainType() {
