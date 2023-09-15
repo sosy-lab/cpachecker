@@ -125,7 +125,7 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return blockNode.getAbstractionLocation().equals(node) && blockNode.isAbstractionPossible()
-        || !blockNode.isAbstractionPossible() && blockNode.getLast().equals(node);
+    return (blockNode.getAbstractionLocation().equals(node) && blockNode.isAbstractionPossible())
+        || (!blockNode.isAbstractionPossible() && blockNode.getLast().equals(node));
   }
 }
