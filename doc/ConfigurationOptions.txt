@@ -1871,6 +1871,9 @@ cpa.local.localvariables = {}
 # following function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
 
+# With this option enabled, function calls that occur can be allowed by name
+cpa.location.ignoreFunctions=null
+
 # What are we searching for: race or deadlock
 cpa.lock.analysisMode = RACE
   enum:     [RACE, DEADLOCK]
