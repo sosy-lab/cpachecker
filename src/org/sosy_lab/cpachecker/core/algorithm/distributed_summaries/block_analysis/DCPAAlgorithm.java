@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -321,9 +322,10 @@ public class DCPAAlgorithm {
                     "violations",
                     transformedImmutableListCopy(
                         violations, v -> AbstractStates.extractLocation(v)))
-                .addEntry("violationState", violations.toArray()[0])
+                .addEntry("violationState", targetState)
                 .addEntry(
-                    "violationPath", ARGUtils.getOnePathTo((ARGState) violations.toArray()[0]))
+                    "violationPath", targetState.getCounterexampleInformation().orElse(
+                        CounterexampleInfo.spurious()).getCFAPathWithAssignments())
                 .buildPayload();
       }
       answers.add(

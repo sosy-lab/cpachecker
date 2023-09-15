@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 
 import com.google.common.collect.ImmutableList;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
@@ -49,7 +50,7 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
   }
 
   public List<Object> getViolations() {
-    List<Object> violations = new java.util.ArrayList<>(ImmutableList.of());
+    List<Object> violations = new ArrayList<>(3);
     violations.add(getPayload().getOrDefault("violations", ""));
     violations.add(getPayload().getOrDefault("violationState", ""));
     violations.add(getPayload().getOrDefault("violationPath", ""));
