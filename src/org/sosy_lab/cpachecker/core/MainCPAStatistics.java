@@ -129,11 +129,11 @@ public class MainCPAStatistics implements Statistics {
   private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
-  final Timer creationTime = new Timer();
-  final Timer cfaCreationTime = new Timer();
-  final Timer cpaCreationTime = new Timer();
+  public final Timer creationTime = new Timer();
+  public final Timer cfaCreationTime = new Timer();
+  public final Timer cpaCreationTime = new Timer();
   private final Timer analysisTime = new Timer();
-  final Timer resultAnalysisTime = new Timer();
+  public final Timer resultAnalysisTime = new Timer();
 
   private long programCpuTime;
   private long analysisCpuTime = 0;
