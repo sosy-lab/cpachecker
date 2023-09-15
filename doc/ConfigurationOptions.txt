@@ -1581,6 +1581,9 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
+# whether DCPAs should ignore forward callstack
+cpa.callstack.ignoreForwardCallstackTransfers = false
+
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
