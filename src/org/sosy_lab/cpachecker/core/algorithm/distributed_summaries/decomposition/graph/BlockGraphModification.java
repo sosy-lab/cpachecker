@@ -20,7 +20,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -36,11 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -51,23 +45,6 @@ public class BlockGraphModification {
 
   public record Modification(
       CFA cfa, BlockGraph blockGraph, ImmutableSet<CFANode> unableToAbstract) {}
-
-  public static boolean hasAbstractionOccurred(BlockNode pBlockNode, ReachedSet pReachedSet) {
-    if (pBlockNode.getEdges().stream().noneMatch(e -> e instanceof GhostEdge)) {
-      return false;
-    }
-    if (pReachedSet.getReached(pBlockNode.getLast()).isEmpty()) {
-      return false;
-    }
-    for (AbstractState abstractState : pReachedSet) {
-      if (Objects.requireNonNull(AbstractStates.extractStateByType(abstractState, BlockState.class))
-              .getType()
-          == BlockStateType.ABSTRACTION) {
-        return false;
-      }
-    }
-    return true;
-  }
 
   private static MutableCFA createMutableCfaCopy(
       CFA pCfa, Configuration pConfig, LogManager pLogger) {

@@ -553,7 +553,7 @@ public final class CCfaTransformer {
 
     private MutableCFA createUnconnectedFunctionCfa(CFA pOriginalCfa) {
 
-      CFANode oldMainEntryNode = determineMainFunctionEntryNode();
+      CFANode oldMainEntryNode = pOriginalCfa.getMainFunction();
 
       NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
       TreeMultimap<String, CFANode> newNodes = TreeMultimap.create();
