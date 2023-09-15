@@ -27,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -192,8 +191,7 @@ public class CFAReverser {
       this.nodeMap = new HashMap<>();
       // Search for the target in the original CFA
       this.targets =
-          targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec).stream()
-              .collect(Collectors.toSet());
+          new HashSet<>(targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec));
     }
 
     /**
@@ -245,9 +243,8 @@ public class CFAReverser {
 
       // Preprocess target
       Set<CFANode> entryTargets =
-          targets.stream()
-              .filter(node -> node instanceof CFunctionEntryNode)
-              .collect(Collectors.toSet());
+          new HashSet<>(
+              targets.stream().filter(node -> node instanceof CFunctionEntryNode).toList());
       for (CFANode entryTarget : entryTargets) {
         for (CFAEdge edge : CFAUtils.allEnteringEdges(entryTarget)) {
           CFANode caller = edge.getPredecessor();
@@ -330,9 +327,8 @@ public class CFAReverser {
         String funcName = oldEntryNode.getFunctionName();
 
         Set<CFANode> oldLocalTargets =
-            targets.stream()
-                .filter(node -> node.getFunctionName().equals(funcName))
-                .collect(Collectors.toSet());
+            new HashSet<>(
+                targets.stream().filter(node -> node.getFunctionName().equals(funcName)).toList());
 
         if (oldLocalTargets.size() == 0 && oldEntryNode.getExitNode().isEmpty()) {
           return Optional.empty();
@@ -505,9 +501,8 @@ public class CFAReverser {
         visited.add(oldExitNode);
 
         Set<CFANode> oldLocalTargets =
-            targets.stream()
-                .filter(node -> node.getFunctionName().equals(funcName))
-                .collect(Collectors.toSet());
+            new HashSet<>(
+                targets.stream().filter(node -> node.getFunctionName().equals(funcName)).toList());
 
         for (CFANode oldLocalTarget : oldLocalTargets) {
           CFANode newLocalTarget = reverseCFANode(oldLocalTarget);
@@ -1237,8 +1232,10 @@ public class CFAReverser {
 
         @Override
         public CExpression visit(CCastExpression pIastCastExpression) throws NoException {
-          // TODO CCastExpression
-          return null;
+
+          CExpression expr = pIastCastExpression.getOperand().accept(this);
+          CType type = pIastCastExpression.getExpressionType();
+          return new CCastExpression(FileLocation.DUMMY, type, expr);
         }
 
         @Override
@@ -1501,8 +1498,9 @@ public class CFAReverser {
 
         @Override
         public CExpression visit(CCastExpression pIastCastExpression) throws NoException {
-          // TODO CCastExpression
-          return null;
+          CExpression expr = pIastCastExpression.getOperand().accept(this);
+          CType type = pIastCastExpression.getExpressionType();
+          return new CCastExpression(FileLocation.DUMMY, type, expr);
         }
 
         @Override
