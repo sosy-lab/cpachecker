@@ -45,6 +45,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final UniqueIndexProvider indexProvider;
+
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
     predicateCPA = pPredicateCPA;

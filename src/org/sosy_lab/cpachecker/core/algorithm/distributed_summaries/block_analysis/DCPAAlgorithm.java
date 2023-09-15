@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -145,7 +144,8 @@ public class DCPAAlgorithm {
       throws CPATransferException, InterruptedException, SolverException {
     ImmutableSet<@NonNull ARGPath> pathsToViolations =
         FluentIterable.from(violations)
-            .transformAndConcat(v -> ARGUtils.getAllPaths(reachedSet, v))
+            .filter(v -> v.getCounterexampleInformation().isPresent())
+            .transform(v -> v.getCounterexampleInformation().orElseThrow().getTargetPath())
             .toSet();
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
@@ -294,7 +294,7 @@ public class DCPAAlgorithm {
       messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false));
     } else {
       Collection<BlockSummaryMessage> errorConditions =
-          reportErrorConditions(result.getBlockEndStates(), ((ARGState) errorCondition), false);
+          reportErrorConditions(result.getAbstractionStates(), ((ARGState) errorCondition), false);
       if (errorConditions.isEmpty()) {
         messages.add(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(
