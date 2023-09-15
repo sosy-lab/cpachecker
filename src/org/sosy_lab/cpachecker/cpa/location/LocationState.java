@@ -51,7 +51,8 @@ public class LocationState
 
     private static final long serialVersionUID = 6825257572921009531L;
 
-    BackwardsLocationState(CFANode locationNode, boolean pFollowFunctionCalls, List<String> pIgnoreFunctions) {
+    BackwardsLocationState(
+        CFANode locationNode, boolean pFollowFunctionCalls, List<String> pIgnoreFunctions) {
       super(locationNode, pFollowFunctionCalls, pIgnoreFunctions);
     }
 
@@ -95,14 +96,20 @@ public class LocationState
 
     } else {
       Set<CFAEdge> output = new HashSet<>();
-      for (int i=0;i<allLeavingEdges(locationNode).size();i++){
+      for (int i = 0; i < allLeavingEdges(locationNode).size(); i++) {
         for (String pIgnoreFunction : ignoreFunctions) {
-          if (!allLeavingEdges(locationNode).get(i).getSuccessor().getFunctionName().equals(pIgnoreFunction)) {
+          if (!allLeavingEdges(locationNode)
+              .get(i)
+              .getSuccessor()
+              .getFunctionName()
+              .equals(pIgnoreFunction)) {
             output.add(allLeavingEdges(locationNode).get(i));
           }
         }
       }
-      for(int k=0;k<allLeavingEdges(locationNode).filter(LocationState::isNoFunctionCall).size();k++) {
+      for (int k = 0;
+          k < allLeavingEdges(locationNode).filter(LocationState::isNoFunctionCall).size();
+          k++) {
         output.add(allLeavingEdges(locationNode).filter(LocationState::isNoFunctionCall).get(k));
       }
       return output;
@@ -116,14 +123,20 @@ public class LocationState
 
     } else {
       Set<CFAEdge> output = new HashSet<>();
-      for (int i=0;i<allEnteringEdges(locationNode).size();i++){
+      for (int i = 0; i < allEnteringEdges(locationNode).size(); i++) {
         for (String pIgnoreFunction : ignoreFunctions) {
-          if (!allEnteringEdges(locationNode).get(i).getSuccessor().getFunctionName().equals(pIgnoreFunction)) {
+          if (!allEnteringEdges(locationNode)
+              .get(i)
+              .getSuccessor()
+              .getFunctionName()
+              .equals(pIgnoreFunction)) {
             output.add(allEnteringEdges(locationNode).get(i));
           }
         }
       }
-      for(int k=0;k<allEnteringEdges(locationNode).filter(LocationState::isNoFunctionCall).size();k++) {
+      for (int k = 0;
+          k < allEnteringEdges(locationNode).filter(LocationState::isNoFunctionCall).size();
+          k++) {
         output.add(allEnteringEdges(locationNode).filter(LocationState::isNoFunctionCall).get(k));
       }
       return output;
