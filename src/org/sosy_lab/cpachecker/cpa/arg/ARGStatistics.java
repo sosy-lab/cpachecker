@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
+import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -197,6 +198,7 @@ public class ARGStatistics implements Statistics {
   protected final ConfigurableProgramAnalysis cpa;
 
   private final CEXExportOptions counterexampleOptions;
+  private final PixelsWriterOptions argToBitmapExporterOptions;
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
@@ -204,7 +206,6 @@ public class ARGStatistics implements Statistics {
   private final InvariantWitnessWriter invariantWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
-  private final ARGToPixelsWriter argToBitmapExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
   protected final LogManager logger;
 
@@ -218,7 +219,7 @@ public class ARGStatistics implements Statistics {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
     counterexampleOptions = new CEXExportOptions(config);
-    argToBitmapExporter = new ARGToPixelsWriter(config);
+    argToBitmapExporterOptions = new PixelsWriterOptions(config);
     logger = pLogger;
     cpa = pCpa;
     assumptionToEdgeAllocator =
@@ -454,6 +455,9 @@ public class ARGStatistics implements Statistics {
     }
 
     if (pixelGraphicFile != null) {
+      // Initialize lazily so that we do not have a hard dependency on java.awt.
+      // This is used in the pixels writer SVG output.
+      ARGToPixelsWriter argToBitmapExporter = new ARGToPixelsWriter(argToBitmapExporterOptions);
       try {
         Path adjustedBitmapFileName = adjustPathNameForPartitioning(rootState, pixelGraphicFile);
         argToBitmapExporter.write(rootState, adjustedBitmapFileName);

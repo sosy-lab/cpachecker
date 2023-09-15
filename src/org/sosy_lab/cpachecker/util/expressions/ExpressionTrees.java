@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -891,4 +892,27 @@ public final class ExpressionTrees {
           return 4;
         }
       };
+
+  public static ExpressionTree<Object> removeCPAcheckerInternals(ExpressionTree<Object> pExprTree) {
+    ContainsCPAcheckerInternalVisitor cpacheckerInternalsVisitor =
+        new ContainsCPAcheckerInternalVisitor();
+    Function<Object, Boolean> removalFunction =
+        x -> {
+          try {
+            return ((CExpression) x).accept(cpacheckerInternalsVisitor);
+          } catch (Exception e1) {
+            return false;
+          }
+        };
+
+    RemovingStructuresVisitor<Object, Exception> visitor =
+        new RemovingStructuresVisitor<>(removalFunction);
+    ExpressionTree<Object> result;
+    try {
+      result = pExprTree.accept(visitor);
+    } catch (Exception e) {
+      return pExprTree;
+    }
+    return result;
+  }
 }

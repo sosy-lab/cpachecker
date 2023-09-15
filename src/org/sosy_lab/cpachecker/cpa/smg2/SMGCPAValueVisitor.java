@@ -598,7 +598,7 @@ public class SMGCPAValueVisitor
 
     // Interpret address as numeric, try to calculate the operation based on the numeric
     // A pointer deref on a numeric (or a cast) should return it to an address expr or pointer
-    if (targetType instanceof CSimpleType && !((CSimpleType) targetType).isComplex()) {
+    if (targetType instanceof CSimpleType && !((CSimpleType) targetType).hasComplexSpecifier()) {
       if (((value instanceof AddressExpression) || evaluator.isPointerValue(value, currentState))
           && options.isCastMemoryAddressesToNumeric()) {
 
@@ -1445,7 +1445,8 @@ public class SMGCPAValueVisitor
           final CType parameterType = parameterExpressions.get(0).getExpressionType();
           final Value parameter = parameterValues.get(0);
 
-          if (parameterType instanceof CSimpleType && !((CSimpleType) parameterType).isSigned()) {
+          if (parameterType instanceof CSimpleType
+              && !((CSimpleType) parameterType).hasSignedSpecifier()) {
             return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
 
           } else if (parameter.isExplicitlyKnown()) {
@@ -2364,7 +2365,7 @@ public class SMGCPAValueVisitor
           }
         case DOUBLE:
           {
-            if (type.isLong()) {
+            if (type.hasLongSpecifier()) {
               return arithmeticOperationForLongDouble(lNum, rNum, op, calculationType);
             } else {
               double lVal = lNum.doubleValue();
@@ -2422,7 +2423,8 @@ public class SMGCPAValueVisitor
     // because Java only has SIGNED_LONGLONG
     CSimpleType st = getArithmeticType(calculationType);
     if (st != null) {
-      if (evaluator.getMachineModel().getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.isUnsigned()) {
+      if (evaluator.getMachineModel().getSizeofInBits(st) >= SIZE_OF_JAVA_LONG
+          && st.hasUnsignedSpecifier()) {
         switch (op) {
           case DIVIDE:
             if (r == 0) {
@@ -2503,7 +2505,7 @@ public class SMGCPAValueVisitor
 
     checkArgument(
         calculationType.getCanonicalType() instanceof CSimpleType
-            && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
+            && !((CSimpleType) calculationType.getCanonicalType()).hasLongSpecifier(),
         "Value analysis can't compute long double values in a precise manner");
 
     switch (op) {

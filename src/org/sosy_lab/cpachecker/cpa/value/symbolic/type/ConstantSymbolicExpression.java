@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -47,9 +48,21 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
     type = pType;
   }
 
+  public ConstantSymbolicExpression(
+      final Value pValue, final Type pType, final AbstractState pCurrentState) {
+    super(pCurrentState);
+    value = pValue;
+    type = pType;
+  }
+
   @Override
   public SymbolicExpression copyForLocation(MemoryLocation pRepresentedLocation) {
     return new ConstantSymbolicExpression(value, type, pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new ConstantSymbolicExpression(value, type, pCurrentState);
   }
 
   @Override

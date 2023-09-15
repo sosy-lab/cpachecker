@@ -420,7 +420,8 @@ public class ExpressionToFormulaVisitor
 
   private NumeralFormula<CompoundInterval> topIfProblematicType(
       CType pType, NumeralFormula<CompoundInterval> pFormula) {
-    if ((pType instanceof CSimpleType) && ((CSimpleType) pType).getCanonicalType().isUnsigned()) {
+    if ((pType instanceof CSimpleType)
+        && ((CSimpleType) pType).getCanonicalType().hasUnsignedSpecifier()) {
       CompoundInterval value = pFormula.accept(evaluationVisitor, environment);
       if (value.containsAllPossibleValues()) {
         return pFormula;

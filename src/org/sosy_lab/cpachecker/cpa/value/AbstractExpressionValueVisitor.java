@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
@@ -435,7 +436,7 @@ public abstract class AbstractExpressionValueVisitor
     // because Java only has SIGNED_LONGLONG
     CSimpleType st = getArithmeticType(calculationType);
     if (st != null) {
-      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.isUnsigned()) {
+      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.hasUnsignedSpecifier()) {
         switch (op) {
           case DIVIDE:
             if (r == 0) {
@@ -516,7 +517,7 @@ public abstract class AbstractExpressionValueVisitor
 
     checkArgument(
         calculationType.getCanonicalType() instanceof CSimpleType
-            && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
+            && !((CSimpleType) calculationType.getCanonicalType()).hasLongSpecifier(),
         "Value analysis can't compute long double values in a precise manner");
 
     switch (op) {
@@ -678,7 +679,7 @@ public abstract class AbstractExpressionValueVisitor
           }
         case DOUBLE:
           {
-            if (type.isLong()) {
+            if (type.hasLongSpecifier()) {
               return arithmeticOperationForLongDouble(
                   lNum, rNum, op, calculationType, machineModel, logger);
             } else {
@@ -874,15 +875,9 @@ public abstract class AbstractExpressionValueVisitor
           return BuiltinOverflowFunctions.evaluateFunctionCall(
               pIastFunctionCallExpression, this, machineModel, logger);
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
-          assert parameterValues.size() == 1;
+          final Value parameter = Iterables.getOnlyElement(parameterValues);
 
-          final CType parameterType = parameterExpressions.get(0).getExpressionType();
-          final Value parameter = parameterValues.get(0);
-
-          if (parameterType instanceof CSimpleType && !((CSimpleType) parameterType).isSigned()) {
-            return parameter;
-
-          } else if (parameter.isExplicitlyKnown()) {
+          if (parameter.isExplicitlyKnown()) {
             assert parameter.isNumericValue();
             final double absoluteValue = Math.abs(((NumericValue) parameter).doubleValue());
 

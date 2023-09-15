@@ -12,9 +12,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,16 +49,20 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
@@ -234,7 +240,8 @@ public class AutomatonYAMLParser {
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantEntry invariantEntry) {
-        Optional<String> resultFunction = Optional.of(invariantEntry.getLocation().getFunction());
+        Optional<String> resultFunction =
+            Optional.ofNullable(invariantEntry.getLocation().getFunction());
         String invariantString = invariantEntry.getInvariant().getString();
         Integer line = invariantEntry.getLocation().getLine();
 
@@ -314,15 +321,12 @@ public class AutomatonYAMLParser {
     ListMultimap<String, Integer> lineToOffset =
         InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames());
 
-    Map<Integer, Set<String>> lineToSeenInvariants = new HashMap<>();
+    SetMultimap<Integer, String> lineToSeenInvariants = HashMultimap.create();
 
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantEntry invariantEntry) {
         Integer line = invariantEntry.getLocation().getLine();
         String invariantString = invariantEntry.getInvariant().getString();
-        if (!lineToSeenInvariants.containsKey(line)) {
-          lineToSeenInvariants.put(line, new HashSet<>());
-        }
 
         // Parsing is expensive, therefore cache everything we can
         if (lineToSeenInvariants.get(line).contains(invariantString)) {
@@ -350,18 +354,26 @@ public class AutomatonYAMLParser {
   private ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
       throws InterruptedException {
     Integer line = pInvariantEntry.getLocation().getLine();
-    LineMatcher lineMatcher = new LineMatcher(Optional.empty(), line, line);
     Optional<String> resultFunction = Optional.of(pInvariantEntry.getLocation().getFunction());
     String invariantString = pInvariantEntry.getInvariant().getString();
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
 
-    Scope candidateScope = determineScope(resultFunction, callStack, lineMatcher, scope);
+    return createExpressionTreeFromString(resultFunction, invariantString, line, callStack);
+  }
 
+  private ExpressionTree<AExpression> createExpressionTreeFromString(
+      Optional<String> resultFunction, String invariantString, int line, Deque<String> callStack)
+      throws InterruptedException {
+    LineMatcher lineMatcher = new LineMatcher(Optional.empty(), line, line);
     ExpressionTree<AExpression> invariant =
         CParserUtils.parseStatementsAsExpressionTree(
-            ImmutableSet.of(invariantString), resultFunction, cparser, candidateScope, parserTools);
+            ImmutableSet.of(invariantString),
+            resultFunction,
+            cparser,
+            determineScope(resultFunction, callStack, lineMatcher, scope),
+            parserTools);
     return invariant;
   }
 
@@ -383,11 +395,28 @@ public class AutomatonYAMLParser {
   }
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
-      throws WitnessParseException, InterruptedException {
+      throws InterruptedException, InvalidConfigurationException {
     Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
+
+    Map<Integer, Integer> lineFrequencies = new HashMap<>();
+
+    for (CFAEdge edge : cfa.edges()) {
+      int line = edge.getLineNumber();
+      if (lineFrequencies.containsKey(line)) {
+        lineFrequencies.put(line, lineFrequencies.get(line) + 1);
+      } else {
+        int count = lineFrequencies.containsKey(line) ? lineFrequencies.get(line) : 0;
+        lineFrequencies.put(line, count + 1);
+      }
+    }
+    Set<Integer> allowedLines =
+        lineFrequencies.entrySet().stream()
+            .filter(entry -> entry.getValue().equals(1))
+            .map(Map.Entry::getKey)
+            .collect(ImmutableSet.toImmutableSet());
 
     int counter = 0;
     final String initState = getStateName(counter++);
@@ -395,6 +424,8 @@ public class AutomatonYAMLParser {
     final List<AutomatonInternalState> automatonStates = new ArrayList<>();
     String currentStateId = initState;
     WaypointRecord follow = null;
+
+    int distance = segments.size();
 
     for (Map.Entry<WaypointRecord, List<WaypointRecord>> entry : segments.entrySet()) {
       List<AutomatonTransition> transitions = new ArrayList<>();
@@ -410,9 +441,17 @@ public class AutomatonYAMLParser {
         // TODO: handle this more elegantly / add check that we are really in the last segment!
       }
       int line = follow.getLocation().getLine();
-      transitions.add(
-          new AutomatonTransition.Builder(new CheckCoversLines(ImmutableSet.of(line)), nextStateId)
-              .build());
+      AutomatonBoolExpr expr = new CheckCoversLines(ImmutableSet.of(line));
+      AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
+      handleAssumptionWaypoint(allowedLines, follow, line, builder);
+
+      ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
+      actionBuilder.add(
+          new AutomatonAction.Assignment(
+              AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+              new AutomatonIntExpr.Constant(distance--)));
+      builder.withActions(actionBuilder.build());
+      transitions.add(builder.build());
       automatonStates.add(
           new AutomatonInternalState(
               currentStateId,
@@ -432,13 +471,18 @@ public class AutomatonYAMLParser {
                   new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
                       .withAssertion(createViolationAssertion())
                       .build()),
-              /* pIsTarget= */ follow.getType().equals(WaypointType.TARGET),
+              /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
     }
 
     Automaton automaton;
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
+    AutomatonIntVariable distanceVariable =
+        (AutomatonIntVariable)
+            AutomatonVariable.createAutomatonVariable(
+                "int", AutomatonGraphmlParser.DISTANCE_TO_VIOLATION);
+    automatonVariables.put(AutomatonGraphmlParser.DISTANCE_TO_VIOLATION, distanceVariable);
 
     // new AutomatonInternalState(entryStateId, transitions, false, false, true)
     try {
@@ -453,6 +497,26 @@ public class AutomatonYAMLParser {
     dumpAutomatonIfRequested(automaton);
 
     return automaton;
+  }
+
+  private void handleAssumptionWaypoint(
+      Set<Integer> allowedLines,
+      WaypointRecord follow,
+      int line,
+      AutomatonTransition.Builder builder)
+      throws InterruptedException, InvalidConfigurationException {
+    if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
+      String invariantString = follow.getConstraint().getString();
+      Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
+      try {
+        AExpression exp =
+            createExpressionTreeFromString(resultFunction, invariantString, line, null)
+                .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+        builder.withAssumptions(ImmutableList.of(exp));
+      } catch (UnrecognizedCodeException e) {
+        throw new InvalidConfigurationException("Could not parse string into valid expression", e);
+      }
+    }
   }
 
   private Map<WaypointRecord, List<WaypointRecord>> segmentize(List<AbstractEntry> pEntries) {

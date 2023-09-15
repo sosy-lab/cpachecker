@@ -880,7 +880,7 @@ public class HarnessExporter {
     }
     if ((actualType instanceof CSimpleType simpleActualType
             && pExpectedType instanceof CSimpleType simpleExpectedType)
-        && (simpleActualType.isUnsigned() && simpleExpectedType.isUnsigned())) {
+        && (simpleActualType.hasUnsignedSpecifier() && simpleExpectedType.hasUnsignedSpecifier())) {
       return true;
     }
     return false;

@@ -203,6 +203,30 @@ public class SymbolicProgramConfiguration {
         PathCopyingPersistentTreeMap.of());
   }
 
+  /**
+   * Returns the same SPC with the {@link PersistentStack} of {@link StackFrame}s replaced with the
+   * given. Only to be used temporarily (e.g. to retrieve something of the StackFrame the top one)
+   * such that the old stack is restored, as this method does not remove other information related
+   * to the stack, for example memory/pointers etc.
+   *
+   * @param pNewStackFrames new {@link PersistentStack} of {@link StackFrame}s to replace the old.
+   * @return a new SymbolicProgramConfiguration that is a copy of the current one with
+   *     pNewStackFrames changed.
+   */
+  public SymbolicProgramConfiguration withNewStackFrame(
+      PersistentStack<StackFrame> pNewStackFrames) {
+    return new SymbolicProgramConfiguration(
+        smg,
+        globalVariableMapping,
+        pNewStackFrames,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
+  }
+
   public SymbolicProgramConfiguration copyAndRemoveHasValueEdges(
       SMGObject memory, Collection<SMGHasValueEdge> edgesToRemove) {
     SMG newSMG = smg.copyAndRemoveHVEdges(edgesToRemove, memory);

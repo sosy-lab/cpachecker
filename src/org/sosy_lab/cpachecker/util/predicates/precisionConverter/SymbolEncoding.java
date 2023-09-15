@@ -180,7 +180,7 @@ public class SymbolEncoding {
     }
     Type<FormulaType<?>> type = new Type<>(fType);
     if (cType instanceof CSimpleType) {
-      type.setSigness(!((CSimpleType) cType).isUnsigned());
+      type.setSigness(!((CSimpleType) cType).hasUnsignedSpecifier());
     }
     return type;
   }

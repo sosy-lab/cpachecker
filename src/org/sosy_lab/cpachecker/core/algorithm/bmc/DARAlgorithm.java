@@ -84,6 +84,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
+
   private boolean isInterpolationEnabled = true;
 
   private final ConfigurableProgramAnalysis cpa;
@@ -459,19 +460,17 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return -1;
   }
 
-  private void unrollBMC(ReachedSet pReachedSet)
-      throws InterruptedException, CPAException {
+  private void unrollBMC(ReachedSet pReachedSet) throws InterruptedException, CPAException {
     stats.bmcPreparation.start();
     try {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
-    } finally{
+    } finally {
       stats.bmcPreparation.stop();
     }
   }
 
   private boolean adjustConditionsAndCollectFormulas(
-      ReachedSet pReachedSet,
-      PartitionedFormulas pFormulas) {
+      ReachedSet pReachedSet, PartitionedFormulas pFormulas) {
     boolean collectFormulas = (getCurrentMaxLoopIterations() > 1);
     boolean result = adjustConditions();
 
@@ -485,14 +484,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return result;
   }
 
-  /**
-   * Returns true if it was able to unroll the CFA, returns false otherwise
-   */
+  /** Returns true if it was able to unroll the CFA, returns false otherwise */
   private boolean unrollProgram(
-      ReachedSet pReachedSet,
-      PartitionedFormulas pFormulas,
-      boolean pCheckForBMC)
-    throws CPAException, InterruptedException, SolverException {
+      ReachedSet pReachedSet, PartitionedFormulas pFormulas, boolean pCheckForBMC)
+      throws CPAException, InterruptedException, SolverException {
     unrollBMC(pReachedSet);
     if (pCheckForBMC && isBMCCheckSat(pReachedSet)) {
       return false;
@@ -501,9 +496,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return adjustConditionsAndCollectFormulas(pReachedSet, pFormulas);
   }
 
-  private boolean isGlobalQuerySat(DualInterpolationSequence pDualSequence,
-                                   int indexOfCheck,
-                                   PartitionedFormulas pFormulas)
+  private boolean isGlobalQuerySat(
+      DualInterpolationSequence pDualSequence, int indexOfCheck, PartitionedFormulas pFormulas)
       throws SolverException, InterruptedException {
     boolean counterexampleIsSpurious;
     BooleanFormula backwardFormula =
@@ -538,7 +532,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       DualInterpolationSequence pDualSequence,
       ReachedSet pReachedSet)
       throws InterruptedException, SolverException, CPAException {
-    boolean counterexampleIsSpurious;
     for (int i = 2; i <= pDualSequence.getSize(); i++) {
       // Unrolling CFA if necessary
       if (pFormulas.getLoopFormulasSsaMap().size() <= i - 2) {
