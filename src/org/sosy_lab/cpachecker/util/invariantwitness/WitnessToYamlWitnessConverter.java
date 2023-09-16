@@ -203,8 +203,8 @@ public class WitnessToYamlWitnessConverter {
               <= 3) {
         logger.logf(
             Level.WARNING,
-            "Ignoring invariant at node %s with edge %s in the Witness due to the "
-                + "edge which enters it being a weaker invariant than the one provided at the loop head"
+            "Ignoring invariant at node %s with edge %s in the Witness due to the edge which enters"
+                + " it being a weaker invariant than the one provided at the loop head"
                 + " datastructures!",
             pInvexpstate,
             e.toString());
