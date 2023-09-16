@@ -143,8 +143,10 @@ class CFAMethodBuilder extends ASTVisitor {
   private Deque<Boolean> firstCatchBlock = new ArrayDeque<>();
 
   private Deque<Boolean> finallyExists = new ArrayDeque<>();
+  private boolean currentlyInFinally = false;
   private Deque<CFANode> connectToFinally = new ArrayDeque<>();
   private Deque<CFANode> lastNestedCatch = new ArrayDeque<>();
+  private boolean isNested = false;
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
@@ -838,6 +840,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
       if (!inTryBlock.isEmpty()
           && inTryBlock.size() == numberNestedTryCatch
+          && !currentlyInFinally
           && expressionStatement
               .getExpression()
               .getClass()
@@ -2745,6 +2748,9 @@ class CFAMethodBuilder extends ASTVisitor {
 
     inTryBlock.push(true);
     numberNestedTryCatch += 1;
+    if (numberNestedTryCatch > 1) {
+      isNested = true;
+    }
     tryStatement.getBody().accept(this);
     inTryBlock.pop();
 
@@ -2776,8 +2782,10 @@ class CFAMethodBuilder extends ASTVisitor {
     }
 
     if (tryStatement.getFinally() != null) {
+      currentlyInFinally = true;
       tryStatement.getFinally().accept(this);
       handleAfterFinallyStatement();
+      currentlyInFinally = false;
     }
 
     return SKIP_CHILDREN;
@@ -2864,7 +2872,12 @@ class CFAMethodBuilder extends ASTVisitor {
 
     listExceptions.pop();
 
-    endOfCatch.add(incorrect);
+    if (isNested) {
+      lastNestedCatch.add(incorrect);
+    } else {
+      endOfCatch.add(incorrect);
+    }
+
     locStack.push(correct);
   }
 
@@ -2966,6 +2979,7 @@ class CFAMethodBuilder extends ASTVisitor {
       if (!numberCatchesNested.isEmpty()) {
         numberCatches = numberCatchesNested.peek();
       }
+
       if (finallyExists.pop() == true) {
         BlankEdge tempEdge =
             new BlankEdge("", FileLocation.DUMMY, nextCatchBlockOrError.pop(), locStack.peek(), "");
@@ -2976,6 +2990,9 @@ class CFAMethodBuilder extends ASTVisitor {
         endOfCatch.add(nextCatchBlockOrError.pop());
       }
       numberNestedTryCatch -= 1;
+      if(numberNestedTryCatch == 0) {
+        isNested = false;
+      }
     }
   }
 
