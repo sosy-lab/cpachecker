@@ -177,6 +177,36 @@ public class WitnessToYamlWitnessConverter {
         continue;
       }
 
+      // We ignore all invariants which are inside a loop which already contains a loop invariant
+      // and are not used in a lot of places in the ARG
+      if (FluentIterable.from(pWitness.getEnteringEdges().get(e.getSource()))
+              .allMatch(
+                  pEdge ->
+                      "true"
+                          .equalsIgnoreCase(
+                              pEdge.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)))
+          && "condition-true".equalsIgnoreCase(e.getLabel().getMapping().get(KeyDef.CONTROLCASE))
+          && FluentIterable.from(pWitness.getLeavingEdges().get(e.getTarget()))
+              .allMatch(
+                  pEdge ->
+                      "true"
+                          .equalsIgnoreCase(
+                              pEdge.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)))
+          && FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
+                  .transformAndConcat(x -> AbstractStates.asIterable(x).filter(LocationState.class))
+                  .transform(x -> x.getLocationNode())
+                  .size()
+              <= 3) {
+        logger.logf(
+            Level.WARNING,
+            "Ignoring invariant at node %s with edge %s in the Witness due to the "
+                + "edge which enters it being a weaker invariant than the one provided at the loop head"
+                + " datastructures!",
+            pInvexpstate,
+            e.toString());
+        continue;
+      }
+
       // We handle entering functions the same way we handle entering and if branch
       if (e.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE)
           || e.getLabel().getMapping().containsKey(KeyDef.FUNCTIONENTRY)) {
@@ -203,7 +233,7 @@ public class WitnessToYamlWitnessConverter {
           if (pWitness.getLeavingEdges().get(pInvexpstate).stream()
               .anyMatch(x -> x.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE))) {
             // If the leaving edges are control edges we want all nodes which do not contain
-            // any AssumeEdge leaving it. Since these are probably the ones which match the
+            // any AssumeEdge leaving it. Since these are probably the ones which match
             // the leaving edges of the state
             cfaNodesCandidates =
                 cfaNodesCandidates.stream()
@@ -218,6 +248,8 @@ public class WitnessToYamlWitnessConverter {
           // This needs to be done, because sometimes declarations or other
           // things are needed to express the invariant, but also match the
           // Witness state
+          // TODO: The actual fix would be to find the first state where all the variables used in
+          // the invariant have been declared
           Set<CFANode> cfaNodes = new HashSet<>();
           for (CFANode n : cfaNodesCandidates) {
             if (cfaNodesCandidates.stream()
