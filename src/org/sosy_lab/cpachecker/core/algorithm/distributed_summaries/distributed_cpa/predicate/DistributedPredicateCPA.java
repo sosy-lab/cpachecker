@@ -45,9 +45,11 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final UniqueIndexProvider indexProvider;
+  private final boolean isRoot;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
+    isRoot = pNode.getLoopPredecessorIds().stream().anyMatch(id -> id.equals("root"));
     predicateCPA = pPredicateCPA;
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
@@ -114,24 +116,26 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
           InterruptedException,
           VerificationConditionException,
           SolverException {
-    PredicateAbstractState counterexampleState =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(pPreviousCondition, PredicateAbstractState.class));
-    PathFormula previousCounterexample;
-    if (counterexampleState.isAbstractionState()) {
-      previousCounterexample = counterexampleState.getAbstractionFormula().getBlockFormula();
-    } else {
-      previousCounterexample = counterexampleState.getPathFormula();
-    }
     PathFormula counterexample =
         predicateCPA.getPathFormulaManager().makeFormulaForPath(pARGPath.getFullPath());
-    counterexample =
-        PredicateOperatorUtil.makeAndByShiftingSecond(
-            predicateCPA.getSolver().getFormulaManager(),
-            counterexample,
-            previousCounterexample,
-            indexProvider);
-    if (predicateCPA.getSolver().isUnsat(counterexample.getFormula())) {
+    if (pPreviousCondition != null) {
+      PredicateAbstractState counterexampleState =
+          Objects.requireNonNull(
+              AbstractStates.extractStateByType(pPreviousCondition, PredicateAbstractState.class));
+      PathFormula previousCounterexample;
+      if (counterexampleState.isAbstractionState()) {
+        previousCounterexample = counterexampleState.getAbstractionFormula().getBlockFormula();
+      } else {
+        previousCounterexample = counterexampleState.getPathFormula();
+      }
+      counterexample =
+          PredicateOperatorUtil.makeAndByShiftingSecond(
+              predicateCPA.getSolver().getFormulaManager(),
+              counterexample,
+              previousCounterexample,
+              indexProvider);
+    }
+    if (isRoot && predicateCPA.getSolver().isUnsat(counterexample.getFormula())) {
       throw new VerificationConditionException(
           "Infeasible counterexample in verification condition");
     }

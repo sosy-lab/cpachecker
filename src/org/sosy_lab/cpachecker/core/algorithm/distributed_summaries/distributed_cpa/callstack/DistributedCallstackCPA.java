@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.Collection;
@@ -16,9 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -35,7 +32,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelationBackwards;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -44,20 +40,14 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
 
-  private final BlockNode blockNode;
-
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
   private final CallstackTransferRelationBackwards backwardsTransfer;
 
   public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA,
-      BlockNode pBlockNode,
-      CFA pCFA,
-      Map<Integer, CFANode> pIdToNodeMap) {
+      CallstackCPA pCallstackCPA, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
     callstackCPA = pCallstackCPA;
     cfa = pCFA;
-    blockNode = pBlockNode;
     serialize = new SerializeCallstackStateOperator();
     deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pIdToNodeMap::get);
     backwardsTransfer = callstackCPA.getTransferRelation().copyBackwards();
@@ -66,22 +56,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    ImmutableList<CFANode> cfaNodes =
-        CFAUtils.enteringEdges(blockNode.getLast())
-            .filter(
-                e ->
-                    e.getEdgeType() == CFAEdgeType.ReturnStatementEdge
-                        && e.getPredecessor()
-                            .getFunctionName()
-                            .equals(blockNode.getFirst().getFunctionName()))
-            .transform(e -> e.getSuccessor())
-            .filter(n -> n.getEnteringSummaryEdge() != null)
-            .transform(n -> n.getEnteringSummaryEdge().getPredecessor())
-            .toList();
-    if (cfaNodes.isEmpty()) {
-      return getCPA().getInitialState(node, partition);
-    }
-    return getCPA().getInitialState(Iterables.getOnlyElement(cfaNodes), partition);
+    return getCPA().getInitialState(node, partition);
   }
 
   @Override
@@ -124,9 +99,17 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
       throws InterruptedException, CPATransferException, VerificationConditionException {
-    AbstractState error =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(pPreviousCondition, getAbstractStateClass()));
+    AbstractState error;
+    if (pPreviousCondition == null) {
+      error =
+          getInitialState(
+              Objects.requireNonNull(AbstractStates.extractLocation(pARGPath.getLastState())),
+              StateSpacePartition.getDefaultPartition());
+    } else {
+      error =
+          Objects.requireNonNull(
+              AbstractStates.extractStateByType(pPreviousCondition, CallstackState.class));
+    }
     for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
       Collection<? extends AbstractState> abstractSuccessorsForEdge =
           backwardsTransfer.getAbstractSuccessorsForEdge(

@@ -80,7 +80,9 @@ public class DistributedFunctionPointerCPA
       throws InterruptedException, CPATransferException, VerificationConditionException {
     AbstractState error =
         Objects.requireNonNull(
-            AbstractStates.extractStateByType(pPreviousCondition, getAbstractStateClass()));
+            pPreviousCondition == null
+                ? FunctionPointerState.createEmptyState()
+                : AbstractStates.extractStateByType(pPreviousCondition, getAbstractStateClass()));
     for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
       Collection<? extends AbstractState> abstractSuccessorsForEdge =
           functionPointerCPA

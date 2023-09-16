@@ -184,7 +184,7 @@ public class DCPAAlgorithm {
       return reportBlockPostConditions(result.getBlockEndStates(), true);
     }
 
-    return reportErrorConditions(result.getViolationStates(), (ARGState) startState, true);
+    return reportErrorConditions(result.getViolationStates(), null, true);
   }
 
   /**
