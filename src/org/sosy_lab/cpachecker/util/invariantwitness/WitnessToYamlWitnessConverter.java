@@ -64,8 +64,10 @@ public class WitnessToYamlWitnessConverter {
       boolean isLoopHead =
           pWitness.getEnteringEdges().get(invexpstate).stream()
               .anyMatch(
-                  x ->
-                      "true".equalsIgnoreCase(x.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)));
+                  pEdge ->
+                      "true"
+                          .equalsIgnoreCase(
+                              pEdge.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)));
 
       // Simplify the invariant such that reading it in afterwards is easier
       invariantExpression = ExpressionTrees.simplify(invariantExpression);
@@ -92,8 +94,9 @@ public class WitnessToYamlWitnessConverter {
     // incoming edge, therefore edges should be at the loop heads.
     ImmutableSet<CFANode> cfaNodes =
         FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
-            .transformAndConcat(x -> AbstractStates.asIterable(x).filter(LocationState.class))
-            .transform(x -> x.getLocationNode())
+            .transformAndConcat(AbstractStates::asIterable)
+            .filter(LocationState.class)
+            .transform(pLocState -> pLocState.getLocationNode())
             .toSet();
 
     Set<InvariantWitness> invariants = new HashSet<>();
@@ -166,7 +169,7 @@ public class WitnessToYamlWitnessConverter {
       // We ignore all invariants which depend on the internal of CPAchecker to be useful
       if (FluentIterable.from(pWitness.getCFAEdgeFor(e))
           .filter(AssumeEdge.class)
-          .anyMatch(x -> x.getExpression().toString().matches(".*__CPAchecker_TMP.*"))) {
+          .anyMatch(pEdge -> pEdge.getExpression().toString().matches(".*__CPAchecker_TMP.*"))) {
         logger.logf(
             Level.WARNING,
             "Ignoring invariant at node %s with edge %s in the Witness due to the edge which enters"
@@ -193,8 +196,9 @@ public class WitnessToYamlWitnessConverter {
                           .equalsIgnoreCase(
                               pEdge.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)))
           && FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
-                  .transformAndConcat(x -> AbstractStates.asIterable(x).filter(LocationState.class))
-                  .transform(x -> x.getLocationNode())
+                  .transformAndConcat(AbstractStates::asIterable)
+                  .filter(LocationState.class)
+                  .transform(pLocState -> pLocState.getLocationNode())
                   .size()
               <= 3) {
         logger.logf(
@@ -214,8 +218,9 @@ public class WitnessToYamlWitnessConverter {
         // to discover where they come from is hard, therefore we need to use the CFA
         ImmutableSet<CFANode> cfaNodesCandidates =
             FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
-                .transformAndConcat(x -> AbstractStates.asIterable(x).filter(LocationState.class))
-                .transform(x -> x.getLocationNode())
+                .transformAndConcat(AbstractStates::asIterable)
+                .filter(LocationState.class)
+                .transform(pLocState -> pLocState.getLocationNode())
                 .toSet();
 
         // We need to differentiate between nodes which call a function and those which do not,
@@ -226,8 +231,8 @@ public class WitnessToYamlWitnessConverter {
           enteringEdges =
               cfaNodesCandidates.stream()
                   .map(CFAUtils::leavingEdges)
-                  .flatMap(x -> x.stream())
-                  .filter(x -> x instanceof FunctionCallEdge)
+                  .flatMap(pEdge -> pEdge.stream())
+                  .filter(pEdge -> pEdge instanceof FunctionCallEdge)
                   .collect(ImmutableSet.toImmutableSet());
         } else {
           if (pWitness.getLeavingEdges().get(pInvexpstate).stream()
@@ -238,9 +243,9 @@ public class WitnessToYamlWitnessConverter {
             cfaNodesCandidates =
                 cfaNodesCandidates.stream()
                     .filter(
-                        x ->
-                            CFAUtils.enteringEdges(x).stream()
-                                .noneMatch(y -> y instanceof CAssumeEdge))
+                        pNode ->
+                            CFAUtils.enteringEdges(pNode).stream()
+                                .noneMatch(pEdge -> pEdge instanceof CAssumeEdge))
                     .collect(ImmutableSet.toImmutableSet());
           }
 
@@ -251,13 +256,13 @@ public class WitnessToYamlWitnessConverter {
           // TODO: The actual fix would be to find the first state where all the variables used in
           // the invariant have been declared
           Set<CFANode> cfaNodes = new HashSet<>();
-          for (CFANode n : cfaNodesCandidates) {
+          for (CFANode node : cfaNodesCandidates) {
             if (cfaNodesCandidates.stream()
                 .map(CFAUtils::enteringEdges)
-                .flatMap(x -> x.stream())
-                .map(x -> x.getPredecessor())
-                .noneMatch(x -> x == n)) {
-              cfaNodes.add(n);
+                .flatMap(pEdge -> pEdge.stream())
+                .map(pEdge -> pEdge.getPredecessor())
+                .noneMatch(pNode -> pNode == node)) {
+              cfaNodes.add(node);
             }
           }
 
