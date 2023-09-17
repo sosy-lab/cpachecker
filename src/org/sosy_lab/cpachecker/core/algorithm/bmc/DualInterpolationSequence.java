@@ -28,7 +28,7 @@ public class DualInterpolationSequence {
     backwardReachVector = new ArrayList<>();
   }
 
-  public void InitializeSequences(PartitionedFormulas pFormulas) {
+  public void initializeSequences(PartitionedFormulas pFormulas) {
     increaseBackwardReachVector(pFormulas.getAssertionFormula());
     increaseForwardReachVector(pFormulas.getPrefixFormula());
   }

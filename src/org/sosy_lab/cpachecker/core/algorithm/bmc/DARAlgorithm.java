@@ -225,7 +225,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           stats.interpolationPreparation.stop();
         }
         if (dualSequence.getSize() == 0) {
-          dualSequence.InitializeSequences(partitionedFormulas);
+          dualSequence.initializeSequences(partitionedFormulas);
         }
         localStrengtheningPhase(dualSequence, partitionedFormulas);
         if (dualSequence.isLocallyUnsafe()) {
