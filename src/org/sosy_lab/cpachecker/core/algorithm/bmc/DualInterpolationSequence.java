@@ -47,6 +47,7 @@ public class DualInterpolationSequence {
   }
 
   public int getSize() {
+    assert forwardReachVector.size() == backwardReachVector.size();
     return forwardReachVector.size();
   }
 
