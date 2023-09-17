@@ -18,12 +18,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * interpolants.
  */
 public class DualInterpolationSequence {
-  private boolean isLocallyUnsafe;
   private List<BooleanFormula> forwardReachVector;
   private List<BooleanFormula> backwardReachVector;
 
   public DualInterpolationSequence() {
-    isLocallyUnsafe = false;
     forwardReachVector = new ArrayList<>();
     backwardReachVector = new ArrayList<>();
   }
@@ -32,15 +30,6 @@ public class DualInterpolationSequence {
     increaseBackwardReachVector(pFormulas.getAssertionFormula());
     increaseForwardReachVector(pFormulas.getPrefixFormula());
   }
-
-  public void setLocallyUnsafe() {
-    isLocallyUnsafe = true;
-  }
-
-  public void setLocallySafe() {
-    isLocallyUnsafe = false;
-  }
-
   public void updateForwardReachVector(BooleanFormula pNewFormula, int pIndex) {
     forwardReachVector.set(pIndex, pNewFormula);
   }
@@ -55,10 +44,6 @@ public class DualInterpolationSequence {
 
   public void increaseBackwardReachVector(BooleanFormula pNewFormula) {
     backwardReachVector.add(pNewFormula);
-  }
-
-  public boolean isLocallyUnsafe() {
-    return isLocallyUnsafe;
   }
 
   public int getSize() {

@@ -47,6 +47,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
+import scala.Int;
 
 /**
  * This class provides implementation of dual approximated reachability model checking algorithm
@@ -227,21 +228,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (dualSequence.getSize() == 0) {
           dualSequence.initializeSequences(partitionedFormulas);
         }
-        localStrengtheningPhase(dualSequence, partitionedFormulas);
-        if (dualSequence.isLocallyUnsafe()) {
-          // Global phase of DAR
-          stats.numOfDARGlobalPhases += 1;
-          List<BooleanFormula> itpSequence =
-              getInterpolationSequence(partitionedFormulas, dualSequence, pReachedSet);
-          if (itpSequence.isEmpty()) {
-            // Counterexample was not spurious
+        if (performLocalStrengthening(dualSequence, partitionedFormulas)) {
+          if (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           }
-          updateReachabilityVector(
-              dualSequence.getForwardReachVector(), itpSequence, partitionedFormulas);
-          iterativeLocalStrengthening(dualSequence, partitionedFormulas, itpSequence.size() - 1);
-
-          dualSequence.setLocallySafe();
         }
       }
       // Forward-condition check
@@ -289,9 +279,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /**
    * Checks local safety of the sequences. Further, it extends them by new overapproximating
-   * formulas.
+   * formulas. If local phase confirmed the program is safe at bound n, it returns false, otherwise,
+   * it returns true.
    */
-  private void localStrengtheningPhase(
+  private boolean performLocalStrengthening(
       DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
       throws CPAException, SolverException, InterruptedException {
     stats.numOfDARLocalPhases += 1;
@@ -300,13 +291,36 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         findIndexOfUnsatisfiableLocalCheck(pDualSequence, pPartitionedFormulas);
     if (indexOfLocalContradiction == -1) {
       // No local strengthening point was found, switch to Global phase
-      pDualSequence.setLocallyUnsafe();
+      return true;
     } else {
       // Local strengthening point was found, propagate the reason for contradiction to the end
       // of sequences.
-      pDualSequence.setLocallySafe();
       iterativeLocalStrengthening(pDualSequence, pPartitionedFormulas, indexOfLocalContradiction);
     }
+    return false;
+  }
+
+  /**
+   * Checks global safety of the sequences. Further, it extends them by new overapproximating
+   * formulas. If no violation point is found it returns true, i.e. there is a counterexample,
+   * otherwise it returns false, i.e. the program is safe at bound n.
+   */
+  private boolean performGlobalStrengthening(
+      PartitionedFormulas pFormulas, DualInterpolationSequence pDualSequence, ReachedSet pReachedSet)
+      throws CPAException, InterruptedException, SolverException {
+    // Global phase of DAR
+    stats.numOfDARGlobalPhases += 1;
+    int indexOfGlobalViolation = performGlobalCheck(pFormulas, pDualSequence, pReachedSet);
+    if (indexOfGlobalViolation == -1) {
+      // A counterexample was found
+      return true;
+    }
+    List<BooleanFormula> itpSequence =
+        getInterpolationSequence(pFormulas, pDualSequence, pReachedSet, indexOfGlobalViolation);
+    updateReachabilityVector(
+        pDualSequence.getForwardReachVector(), itpSequence, pFormulas);
+    iterativeLocalStrengthening(pDualSequence, pFormulas, itpSequence.size() - 1);
+    return false;
   }
 
   /**
@@ -559,26 +573,21 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableList<BooleanFormula> getInterpolationSequence(
       PartitionedFormulas pFormulas,
       DualInterpolationSequence pDualSequence,
-      ReachedSet pReachedSet)
+      ReachedSet pReachedSet,
+      int pIndexOfGlobalViolation)
       throws InterruptedException, CPAException, SolverException {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
-    int indexOfGlobalViolation = performGlobalCheck(pFormulas, pDualSequence, pReachedSet);
-    if (indexOfGlobalViolation == -1) {
-      // A counterexample was found
-      return ImmutableList.of();
-    }
-
     BooleanFormula backwardFormula =
         pDualSequence
             .getBackwardReachVector()
-            .get(pDualSequence.getSize() - indexOfGlobalViolation + 1);
+            .get(pDualSequence.getSize() - pIndexOfGlobalViolation + 1);
 
     // We cannot uninstantiate B_0, so we check if the global phase was unsat with B_0 or some B_i
-    if (pDualSequence.getSize() - indexOfGlobalViolation + 1 > 0) {
+    if (pDualSequence.getSize() - pIndexOfGlobalViolation + 1 > 0) {
       backwardFormula =
           fmgr.instantiate(
               fmgr.uninstantiate(backwardFormula),
-              pFormulas.getLoopFormulaSsaMaps().get(indexOfGlobalViolation - 2));
+              pFormulas.getLoopFormulaSsaMaps().get(pIndexOfGlobalViolation - 2));
     } else {
       backwardFormula = pFormulas.getAssertionFormula();
     }
@@ -586,7 +595,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
             .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
-            .addAll(pFormulas.getLoopFormulas().subList(1, indexOfGlobalViolation - 1))
+            .addAll(pFormulas.getLoopFormulas().subList(1, pIndexOfGlobalViolation - 1))
             .add(backwardFormula)
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();

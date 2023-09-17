@@ -25,16 +25,6 @@
         <option name="-setprop">replaceGlobalPhaseWithBMC=true</option>
     </rundefinition>
 
-    <rundefinition name="imc">
-        <option name="-bmc-interpolation"/>
-        <option name="-setprop">imc.fallBack=false</option>
-    </rundefinition>
-
-    <rundefinition name="ismc">
-        <option name="-bmc-interpolationSequence"/>
-        <option name="-setprop">imc.fallBack=false</option>
-    </rundefinition>
-
     <tasks>
         <includesfile>../programs/simple/simple.set</includesfile>
         <propertyfile>../config/properties/unreach-label.prp</propertyfile>
