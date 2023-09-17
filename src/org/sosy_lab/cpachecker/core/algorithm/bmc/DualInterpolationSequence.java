@@ -27,14 +27,14 @@ public class DualInterpolationSequence {
   }
 
   public void initializeSequences(PartitionedFormulas pFormulas) {
-    increaseBackwardReachVector(pFormulas.getAssertionFormula());
-    increaseForwardReachVector(pFormulas.getPrefixFormula());
+    extendBackwardReachVector(pFormulas.getAssertionFormula());
+    extendForwardReachVector(pFormulas.getPrefixFormula());
   }
   public void updateForwardReachVector(BooleanFormula pNewFormula, int pIndex) {
     forwardReachVector.set(pIndex, pNewFormula);
   }
 
-  public void increaseForwardReachVector(BooleanFormula pNewFormula) {
+  public void extendForwardReachVector(BooleanFormula pNewFormula) {
     forwardReachVector.add(pNewFormula);
   }
 
@@ -42,7 +42,7 @@ public class DualInterpolationSequence {
     backwardReachVector.set(pIndex, pNewFormula);
   }
 
-  public void increaseBackwardReachVector(BooleanFormula pNewFormula) {
+  public void extendBackwardReachVector(BooleanFormula pNewFormula) {
     backwardReachVector.add(pNewFormula);
   }
 

@@ -348,7 +348,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     BooleanFormula newForwardReachFormula =
         constructForwardInterpolant(pDualSequence, pPartitionedFormulas, forwardSequenceIndex);
-    pDualSequence.increaseForwardReachVector(newForwardReachFormula);
+    pDualSequence.extendForwardReachVector(newForwardReachFormula);
 
     while (backwardSequenceIndex < lastIndexOfSequences) {
       BooleanFormula resultingBackwardFormula = BRS.get(backwardSequenceIndex + 1);
@@ -360,7 +360,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     BooleanFormula newBackwardReachFormula =
         constructBackwardInterpolant(pDualSequence, pPartitionedFormulas, backwardSequenceIndex);
-    pDualSequence.increaseBackwardReachVector(newBackwardReachFormula);
+    pDualSequence.extendBackwardReachVector(newBackwardReachFormula);
   }
 
   /**
