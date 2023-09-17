@@ -14,14 +14,16 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="8">
 <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
 
-  <rundefinition name="DCPA8">
+  <rundefinition name="DCPABackward">
 		<option name="-heap">13000M</option>
 		<option name="-noout"/>
 		<option name="-benchmark"/>
 	  <option name="-disable-java-assertions"/>
-		<option name="-predicateAnalysis-block"/>
+		<option name="-predicateAnalysisBackward"/>
 		<option name="-stats"/>
-	  <option name="-setprop">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
+	  <option name="-setprop">analysis.initialStatesFor=TARGET</option>
+	  <option name="-setprop">analysis.invertSpecifications=true</option>
+	  <option name="-setprop">backwardSpecification=config/specification/MainEntry.spc</option>
 
 	  <tasks name="ReachSafety-BitVectors">
 		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
