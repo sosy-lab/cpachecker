@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
@@ -257,6 +258,14 @@ public class WitnessToYamlWitnessConverter {
           // Witness state
           // TODO: The actual fix would be to find the first state where all the variables used in
           // the invariant have been declared
+          // The last node cannot be a functionExitNode, since this would mean that the invariant
+          // overapproximates a return statement, which does nothing. This doesn't make sense
+          // semantically.
+          cfaNodesCandidates =
+              cfaNodesCandidates.stream()
+                  .filter(pNode -> !(pNode instanceof FunctionExitNode))
+                  .collect(ImmutableSet.toImmutableSet());
+
           Set<CFANode> cfaNodes = new HashSet<>();
           for (CFANode node : cfaNodesCandidates) {
             if (cfaNodesCandidates.stream()
