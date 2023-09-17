@@ -839,7 +839,7 @@ class CFAMethodBuilder extends ASTVisitor {
       }
 
       if (!inTryBlock.isEmpty()
-          && inTryBlock.size() == numberNestedTryCatch
+          // && inTryBlock.size() == numberNestedTryCatch
           && !currentlyInFinally
           && expressionStatement
               .getExpression()
@@ -2741,7 +2741,13 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(TryStatement tryStatement) {
 
-    listExceptions.add(new ArrayDeque<JClassType>());
+    boolean tempInFinally = currentlyInFinally;
+    currentlyInFinally = false;
+
+    if (tryStatement.getFinally() != null) {
+      listExceptions.addFirst(new ArrayDeque<JClassType>());
+    }
+
     CFANode helperNotNullNode = new CFANode(cfa.getFunction());
     helperNotNull.push(helperNotNullNode);
     cfaNodes.add(helperNotNullNode);
@@ -2780,6 +2786,8 @@ class CFAMethodBuilder extends ASTVisitor {
     for (Object cc : tryStatement.catchClauses()) {
       ((CatchClause) cc).accept(this);
     }
+
+    currentlyInFinally = tempInFinally;
 
     if (tryStatement.getFinally() != null) {
       currentlyInFinally = true;
@@ -2914,6 +2922,7 @@ class CFAMethodBuilder extends ASTVisitor {
         BlankEdge tempEdge = new BlankEdge("", FileLocation.DUMMY, node, start, "");
         addToCFA(tempEdge);
       }
+      lastNestedCatch.clear();
     }
 
     JAssumeEdge exceptionIsNotInstance =
@@ -2941,6 +2950,11 @@ class CFAMethodBuilder extends ASTVisitor {
     cc.getException().accept(this);
 
     cc.getBody().accept(this);
+
+    if (!lastNestedCatch.isEmpty()) {
+      nextCatchBlockOrError.addAll(lastNestedCatch);
+      lastNestedCatch.clear();
+    }
     return SKIP_CHILDREN;
   }
 
@@ -2981,9 +2995,17 @@ class CFAMethodBuilder extends ASTVisitor {
       }
 
       if (finallyExists.pop() == true) {
-        BlankEdge tempEdge =
-            new BlankEdge("", FileLocation.DUMMY, nextCatchBlockOrError.pop(), locStack.peek(), "");
-        addToCFA(tempEdge);
+        for(int i = 0; i < nextCatchBlockOrError.size(); i++) {
+          BlankEdge tempEdge =
+              new BlankEdge(
+                  "",
+                  FileLocation.DUMMY,
+                  (CFANode) nextCatchBlockOrError.toArray()[i],
+                  locStack.peek(),
+                  "");
+          addToCFA(tempEdge);
+        }
+        nextCatchBlockOrError.clear();
       } else if (numberNestedTryCatch > 0) {
         lastNestedCatch.add(nextCatchBlockOrError.pop());
       } else {
