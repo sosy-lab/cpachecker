@@ -171,6 +171,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         0,
         BlockSummaryMessagePayload.builder()
             .addEntry(BlockSummaryMessagePayload.REASON, denied)
+            .addEntry("readable", denied)
             .buildPayload(),
         Instant.now());
   }

@@ -84,7 +84,9 @@ public class DCPAAlgorithm {
     algorithm = parts.algorithm();
     cpa = parts.cpa();
     block = pBlock;
-    dcpa = DCPAFactory.distribute(cpa, pBlock, pCFA);
+    dcpa =
+        DCPAFactory.distribute(
+            cpa, pBlock, pCFA, pConfiguration, pLogger, pShutdownManager.getNotifier());
     // prepare reached set and initial elements
     reachedSet = parts.reached();
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
@@ -285,9 +287,8 @@ public class DCPAAlgorithm {
     if (result.getBlockEndStates().isEmpty()) {
       messages.add(
           BlockSummaryMessage.newErrorConditionUnreachableMessage(
-              block.getId(), "Condition unsatisfiable"));
-    } else if (!block.getAbstractionLocation().equals(block.getLast())
-        && result.getAbstractionStates().isEmpty()) {
+              block.getId(), "Condition unsatisfiable (no state reached on block end)"));
+    } else if (block.isAbstractionPossible() && result.getAbstractionStates().isEmpty()) {
       messages.add(
           BlockSummaryMessage.newErrorConditionUnreachableMessage(
               block.getId(), "Condition unsatisfiable"));

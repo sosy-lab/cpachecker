@@ -101,6 +101,13 @@ public class DCPAAlgorithms {
           continue;
         }
         ARGState argState = (ARGState) abstractState;
+        abstractStateToLocation(argState)
+            .ifPresent(
+                a -> {
+                  if (a.equals(pBlockNode.getLast())) {
+                    blockEnds.add(argState);
+                  }
+                });
         if (argState.isTarget()) {
           if (argState.getTargetInformation().isEmpty()) {
             violations.add(argState);
@@ -115,14 +122,6 @@ public class DCPAAlgorithms {
               violations.add(argState);
             }
           }
-        } else {
-          abstractStateToLocation(argState)
-              .ifPresent(
-                  a -> {
-                    if (a.equals(pBlockNode.getLast())) {
-                      blockEnds.add(argState);
-                    }
-                  });
         }
       }
       abstractionStates = abstractions.build();
