@@ -389,7 +389,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula forwardFormula =
         pDualSequence.getForwardReachVector().get(lastIndexOfSequences - pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pIndex);
-    SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulasSsaMap().get(0);
+    SSAMap backwardSsa = pPartitionedFormulas.getLoopFormulaSsaMaps().get(0);
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(
@@ -505,7 +505,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     backwardFormula =
         fmgr.instantiate(
             fmgr.uninstantiate(backwardFormula),
-            pFormulas.getLoopFormulasSsaMap().get(indexOfCheck - 2));
+            pFormulas.getLoopFormulaSsaMaps().get(indexOfCheck - 2));
 
     BooleanFormula unrolledConcretePaths =
         bfmgr.and(
@@ -534,7 +534,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws InterruptedException, SolverException, CPAException {
     for (int i = 2; i <= pDualSequence.getSize(); i++) {
       // Unrolling CFA if necessary
-      if (pFormulas.getLoopFormulasSsaMap().size() <= i - 2) {
+      if (pFormulas.getLoopFormulaSsaMaps().size() <= i - 2) {
         if (!unrollProgram(pReachedSet, pFormulas, false)) {
           return -1;
         }
@@ -578,7 +578,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       backwardFormula =
           fmgr.instantiate(
               fmgr.uninstantiate(backwardFormula),
-              pFormulas.getLoopFormulasSsaMap().get(indexOfGlobalViolation - 2));
+              pFormulas.getLoopFormulaSsaMaps().get(indexOfGlobalViolation - 2));
     } else {
       backwardFormula = pFormulas.getAssertionFormula();
     }

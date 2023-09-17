@@ -52,7 +52,7 @@ class PartitionedFormulas {
   private boolean isInitialized;
   private BooleanFormula prefixFormula;
   private SSAMap prefixSsaMap;
-  private ImmutableList<SSAMap> loopFormulasSsaMap;
+  private ImmutableList<SSAMap> loopFormulaSsaMaps;
   private ImmutableList<BooleanFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
@@ -70,7 +70,7 @@ class PartitionedFormulas {
     isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
-    loopFormulasSsaMap = ImmutableList.of();
+    loopFormulaSsaMaps = ImmutableList.of();
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
   }
@@ -114,9 +114,9 @@ class PartitionedFormulas {
   }
 
   /** Return the SSA maps of collected loop formulas (T1, T2, ..., Tn). */
-  List<SSAMap> getLoopFormulasSsaMap() {
+  List<SSAMap> getLoopFormulaSsaMaps() {
     Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
-    return loopFormulasSsaMap;
+    return loopFormulaSsaMaps;
   }
 
   /** Return the target assertion formula (&not;P). */
@@ -167,7 +167,7 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
-    loopFormulasSsaMap =
+    loopFormulaSsaMaps =
         transformedImmutableListCopy(
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
@@ -189,7 +189,7 @@ class PartitionedFormulas {
       prefixFormula = targetAssertion;
       targetAssertion = tmp;
       loopFormulas = loopFormulas.reverse();
-      loopFormulasSsaMap = loopFormulasSsaMap.reverse();
+      loopFormulaSsaMaps = loopFormulaSsaMaps.reverse();
       prefixSsaMap =
           InterpolationHelper.getPredicateAbstractionBlockFormula(
                   abstractionStates.get(abstractionStates.size() - 2))
