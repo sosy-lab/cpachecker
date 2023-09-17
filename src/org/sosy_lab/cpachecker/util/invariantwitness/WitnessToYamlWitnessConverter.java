@@ -188,7 +188,9 @@ public class WitnessToYamlWitnessConverter {
                       "true"
                           .equalsIgnoreCase(
                               pEdge.getLabel().getMapping().get(KeyDef.ENTERLOOPHEAD)))
-          && "condition-true".equalsIgnoreCase(e.getLabel().getMapping().get(KeyDef.CONTROLCASE))
+          && ("condition-true".equalsIgnoreCase(e.getLabel().getMapping().get(KeyDef.CONTROLCASE))
+              || "condition-false"
+                  .equalsIgnoreCase(e.getLabel().getMapping().get(KeyDef.CONTROLCASE)))
           && FluentIterable.from(pWitness.getLeavingEdges().get(e.getTarget()))
               .allMatch(
                   pEdge ->
