@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -143,7 +142,13 @@ public class DCPAAlgorithm {
 
   private Collection<BlockSummaryMessage> reportErrorConditions(
       Set<ARGState> violations, ARGState condition, boolean first)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException, SolverException {
+    if (!violations.isEmpty()
+        && reachedSet.stream()
+            .filter(AbstractStates::isTargetState)
+            .allMatch(a -> ((ARGState) a).getCounterexampleInformation().isEmpty())) {
+      throw new CPAException("No counterexample for feasible block end present.");
+    }
     ImmutableSet<@NonNull ARGPath> pathsToViolations =
         FluentIterable.from(violations)
             .filter(v -> v.getCounterexampleInformation().isPresent())
