@@ -318,7 +318,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     List<BooleanFormula> itpSequence =
         getInterpolationSequence(pFormulas, pDualSequence, indexOfGlobalViolation);
-    updateReachabilityVector(pDualSequence, itpSequence, pFormulas);
+    strengthenForwardVectorWithInterpolants(pDualSequence, itpSequence, pFormulas);
     iterativeLocalStrengthening(pDualSequence, pFormulas, itpSequence.size() - 1);
     return false;
   }
@@ -607,10 +607,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   /**
    * A method to collectFormulasFromARG the reachability vector with newly derived interpolants
    *
-   * @param reachVector the reachability vector of the previous iteration
-   * @param itpSequence the interpolation sequence derived at the current iteration
+   * @param pDualSequence contains the forward vector that needs to be strengthen
+   * @param pItpSequence the interpolation sequence derived at the current iteration
    */
-  private void updateReachabilityVector(
+  private void strengthenForwardVectorWithInterpolants(
       DualInterpolationSequence pDualSequence,
       List<BooleanFormula> pItpSequence,
       PartitionedFormulas pFormulas) {
