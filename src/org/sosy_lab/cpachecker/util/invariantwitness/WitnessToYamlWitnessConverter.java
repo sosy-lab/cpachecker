@@ -97,7 +97,7 @@ public class WitnessToYamlWitnessConverter {
         FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
             .transformAndConcat(AbstractStates::asIterable)
             .filter(LocationState.class)
-            .transform(pLocState -> pLocState.getLocationNode())
+            .transform(LocationState::getLocationNode)
             .toSet();
 
     Set<InvariantWitness> invariants = new HashSet<>();
@@ -123,7 +123,7 @@ public class WitnessToYamlWitnessConverter {
         // valid if we are not even executing the loop once
         if ((loop.getLoopNodes().contains(node)
                 || FluentIterable.from(loop.getOutgoingEdges())
-                    .transform(e -> e.getSuccessor())
+                    .transform(CFAEdge::getSuccessor)
                     .anyMatch(n -> n == node))
             && loop.getLoopNodes().size() < minimalLoopSize) {
           tightestFittingLoop = Optional.of(loop);
@@ -223,7 +223,7 @@ public class WitnessToYamlWitnessConverter {
             FluentIterable.from(pWitness.getARGStatesFor(pInvexpstate))
                 .transformAndConcat(AbstractStates::asIterable)
                 .filter(LocationState.class)
-                .transform(pLocState -> pLocState.getLocationNode())
+                .transform(LocationState::getLocationNode)
                 .toSet();
 
         // We need to differentiate between nodes which call a function and those which do not,
