@@ -58,15 +58,15 @@ public class WaypointRecord {
   }
 
   public WaypointRecord withAction(WaypointAction pAction) {
-    return new WaypointRecord(this.getType(), pAction, this.getConstraint(), this.getLocation());
+    return new WaypointRecord(getType(), pAction, getConstraint(), getLocation());
   }
 
   public WaypointRecord withType(WaypointType pType) {
-    return new WaypointRecord(pType, this.getAction(), this.getConstraint(), this.getLocation());
+    return new WaypointRecord(pType, getAction(), getConstraint(), getLocation());
   }
 
   public WaypointRecord withConstraint(InformationRecord pConstraint) {
-    return new WaypointRecord(this.getType(), this.getAction(), pConstraint, this.getLocation());
+    return new WaypointRecord(getType(), getAction(), pConstraint, getLocation());
   }
 
   public WaypointType getType() {

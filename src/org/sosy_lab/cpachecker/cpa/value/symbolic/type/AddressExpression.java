@@ -129,16 +129,16 @@ public final class AddressExpression extends SymbolicExpression {
     if (o == null) {
       return false;
     }
-    if (this.hasAbstractState()
+    if (hasAbstractState()
         && o instanceof AddressExpression
         && ((AddressExpression) o).hasAbstractState()) {
-      if (this.getAbstractState() instanceof SMGState
+      if (getAbstractState() instanceof SMGState
           && ((AddressExpression) o).getAbstractState() instanceof SMGState) {
         // Precondition as this should never fail in SMGs
-        Preconditions.checkArgument(this.getOffset().equals(((AddressExpression) o).getOffset()));
+        Preconditions.checkArgument(getOffset().equals(((AddressExpression) o).getOffset()));
         // SMG values have the offset baked into them. Only the SMG truly knows equality for them
         return SMGState.areValuesEqual(
-            (SMGState) this.getAbstractState(),
+            (SMGState) getAbstractState(),
             addressValue,
             (SMGState) ((AddressExpression) o).getAbstractState(),
             ((AddressExpression) o).addressValue);

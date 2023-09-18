@@ -34,7 +34,7 @@ public class ViolationSequenceEntry extends AbstractEntry {
       @JsonProperty("sequence") List<SegmentRecord> sequence) {
     super(VIOLATION_SEQUENCE_ENTRY_IDENTIFIER);
     this.metadata = metadata;
-    this.content = sequence;
+    content = sequence;
   }
 
   public MetadataRecord getMetadata() {

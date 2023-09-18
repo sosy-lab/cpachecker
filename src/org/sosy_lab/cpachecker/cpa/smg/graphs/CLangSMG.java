@@ -451,7 +451,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  public final void markHeapObjectDeletedAndRemoveEdges(SMGObject pObject) {
+  public void markHeapObjectDeletedAndRemoveEdges(SMGObject pObject) {
     heap_objects = heap_objects.removeAndCopy(pObject);
     markObjectDeletedAndRemoveEdges(pObject);
   }
