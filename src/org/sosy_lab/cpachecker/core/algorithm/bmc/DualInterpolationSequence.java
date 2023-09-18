@@ -18,46 +18,46 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * backward reachability sequences. It can also strengthen the sequences by forward and backward
  * interpolants.
  */
-public class DualInterpolationSequence {
+class DualInterpolationSequence {
   private List<BooleanFormula> forwardReachVector;
   private List<BooleanFormula> backwardReachVector;
 
-  public DualInterpolationSequence() {
+  DualInterpolationSequence() {
     forwardReachVector = new ArrayList<>();
     backwardReachVector = new ArrayList<>();
   }
 
-  public void initializeSequences(PartitionedFormulas pFormulas) {
+  void initializeSequences(PartitionedFormulas pFormulas) {
     extendBackwardReachVector(pFormulas.getAssertionFormula());
     extendForwardReachVector(pFormulas.getPrefixFormula());
   }
 
-  public void updateForwardReachVector(BooleanFormula pNewFormula, int pIndex) {
+  void updateForwardReachVector(BooleanFormula pNewFormula, int pIndex) {
     forwardReachVector.set(pIndex, pNewFormula);
   }
 
-  public void extendForwardReachVector(BooleanFormula pNewFormula) {
+  void extendForwardReachVector(BooleanFormula pNewFormula) {
     forwardReachVector.add(pNewFormula);
   }
 
-  public void updateBackwardReachVector(BooleanFormula pNewFormula, int pIndex) {
+  void updateBackwardReachVector(BooleanFormula pNewFormula, int pIndex) {
     backwardReachVector.set(pIndex, pNewFormula);
   }
 
-  public void extendBackwardReachVector(BooleanFormula pNewFormula) {
+  void extendBackwardReachVector(BooleanFormula pNewFormula) {
     backwardReachVector.add(pNewFormula);
   }
 
-  public int getSize() {
+  int getSize() {
     assert forwardReachVector.size() == backwardReachVector.size();
     return forwardReachVector.size();
   }
 
-  public ImmutableList<BooleanFormula> getForwardReachVector() {
+  ImmutableList<BooleanFormula> getForwardReachVector() {
     return ImmutableList.copyOf(forwardReachVector);
   }
 
-  public ImmutableList<BooleanFormula> getBackwardReachVector() {
+  ImmutableList<BooleanFormula> getBackwardReachVector() {
     return ImmutableList.copyOf(backwardReachVector);
   }
 }

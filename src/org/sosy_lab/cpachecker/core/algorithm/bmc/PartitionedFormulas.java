@@ -79,12 +79,12 @@ class PartitionedFormulas {
     return isInitialized;
   }
 
-  public static PartitionedFormulas createForwardPartitionedFormulas(
+  static PartitionedFormulas createForwardPartitionedFormulas(
       BooleanFormulaManagerView bfmgr, LogManager logger, boolean assertAllTargets) {
     return new PartitionedFormulas(bfmgr, logger, assertAllTargets, false);
   }
 
-  public static PartitionedFormulas createBackwardPartitionedFormulas(
+  static PartitionedFormulas createBackwardPartitionedFormulas(
       BooleanFormulaManagerView bfmgr, LogManager logger) {
     return new PartitionedFormulas(bfmgr, logger, false, true);
   }
