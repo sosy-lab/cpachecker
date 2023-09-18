@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -162,7 +164,7 @@ public class WitnessToYamlWitnessConverter {
   private Set<InvariantWitness> handleLocationInvariant(
       ExpressionTree<Object> pInvariantExpression, String pInvexpstate, Witness pWitness) {
     // To handle location invariants, we need to discover which statement they come from
-    ImmutableSet<CFAEdge> enteringEdges;
+    ImmutableSet<? extends CFAEdge> enteringEdges;
     Set<InvariantWitness> invariants = new HashSet<>();
 
     List<Edge> enteringEdgeWitness = (List<Edge>) pWitness.getEnteringEdges().get(pInvexpstate);
@@ -232,11 +234,10 @@ public class WitnessToYamlWitnessConverter {
         if (cfaNodesCandidates.stream().anyMatch(x -> x instanceof FunctionEntryNode)) {
           // When we call a function we want the edge which enters the function
           enteringEdges =
-              cfaNodesCandidates.stream()
-                  .map(CFAUtils::leavingEdges)
-                  .flatMap(pEdge -> pEdge.stream())
-                  .filter(pEdge -> pEdge instanceof FunctionCallEdge)
-                  .collect(ImmutableSet.toImmutableSet());
+              from(cfaNodesCandidates)
+                  .transformAndConcat(CFAUtils::leavingEdges)
+                  .filter(FunctionCallEdge.class)
+                  .toSet();
         } else {
           if (pWitness.getLeavingEdges().get(pInvexpstate).stream()
               .anyMatch(x -> x.getLabel().getMapping().containsKey(KeyDef.CONTROLCASE))) {
@@ -244,12 +245,10 @@ public class WitnessToYamlWitnessConverter {
             // any AssumeEdge leaving it. Since these are probably the ones which match
             // the leaving edges of the state
             cfaNodesCandidates =
-                cfaNodesCandidates.stream()
+                from(cfaNodesCandidates)
                     .filter(
-                        pNode ->
-                            CFAUtils.enteringEdges(pNode).stream()
-                                .noneMatch(pEdge -> pEdge instanceof CAssumeEdge))
-                    .collect(ImmutableSet.toImmutableSet());
+                        pNode -> CFAUtils.enteringEdges(pNode).filter(CAssumeEdge.class).isEmpty())
+                    .toSet();
           }
 
           // Get the last possible node in which the invariant is valid.
@@ -268,11 +267,9 @@ public class WitnessToYamlWitnessConverter {
 
           Set<CFANode> cfaNodes = new HashSet<>();
           for (CFANode node : cfaNodesCandidates) {
-            if (cfaNodesCandidates.stream()
-                .map(CFAUtils::enteringEdges)
-                .flatMap(pEdge -> pEdge.stream())
-                .map(pEdge -> pEdge.getPredecessor())
-                .noneMatch(pNode -> pNode == node)) {
+            if (!from(cfaNodesCandidates)
+                .transformAndConcat(CFAUtils::predecessorsOf)
+                .contains(node)) {
               cfaNodes.add(node);
             }
           }
