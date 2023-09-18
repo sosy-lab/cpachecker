@@ -47,7 +47,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-import scala.Int;
 
 /**
  * This class provides implementation of dual approximated reachability model checking algorithm
@@ -306,7 +305,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * otherwise it returns false, i.e. the program is safe at bound n.
    */
   private boolean performGlobalStrengthening(
-      PartitionedFormulas pFormulas, DualInterpolationSequence pDualSequence, ReachedSet pReachedSet)
+      PartitionedFormulas pFormulas,
+      DualInterpolationSequence pDualSequence,
+      ReachedSet pReachedSet)
       throws CPAException, InterruptedException, SolverException {
     // Global phase of DAR
     stats.numOfDARGlobalPhases += 1;
@@ -316,9 +317,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return true;
     }
     List<BooleanFormula> itpSequence =
-        getInterpolationSequence(pFormulas, pDualSequence, pReachedSet, indexOfGlobalViolation);
-    updateReachabilityVector(
-        pDualSequence.getForwardReachVector(), itpSequence, pFormulas);
+        getInterpolationSequence(pFormulas, pDualSequence, indexOfGlobalViolation);
+    updateReachabilityVector(pDualSequence, itpSequence, pFormulas);
     iterativeLocalStrengthening(pDualSequence, pFormulas, itpSequence.size() - 1);
     return false;
   }
@@ -573,9 +573,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableList<BooleanFormula> getInterpolationSequence(
       PartitionedFormulas pFormulas,
       DualInterpolationSequence pDualSequence,
-      ReachedSet pReachedSet,
       int pIndexOfGlobalViolation)
-      throws InterruptedException, CPAException, SolverException {
+      throws InterruptedException, CPAException {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     BooleanFormula backwardFormula =
         pDualSequence
@@ -612,22 +611,23 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @param itpSequence the interpolation sequence derived at the current iteration
    */
   private void updateReachabilityVector(
-      List<BooleanFormula> reachVector,
-      List<BooleanFormula> itpSequence,
+      DualInterpolationSequence pDualSequence,
+      List<BooleanFormula> pItpSequence,
       PartitionedFormulas pFormulas) {
     logger.log(Level.FINE, "Updating reachability vector");
+    ImmutableList<BooleanFormula> forwardVector = pDualSequence.getForwardReachVector();
     SSAMap prefixSsaMap = pFormulas.getPrefixSsaMap();
     int i = 1;
 
-    while ((i < reachVector.size()) && (i <= itpSequence.size())) {
-      BooleanFormula image = reachVector.get(i);
-      reachVector.set(
-          i,
+    while ((i < forwardVector.size()) && (i <= pItpSequence.size())) {
+      BooleanFormula image = forwardVector.get(i);
+      pDualSequence.updateForwardReachVector(
           bfmgr.and(
-              image, fmgr.instantiate(fmgr.uninstantiate(itpSequence.get(i - 1)), prefixSsaMap)));
+              image, fmgr.instantiate(fmgr.uninstantiate(pItpSequence.get(i - 1)), prefixSsaMap)),
+          i);
       ++i;
     }
-    logger.log(Level.ALL, "Updated reachability vector:", reachVector);
+    logger.log(Level.ALL, "Updated reachability vector:", forwardVector);
   }
 
   private int getCurrentMaxLoopIterations() {

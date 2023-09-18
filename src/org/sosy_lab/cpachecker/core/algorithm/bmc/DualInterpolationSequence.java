@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -30,6 +31,7 @@ public class DualInterpolationSequence {
     extendBackwardReachVector(pFormulas.getAssertionFormula());
     extendForwardReachVector(pFormulas.getPrefixFormula());
   }
+
   public void updateForwardReachVector(BooleanFormula pNewFormula, int pIndex) {
     forwardReachVector.set(pIndex, pNewFormula);
   }
@@ -51,11 +53,11 @@ public class DualInterpolationSequence {
     return forwardReachVector.size();
   }
 
-  public List<BooleanFormula> getForwardReachVector() {
-    return forwardReachVector;
+  public ImmutableList<BooleanFormula> getForwardReachVector() {
+    return ImmutableList.copyOf(forwardReachVector);
   }
 
-  public List<BooleanFormula> getBackwardReachVector() {
-    return backwardReachVector;
+  public ImmutableList<BooleanFormula> getBackwardReachVector() {
+    return ImmutableList.copyOf(backwardReachVector);
   }
 }
