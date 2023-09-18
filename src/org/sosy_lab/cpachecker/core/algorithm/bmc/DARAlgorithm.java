@@ -605,7 +605,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A method to collectFormulasFromARG the reachability vector with newly derived interpolants
+   * A method that strengthens a forward sequence with interpolation sequence, that was
+   * collected from unsatisfiable global check.
    *
    * @param pDualSequence contains the forward vector that needs to be strengthen
    * @param pItpSequence the interpolation sequence derived at the current iteration
