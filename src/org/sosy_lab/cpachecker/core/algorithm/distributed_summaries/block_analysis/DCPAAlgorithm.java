@@ -147,7 +147,7 @@ public class DCPAAlgorithm {
         && reachedSet.stream()
             .filter(AbstractStates::isTargetState)
             .allMatch(a -> ((ARGState) a).getCounterexampleInformation().isEmpty())) {
-      throw new CPAException("No counterexample for feasible block end present.");
+      return ImmutableSet.of();
     }
     ImmutableSet<@NonNull ARGPath> pathsToViolations =
         FluentIterable.from(violations)

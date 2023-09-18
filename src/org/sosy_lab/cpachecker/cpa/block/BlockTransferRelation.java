@@ -24,34 +24,30 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
+public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<BlockState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
     BlockState blockState = (BlockState) element;
     CFANode node = blockState.getLocationNode();
-    // block end cannot be reached directly after processing the first
+    // block end cannot be reached directly after processing the first edge
     if (blockState.getType().equals(BlockStateType.INITIAL)) {
       if (cfaEdge instanceof GhostEdge) {
         return ImmutableSet.of();
       }
     }
 
-    final BlockState successor = computeSuccessorFor(blockState, cfaEdge);
-
-    // we are at the final location of the block and have already seen every
-    // CFANode in the BlockNode once => transition only over the "BlockendEdge"
-    if (node.equals(getBlockEnd(blockState.getBlockNode()))
-        && !blockState.getType().equals(BlockStateType.INITIAL)) {
-      if (cfaEdge instanceof GhostEdge) {
-        return onTransitionToBlockEnd(successor);
-      }
-      return ImmutableSet.of();
-    }
+    final BlockState successor =
+        new BlockState(
+            cfaEdge.getSuccessor(),
+            blockState.getBlockNode(),
+            getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
+            blockState.getErrorCondition());
 
     Set<CFAEdge> intersection =
-        Sets.intersection(computePossibleSuccessors(node), blockState.getBlockNode().getEdges());
+        Sets.intersection(
+            CFAUtils.leavingEdges(node).toSet(), blockState.getBlockNode().getEdges());
 
     if (intersection.contains(cfaEdge)
         || (cfaEdge instanceof CFunctionCallEdge callEdge
@@ -62,14 +58,6 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.of();
   }
 
-  abstract Set<CFAEdge> computePossibleSuccessors(CFANode pNode);
-
-  abstract BlockState computeSuccessorFor(BlockState pBlockState, CFAEdge pCFAEdge);
-
-  abstract Collection<BlockState> onTransitionToBlockEnd(BlockState pPossibleSuccessor);
-
-  abstract CFANode getBlockEnd(BlockNode pNode);
-
   private static BlockStateType getBlockStateTypeOfLocation(BlockNode pBlockNode, CFANode pNode) {
     if (pNode.equals(pBlockNode.getLast())) {
       return BlockStateType.FINAL;
@@ -78,38 +66,5 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
       return BlockStateType.ABSTRACTION;
     }
     return BlockStateType.MID;
-  }
-
-  static class ForwardBlockTransferRelation extends BlockTransferRelation {
-
-    /**
-     * This transfer relation produces successors iff an edge between two nodes exists in the CFA,
-     * and it is part of the block
-     */
-    public ForwardBlockTransferRelation() {}
-
-    @Override
-    Set<CFAEdge> computePossibleSuccessors(CFANode pNode) {
-      return CFAUtils.leavingEdges(pNode).toSet();
-    }
-
-    @Override
-    BlockState computeSuccessorFor(BlockState pBlockState, CFAEdge pCFAEdge) {
-      return new BlockState(
-          pCFAEdge.getSuccessor(),
-          pBlockState.getBlockNode(),
-          getBlockStateTypeOfLocation(pBlockState.getBlockNode(), pCFAEdge.getSuccessor()),
-          pBlockState.getErrorCondition());
-    }
-
-    @Override
-    Collection<BlockState> onTransitionToBlockEnd(BlockState pPossibleSuccessor) {
-      return ImmutableSet.of(pPossibleSuccessor);
-    }
-
-    @Override
-    CFANode getBlockEnd(BlockNode pNode) {
-      return pNode.getLast();
-    }
   }
 }
