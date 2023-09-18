@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -121,39 +122,47 @@ public class DCPAAlgorithm {
   private Collection<BlockSummaryMessage> reportBlockPostConditions(
       Set<ARGState> blockEnds, boolean allowTop) {
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
-    if (blockEnds.isEmpty()) {
-      messages.addAll(reportUnreachableBlockEnd());
-    } else {
-      for (ARGState blockEndState : blockEnds) {
-        if (!dcpa.isTop(blockEndState) || allowTop) {
-          BlockSummaryMessagePayload serialized =
-              dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
-          messages.add(
-              BlockSummaryMessage.newBlockPostCondition(
-                  block.getId(),
-                  block.getLast().getNodeNumber(),
-                  DCPAAlgorithms.appendStatus(status, serialized),
-                  true));
-        }
+    for (ARGState blockEndState : blockEnds) {
+      if (!dcpa.isTop(blockEndState) || allowTop) {
+        BlockSummaryMessagePayload serialized =
+            dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
+        messages.add(
+            BlockSummaryMessage.newBlockPostCondition(
+                block.getId(),
+                block.getLast().getNodeNumber(),
+                DCPAAlgorithms.appendStatus(status, serialized),
+                true));
       }
     }
     return messages.build();
   }
 
   private Collection<BlockSummaryMessage> reportErrorConditions(
-      Set<ARGState> violations, ARGState condition, boolean first)
+      Set<ARGState> violations, Set<ARGState> blockEnds, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
+    ImmutableSet<@NonNull ARGPath> pathsToViolations;
     if (!violations.isEmpty()
         && reachedSet.stream()
             .filter(AbstractStates::isTargetState)
             .allMatch(a -> ((ARGState) a).getCounterexampleInformation().isEmpty())) {
-      return ImmutableSet.of();
+      pathsToViolations =
+          FluentIterable.from(blockEnds)
+              .transformAndConcat(v -> ARGUtils.getAllPaths(reachedSet, v))
+              .toSet();
+      if (pathsToViolations.size() > 5
+          || block.getPredecessorIds().stream().anyMatch(id -> id.equals("root"))) {
+        throw new CPAException(
+            "Abstraction state did not contain a counterexample, fallback produced "
+                + pathsToViolations.size()
+                + " (exceeds the limit of 5) violations.");
+      }
+    } else {
+      pathsToViolations =
+          FluentIterable.from(violations)
+              .filter(v -> v.getCounterexampleInformation().isPresent())
+              .transform(v -> v.getCounterexampleInformation().orElseThrow().getTargetPath())
+              .toSet();
     }
-    ImmutableSet<@NonNull ARGPath> pathsToViolations =
-        FluentIterable.from(violations)
-            .filter(v -> v.getCounterexampleInformation().isPresent())
-            .transform(v -> v.getCounterexampleInformation().orElseThrow().getTargetPath())
-            .toSet();
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations) {
@@ -188,10 +197,13 @@ public class DCPAAlgorithm {
     status = status.update(result.getStatus());
 
     if (result.getViolationStates().isEmpty()) {
+      if (result.getBlockEndStates().isEmpty()) {
+        return reportUnreachableBlockEnd();
+      }
       return reportBlockPostConditions(result.getBlockEndStates(), true);
     }
 
-    return reportErrorConditions(result.getViolationStates(), null, true);
+    return reportErrorConditions(result.getViolationStates(), ImmutableSet.of(), null, true);
   }
 
   /**
@@ -300,7 +312,11 @@ public class DCPAAlgorithm {
       messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false));
     } else {
       Collection<BlockSummaryMessage> errorConditions =
-          reportErrorConditions(result.getAbstractionStates(), ((ARGState) errorCondition), false);
+          reportErrorConditions(
+              result.getAbstractionStates(),
+              result.getBlockEndStates(),
+              ((ARGState) errorCondition),
+              false);
       if (errorConditions.isEmpty()) {
         messages.add(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(
