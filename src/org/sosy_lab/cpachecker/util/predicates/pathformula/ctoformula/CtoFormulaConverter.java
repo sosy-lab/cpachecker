@@ -331,7 +331,7 @@ public class CtoFormulaConverter {
         case FLOAT:
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
-          if (simpleType.isLong()) {
+          if (simpleType.hasLongSpecifier()) {
             if (machineModel.getSizeofLongDouble() == machineModel.getSizeofDouble()) {
               // architecture without extended precision format
               return FormulaType.getDoublePrecisionFloatingPointType();
@@ -603,8 +603,9 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Create a formula that reinterprets the raw bit values as a different type Returns {@code null}
-   * if this is not implemented for the given types. Both types need to have the same size
+   * Create a formula that reinterprets the raw bit values as a different type. Returns {@code null}
+   * if this is not implemented for the given types. Returns the original formula if no
+   * reinterpretation was necessary.
    */
   protected @Nullable Formula makeValueReinterpretation(
       final CType pFromType, final CType pToType, Formula formula) {
@@ -659,6 +660,56 @@ public class CtoFormulaConverter {
 
       return formula;
 
+    } else if (fromFormulaType.equals(toFormulaType)) {
+      // return the original formula
+      return formula;
+    } else {
+      return null; // TODO use UF
+    }
+  }
+
+  /**
+   * Create a formula that reinterprets the raw bit values as a bitvector formula with the same
+   * size. Useful for converting floats to bitvectors. Returns {@code null} if this is not
+   * implemented for the given types.
+   *
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula)}, this function
+   * returns the original formula if it was already a bitvector formula, not {@code null}.
+   */
+  protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
+      final CType pFromType, Formula formula) {
+    CType fromType = handlePointerAndEnumAsInt(pFromType);
+    FormulaType<?> fromFormulaType = getFormulaTypeFromCType(fromType);
+
+    if (fromFormulaType.isBitvectorType()) {
+      // already a bitvector
+      return (BitvectorFormula) formula;
+    } else if (fromFormulaType.isFloatingPointType()) {
+      return fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) formula);
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Create a formula that reinterprets a bitvector formula as a formula of a given type. Useful for
+   * converting floating-point values represented in bitvectors back to float. Returns {@code null}
+   * if this is not implemented for the given types.
+   *
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula)}, this function
+   * returns the original formula if {@code pToType} is represented by bitvector, not {@code null}.
+   */
+  protected @Nullable Formula makeValueReinterpretationFromBitvector(
+      final CType pToType, BitvectorFormula formula) {
+    CType toType = handlePointerAndEnumAsInt(pToType);
+    FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
+
+    if (toFormulaType.isFloatingPointType()) {
+      return fmgr.getFloatingPointFormulaManager()
+          .fromIeeeBitvector(formula, (FloatingPointType) toFormulaType);
+    } else if (toFormulaType.isBitvectorType()) {
+      // already a bitvector
+      return formula;
     } else {
       return null; // TODO use UF
     }
@@ -951,13 +1002,8 @@ public class CtoFormulaConverter {
   }
 
   private boolean isSimple(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return true;
-    }
-    if ((pType instanceof CBitFieldType type) && (type.getType() instanceof CSimpleType)) {
-      return true;
-    }
-    return false;
+    return pType instanceof CSimpleType
+        || (pType instanceof CBitFieldType type && type.getType() instanceof CSimpleType);
   }
 
   /**
@@ -994,10 +1040,7 @@ public class CtoFormulaConverter {
   }
 
   private static boolean isFloatingPointType(final CType pType) {
-    if (pType instanceof CSimpleType) {
-      return ((CSimpleType) pType).getType().isFloatingPointType();
-    }
-    return false;
+    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
   }
 
   //  @Override

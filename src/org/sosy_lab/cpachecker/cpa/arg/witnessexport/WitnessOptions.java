@@ -94,6 +94,11 @@ public class WitnessOptions {
               + " export default invariants")
   private boolean exportJointWitnesses = false;
 
+  @Option(
+      secure = true,
+      description = "Shrink ARG graph into a smaller witness graph by merging edges")
+  private boolean minimizeARG = true;
+
   boolean exportFunctionCallsAndReturns() {
     return exportFunctionCallsAndReturns;
   }
@@ -152,5 +157,9 @@ public class WitnessOptions {
 
   boolean exportJointWitnesses() {
     return exportJointWitnesses;
+  }
+
+  boolean minimizeARG() {
+    return minimizeARG;
   }
 }

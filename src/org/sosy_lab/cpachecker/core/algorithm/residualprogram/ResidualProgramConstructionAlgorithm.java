@@ -252,7 +252,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         Level.INFO,
         "All target states in residual program are relevant and will be considered in slicing.");
     return Sets.newHashSet(
-        Iterables.filter(Iterables.filter(pReachedSet, ARGState.class), state -> state.isTarget()));
+        Iterables.filter(Iterables.filter(pReachedSet, ARGState.class), ARGState::isTarget));
   }
 
   private Set<ARGState> getAllTargetStatesNotFullyExplored(final ReachedSet pNodesOfInlinedProg) {

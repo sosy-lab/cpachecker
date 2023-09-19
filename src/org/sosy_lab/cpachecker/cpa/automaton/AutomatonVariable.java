@@ -108,14 +108,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
     @Override
     public boolean equals(Object pObj) {
-      if (super.equals(pObj)) {
+      if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof AutomatonIntVariable)) {
-        return false;
-      }
-      AutomatonIntVariable otherVar = (AutomatonIntVariable) pObj;
-      return (value == otherVar.value) && name.equals(otherVar.name);
+      return pObj instanceof AutomatonIntVariable otherVar
+          && (value == otherVar.value)
+          && name.equals(otherVar.name);
     }
 
     @Override
@@ -185,14 +183,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
     @Override
     public boolean equals(Object pObj) {
-      if (super.equals(pObj)) {
+      if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof AutomatonSetVariable<?>)) {
-        return false;
-      }
-      AutomatonSetVariable<?> otherVar = (AutomatonSetVariable<?>) pObj;
-      return set.equals(otherVar.set) && name.equals(otherVar.name);
+      return pObj instanceof AutomatonSetVariable<?> otherVar
+          && set.equals(otherVar.set)
+          && name.equals(otherVar.name);
     }
 
     @Override

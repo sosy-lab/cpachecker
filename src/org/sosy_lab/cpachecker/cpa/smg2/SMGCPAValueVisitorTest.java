@@ -3314,13 +3314,7 @@ public class SMGCPAValueVisitorTest {
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
-    currentState =
-        SMGState.of(
-            MachineModel.LINUX64,
-            spc,
-            logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
-            currentState.getErrorInfo());
+    currentState = currentState.copyAndReplaceMemoryModel(spc);
     visitor =
         new SMGCPAValueVisitor(
             evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
@@ -3379,7 +3373,7 @@ public class SMGCPAValueVisitorTest {
    */
   private void writeToHeapObjectByAddress(
       Value addressValue, int writeOffsetInBits, int writeSizeInBits, Value valueToWrite)
-      throws InvalidConfigurationException, SMGException {
+      throws SMGException {
     SymbolicProgramConfiguration spc = currentState.getMemoryModel();
     SMGStateAndOptionalSMGObjectAndOffset targetAndOffset =
         currentState.dereferencePointer(addressValue).get(0);
@@ -3391,13 +3385,7 @@ public class SMGCPAValueVisitorTest {
             BigInteger.valueOf(writeSizeInBits),
             spc.getSMGValueFromValue(valueToWrite).orElseThrow());
 
-    currentState =
-        SMGState.of(
-            MachineModel.LINUX64,
-            spc,
-            logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
-            currentState.getErrorInfo());
+    currentState = currentState.copyAndReplaceMemoryModel(spc);
     visitor =
         new SMGCPAValueVisitor(
             evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
@@ -3915,7 +3903,7 @@ public class SMGCPAValueVisitorTest {
    */
   private @Nullable Value transformInputIntoValue(CType valueType, int numValue) {
     if (valueType instanceof CSimpleType) {
-      if (((CSimpleType) valueType).isSigned()) {
+      if (((CSimpleType) valueType).hasSignedSpecifier()) {
         // Make every second number negative
         return new NumericValue(numValue % 2 == 0 ? numValue : -numValue);
       } else {

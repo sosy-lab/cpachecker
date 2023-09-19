@@ -61,10 +61,6 @@ public final class JMethodInvocationAssignmentStatement extends AFunctionCallAss
       return true;
     }
 
-    if (!(obj instanceof JMethodInvocationAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JMethodInvocationAssignmentStatement && super.equals(obj);
   }
 }

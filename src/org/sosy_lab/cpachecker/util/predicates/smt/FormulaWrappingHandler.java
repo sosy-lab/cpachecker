@@ -118,7 +118,7 @@ final class FormulaWrappingHandler {
   }
 
   List<Formula> unwrap(List<? extends Formula> f) {
-    return Lists.transform(f, pInput -> unwrap(pInput));
+    return Lists.transform(f, this::unwrap);
   }
 
   FormulaType<?> unwrapType(FormulaType<?> type) {
@@ -171,6 +171,6 @@ final class FormulaWrappingHandler {
   }
 
   List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
-    return Lists.transform(pTypes, pInput -> unwrapType(pInput));
+    return Lists.transform(pTypes, this::unwrapType);
   }
 }

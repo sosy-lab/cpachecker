@@ -50,11 +50,8 @@ public class ThreadSynchronization {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof ThreadSynchronization)) {
-      return false;
-    }
-    ThreadSynchronization that = (ThreadSynchronization) pO;
-    return writeEpoch == that.writeEpoch
+    return pO instanceof ThreadSynchronization that
+        && writeEpoch == that.writeEpoch
         && readEpoch == that.readEpoch
         && writeThread.equals(that.writeThread)
         && readThread.equals(that.readThread);

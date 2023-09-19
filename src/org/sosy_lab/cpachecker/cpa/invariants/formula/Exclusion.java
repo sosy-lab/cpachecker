@@ -37,10 +37,7 @@ public class Exclusion<ConstantType> extends AbstractFormula<ConstantType>
     if (this == pO) {
       return true;
     }
-    if (pO instanceof Exclusion) {
-      return getExcluded().equals(((Exclusion<?>) pO).getExcluded());
-    }
-    return false;
+    return pO instanceof Exclusion && getExcluded().equals(((Exclusion<?>) pO).getExcluded());
   }
 
   @Override

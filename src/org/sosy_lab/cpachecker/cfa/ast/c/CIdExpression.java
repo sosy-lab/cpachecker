@@ -77,23 +77,21 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
       return true;
     }
 
-    if (!(obj instanceof CIdExpression)) {
-      return false;
+    if (obj instanceof CIdExpression other) {
+      // Don't call super.equals() here,
+      // it compares the declaration field.
+      // In C, there might be several declarations declaring the same variable,
+      // so we sometimes need to return true even with different declarations.
+
+      @Nullable CSimpleDeclaration decl = getDeclaration();
+      @Nullable CSimpleDeclaration otherDecl = other.getDeclaration();
+      if (decl == null || otherDecl == null) {
+        return decl == otherDecl;
+      } else {
+        return Objects.equals(decl.getQualifiedName(), otherDecl.getQualifiedName());
+      }
     }
 
-    // Don't call super.equals() here,
-    // it compares the declaration field.
-    // In C, there might be several declarations declaring the same variable,
-    // so we sometimes need to return true even with different declarations.
-
-    CIdExpression other = (CIdExpression) obj;
-
-    @Nullable CSimpleDeclaration decl = getDeclaration();
-    @Nullable CSimpleDeclaration otherDecl = other.getDeclaration();
-    if (decl == null || otherDecl == null) {
-      return decl == otherDecl;
-    } else {
-      return Objects.equals(decl.getQualifiedName(), otherDecl.getQualifiedName());
-    }
+    return false;
   }
 }

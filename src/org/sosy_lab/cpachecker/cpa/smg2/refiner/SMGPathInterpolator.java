@@ -94,7 +94,11 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
         pFeasibilityChecker,
         pPrefixProvider,
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety()),
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -104,7 +108,11 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
     cfa = pCfa;
     interpolantManager =
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa);
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety());
     config = pConfig;
     logger = pLogger;
   }

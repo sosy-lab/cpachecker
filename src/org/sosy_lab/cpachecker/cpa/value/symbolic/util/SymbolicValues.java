@@ -44,7 +44,7 @@ public class SymbolicValues {
   public static boolean representSameCCodeExpression(
       final SymbolicValue pValue1, final SymbolicValue pValue2) {
 
-    if (!pValue1.getClass().equals(pValue2.getClass())) {
+    if (pValue1.getClass() != pValue2.getClass()) {
       final Optional<MemoryLocation> val1RepLoc = pValue1.getRepresentedLocation();
       final Optional<MemoryLocation> val2RepLoc = pValue2.getRepresentedLocation();
 
@@ -91,7 +91,7 @@ public class SymbolicValues {
   public static boolean representSameSymbolicMeaning(
       final SymbolicValue pValue1, final SymbolicValue pValue2) {
 
-    if (!pValue1.getClass().equals(pValue2.getClass())) {
+    if (pValue1.getClass() != pValue2.getClass()) {
       return false;
     }
 

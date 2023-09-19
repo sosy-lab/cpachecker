@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.testtargets;
+package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
 import static com.google.common.truth.Truth.assertThat;
 

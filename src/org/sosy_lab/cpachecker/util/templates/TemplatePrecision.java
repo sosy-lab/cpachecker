@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -75,7 +76,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 public class TemplatePrecision implements Precision {
 
   private static final Comparator<Template> TEMPLATE_COMPARATOR =
-      Comparator.<Template>comparingInt((template) -> template.getLinearExpression().size())
+      Comparator.<Template>comparingInt(template -> template.getLinearExpression().size())
           .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
           .thenComparing(Template::toString);
 
@@ -210,7 +211,7 @@ public class TemplatePrecision implements Precision {
         CFunctionEntryNode casted = (CFunctionEntryNode) node;
 
         casted.getFunctionParameters().stream()
-            .map(p -> p.asVariableDeclaration())
+            .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(qualifiedName -> builder.put(node.getFunctionName(), qualifiedName));
       }
     }

@@ -65,13 +65,9 @@ public abstract class AExpressionAssignmentStatement extends AbstractStatement
       return true;
     }
 
-    if (!(obj instanceof AExpressionAssignmentStatement) || !super.equals(obj)) {
-      return false;
-    }
-
-    AExpressionAssignmentStatement other = (AExpressionAssignmentStatement) obj;
-
-    return Objects.equals(other.leftHandSide, leftHandSide)
+    return obj instanceof AExpressionAssignmentStatement other
+        && super.equals(obj)
+        && Objects.equals(other.leftHandSide, leftHandSide)
         && Objects.equals(other.rightHandSide, rightHandSide);
   }
 }

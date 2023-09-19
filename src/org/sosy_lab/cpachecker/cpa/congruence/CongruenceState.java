@@ -138,13 +138,9 @@ public class CongruenceState
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof CongruenceState)) {
-      return false;
-    }
-    if (o == this) {
+    if (this == o) {
       return true;
     }
-    CongruenceState other = (CongruenceState) o;
-    return other.data.equals(data);
+    return o instanceof CongruenceState other && other.data.equals(data);
   }
 }

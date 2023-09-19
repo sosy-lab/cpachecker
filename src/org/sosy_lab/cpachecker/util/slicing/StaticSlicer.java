@@ -246,7 +246,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       ImmutableSet<MemoryLocation> relevantFormalVariables =
           pRelevantSdgNodes.stream()
               .filter(SdgProgramSlice::isFormalNode)
-              .map(node -> node.getVariable())
+              .map(CSystemDependenceGraph.Node::getVariable)
               .flatMap(Optional::stream)
               .collect(ImmutableSet.toImmutableSet());
 
@@ -365,13 +365,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           return true;
         }
 
-        if (!(pObject instanceof ActualNode)) {
-          return false;
-        }
-
-        ActualNode other = (ActualNode) pObject;
-
-        return Objects.equals(edge, other.edge) && Objects.equals(variable, other.variable);
+        return pObject instanceof ActualNode other
+            && Objects.equals(edge, other.edge)
+            && Objects.equals(variable, other.variable);
       }
     }
   }

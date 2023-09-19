@@ -84,10 +84,6 @@ public class SMGEdgePointsTo extends SMGEdge {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SMGEdgePointsTo)) {
-      return false;
-    }
-    SMGEdgePointsTo other = (SMGEdgePointsTo) obj;
-    return super.equals(obj) && tg == other.tg;
+    return obj instanceof SMGEdgePointsTo other && super.equals(obj) && tg == other.tg;
   }
 }

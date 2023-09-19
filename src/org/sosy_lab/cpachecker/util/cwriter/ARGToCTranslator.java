@@ -449,7 +449,7 @@ public class ARGToCTranslator {
       CompoundStatement newBlock = addIfStatement(currentBlock, cond, edgeToChild);
       if (!conditions.isEmpty()) {
         StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
-        conditions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
+        conditions.stream().map(AExpression::toQualifiedASTString).forEach(joiner::add);
         newBlock.addStatement(new SimpleStatement(edgeToChild, joiner.toString()));
       }
       pushToWaitlist(waitlist, currentElement, child, edgeToChild, newBlock);
@@ -643,12 +643,12 @@ public class ARGToCTranslator {
       List<AExpression> assumptions = new ArrayList<>();
       AbstractStates.asIterable(childElement)
           .filter(AbstractStateWithAssumptions.class)
-          .transform(x -> x.getAssumptions())
+          .transform(AbstractStateWithAssumptions::getAssumptions)
           .forEach(x -> assumptions.addAll(x));
 
       if (!assumptions.isEmpty()) {
         StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
-        assumptions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
+        assumptions.stream().map(AExpression::toQualifiedASTString).forEach(joiner::add);
         String statement = joiner.toString();
         currentBlock.addStatement(new SimpleStatement(statement));
       }

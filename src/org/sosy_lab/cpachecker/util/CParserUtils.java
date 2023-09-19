@@ -103,9 +103,7 @@ public class CParserUtils {
     for (CStatement statement : assumptions) {
 
       if (statement instanceof CAssignment assignment) {
-        if (assignment.getRightHandSide() instanceof CExpression) {
-
-          CExpression expression = (CExpression) assignment.getRightHandSide();
+        if (assignment.getRightHandSide() instanceof CExpression expression) {
           CBinaryExpression assumeExp =
               expressionBuilder.buildBinaryExpressionUnchecked(
                   assignment.getLeftHandSide(),
@@ -625,8 +623,8 @@ public class CParserUtils {
       if (canonicalType instanceof CSimpleType simpleType) {
         CBasicType basicType = simpleType.getType();
         if (basicType.equals(CBasicType.CHAR)
-            && !simpleType.isSigned()
-            && !simpleType.isUnsigned()) {
+            && !simpleType.hasSignedSpecifier()
+            && !simpleType.hasUnsignedSpecifier()) {
           CExpression rightHandSide = statement.getRightHandSide();
           CExpression castedRightHandSide =
               new CCastExpression(rightHandSide.getFileLocation(), canonicalType, rightHandSide);

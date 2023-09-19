@@ -157,8 +157,7 @@ public class DistributedSummaryAnalysis implements Algorithm {
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
               cfa,
-              new InMemoryBlockSummaryConnectionProvider(
-                  () -> new BlockSummarySortedMessageQueue()),
+              new InMemoryBlockSummaryConnectionProvider(BlockSummarySortedMessageQueue::new),
               specification,
               configuration,
               shutdownManager);

@@ -148,12 +148,7 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof PersistentSet)) {
-      return false;
-    }
-    @SuppressWarnings("unchecked")
-    PersistentSet<K> other = (PersistentSet<K>) o;
-    return delegate.equals(other.delegate);
+    return o instanceof PersistentSet<?> other && delegate.equals(other.delegate);
   }
 
   @Override

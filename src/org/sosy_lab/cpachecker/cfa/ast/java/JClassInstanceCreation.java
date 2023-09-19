@@ -83,10 +83,6 @@ public sealed class JClassInstanceCreation extends JMethodInvocationExpression
       return true;
     }
 
-    if (!(obj instanceof JClassInstanceCreation)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JClassInstanceCreation && super.equals(obj);
   }
 }

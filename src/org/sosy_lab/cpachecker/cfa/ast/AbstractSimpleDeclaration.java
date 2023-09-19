@@ -87,13 +87,9 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode
       return true;
     }
 
-    if (!(obj instanceof AbstractSimpleDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    AbstractSimpleDeclaration other = (AbstractSimpleDeclaration) obj;
-
-    return Objects.equals(other.getType(), getType())
+    return obj instanceof AbstractSimpleDeclaration other
+        && super.equals(obj)
+        && Objects.equals(other.getType(), getType())
         && Objects.equals(other.name, name)
         && Objects.equals(other.origName, origName);
   }

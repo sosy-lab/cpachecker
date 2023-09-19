@@ -96,13 +96,9 @@ public final class CComplexCastExpression extends AbstractExpression implements 
       return true;
     }
 
-    if (!(obj instanceof CComplexCastExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    CComplexCastExpression other = (CComplexCastExpression) obj;
-
-    return Objects.equals(other.operand, operand)
+    return obj instanceof CComplexCastExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand, operand)
         && Objects.equals(other.type, type)
         && other.isReal == isReal;
   }

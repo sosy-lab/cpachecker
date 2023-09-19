@@ -153,12 +153,8 @@ public class OctagonState implements AbstractState {
   @Override
   public boolean equals(Object pObj) {
     // TODO loopstack
-    if (!(pObj instanceof OctagonState)) {
-      return false;
-    }
-    OctagonState otherOct = (OctagonState) pObj;
-
-    return isLoopHead == otherOct.isLoopHead
+    return pObj instanceof OctagonState otherOct
+        && isLoopHead == otherOct.isLoopHead
         && Objects.equals(variableToIndexMap, otherOct.variableToIndexMap)
         && octagon.equals(otherOct.octagon);
   }

@@ -308,12 +308,8 @@ public class TargetFunctionsProvider {
     }
 
     // If both types are pointers, check if the inner types are compatible
-    if ((declaredType instanceof CPointerType declaredPointerType
+    return (declaredType instanceof CPointerType declaredPointerType
             && actualType instanceof CPointerType actualPointerType)
-        && isCompatibleType(declaredPointerType.getType(), actualPointerType.getType())) {
-      return true;
-    }
-
-    return false;
+        && isCompatibleType(declaredPointerType.getType(), actualPointerType.getType());
   }
 }

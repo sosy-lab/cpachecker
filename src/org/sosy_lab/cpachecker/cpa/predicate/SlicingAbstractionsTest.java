@@ -74,29 +74,29 @@ public class SlicingAbstractionsTest {
     File taskfolder = new File(TEST_DIR_PATH);
     List<Object> files =
         FluentIterable.from(taskfolder.listFiles())
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .filter(x -> ((String) x).contains("unreach"))
             .toList();
     List<Object> overflowFiles =
         FluentIterable.from(taskfolder.listFiles())
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .filter(x -> ((String) x).contains("overflow"))
             .toList();
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
         FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isConfig))
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .toList();
 
     List<Object> slabConfigs =
         FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isSlabConfig))
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .toList();
 
     List<Object> overflowConfigs =
         FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isOverflowConfig))
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .toList();
 
     List<Object> solverModes = ImmutableList.of(EMPTY_OPTIONS, LINEAR_OPTIONS);
@@ -108,8 +108,8 @@ public class SlicingAbstractionsTest {
     FluentIterable<Object[]> firstIterable =
         FluentIterable.from(
                 Lists.cartesianProduct(files, configs, solverModes, optimizeModes, minimalModes))
-            .transform(x -> repack(x))
-            .filter(x -> filter(x));
+            .transform(SlicingAbstractionsTest::repack)
+            .filter(SlicingAbstractionsTest::filter);
 
     FluentIterable<Object[]> secondIterable =
         FluentIterable.from(Lists.cartesianProduct(files, slabConfigs))
@@ -163,10 +163,10 @@ public class SlicingAbstractionsTest {
 
     // result[3] will contain a suitable name for the test to display
     String modeString =
-        ((String) x.get(1)).replace("predicateAnalysis-", "").replace(".properties", "");
-    modeString += (solverMode == EMPTY_OPTIONS) ? "-bitvector" : "-linear";
-    modeString += (optimizeMode == EMPTY_OPTIONS) ? "-optimized" : "-unoptimized";
-    modeString += (minimalMode == EMPTY_OPTIONS) ? "-maximal" : "-minimal";
+        ((String) x.get(1)).replace("predicateAnalysis-", "").replace(".properties", "")
+            + (solverMode == EMPTY_OPTIONS ? "-bitvector" : "-linear")
+            + (optimizeMode == EMPTY_OPTIONS ? "-optimized" : "-unoptimized")
+            + (minimalMode == EMPTY_OPTIONS ? "-maximal" : "-minimal");
     result[3] = modeString;
 
     return result;

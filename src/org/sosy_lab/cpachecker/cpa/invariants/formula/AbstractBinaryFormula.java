@@ -53,27 +53,27 @@ abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormula<Const
   @Override
   @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
   public final boolean equals(Object o) {
-    if (o == null) {
-      return false;
-    }
     if (this == o) {
       return true;
     }
-    if (this.getClass().equals(o.getClass())) { // equality for subclasses
-      AbstractBinaryFormula<?> other = (AbstractBinaryFormula<?>) o;
-      if (!getTypeInfo().equals(other.getTypeInfo())) {
-        return false;
-      }
-      if (operator.equals(other.operator) && isCommutative == other.isCommutative) {
-        if (isCommutative) {
-          return (getOperand1().equals(other.getOperand1())
-                  && getOperand2().equals(other.getOperand2()))
-              || (getOperand1().equals(other.getOperand2())
-                  && getOperand2().equals(other.getOperand1()));
-        } else {
-          return getOperand1().equals(other.getOperand1())
-              && getOperand2().equals(other.getOperand2());
-        }
+    // equality for subclasses
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    AbstractBinaryFormula<?> other = (AbstractBinaryFormula<?>) o;
+
+    if (getTypeInfo().equals(other.getTypeInfo())
+        && operator.equals(other.operator)
+        && isCommutative == other.isCommutative) {
+
+      if (isCommutative) {
+        return (getOperand1().equals(other.getOperand1())
+                && getOperand2().equals(other.getOperand2()))
+            || (getOperand1().equals(other.getOperand2())
+                && getOperand2().equals(other.getOperand1()));
+      } else {
+        return getOperand1().equals(other.getOperand1())
+            && getOperand2().equals(other.getOperand2());
       }
     }
     return false;

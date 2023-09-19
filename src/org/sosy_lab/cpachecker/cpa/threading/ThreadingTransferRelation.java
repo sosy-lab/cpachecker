@@ -169,7 +169,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     ThreadingState threadingState = exitThreads(state);
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
-    if (null == activeThread) {
+    if (activeThread == null) {
       return ImmutableSet.of();
     }
 
@@ -503,7 +503,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
       ThreadingState newThreadingState = addNewThread(ts, threadId, newThreadNum, functionName);
-      if (null != newThreadingState) {
+      if (newThreadingState != null) {
         // create a function call for the thread creation
         CFunctionCallEdge functionCall =
             createThreadEntryFunctionCall(

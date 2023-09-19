@@ -264,10 +264,9 @@ public final class LoopStructure implements Serializable {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Loop other) {
-        return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
-      }
-      return false;
+      return pObj instanceof Loop other
+          && loopHeads.equals(other.loopHeads)
+          && nodes.equals(other.nodes);
     }
 
     @Override
@@ -385,12 +384,10 @@ public final class LoopStructure implements Serializable {
         && (stmtEdge.getStatement() instanceof CAssignment)) {
       CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
-      if (assign.getLeftHandSide() instanceof CIdExpression) {
-        CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+      if (assign.getLeftHandSide() instanceof CIdExpression assignementToId) {
         String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
-        if (assign.getRightHandSide() instanceof CBinaryExpression) {
-          CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+        if (assign.getRightHandSide() instanceof CBinaryExpression binExpr) {
           BinaryOperator op = binExpr.getOperator();
 
           if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {

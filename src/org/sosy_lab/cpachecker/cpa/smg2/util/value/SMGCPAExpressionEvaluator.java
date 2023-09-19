@@ -962,10 +962,8 @@ public class SMGCPAExpressionEvaluator {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CElaboratedType type) {
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-    return false;
+    return rValueType instanceof CElaboratedType type
+        && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
   }
 
   /**
@@ -1261,12 +1259,9 @@ public class SMGCPAExpressionEvaluator {
    * @param value {@link Value} to be checked.
    */
   public static boolean valueIsAddressExprOrVariableOffset(@Nullable Value value) {
-    if (value == null) {
-      return false;
-    }
     return value instanceof AddressExpression
-        || ((value instanceof SymbolicIdentifier)
-            && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent());
+        || (value instanceof SymbolicIdentifier identifier
+            && identifier.getRepresentedLocation().isPresent());
   }
 
   // Get canonical type information
@@ -1916,7 +1911,7 @@ public class SMGCPAExpressionEvaluator {
    * else
    *  - create char array from string and call list init for given memory
    */
-  private List<SMGState> handleStringInitializer(
+  public List<SMGState> handleStringInitializer(
       SMGState pState,
       CVariableDeclaration pVarDecl,
       CFAEdge pEdge,

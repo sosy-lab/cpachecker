@@ -52,11 +52,9 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof And) {
-      And<?> other = (And<?>) pObj;
-      return hashCode == other.hashCode && operands.equals(other.operands);
-    }
-    return false;
+    return pObj instanceof And<?> other
+        && hashCode == other.hashCode
+        && operands.equals(other.operands);
   }
 
   public static <LeafType> ExpressionTree<LeafType> of(

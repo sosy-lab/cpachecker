@@ -58,7 +58,7 @@ public final class ACSLAssertion implements ACSLAnnotation {
     if (!enclosingBehaviors.isEmpty()) {
       builder.append("for ");
       Joiner.on(", ")
-          .appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
+          .appendTo(builder, enclosingBehaviors.stream().map(Behavior::getName).iterator());
       builder.append(": ");
     }
     return builder.toString() + kind + ' ' + predicate + ';';

@@ -53,10 +53,10 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class ConstraintsSolver {
 
   @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
-  private boolean cacheSubsets = true;
+  private boolean cacheSubsets = false;
 
   @Option(secure = true, description = "Whether to use superset caching", name = "cacheSupersets")
-  private boolean cacheSupersets = true;
+  private boolean cacheSupersets = false;
 
   @Option(
       secure = true,

@@ -108,16 +108,13 @@ public class CallstackState
   }
 
   public boolean sameStateInProofChecking(CallstackState pOther) {
-    if (pOther.callerNode.equals(callerNode)
+    return pOther.callerNode.equals(callerNode)
         && pOther.depth == depth
         && pOther.currentFunction.equals(currentFunction)
         && (pOther.previousState == previousState
             || (previousState != null
                 && pOther.previousState != null
-                && previousState.sameStateInProofChecking(pOther.previousState)))) {
-      return true;
-    }
-    return false;
+                && previousState.sameStateInProofChecking(pOther.previousState)));
   }
 
   @Override
@@ -137,7 +134,7 @@ public class CallstackState
 
     throw new InvalidQueryException(
         String.format(
-            "Evaluating %s not supported by %s", pProperty, this.getClass().getCanonicalName()));
+            "Evaluating %s not supported by %s", pProperty, getClass().getCanonicalName()));
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {

@@ -52,10 +52,6 @@ public final class JIntegerLiteralExpression extends AIntegerLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof JIntegerLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JIntegerLiteralExpression && super.equals(obj);
   }
 }

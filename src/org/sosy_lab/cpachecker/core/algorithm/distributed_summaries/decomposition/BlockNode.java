@@ -170,11 +170,7 @@ public class BlockNode {
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof BlockNode)) {
-      return false;
-    }
-    BlockNode blockNode = (BlockNode) pO;
-    return getId().equals(blockNode.getId());
+    return pO instanceof BlockNode blockNode && getId().equals(blockNode.getId());
   }
 
   @Override
@@ -262,11 +258,8 @@ public class BlockNode {
 
     @Override
     public boolean equals(Object pO) {
-      if (!(pO instanceof BlockNodeMetaData)) {
-        return false;
-      }
-      BlockNodeMetaData that = (BlockNodeMetaData) pO;
-      return Objects.equals(id, that.id)
+      return pO instanceof BlockNodeMetaData that
+          && Objects.equals(id, that.id)
           && Objects.equals(startNode, that.startNode)
           && Objects.equals(lastNode, that.lastNode)
           && Objects.equals(nodesInBlock, that.nodesInBlock)

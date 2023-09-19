@@ -286,6 +286,9 @@ class ASTConverter {
             // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/Microsoft-Windows-Function-Attributes.html
             .put("dllexport", Optional.empty())
             .put("dllimport", Optional.empty())
+            // This attribute is only available in the OpenBSD fork of GCC. See
+            // https://man.openbsd.org/gcc-local.1
+            .put("bounded", Optional.empty())
             .buildOrThrow();
   }
 
@@ -692,10 +695,12 @@ class ASTConverter {
       resultType = ((CArrayType) resultType).getType();
     } else if (resultType instanceof CPointerType) {
       resultType = ((CPointerType) resultType).getType();
-    } else {
+    } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
       resultType = typeConverter.convert(e.getExpressionType());
+    } else {
+      throw parseContext.parseError("Array subscript for non-array type " + resultType, e);
     }
 
     return new CArraySubscriptExpression(getLocation(e), resultType, arrayExpr, subscriptExpr);
@@ -2402,7 +2407,9 @@ class ASTConverter {
    * @return The actual type of the declaration.
    */
   private CSimpleType handleModeAttribute(CSimpleType type, String mode, IASTNode context) {
-    if (type.getType() != CBasicType.INT || type.isComplex() || type.isImaginary()) {
+    if (type.getType() != CBasicType.INT
+        || type.hasComplexSpecifier()
+        || type.hasImaginarySpecifier()) {
       throw parseContext.parseError("Mode attribute unsupported for type " + type, context);
     }
 
@@ -2442,13 +2449,13 @@ class ASTConverter {
         type.isConst(),
         type.isVolatile(),
         newType.getType(),
-        newType.isLong(),
-        newType.isShort(),
-        type.isSigned(),
-        type.isUnsigned(),
+        newType.hasLongSpecifier(),
+        newType.hasShortSpecifier(),
+        type.hasSignedSpecifier(),
+        type.hasUnsignedSpecifier(),
         false, // checked above
         false, // checked above
-        newType.isLongLong());
+        newType.hasLongLongSpecifier());
   }
 
   private CType convert(IASTArrayModifier am, CType type) {
@@ -2480,13 +2487,13 @@ class ASTConverter {
               t.isConst(),
               t.isVolatile(),
               CBasicType.INT,
-              t.isLong(),
-              t.isShort(),
-              t.isSigned(),
-              t.isUnsigned(),
-              t.isComplex(),
-              t.isImaginary(),
-              t.isLongLong());
+              t.hasLongSpecifier(),
+              t.hasShortSpecifier(),
+              t.hasSignedSpecifier(),
+              t.hasUnsignedSpecifier(),
+              t.hasComplexSpecifier(),
+              t.hasImaginarySpecifier(),
+              t.hasLongLongSpecifier());
     }
 
     // handle parameters

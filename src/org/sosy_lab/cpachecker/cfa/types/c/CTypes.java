@@ -43,7 +43,7 @@ public final class CTypes {
         // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer
         // type"
         || (type instanceof CBitFieldType)
-        || (type instanceof CSimpleType && !((CSimpleType) type).isComplex());
+        || (type instanceof CSimpleType && !((CSimpleType) type).hasComplexSpecifier());
   }
 
   /**
@@ -57,19 +57,6 @@ public final class CTypes {
         // type"
         || (type instanceof CBitFieldType)
         || (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType());
-  }
-
-  /**
-   * Check whether a given type is a signed integer type according to the C standard § 6.2.5 (4).
-   * Also returns true for all qualified versions of signed integer types.
-   */
-  public static boolean isSignedIntegerType(CType type) {
-    type = type.getCanonicalType();
-    // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
-    return (type instanceof CBitFieldType && isSignedIntegerType(((CBitFieldType) type).getType()))
-        || (type instanceof CSimpleType
-            && ((CSimpleType) type).getType().isIntegerType()
-            && ((CSimpleType) type).isSigned());
   }
 
   /**
@@ -476,13 +463,13 @@ public final class CTypes {
           constValue,
           t.isVolatile(),
           t.getType(),
-          t.isLong(),
-          t.isShort(),
-          t.isSigned(),
-          t.isUnsigned(),
-          t.isComplex(),
-          t.isImaginary(),
-          t.isLongLong());
+          t.hasLongSpecifier(),
+          t.hasShortSpecifier(),
+          t.hasSignedSpecifier(),
+          t.hasUnsignedSpecifier(),
+          t.hasComplexSpecifier(),
+          t.hasImaginarySpecifier(),
+          t.hasLongLongSpecifier());
     }
 
     @Override
@@ -564,13 +551,13 @@ public final class CTypes {
           t.isConst(),
           volatileValue,
           t.getType(),
-          t.isLong(),
-          t.isShort(),
-          t.isSigned(),
-          t.isUnsigned(),
-          t.isComplex(),
-          t.isImaginary(),
-          t.isLongLong());
+          t.hasLongSpecifier(),
+          t.hasShortSpecifier(),
+          t.hasSignedSpecifier(),
+          t.hasUnsignedSpecifier(),
+          t.hasComplexSpecifier(),
+          t.hasImaginarySpecifier(),
+          t.hasLongLongSpecifier());
     }
 
     @Override

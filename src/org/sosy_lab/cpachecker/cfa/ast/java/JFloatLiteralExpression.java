@@ -47,10 +47,6 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof JFloatLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JFloatLiteralExpression && super.equals(obj);
   }
 }

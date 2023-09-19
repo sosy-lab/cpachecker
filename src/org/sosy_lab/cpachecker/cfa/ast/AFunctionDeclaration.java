@@ -54,12 +54,8 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
       return true;
     }
 
-    if (!(obj instanceof AFunctionDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    AFunctionDeclaration other = (AFunctionDeclaration) obj;
-
-    return Objects.equals(other.parameters, parameters);
+    return obj instanceof AFunctionDeclaration other
+        && super.equals(obj)
+        && Objects.equals(other.parameters, parameters);
   }
 }

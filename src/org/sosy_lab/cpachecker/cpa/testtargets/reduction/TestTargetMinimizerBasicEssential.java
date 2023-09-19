@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.testtargets;
+package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/** Only use rule 1 and 2 */
 public class TestTargetMinimizerBasicEssential {
 
   public Set<CFAEdge> reduceTargets(final Set<CFAEdge> testTargets) {

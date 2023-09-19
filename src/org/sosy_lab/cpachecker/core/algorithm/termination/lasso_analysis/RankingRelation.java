@@ -144,12 +144,8 @@ public class RankingRelation {
     if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof RankingRelation)) {
-      return false;
-    }
-
-    RankingRelation that = (RankingRelation) pObj;
-    return rankingRelationFormulas.equals(that.rankingRelationFormulas);
+    return pObj instanceof RankingRelation that
+        && rankingRelationFormulas.equals(that.rankingRelationFormulas);
   }
 
   @Override

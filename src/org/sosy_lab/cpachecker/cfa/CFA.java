@@ -53,7 +53,7 @@ public interface CFA extends CfaNetwork {
   }
 
   default Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    return getLoopStructure().map(loopStructure -> loopStructure.getAllLoopHeads());
+    return getLoopStructure().map(LoopStructure::getAllLoopHeads);
   }
 
   default Optional<VariableClassification> getVarClassification() {

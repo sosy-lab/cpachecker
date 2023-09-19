@@ -149,6 +149,37 @@ public class SMGOptions {
       description = "Enable track predicates on SMG state")
   private boolean trackPredicates = false;
 
+  private enum CheckStrategy {
+    AT_ASSUME,
+    AT_TARGET
+  }
+
+  @Option(
+      name = "satCheckStrategy",
+      description = "When to check the satisfiability of constraints")
+  private CheckStrategy satCheckStrategy = CheckStrategy.AT_ASSUME;
+
+  @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
+  private boolean cacheSubsets = false;
+
+  @Option(secure = true, description = "Whether to use superset caching", name = "cacheSupersets")
+  private boolean cacheSupersets = false;
+
+  @Option(
+      secure = true,
+      description = "Whether to perform SAT checks only for the last added constraint",
+      name = "minimalSatCheck")
+  private boolean performMinimalSatCheck = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to perform caching of constraint satisfiability results",
+      name = "cache")
+  private boolean doCaching = true;
+
+  @Option(secure = true, description = "Resolve definite assignments", name = "resolveDefinites")
+  private boolean resolveDefinites = true;
+
   @Option(
       secure = true,
       name = "trackErrorPredicates",
@@ -225,7 +256,7 @@ public class SMGOptions {
       name = "joinOnBlockEnd",
       description =
           "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
-  private boolean joinOnBlockEnd = true;
+  private boolean joinOnBlockEnd = false;
 
   @Option(
       secure = true,
@@ -257,7 +288,20 @@ public class SMGOptions {
       description =
           "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
               + "unknown memory sizes does not abort, but also does not create any memory.")
-  private boolean ignoreUnknownMemoryAllocation = false;
+  private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
+      UnknownMemoryAllocationHandling.IGNORE;
+
+  /*
+   * Ignore: ignore allocation call and overapproximate.
+   * Memory_error: same as ignore but with an added memory error. (Needed in CEGAR, as else we
+   * would never learn that the allocation size and or other variables are important.)
+   * Stop_analysis: stops the analysis, returning unknown.
+   */
+  public enum UnknownMemoryAllocationHandling {
+    IGNORE,
+    MEMORY_ERROR,
+    STOP_ANALYSIS
+  }
 
   @Option(
       secure = true,
@@ -278,8 +322,22 @@ public class SMGOptions {
     config.inject(this);
   }
 
+  private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
+    return handleUnknownMemoryAllocation;
+  }
+
   public boolean isIgnoreUnknownMemoryAllocation() {
-    return ignoreUnknownMemoryAllocation;
+    return getIgnoreUnknownMemoryAllocationSetting() == UnknownMemoryAllocationHandling.IGNORE;
+  }
+
+  public boolean isErrorOnUnknownMemoryAllocation() {
+    return getIgnoreUnknownMemoryAllocationSetting()
+        == UnknownMemoryAllocationHandling.MEMORY_ERROR;
+  }
+
+  public boolean isStopAnalysisOnUnknownMemoryAllocation() {
+    return getIgnoreUnknownMemoryAllocationSetting()
+        == UnknownMemoryAllocationHandling.STOP_ANALYSIS;
   }
 
   public boolean isMallocZeroReturnsZero() {
@@ -424,5 +482,29 @@ public class SMGOptions {
 
   boolean isAssignSymbolicValues() {
     return assignSymbolicValues;
+  }
+
+  public boolean isSatCheckStrategyAtAssume() {
+    return satCheckStrategy == CheckStrategy.AT_ASSUME;
+  }
+
+  public boolean isDoConstraintCaching() {
+    return doCaching;
+  }
+
+  public boolean isUseConstraintCacheSupersets() {
+    return cacheSupersets;
+  }
+
+  public boolean isUseConstraintCacheSubsets() {
+    return cacheSubsets;
+  }
+
+  public boolean isPerformMinimalConstraintSatCheck() {
+    return performMinimalSatCheck;
+  }
+
+  public boolean isResolveDefinites() {
+    return resolveDefinites;
   }
 }

@@ -301,9 +301,8 @@ public class InterpolationAutomaton {
 
     List<AutomatonTransition> buildInternalTransitions() {
       Stream<AutomatonBoolExpr> stream =
-          boolExpressions.stream().map(x -> new AutomatonBoolExpr.Negation(x));
-      Optional<AutomatonBoolExpr> boolExprOpt =
-          stream.reduce((x, y) -> new AutomatonBoolExpr.And(x, y));
+          boolExpressions.stream().map(AutomatonBoolExpr.Negation::new);
+      Optional<AutomatonBoolExpr> boolExprOpt = stream.reduce(AutomatonBoolExpr.And::new);
       verify(boolExprOpt.isPresent());
       AutomatonTransition transition =
           new AutomatonTransition.Builder(boolExprOpt.orElseThrow(), stateName).build();

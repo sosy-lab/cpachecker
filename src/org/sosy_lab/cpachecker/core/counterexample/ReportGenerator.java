@@ -270,7 +270,7 @@ public class ReportGenerator {
         Writer writer = IO.openOutputFile(reportPath, StandardCharsets.UTF_8)) {
 
       String line;
-      while (null != (line = reader.readLine())) {
+      while ((line = reader.readLine()) != null) {
         if (line.contains("CONFIGURATION")) {
           insertConfiguration(writer);
         } else if (line.contains("REPORT_CSS")) {
@@ -305,7 +305,7 @@ public class ReportGenerator {
         Resources.asCharSource(Resources.getResource(getClass(), file), StandardCharsets.UTF_8)
             .openBufferedStream(); ) {
       String line;
-      while (null != (line = reader.readLine())) {
+      while ((line = reader.readLine()) != null) {
         writer.write(line);
         writer.write('\n');
       }
@@ -454,10 +454,11 @@ public class ReportGenerator {
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int counter = 0;
     String insertTableLine =
-        "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\""
-            + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
-            + " scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th><th"
-            + " scope=\"col\">Additional Value</th></tr></thead><tbody>\n";
+        "<table ng-non-bindable id=\"statistics_table\" class=\"display\""
+            + " style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead"
+            + " class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th"
+            + " scope=\"col\">Statistics Value</th><th scope=\"col\">Additional"
+            + " Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
       if (!line.contains(":") && !line.trim().isEmpty() && !line.contains("----------")) {
@@ -529,9 +530,9 @@ public class ReportGenerator {
         writer.write(
             "<div id=\"source-file\" class=\"sourceContent\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
-                + ")\">\n<table>\n");
+                + ")\">\n<table ng-non-bindable>\n");
         String line;
-        while (null != (line = source.readLine())) {
+        while ((line = source.readLine()) != null) {
           line = "<td><pre class=\"prettyprint\">" + htmlEscaper().escape(line) + "  </pre></td>";
           writer.write(
               "<tr id=\"source-"
@@ -554,8 +555,8 @@ public class ReportGenerator {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
     int iterator = 0;
     String insertTableLine =
-        "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\""
-            + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+        "<table ng-non-bindable id=\"config_table\" class=\"display\" style=\"width:100%;padding:"
+            + " 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
             + " scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th"
             + " scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
@@ -588,8 +589,8 @@ public class ReportGenerator {
       final Splitter logDateSplitter = Splitter.on(' ').limit(2);
 
       String insertTableLine =
-          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\""
-              + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+          "<table ng-non-bindable id=\"log_table\" class=\"display\" style=\"width:100%;padding:"
+              + " 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
               + " scope=\"col\">Date</th><th scope=\"col\">Time</th><th scope=\"col\">Level</th><th"
               + " scope=\"col\">Component</th><th scope=\"col\">Message</th></tr></thead><tbody>\n";
       writer.write(insertTableLine);
@@ -660,7 +661,7 @@ public class ReportGenerator {
     return FluentIterable.concat(
             Collections2.transform(sourceFiles, Path::of),
             Collections2.transform(allLocations, FileLocation::getFileName))
-        .filter(path -> Files.isReadable(path))
+        .filter(Files::isReadable)
         .filter(path -> !Files.isDirectory(path))
         .toSet();
   }

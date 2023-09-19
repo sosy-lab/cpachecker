@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
@@ -20,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -31,9 +34,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -49,12 +57,14 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInvariantsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
 
 /**
  * This class extracts invariants from the correctness witness automaton. Calling {@link
@@ -83,6 +93,12 @@ public class WitnessInvariantsExtractor {
               + " be used to debug those cases.")
   private boolean checkForMissedInvariants = false;
 
+  // Check whether the witness is a YAML witness or not. Because we need to interpret them
+  // differently
+  private boolean isYAMLWitness = false;
+  private Optional<Set<ExpressionTreeLocationInvariant>> potentialCandidatesYAMLWitness =
+      Optional.empty();
+
   /**
    * Creates an instance of {@link WitnessInvariantsExtractor} and uses {@code pSpecification} and
    * {@code pPathToWitnessFile} to build the witness automaton so this automaton can be applied as
@@ -108,8 +124,13 @@ public class WitnessInvariantsExtractor {
     logger = pLogger;
     cfa = pCFA;
     shutdownNotifier = pShutdownNotifier;
-    automatonAsSpec = buildSpecification(pPathToWitnessFile);
-    analyzeWitness();
+    isYAMLWitness = AutomatonYAMLParser.isYAMLWitness(pPathToWitnessFile);
+    if (isYAMLWitness) {
+      potentialCandidatesYAMLWitness = analyzeYAMLWitness(pPathToWitnessFile);
+    } else {
+      automatonAsSpec = buildSpecification(pPathToWitnessFile);
+      analyzeWitness();
+    }
   }
 
   /**
@@ -187,6 +208,74 @@ public class WitnessInvariantsExtractor {
     }
   }
 
+  private Optional<Set<ExpressionTreeLocationInvariant>> analyzeYAMLWitness(Path pPathToWitnessFile)
+      throws InvalidConfigurationException, InterruptedException {
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
+    AutomatonYAMLParser automatonYAMLParser =
+        new AutomatonYAMLParser(config, logger, shutdownNotifier, cfa, scope);
+
+    Set<Invariant> invariants = automatonYAMLParser.generateInvariants(pPathToWitnessFile);
+    Set<ExpressionTreeLocationInvariant> candidateInvariants = new HashSet<>();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
+
+    // Match the invariants with their corresponding CFA Nodes
+    // The semantics are when an edge enters a node and the lines present on that
+    // edge match the lines present in the invariant, then the invariant is a
+    // candidate for the node
+    Optional<ImmutableSet<CFANode>> loopHeads = cfa.getAllLoopHeads();
+    for (Invariant invariant : invariants) {
+      // For efficiency purposes, we match loop invariants differently to location invariants
+      ImmutableSet<CFANode> candidateNodes;
+      if (invariant.isLoopInvariant() && loopHeads.isPresent()) {
+        candidateNodes = loopHeads.orElseThrow();
+      } else {
+        candidateNodes = (ImmutableSet<CFANode>) cfa.nodes();
+      }
+
+      // Transverse all candidate nodes and match for which the invariant should be valid
+      for (CFANode node : candidateNodes) {
+        FluentIterable<CFAEdge> edges;
+        if (invariant.isLoopInvariant()) {
+          // For loops the leaving edges encompass the loop conditions and are matched to the loop
+          // line
+          edges = CFAUtils.leavingEdges(node);
+        } else {
+          edges = CFAUtils.enteringEdges(node);
+        }
+
+        for (CFAEdge e : edges) {
+          if (e.getFileLocation().getEndingLineInOrigin()
+                  == invariant.getLocation().getEndingLineInOrigin()
+              && e.getFileLocation().getStartingLineInOrigin()
+                  == invariant.getLocation().getStartingLineInOrigin()
+              && (e.getFileLocation().isOffsetRelatedToOrigin()
+                  ? e.getFileLocation().getNodeOffset() == invariant.getLocation().getNodeOffset()
+                  : true)) {
+            if (e instanceof FunctionCallEdge) {
+              node = e.getPredecessor();
+            }
+            candidateInvariants.add(
+                new ExpressionTreeLocationInvariant(
+                    "Invariant matched at line "
+                        + invariant.getLocation().getStartingLineInOrigin()
+                        + " with Offset "
+                        + invariant.getLocation().getNodeOffset(),
+                    node,
+                    invariant.getFormula(),
+                    toCodeVisitorCache));
+            break;
+          }
+        }
+      }
+    }
+
+    return Optional.of(candidateInvariants);
+  }
+
   /**
    * Extracts the invariants with their corresponding CFA location from {@link
    * WitnessInvariantsExtractor#reachedSet}. For two invariants at the same CFA location the
@@ -257,6 +346,10 @@ public class WitnessInvariantsExtractor {
       final Set<CandidateInvariant> pCandidates,
       final Multimap<String, CFANode> pCandidateGroupLocations)
       throws InterruptedException {
+    if (isYAMLWitness && potentialCandidatesYAMLWitness.isPresent()) {
+      pCandidates.addAll(potentialCandidatesYAMLWitness.orElseThrow());
+      return;
+    }
     Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = new HashSet<>();
     Map<String, ExpressionTree<AExpression>> expressionTrees = new HashMap<>();
     Set<CFANode> visited = new HashSet<>();
@@ -315,6 +408,11 @@ public class WitnessInvariantsExtractor {
         expressionTreeLocationInvariants) {
       for (CFANode location :
           pCandidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
+        if (isYAMLWitness
+            && CFAUtils.disjointFileLocations(
+                expressionTreeLocationInvariant.getLocation(), location)) {
+          continue;
+        }
         pCandidates.add(
             new ExpressionTreeLocationInvariant(
                 expressionTreeLocationInvariant.getGroupId(),

@@ -183,7 +183,7 @@ public class BDDVectorCExpressionVisitor
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).isUnsigned();
+      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
     }
 
     switch (op) {
@@ -228,7 +228,7 @@ public class BDDVectorCExpressionVisitor
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).isUnsigned();
+      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
     }
 
     switch (op) {
@@ -307,8 +307,7 @@ public class BDDVectorCExpressionVisitor
 
   @Override
   public Region[] visit(CIdExpression idExp) {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
     }
 
