@@ -64,11 +64,11 @@ public class ProgramCounterState
     if (this == pO) {
       return true;
     }
-    if (pO instanceof ProgramCounterState) {
-      ProgramCounterState other = (ProgramCounterState) pO;
-      return Objects.equals(values, other.values);
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
     }
-    return false;
+    ProgramCounterState other = (ProgramCounterState) pO;
+    return values.equals(other.values);
   }
 
   @Override
