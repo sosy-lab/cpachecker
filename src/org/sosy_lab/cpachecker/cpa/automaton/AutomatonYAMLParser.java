@@ -172,7 +172,7 @@ public class AutomatonYAMLParser {
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
         MoreFiles.asByteSource(pPath),
-        (x) -> {
+        x -> {
           try {
             AutomatonYAMLParser.parseYAML(x);
             return true;

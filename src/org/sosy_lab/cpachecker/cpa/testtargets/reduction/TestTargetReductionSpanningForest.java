@@ -73,7 +73,7 @@ public class TestTargetReductionSpanningForest {
     return new HashSet<>(
         FluentIterable.from(forestNodes)
             .filter(CFAEdgeNode::isRoot)
-            .transform(node -> node.getRepresentedEdge())
+            .transform(CFAEdgeNode::getRepresentedEdge)
             .toSet());
   }
 

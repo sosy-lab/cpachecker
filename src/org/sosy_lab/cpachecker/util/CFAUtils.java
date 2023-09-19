@@ -606,12 +606,12 @@ public class CFAUtils {
     Set<FileLocation> allFileLocationFirstNode =
         CFAUtils.allEnteringEdges(pNode1)
             .append(CFAUtils.allLeavingEdges(pNode1))
-            .transform(e -> e.getFileLocation())
+            .transform(CFAEdge::getFileLocation)
             .toSet();
     Set<FileLocation> allFileLocationSecondtNode =
         CFAUtils.allEnteringEdges(pNode2)
             .append(CFAUtils.allLeavingEdges(pNode2))
-            .transform(e -> e.getFileLocation())
+            .transform(CFAEdge::getFileLocation)
             .toSet();
 
     for (FileLocation file1 : allFileLocationFirstNode) {

@@ -313,7 +313,7 @@ public final class TestTargetReductionUtils {
 
     public void removeDuplicateSuccessors() {
       List<CFAEdgeNode> orderedSuccessors = new ArrayList<>(successors);
-      Collections.sort(orderedSuccessors, Comparator.comparingInt(elem -> elem.hashCode()));
+      Collections.sort(orderedSuccessors, Comparator.comparingInt(CFAEdgeNode::hashCode));
       for (int i = 1; i < orderedSuccessors.size(); i++) {
         if (orderedSuccessors.get(i) == orderedSuccessors.get(i - 1)) {
           removeEdgeTo(orderedSuccessors.get(i));

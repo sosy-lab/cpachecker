@@ -90,7 +90,7 @@ sealed interface VariableOrField {
         "Tried to match " + getClass().getName() + " with " + Variable.class.getName());
   }
 
-  public default Field asField() {
+  default Field asField() {
     throw new ClassCastException(
         "Tried to match " + getClass().getName() + " with " + Field.class.getName());
   }
