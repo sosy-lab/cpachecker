@@ -730,7 +730,7 @@ public class SMGTransferRelation
           for (SMGState stateWithConstraint : statesWithConstraints) {
             if (options.isSatCheckStrategyAtAssume()) {
               BooleanAndSMGState solverResult = solver.isUnsat(stateWithConstraint, functionName);
-              if (solverResult.getBoolean()) {
+              if (!solverResult.getBoolean()) {
                 resultStateBuilder.add(solverResult.getState());
               }
               // We might add/return nothing here if the check was UNSAT
