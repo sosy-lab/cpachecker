@@ -356,6 +356,9 @@ public class ExpressionTransformer
       final Value idValue = valueAndState.getValue();
       final SMGState stateAfterEval = valueAndState.getState();
 
+      // TODO: UNKNOWN is a VALID possibility here!
+      assert !idValue.isUnknown();
+
       // The vv takes care of the transformations for us
       builder.add(
           SymbolicExpressionAndSMGState.of(
