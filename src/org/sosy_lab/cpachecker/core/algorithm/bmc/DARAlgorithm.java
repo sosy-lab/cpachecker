@@ -71,6 +71,13 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 @Options(prefix = "dar")
 public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
+
+  private enum StrengtheningStatus {
+    FAILED,
+    SUCCEEDED,
+    SUCCEEDED_AND_COMPLETE
+  };
+
   @Option(
       secure = true,
       description = "toggle falling back if interpolation or forward-condition is disabled")
@@ -189,6 +196,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (findCexByBMC(pReachedSet) || !adjustConditions()) {
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
+      // Check if interpolation or forward-condition check is applicable
       adjustConfigsAccordingToARG(pReachedSet);
       // Forward-condition check
       if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
@@ -201,15 +209,17 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     dualSequence.initializeSequences(partitionedFormulas);
     // DAR, from the second iteration, when all of the formulas are collected
     while (!checkFixedPoint(dualSequence)) {
+      // Check if interpolation or forward-condition check is applicable
       adjustConfigsAccordingToARG(pReachedSet);
       // Forward-condition check
       if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
       shutdownNotifier.shutdownIfNecessary();
-      // Check if interpolation or forward-condition check is applicable
-      if (performLocalStrengthening(dualSequence, partitionedFormulas)) {
-        if (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
+      if (performLocalStrengthening(dualSequence, partitionedFormulas)
+          == StrengtheningStatus.FAILED) {
+        if (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)
+            == StrengtheningStatus.FAILED) {
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
       }
@@ -242,10 +252,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /**
    * Checks local safety of the sequences. Further, it extends them by new overapproximating
-   * formulas. If local phase confirmed the program is safe at bound n, it returns false, otherwise,
-   * it returns true.
+   * formulas.
+   *
+   * @return {@link StrengtheningStatus#SUCCEEDED} if local phase confirmed the program is safe at
+   *     bound n; {@link StrengtheningStatus#FAILED} otherwise.
    */
-  private boolean performLocalStrengthening(
+  private StrengtheningStatus performLocalStrengthening(
       DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
       throws CPAException, SolverException, InterruptedException {
     stats.numOfDARLocalPhases += 1;
@@ -254,21 +266,24 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         findIndexOfUnsatisfiableLocalCheck(pDualSequence, pPartitionedFormulas);
     if (indexOfLocalContradiction == -1) {
       // No local strengthening point was found, switch to Global phase
-      return true;
+      return StrengtheningStatus.FAILED;
     } else {
       // Local strengthening point was found, propagate the reason for contradiction to the end
       // of sequences.
       iterativeLocalStrengthening(pDualSequence, pPartitionedFormulas, indexOfLocalContradiction);
     }
-    return false;
+    return StrengtheningStatus.SUCCEEDED;
   }
 
   /**
    * Checks global safety of the sequences. Further, it extends them by new overapproximating
-   * formulas. If no violation point is found it returns true, i.e. there is a counterexample,
-   * otherwise it returns false, i.e. the program is safe at bound n.
+   * formulas.
+   *
+   * @return {@link StrengtheningStatus#SUCCEEDED} if a violation point is found, i.e. there is a
+   *     counterexample; {@link StrengtheningStatus#FAILED} otherwise, i.e. the program is safe at
+   *     bound n.
    */
-  private boolean performGlobalStrengthening(
+  private StrengtheningStatus performGlobalStrengthening(
       PartitionedFormulas pFormulas, DualReachabilitySequence pDualSequence, ReachedSet pReachedSet)
       throws CPAException, InterruptedException, SolverException {
     // Global phase of DAR
@@ -276,13 +291,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     int indexOfGlobalViolation = performGlobalCheck(pFormulas, pDualSequence, pReachedSet);
     if (indexOfGlobalViolation == -1) {
       // A counterexample was found
-      return true;
+      return StrengtheningStatus.FAILED;
     }
     List<BooleanFormula> itpSequence =
         getInterpolationSequence(pFormulas, pDualSequence, indexOfGlobalViolation);
     strengthenForwardVectorWithInterpolants(pDualSequence, itpSequence, pFormulas);
     iterativeLocalStrengthening(pDualSequence, pFormulas, itpSequence.size() - 1);
-    return false;
+    return StrengtheningStatus.FAILED;
   }
 
   /**
