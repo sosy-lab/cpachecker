@@ -77,7 +77,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     FAILED,
     SUCCEEDED,
     SUCCEEDED_AND_COMPLETE
-  };
+  }
 
   @Option(
       secure = true,
