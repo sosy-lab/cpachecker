@@ -211,6 +211,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             }
           }
         }
+      }
+      if (!abstractionDeadEnds.isEmpty()) {
         logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
       }
       CFA cfa = modification.cfa();

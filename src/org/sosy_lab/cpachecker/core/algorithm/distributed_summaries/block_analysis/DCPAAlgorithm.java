@@ -79,6 +79,8 @@ public class DCPAAlgorithm {
   private boolean alreadyReportedInfeasibility;
   private Precision blockStartPrecision;
 
+  private static final int FALLBACK_LIMIT = 0;
+
   public DCPAAlgorithm(
       LogManager pLogger,
       BlockNode pBlock,
@@ -221,12 +223,14 @@ public class DCPAAlgorithm {
           FluentIterable.from(blockEnds)
               .transformAndConcat(v -> ARGUtils.getAllPaths(reachedSet, v))
               .toSet();
-      if (pathsToViolations.size() > 5
+      if (pathsToViolations.size() > FALLBACK_LIMIT
           || block.getPredecessorIds().stream().anyMatch(id -> id.equals("root"))) {
         throw new CPAException(
             "Abstraction state did not contain a counterexample, fallback produced "
                 + pathsToViolations.size()
-                + " (exceeds the limit of 5) violations.");
+                + " violation(s) (exceeds the limit of "
+                + FALLBACK_LIMIT
+                + ").");
       }
     } else {
       pathsToViolations =
