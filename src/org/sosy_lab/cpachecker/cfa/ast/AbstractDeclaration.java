@@ -22,22 +22,30 @@ public abstract class AbstractDeclaration extends AbstractSimpleDeclaration
 
   private static final long serialVersionUID = 3218969369130423033L;
   private final boolean isGlobal;
+  private final Type type;
 
   protected AbstractDeclaration(
       FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName) {
-    super(pFileLocation, pType, pName, pName);
+    super(pFileLocation, pName, pName);
     isGlobal = pIsGlobal;
+    type = pType;
   }
 
   protected AbstractDeclaration(
       FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName) {
-    super(pFileLocation, pType, pName, pOrigName);
+    super(pFileLocation, pName, pOrigName);
     isGlobal = pIsGlobal;
+    type = pType;
   }
 
   @Override
   public boolean isGlobal() {
     return isGlobal;
+  }
+
+  @Override
+  public Type getType() {
+    return type;
   }
 
   @Override
@@ -51,12 +59,8 @@ public abstract class AbstractDeclaration extends AbstractSimpleDeclaration
       return true;
     }
 
-    if (!(obj instanceof AbstractDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    AbstractDeclaration other = (AbstractDeclaration) obj;
-
-    return other.isGlobal == isGlobal;
+    return obj instanceof AbstractDeclaration other
+        && super.equals(obj)
+        && other.isGlobal == isGlobal;
   }
 }

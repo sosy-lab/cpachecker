@@ -65,10 +65,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
       GlobalBnBRegion other = (GlobalBnBRegion) obj;
@@ -124,10 +121,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
       FieldBnBRegion other = (FieldBnBRegion) obj;

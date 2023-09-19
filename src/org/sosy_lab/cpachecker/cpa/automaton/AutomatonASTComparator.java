@@ -97,11 +97,13 @@ class AutomatonASTComparator {
   }
 
   /** The interface for a pre-compiled AST pattern. */
+  @FunctionalInterface
   interface ASTMatcher {
 
     boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs);
   }
 
+  @FunctionalInterface
   private interface CheckedASTMatcher<T extends CAstNode> {
 
     boolean matches(T pSource, AutomatonExpressionArguments pArg);
@@ -218,7 +220,7 @@ class AutomatonASTComparator {
       return createMatcher(
           CStringLiteralExpression.class,
           exp,
-          compareField(exp, CStringLiteralExpression::getValue));
+          compareField(exp, CStringLiteralExpression::getContentWithNullTerminator));
     }
 
     @Override

@@ -20,7 +20,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  *   return [ Expression ] ;
  * </pre>
  */
-public class JReturnStatement extends AbstractReturnStatement implements JAstNode {
+public sealed class JReturnStatement extends AbstractReturnStatement implements JAstNode
+    permits JObjectReferenceReturn {
 
   // TODO refactor to be either abstract or final
 
@@ -62,10 +63,6 @@ public class JReturnStatement extends AbstractReturnStatement implements JAstNod
       return true;
     }
 
-    if (!(obj instanceof JReturnStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JReturnStatement && super.equals(obj);
   }
 }

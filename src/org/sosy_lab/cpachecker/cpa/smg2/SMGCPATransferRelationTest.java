@@ -58,9 +58,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -93,13 +94,13 @@ public class SMGCPATransferRelationTest {
     INT_TYPE,
     UNSIGNED_INT_TYPE,
     LONG_TYPE,
-    UNSIGNED_LONG_TYPE
+    UNSIGNED_LONG_TYPE,
   };
 
   private static final MachineModel MACHINE_MODEL = MachineModel.LINUX64;
   // Pointer size for the machine model in bits
   private static final int POINTER_SIZE_IN_BITS =
-      MACHINE_MODEL.getSizeof(MACHINE_MODEL.getPointerEquivalentSimpleType()) * 8;
+      MACHINE_MODEL.getSizeof(MACHINE_MODEL.getPointerSizedIntType()) * 8;
 
   // Note: padding is on per default, meaning that the types get padding to align to their
   // "natural" memory offset. I.e. starting with a 2 byte type, then using a 4 byte type would
@@ -209,7 +210,7 @@ public class SMGCPATransferRelationTest {
     SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
     // SMG sizes are in bits! Also since this is a struct, padding has to be taken into account.
     BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
-    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       BigInteger offsetInBits =
           MACHINE_MODEL.getFieldOffsetInBits(
@@ -269,7 +270,7 @@ public class SMGCPATransferRelationTest {
     SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
     // SMG sizes are in bits! Also since this is a struct, padding has to be taken into account.
     BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
-    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       BigInteger offsetInBits =
           MACHINE_MODEL.getFieldOffsetInBits(
@@ -284,7 +285,13 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger().intValueExact())
+      assertThat(
+              readValueAndState
+                  .get(0)
+                  .getValue()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .intValueExact())
           .isEqualTo(i + 1);
     }
   }
@@ -331,7 +338,7 @@ public class SMGCPATransferRelationTest {
     SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
     // SMG sizes are in bits! Also since this is a struct, padding has to be taken into account.
     BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
-    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
     // Reading is a little more tricky since this is a struct with nested structures
     // We start with the simple types
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
@@ -454,7 +461,7 @@ public class SMGCPATransferRelationTest {
     SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
     // SMG sizes are in bits! Also since this is a struct, padding has to be taken into account.
     BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
-    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
     // Reading is a little more tricky since this is a struct with nested structures
     // We start with the simple types. We know that the values are 1++ after each read in order
     // except pointers which will be 0.
@@ -472,7 +479,7 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger())
+      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
           .isEquivalentAccordingToCompareTo(expectedValue);
       expectedValue = expectedValue.add(BigInteger.ONE);
     }
@@ -497,7 +504,7 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger())
+      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
           .isEquivalentAccordingToCompareTo(expectedValue);
       expectedValue = expectedValue.add(BigInteger.ONE);
     }
@@ -522,7 +529,7 @@ public class SMGCPATransferRelationTest {
                 .get(0)
                 .getValue()
                 .asNumericValue()
-                .bigInteger()
+                .bigIntegerValue()
                 .compareTo(expectedValue)
             != 0) {
           // Overflow for char
@@ -531,11 +538,11 @@ public class SMGCPATransferRelationTest {
                       .get(0)
                       .getValue()
                       .asNumericValue()
-                      .bigInteger()
+                      .bigIntegerValue()
                       .add(BigInteger.valueOf(256)))
               .isEquivalentAccordingToCompareTo(expectedValue);
         } else {
-          assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger())
+          assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
               .isEquivalentAccordingToCompareTo(expectedValue);
         }
         expectedValue = expectedValue.add(BigInteger.ONE);
@@ -558,7 +565,7 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger())
+      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
           .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
     }
   }
@@ -589,7 +596,7 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger typeSize = MACHINE_MODEL.getSizeofInBits(type);
       BigInteger expectedSize = typeSize.multiply(TEST_ARRAY_LENGTH);
-      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+      assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
       // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       // Since this is an array, we read only the type size, but length times
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
@@ -644,7 +651,7 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger typeSize = MACHINE_MODEL.getSizeofInBits(type);
       BigInteger expectedSize = typeSize.multiply(TEST_ARRAY_LENGTH);
-      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+      assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
       // Check that the values match the assignment
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
         BigInteger offset = BigInteger.valueOf(i).multiply(typeSize);
@@ -655,7 +662,12 @@ public class SMGCPATransferRelationTest {
         // TODO: error check
         assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
         assertThat(
-                readValueAndState.get(0).getValue().asNumericValue().bigInteger().intValueExact())
+                readValueAndState
+                    .get(0)
+                    .getValue()
+                    .asNumericValue()
+                    .bigIntegerValue()
+                    .intValueExact())
             .isEqualTo(i);
       }
     }
@@ -684,7 +696,7 @@ public class SMGCPATransferRelationTest {
       SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
       // SMG sizes are in bits!
       BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
-      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+      assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
       // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, BigInteger.ZERO, expectedSize, null);
@@ -728,7 +740,7 @@ public class SMGCPATransferRelationTest {
       SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
       // SMG sizes are in bits!
       BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
-      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+      assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
       // further, in the memory there must be a SMGValue that maps to the Value entered
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, BigInteger.ZERO, expectedSize, null);
@@ -736,10 +748,8 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isExplicitlyKnown()).isTrue();
-      assertThat(
-              readValueAndState.get(0).getValue().asNumericValue().bigInteger().compareTo(value)
-                  == 0)
-          .isTrue();
+      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
+          .isEqualTo(value);
       // We increment the value to make them distinct
       value = value.add(BigInteger.ONE);
     }
@@ -796,17 +806,60 @@ public class SMGCPATransferRelationTest {
         Collection<SMGState> statesAfterMallocAssign =
             transferRelation.handleStatementEdge(mallocAndAssignmentEdge, mallocAndAssignmentExpr);
 
-        assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
+        assertThat(statesAfterMallocAssign).isInstanceOf(List.class);
         List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
         // Depending on the options this might have 2 return states, one where malloc succeeds and
         // one where it fails
         // TODO:
         SMGState stateAfterMallocAssignSuccess;
         if (sizeInBytes.compareTo(BigInteger.ZERO) == 0) {
-          // malloc(0) is always a single null pointer
-          assertThat(
-                  checkMallocFailure(statesListAfterMallocAssign.get(0), variableName, pointerType))
-              .isTrue();
+          // malloc(0) is always a single null pointer or a non-zero pointer that may not be
+          // accessed but freed
+          if (smgOptions.isMallocZeroReturnsZero()) {
+            assertThat(
+                    checkMallocFailure(
+                        statesListAfterMallocAssign.get(0), variableName, pointerType))
+                .isTrue();
+          } else {
+            // Non zero return
+            SymbolicProgramConfiguration memoryModel =
+                statesListAfterMallocAssign.get(0).getMemoryModel();
+            assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+            SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+            List<ValueAndSMGState> readValueAndState =
+                statesListAfterMallocAssign
+                    .get(0)
+                    .readValue(
+                        memoryObject,
+                        BigInteger.ZERO,
+                        MACHINE_MODEL.getSizeofInBits(pointerType),
+                        null);
+            Preconditions.checkArgument(readValueAndState.size() == 1);
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .isPointer(readValueAndState.get(0).getValue()))
+                .isTrue();
+            SMGObject mallocMemoryObject =
+                statesListAfterMallocAssign
+                    .get(0)
+                    .getPointsToTarget(readValueAndState.get(0).getValue())
+                    .orElseThrow()
+                    .getSMGObject();
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .isObjectValid(mallocMemoryObject))
+                .isFalse();
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .memoryIsResultOfMallocZero(mallocMemoryObject))
+                .isTrue();
+          }
           continue;
 
         } else if (!smgOptions.isEnableMallocFailure()) {
@@ -838,7 +891,7 @@ public class SMGCPATransferRelationTest {
         SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
         // SMG sizes are in bits!
         BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
-        assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+        assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
         // further, in the memory there must be a SMGValue that is a pointer (points to edge)
         // leading to the larger memory field with the size of malloc
         List<ValueAndSMGState> readValueAndState =
@@ -853,17 +906,10 @@ public class SMGCPATransferRelationTest {
                 .dereferencePointer(readValueAndState.get(0).getValue())
                 .get(0);
         assertThat(mallocObjectAndOffset.hasSMGObjectAndOffset()).isTrue();
-        assertThat(
-                mallocObjectAndOffset
-                        .getSMGObject()
-                        .getSize()
-                        .compareTo(sizeInBytes.multiply(BigInteger.valueOf(8)))
-                    == 0)
-            .isTrue();
-        assertThat(mallocObjectAndOffset.getSMGObject().getOffset().compareTo(BigInteger.ZERO) == 0)
-            .isTrue();
-        assertThat(mallocObjectAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0)
-            .isTrue();
+        assertThat(mallocObjectAndOffset.getSMGObject().getSize())
+            .isEqualTo(sizeInBytes.multiply(BigInteger.valueOf(8)));
+        assertThat(mallocObjectAndOffset.getSMGObject().getOffset()).isEqualTo(BigInteger.ZERO);
+        assertThat(mallocObjectAndOffset.getOffsetForObject()).isEqualTo(BigInteger.ZERO);
         // Read the SMGObject to make sure that there is no value written
         // TODO:
       }
@@ -949,18 +995,62 @@ public class SMGCPATransferRelationTest {
               transferRelation.handleStatementEdge(
                   mallocAndAssignmentEdge, mallocAndAssignmentExpr);
 
-          assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
+          assertThat(statesAfterMallocAssign).isInstanceOf(List.class);
           List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
           // Depending on the options this might have 2 return states, one where malloc succeeds and
           // one where it fails
           // TODO:
           SMGState stateAfterMallocAssignSuccess;
           if (sizeMultiplikator.compareTo(BigInteger.ZERO) == 0) {
-            // malloc(0) is always a single null pointer
-            assertThat(
-                    checkMallocFailure(
-                        statesListAfterMallocAssign.get(0), variableName, pointerType))
-                .isTrue();
+            // malloc(0) is always a single null pointer or a non-zero pointer that may not be
+            // accessed but freed
+            if (smgOptions.isMallocZeroReturnsZero()) {
+              assertThat(
+                      checkMallocFailure(
+                          statesListAfterMallocAssign.get(0), variableName, pointerType))
+                  .isTrue();
+            } else {
+              // Non 0, invalid memory
+              SymbolicProgramConfiguration memoryModel =
+                  statesListAfterMallocAssign.get(0).getMemoryModel();
+              assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName))
+                  .isTrue();
+              SMGObject memoryObject =
+                  memoryModel.getStackFrames().peek().getVariable(variableName);
+              List<ValueAndSMGState> readValueAndState =
+                  statesListAfterMallocAssign
+                      .get(0)
+                      .readValue(
+                          memoryObject,
+                          BigInteger.ZERO,
+                          MACHINE_MODEL.getSizeofInBits(pointerType),
+                          null);
+              Preconditions.checkArgument(readValueAndState.size() == 1);
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .isPointer(readValueAndState.get(0).getValue()))
+                  .isTrue();
+              SMGObject mallocMemoryObject =
+                  statesListAfterMallocAssign
+                      .get(0)
+                      .getPointsToTarget(readValueAndState.get(0).getValue())
+                      .orElseThrow()
+                      .getSMGObject();
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .isObjectValid(mallocMemoryObject))
+                  .isFalse();
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .memoryIsResultOfMallocZero(mallocMemoryObject))
+                  .isTrue();
+            }
             continue;
 
           } else if (!smgOptions.isEnableMallocFailure()) {
@@ -994,7 +1084,7 @@ public class SMGCPATransferRelationTest {
           SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
           // SMG sizes are in bits!
           BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
-          assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+          assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
           // further, in the memory there must be a SMGValue that is a pointer (points to edge)
           // leading to the larger memory field with the size of malloc
           List<ValueAndSMGState> readValueAndState =
@@ -1013,15 +1103,10 @@ public class SMGCPATransferRelationTest {
               sizeMultiplikator
                   .multiply(BigInteger.valueOf(8))
                   .multiply(MACHINE_MODEL.getSizeof(sizeofType));
-          assertThat(
-                  mallocObjectAndOffset.getSMGObject().getSize().compareTo(expectedMemorySizeInBits)
-                      == 0)
-              .isTrue();
-          assertThat(
-                  mallocObjectAndOffset.getSMGObject().getOffset().compareTo(BigInteger.ZERO) == 0)
-              .isTrue();
-          assertThat(mallocObjectAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0)
-              .isTrue();
+          assertThat(mallocObjectAndOffset.getSMGObject().getSize())
+              .isEqualTo(expectedMemorySizeInBits);
+          assertThat(mallocObjectAndOffset.getSMGObject().getOffset()).isEqualTo(BigInteger.ZERO);
+          assertThat(mallocObjectAndOffset.getOffsetForObject()).isEqualTo(BigInteger.ZERO);
           // Read the SMGObject to make sure that there is no value written
           // TODO:
         }
@@ -1032,18 +1117,19 @@ public class SMGCPATransferRelationTest {
   /*
    * Checks the state for a variable with the name entered and the type entered.
    * This variable should have a failed malloc (value = 0) result.
+   * If malloc returns non-zero, the memory is invalid.
    * If this is not the case, this method returns false.
    * True if the value read from the variable is zero, which is a malloc failure.
    */
   private boolean checkMallocFailure(
       SMGState stateAfterMallocAssignFailure, String variableName, CType pointerType)
-      throws SMG2Exception {
+      throws SMGException {
     SymbolicProgramConfiguration memoryModel = stateAfterMallocAssignFailure.getMemoryModel();
     assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
     SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
     // SMG sizes are in bits!
     BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
-    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    assertThat(memoryObject.getSize()).isEqualTo(expectedSize);
     // further, in the memory there must be a SMGValue that is a pointer (points to edge)
     // leading to the larger memory field with the size of malloc
     List<ValueAndSMGState> readValueAndState =
@@ -1057,15 +1143,8 @@ public class SMGCPATransferRelationTest {
     }
 
     assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-    assertThat(
-            readValueAndState
-                    .get(0)
-                    .getValue()
-                    .asNumericValue()
-                    .bigInteger()
-                    .compareTo(BigInteger.ZERO)
-                == 0)
-        .isTrue();
+    assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
+        .isEqualTo(BigInteger.ZERO);
     assertThat(memoryModel.getSMGValueFromValue(readValueAndState.get(0).getValue()).orElseThrow())
         .isEqualTo(SMGValue.zeroValue());
     return true;
@@ -1084,7 +1163,7 @@ public class SMGCPATransferRelationTest {
     for (CType testType : ARRAY_TEST_TYPES) {
       variableName = variableName + testType;
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1102,10 +1181,8 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(testType);
       // The size of the variable is the array size as it is on the stack
-      assertThat(
-              memoryObject.getSize().compareTo(expectedTypeSizeInBits.multiply(TEST_ARRAY_LENGTH))
-                  == 0)
-          .isTrue();
+      assertThat(memoryObject.getSize())
+          .isEqualTo(expectedTypeSizeInBits.multiply(TEST_ARRAY_LENGTH));
 
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
         BigInteger offsetInBits = BigInteger.valueOf(i).multiply(expectedTypeSizeInBits);
@@ -1119,21 +1196,14 @@ public class SMGCPATransferRelationTest {
 
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
           expectedValue = BigInteger.valueOf(i);
         }
-        assertThat(
-                readValueAndState
-                        .get(0)
-                        .getValue()
-                        .asNumericValue()
-                        .bigInteger()
-                        .compareTo(expectedValue)
-                    == 0)
-            .isTrue();
+        assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
+            .isEqualTo(expectedValue);
       }
     }
   }
@@ -1152,7 +1222,7 @@ public class SMGCPATransferRelationTest {
 
     for (CType testType : ARRAY_TEST_TYPES) {
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1170,8 +1240,7 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(testType);
       // The size of the variable is the size of a pointer
-      assertThat(memoryObject.getSize().compareTo(BigInteger.valueOf(POINTER_SIZE_IN_BITS)) == 0)
-          .isTrue();
+      assertThat(memoryObject.getSize()).isEqualTo(BigInteger.valueOf(POINTER_SIZE_IN_BITS));
       // Read the address from the variable and then dereference the pointer
       List<ValueAndSMGState> readAddressValueAndState =
           stateWithArray.readValue(
@@ -1179,7 +1248,7 @@ public class SMGCPATransferRelationTest {
       Preconditions.checkArgument(readAddressValueAndState.size() == 1);
       Value address = readAddressValueAndState.get(0).getValue();
       // TODO: address this type thing
-      // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
+      assertThat(address).isInstanceOf(SymbolicIdentifier.class);
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetOfPointer =
           stateWithArray.dereferencePointer(address).get(0);
       assertThat(maybeTargetOfPointer.hasSMGObjectAndOffset()).isTrue();
@@ -1201,7 +1270,7 @@ public class SMGCPATransferRelationTest {
 
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1212,7 +1281,7 @@ public class SMGCPATransferRelationTest {
                         .get(0)
                         .getValue()
                         .asNumericValue()
-                        .bigInteger()
+                        .bigIntegerValue()
                         .compareTo(expectedValue)
                     == 0)
             .isTrue();
@@ -1237,7 +1306,8 @@ public class SMGCPATransferRelationTest {
       List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
       BigInteger[] values = new BigInteger[structTestTypes.size()];
       for (int i = 0; i < structTestTypes.size(); i++) {
-        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) structTestTypes.get(i)).hasSignedSpecifier()
+            && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1280,7 +1350,7 @@ public class SMGCPATransferRelationTest {
         assertThat(currentFieldType instanceof CSimpleType).isTrue();
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) currentFieldType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) currentFieldType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1291,7 +1361,7 @@ public class SMGCPATransferRelationTest {
                         .get(0)
                         .getValue()
                         .asNumericValue()
-                        .bigInteger()
+                        .bigIntegerValue()
                         .compareTo(expectedValue)
                     == 0)
             .isTrue();
@@ -1314,7 +1384,8 @@ public class SMGCPATransferRelationTest {
       List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
       BigInteger[] values = new BigInteger[structTestTypes.size()];
       for (int i = 0; i < structTestTypes.size(); i++) {
-        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) structTestTypes.get(i)).hasSignedSpecifier()
+            && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1340,7 +1411,7 @@ public class SMGCPATransferRelationTest {
               memoryObject, BigInteger.ZERO, BigInteger.valueOf(POINTER_SIZE_IN_BITS), null);
       Preconditions.checkArgument(readAddressValueAndState.size() == 1);
       Value address = readAddressValueAndState.get(0).getValue();
-      // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
+      assertThat(address).isInstanceOf(SymbolicIdentifier.class);
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetOfPointer =
           stateWithStruct.dereferencePointer(address).get(0);
       assertThat(maybeTargetOfPointer.hasSMGObjectAndOffset()).isTrue();
@@ -1366,24 +1437,17 @@ public class SMGCPATransferRelationTest {
         // The value should be numeric
         assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
 
-        assertThat(currentFieldType instanceof CSimpleType).isTrue();
+        assertThat(currentFieldType).isInstanceOf(CSimpleType.class);
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) currentFieldType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) currentFieldType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
           expectedValue = BigInteger.valueOf(i);
         }
-        assertThat(
-                readValueAndState
-                        .get(0)
-                        .getValue()
-                        .asNumericValue()
-                        .bigInteger()
-                        .compareTo(expectedValue)
-                    == 0)
-            .isTrue();
+        assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
+            .isEqualTo(expectedValue);
       }
     }
   }
@@ -1400,7 +1464,7 @@ public class SMGCPATransferRelationTest {
       for (int i = 0; i < 2; i++) {
         String variableNamePlus = variableName + i;
         BigInteger value;
-        if (((CSimpleType) type).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) type).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           value = BigInteger.valueOf(-i);
         } else {
@@ -1416,7 +1480,7 @@ public class SMGCPATransferRelationTest {
         SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableNamePlus);
         // The size of the variable is the size of the type
         BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(type);
-        assertThat(memoryObject.getSize().compareTo(expectedTypeSizeInBits) == 0).isTrue();
+        assertThat(memoryObject.getSize()).isEqualTo(expectedTypeSizeInBits);
 
         List<ValueAndSMGState> readValueAndState =
             stateWithStruct.readValue(memoryObject, BigInteger.ZERO, expectedTypeSizeInBits, null);
@@ -1426,10 +1490,8 @@ public class SMGCPATransferRelationTest {
         // The value should be numeric
         assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
 
-        assertThat(
-                readValueAndState.get(0).getValue().asNumericValue().bigInteger().compareTo(value)
-                    == 0)
-            .isTrue();
+        assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
+            .isEqualTo(value);
       }
     }
   }
@@ -1542,7 +1604,8 @@ public class SMGCPATransferRelationTest {
       List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
       BigInteger[] values = new BigInteger[structTestTypes.size()];
       for (int i = 0; i < structTestTypes.size(); i++) {
-        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) structTestTypes.get(i)).hasSignedSpecifier()
+            && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1613,7 +1676,7 @@ public class SMGCPATransferRelationTest {
       String variableName2 = "testStruct2_" + testType;
       BigInteger[] values = new BigInteger[TEST_ARRAY_LENGTH.intValue()];
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1954,7 +2017,7 @@ public class SMGCPATransferRelationTest {
 
     // Per default this returns 2 states, one for successful memory allocation and one with a
     // failure (variable = 0). We ignore the error state if it exists in this!
-    assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
+    assertThat(statesAfterMallocAssign).isInstanceOf(List.class);
     List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
     // Depending on the options this might have 2 return states, one where malloc succeeds and
     // one where it fails
@@ -2141,7 +2204,7 @@ public class SMGCPATransferRelationTest {
 
     // Per default this returns 2 states, one for successful memory allocation and one with a
     // failure (variable = 0). We ignore the error state if it exists in this!
-    assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
+    assertThat(statesAfterMallocAssign).isInstanceOf(List.class);
     List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
     // Depending on the options this might have 2 return states, one where malloc succeeds and
     // one where it fails
@@ -2170,9 +2233,9 @@ public class SMGCPATransferRelationTest {
     }
     transferRelation.setInfo(stateAfterMallocAssignSuccess, null, mallocAndAssignmentEdge);
 
-    assertThat(type instanceof CElaboratedType).isTrue();
+    assertThat(type).isInstanceOf(CElaboratedType.class);
     CElaboratedType ceType = (CElaboratedType) type;
-    assertThat(ceType.getRealType() instanceof CCompositeType).isTrue();
+    assertThat(ceType.getRealType()).isInstanceOf(CCompositeType.class);
     List<CCompositeTypeMemberDeclaration> members =
         ((CCompositeType) ceType.getRealType()).getMembers();
     assertThat(members).hasSize(values.length);

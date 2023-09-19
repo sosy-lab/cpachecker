@@ -29,7 +29,7 @@ public abstract class SingleEdgeTransferRelation implements TransferRelation {
 
     throw new UnsupportedOperationException(
         "The "
-            + this.getClass().getSimpleName()
+            + getClass().getSimpleName()
             + " expects to be called with a CFA edge supplied"
             + " and does not support configuration where it needs to"
             + " return abstract states for any CFA edge.");

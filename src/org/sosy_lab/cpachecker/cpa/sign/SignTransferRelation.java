@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -108,15 +107,11 @@ public class SignTransferRelation
 
   @Override
   protected SignState handleFunctionReturnEdge(
-      FunctionReturnEdge pCfaEdge,
-      FunctionSummaryEdge pFnkCall,
-      AFunctionCall pSummaryExpr,
-      String pCallerFunctionName)
+      FunctionReturnEdge pCfaEdge, AFunctionCall pSummaryExpr, String pCallerFunctionName)
       throws CPATransferException {
 
     // x = fun();
-    if (pSummaryExpr instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignStmt = (AFunctionCallAssignmentStatement) pSummaryExpr;
+    if (pSummaryExpr instanceof AFunctionCallAssignmentStatement assignStmt) {
       AExpression leftSide = assignStmt.getLeftHandSide();
       if (!(leftSide instanceof AIdExpression)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
@@ -403,8 +398,7 @@ public class SignTransferRelation
   private SignState handleAssignmentToVariable(
       SignState pState, String pVarIdent, ARightHandSide pRightExpr, CFAEdge edge)
       throws CPATransferException {
-    if (pRightExpr instanceof CRightHandSide) {
-      CRightHandSide right = (CRightHandSide) pRightExpr;
+    if (pRightExpr instanceof CRightHandSide right) {
       SIGN result = right.accept(new SignCExpressionVisitor(edge, pState, this));
       logger.log(Level.FINE, "Assignment: " + pVarIdent + " = " + result);
       return pState.assignSignToVariable(pVarIdent, result);

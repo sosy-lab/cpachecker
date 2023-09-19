@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *
  * <p>e.g. Type a = b;
  */
-public class JVariableDeclaration extends AVariableDeclaration implements JDeclaration {
+public sealed class JVariableDeclaration extends AVariableDeclaration implements JDeclaration
+    permits JFieldDeclaration {
 
   // TODO refactor to be either abstract or final
 
@@ -105,12 +106,8 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
       return true;
     }
 
-    if (!(obj instanceof JVariableDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JVariableDeclaration other = (JVariableDeclaration) obj;
-
-    return other.isFinal == isFinal;
+    return obj instanceof JVariableDeclaration other
+        && super.equals(obj)
+        && other.isFinal == isFinal;
   }
 }

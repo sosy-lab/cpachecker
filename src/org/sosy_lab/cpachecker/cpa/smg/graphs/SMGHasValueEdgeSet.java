@@ -259,11 +259,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj instanceof SMGHasValueEdgeSet) {
-      SMGHasValueEdgeSet other = (SMGHasValueEdgeSet) pObj;
-      return map.equals(other.map);
-    }
-    return false;
+    return pObj instanceof SMGHasValueEdgeSet other && map.equals(other.map);
   }
 
   @Override

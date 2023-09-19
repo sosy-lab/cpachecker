@@ -138,10 +138,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     if (pReached.getWaitlist().size() > 1
         || !pReached.getWaitlist().contains(pReached.getFirstState())) {
       pReached.getWaitlist().stream()
-          .filter(
-              (AbstractState state) -> {
-                return !((ARGState) state).getChildren().isEmpty();
-              })
+          .filter((AbstractState state) -> !((ARGState) state).getChildren().isEmpty())
           .forEach(
               (AbstractState state) -> {
                 ARGState argState = (ARGState) state;
@@ -158,11 +155,10 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     }
 
     try {
-      boolean shouldReturnFalse, ignoreTargetState;
       while (pReached.hasWaitingState() && !testTargets.isEmpty()) {
         shutdownNotifier.shutdownIfNecessary();
-        shouldReturnFalse = false;
-        ignoreTargetState = false;
+        boolean shouldReturnFalse = false;
+        boolean ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
         assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
@@ -220,6 +216,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
+                  TestTargetProvider.processTargetPath(cexInfo);
 
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithTargetInformation(pReached);

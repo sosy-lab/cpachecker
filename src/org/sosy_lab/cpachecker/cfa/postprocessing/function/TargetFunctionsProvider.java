@@ -282,46 +282,34 @@ public class TargetFunctionsProvider {
     }
 
     // Void pointer can be converted to any other pointer or integer
-    if (declaredType instanceof CPointerType) {
-      CPointerType declaredPointerType = (CPointerType) declaredType;
-      if (declaredPointerType.getType() == CVoidType.VOID) {
-        if (actualType instanceof CSimpleType) {
-          CSimpleType actualSimpleType = (CSimpleType) actualType;
-          CBasicType actualBasicType = actualSimpleType.getType();
-          if (actualBasicType.isIntegerType()) {
-            return true;
-          }
-        } else if (actualType instanceof CPointerType) {
+    if ((declaredType instanceof CPointerType declaredPointerType)
+        && (declaredPointerType.getType() == CVoidType.VOID)) {
+      if (actualType instanceof CSimpleType actualSimpleType) {
+        CBasicType actualBasicType = actualSimpleType.getType();
+        if (actualBasicType.isIntegerType()) {
           return true;
         }
-      }
-    }
-
-    // Any pointer or integer can be converted to a void pointer
-    if (actualType instanceof CPointerType) {
-      CPointerType actualPointerType = (CPointerType) actualType;
-      if (actualPointerType.getType() == CVoidType.VOID) {
-        if (declaredType instanceof CSimpleType) {
-          CSimpleType declaredSimpleType = (CSimpleType) declaredType;
-          CBasicType declaredBasicType = declaredSimpleType.getType();
-          if (declaredBasicType.isIntegerType()) {
-            return true;
-          }
-        } else if (declaredType instanceof CPointerType) {
-          return true;
-        }
-      }
-    }
-
-    // If both types are pointers, check if the inner types are compatible
-    if (declaredType instanceof CPointerType && actualType instanceof CPointerType) {
-      CPointerType declaredPointerType = (CPointerType) declaredType;
-      CPointerType actualPointerType = (CPointerType) actualType;
-      if (isCompatibleType(declaredPointerType.getType(), actualPointerType.getType())) {
+      } else if (actualType instanceof CPointerType) {
         return true;
       }
     }
 
-    return false;
+    // Any pointer or integer can be converted to a void pointer
+    if ((actualType instanceof CPointerType actualPointerType)
+        && (actualPointerType.getType() == CVoidType.VOID)) {
+      if (declaredType instanceof CSimpleType declaredSimpleType) {
+        CBasicType declaredBasicType = declaredSimpleType.getType();
+        if (declaredBasicType.isIntegerType()) {
+          return true;
+        }
+      } else if (declaredType instanceof CPointerType) {
+        return true;
+      }
+    }
+
+    // If both types are pointers, check if the inner types are compatible
+    return (declaredType instanceof CPointerType declaredPointerType
+            && actualType instanceof CPointerType actualPointerType)
+        && isCompatibleType(declaredPointerType.getType(), actualPointerType.getType());
   }
 }

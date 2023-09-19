@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -47,53 +47,76 @@ class PartitionedFormulas {
   private final BooleanFormulaManagerView bfmgr;
   private final LogManager logger;
   private final boolean assertAllTargets;
+  private final boolean swapPrefixAndTarget;
 
   private boolean isInitialized;
   private BooleanFormula prefixFormula;
   private SSAMap prefixSsaMap;
+  private ImmutableList<SSAMap> loopFormulaSsaMaps;
   private ImmutableList<BooleanFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
-  PartitionedFormulas(
-      BooleanFormulaManagerView bfmgr, LogManager logger, boolean assertAllTargets) {
+  private PartitionedFormulas(
+      BooleanFormulaManagerView bfmgr,
+      LogManager logger,
+      boolean assertAllTargets,
+      boolean swapPrefixAndTarget) {
+    Preconditions.checkArgument(!(assertAllTargets && swapPrefixAndTarget));
     this.bfmgr = bfmgr;
     this.logger = logger;
     this.assertAllTargets = assertAllTargets;
+    this.swapPrefixAndTarget = swapPrefixAndTarget;
 
-    isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
+    loopFormulaSsaMaps = ImmutableList.of();
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
   }
 
+  static PartitionedFormulas createForwardPartitionedFormulas(
+      BooleanFormulaManagerView bfmgr, LogManager logger, boolean assertAllTargets) {
+    return new PartitionedFormulas(bfmgr, logger, assertAllTargets, false);
+  }
+
+  static PartitionedFormulas createBackwardPartitionedFormulas(
+      BooleanFormulaManagerView bfmgr, LogManager logger) {
+    return new PartitionedFormulas(bfmgr, logger, false, true);
+  }
+
   /** Return the number of stored loop formulas. */
   int getNumLoops() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return loopFormulas.size();
   }
 
   /** Return the SSA map of the prefix path formula. */
   SSAMap getPrefixSsaMap() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return prefixSsaMap;
   }
 
   /** Return the prefix formula (I) that describes the initial state set. */
   BooleanFormula getPrefixFormula() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return prefixFormula;
   }
 
   /** Return the collected loop formulas (T1, T2, ..., Tn). */
   List<BooleanFormula> getLoopFormulas() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return loopFormulas;
+  }
+
+  /** Return the SSA maps of collected loop formulas (T1, T2, ..., Tn). */
+  List<SSAMap> getLoopFormulaSsaMaps() {
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
+    return loopFormulaSsaMaps;
   }
 
   /** Return the target assertion formula (&not;P). */
   BooleanFormula getAssertionFormula() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return targetAssertion;
   }
 
@@ -139,6 +162,10 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
+    loopFormulaSsaMaps =
+        transformedImmutableListCopy(
+            abstractionStates.subList(2, abstractionStates.size() - 1),
+            absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
@@ -151,6 +178,19 @@ class PartitionedFormulas {
     }
 
     assert !loopFormulas.isEmpty();
+
+    if (swapPrefixAndTarget) {
+      BooleanFormula tmp = prefixFormula;
+      prefixFormula = targetAssertion;
+      targetAssertion = tmp;
+      loopFormulas = loopFormulas.reverse();
+      loopFormulaSsaMaps = loopFormulaSsaMaps.reverse();
+      prefixSsaMap =
+          InterpolationHelper.getPredicateAbstractionBlockFormula(
+                  abstractionStates.get(abstractionStates.size() - 2))
+              .getSsa();
+    }
+
     logCollectedFormulas();
   }
 

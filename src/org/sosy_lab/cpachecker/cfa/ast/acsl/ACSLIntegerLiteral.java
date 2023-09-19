@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.math.BigInteger;
 
-public class ACSLIntegerLiteral implements ACSLTerm {
+public final class ACSLIntegerLiteral implements ACSLTerm {
 
   private final BigInteger literal;
 
@@ -25,11 +25,7 @@ public class ACSLIntegerLiteral implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLIntegerLiteral) {
-      ACSLIntegerLiteral other = (ACSLIntegerLiteral) o;
-      return literal.equals(other.literal);
-    }
-    return false;
+    return o instanceof ACSLIntegerLiteral other && literal.equals(other.literal);
   }
 
   @Override

@@ -65,11 +65,9 @@ public class CounterexampleToInductivity {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof CounterexampleToInductivity) {
-      CounterexampleToInductivity other = (CounterexampleToInductivity) pOther;
-      return model.equals(other.model) && getLocation().equals(other.getLocation());
-    }
-    return false;
+    return pOther instanceof CounterexampleToInductivity other
+        && model.equals(other.model)
+        && getLocation().equals(other.getLocation());
   }
 
   @Override

@@ -63,8 +63,7 @@ final class FormulaWrappingHandler {
   <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     checkNotNull(pFormula);
 
-    if (pFormula instanceof WrappingFormula<?, ?>) {
-      WrappingFormula<?, ?> castFormula = (WrappingFormula<?, ?>) pFormula;
+    if (pFormula instanceof WrappingFormula<?, ?> castFormula) {
       return (FormulaType<T>) castFormula.getType();
     } else {
       return getRawFormulaType(pFormula);
@@ -119,7 +118,7 @@ final class FormulaWrappingHandler {
   }
 
   List<Formula> unwrap(List<? extends Formula> f) {
-    return Lists.transform(f, pInput -> unwrap(pInput));
+    return Lists.transform(f, this::unwrap);
   }
 
   FormulaType<?> unwrapType(FormulaType<?> type) {
@@ -172,6 +171,6 @@ final class FormulaWrappingHandler {
   }
 
   List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
-    return Lists.transform(pTypes, pInput -> unwrapType(pInput));
+    return Lists.transform(pTypes, this::unwrapType);
   }
 }

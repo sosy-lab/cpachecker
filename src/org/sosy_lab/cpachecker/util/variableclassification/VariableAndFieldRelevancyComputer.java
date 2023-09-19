@@ -82,6 +82,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 @FieldsAreNonnullByDefault
 final class VariableAndFieldRelevancyComputer {
 
+  private VariableAndFieldRelevancyComputer() {}
+
   public static final class VarFieldDependencies {
     @SuppressWarnings("unchecked") // Cloning here should work faster than adding all elements
     private static <T> Set<T> copy(final Set<T> source) {
@@ -200,7 +202,7 @@ final class VariableAndFieldRelevancyComputer {
         if (rhs.isVariable()) {
           final VarFieldDependencies singleVariable =
               new VarFieldDependencies(
-                  ImmutableSet.of(rhs.asVariable().getScopedName()),
+                  ImmutableSet.of(rhs.asVariable().scopedName()),
                   ImmutableListMultimap.of(),
                   ImmutableListMultimap.of(),
                   ImmutableSet.of(),
@@ -222,7 +224,7 @@ final class VariableAndFieldRelevancyComputer {
           final VarFieldDependencies singleField =
               new VarFieldDependencies(
                   ImmutableSet.of(),
-                  ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+                  ImmutableListMultimap.of(field.compositeType(), field.name()),
                   ImmutableListMultimap.of(),
                   ImmutableSet.of(),
                   ImmutableListMultimap.of(),
@@ -252,7 +254,7 @@ final class VariableAndFieldRelevancyComputer {
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
               ImmutableListMultimap.of(),
-              ImmutableSet.of(variable.getScopedName()),
+              ImmutableSet.of(variable.scopedName()),
               ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
               1,
@@ -273,7 +275,7 @@ final class VariableAndFieldRelevancyComputer {
           new VarFieldDependencies(
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
-              ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+              ImmutableListMultimap.of(field.compositeType(), field.name()),
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
@@ -378,12 +380,12 @@ final class VariableAndFieldRelevancyComputer {
               : "Match failure: neither variable nor field!";
           if (variableOrField.isVariable()) {
             final VariableOrField.Variable variable = variableOrField.asVariable();
-            if (currentRelevantVariables.add(variable.getScopedName())) {
+            if (currentRelevantVariables.add(variable.scopedName())) {
               queue.add(variable);
             }
           } else { // Field
             final VariableOrField.Field field = variableOrField.asField();
-            if (currentRelevantFields.put(field.getCompositeType(), field.getName())) {
+            if (currentRelevantFields.put(field.compositeType(), field.name())) {
               queue.add(field);
             }
           }
@@ -401,7 +403,8 @@ final class VariableAndFieldRelevancyComputer {
     private final Set<String> addressedVariables;
     private final Multimap<VariableOrField, VariableOrField> dependencies;
     private final PersistentList<VarFieldDependencies> pendingMerges;
-    private final int currentSize, pendingSize;
+    private final int currentSize;
+    private final int pendingSize;
     private @Nullable VarFieldDependencies squashed = null;
 
     private static final int INITIAL_SIZE = 500;
@@ -501,8 +504,7 @@ final class VariableAndFieldRelevancyComputer {
           // Heuristic: for external function calls
           // r = f(a); // r depends on f and a, BUT
           // f(a); // f and a are always relevant
-          if (statement instanceof CAssignment) {
-            final CAssignment assignment = (CAssignment) statement;
+          if (statement instanceof CAssignment assignment) {
             final CRightHandSide rhs = assignment.getRightHandSide();
             final Pair<VariableOrField, VarFieldDependencies> r =
                 assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
@@ -539,7 +541,7 @@ final class VariableAndFieldRelevancyComputer {
                                 pCfa,
                                 VariableOrField.newVariable(params.get(i).getQualifiedName()))));
           }
-          CFunctionCall statement = call.getSummaryEdge().getExpression();
+          CFunctionCall statement = call.getFunctionCall();
           Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
           if (returnVar.isPresent()) {
             String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
@@ -558,9 +560,7 @@ final class VariableAndFieldRelevancyComputer {
         }
 
       case FunctionReturnEdge:
-        {
-          break;
-        }
+        break;
 
       case ReturnStatementEdge:
         {
@@ -587,14 +587,10 @@ final class VariableAndFieldRelevancyComputer {
 
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
-        {
-          throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
-        }
+        throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
     }
 
     return result;

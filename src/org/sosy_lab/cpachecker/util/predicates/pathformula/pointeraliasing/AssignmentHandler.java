@@ -10,70 +10,128 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.primitives.Ints;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Range;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.OptionalLong;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignment;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.ArrayFormula;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 
-/** Implements a handler for assignments. */
+/**
+ * High-level handler for assignments which should be used when assignments should be made.
+ *
+ * <p>Slice assignments are used, which means that after the LHS and RHS bases, quantified indexing
+ * and further field accesses may be done. For example, with {@code int a[3], b[3]}, the function
+ * {@code memcpy(&b, &a, size * sizeof(int))} can be encoded as {@code b[i] = a[i]} with slice
+ * variable {@code 0 <= i < size}. Idiomatic loop assignments such as {@code for (i=0; i < size;
+ * ++i) b[i] = a[i]} could also be transformed into slice assignments in the future.
+ *
+ * <p>The entry point is {@link #assign(List)}, which takes care of everything necessary for proper
+ * assignment handling.
+ *
+ * <p>This class is mostly concerned with converting slice assignments to simple partial slice
+ * assignments. Partial slice assignments allow for setting a single left-hand side from spans of
+ * bits of right-hand sides (as documented in {@link PartialAssignment}). A partial assignment is
+ * simple if its left-hand side type is not an array or a compound type. This allows for easier
+ * assignment handling later on in {@link AssignmentQuantifierHandler}.
+ *
+ * <p>The class is also responsible for union handling by conversion of assignments to partial
+ * assignments of progenitor type (i.e. type before trailing field accesses) before converting them
+ * to simple partial assignments. This can increase soundness for some cases of unions when using
+ * multiple heaps, but does not guarantee it in entirety.
+ *
+ * @see SliceExpression
+ * @see AssignmentQuantifierHandler
+ * @see AssignmentFormulaHandler
+ * @see MemoryManipulationFunctionHandler
+ */
 class AssignmentHandler {
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
+  /**
+   * Stores the information about a single slice assignment. Both the left-hand side and right-hand
+   * side are represented via slice expressions, allowing for assignments that contain quantified
+   * variables.
+   *
+   * <p>The right-hand side is optional. If empty, it is taken to be nondeterministic.
+   *
+   * <p>If {@code relevancyLhs} is non-empty, the assignment is not performed if not relevant, as
+   * decided by {@link CToFormulaConverterWithPointerAliasing#isRelevantLeftHandSide(CLeftHandSide,
+   * Optional)}.
+   *
+   * <p>The quantified variables in LHS and RHS slice expressions must be unresolved. They will be
+   * resolved later by {@link AssignmentQuantifierHandler}.
+   */
+  record SliceAssignment(
+      SliceExpression lhs, Optional<CLeftHandSide> relevancyLhs, Optional<SliceExpression> rhs) {
+    SliceAssignment {
+      checkNotNull(lhs);
+      checkNotNull(relevancyLhs);
+      checkNotNull(rhs);
+      checkArgument(!lhs.containsResolvedModifiers());
+      checkArgument(rhs.isEmpty() || !rhs.orElseThrow().containsResolvedModifiers());
+    }
 
+    private SliceAssignment constructCanonical() {
+      // make the slice expressions canonical
+      return new SliceAssignment(
+          lhs.constructCanonical(), relevancyLhs, rhs().map(SliceExpression::constructCanonical));
+    }
+
+    private boolean isRelevant(CToFormulaConverterWithPointerAliasing pConv) {
+      // if relevancyLhs is empty in some assignment, treat it as relevant
+      return relevancyLhs
+          .map(
+              presentRelevancyLhs ->
+                  pConv.isRelevantLeftHandSide(presentRelevancyLhs, rhs.map(SliceExpression::base)))
+          .orElse(true);
+    }
+  }
+
+  /** A helper record for storing a partial assignment which has exactly one right-hand side. */
+  private record SingleRhsPartialAssignment(PartialAssignmentLhs lhs, PartialAssignmentRhs rhs) {
+    SingleRhsPartialAssignment {
+      checkNotNull(lhs);
+      checkNotNull(rhs);
+    }
+  }
+
+  private final FormulaEncodingWithPointerAliasingOptions options;
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
@@ -83,6 +141,9 @@ class AssignmentHandler {
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
   private final MemoryRegionManager regionMgr;
+
+  /** Assignment options, used for each assignment within the constructed handler. */
+  private final AssignmentOptions assignmentOptions;
 
   /**
    * Creates a new AssignmentHandler.
@@ -103,14 +164,12 @@ class AssignmentHandler {
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
       ErrorConditions pErrorConditions,
-      MemoryRegionManager pRegionMgr) {
+      MemoryRegionManager pRegionMgr,
+      AssignmentOptions pAssignmentOptions) {
     conv = pConv;
 
     typeHandler = pConv.typeHandler;
     options = conv.options;
-    fmgr = conv.fmgr;
-    bfmgr = conv.bfmgr;
-
     edge = pEdge;
     function = pFunction;
     ssa = pSsa;
@@ -118,166 +177,594 @@ class AssignmentHandler {
     constraints = pConstraints;
     errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
+
+    assignmentOptions = pAssignmentOptions;
   }
 
   /**
-   * Creates a formula to handle assignments.
+   * Performs assignments to memory heap. Main assignment entry point.
    *
-   * @param lhs The left hand side of an assignment.
-   * @param lhsForChecking The left hand side of an assignment to check.
-   * @param rhs Either {@code null} or the right hand side of the assignment.
-   * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
-   *     aliased locations (because the location was not used before)
-   * @return A formula for the assignment.
+   * <p>The assignments are slice assignments, meaning that they support quantified indexing after a
+   * {@link CRightHandSide} base on both the left-hand side and right-hand side.
+   *
+   * <p>This function handles all things the assignment entails, including computing relevancy,
+   * assigning to unionized fields (if there are any), pointer-target set and dynamic memory handler
+   * updating, quantifier unrolling or encoding, etc.
+   *
+   * @param pAssignments Slice assignments to perform.
+   * @return The Boolean formula describing to assignments.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException If a shutdown was requested during assigning.
    */
-  BooleanFormula handleAssignment(
-      final CLeftHandSide lhs,
-      final CLeftHandSide lhsForChecking,
-      final CType lhsType,
-      final @Nullable CRightHandSide rhs,
-      final boolean useOldSSAIndicesIfAliased)
+  BooleanFormula assign(List<SliceAssignment> pAssignments)
       throws UnrecognizedCodeException, InterruptedException {
-    if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
-      // Optimization for unused variables and fields
-      return conv.bfmgr.makeTrue();
+
+    // apply LHS relevancy
+    Stream<SliceAssignment> assignmentsStream =
+        pAssignments.stream().filter(assignment -> assignment.isRelevant(conv));
+
+    // make the slice expressions canonical, moving the trailing field accesses of bases to first
+    // modifiers; this results in the same effective assignments, but the base encompasses more
+    // fields which may be unionized, paving the way for assigning to relevant simple unionized
+    // fields after converting to simple slice assignments
+    assignmentsStream = assignmentsStream.map(SliceAssignment::constructCanonical);
+
+    // apply Havoc abstraction: if Havoc abstraction is turned on
+    // and LHS is not relevant, make it nondeterministic
+    if (conv.options.useHavocAbstraction()) {
+      assignmentsStream = assignmentsStream.map(this::applyHavocToAssignment);
     }
 
-    final CType rhsType =
-        rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
+    final List<SliceAssignment> assignments = assignmentsStream.toList();
 
-    // RHS handling
-    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
+    // resolve LHS and RHS bases here, before converting to simple slice assignments
+    // this is needed for two reasons:
+    // 1. to avoid visiting LHS and RHS multiple times, which is especially important for
+    // CFunctionCallExpression RHS as it may produce side effects
+    // 2. to be able to update the DynamicMemoryHandler using the original assignments
 
-    final Expression rhsExpression;
+    final Map<CRightHandSide, ResolvedSlice> lhsBaseResolutionMap = new HashMap<>();
+    final Map<CRightHandSide, ResolvedSlice> rhsBaseResolutionMap = new HashMap<>();
+    final List<CompositeField> rhsAddressedFields = new ArrayList<>();
 
-    if (conv.options.useHavocAbstraction()
-        && (rhs == null || !rhs.accept(new IsRelevantWithHavocAbstractionVisitor(conv)))) {
-      rhsExpression = Value.nondetValue();
-    } else {
-      rhsExpression = createRHSExpression(rhs, lhsType, rhsVisitor);
+    for (SliceAssignment assignment : assignments) {
+      resolveAssignmentBases(
+          assignment, lhsBaseResolutionMap, rhsBaseResolutionMap, rhsAddressedFields);
     }
 
-    pts.addEssentialFields(rhsVisitor.getInitializedFields());
-    pts.addEssentialFields(rhsVisitor.getUsedFields());
-    final List<CompositeField> rhsAddressedFields = rhsVisitor.getAddressedFields();
-    final Map<String, CType> rhsLearnedPointersTypes = rhsVisitor.getLearnedPointerTypes();
+    // note that after resolving the slice bases, we can no longer modify them,
+    // otherwise, we would lose the resolution mapping
 
-    // LHS handling
-    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
-    final Expression lhsExpression = lhs.accept(lhsVisitor);
-    if (lhsExpression.isNondetValue()) {
-      // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
-      conv.logger.logfOnce(
-          Level.WARNING,
-          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
-          edge.getFileLocation(),
-          lhs);
-      return conv.bfmgr.makeTrue();
+    // for better soundness, we want to assign not just to the LHS, but to fields that are unionized
+    // with it as well; for that reason, we will convert the assignments to partial assignments and
+    // move outward from trailing field accesses, so the LHS type of partial assignment is the
+    // coarsest possible ("progenitor")
+    final List<SingleRhsPartialAssignment> partialAssignments = new ArrayList<>();
+
+    for (SliceAssignment assignment : assignments) {
+      // to initialize the span size, we need to know the type after potential casting
+      // this is usually the type of LHS, but if pointer assignment or array attachment is being
+      // forced, it must be adjusted to pointer
+      CType targetType = typeHandler.simplifyType(assignment.lhs.getFullExpressionType());
+      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+        targetType = CTypes.adjustFunctionOrArrayType(targetType);
+      }
+
+      // construct the partial assignment as if it is a full assignment from RHS (converted to
+      // target type) to LHS
+      final PartialAssignmentLhs partialLhs = new PartialAssignmentLhs(assignment.lhs, targetType);
+      final long targetBitSize = typeHandler.getBitSizeof(targetType);
+      final PartialAssignmentRhs partialRhs =
+          new PartialAssignmentRhs(new PartialSpan(0, 0, targetBitSize), assignment.rhs);
+      final SingleRhsPartialAssignment partialAssignment =
+          new SingleRhsPartialAssignment(partialLhs, partialRhs);
+
+      if (options.useByteArrayForHeap()) {
+        // we do not need to convert to progenitor if we are assigning to the byte array, as all
+        // types will read and write from the same array
+        // however, that does not apply to unaliased locations, so we need to make sure that there
+        // are no assignments to them if we want to skip the conversion to progenitor
+
+        boolean assignmentToUnaliasedExists = false;
+        for (ResolvedSlice lhsResolvedBase : lhsBaseResolutionMap.values()) {
+          assignmentToUnaliasedExists =
+              assignmentToUnaliasedExists || lhsResolvedBase.expression().isUnaliasedLocation();
+        }
+
+        if (!assignmentToUnaliasedExists) {
+          // we do not need to convert to progenitor, unions are resolved implicitly by the byte
+          // array
+          partialAssignments.add(partialAssignment);
+          continue;
+        }
+      }
+
+      // convert span assignment to progenitor; this will retain the meaning of the assignment,
+      // but the LHS type will be the coarsest possible
+      final SingleRhsPartialAssignment progenitorPartialAssignment =
+          convertPartialAssignmentToProgenitor(partialAssignment);
+
+      partialAssignments.add(progenitorPartialAssignment);
     }
-    final Location lhsLocation = lhsExpression.asLocation();
-    final boolean useOldSSAIndices = useOldSSAIndicesIfAliased && lhsLocation.isAliased();
 
-    final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
-    pts.addEssentialFields(lhsVisitor.getInitializedFields());
-    pts.addEssentialFields(lhsVisitor.getUsedFields());
-    // the pattern matching possibly aliased locations
+    // generate simple slice assignments to resolve assignments to structures and arrays
+    // as we have converted to progenitors, this will recurse into unionized fields within
+    // the same coarsest type, and thus resolve these unionized assignments correctly
+    // note that one LHS can now correspond to multiple RHS, so we need a multimap
+    final ListMultimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap =
+        MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
-    if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
-      DynamicMemoryHandler memoryHandler =
-          new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
-      memoryHandler.handleDeferredAllocationsInAssignment(
-          lhs, rhs, rhsExpression, lhsType, lhsLearnedPointerTypes, rhsLearnedPointersTypes);
+    for (SingleRhsPartialAssignment partialAssignment : partialAssignments) {
+      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+        // actual assignment type is pointer, which is already simple
+        simpleAssignmentMultimap.put(partialAssignment.lhs(), partialAssignment.rhs());
+      } else {
+        generateSimplePartialAssignments(partialAssignment, simpleAssignmentMultimap);
+      }
     }
 
-    // necessary only for update terms for new UF indices
-    Set<MemoryRegion> updatedRegions =
-        useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
-
+    // hand over to quantifier handler
+    final AssignmentQuantifierHandler assignmentQuantifierHandler =
+        new AssignmentQuantifierHandler(
+            conv,
+            edge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions,
+            lhsBaseResolutionMap,
+            rhsBaseResolutionMap);
     final BooleanFormula result =
-        makeDestructiveAssignment(
-            lhsType, rhsType, lhsLocation, rhsExpression, useOldSSAIndices, updatedRegions);
+        assignmentQuantifierHandler.assignSimpleSlices(simpleAssignmentMultimap);
 
-    if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference) {
-      CFieldReference fieldReference = (CFieldReference) lhs;
-      CExpression fieldOwner = fieldReference.getFieldOwner();
-      CType ownerType = typeHandler.getSimplifiedType(fieldOwner);
-      if (!fieldReference.isPointerDereference() && ownerType instanceof CCompositeType) {
-        if (((CCompositeType) ownerType).getKind() == ComplexTypeKind.UNION) {
-          addAssignmentsForOtherFieldsOfUnion(
-              lhsType,
-              (CCompositeType) ownerType,
-              rhsType,
-              rhsExpression,
-              useOldSSAIndices,
-              updatedRegions,
-              fieldReference);
-        }
-        if (fieldOwner instanceof CFieldReference) {
-          CFieldReference owner = (CFieldReference) fieldOwner;
-          CType ownersOwnerType = typeHandler.getSimplifiedType(owner.getFieldOwner());
-          if (ownersOwnerType instanceof CCompositeType
-              && ((CCompositeType) ownersOwnerType).getKind() == ComplexTypeKind.UNION) {
-            addAssignmentsForOtherFieldsOfUnion(
-                ownersOwnerType,
-                (CCompositeType) ownersOwnerType,
-                ownerType,
-                createRHSExpression(owner, ownerType, rhsVisitor),
-                useOldSSAIndices,
-                updatedRegions,
-                owner);
-          }
-        }
-      }
-    }
-
-    if (!useOldSSAIndices && !options.useArraysForHeap()) {
-      if (lhsLocation.isAliased()) {
-        final PointerTargetPattern pattern =
-            PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
-        finishAssignmentsForUF(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
-      } else { // Unaliased lvalue
-        assert updatedRegions != null && updatedRegions.isEmpty();
-      }
-    }
-
-    for (final CompositeField field : rhsAddressedFields) {
+    // add addressed fields of rhs to pointer-target set
+    for (CompositeField field : rhsAddressedFields) {
       pts.addField(field);
     }
+
     return result;
   }
 
-  private Expression createRHSExpression(
-      CRightHandSide pRhs, CType pLhsType, CExpressionVisitorWithPointerAliasing pRhsVisitor)
-      throws UnrecognizedCodeException {
-    if (pRhs == null) {
-      return Value.nondetValue();
+  /**
+   * In this function, Havoc abstraction is applied onto an assignment.
+   *
+   * <p>It is determined whether the right side should be Havoc'd. If it should, the new right-hand
+   * side is nondeterministic. Otherwise, it is retained.
+   *
+   * @param assignment The assignment to apply Havoc abstraction to.
+   * @return The assignment with applied Havoc abstraction.
+   */
+  private SliceAssignment applyHavocToAssignment(SliceAssignment assignment) {
+    // the Havoc relevant visitor does not care about subscripts and fields,
+    // we can just test for relevancy of the base
+    if (assignment.rhs.isEmpty()) {
+      // already nondeterministic
+      return assignment;
     }
-    CRightHandSide r = pRhs;
-    if (r instanceof CExpression) {
-      r = conv.convertLiteralToFloatIfNecessary((CExpression) r, pLhsType);
+    IsRelevantWithHavocAbstractionVisitor havocVisitor =
+        new IsRelevantWithHavocAbstractionVisitor(conv);
+    if (assignment.rhs.orElseThrow().base().accept(havocVisitor)) {
+      // relevant
+      return assignment;
     }
-    return r.accept(pRhsVisitor);
-  }
-
-  private CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
-    return new CExpressionVisitorWithPointerAliasing(
-        conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-  }
-
-  BooleanFormula handleAssignment(
-      final CLeftHandSide lhs,
-      final CLeftHandSide lhsForChecking,
-      final @Nullable CRightHandSide rhs,
-      final boolean useOldSSAIndicesIfAliased)
-      throws UnrecognizedCodeException, InterruptedException {
-    return handleAssignment(
-        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, useOldSSAIndicesIfAliased);
+    // havoc by making rhs nondeterministic
+    return new SliceAssignment(assignment.lhs, assignment.relevancyLhs, Optional.empty());
   }
 
   /**
-   * Handles initialization assignments.
+   * Resolves bases of a slice assignment and puts the resolutions to the provided maps.
+   *
+   * <p>Also calls the DynamicMemoryHandler to handle deferred allocations as necessary.
+   *
+   * @param assignment The assignment to resolve bases of.
+   * @param lhsBaseResolutionMap LHS base resolution map to which the LHS base resolutions will be
+   *     put.
+   * @param rhsBaseResolutionMap RHS base resolution map to which the RHS base resolutions will be
+   *     put.
+   * @param rhsAddressedFields A list into which RHS addressed fields determined by the RHS visitor
+   *     are inserted.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If a shutdown was requested during assigning.
+   */
+  private void resolveAssignmentBases(
+      SliceAssignment assignment,
+      Map<CRightHandSide, ResolvedSlice> lhsBaseResolutionMap,
+      Map<CRightHandSide, ResolvedSlice> rhsBaseResolutionMap,
+      List<CompositeField> rhsAddressedFields)
+      throws UnrecognizedCodeException, InterruptedException {
+    // resolve LHS base using visitor
+    final CExpressionVisitorWithPointerAliasing lhsBaseVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+    final CRightHandSide lhsBase = assignment.lhs.base();
+    ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
+
+    // add initialized and used fields of LHS base to pointer-target set as essential
+    // this is only needed for UF heap
+    pts.addEssentialFields(lhsBaseVisitor.getInitializedFields());
+    pts.addEssentialFields(lhsBaseVisitor.getUsedFields());
+
+    if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+      // resolved LHS now may have array type, but it must be interpreted as pointer instead
+      final CType lhsPointerType = CTypes.adjustFunctionOrArrayType(resolvedLhsBase.type());
+      resolvedLhsBase = new ResolvedSlice(resolvedLhsBase.expression(), lhsPointerType);
+    }
+
+    // add LHS to resolution map
+    lhsBaseResolutionMap.put(lhsBase, resolvedLhsBase);
+
+    if (assignment.rhs.isEmpty()) {
+      // assignment RHS is nondeterministic
+      // no resolution of RHS base or deferred memory handling
+      return;
+    }
+    final SliceExpression rhs = assignment.rhs.orElseThrow();
+
+    // resolve RHS base using visitor
+    final CRightHandSide rhsBase = rhs.base();
+    final CExpressionVisitorWithPointerAliasing rhsBaseVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+    final ResolvedSlice resolvedRhsBase = resolveBase(rhsBase, rhsBaseVisitor);
+
+    // add initialized and used fields of RHS to pointer-target set as essential
+    // this is only needed for UF heap
+    pts.addEssentialFields(rhsBaseVisitor.getInitializedFields());
+    pts.addEssentialFields(rhsBaseVisitor.getUsedFields());
+
+    // prepare to add addressed fields of RHS to pointer-target set after assignment
+    // this is only needed for UF heap
+    rhsAddressedFields.addAll(rhsBaseVisitor.getAddressedFields());
+
+    // add RHS to resolution map
+    rhsBaseResolutionMap.put(rhsBase, resolvedRhsBase);
+
+    // apply the deferred memory handler: if there is a malloc with void* type, the allocation
+    // can be deferred until the assignment that uses the value; the allocation type can then be
+    // inferred from assignment lhs type
+    if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
+
+      // the deferred memory handler does not care about actual subscript values, so we can use
+      // dummy resolved expressions; it is necessary that there are no modifiers after
+      // CFunctionCallExpression base in assignments
+      final CRightHandSide lhsDummy = assignment.lhs.getDummyResolvedExpression();
+      final CRightHandSide rhsDummy = rhs.getDummyResolvedExpression();
+      CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
+
+      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+        // lhsType may be an array but we have to interpret it as a pointer instead
+        lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
+      }
+
+      // we have everything we need, call memory handler
+      // rhs expression is only used when rhs is CFunctionCallExpression which can have no
+      // modifiers in assignments
+      // so we can substitute resolvedRhsBase.expression()
+      final DynamicMemoryHandler memoryHandler =
+          new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+      memoryHandler.handleDeferredAllocationsInAssignment(
+          (CLeftHandSide) lhsDummy,
+          rhsDummy,
+          resolvedRhsBase.expression(),
+          lhsType,
+          lhsBaseVisitor.getLearnedPointerTypes(),
+          rhsBaseVisitor.getLearnedPointerTypes());
+    }
+  }
+
+  /**
+   * A helper function to resolve a base using a visitor, returning a {@link ResolvedSlice}.
+   *
+   * @param base The base to resolve.
+   * @param visitor The visitor to use.
+   * @return The resolved slice
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
+   */
+  private ResolvedSlice resolveBase(
+      CRightHandSide base, CExpressionVisitorWithPointerAliasing visitor)
+      throws UnrecognizedCodeException {
+    CType lhsBaseType = typeHandler.getSimplifiedType(base);
+    Expression lhsBaseExpression = base.accept(visitor);
+    return new ResolvedSlice(lhsBaseExpression, lhsBaseType);
+  }
+
+  /**
+   * Converts partial assignment to progenitor partial assignment.
+   *
+   * <p>The progenitor partial assignment has the same effect as the original assignment and retains
+   * the same base, but LHS trailing field access modifiers are discarded and instead represented by
+   * the partial assignment span. This means full LHS type is the coarsest possible, representing
+   * assignment not only to the original field, but to unionized fields within the progenitor LHS
+   * type as well.
+   *
+   * @param assignment The partial assignment to convert to progenitor.
+   * @return Progenitor partial assignment, retaining the same base and effective assignment.
+   */
+  private SingleRhsPartialAssignment convertPartialAssignmentToProgenitor(
+      SingleRhsPartialAssignment assignment) {
+
+    // we assume assignment is already canonical and split the canonical LHS modifiers
+    // into progenitor modifiers and trailing field accesses
+    // e.g. with (*x).a.b[0].c.d, split into (*x).a.b[0] and .c.d
+    // the head is the progenitor from which we will be assigning to span
+
+    ImmutableList<SliceModifier> lhsModifiers = assignment.lhs().actual().modifiers();
+
+    // split to head and trailing
+    // Invariant: lhsModifiers.get(splitPoint) either does not exist or it and all further elements
+    // are SliceFieldAccessModifier
+    int splitPoint = lhsModifiers.size();
+    while (splitPoint > 0 && lhsModifiers.get(splitPoint - 1) instanceof SliceFieldAccessModifier) {
+      splitPoint--;
+    }
+    ImmutableList<SliceModifier> progenitorModifiers = lhsModifiers.subList(0, splitPoint);
+    ImmutableList<SliceModifier> trailingFieldAccesses =
+        lhsModifiers.subList(splitPoint, lhsModifiers.size());
+
+    // construct the progenitor lhs
+    SliceExpression progenitorLhs =
+        new SliceExpression(assignment.lhs().actual().base(), progenitorModifiers);
+
+    // compute the full bit offset from progenitor
+    // the parent type of first field access is the progenitor type
+    CType parentType = progenitorLhs.getFullExpressionType();
+    long bitOffsetFromProgenitor = 0;
+    for (SliceModifier modifier : trailingFieldAccesses) {
+      SliceFieldAccessModifier access = (SliceFieldAccessModifier) modifier; // ensured above
+
+      // field access, parent must be composite
+      CCompositeType parentCompositeType = (CCompositeType) parentType;
+
+      // add current field access to bit offset from progenitor
+      bitOffsetFromProgenitor += typeHandler.getBitOffset(parentCompositeType, access.field());
+
+      // compute the parent type of next access, which is the simplified type of this accessed field
+      parentType = typeHandler.getSimplifiedType(access.field());
+    }
+
+    PartialSpan originalSpan = assignment.rhs().span();
+    PartialSpan spanFromProgenitor =
+        new PartialSpan(
+            bitOffsetFromProgenitor + originalSpan.lhsBitOffset(),
+            originalSpan.rhsTargetBitOffset(),
+            originalSpan.bitSize());
+
+    // now construct the new progenitor assignment with lhs and span modified accordingly
+    // rhs does not change, so target type does not change as well
+    return new SingleRhsPartialAssignment(
+        new PartialAssignmentLhs(progenitorLhs, assignment.lhs().targetType()),
+        new PartialAssignmentRhs(spanFromProgenitor, assignment.rhs().actual()));
+  }
+
+  /**
+   * Generates simple partial assignments from a partial assignment recursively.
+   *
+   * <p>The simple partial assignments LHS and RHS have non-composite, non-array full types.
+   *
+   * @param assignment Assignment to generate simple assignments from.
+   * @param simpleAssignmentMultimap The multimap to add the generated simple assignments to.
+   */
+  private void generateSimplePartialAssignments(
+      SingleRhsPartialAssignment assignment,
+      Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap) {
+
+    final CType lhsType =
+        typeHandler.simplifyType(assignment.lhs().actual().getFullExpressionType());
+
+    // if rhs type is nondet, treat is as LHS type
+    final CType rhsType =
+        assignment
+            .rhs()
+            .actual()
+            .map(rhsSlice -> typeHandler.simplifyType(rhsSlice.getFullExpressionType()))
+            .orElse(lhsType);
+
+    // hand off to the proper function depending on LHS type
+    if (lhsType instanceof CArrayType lhsArrayType) {
+      generatePartialAssignmentsForArrayType(
+          assignment, simpleAssignmentMultimap, lhsArrayType, rhsType);
+    } else if (lhsType instanceof CCompositeType lhsCompositeType) {
+      for (CCompositeTypeMemberDeclaration lhsMember : lhsCompositeType.getMembers()) {
+        generatePartialAssignmentsForCompositeMember(
+            assignment, simpleAssignmentMultimap, lhsCompositeType, rhsType, lhsMember);
+      }
+    } else {
+      // already simple, just add the assignment to simple assignments
+      simpleAssignmentMultimap.put(assignment.lhs(), assignment.rhs());
+    }
+  }
+
+  /**
+   * Generates simple partial assignments from a partial assignment with LHS array type.
+   *
+   * <p>If LHS and RHS types are the same and the assignment span is complete, slices the
+   * assignment, i.e., for {@code lhs = rhs}, creates {@code lhs[i] = rhs[i]}, where {@code 0 <= i <
+   * size} and {@code size} is the size of the array.
+   *
+   * <p>If LHS is a flexible array member, the types of LHS and RHS are not the same, or the
+   * assignment span is not complete, currently ignores the assignment.
+   *
+   * @param assignment Assignment to generate simple assignments from.
+   * @param simpleAssignmentMultimap The multimap to add the generated simple assignments to.
+   * @param lhsArrayType LHS array type.
+   * @param rhsType RHS type.
+   */
+  private void generatePartialAssignmentsForArrayType(
+      SingleRhsPartialAssignment assignment,
+      Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap,
+      CArrayType lhsArrayType,
+      CType rhsType) {
+
+    final @Nullable CExpression lhsArrayLength = lhsArrayType.getLength();
+    if (lhsArrayLength == null) {
+      // we currently do not assign to flexible array members as it is complex to implement
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring assignment to flexible array member %s as they are not well-supported",
+          edge.getFileLocation(),
+          lhsArrayType);
+      return;
+    }
+
+    final PartialSpan originalSpan = assignment.rhs().span();
+
+    if (!lhsArrayType.equals(rhsType)) {
+      // we currently do not assign to array types from different types as that would ideally
+      // require spans to support quantification, which would be problematic
+      // it should be only required for cases of unions containing arrays
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring assignment to array type %s from other type %s",
+          edge.getFileLocation(),
+          lhsArrayType,
+          rhsType);
+      return;
+    }
+    if (originalSpan.lhsBitOffset() != 0
+        || originalSpan.rhsTargetBitOffset() != 0
+        || originalSpan.bitSize() != typeHandler.getBitSizeof(lhsArrayType)) {
+      // we currently do not assign for incomplete spans as it would not be trivial
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring assignment to array type %s with incomplete span",
+          edge.getFileLocation(),
+          lhsArrayType);
+      return;
+    }
+
+    // slice the assignment using a slice variable
+    final SliceVariable indexVariable = new SliceVariable(lhsArrayType.getLength());
+    final SliceExpression elementLhs = assignment.lhs().actual().withIndex(indexVariable);
+    final Optional<SliceExpression> elementRhs =
+        assignment.rhs().actual().map(rhsSlice -> rhsSlice.withIndex(indexVariable));
+
+    // full span
+    final CType elementType = typeHandler.simplifyType(lhsArrayType.getType());
+    final PartialSpan elementSpan = new PartialSpan(0, 0, typeHandler.getBitSizeof(elementType));
+    final PartialAssignmentRhs elementSpanRhs = new PartialAssignmentRhs(elementSpan, elementRhs);
+
+    // target type is now element type
+    final SingleRhsPartialAssignment elementAssignment =
+        new SingleRhsPartialAssignment(
+            new PartialAssignmentLhs(elementLhs, elementType), elementSpanRhs);
+    generateSimplePartialAssignments(elementAssignment, simpleAssignmentMultimap);
+  }
+
+  /**
+   * Generates simple partial assignments from a partial assignment with left-hand-side composite
+   * type member.
+   *
+   * <p>If LHS span does not cover the member at least partially, returns. If LHS and RHS types and
+   * offsets are the same, field-accesses both of them. If they are different, field-accesses only
+   * LHS, "accessing" RHS by adjusting span. This preserves the ability to slice if possible.
+   *
+   * @param assignment Assignment to generate simple assignments from.
+   * @param simpleAssignmentMultimap The multimap to add the generated simple assignments to.
+   * @param lhsCompositeType LHS composite type.
+   * @param rhsType RHS type.
+   * @param lhsMember The LHS member to consider.
+   */
+  private void generatePartialAssignmentsForCompositeMember(
+      SingleRhsPartialAssignment assignment,
+      Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap,
+      CCompositeType lhsCompositeType,
+      CType rhsType,
+      CCompositeTypeMemberDeclaration lhsMember) {
+    final PartialSpan originalSpan = assignment.rhs().span();
+
+    final long lhsMemberBitOffset = typeHandler.getBitOffset(lhsCompositeType, lhsMember);
+    final long lhsMemberBitSize = typeHandler.getBitSizeof(lhsMember.getType());
+    final SliceExpression lhsMemberSlice = assignment.lhs().actual().withFieldAccess(lhsMember);
+
+    // compare LHS assignment range with member range
+    final Range<Long> lhsOriginalRange = originalSpan.asLhsRange();
+    final Range<Long> lhsMemberRange =
+        Range.closedOpen(lhsMemberBitOffset, lhsMemberBitOffset + lhsMemberBitSize);
+    if (!lhsOriginalRange.isConnected(lhsMemberRange)) {
+      // the span does not cover this member
+      return;
+    }
+
+    // get the intersection, it may be empty
+    final Range<Long> lhsIntersectionRange = lhsOriginalRange.intersection(lhsMemberRange);
+    if (lhsIntersectionRange.isEmpty()) {
+      // the span does not cover this member
+      return;
+    }
+
+    // get the member-referenced offset and member assignment size
+    final long intersectionMemberReferencedLhsBitOffset =
+        lhsIntersectionRange.lowerEndpoint() - lhsMemberBitOffset;
+    final long memberAssignmentBitSize =
+        lhsIntersectionRange.upperEndpoint() - lhsIntersectionRange.lowerEndpoint();
+
+    // go into rhs as well if bit offsets and types are the same
+    if (originalSpan.lhsBitOffset() == originalSpan.rhsTargetBitOffset()
+        && lhsCompositeType.equals(rhsType)) {
+      // types and offsets are equal, go into rhs as well
+
+      // the offsets will remain the same for lhs and rhs
+      final PartialSpan memberSpan =
+          new PartialSpan(
+              intersectionMemberReferencedLhsBitOffset,
+              intersectionMemberReferencedLhsBitOffset,
+              memberAssignmentBitSize);
+
+      // go into rhs if not nondet
+      final Optional<SliceExpression> memberRhsSlice =
+          assignment.rhs().actual().map(rhsSlice -> rhsSlice.withFieldAccess(lhsMember));
+
+      final PartialAssignmentRhs memberRhs = new PartialAssignmentRhs(memberSpan, memberRhsSlice);
+
+      // target type is now member type
+      final CType memberTargetType = typeHandler.getSimplifiedType(lhsMember);
+
+      final SingleRhsPartialAssignment memberAssignment =
+          new SingleRhsPartialAssignment(
+              new PartialAssignmentLhs(lhsMemberSlice, memberTargetType), memberRhs);
+      // we now have the member assignment, generate the simple assignments from it
+      generateSimplePartialAssignments(memberAssignment, simpleAssignmentMultimap);
+
+      // early return
+      return;
+    }
+
+    // types or offsets are not equal, do not go into rhs, just get the right spans
+    // the rhs offset is still referenced to rhs which does not change, but the intersection
+    // may start after original, so add intersection lhs bit offset and subtract original
+    // lhs bit offset
+    final long intersectionRhsBitOffset =
+        originalSpan.rhsTargetBitOffset()
+            + lhsIntersectionRange.lowerEndpoint()
+            - lhsOriginalRange.lowerEndpoint();
+
+    final PartialSpan memberSpan =
+        new PartialSpan(
+            intersectionMemberReferencedLhsBitOffset,
+            intersectionRhsBitOffset,
+            memberAssignmentBitSize);
+    final PartialAssignmentRhs memberRhs =
+        new PartialAssignmentRhs(memberSpan, assignment.rhs().actual());
+
+    // target type does not change
+    final SingleRhsPartialAssignment memberAssignment =
+        new SingleRhsPartialAssignment(
+            new PartialAssignmentLhs(lhsMemberSlice, assignment.lhs().targetType()), memberRhs);
+
+    // we now have the member assignment, generate the simple assignments from it
+    generateSimplePartialAssignments(memberAssignment, simpleAssignmentMultimap);
+  }
+
+  /**
+   * Assigns initialization assignments to the given variable.
+   *
+   * <p>If quantifier encoding should be used and is array initialization with all initializers
+   * being the same, makes the initializer slicing, e.g. from <code> int a[3] = {2,2,2}; </code>,
+   * makes initial slice assignment {@code a[i] = 2} for {@code 0 <= i < size} where {@code size =
+   * 3}. Otherwise, just generates the assignments as normal.
    *
    * @param variable The declared variable.
    * @param declarationType The type of the declared variable.
@@ -286,139 +773,70 @@ class AssignmentHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
-  BooleanFormula handleInitializationAssignments(
+  BooleanFormula initializationAssign(
       final CIdExpression variable,
       final CType declarationType,
       final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCodeException, InterruptedException {
+
     if (options.useQuantifiersOnArrays()
-        && (declarationType instanceof CArrayType)
+        && (declarationType instanceof CArrayType arrayType)
         && !assignments.isEmpty()) {
-      return handleInitializationAssignmentsWithQuantifier(variable, assignments, false);
-    } else {
-      return handleInitializationAssignmentsWithoutQuantifier(assignments);
-    }
-  }
+      // try to make a single slice assignment out of the assignments
 
-  /**
-   * Handles initialization assignments.
-   *
-   * @param assignments A list of assignment statements.
-   * @return A boolean formula for the assignment.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   * @throws InterruptedException It the execution was interrupted.
-   */
-  private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
-      final List<CExpressionAssignmentStatement> assignments)
-      throws UnrecognizedCodeException, InterruptedException {
-    BooleanFormula result = conv.bfmgr.makeTrue();
+      OptionalInt arrayLength = arrayType.getLengthAsInt();
+
+      CExpressionAssignmentStatement firstAssignment = assignments.get(0);
+
+      // we can visit lhs and rhs multiple times without side effects
+      // as there is no CFunctionCallExpression visit possible
+      final CExpressionVisitorWithPointerAliasing rhsVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+      final Expression rhsValue = firstAssignment.getRightHandSide().accept(rhsVisitor);
+
+      final CExpressionVisitorWithPointerAliasing lhsVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+      final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
+
+      if (arrayLength.isPresent()
+          && arrayLength.orElseThrow() == assignments.size()
+          && rhsValue.isValue()
+          && checkEqualityOfInitializers(assignments, rhsVisitor)
+          && lhsLocation.isAliased()) {
+        // there is an initializer for every array element and all of them are the same
+        // make a single slice assignment over the array length
+        CArraySubscriptExpression firstAssignmentLeftSide =
+            (CArraySubscriptExpression) firstAssignment.getLeftHandSide();
+        CLeftHandSide wholeAssignmentLeftSide =
+            (CLeftHandSide) firstAssignmentLeftSide.getArrayExpression();
+
+        SliceExpression sliceLhs =
+            new SliceExpression(wholeAssignmentLeftSide)
+                .withIndex(new SliceVariable(arrayType.getLength()));
+        SliceExpression sliceRhs = new SliceExpression(firstAssignment.getRightHandSide());
+        SliceAssignment sliceAssignment =
+            new SliceAssignment(
+                sliceLhs, Optional.of(firstAssignmentLeftSide), Optional.of(sliceRhs));
+        return assign(ImmutableList.of(sliceAssignment));
+      }
+    }
+
+    // normal initializer handling, build all initialization assignments
+
+    ImmutableList.Builder<SliceAssignment> builder = ImmutableList.<SliceAssignment>builder();
     for (CExpressionAssignmentStatement assignment : assignments) {
-      final CLeftHandSide lhs = assignment.getLeftHandSide();
-      result =
-          conv.bfmgr.and(result, handleAssignment(lhs, lhs, assignment.getRightHandSide(), true));
+      SliceExpression lhs = new SliceExpression(assignment.getLeftHandSide());
+      SliceExpression rhs = new SliceExpression(assignment.getRightHandSide());
+      builder.add(
+          new SliceAssignment(lhs, Optional.of(assignment.getLeftHandSide()), Optional.of(rhs)));
     }
-    return result;
+    return assign(builder.build());
   }
 
   /**
-   * Handles an initialization assignments, i.e. an assignment with a C initializer, with using a
-   * quantifier over the resulting SMT array.
-   *
-   * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
-   * the normal initialization in {@link #handleInitializationAssignmentsWithoutQuantifier(List)}.
-   *
-   * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
-   * @param pAssignments A list of assignment statements.
-   * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
-   * @return A boolean formula for the assignment.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
-   * @see #handleInitializationAssignmentsWithoutQuantifier(List)
-   */
-  private BooleanFormula handleInitializationAssignmentsWithQuantifier(
-      final CIdExpression pLeftHandSide,
-      final List<CExpressionAssignmentStatement> pAssignments,
-      final boolean pUseOldSSAIndices)
-      throws UnrecognizedCodeException, InterruptedException {
-
-    assert !pAssignments.isEmpty()
-        : "Cannot handle initialization assignments without an assignment right hand side.";
-
-    final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
-    final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());
-
-    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
-    final Expression rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor);
-
-    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
-    final Location lhsLocation = pLeftHandSide.accept(lhsVisitor).asLocation();
-
-    if (!rhsValue.isValue()
-        || !checkEqualityOfInitializers(pAssignments, rhsVisitor)
-        || !lhsLocation.isAliased()) {
-      // Fallback case, if we have no initialization of the form "<variable> = <value>"
-      // Example code snippet
-      // (cf. test/programs/simple/struct-initializer-for-composite-field.c)
-      //    struct s { int x; };
-      //    struct t { struct s s; };
-      //    ...
-      //    const struct s s = { .x = 1 };
-      //    struct t t = { .s = s };
-      return handleInitializationAssignmentsWithoutQuantifier(pAssignments);
-    } else {
-      MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
-      if (region == null) {
-        region = regionMgr.makeMemoryRegion(lhsType);
-      }
-      final String targetName = regionMgr.getPointerAccessName(region);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
-      final int oldIndex = conv.getIndex(targetName, lhsType, ssa);
-      final int newIndex =
-          pUseOldSSAIndices
-              ? conv.getIndex(targetName, lhsType, ssa)
-              : conv.getFreshIndex(targetName, lhsType, ssa);
-
-      final Formula counter =
-          fmgr.makeVariableWithoutSSAIndex(
-              conv.voidPointerFormulaType, targetName + "__" + oldIndex + "__counter");
-      final BooleanFormula rangeConstraint =
-          fmgr.makeElementIndexConstraint(
-              counter, lhsLocation.asAliased().getAddress(), pAssignments.size(), false);
-
-      final Formula newDereference =
-          conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
-      final Formula rhs =
-          conv.makeCast(rhsType, lhsType, rhsValue.asValue().getValue(), constraints, edge);
-
-      final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhs);
-
-      final BooleanFormula copyOldValue;
-      if (options.useArraysForHeap()) {
-        final ArrayFormulaManagerView afmgr = fmgr.getArrayFormulaManager();
-        final ArrayFormula<?, ?> newArray =
-            afmgr.makeArray(targetName, newIndex, conv.voidPointerFormulaType, targetType);
-        final ArrayFormula<?, ?> oldArray =
-            afmgr.makeArray(targetName, oldIndex, conv.voidPointerFormulaType, targetType);
-        copyOldValue = fmgr.makeEqual(newArray, oldArray);
-
-      } else {
-        copyOldValue =
-            fmgr.assignment(
-                newDereference,
-                conv.ptsMgr.makePointerDereference(targetName, targetType, oldIndex, counter));
-      }
-
-      return fmgr.getQuantifiedFormulaManager()
-          .forall(
-              counter,
-              bfmgr.and(
-                  bfmgr.implication(rangeConstraint, assignNewValue),
-                  bfmgr.implication(bfmgr.not(rangeConstraint), copyOldValue)));
-    }
-  }
-
-  /**
-   * Checks, whether all assignments of an initializer have the same value.
+   * Checks whether all assignments of an initializer have the same value.
    *
    * @param pAssignments The list of assignments.
    * @param pRhsVisitor A visitor to evaluate the value of the right-hand side.
@@ -439,855 +857,5 @@ class AssignmentHandler {
       }
     }
     return true;
-  }
-
-  private void finishAssignmentsForUF(
-      CType lvalueType,
-      final AliasedLocation lvalue,
-      final PointerTargetPattern pattern,
-      final Set<MemoryRegion> updatedRegions)
-      throws InterruptedException {
-    MemoryRegion region = lvalue.getMemoryRegion();
-    if (region == null) {
-      region = regionMgr.makeMemoryRegion(lvalueType);
-    }
-    if (isSimpleType(lvalueType)) {
-      assert updatedRegions.contains(region);
-    }
-    addRetentionForAssignment(region, lvalueType, lvalue.getAddress(), pattern, updatedRegions);
-    updateSSA(updatedRegions, ssa);
-  }
-
-  /**
-   * Creates a formula for a destructive assignment.
-   *
-   * @param lvalueType The type of the lvalue.
-   * @param rvalueType The type of the rvalue.
-   * @param lvalue The location of the lvalue.
-   * @param rvalue The rvalue expression.
-   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedRegions Either {@code null} or a set of updated regions.
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   */
-  BooleanFormula makeDestructiveAssignment(
-      CType lvalueType,
-      CType rvalueType,
-      final Location lvalue,
-      final Expression rvalue,
-      final boolean useOldSSAIndices,
-      final @Nullable Set<MemoryRegion> updatedRegions)
-      throws UnrecognizedCodeException {
-    checkIsSimplified(lvalueType);
-    checkIsSimplified(rvalueType);
-    checkArgument(
-        !useOldSSAIndices || updatedRegions == null,
-        "With old SSA indices returning updated regions does not make sense");
-
-    if (lvalueType instanceof CArrayType) {
-      return makeDestructiveArrayAssignment(
-          (CArrayType) lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
-
-    } else if (lvalueType instanceof CCompositeType) {
-      final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
-      return makeDestructiveCompositeAssignment(
-          lvalueCompositeType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
-
-    } else { // Simple assignment
-      return makeSimpleDestructiveAssignment(
-          lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
-    }
-  }
-
-  private BooleanFormula makeDestructiveArrayAssignment(
-      CArrayType lvalueArrayType,
-      CType rvalueType,
-      final Location lvalue,
-      final Expression rvalue,
-      final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions)
-      throws UnrecognizedCodeException {
-    checkArgument(lvalue.isAliased(), "Array elements are always aliased");
-    final CType lvalueElementType = lvalueArrayType.getType();
-
-    OptionalInt lvalueLength = lvalueArrayType.getLengthAsInt();
-    // Try to fix the length if it's unknown (or too big)
-    // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
-    if (!lvalueLength.isPresent() && rvalue.isLocation()) {
-      lvalueLength = ((CArrayType) rvalueType).getLengthAsInt();
-    }
-    int length =
-        lvalueLength.isPresent()
-            ? Integer.min(options.maxArrayLength(), lvalueLength.orElseThrow())
-            : options.defaultArrayLength();
-
-    // There are two cases of assignment to an array
-    // - Initialization with a value (possibly nondet), useful for stack declarations and memset
-    // - Array assignment as part of a structure assignment
-    final CType newRvalueType;
-    if (rvalue.isValue()) {
-      checkArgument(
-          isSimpleType(rvalueType),
-          "Impossible assignment of %s with type %s to array:",
-          rvalue,
-          rvalueType);
-      if (rvalue.isNondetValue()) {
-        newRvalueType =
-            isSimpleType(lvalueElementType) ? lvalueElementType : CNumericTypes.SIGNED_CHAR;
-      } else {
-        newRvalueType = rvalueType;
-      }
-
-    } else {
-      checkArgument(
-          rvalue.asLocation().isAliased(),
-          "Impossible assignment of %s with type %s to array:",
-          rvalue,
-          rvalueType);
-      checkArgument(
-          ((CArrayType) rvalueType).getType().equals(lvalueElementType),
-          "Impossible array assignment due to incompatible types: assignment of %s with type %s to"
-              + " %s with type %s",
-          rvalue,
-          rvalueType,
-          lvalue,
-          lvalueArrayType);
-      newRvalueType = checkIsSimplified(((CArrayType) rvalueType).getType());
-    }
-
-    BooleanFormula result = bfmgr.makeTrue();
-    long offset = 0;
-    for (int i = 0; i < length; ++i) {
-      final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-      final AliasedLocation newLvalue =
-          AliasedLocation.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula));
-      final Expression newRvalue;
-
-      // Support both initialization (with a value or nondet) and assignment (from another array
-      // location)
-      if (rvalue.isValue()) {
-        newRvalue = rvalue;
-      } else {
-        newRvalue =
-            AliasedLocation.ofAddress(
-                fmgr.makePlus(rvalue.asAliasedLocation().getAddress(), offsetFormula));
-      }
-
-      result =
-          bfmgr.and(
-              result,
-              makeDestructiveAssignment(
-                  lvalueElementType,
-                  newRvalueType,
-                  newLvalue,
-                  newRvalue,
-                  useOldSSAIndices,
-                  updatedRegions));
-      offset += conv.getSizeof(lvalueArrayType.getType());
-    }
-    return result;
-  }
-
-  private BooleanFormula makeDestructiveCompositeAssignment(
-      final CCompositeType lvalueCompositeType,
-      CType rvalueType,
-      final Location lvalue,
-      final Expression rvalue,
-      final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions)
-      throws UnrecognizedCodeException {
-    // There are two cases of assignment to a structure/union
-    // - Initialization with a value (possibly nondet), useful for stack declarations and memset
-    // - Structure assignment
-    checkArgument(
-        (rvalue.isValue() && isSimpleType(rvalueType)) || rvalueType.equals(lvalueCompositeType),
-        "Impossible assignment due to incompatible types: assignment of %s with type %s to %s with"
-            + " type %s",
-        rvalue,
-        rvalueType,
-        lvalue,
-        lvalueCompositeType);
-
-    BooleanFormula result = bfmgr.makeTrue();
-    for (final CCompositeTypeMemberDeclaration memberDeclaration :
-        lvalueCompositeType.getMembers()) {
-      final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
-      // Optimizing away the assignments from uninitialized fields
-      if (conv.isRelevantField(lvalueCompositeType, memberDeclaration)
-          && (
-          // Assignment to a variable, no profit in optimizing it
-          !lvalue.isAliased()
-              || // That's not a simple assignment, check the nested composite
-              !isSimpleType(newLvalueType)
-              || // This is initialization, so the assignment is mandatory
-              rvalue.isValue()
-              || // The field is tracked as essential
-              pts.tracksField(CompositeField.of(lvalueCompositeType, memberDeclaration))
-              || // The variable representing the RHS was used somewhere (i.e. has SSA index)
-              (!rvalue.isAliasedLocation()
-                  && conv.hasIndex(
-                      getFieldAccessName(
-                          rvalue.asUnaliasedLocation().getVariableName(), memberDeclaration),
-                      newLvalueType,
-                      ssa)))) {
-
-        final OptionalLong offset = typeHandler.getOffset(lvalueCompositeType, memberDeclaration);
-        if (!offset.isPresent()) {
-          continue; // TODO this looses values of bit fields
-        }
-        final Formula offsetFormula =
-            fmgr.makeNumber(conv.voidPointerFormulaType, offset.orElseThrow());
-        final Location newLvalue;
-        if (lvalue.isAliased()) {
-          final MemoryRegion region =
-              regionMgr.makeMemoryRegion(lvalueCompositeType, memberDeclaration);
-          newLvalue =
-              AliasedLocation.ofAddressWithRegion(
-                  fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula), region);
-
-        } else {
-          newLvalue =
-              UnaliasedLocation.ofVariableName(
-                  getFieldAccessName(lvalue.asUnaliased().getVariableName(), memberDeclaration));
-        }
-
-        final CType newRvalueType;
-        final Expression newRvalue;
-        if (rvalue.isLocation()) {
-          newRvalueType = newLvalueType;
-          if (rvalue.isAliasedLocation()) {
-            final MemoryRegion region = regionMgr.makeMemoryRegion(rvalueType, memberDeclaration);
-            newRvalue =
-                AliasedLocation.ofAddressWithRegion(
-                    fmgr.makePlus(rvalue.asAliasedLocation().getAddress(), offsetFormula), region);
-          } else {
-            newRvalue =
-                UnaliasedLocation.ofVariableName(
-                    getFieldAccessName(
-                        rvalue.asUnaliasedLocation().getVariableName(), memberDeclaration));
-          }
-
-        } else {
-          newRvalue = rvalue;
-          if (rvalue.isNondetValue()) {
-            newRvalueType = isSimpleType(newLvalueType) ? newLvalueType : CNumericTypes.SIGNED_CHAR;
-          } else {
-            newRvalueType = rvalueType;
-          }
-        }
-
-        result =
-            bfmgr.and(
-                result,
-                makeDestructiveAssignment(
-                    newLvalueType,
-                    newRvalueType,
-                    newLvalue,
-                    newRvalue,
-                    useOldSSAIndices,
-                    updatedRegions));
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Creates a formula for a simple destructive assignment.
-   *
-   * @param lvalueType The type of the lvalue.
-   * @param pRvalueType The type of the rvalue.
-   * @param lvalue The location of the lvalue.
-   * @param rvalue The rvalue expression.
-   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedRegions Either {@code null} or a set of updated regions.
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   */
-  private BooleanFormula makeSimpleDestructiveAssignment(
-      CType lvalueType,
-      final CType pRvalueType,
-      final Location lvalue,
-      Expression rvalue,
-      final boolean useOldSSAIndices,
-      final @Nullable Set<MemoryRegion> updatedRegions)
-      throws UnrecognizedCodeException {
-    // Arrays and functions are implicitly converted to pointers
-    CType rvalueType = implicitCastToPointer(pRvalueType);
-
-    checkArgument(isSimpleType(lvalueType));
-    checkArgument(isSimpleType(rvalueType));
-    assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
-
-    final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
-    final BooleanFormula result;
-
-    Formula rhs;
-    if (pRvalueType instanceof CArrayType && rvalue.isAliasedLocation()) {
-      // When assigning an array to a pointer, the address of the array is taken
-      rhs = rvalue.asAliasedLocation().getAddress();
-    } else {
-      final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
-      rhs =
-          value.isPresent()
-              ? conv.makeCast(rvalueType, lvalueType, value.orElseThrow(), constraints, edge)
-              : null;
-    }
-
-    if (!lvalue.isAliased()) { // Unaliased LHS
-      assert !useOldSSAIndices;
-
-      final String targetName = lvalue.asUnaliased().getVariableName();
-      final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
-
-      if (rhs != null) {
-        result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
-      } else {
-        result = bfmgr.makeTrue();
-      }
-
-    } else { // Aliased LHS
-      MemoryRegion region = lvalue.asAliased().getMemoryRegion();
-      if (region == null) {
-        region = regionMgr.makeMemoryRegion(lvalueType);
-      }
-      final String targetName = regionMgr.getPointerAccessName(region);
-
-      final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
-      final int newIndex;
-      if (useOldSSAIndices) {
-        assert updatedRegions == null : "Returning updated regions is only for new indices";
-        newIndex = oldIndex;
-
-      } else if (options.useArraysForHeap()) {
-        assert updatedRegions == null : "Return updated regions is only for UF encoding";
-        if (rhs == null) {
-          // For arrays, we always need to add a term that connects oldIndex with newIndex
-          String nondetName =
-              "__nondet_value_" + CTypeUtils.typeToString(rvalueType).replace(' ', '_');
-          rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
-          rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
-        }
-        newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
-
-      } else {
-        assert updatedRegions != null : "UF encoding needs to update regions for new indices";
-        updatedRegions.add(region);
-        // For UFs, we use a new index without storing it such that we use the same index
-        // for multiple writes that are part of the same assignment.
-        // The new index will be stored in the SSAMap later.
-        newIndex = conv.getFreshIndex(targetName, lvalueType, ssa);
-      }
-
-      if (rhs != null) {
-        final Formula address = lvalue.asAliased().getAddress();
-        result =
-            conv.ptsMgr.makePointerAssignment(
-                targetName, targetType, oldIndex, newIndex, address, rhs);
-      } else {
-        result = bfmgr.makeTrue();
-      }
-    }
-
-    return result;
-  }
-
-  private Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue)
-      throws AssertionError {
-    switch (pRValue.getKind()) {
-      case ALIASED_LOCATION:
-        MemoryRegion region = pRValue.asAliasedLocation().getMemoryRegion();
-        if (region == null) {
-          region = regionMgr.makeMemoryRegion(pRValueType);
-        }
-        return Optional.of(
-            conv.makeDereference(
-                pRValueType,
-                pRValue.asAliasedLocation().getAddress(),
-                ssa,
-                errorConditions,
-                region));
-      case UNALIASED_LOCATION:
-        return Optional.of(
-            conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa));
-      case DET_VALUE:
-        return Optional.of(pRValue.asValue().getValue());
-      case NONDET:
-        return Optional.empty();
-      default:
-        throw new AssertionError();
-    }
-  }
-
-  private void addAssignmentsForOtherFieldsOfUnion(
-      final CType lhsType,
-      final CCompositeType ownerType,
-      final CType rhsType,
-      final Expression rhsExpression,
-      final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions,
-      final CFieldReference fieldReference)
-      throws UnrecognizedCodeException {
-    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
-    for (CCompositeTypeMemberDeclaration member : ownerType.getMembers()) {
-      if (member.getName().equals(fieldReference.getFieldName())) {
-        continue; // handled already as the main assignment
-      }
-
-      final CType newLhsType = member.getType();
-      final CExpression newLhs =
-          new CFieldReference(
-              FileLocation.DUMMY,
-              newLhsType,
-              member.getName(),
-              fieldReference.getFieldOwner(),
-              false);
-      final Location newLhsLocation = newLhs.accept(lhsVisitor).asLocation();
-      assert newLhsLocation.isUnaliasedLocation();
-
-      if (CTypeUtils.isSimpleType(newLhsType)) {
-        addAssignmentsForOtherFieldsOfUnionForLhsSimpleType(
-            lhsType,
-            newLhsType,
-            rhsType,
-            rhsExpression,
-            fieldReference,
-            newLhsLocation,
-            useOldSSAIndices,
-            updatedRegions);
-      }
-
-      if (newLhsType instanceof CCompositeType
-          && CTypeUtils.isSimpleType(rhsType)
-          && !rhsExpression.isNondetValue()) {
-        addAssignmentsForOtherFieldsOfUnionForLhsCompositeType(
-            newLhs,
-            (CCompositeType) newLhsType,
-            rhsType,
-            rhsExpression,
-            lhsVisitor,
-            member,
-            useOldSSAIndices,
-            updatedRegions);
-      }
-    }
-  }
-
-  private void addAssignmentsForOtherFieldsOfUnionForLhsSimpleType(
-      final CType lhsType,
-      final CType newLhsType,
-      final CType rhsType,
-      final Expression rhsExpression,
-      final CFieldReference fieldReference,
-      final Location newLhsLocation,
-      final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions)
-      throws AssertionError, UnrecognizedCodeException, UnsupportedCodeException {
-    final Expression newRhsExpression;
-    if (CTypeUtils.isSimpleType(rhsType) && !rhsExpression.isNondetValue()) {
-      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).orElseThrow();
-      rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
-      rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
-      newRhsExpression = Value.ofValueOrNondet(rhsFormula);
-    } else if (rhsType instanceof CCompositeType) {
-      // reinterpret compositetype as bitvector; concatenate its fields appropriately in case of
-      // struct
-      if (((CCompositeType) rhsType).getKind() == ComplexTypeKind.STRUCT) {
-        CExpressionVisitorWithPointerAliasing expVisitor = newExpressionVisitor();
-        long offset = 0;
-        int targetSize = Ints.checkedCast(typeHandler.getBitSizeof(newLhsType));
-        Formula rhsFormula = null;
-
-        for (CCompositeTypeMemberDeclaration innerMember :
-            ((CCompositeType) rhsType).getMembers()) {
-          int innerMemberSize = Ints.checkedCast(typeHandler.getBitSizeof(innerMember.getType()));
-
-          CExpression innerMemberFieldReference =
-              new CFieldReference(
-                  FileLocation.DUMMY,
-                  innerMember.getType(),
-                  innerMember.getName(),
-                  fieldReference,
-                  false);
-          Formula memberFormula =
-              getValueFormula(
-                      innerMember.getType(),
-                      createRHSExpression(
-                          innerMemberFieldReference, innerMember.getType(), expVisitor))
-                  .orElseThrow();
-          if (!(memberFormula instanceof BitvectorFormula)) {
-            CType interType = TypeUtils.createTypeWithLength(innerMemberSize);
-            memberFormula =
-                conv.makeCast(innerMember.getType(), interType, memberFormula, constraints, edge);
-            memberFormula =
-                conv.makeValueReinterpretation(innerMember.getType(), interType, memberFormula);
-          }
-          assert memberFormula == null || memberFormula instanceof BitvectorFormula;
-
-          if (memberFormula != null) {
-            if (rhsFormula == null) {
-              rhsFormula = fmgr.getBitvectorFormulaManager().makeBitvector(targetSize, 0);
-            }
-
-            boolean lhsSigned = false;
-            if (!(newLhsType instanceof CPointerType)) {
-              lhsSigned = ((CSimpleType) newLhsType).isSigned();
-            }
-            memberFormula = fmgr.makeExtend(memberFormula, targetSize - innerMemberSize, lhsSigned);
-            memberFormula =
-                fmgr.makeShiftLeft(
-                    memberFormula,
-                    fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(targetSize), offset));
-            rhsFormula = fmgr.makePlus(rhsFormula, memberFormula);
-          }
-
-          offset += typeHandler.getBitSizeof(innerMember.getType());
-        }
-
-        if (rhsFormula != null) {
-          CType fromType = TypeUtils.createTypeWithLength(targetSize);
-          rhsFormula = conv.makeCast(fromType, newLhsType, rhsFormula, constraints, edge);
-          rhsFormula = conv.makeValueReinterpretation(fromType, newLhsType, rhsFormula);
-        }
-        // make rhsexpression from constructed bitvector; perhaps cast to lhsType in advance?
-        newRhsExpression = Value.ofValueOrNondet(rhsFormula);
-
-        // make assignment to lhs
-      } else {
-        throw new UnsupportedCodeException(
-            "Assignment of complex Unions via nested Struct-Members not supported", edge);
-      }
-    } else {
-      newRhsExpression = Value.nondetValue();
-    }
-    final CType newRhsType = newLhsType;
-    constraints.addConstraint(
-        makeDestructiveAssignment(
-            newLhsType,
-            newRhsType,
-            newLhsLocation,
-            newRhsExpression,
-            useOldSSAIndices,
-            updatedRegions));
-  }
-
-  private void addAssignmentsForOtherFieldsOfUnionForLhsCompositeType(
-      final CExpression newLhs,
-      final CCompositeType newLhsType,
-      final CType rhsType,
-      final Expression rhsExpression,
-      final CExpressionVisitorWithPointerAliasing lhsVisitor,
-      CCompositeTypeMemberDeclaration member,
-      final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions)
-      throws AssertionError, UnrecognizedCodeException {
-    // Use different name in this block as newLhsType is confusing. newLhsType was computed as
-    // member.getType() -> call it memberType here (note we will also have an innerMember)
-    final CCompositeType memberType = newLhsType;
-    // newLhs is a CFieldReference to member:
-    final CExpression memberCFieldReference = newLhs;
-    final int rhsSize = Ints.checkedCast(typeHandler.getBitSizeof(rhsType));
-
-    // for each innerMember of member we need to add a (destructive!) constraint like:
-    // union.member.innerMember := treatAsMemberTypeAndExtractInnerMemberValue(rhsExpression);
-    for (CCompositeTypeMemberDeclaration innerMember : memberType.getMembers()) {
-      int fieldOffset = Ints.checkedCast(typeHandler.getBitOffset(memberType, innerMember));
-      if (fieldOffset >= rhsSize) {
-        // nothing to fill anymore
-        break;
-      }
-      // don't try later to extract a too big chunk of bits
-      int fieldSize =
-          Math.min(
-              Ints.checkedCast(typeHandler.getBitSizeof(innerMember.getType())),
-              rhsSize - fieldOffset);
-      assert fieldSize > 0;
-      int startIndex = fieldOffset;
-      int endIndex = fieldOffset + fieldSize - 1;
-
-      // "treatAsMemberType"
-      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).orElseThrow();
-      if (rhsType instanceof CPointerType) {
-        // Do not break on Pointer-Handling
-        CType rhsCasted = TypeUtils.createTypeWithLength(rhsSize);
-        rhsFormula = conv.makeCast(rhsType, rhsCasted, rhsFormula, constraints, edge);
-        rhsFormula = conv.makeValueReinterpretation(rhsType, rhsCasted, rhsFormula);
-      } else {
-        rhsFormula = conv.makeCast(rhsType, memberType, rhsFormula, constraints, edge);
-        rhsFormula = conv.makeValueReinterpretation(rhsType, memberType, rhsFormula);
-      }
-      assert rhsFormula == null || rhsFormula instanceof BitvectorFormula;
-
-      // "AndExtractInnerMemberValue"
-      if (rhsFormula != null) {
-        rhsFormula = fmgr.makeExtract(rhsFormula, endIndex, startIndex);
-      }
-      Expression newRhsExpression = Value.ofValueOrNondet(rhsFormula);
-
-      // we need innerMember as location for the lvalue of makeDestructiveAssignment:
-      final CExpression innerMemberCFieldReference =
-          new CFieldReference(
-              FileLocation.DUMMY,
-              member.getType(),
-              innerMember.getName(),
-              memberCFieldReference,
-              false);
-      final Location innerMemberLocation =
-          innerMemberCFieldReference.accept(lhsVisitor).asLocation();
-
-      constraints.addConstraint(
-          makeDestructiveAssignment(
-              innerMember.getType(),
-              innerMember.getType(),
-              innerMemberLocation,
-              newRhsExpression,
-              useOldSSAIndices,
-              updatedRegions));
-    }
-  }
-
-  /**
-   * Add terms to the {@link #constraints} object that specify that unwritten heap cells keep their
-   * value when the SSA index is updated. Only used for the UF encoding.
-   *
-   * @param lvalueType The LHS type of the current assignment.
-   * @param startAddress The start address of the written heap region.
-   * @param pattern The pattern matching the (potentially) written heap cells.
-   * @param regionsToRetain The set of regions which were affected by the assignment.
-   */
-  private void addRetentionForAssignment(
-      MemoryRegion region,
-      CType lvalueType,
-      final Formula startAddress,
-      final PointerTargetPattern pattern,
-      final Set<MemoryRegion> regionsToRetain)
-      throws InterruptedException {
-    checkNotNull(lvalueType);
-    checkNotNull(startAddress);
-    checkNotNull(pattern);
-    checkNotNull(regionsToRetain);
-
-    assert !options.useArraysForHeap();
-
-    checkIsSimplified(lvalueType);
-    final long size = conv.getSizeof(lvalueType);
-
-    if (options.useQuantifiersOnArrays()) {
-      addRetentionConstraintsWithQuantifiers(
-          lvalueType, pattern, startAddress, size, regionsToRetain);
-    } else {
-      addRetentionConstraintsWithoutQuantifiers(
-          region, lvalueType, pattern, startAddress, size, regionsToRetain);
-    }
-  }
-
-  /**
-   * Add retention constraints as specified by {@link #addRetentionForAssignment(MemoryRegion,
-   * CType, Formula, PointerTargetPattern, Set)} with the help of quantifiers. Such a constraint is
-   * simply {@code forall i : !matches(i) => retention(i)} where {@code matches(i)} specifies
-   * whether address {@code i} was written.
-   */
-  private void addRetentionConstraintsWithQuantifiers(
-      final CType lvalueType,
-      final PointerTargetPattern pattern,
-      final Formula startAddress,
-      final long size,
-      final Set<MemoryRegion> regions) {
-
-    for (final MemoryRegion region : regions) {
-      final String ufName = regionMgr.getPointerAccessName(region);
-      final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
-      final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
-
-      // forall counter : !condition => retentionConstraint
-      // is equivalent to:
-      // forall counter : condition || retentionConstraint
-
-      final Formula counter =
-          fmgr.makeVariableWithoutSSAIndex(conv.voidPointerFormulaType, ufName + "__counter");
-      final BooleanFormula updateCondition;
-      if (isSimpleType(lvalueType)) {
-        updateCondition = fmgr.makeEqual(counter, startAddress);
-      } else if (pattern.isExact()) {
-        // TODO Is this branch necessary? startAddress and targetAddress should be equivalent.
-        final Formula targetAddress = conv.makeFormulaForTarget(pattern.asPointerTarget());
-        updateCondition = fmgr.makeElementIndexConstraint(counter, targetAddress, size, false);
-      } else {
-        updateCondition = fmgr.makeElementIndexConstraint(counter, startAddress, size, false);
-      }
-
-      final BooleanFormula body =
-          bfmgr.or(
-              updateCondition,
-              conv.makeRetentionConstraint(ufName, oldIndex, newIndex, targetType, counter));
-
-      constraints.addConstraint(fmgr.getQuantifiedFormulaManager().forall(counter, body));
-    }
-  }
-
-  /**
-   * Add retention constraints as specified by {@link #addRetentionForAssignment(MemoryRegion,
-   * CType, Formula, PointerTargetPattern, Set)} in a bounded way by manually iterating over all
-   * possibly written heap cells and adding a constraint for each of them.
-   */
-  private void addRetentionConstraintsWithoutQuantifiers(
-      MemoryRegion region,
-      CType lvalueType,
-      final PointerTargetPattern pattern,
-      final Formula startAddress,
-      final long size,
-      final Set<MemoryRegion> regionsToRetain)
-      throws InterruptedException {
-
-    checkNotNull(region);
-    if (isSimpleType(lvalueType)) {
-      addSimpleTypeRetentionConstraints(pattern, ImmutableSet.of(region), startAddress);
-
-    } else if (pattern.isExact()) {
-      addExactRetentionConstraints(pattern.withRange(size), regionsToRetain);
-
-    } else if (pattern.isSemiExact()) {
-      // For semiexact retention constraints we need the first element type of the composite
-      if (lvalueType instanceof CArrayType) {
-        lvalueType = checkIsSimplified(((CArrayType) lvalueType).getType());
-        region = regionMgr.makeMemoryRegion(lvalueType);
-      } else { // CCompositeType
-        CCompositeTypeMemberDeclaration memberDeclaration =
-            ((CCompositeType) lvalueType).getMembers().get(0);
-        region = regionMgr.makeMemoryRegion(lvalueType, memberDeclaration);
-      }
-      // for lvalueType
-      addSemiexactRetentionConstraints(pattern, region, startAddress, size, regionsToRetain);
-
-    } else { // Inexact pointer target pattern
-      addInexactRetentionConstraints(startAddress, size, regionsToRetain);
-    }
-  }
-
-  /**
-   * Create formula constraints that retain values from the current SSA index to the next one.
-   *
-   * @param regions The set of regions for which constraints should be created.
-   * @param targetLookup A function that gives the PointerTargets for a type for which constraints
-   *     should be created.
-   * @param constraintConsumer A function that accepts a Formula with the address of the current
-   *     target and the respective constraint.
-   */
-  private void makeRetentionConstraints(
-      final Set<MemoryRegion> regions,
-      final Function<MemoryRegion, ? extends Iterable<PointerTarget>> targetLookup,
-      final BiConsumer<Formula, BooleanFormula> constraintConsumer)
-      throws InterruptedException {
-
-    for (final MemoryRegion region : regions) {
-      final String ufName = regionMgr.getPointerAccessName(region);
-      final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
-      final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
-
-      for (final PointerTarget target : targetLookup.apply(region)) {
-        regionMgr.addTargetToStats(edge, ufName, target);
-        conv.shutdownNotifier.shutdownIfNecessary();
-        final Formula targetAddress = conv.makeFormulaForTarget(target);
-        constraintConsumer.accept(
-            targetAddress,
-            conv.makeRetentionConstraint(ufName, oldIndex, newIndex, targetType, targetAddress));
-      }
-    }
-  }
-
-  /**
-   * Add retention constraints without quantifiers for writing a simple (non-composite) type.
-   *
-   * <p>All heap cells where the pattern does not match retained, and if the pattern is not exact
-   * there are also conditional constraints for cells that might be matched by the pattern.
-   */
-  private void addSimpleTypeRetentionConstraints(
-      final PointerTargetPattern pattern,
-      final Set<MemoryRegion> regions,
-      final Formula startAddress)
-      throws InterruptedException {
-    if (!pattern.isExact()) {
-      makeRetentionConstraints(
-          regions,
-          region -> pts.getMatchingTargets(region, pattern),
-          (targetAddress, constraint) -> {
-            final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, startAddress);
-            constraints.addConstraint(bfmgr.or(updateCondition, constraint));
-          });
-    }
-
-    addExactRetentionConstraints(pattern, regions);
-  }
-
-  /**
-   * Add retention constraints without quantifiers for the case where the written memory region is
-   * known exactly. All heap cells where the pattern does not match retained.
-   */
-  private void addExactRetentionConstraints(
-      final Predicate<PointerTarget> pattern, final Set<MemoryRegion> regions)
-      throws InterruptedException {
-    makeRetentionConstraints(
-        regions,
-        region -> pts.getNonMatchingTargets(region, pattern),
-        (targetAddress, constraint) -> constraints.addConstraint(constraint));
-  }
-
-  /**
-   * Add retention constraints without quantifiers for the case where some information is known
-   * about the written memory region. For each of the potentially written target candidates we add
-   * retention constraints under the condition that it was this target that was actually written.
-   */
-  private void addSemiexactRetentionConstraints(
-      final PointerTargetPattern pattern,
-      final MemoryRegion firstElementRegion,
-      final Formula startAddress,
-      final long size,
-      final Set<MemoryRegion> regions)
-      throws InterruptedException {
-    for (final PointerTarget target : pts.getMatchingTargets(firstElementRegion, pattern)) {
-      final Formula candidateAddress = conv.makeFormulaForTarget(target);
-      final BooleanFormula negAntecedent =
-          bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
-      final Predicate<PointerTarget> exact =
-          PointerTargetPattern.forRange(target.getBase(), target.getOffset(), size);
-
-      List<BooleanFormula> consequent = new ArrayList<>();
-      makeRetentionConstraints(
-          regions,
-          region -> pts.getNonMatchingTargets(region, exact),
-          (targetAddress, constraint) -> consequent.add(constraint));
-      constraints.addConstraint(bfmgr.or(negAntecedent, bfmgr.and(consequent)));
-    }
-  }
-
-  /**
-   * Add retention constraints without quantifiers for the case where nothing is known about the
-   * written memory region. For every heap cell we add a conditional constraint to retain it.
-   */
-  private void addInexactRetentionConstraints(
-      final Formula startAddress, final long size, final Set<MemoryRegion> regions)
-      throws InterruptedException {
-    makeRetentionConstraints(
-        regions,
-        region -> pts.getAllTargets(region),
-        (targetAddress, constraint) -> {
-          final BooleanFormula updateCondition =
-              fmgr.makeElementIndexConstraint(targetAddress, startAddress, size, false);
-          constraints.addConstraint(bfmgr.or(updateCondition, constraint));
-        });
-  }
-
-  /**
-   * Updates the SSA map for memory UFs.
-   *
-   * @param regions A set of regions that should be added to the SSA map.
-   * @param pSsa The current SSA map.
-   */
-  private void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder pSsa) {
-    for (final MemoryRegion region : regions) {
-      final String ufName = regionMgr.getPointerAccessName(region);
-      conv.makeFreshIndex(ufName, region.getType(), pSsa);
-    }
   }
 }

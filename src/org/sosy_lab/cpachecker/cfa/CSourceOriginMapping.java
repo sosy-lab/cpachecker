@@ -97,11 +97,9 @@ public class CSourceOriginMapping {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof CodePosition) {
-        CodePosition other = (CodePosition) pObj;
-        return lineNumber == other.lineNumber && fileName.equals(other.fileName);
-      }
-      return false;
+      return pObj instanceof CodePosition other
+          && lineNumber == other.lineNumber
+          && fileName.equals(other.fileName);
     }
 
     @Override

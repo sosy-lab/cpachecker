@@ -41,13 +41,10 @@ public class ModelValue {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof ModelValue) {
-      ModelValue other = (ModelValue) pOther;
-      return variableName.equals(other.variableName)
-          && formula.equals(other.formula)
-          && fmgr.equals(other.fmgr);
-    }
-    return false;
+    return pOther instanceof ModelValue other
+        && variableName.equals(other.variableName)
+        && formula.equals(other.formula)
+        && fmgr.equals(other.fmgr);
   }
 
   @Override

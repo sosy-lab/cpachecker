@@ -14,6 +14,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.isTrivialSelfLoop;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -91,6 +92,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -1135,11 +1137,8 @@ public class PdrAlgorithm implements Algorithm {
 
       Set<ARGState> targetStates =
           from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
-      redundantStates.forEach(
-          state -> {
-            state.removeFromARG();
-          });
+      Set<ARGState> redundantStates = filterAncestors(targetStates);
+      redundantStates.forEach(ARGState::removeFromARG);
       pReachedSet.removeAll(redundantStates);
 
       // get (precise) error path
@@ -1148,7 +1147,9 @@ public class PdrAlgorithm implements Algorithm {
         ARGState root = (ARGState) pReachedSet.getFirstState();
 
         try {
-          targetPath = pmgr.getARGPathFromModel(model, root);
+          targetPath =
+              pmgr.getARGPathFromModel(
+                  model, root, ARGUtils.getAllStatesOnPathsTo(targetStates)::contains);
         } catch (IllegalArgumentException e) {
           logger.logUserException(Level.WARNING, e, "Could not create error path");
           return;
@@ -1171,7 +1172,7 @@ public class PdrAlgorithm implements Algorithm {
       PathChecker pathChecker;
       try {
 
-        if (cexAnalysisSolver.getVersion().toLowerCase().contains("smtinterpol")) {
+        if (Ascii.toLowerCase(cexAnalysisSolver.getVersion()).contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver
           cexAnalysisSolver = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = cexAnalysisSolver.getFormulaManager();

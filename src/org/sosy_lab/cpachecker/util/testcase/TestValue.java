@@ -47,10 +47,8 @@ public abstract class TestValue {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof TestValue) {
-      TestValue other = (TestValue) pObj;
-      return value.equals(other.value) && auxiliaryStatements.equals(other.auxiliaryStatements);
-    }
-    return false;
+    return pObj instanceof TestValue other
+        && value.equals(other.value)
+        && auxiliaryStatements.equals(other.auxiliaryStatements);
   }
 }

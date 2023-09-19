@@ -29,7 +29,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
  *   <li>the enclosing type of the described class or interface, if one exists
  * </ul>
  */
-public abstract class JClassOrInterfaceType implements JReferenceType {
+public abstract sealed class JClassOrInterfaceType implements JReferenceType
+    permits JClassType, JInterfaceType {
 
   private static final long serialVersionUID = -9116725120756000396L;
 
@@ -161,13 +162,7 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
       return true;
     }
 
-    if (!(pObj instanceof JClassOrInterfaceType)) {
-      return false;
-    }
-
-    JClassOrInterfaceType other = (JClassOrInterfaceType) pObj;
-
-    return Objects.equals(name, other.name);
+    return pObj instanceof JClassOrInterfaceType other && Objects.equals(name, other.name);
   }
 
   @Override

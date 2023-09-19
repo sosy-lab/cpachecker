@@ -99,6 +99,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
     removeEmptyPartitions(partitioning);
     return partitioning;
   }
+
   /**
    * Method to remove all empty partitions from the partitioning. Empty partitions may slow down
    * proof checking phase.
@@ -137,9 +138,8 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
       oldGain = newGain;
       step++;
     }
-    logger.log(
-        Level.FINE,
-        String.format("[KWayFM] refinement gain %d after % d refinement steps", totalGain, step));
+    logger.logf(
+        Level.FINE, "[KWayFM] refinement gain %d after % d refinement steps", totalGain, step);
     return totalGain;
   }
 }

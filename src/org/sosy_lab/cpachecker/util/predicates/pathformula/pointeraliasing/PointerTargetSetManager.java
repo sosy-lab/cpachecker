@@ -114,6 +114,7 @@ class PointerTargetSetManager {
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final MemoryRegionManager regionMgr;
   private final SMTHeap heap;
+
   /**
    * Creates a new PointerTargetSetManager.
    *
@@ -138,9 +139,12 @@ class PointerTargetSetManager {
     regionMgr = pRegionMgr;
 
     if (pOptions.useByteArrayForHeap()) {
+      // TODO: add option to use byte-level heap but with uninterpreted functions
+      SMTMultipleAssignmentHeap backingHeap =
+          new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
       heap =
           new SMTHeapWithByteArray(
-              pFormulaManager, pTypeHandler.getPointerType(), pConv.machineModel);
+              pFormulaManager, pTypeHandler.getPointerType(), pConv.machineModel, backingHeap);
     } else if (pOptions.useArraysForHeap()) {
       heap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
     } else {
@@ -183,14 +187,19 @@ class PointerTargetSetManager {
   /**
    * Create a formula that represents an assignment to a value via a pointer.
    *
+   * <p>The assignment may not contain encoded quantified variables. Use {@link
+   * #makeQuantifiedPointerAssignment(String, FormulaType, int, int, BooleanFormula, Formula,
+   * Formula)} instead if it does.
+   *
    * @param targetName The name of the pointer access symbol as returned by {@link
    *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
-   * @param address The address where the value should be written
-   * @param value The value to write
-   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] =
+   * @param address The address where the value should be written, which may not contain encoded
+   *     quantified variables.
+   * @param value The value to write.
+   * @return A formula representing assignment of the form {@code targetName@newIndex[address] =
    *     value}
    */
   <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
@@ -201,6 +210,62 @@ class PointerTargetSetManager {
       final I address,
       final E value) {
     return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, address, value);
+  }
+
+  /**
+   * Create a formula that represents an assignment from old SSA index to new SSA index without
+   * changing the value. Useful for creating conditional assignments.
+   *
+   * @param targetName The name of the pointer access symbol as returned by {@link
+   *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
+   * @param pTargetType The formula type of the value
+   * @param oldIndex The old SSA index for targetName
+   * @param newIndex The new SSA index for targetName
+   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] =
+   *     value}
+   */
+  <E extends Formula> BooleanFormula makeIdentityPointerAssignment(
+      final String targetName,
+      final FormulaType<E> pTargetType,
+      final int oldIndex,
+      final int newIndex) {
+    return heap.makeIdentityPointerAssignment(targetName, pTargetType, oldIndex, newIndex);
+  }
+
+  /**
+   * Create a formula that represents a conditional assignment to a value via a pointer, with the
+   * possibility of using quantified variables encoded in the formulas for address, condition, and
+   * value to set.
+   *
+   * <p>Since the formulas may contain encoded quantified variables, it may not be possible to
+   * perform the assignment using the theory used for standard {@link #makePointerAssignment(String,
+   * FormulaType, int, int, Formula, Formula)}. Specifically, for the theory of arrays, it is not
+   * possible to perform a write to quantified address as the meaning would be "value is stored to
+   * one of the selected locations" instead of proper "value is stored to each address as
+   * aplicable".
+   *
+   * @param targetName The name of the pointer access symbol as returned by {@link
+   *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
+   * @param pTargetType The formula type of the value
+   * @param oldIndex The old SSA index for targetName
+   * @param newIndex The new SSA index for targetName
+   * @param condition The condition upon which the value is assigned to the address, otherwise, the
+   *     previous value is retained. May contain encoded quantified variables.
+   * @param address The address where the value should be written. May contain encoded quantified
+   *     variables, therefore actually "pointing to multiple addresses".
+   * @param value The value to write.
+   * @return A formula representing the assignments.
+   */
+  <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
+      final String targetName,
+      final FormulaType<?> pTargetType,
+      final int oldIndex,
+      final int newIndex,
+      final BooleanFormula condition,
+      final I address,
+      final E value) {
+    return heap.makeQuantifiedPointerAssignment(
+        targetName, pTargetType, oldIndex, newIndex, condition, address, value);
   }
 
   /**
@@ -449,13 +514,10 @@ class PointerTargetSetManager {
      * <p>We check for UNION-type with special fieldnames.
      */
     private static boolean isAlreadyMergedCompositeType(final CType type) {
-      if (type instanceof CCompositeType) {
-        final CCompositeType compositeType = (CCompositeType) type;
-        return compositeType.getKind() == ComplexTypeKind.UNION
-            && !compositeType.getMembers().isEmpty()
-            && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
-      }
-      return false;
+      return type instanceof CCompositeType compositeType
+          && compositeType.getKind() == ComplexTypeKind.UNION
+          && !compositeType.getMembers().isEmpty()
+          && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
     }
   }
 
@@ -470,7 +532,8 @@ class PointerTargetSetManager {
       return list1;
     }
 
-    PersistentList<T> smallerList, biggerList;
+    PersistentList<T> smallerList;
+    PersistentList<T> biggerList;
     if (size1 > size2) {
       smallerList = list2;
       biggerList = list1;
@@ -695,8 +758,7 @@ class PointerTargetSetManager {
      */
     // assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for
     // base " + base;
-    if (cType instanceof CArrayType) {
-      final CArrayType arrayType = (CArrayType) cType;
+    if (cType instanceof CArrayType arrayType) {
       final int length = CTypeUtils.getArrayLength(arrayType, options);
       long offset = 0;
       for (int i = 0; i < length; ++i) {
@@ -713,8 +775,7 @@ class PointerTargetSetManager {
                 fields);
         offset += typeHandler.getSizeof(arrayType.getType());
       }
-    } else if (cType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) cType;
+    } else if (cType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM
           : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {

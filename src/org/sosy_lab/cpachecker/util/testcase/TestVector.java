@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.testcase;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
@@ -57,10 +58,7 @@ public class TestVector {
   }
 
   private ImmutableList<TestValue> getExtendedValues(final TestValue pValue) {
-    return ImmutableList.<TestValue>builderWithExpectedSize(inputValues.size() + 1)
-        .addAll(inputValues)
-        .add(pValue)
-        .build();
+    return listAndElement(inputValues, pValue);
   }
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, ExpressionTestValue pValue) {
@@ -85,7 +83,7 @@ public class TestVector {
         inputValues.size()
             == inputVariableValues.size()
                 + inputFunctionValues.values().stream()
-                    .map(l -> l.size())
+                    .map(ImmutableList::size)
                     .reduce(0, (x, y) -> x + y));
     return inputValues;
   }
@@ -149,12 +147,9 @@ public class TestVector {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof TestVector) {
-      TestVector other = (TestVector) pObj;
-      return inputFunctionValues.equals(other.inputFunctionValues)
-          && inputVariableValues.equals(other.inputVariableValues);
-    }
-    return false;
+    return pObj instanceof TestVector other
+        && inputFunctionValues.equals(other.inputFunctionValues)
+        && inputVariableValues.equals(other.inputVariableValues);
   }
 
   @Override
@@ -168,13 +163,12 @@ public class TestVector {
 
   private static final Ordering<AParameterDeclaration> PARAMETER_ORDERING =
       Ordering.from(
-          (pA, pB) -> {
-            return ComparisonChain.start()
-                .compare(pA.getQualifiedName(), pB.getQualifiedName())
-                .compare(pA.getType(), pB.getType(), Ordering.usingToString())
-                .compare(pA.getFileLocation(), pB.getFileLocation())
-                .result();
-          });
+          (pA, pB) ->
+              ComparisonChain.start()
+                  .compare(pA.getQualifiedName(), pB.getQualifiedName())
+                  .compare(pA.getType(), pB.getType(), Ordering.usingToString())
+                  .compare(pA.getFileLocation(), pB.getFileLocation())
+                  .result());
 
   private static class ComparableFunctionDeclaration
       implements Comparable<ComparableFunctionDeclaration> {
@@ -209,10 +203,8 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof ComparableFunctionDeclaration) {
-        return declaration.equals(((ComparableFunctionDeclaration) pObj).declaration);
-      }
-      return false;
+      return pObj instanceof ComparableFunctionDeclaration
+          && declaration.equals(((ComparableFunctionDeclaration) pObj).declaration);
     }
 
     @Override
@@ -255,10 +247,8 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof ComparableVariableDeclaration) {
-        return declaration.equals(((ComparableVariableDeclaration) pObj).declaration);
-      }
-      return false;
+      return pObj instanceof ComparableVariableDeclaration
+          && declaration.equals(((ComparableVariableDeclaration) pObj).declaration);
     }
 
     @Override
@@ -307,14 +297,12 @@ public class TestVector {
 
     @Override
     public boolean equals(Object pObj) {
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
-      if (pObj instanceof TargetTestVector) {
-        TargetTestVector other = (TargetTestVector) pObj;
-        return edgeToTarget.equals(other.edgeToTarget) && testVector.equals(other.testVector);
-      }
-      return false;
+      return pObj instanceof TargetTestVector other
+          && edgeToTarget.equals(other.edgeToTarget)
+          && testVector.equals(other.testVector);
     }
   }
 }

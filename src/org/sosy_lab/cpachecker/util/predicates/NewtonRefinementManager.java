@@ -150,19 +150,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
         return CounterexampleTraceInfo.feasibleImprecise(pFormulas.getFormulas());
       } else {
         // Create infeasible Counterexample
-        List<BooleanFormula> predicates;
-        switch (abstractionLevel) {
-          case EDGE:
-            predicates = createPredicatesEdgeLevel(pAllStatesTrace, pFormulas, pathLocations);
-            break;
-          case BLOCK:
-            predicates = createPredicatesBlockLevel(pAllStatesTrace, pFormulas, pathLocations);
-            break;
-          default:
-            throw new UnsupportedOperationException(
-                "The selected PathFormulaAbstractionLevel is not implemented.");
-        }
-
+        List<BooleanFormula> predicates =
+            switch (abstractionLevel) {
+              case EDGE -> createPredicatesEdgeLevel(pAllStatesTrace, pFormulas, pathLocations);
+              case BLOCK -> createPredicatesBlockLevel(pAllStatesTrace, pFormulas, pathLocations);
+            };
         // Test if the predicate of the error state is unsatisfiable
         try {
           if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
@@ -248,7 +240,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Filter pathlocations to only abstractionstate locations
     Iterator<PathLocation> abstractionLocations =
         pPathLocations.stream()
-            .filter(l -> l.hasAbstractionState())
+            .filter(PathLocation::hasAbstractionState)
             .collect(ImmutableList.toImmutableList())
             .iterator();
 
@@ -321,9 +313,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               postCondition =
                   eliminateIntermediateVariables(
                       pathFormula, bfmgr.and(preCondition, bfmgr.and(requiredPart)));
-            }
-            // Else no additional assertions
-            else {
+            } else {
+              // Else no additional assertions
               postCondition = preCondition;
             }
             break;
@@ -542,7 +533,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         int predPos = predEntry.getKey(); // The position in the path
 
         // Map predicate to the variables that are future live at its position
-        Set<String> futureLives = Maps.filterValues(lastOccurance, (v) -> v > predPos).keySet();
+        Set<String> futureLives = Maps.filterValues(lastOccurance, v -> v > predPos).keySet();
 
         // identify the variables that are not future live and can be quantified
         Map<String, Formula> toQuantify =
@@ -635,6 +626,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       pathFormula = pPathFormula;
       state = pState;
     }
+
     /**
      * Get the position of the location in the path
      *

@@ -78,24 +78,20 @@ class GraphMLTransition {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof GraphMLTransition) {
-      GraphMLTransition other = (GraphMLTransition) pOther;
-      return getSource().equals(other.getSource())
-          && getTarget().equals(other.getTarget())
-          && getFunctionEntry().equals(other.getFunctionEntry())
-          && getFunctionExit().equals(other.getFunctionExit())
-          && getOffsetMatcherPredicate().equals(other.getOffsetMatcherPredicate())
-          && getLineMatcherPredicate().equals(other.getLineMatcherPredicate())
-          && getAssumeCaseMatcher().equals(other.getAssumeCaseMatcher())
-          && getThread().equals(other.getThread())
-          && getThreadAssignment().equals(other.getThreadAssignment())
-          && getAssumptions().equals(other.getAssumptions())
-          && getExplicitAssumptionScope().equals(other.getExplicitAssumptionScope())
-          && getExplicitAssumptionResultFunction()
-              .equals(other.getExplicitAssumptionResultFunction())
-          && entersLoopHead() == other.entersLoopHead();
-    }
-    return false;
+    return pOther instanceof GraphMLTransition other
+        && getSource().equals(other.getSource())
+        && getTarget().equals(other.getTarget())
+        && getFunctionEntry().equals(other.getFunctionEntry())
+        && getFunctionExit().equals(other.getFunctionExit())
+        && getOffsetMatcherPredicate().equals(other.getOffsetMatcherPredicate())
+        && getLineMatcherPredicate().equals(other.getLineMatcherPredicate())
+        && getAssumeCaseMatcher().equals(other.getAssumeCaseMatcher())
+        && getThread().equals(other.getThread())
+        && getThreadAssignment().equals(other.getThreadAssignment())
+        && getAssumptions().equals(other.getAssumptions())
+        && getExplicitAssumptionScope().equals(other.getExplicitAssumptionScope())
+        && getExplicitAssumptionResultFunction().equals(other.getExplicitAssumptionResultFunction())
+        && entersLoopHead() == other.entersLoopHead();
   }
 
   @Override
@@ -193,11 +189,7 @@ class GraphMLTransition {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof GraphMLThread) {
-        GraphMLThread other = (GraphMLThread) pOther;
-        return id == other.id && name.equals(other.name);
-      }
-      return false;
+      return pOther instanceof GraphMLThread other && id == other.id && name.equals(other.name);
     }
 
     @Override

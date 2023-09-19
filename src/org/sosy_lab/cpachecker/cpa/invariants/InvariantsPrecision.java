@@ -89,13 +89,10 @@ class InvariantsPrecision implements Precision {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof InvariantsPrecision) {
-      InvariantsPrecision other = (InvariantsPrecision) pOther;
-      return relevantEdges.equals(other.relevantEdges)
-          && interestingVariables.equals(other.interestingVariables)
-          && maximumFormulaDepth == other.maximumFormulaDepth;
-    }
-    return false;
+    return pOther instanceof InvariantsPrecision other
+        && relevantEdges.equals(other.relevantEdges)
+        && interestingVariables.equals(other.interestingVariables)
+        && maximumFormulaDepth == other.maximumFormulaDepth;
   }
 
   @Override

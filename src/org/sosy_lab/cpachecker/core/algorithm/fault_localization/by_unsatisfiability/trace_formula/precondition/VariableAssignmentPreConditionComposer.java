@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -49,16 +48,18 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
       FormulaContext pContext,
       TraceFormulaOptions pOptions,
       boolean pWithInitialAssignment,
-      boolean pWithDevlaredPreconditionVariables) {
+      boolean pWithDeclaredPreconditionVariables) {
     context = pContext;
     options = pOptions;
     includeInitialAssignment = pWithInitialAssignment;
-    includeDeclaredPreconditionVariables = pWithDevlaredPreconditionVariables;
+    includeDeclaredPreconditionVariables = pWithDeclaredPreconditionVariables;
   }
 
   @Override
   public PreCondition extractPreCondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidCounterexampleException {
     PreCondition nondets = createNondetPrecondition(pCounterexample);
     if (!includeInitialAssignment) {
@@ -139,11 +140,13 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
   }
 
   private PreCondition createNondetPrecondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidCounterexampleException {
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     BooleanFormula precond = bmgr.makeTrue();
-    Set<String> nondetVariables = new HashSet<>();
+    ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
     try (ProverEnvironment prover = context.getProver()) {
       prover.push(context.getManager().makeFormulaForPath(pCounterexample).getFormula());
       if (prover.isUnsat()) {
@@ -153,16 +156,10 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-        if (!Pattern.matches(".+::.+@[0-9]+", modelAssignment.getKey().toString())) {
+        if (modelAssignment.getName().startsWith("__VERIFIER_nondet_")) {
           precond = bmgr.and(precond, formula);
-          FluentIterable.from(
-                  context.getSolver().getFormulaManager().extractVariables(formula).keySet())
-              .filter(name -> name.contains("__VERIFIER_nondet_"))
-              .copyInto(nondetVariables);
-        } else if (modelAssignment
-            .getKey()
-            .toString()
-            .contains("__FAULT_LOCALIZATION_precondition")) {
+          nondetVariables.add(modelAssignment.getName());
+        } else if (modelAssignment.getName().startsWith("__FAULT_LOCALIZATION_precondition")) {
           precond = bmgr.and(precond, formula);
         }
       }
@@ -170,7 +167,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
           ImmutableList.of(),
           pCounterexample,
           context.getSolver().getFormulaManager().uninstantiate(precond),
-          nondetVariables);
+          nondetVariables.build());
     }
   }
 
@@ -194,8 +191,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
     }
 
     // arrays have to have literals only
-    if (initializer instanceof CInitializerList) {
-      CInitializerList listInitializer = (CInitializerList) initializer;
+    if (initializer instanceof CInitializerList listInitializer) {
       List<CInitializer> waitlist = new ArrayList<>(listInitializer.getInitializers());
       while (!waitlist.isEmpty()) {
         CInitializer next = waitlist.remove(0);
@@ -203,21 +199,16 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
           waitlist.addAll(((CInitializerList) next).getInitializers());
           continue;
         }
-        if (next instanceof CInitializerExpression) {
-          CInitializerExpression expression = (CInitializerExpression) next;
-          if (!(expression.getExpression() instanceof CLiteralExpression)) {
-            return false;
-          }
+        if ((next instanceof CInitializerExpression expression)
+            && !(expression.getExpression() instanceof CLiteralExpression)) {
+          return false;
         }
       }
       return true;
     }
 
     // must only be initialized with literals
-    if (initializer instanceof CInitializerExpression) {
-      CInitializerExpression expression = (CInitializerExpression) initializer;
-      return expression.getExpression() instanceof CLiteralExpression;
-    }
-    return false;
+    return initializer instanceof CInitializerExpression expression
+        && expression.getExpression() instanceof CLiteralExpression;
   }
 }

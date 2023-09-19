@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CIntegerLiteralExpression extends AIntegerLiteralExpression
+public final class CIntegerLiteralExpression extends AIntegerLiteralExpression
     implements CLiteralExpression {
 
   private static final long serialVersionUID = 7691279268370356228L;
@@ -52,22 +52,21 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression
 
   @Override
   public String toASTString() {
-    String suffix = "";
+    StringBuilder result = new StringBuilder(getValue().toString());
 
     CType cType = getExpressionType();
-    if (cType instanceof CSimpleType) {
-      CSimpleType type = (CSimpleType) cType;
-      if (type.isUnsigned()) {
-        suffix += "U";
+    if (cType instanceof CSimpleType type) {
+      if (type.hasUnsignedSpecifier()) {
+        result.append("U");
       }
-      if (type.isLong()) {
-        suffix += "L";
-      } else if (type.isLongLong()) {
-        suffix += "LL";
+      if (type.hasLongSpecifier()) {
+        result.append("L");
+      } else if (type.hasLongLongSpecifier()) {
+        result.append("LL");
       }
     }
 
-    return getValue().toString() + suffix;
+    return result.toString();
   }
 
   @Override
@@ -81,10 +80,6 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof CIntegerLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CIntegerLiteralExpression && super.equals(obj);
   }
 }

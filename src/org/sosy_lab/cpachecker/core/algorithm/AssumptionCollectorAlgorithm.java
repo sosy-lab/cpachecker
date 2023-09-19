@@ -402,8 +402,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               .getAbstractSuccessors(state, pReached.getPrecision(state))
               .isEmpty()) {
             falseAssumptionStates.add(state);
-            if (state instanceof ARGState) {
-              ARGState argState = (ARGState) state;
+            if (state instanceof ARGState argState) {
               while (!argState.getChildren().isEmpty()) {
                 argState.getChildren().iterator().next().removeFromARG();
               }
@@ -503,8 +502,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (automatonOrderedTransitions && children.size() > 1) {
         children =
             FluentIterable.from(children)
-                .toSortedList(
-                    Comparator.<ARGState>comparingInt(child -> child.getStateId()).reversed());
+                .toSortedList(Comparator.<ARGState>comparingInt(ARGState::getStateId).reversed());
       }
       for (final ARGState child : children) {
         assert !child.isCovered();

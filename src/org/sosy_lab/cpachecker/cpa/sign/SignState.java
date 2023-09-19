@@ -161,10 +161,7 @@ public class SignState
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof SignState)) {
-      return false;
-    }
-    return ((SignState) pObj).signMap.equals(signMap);
+    return pObj instanceof SignState && ((SignState) pObj).signMap.equals(signMap);
   }
 
   @Override
@@ -210,22 +207,20 @@ public class SignState
 
     if (parts.size() == 2) {
 
-      // pProperty = value <= varName
       if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
+        // pProperty = value <= varName
         SIGN value = SIGN.valueOf(parts.get(0));
         SIGN varName = getSignForVariable(parts.get(1));
         return varName.covers(value);
-      }
 
-      // pProperty = varName <= value
-      else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
+      } else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
+        // pProperty = varName <= value
         SIGN varName = getSignForVariable(parts.get(0));
         SIGN value = SIGN.valueOf(parts.get(1));
         return value.covers(varName);
-      }
 
-      // pProperty = varName1 <= varName2
-      else {
+      } else {
+        // pProperty = varName1 <= varName2
         SIGN varName1 = getSignForVariable(parts.get(0));
         SIGN varName2 = getSignForVariable(parts.get(1));
         return varName2.covers(varName1);

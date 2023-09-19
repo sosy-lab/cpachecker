@@ -175,12 +175,12 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       NumericValue numericValue = pValueAndType.getValue().asNumericValue();
 
       if (basicReadType.equals(CBasicType.FLOAT)) {
-        int bits = numericValue.bigInteger().intValue();
+        int bits = numericValue.bigIntegerValue().intValue();
         float floatValue = Float.intBitsToFloat(bits);
 
         return new NumericValue(floatValue);
       } else if (basicReadType.equals(CBasicType.DOUBLE)) {
-        long bits = numericValue.bigInteger().longValue();
+        long bits = numericValue.bigIntegerValue().longValue();
         double doubleValue = Double.longBitsToDouble(bits);
 
         return new NumericValue(doubleValue);
@@ -201,10 +201,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private boolean isFloatingPointType(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return ((CSimpleType) pType).getType().isFloatingPointType();
-    }
-    return false;
+    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
   }
 
   @Override

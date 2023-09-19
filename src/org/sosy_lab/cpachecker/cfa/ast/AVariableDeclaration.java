@@ -82,12 +82,8 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
       return true;
     }
 
-    if (!(obj instanceof AVariableDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    AVariableDeclaration other = (AVariableDeclaration) obj;
-
-    return qualifiedName.equals(other.qualifiedName);
+    return obj instanceof AVariableDeclaration other
+        && super.equals(obj)
+        && qualifiedName.equals(other.qualifiedName);
   }
 }

@@ -115,7 +115,7 @@ public final class ModificationsPropState
         getLocationInModCfa(),
         getLocationInOriginalCfa(),
         ImmutableSet.of(),
-        new ArrayDeque<CFANode>(),
+        new ArrayDeque<>(),
         true);
   }
 

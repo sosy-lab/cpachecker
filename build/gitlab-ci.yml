@@ -2,7 +2,7 @@
 # a collection of common files and build definitions for Java projects:
 # https://gitlab.com/sosy-lab/software/java-project-template
 #
-# SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2018-2023 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -60,9 +60,9 @@ build:jdk-17:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-build:jdk-19:
+build:jdk-20:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
 
 
 # For checks that need the binaries
@@ -92,9 +92,9 @@ build-project-ecj:jdk-17:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-build-project-ecj:jdk-19:
+build-project-ecj:jdk-20:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
 
 
 check-format:
@@ -172,15 +172,15 @@ unit-tests:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-unit-tests:jdk-19:
+unit-tests:jdk-20:
   <<: *unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-19
+    - build:jdk-20
   needs:
     - build-dependencies
-    - build:jdk-19
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
+    - build:jdk-20
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
 
 
 refaster:
@@ -218,7 +218,7 @@ reuse:
   dependencies: []
   needs: []
   image:
-    name: fsfe/reuse:latest
+    name: fsfe/reuse:1
     entrypoint: [""]
   script:
     - reuse lint
@@ -271,8 +271,8 @@ build-docker:test:jdk-17:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-17
     IMAGE: /test:jdk-17
 
-build-docker:test:jdk-19:
+build-docker:test:jdk-20:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-19
-    IMAGE: /test:jdk-19
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-20
+    IMAGE: /test:jdk-20

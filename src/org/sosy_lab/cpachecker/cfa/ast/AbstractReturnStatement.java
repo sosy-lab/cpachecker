@@ -57,12 +57,8 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
       return true;
     }
 
-    if (!(obj instanceof AbstractReturnStatement) || !super.equals(obj)) {
-      return false;
-    }
-
-    AbstractReturnStatement other = (AbstractReturnStatement) obj;
-
-    return Objects.equals(other.expression, expression);
+    return obj instanceof AbstractReturnStatement other
+        && super.equals(obj)
+        && Objects.equals(other.expression, expression);
   }
 }

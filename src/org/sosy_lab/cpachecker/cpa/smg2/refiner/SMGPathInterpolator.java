@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -95,7 +94,11 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
         pFeasibilityChecker,
         pPrefixProvider,
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety()),
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -105,7 +108,11 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
     cfa = pCfa;
     interpolantManager =
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa);
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety());
     config = pConfig;
     logger = pLogger;
   }
@@ -227,18 +234,17 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
       throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
     }
 
-    // if doing lazy abstraction, use the node closest to the root node where new information is
-    // present
     if (doLazyAbstraction) {
+      // if doing lazy abstraction, use the node closest to the root node where new information is
+      // present
       PathIterator it = errorPath.pathIterator();
       for (int i = 0; i < interpolationOffset; i++) {
         it.advance();
       }
       return Pair.of(it.getAbstractState(), it.getIncomingEdge());
-    }
 
-    // otherwise, just use the successor of the root node
-    else {
+    } else {
+      // otherwise, just use the successor of the root node
       PathIterator firstElem = errorPath.pathIterator();
       firstElem.advance();
       return Pair.of(firstElem.getAbstractState(), firstElem.getOutgoingEdge());
@@ -267,7 +273,9 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
                 false)
             .getUseDefStates();
 
-    ArrayDeque<Triple<FunctionCallEdge, Boolean, Integer>> functionCalls = new ArrayDeque<>();
+    // The original call edge, importance in relation to slicing, position in abstractEdges
+    record FunctionCallInfo(FunctionCallEdge edge, boolean isImportant, int index) {}
+    ArrayDeque<FunctionCallInfo> functionCalls = new ArrayDeque<>();
     List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
@@ -297,16 +305,14 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
       if (originalEdge != null) {
         CFAEdgeType typeOfOriginalEdge = originalEdge.getEdgeType();
-        /** ********************************** */
-        /** assure that call stack is valid * */
-        /** ********************************** */
+        // assure that call stack is valid */
         // when entering into a function, remember if call is relevant or not
         if (typeOfOriginalEdge == CFAEdgeType.FunctionCallEdge) {
           boolean isAbstractEdgeFunctionCall =
               abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge;
 
           functionCalls.push(
-              Triple.of(
+              new FunctionCallInfo(
                   (FunctionCallEdge) originalEdge,
                   isAbstractEdgeFunctionCall,
                   iterator.getIndex()));
@@ -314,23 +320,21 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
         // when returning from a function, ...
         if (typeOfOriginalEdge == CFAEdgeType.FunctionReturnEdge) {
-          // The original call edge, importance in relation to slicing, position in abstractEdges
-          Triple<FunctionCallEdge, Boolean, Integer> functionCallInfo = functionCalls.pop();
-          // ... if call is relevant and return edge is now a blank edge, restore the original
-          // return edge
-          if (functionCallInfo.getSecond()
+          FunctionCallInfo functionCallInfo = functionCalls.pop();
+          if (functionCallInfo.isImportant()
               && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
+            // ... if call is relevant and return edge is now a blank edge, restore the original
+            // return edge
             abstractEdges.set(iterator.getIndex(), originalEdge);
-          }
 
-          // ... if call is irrelevant and return edge is not sliced, restore the call edge
-          else if (!functionCallInfo.getSecond()
+          } else if (!functionCallInfo.isImportant()
               && abstractEdges.get(iterator.getIndex()).getEdgeType()
                   == CFAEdgeType.FunctionReturnEdge) {
-            abstractEdges.set(functionCallInfo.getThird(), functionCallInfo.getFirst());
+            // ... if call is irrelevant and return edge is not sliced, restore the call edge
+            abstractEdges.set(functionCallInfo.index(), functionCallInfo.edge());
             for (int j = iterator.getIndex(); j >= 0; j--) {
-              if (functionCallInfo.getFirst() == abstractEdges.get(j)) {
-                abstractEdges.set(j, functionCallInfo.getFirst());
+              if (functionCallInfo.edge() == abstractEdges.get(j)) {
+                abstractEdges.set(j, functionCallInfo.edge());
                 break;
               }
             }
@@ -343,8 +347,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
     // SMGs NEED the correct function calls, we need to restore ALL function calls not yet restored
     // but that are relevant (not returned)
-    for (Triple<FunctionCallEdge, Boolean, Integer> functionCallInfo : functionCalls) {
-      abstractEdges.set(functionCallInfo.getThird(), functionCallInfo.getFirst());
+    for (FunctionCallInfo functionCallInfo : functionCalls) {
+      abstractEdges.set(functionCallInfo.index(), functionCallInfo.edge());
     }
 
     ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);

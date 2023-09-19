@@ -27,7 +27,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * Note that in the cfa, all method names are transformed to have unique names. It is therefore
  * unnecessary to have Qualifiers for methods with the same simple name.
  */
-public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide {
+public sealed class JMethodInvocationExpression extends AFunctionCallExpression
+    implements JRightHandSide
+    permits JClassInstanceCreation, JReferencedMethodInvocationExpression {
 
   // TODO refactor to be either abstract or final
 
@@ -107,13 +109,9 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
       return true;
     }
 
-    if (!(obj instanceof JMethodInvocationExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    JMethodInvocationExpression other = (JMethodInvocationExpression) obj;
-
-    return other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
+    return obj instanceof JMethodInvocationExpression other
+        && super.equals(obj)
+        && other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
         && Objects.equals(other.runTimeBinding, runTimeBinding);
   }
 }

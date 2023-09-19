@@ -12,7 +12,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CReturnStatement extends AbstractReturnStatement implements CAstNode {
+public final class CReturnStatement extends AbstractReturnStatement implements CAstNode {
 
   private static final long serialVersionUID = -7428161836121584760L;
 
@@ -53,10 +53,6 @@ public class CReturnStatement extends AbstractReturnStatement implements CAstNod
       return true;
     }
 
-    if (!(obj instanceof CReturnStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CReturnStatement && super.equals(obj);
   }
 }

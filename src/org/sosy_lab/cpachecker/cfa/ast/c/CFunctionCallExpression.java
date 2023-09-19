@@ -13,7 +13,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CFunctionCallExpression extends AFunctionCallExpression implements CRightHandSide {
+public final class CFunctionCallExpression extends AFunctionCallExpression
+    implements CRightHandSide {
 
   private static final long serialVersionUID = -3958452761163446674L;
 
@@ -80,10 +81,6 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
       return true;
     }
 
-    if (!(obj instanceof CFunctionCallExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CFunctionCallExpression && super.equals(obj);
   }
 }

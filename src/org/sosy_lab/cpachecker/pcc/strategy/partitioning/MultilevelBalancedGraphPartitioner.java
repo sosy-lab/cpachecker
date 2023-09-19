@@ -104,17 +104,15 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
     int maxLoad = wGraph.getNumNodes() / pNumPartitions + 1;
     // The graph size until graph should be contracted
     int minGraphSize = (int) (Math.min(((double) maxLoad) / 15 + 1, 15) * pNumPartitions);
-    logger.log(
-        Level.FINE,
-        String.format("[Multilevel] Coarsen graph down to at least %d nodes", minGraphSize));
+    logger.logf(Level.FINE, "[Multilevel] Coarsen graph down to at least %d nodes", minGraphSize);
 
     int currentLevel = 0;
     levels.push(wGraph);
-    logger.log(
+    logger.logf(
         Level.FINE,
-        String.format(
-            "[Multilevel] Weighted Graph (size: %d) level %d pushed to Stack",
-            wGraph.getNumNodes(), currentLevel++));
+        "[Multilevel] Weighted Graph (size: %d) level %d pushed to Stack",
+        wGraph.getNumNodes(),
+        currentLevel++);
 
     // Coarsen the graph
     while (wGraph.getNumNodes() > minGraphSize) {
@@ -123,18 +121,16 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
       matchings.push(matching);
       wGraph = createMatchedGraph(matching, wGraph);
       levels.push(wGraph);
-      logger.log(
+      logger.logf(
           Level.FINE,
-          String.format(
-              "[Multilevel] Weighted Graph (size: %d) level %d pushed to Stack",
-              wGraph.getNumNodes(), currentLevel++));
+          "[Multilevel] Weighted Graph (size: %d) level %d pushed to Stack",
+          wGraph.getNumNodes(),
+          currentLevel++);
     }
 
     // Initial partitioning computed here
     wGraph = levels.pop();
-    logger.log(
-        Level.FINE,
-        String.format("[Multilevel] Weighted Graph (size: %d) popped", wGraph.getNumNodes()));
+    logger.logf(Level.FINE, "[Multilevel] Weighted Graph (size: %d) popped", wGraph.getNumNodes());
 
     List<Set<Integer>> partitioning = globalPartitioner.computePartitioning(pNumPartitions, wGraph);
     refiner.refinePartitioning(partitioning, wGraph, pNumPartitions);
@@ -142,9 +138,8 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
     // Uncoarsening phase, i.e. remap partitioning acc. to matching and refine the partitioning
     while (!levels.isEmpty()) {
       wGraph = levels.pop();
-      logger.log(
-          Level.FINE,
-          String.format("[Multilevel] Weighted Graph (size: %d) popped", wGraph.getNumNodes()));
+      logger.logf(
+          Level.FINE, "[Multilevel] Weighted Graph (size: %d) popped", wGraph.getNumNodes());
       Map<Integer, Integer> matching = matchings.pop();
       retransformPartitioning(partitioning, matching);
       refiner.refinePartitioning(partitioning, wGraph, pNumPartitions);
@@ -265,7 +260,7 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
       int newNode = oldToNewNode.getValue();
       int oldNode = oldToNewNode.getKey(); // this node is mapped to new node
       if (!inverseMap.containsKey(newNode)) {
-        inverseMap.put(newNode, new HashSet<Integer>(2));
+        inverseMap.put(newNode, new HashSet<>(2));
       }
       inverseMap
           .get(newNode)

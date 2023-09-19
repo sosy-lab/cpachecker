@@ -841,12 +841,9 @@ public class CFASingleLoopTransformation {
     // Instantiate the transformed graph in a preliminary form
     MutableCFA cfa =
         new MutableCFA(
-            pOriginalCfa.getMachineModel(),
             functions,
             allNodes,
-            pStartNode,
-            pOriginalCfa.getFileNames(),
-            pOriginalCfa.getLanguage());
+            pOriginalCfa.getMetadata());
 
     // Get information about the loop structure
     cfa.setLoopStructure(LoopStructure.getLoopStructureForSingleLoop(pLoopHead));

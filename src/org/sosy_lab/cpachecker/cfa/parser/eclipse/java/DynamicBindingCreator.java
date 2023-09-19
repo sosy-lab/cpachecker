@@ -244,8 +244,7 @@ class DynamicBindingCreator {
       }
 
       for (CFAEdge edge : leavingEdges(node)) {
-        if (edge instanceof AStatementEdge) {
-          AStatementEdge statement = (AStatementEdge) edge;
+        if (edge instanceof AStatementEdge statement) {
           JStatement expr = (JStatement) statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
@@ -381,10 +380,8 @@ class DynamicBindingCreator {
 
     JStatement newFunctionCall;
 
-    if (oldFunctionCall instanceof JMethodInvocationAssignmentStatement) {
-      JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =
-          (JMethodInvocationAssignmentStatement) oldFunctionCall;
-
+    if (oldFunctionCall
+        instanceof JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement) {
       newFunctionCall =
           new JMethodInvocationAssignmentStatement(
               fileloc,
@@ -475,7 +472,7 @@ class DynamicBindingCreator {
 
     JClassOrInterfaceType definingType = overridesThisMethod.getDefiningType();
 
-    // Create condition which represents this.getClass().equals(functionClass.getClass())
+    // Create condition which represents getClass().equals(functionClass.getClass())
     createConditionEdges(
         prevNode,
         successfulNode,
@@ -486,10 +483,8 @@ class DynamicBindingCreator {
 
     JStatement newFunctionCall;
 
-    if (functionCall instanceof JMethodInvocationAssignmentStatement) {
-      JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =
-          (JMethodInvocationAssignmentStatement) functionCall;
-
+    if (functionCall
+        instanceof JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement) {
       // TODO Clone leftHandSide
       JLeftHandSide leftSide = oldFunctionCallAssignmentStatement.getLeftHandSide();
       newFunctionCall =

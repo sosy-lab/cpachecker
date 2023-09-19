@@ -43,7 +43,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     UnmodifiableReachedSet elements =
         new UnmodifiableReachedSetView(
-            pElements, (state) -> ((UsageState) state).getWrappedState(), Functions.identity());
+            pElements, state -> ((UsageState) state).getWrappedState(), Functions.identity());
 
     AbstractState oldElement = element.getWrappedState();
 
@@ -54,7 +54,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
             oldElement,
             oldWrappedPrecision,
             elements,
-            Functions.compose((state) -> ((UsageState) state).getWrappedState(), stateProjection),
+            Functions.compose(state -> ((UsageState) state).getWrappedState(), stateProjection),
             fullState);
 
     if (!optionalUnwrappedResult.isPresent()) {
@@ -69,13 +69,13 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldWrappedPrecision == newPrecision)) {
       // nothing has changed
-      return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, action));
+      return Optional.of(new PrecisionAdjustmentResult(pElement, oldPrecision, action));
     }
 
     UsageState resultElement = element.copy(newElement);
 
     return Optional.of(
-        PrecisionAdjustmentResult.create(
+        new PrecisionAdjustmentResult(
             resultElement, ((UsagePrecision) oldPrecision).copy(newPrecision), action));
   }
 }

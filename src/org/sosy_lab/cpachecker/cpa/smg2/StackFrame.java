@@ -37,10 +37,11 @@ public final class StackFrame {
 
   /** Function to which this stack frame belongs */
   private final CFunctionDeclaration stackFunction;
+
   /** An object to store function return value. The Object is Null if function has Void-type. */
   private final Optional<SMGObject> returnValueObject;
 
-  /** var args are given when a function is called (if they are not the optional is empty). * */
+  /** var args are given when a function is called (if they are not the optional is empty). */
   private final Optional<ImmutableList<Value>> variableArguments;
 
   private StackFrame(
@@ -209,11 +210,8 @@ public final class StackFrame {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StackFrame)) {
-      return false;
-    }
-    StackFrame other = (StackFrame) o;
-    return Objects.equals(stackVariables, other.stackVariables)
+    return o instanceof StackFrame other
+        && Objects.equals(stackVariables, other.stackVariables)
         && Objects.equals(stackFunction, other.stackFunction)
         && Objects.equals(returnValueObject, other.returnValueObject)
         && Objects.equals(variableArguments, other.variableArguments);

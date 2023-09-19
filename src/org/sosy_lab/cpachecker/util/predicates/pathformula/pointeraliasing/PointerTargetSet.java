@@ -25,7 +25,7 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -93,18 +93,15 @@ public final class PointerTargetSet implements Serializable {
   public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
-    } else if (!(obj instanceof PointerTargetSet)) {
-      return false;
-    } else {
-      PointerTargetSet other = (PointerTargetSet) obj;
-      // No need to check for equality of targets
-      // because if bases and fields are equal, targets is equal, too.
-      return bases.equals(other.bases)
-          && fields.equals(other.fields)
-          && deferredAllocations.equals(other.deferredAllocations)
-          && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
-          && allocationCount == other.allocationCount;
     }
+    // No need to check for equality of targets
+    // because if bases and fields are equal, targets is equal, too.
+    return obj instanceof PointerTargetSet other
+        && bases.equals(other.bases)
+        && fields.equals(other.fields)
+        && deferredAllocations.equals(other.deferredAllocations)
+        && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
+        && allocationCount == other.allocationCount;
   }
 
   PointerTargetSet(
@@ -251,7 +248,8 @@ public final class PointerTargetSet implements Serializable {
           pts.targets == null
               ? new HashMap<>()
               : new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(
               Lists.transform(pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
@@ -259,7 +257,8 @@ public final class PointerTargetSet implements Serializable {
     }
 
     private Object readResolve() {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       PersistentList<Formula> highestAllocatedAddressesFormulas =
           PersistentLinkedList.copyOf(
               Lists.transform(highestAllocatedAddresses, mgr::parseArbitraryFormula));

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.threading;
 
 import static com.google.common.collect.Collections2.transform;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
@@ -168,7 +169,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     ThreadingState threadingState = exitThreads(state);
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
-    if (null == activeThread) {
+    if (activeThread == null) {
       return ImmutableSet.of();
     }
 
@@ -502,7 +503,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
       ThreadingState newThreadingState = addNewThread(ts, threadId, newThreadNum, functionName);
-      if (null != newThreadingState) {
+      if (newThreadingState != null) {
         // create a function call for the thread creation
         CFunctionCallEdge functionCall =
             createThreadEntryFunctionCall(
@@ -771,7 +772,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private @Nullable ThreadingState handleWitnessAutomaton(
       ThreadingState ts, AutomatonState automatonState) {
     Map<String, AutomatonVariable> vars = automatonState.getVars();
-    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADID.toString().toUpperCase());
+    AutomatonVariable witnessThreadId = vars.get(Ascii.toUpperCase(KeyDef.THREADID.toString()));
     String threadId = ts.getActiveThread();
     if (witnessThreadId == null || threadId == null || witnessThreadId.getValue() == 0) {
       // values not available or default value zero -> ignore and return state unchanged

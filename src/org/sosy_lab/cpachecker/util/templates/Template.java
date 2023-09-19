@@ -65,7 +65,7 @@ public final class Template {
     for (Entry<CIdExpression, Rational> e : linearExpression) {
       CIdExpression expr = e.getKey();
       CSimpleType type = (CSimpleType) expr.getExpressionType();
-      if (!type.isUnsigned()) {
+      if (!type.hasUnsignedSpecifier()) {
         return false;
       }
     }
@@ -118,10 +118,7 @@ public final class Template {
     if (this == o) {
       return true;
     }
-    if (o == null) {
-      return false;
-    }
-    if (o.getClass() != this.getClass()) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     Template other = (Template) o;

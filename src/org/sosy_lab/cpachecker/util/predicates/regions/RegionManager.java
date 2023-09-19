@@ -12,7 +12,6 @@ import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.function.Function;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -30,8 +29,10 @@ public interface RegionManager extends RegionCreator {
     WIN2,
     WIN2ITE,
     WIN3,
-    WIN3ITE;
+    WIN3ITE,
   }
+
+  record IfThenElseParts(Region condition, Region thenBranch, Region elseBranch) {}
 
   /**
    * checks whether the data region represented by f1 is a subset of that represented by f2
@@ -65,10 +66,9 @@ public interface RegionManager extends RegionCreator {
    * a region into these three parts.
    *
    * @param f a region
-   * @return a triple with the condition predicate and the formulas for the true branch and the else
-   *     branch
+   * @return the condition predicate and the formulas for the true branch and the else branch
    */
-  Triple<Region, Region, Region> getIfThenElse(Region f);
+  IfThenElseParts getIfThenElse(Region f);
 
   /** Prints some information about the RegionManager. */
   void printStatistics(PrintStream out);

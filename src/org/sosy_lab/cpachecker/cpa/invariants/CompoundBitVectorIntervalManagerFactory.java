@@ -13,26 +13,24 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-@SuppressWarnings("ImmutableEnumChecker") // enum used as stateful factory
-public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalManagerFactory {
-  ALLOW_SIGNED_WRAP_AROUND {
+public final class CompoundBitVectorIntervalManagerFactory
+    implements CompoundIntervalManagerFactory {
 
-    @Override
-    public boolean isSignedWrapAroundAllowed() {
-      return true;
-    }
-  },
-
-  FORBID_SIGNED_WRAP_AROUND {
-
-    @Override
-    public boolean isSignedWrapAroundAllowed() {
-      return false;
-    }
-  };
-
+  private final boolean allowSignedWrapAround;
   private final Collection<OverflowEventHandler> overflowEventHandlers =
       new CopyOnWriteArrayList<>();
+
+  private CompoundBitVectorIntervalManagerFactory(boolean pAllowSignedWrapAround) {
+    allowSignedWrapAround = pAllowSignedWrapAround;
+  }
+
+  static CompoundBitVectorIntervalManagerFactory allowSignedWrapAround() {
+    return new CompoundBitVectorIntervalManagerFactory(true);
+  }
+
+  static CompoundBitVectorIntervalManagerFactory forbidSignedWrapAround() {
+    return new CompoundBitVectorIntervalManagerFactory(false);
+  }
 
   private void handleAllOverflowHandlers() {
     for (OverflowEventHandler component : overflowEventHandlers) {
@@ -65,7 +63,9 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
     throw new AssertionError("Unsupported type: " + pInfo);
   }
 
-  public abstract boolean isSignedWrapAroundAllowed();
+  public boolean isSignedWrapAroundAllowed() {
+    return allowSignedWrapAround;
+  }
 
   public void addOverflowEventHandler(OverflowEventHandler pOverflowEventHandler) {
     overflowEventHandlers.add(pOverflowEventHandler);

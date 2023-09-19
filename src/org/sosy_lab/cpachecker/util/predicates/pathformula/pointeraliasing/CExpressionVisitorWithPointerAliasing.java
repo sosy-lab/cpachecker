@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -17,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalLong;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -165,6 +166,9 @@ class CExpressionVisitorWithPointerAliasing
     this.pts = pts;
     this.regionMgr = regionMgr;
     this.function = function;
+
+    addressHandler =
+        new AddressHandler(cToFormulaConverter, ssa, constraints, errorConditions, regionMgr);
   }
 
   /**
@@ -177,20 +181,6 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /**
-   * Adds a constraint that both given formulae have the same base address.
-   *
-   * @param p1 The first formula.
-   * @param p2 The second formula.
-   */
-  private void addEqualBaseAddressConstraint(final Formula p1, final Formula p2) {
-    if (errorConditions.isEnabled()) {
-      // Constraint is only necessary for correct error conditions
-      constraints.addConstraint(
-          conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1), conv.makeBaseAddressOfTerm(p2)));
-    }
-  }
-
-  /**
    * Creates a formula for the value of an expression.
    *
    * @param e The expression.
@@ -199,24 +189,7 @@ class CExpressionVisitorWithPointerAliasing
    * @return A formula for the value.
    */
   private Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
-    if (e.isNondetValue()) {
-      // should happen only because of bit fields that we currently do not handle
-      String nondetName = "__nondet_value_" + CTypeUtils.typeToString(type).replace(' ', '_');
-      return conv.makeNondet(nondetName, type, ssa, constraints);
-    } else if (e.isValue()) {
-      return e.asValue().getValue();
-    } else if (e.isAliasedLocation()) {
-      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
-      if (region == null) {
-        region = regionMgr.makeMemoryRegion(type);
-      }
-      return !isSafe
-          ? conv.makeDereference(
-              type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region)
-          : conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
-    } else { // Unaliased location
-      return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
-    }
+    return addressHandler.getValueFormula(e, type, isSafe);
   }
 
   /**
@@ -250,28 +223,24 @@ class CExpressionVisitorWithPointerAliasing
    * <i>ADDRESS_OF_a</i> respectively. So this function will add the additional dereference if
    * necessary.
    *
-   * @param pE the source C expression form which the resulting {@code Expression} was obtained
-   * @param pResult the {@code Expression} resulting from visiting the C expression {@code pE},
+   * @param source the source C expression form which the resulting {@code Expression} was obtained
+   * @param expression the {@code Expression} resulting from visiting the C expression {@code pE},
    *     should normally be a Location, but in case of a value the corresponding location is
    *     returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
    *     debugging in some cases)
    * @return the result AliasedLocation of the pointed value
    */
-  private AliasedLocation dereference(final CExpression pE, final Expression pResult) {
-    final CType type = typeHandler.getSimplifiedType(pE);
-    // Filter out composites and proper (non-funcion-argument) arrays, for them the result
+  private AliasedLocation dereference(final CExpression source, final Expression expression) {
+    final CType type = typeHandler.getSimplifiedType(source);
+    // Filter out composites and proper (non-function-parameter) arrays, for them the result
     // already contains the location of the first field/element.
-    if (pResult.isAliasedLocation()
-        && (type instanceof CCompositeType
-            || (type instanceof CArrayType
-                && (!(pE instanceof CIdExpression)
-                    || !(((CIdExpression) pE).getDeclaration()
-                        instanceof CParameterDeclaration))))) {
-      return pResult.asAliasedLocation();
-    } else {
-      return AliasedLocation.ofAddress(
-          asValueFormula(pResult, CTypeUtils.implicitCastToPointer(type)));
-    }
+    boolean isFunctionParameter =
+        source instanceof CIdExpression idExpression
+            && idExpression.getDeclaration() instanceof CParameterDeclaration;
+    boolean directAddress =
+        type instanceof CCompositeType || (type instanceof CArrayType && !isFunctionParameter);
+
+    return addressHandler.applyDereference(type, expression, directAddress);
   }
 
   /**
@@ -290,11 +259,10 @@ class CExpressionVisitorWithPointerAliasing
     //    is returned (arrays as function parameters also fall into this category)
     // So we use #dereference() to resolve the ambiguity
     final CExpression arrayExpression = e.getArrayExpression();
-    final Expression base = dereference(arrayExpression, arrayExpression.accept(this));
+    final AliasedLocation base = dereference(arrayExpression, arrayExpression.accept(this));
 
-    // Now we should always have the aliased location of the first array element
-    assert base.isAliasedLocation() : "Not the location of the first array element";
-
+    // now, we should always have the aliased location of the first array element
+    // we create the subscript index by visiting the subscript expression and casting to void*
     final CType elementType = typeHandler.getSimplifiedType(e);
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = typeHandler.getSimplifiedType(subscript);
@@ -306,12 +274,8 @@ class CExpressionVisitorWithPointerAliasing
             constraints,
             edge);
 
-    final Formula coeff =
-        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
-    final Formula baseAddress = base.asAliasedLocation().getAddress();
-    final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
-    addEqualBaseAddressConstraint(baseAddress, address);
-    return AliasedLocation.ofAddress(address);
+    // we then apply the subscript to already dereferenced base
+    return addressHandler.applySubscriptOffsetToDereferencedBase(base, elementType, index);
   }
 
   /**
@@ -325,33 +289,25 @@ class CExpressionVisitorWithPointerAliasing
   public Expression visit(CFieldReference e) throws UnrecognizedCodeException {
     e = e.withExplicitPointerDereference();
 
+    // try to express as an unaliased location through a variable first
     BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
+      // return the unaliased location corresponding to variable
       final String variableName = variable.getName();
       return UnaliasedLocation.ofVariableName(variableName);
     } else {
+      // expressing as unaliased location failed, return a corresponding aliased location
       final CType fieldOwnerType = typeHandler.getSimplifiedType(e.getFieldOwner());
       if (fieldOwnerType instanceof CCompositeType) {
+        // visit the field owner to get the base aliased location
         final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
-
-        final String fieldName = e.getFieldName();
-        usedFields.add(CompositeField.of((CCompositeType) fieldOwnerType, fieldName));
-        final OptionalLong fieldOffset =
-            typeHandler.getOffset((CCompositeType) fieldOwnerType, fieldName);
-        if (!fieldOffset.isPresent()) {
-          // TODO This looses values of bit fields.
-          // If fixed remove the condition in asValueFormula and AssignmentHandler.handleAssignment
-          return Value.nondetValue();
-        }
-        final Formula offset =
-            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.orElseThrow());
-        final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
-        addEqualBaseAddressConstraint(base.getAddress(), address);
-        final CType fieldType = typeHandler.simplifyType(e.getExpressionType());
-        final MemoryRegion region =
-            regionMgr.makeMemoryRegion(fieldOwnerType, fieldType, fieldName);
-        return AliasedLocation.ofAddressWithRegion(address, region);
+        // make the field
+        CompositeField field = CompositeField.of((CCompositeType) fieldOwnerType, e.getFieldName());
+        // add the field to used fields for use by UF finishing assignments
+        usedFields.add(field);
+        // apply the field offset to base aliased location
+        return addressHandler.applyFieldOffset(base, field);
       } else {
         throw new UnrecognizedCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -391,7 +347,7 @@ class CExpressionVisitorWithPointerAliasing
     if (isRevealingType(resultType)) {
       operand
           .accept(getPointerApproximatingVisitor())
-          .ifPresent((s) -> learnedPointerTypes.put(s, resultType));
+          .ifPresent(s -> learnedPointerTypes.put(s, resultType));
     }
 
     final CType operandType = typeHandler.getSimplifiedType(operand);
@@ -424,6 +380,9 @@ class CExpressionVisitorWithPointerAliasing
    */
   @Override
   public Expression visit(final CIdExpression e) throws UnrecognizedCodeException {
+    if (e.getDeclaration() instanceof CEnumerator) {
+      return visitDefault(e); // delegate to super class
+    }
     final CType resultType = typeHandler.getSimplifiedType(e);
 
     final String variableName = e.getDeclaration().getQualifiedName();
@@ -489,11 +448,10 @@ class CExpressionVisitorWithPointerAliasing
         final List<CompositeField> alreadyUsedFields = ImmutableList.copyOf(usedFields);
         usedFields.clear();
 
-        if (errorConditions.isEnabled() && operand instanceof CFieldReference) {
+        if (errorConditions.isEnabled() && operand instanceof CFieldReference field) {
           // for &(s->f) and &((*s).f) do special case because the pointer is
           // not actually dereferenced and thus we don't want to add error conditions
           // for invalid-deref
-          final CFieldReference field = (CFieldReference) operand;
           CExpression fieldOwner = field.getFieldOwner();
           boolean isDeref = field.isPointerDereference();
           if (!isDeref && fieldOwner instanceof CPointerExpression) {
@@ -517,7 +475,7 @@ class CExpressionVisitorWithPointerAliasing
                                 "Taking address of bit fields is not allowed", e));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset);
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
-            addEqualBaseAddressConstraint(base, addressExpression.getAddress());
+            addressHandler.addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }
         }
 
@@ -594,11 +552,11 @@ class CExpressionVisitorWithPointerAliasing
       if (isRevealingType(t1)) {
         exp.getOperand2()
             .accept(getPointerApproximatingVisitor())
-            .ifPresent((s) -> learnedPointerTypes.put(s, t1));
+            .ifPresent(s -> learnedPointerTypes.put(s, t1));
       } else if (isRevealingType(t2)) {
         exp.getOperand1()
             .accept(getPointerApproximatingVisitor())
-            .ifPresent((s) -> learnedPointerTypes.put(s, t2));
+            .ifPresent(s -> learnedPointerTypes.put(s, t2));
       }
     }
 
@@ -607,10 +565,10 @@ class CExpressionVisitorWithPointerAliasing
     switch (op) {
       case PLUS:
         if (t1 instanceof CPointerType) {
-          addEqualBaseAddressConstraint(result, f1);
+          addressHandler.addEqualBaseAddressConstraint(result, f1);
         }
         if (t2 instanceof CPointerType) {
-          addEqualBaseAddressConstraint(result, f2);
+          addressHandler.addEqualBaseAddressConstraint(result, f2);
         }
         break;
       case MINUS:
@@ -702,33 +660,69 @@ class CExpressionVisitorWithPointerAliasing
         constraints.addConstraint(checkNotNull(form));
       }
 
-      // check strlen up to specific index maxIndex and return nondet otherwise
-      if (BuiltinFunctions.matchesStrlen(functionName)) {
-        // This is not an off-by-one error, we can set maxIndex to the maximal size because of the
-        // terminating 0 of a string.
-        final int maxIndex = conv.options.maxPreciseStrFunctionSize();
-        List<CExpression> parameters = e.getParameterExpressions();
-        assert parameters.size() == 1;
-        CExpression parameter = parameters.get(0);
-        final CType returnType = e.getExpressionType();
+      try {
+        // check strlen up to specific index maxIndex and return nondet otherwise
+        if (BuiltinFunctions.matchesStrlen(functionName)) {
+          // This is not an off-by-one error, we can set maxIndex to the maximal size because of the
+          // terminating 0 of a string.
+          final int maxIndex = conv.options.maxPreciseStrFunctionSize();
+          List<CExpression> parameters = e.getParameterExpressions();
+          verify(parameters.size() == 1);
+          CExpression parameter = parameters.get(0);
+          final CType returnType = e.getExpressionType();
 
-        Formula f = conv.makeNondet(functionName, returnType, ssa, constraints);
-        // for maxIndex=1, after the loop f has the form
-        // parameter[0]==0?0:(parameter[1]==0?1:nondet())
-        for (long i = maxIndex; i >= 0; i--) {
-          f = stringEndsAtIndexOrOtherwise(parameter, i, f, returnType);
+          Formula f = conv.makeNondet(functionName, returnType, ssa, constraints);
+          // for maxIndex=1, after the loop f has the form
+          // parameter[0]==0?0:(parameter[1]==0?1:nondet())
+          for (long i = maxIndex; i >= 0; i--) {
+            f = stringEndsAtIndexOrOtherwise(parameter, i, f, returnType);
+          }
+          return Value.ofValue(f);
+
+        } else if (functionName.equals("memcmp")
+            || functionName.equals("strcmp")
+            || functionName.equals("strncmp")) {
+          return handleCmpFunction(functionName, e);
         }
-        return Value.ofValue(f);
 
-      } else if (functionName.equals("memcmp")
-          || functionName.equals("strcmp")
-          || functionName.equals("strncmp")) {
-        return handleCmpFunction(functionName, e);
+        if (functionName.equals("memcpy")
+            || functionName.equals("memmove")
+            || functionName.equals("memset")) {
+          if (!conv.options.enableMemoryAssignmentFunctions()) {
+            if (conv.options.isAllowedUnsupportedFunction(functionName)) {
+              // delegate, this will log a warning and model it as nondet
+              return Value.ofValue(delegate.visit(e));
+
+            } else {
+              throw new UnrecognizedCodeException(
+                  "Memory assignment function called but their handling is disabled. "
+                      + "Set cpa.predicate.enableMemoryAssignmentFunctions=true to enable.",
+                  e);
+            }
+          }
+          MemoryManipulationFunctionHandler memoryFunctionHandler =
+              new MemoryManipulationFunctionHandler(
+                  conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
+
+          CExpression resultExpression =
+              memoryFunctionHandler.handleMemoryAssignmentFunction(functionName, e);
+          // Result value creation
+
+          // all of the functions just return destination
+          // we convert the destination to a formula, and return it as a value
+          AliasedLocation destinationAsAliasedLocation =
+              dereference(resultExpression, resultExpression.accept(this));
+          Formula destinationFormula = destinationAsAliasedLocation.getAddress();
+          return Value.ofValue(destinationFormula);
+        }
+
+      } catch (InterruptedException exc) {
+        throw CtoFormulaConverter.propagateInterruptedException(exc);
       }
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
         List<CExpression> parameters = e.getParameterExpressions();
-        assert parameters.size() == 3;
+        verify(parameters.size() == 3);
         CExpression var1 = parameters.get(0);
         CExpression var2 = parameters.get(1);
         CExpression var3 = parameters.get(2);
@@ -777,7 +771,7 @@ class CExpressionVisitorWithPointerAliasing
   private Value handleCmpFunction(final String functionName, final CFunctionCallExpression e)
       throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
-    assert parameters.size() == 2 || parameters.size() == 3;
+    verify(parameters.size() == 2 || parameters.size() == 3);
     final CExpression s1 = parameters.get(0);
     final CExpression s2 = parameters.get(1);
     final CSimpleType returnType = (CSimpleType) e.getExpressionType().getCanonicalType();
@@ -802,7 +796,7 @@ class CExpressionVisitorWithPointerAliasing
       sizeFormula =
           conv.makeCast(size.getExpressionType(), sizeType, sizeFormula, constraints, edge);
     } else {
-      sizeType = conv.machineModel.getPointerEquivalentSimpleType(); // should be size_t actually
+      sizeType = conv.machineModel.getSizeType();
       sizeFormula = null;
     }
     final Formula stringTerminator =
@@ -954,6 +948,8 @@ class CExpressionVisitorWithPointerAliasing
   private String function;
 
   private final ExpressionToFormulaVisitor delegate;
+
+  private final AddressHandler addressHandler;
 
   private final List<CompositeField> usedFields = new ArrayList<>(1);
   private final List<CompositeField> initializedFields = new ArrayList<>();

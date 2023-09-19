@@ -35,6 +35,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
 
   private static final CompoundMathematicalInterval MINUS_ONE =
       new CompoundMathematicalInterval(SimpleInterval.singleton(BigInteger.valueOf(-1)));
+
   /** The compound state representing "bottom". */
   private static final CompoundMathematicalInterval BOTTOM = new CompoundMathematicalInterval();
 
@@ -624,13 +625,8 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (this == pOther) {
       return true;
     }
-    if (pOther == null) {
-      return false;
-    }
-    if (pOther instanceof CompoundMathematicalInterval) {
-      return Arrays.equals(intervals, ((CompoundMathematicalInterval) pOther).intervals);
-    }
-    return false;
+    return pOther instanceof CompoundMathematicalInterval
+        && Arrays.equals(intervals, ((CompoundMathematicalInterval) pOther).intervals);
   }
 
   @Override

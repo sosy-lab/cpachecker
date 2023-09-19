@@ -13,4 +13,5 @@ package org.sosy_lab.cpachecker.cfa.types.java;
  *
  * <p>Such types could be classes or interfaces, for example.
  */
-public interface JReferenceType extends JType {}
+public sealed interface JReferenceType extends JType
+    permits JArrayType, JClassOrInterfaceType, JNullType {}

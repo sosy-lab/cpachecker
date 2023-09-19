@@ -29,13 +29,11 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   @Override
   public boolean equals(Object other) {
-    if (other == this) {
+    if (this == other) {
       return true;
-    } else if (!(other instanceof CompositePrecision)) {
-      return false;
     }
-
-    return precisions.equals(((CompositePrecision) other).precisions);
+    return other instanceof CompositePrecision
+        && precisions.equals(((CompositePrecision) other).precisions);
   }
 
   @Override
@@ -110,12 +108,12 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
-    return adjustPrecisionWith(pOtherPrecision, (a, b) -> a.add(b));
+    return adjustPrecisionWith(pOtherPrecision, AdjustablePrecision::add);
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
-    return adjustPrecisionWith(pOtherPrecision, (a, b) -> a.subtract(b));
+    return adjustPrecisionWith(pOtherPrecision, AdjustablePrecision::subtract);
   }
 
   private AdjustablePrecision adjustPrecisionWith(
@@ -128,8 +126,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
       Precision currentPrecision = get(i);
       Precision adjustedPrecision;
 
-      if (pOtherPrecision instanceof CompositePrecision) {
-        CompositePrecision precisionToAdjust = (CompositePrecision) pOtherPrecision;
+      if (pOtherPrecision instanceof CompositePrecision precisionToAdjust) {
         adjustedPrecision = precisionToAdjust.get(i);
       } else if (pOtherPrecision.getClass() == currentPrecision.getClass()) {
         adjustedPrecision = pOtherPrecision;

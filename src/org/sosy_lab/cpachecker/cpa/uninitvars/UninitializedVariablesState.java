@@ -19,19 +19,21 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
+@SuppressWarnings("checkstyle:NoClone") // refactor
 public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 5745797034946117366L;
   private final List<String> globalVars;
   private final Deque<Pair<String, List<String>>> localVars;
 
-  private final Collection<Triple<Integer, String, String>> warnings;
+  record Warning(int line, String variable, String message) implements Serializable {}
+
+  private final Collection<Warning> warnings;
 
   enum ElementProperty {
     UNINITIALIZED_RETURN_VALUE,
-    UNINITIALIZED_VARIABLE_USED
+    UNINITIALIZED_VARIABLE_USED,
   }
 
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
@@ -47,7 +49,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   public UninitializedVariablesState(
       List<String> globalVars,
       Deque<Pair<String, List<String>>> localVars,
-      Collection<Triple<Integer, String, String>> warnings) {
+      Collection<Warning> warnings) {
     this.globalVars = globalVars;
     this.localVars = localVars;
     this.warnings = warnings;
@@ -85,7 +87,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     return localVars;
   }
 
-  public Collection<Triple<Integer, String, String>> getWarnings() {
+  public Collection<Warning> getWarnings() {
     return warnings;
   }
 
@@ -94,7 +96,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   }
 
   public void callFunction(String functionName) {
-    localVars.addLast(Pair.of(functionName, new ArrayList<String>()));
+    localVars.addLast(Pair.of(functionName, new ArrayList<>()));
   }
 
   public void returnFromFunction() {
@@ -102,7 +104,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   }
 
   public void addWarning(Integer lineNumber, String variable, String message) {
-    Triple<Integer, String, String> warning = Triple.of(lineNumber, variable, message);
+    Warning warning = new Warning(lineNumber, variable, message);
     if (!warnings.contains(warning)) {
       warnings.add(warning);
     }
@@ -110,16 +112,12 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof UninitializedVariablesState)) {
-      return false;
-    }
     if (this == o) {
       return true;
     }
-
-    UninitializedVariablesState otherElement = (UninitializedVariablesState) o;
-
-    return globalVars.equals(otherElement.globalVars) && localVars.equals(otherElement.localVars);
+    return o instanceof UninitializedVariablesState otherElement
+        && globalVars.equals(otherElement.globalVars)
+        && localVars.equals(otherElement.localVars);
   }
 
   @Override
@@ -165,10 +163,12 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   void addProperty(ElementProperty pProp) {
     properties.add(pProp);
   }
+
   /** Returns all properties set for this element. */
   Set<ElementProperty> getProperties() {
     return properties;
   }
+
   /** Removes all property of this element */
   void clearProperties() {
     properties.clear();

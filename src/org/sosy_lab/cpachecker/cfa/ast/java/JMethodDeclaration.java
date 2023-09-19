@@ -35,7 +35,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *       [ throws TypeName { , TypeName } ] ( Block | ; )
  * }</pre>
  */
-public class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
+public sealed class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration
+    permits JConstructorDeclaration {
 
   // TODO refactor to be either abstract or final
 
@@ -211,13 +212,9 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
       return true;
     }
 
-    if (!(obj instanceof JMethodDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JMethodDeclaration other = (JMethodDeclaration) obj;
-
-    return Objects.equals(other.declaringClass, declaringClass)
+    return obj instanceof JMethodDeclaration other
+        && super.equals(obj)
+        && Objects.equals(other.declaringClass, declaringClass)
         && other.isAbstract == isAbstract
         && other.isFinal == isFinal
         && other.isNative == isNative

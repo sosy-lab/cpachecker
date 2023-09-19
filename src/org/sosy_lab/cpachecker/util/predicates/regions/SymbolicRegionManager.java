@@ -17,7 +17,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -164,7 +163,7 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     throw new UnsupportedOperationException("Use toFormula(Region) instead of traversal.");
   }
 

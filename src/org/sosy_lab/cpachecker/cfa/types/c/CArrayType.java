@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
@@ -27,6 +28,11 @@ public final class CArrayType extends AArrayType implements CType {
 
   public CArrayType(boolean pConst, boolean pVolatile, CType pType, @Nullable CExpression pLength) {
     super(pType);
+
+    if (pLength instanceof CIntegerLiteralExpression lengthExp) {
+      checkArgument(lengthExp.getValue().signum() >= 0, "Illegal negative array size %s", pLength);
+    }
+
     isConst = pConst;
     isVolatile = pVolatile;
     length = pLength;
@@ -126,26 +132,21 @@ public final class CArrayType extends AArrayType implements CType {
       return true;
     }
 
-    if (!(obj instanceof CArrayType) || !super.equals(obj)) {
-      return false;
-    }
+    if (obj instanceof CArrayType other
+        && isConst == other.isConst
+        && isVolatile == other.isVolatile
+        && super.equals(obj)) {
 
-    CArrayType other = (CArrayType) obj;
-
-    if (length instanceof CIntegerLiteralExpression
-        && other.length instanceof CIntegerLiteralExpression) {
-      if (!((CIntegerLiteralExpression) length)
-          .getValue()
-          .equals(((CIntegerLiteralExpression) other.length).getValue())) {
-        return false;
-      }
-    } else {
-      if (!Objects.equals(length, other.length)) {
-        return false;
+      // If lengths are constants, compare their values directly (ignores type of expression).
+      if (length instanceof CIntegerLiteralExpression lengthValue
+          && other.length instanceof CIntegerLiteralExpression otherLengthValue) {
+        return lengthValue.getValue().equals(otherLengthValue.getValue());
+      } else {
+        return Objects.equals(length, other.length);
       }
     }
 
-    return isConst == other.isConst && isVolatile == other.isVolatile;
+    return false;
   }
 
   @Override

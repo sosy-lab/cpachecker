@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -101,12 +102,8 @@ public class CParserUtils {
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
     for (CStatement statement : assumptions) {
 
-      if (statement instanceof CAssignment) {
-        CAssignment assignment = (CAssignment) statement;
-
-        if (assignment.getRightHandSide() instanceof CExpression) {
-
-          CExpression expression = (CExpression) assignment.getRightHandSide();
+      if (statement instanceof CAssignment assignment) {
+        if (assignment.getRightHandSide() instanceof CExpression expression) {
           CBinaryExpression assumeExp =
               expressionBuilder.buildBinaryExpressionUnchecked(
                   assignment.getLeftHandSide(),
@@ -351,7 +348,8 @@ public class CParserUtils {
           pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
       // Check that no expressions were split
       if (!FluentIterable.from(statements)
-          .anyMatch(statement -> statement.toString().toUpperCase().contains("__CPACHECKER_TMP"))) {
+          .anyMatch(
+              statement -> Ascii.toUpperCase(statement.toString()).contains("__CPACHECKER_TMP"))) {
         return And.of(FluentIterable.from(statements).transform(fromStatement));
       }
     }
@@ -398,13 +396,11 @@ public class CParserUtils {
       Optional<String> pResultFunction, Scope pScope, String assumeCode) {
     if (pResultFunction.isPresent()) {
       String resultFunctionName = pResultFunction.orElseThrow();
-      if (pScope instanceof CProgramScope) {
-        CProgramScope scope = (CProgramScope) pScope;
-        if (scope.hasFunctionReturnVariable(resultFunctionName)) {
-          CSimpleDeclaration functionReturnVariable =
-              scope.getFunctionReturnVariable(resultFunctionName);
-          return assumeCode.replace("\\result", " " + functionReturnVariable.getName());
-        }
+      if ((pScope instanceof CProgramScope scope)
+          && scope.hasFunctionReturnVariable(resultFunctionName)) {
+        CSimpleDeclaration functionReturnVariable =
+            scope.getFunctionReturnVariable(resultFunctionName);
+        return assumeCode.replace("\\result", " " + functionReturnVariable.getName());
       }
       return assumeCode.replace("\\result", String.format(" %s() ", resultFunctionName));
     }
@@ -474,8 +470,7 @@ public class CParserUtils {
         // Now, build the disjunction of the old tree with the new path
 
         // Handle the return statement: Returning 0 means false, 1 means true
-        if (leavingEdge instanceof AReturnStatementEdge) {
-          AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
+        if (leavingEdge instanceof AReturnStatementEdge returnStatementEdge) {
           Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
           assert optExpression.isPresent();
           if (!optExpression.isPresent()) {
@@ -493,8 +488,7 @@ public class CParserUtils {
           }
 
           // Handle assume edges
-        } else if (leavingEdge instanceof AssumeEdge) {
-          AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
+        } else if (leavingEdge instanceof AssumeEdge assumeEdge) {
           AExpression expression = assumeEdge.getExpression();
 
           if (expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
@@ -551,8 +545,7 @@ public class CParserUtils {
     if (directMatch != null) {
       return directMatch;
     }
-    if (pExpression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
+    if (pExpression instanceof CBinaryExpression binaryExpression) {
       CExpression op1 =
           (CExpression) replaceCPAcheckerTMPVariables(binaryExpression.getOperand1(), pTmpValues);
       CExpression op2 =
@@ -565,8 +558,7 @@ public class CParserUtils {
           op2,
           binaryExpression.getOperator());
     }
-    if (pExpression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression) pExpression;
+    if (pExpression instanceof CUnaryExpression unaryExpression) {
       CExpression op =
           (CExpression) replaceCPAcheckerTMPVariables(unaryExpression.getOperand(), pTmpValues);
       return new CUnaryExpression(
@@ -581,8 +573,7 @@ public class CParserUtils {
   private static Map<AExpression, AExpression> collectCPAcheckerTMPValues(CFAEdge pEdge) {
     if (pEdge instanceof AStatementEdge) {
       AStatement statement = ((AStatementEdge) pEdge).getStatement();
-      if (statement instanceof AExpressionAssignmentStatement) {
-        AExpressionAssignmentStatement expAssignStmt = (AExpressionAssignmentStatement) statement;
+      if (statement instanceof AExpressionAssignmentStatement expAssignStmt) {
         ALeftHandSide lhs = expAssignStmt.getLeftHandSide();
         if (lhs instanceof AIdExpression
             && ((AIdExpression) lhs).getName().contains(CPACHECKER_TMP_PREFIX)) {
@@ -609,9 +600,7 @@ public class CParserUtils {
       Iterable<? extends CStatement> pStatements) {
     Map<Object, CStatement> result = new HashMap<>();
     for (CStatement statement : pStatements) {
-      if (statement instanceof CExpressionAssignmentStatement) {
-        CExpressionAssignmentStatement assignmentStatement =
-            (CExpressionAssignmentStatement) statement;
+      if (statement instanceof CExpressionAssignmentStatement assignmentStatement) {
         result.put(assignmentStatement.getLeftHandSide(), assignmentStatement);
       } else {
         result.put(statement, statement);
@@ -628,16 +617,14 @@ public class CParserUtils {
    * @return the adjusted statement.
    */
   private static CStatement adjustCharAssignmentSignedness(CStatement pStatement) {
-    if (pStatement instanceof CExpressionAssignmentStatement) {
-      CExpressionAssignmentStatement statement = (CExpressionAssignmentStatement) pStatement;
+    if (pStatement instanceof CExpressionAssignmentStatement statement) {
       CLeftHandSide leftHandSide = statement.getLeftHandSide();
       CType canonicalType = leftHandSide.getExpressionType().getCanonicalType();
-      if (canonicalType instanceof CSimpleType) {
-        CSimpleType simpleType = (CSimpleType) canonicalType;
+      if (canonicalType instanceof CSimpleType simpleType) {
         CBasicType basicType = simpleType.getType();
         if (basicType.equals(CBasicType.CHAR)
-            && !simpleType.isSigned()
-            && !simpleType.isUnsigned()) {
+            && !simpleType.hasSignedSpecifier()
+            && !simpleType.hasUnsignedSpecifier()) {
           CExpression rightHandSide = statement.getRightHandSide();
           CExpression castedRightHandSide =
               new CCastExpression(rightHandSide.getFileLocation(), canonicalType, rightHandSide);

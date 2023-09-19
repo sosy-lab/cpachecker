@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -91,22 +90,17 @@ public class IntervalAnalysisTransferRelation
    */
   @Override
   protected Collection<IntervalAnalysisState> handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws UnrecognizedCodeException {
 
     IntervalAnalysisState newState = state;
-    Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
+    Optional<CVariableDeclaration> retVar = cfaEdge.getFunctionEntry().getReturnVariable();
     if (retVar.isPresent()) {
       newState = newState.removeInterval(retVar.orElseThrow().getQualifiedName());
     }
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) summaryExpr;
-
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement funcExp) {
       // left hand side of the expression has to be a variable
       if (state.contains(retVar.orElseThrow().getQualifiedName())) {
         newState =
@@ -366,8 +360,7 @@ public class IntervalAnalysisTransferRelation
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
 
     IntervalAnalysisState newState = state;
-    if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-      CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
+    if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
 
       // ignore pointer variables
       if (decl.getType() instanceof CPointerType) {
@@ -403,8 +396,7 @@ public class IntervalAnalysisTransferRelation
       CStatementEdge cfaEdge, CStatement expression) throws UnrecognizedCodeException {
     IntervalAnalysisState successor = state;
     // expression is an assignment operation, e.g. a = b;
-    if (expression instanceof CAssignment) {
-      CAssignment assignExpression = (CAssignment) expression;
+    if (expression instanceof CAssignment assignExpression) {
       CExpression op1 = assignExpression.getLeftHandSide();
       CRightHandSide op2 = assignExpression.getRightHandSide();
 

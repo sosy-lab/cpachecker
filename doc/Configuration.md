@@ -122,8 +122,8 @@ A more complex example:
 ```
 cpa = cpa.arg.ARGCPA arg
 arg.cpa = cpa.composite.CompositeCPA composite
-composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automaton.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.predicate.PredicateCPA
-ErrorLocationAutomaton.cpa.automaton.inputFile = config/specification/ErrorLocation.spc
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automaton.ObserverAutomatonCPA ErrorLabelAutomaton, cpa.predicate.PredicateCPA
+ErrorLabelAutomaton.cpa.automaton.inputFile = config/specification/ErrorLabel.spc
 ```
 
 Note that instead of manually specifying an `ObserverAutomatonCPA`, you can
@@ -134,7 +134,7 @@ The following example is identical to the last one:
 cpa = cpa.arg.ARGCPA arg
 arg.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA
-specification = config/specification/ErrorLocation.spc
+specification = config/specification/ErrorLabel.spc
 ```
 
 If the option `specification` is used, CPAchecker will create CPA instances
@@ -150,7 +150,7 @@ Thus the following example is again identical to the previous two:
 cpa = cpa.arg.ARGCPA arg
 arg.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA, $specification
-specification = config/specification/ErrorLocation.spc
+specification = config/specification/ErrorLabel.spc
 ```
 
 Configuration file format

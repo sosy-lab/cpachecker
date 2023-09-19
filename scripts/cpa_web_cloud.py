@@ -16,7 +16,7 @@ import argparse
 import glob
 import logging
 import os
-import urllib.request as request
+import requests
 
 for egg in glob.glob(
     os.path.join(
@@ -27,7 +27,12 @@ for egg in glob.glob(
 
 from benchexec import util
 
-from benchmark.webclient import WebInterface, WebClientError, handle_result
+from benchmark.webclient import (
+    CommandLineArgumentError,
+    WebInterface,
+    WebClientError,
+    handle_result,
+)
 
 __version__ = "1.0"
 
@@ -47,7 +52,7 @@ def _create_argument_parser():
         add_help=False,  # conflicts with -heap
     )
 
-    parser.add_argument("--help", action="help", help="Prints this help.")
+    parser.add_argument("-h", "--help", action="help", help="Prints this help.")
 
     parser.add_argument(
         "--cloudMaster",
@@ -287,10 +292,12 @@ def _execute():
         run_result = _submit_run(webclient, config, cpachecker_args)
         return handle_result(run_result, config.output_path, cpachecker_args)
 
-    except request.HTTPError as e:
-        logging.warning(e.reason)
+    except requests.HTTPError as e:
+        logging.error(e)
     except WebClientError as e:
         logging.warning(str(e))
+    except CommandLineArgumentError as e:
+        logging.error(str(e))
 
     finally:
         webclient.shutdown()

@@ -68,10 +68,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
-    List<CFAEdge> firstPath, secondPath;
-
-    firstPath = getPath(firstUsage);
-    secondPath = getPath(secondUsage);
+    List<CFAEdge> firstPath = getPath(firstUsage);
+    List<CFAEdge> secondPath = getPath(secondUsage);
 
     if (firstPath == null || secondPath == null) {
       return;
@@ -116,7 +114,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   }
 
   private Element printPath(UsageInfo usage, int threadId, GraphMlBuilder builder) {
-    String currentId = getId(), nextId = currentId;
+    String currentId = getId();
+    String nextId = currentId;
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 
@@ -189,17 +188,14 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
   private void dumpCommonInfoForEdge(GraphMlBuilder builder, Element result, CFAEdge pEdge) {
 
-    if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
+    if (pEdge.getSuccessor() instanceof FunctionEntryNode in) {
       builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, in.getFunctionName());
     }
-    if (pEdge.getSuccessor() instanceof FunctionExitNode) {
-      FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
+    if (pEdge.getSuccessor() instanceof FunctionExitNode out) {
       builder.addDataElementChild(result, KeyDef.FUNCTIONEXIT, out.getFunctionName());
     }
 
-    if (pEdge instanceof AssumeEdge) {
-      AssumeEdge a = (AssumeEdge) pEdge;
+    if (pEdge instanceof AssumeEdge a) {
       AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
       builder.addDataElementChild(result, KeyDef.CONTROLCASE, assumeCase.toString());
     }

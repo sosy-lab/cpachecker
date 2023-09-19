@@ -23,7 +23,6 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode
     implements ASimpleDeclaration {
 
   private static final long serialVersionUID = 1078153969461542233L;
-  private Type type;
 
   /**
    * The name of the declared item as it should be used by analyses in CPAchecker. This is a
@@ -43,16 +42,14 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode
   private final String origName;
 
   protected AbstractSimpleDeclaration(
-      FileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {
+      FileLocation pFileLocation, final String pName, final String pOrigName) {
     super(pFileLocation);
-    type = pType;
     name = pName;
     origName = pOrigName;
   }
 
-  protected AbstractSimpleDeclaration(
-      final FileLocation pFileLocation, final Type pType, final String pName) {
-    this(pFileLocation, pType, pName, pName);
+  protected AbstractSimpleDeclaration(final FileLocation pFileLocation, final String pName) {
+    this(pFileLocation, pName, pName);
   }
 
   @Override
@@ -77,17 +74,11 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode
   }
 
   @Override
-  public Type getType() {
-    return type;
-  }
-
-  protected void setType(Type pType) {
-    type = pType;
-  }
+  public abstract Type getType();
 
   @Override
   public int hashCode() {
-    return 31 * Objects.hash(type, name, origName) + super.hashCode();
+    return 31 * Objects.hash(getType(), name, origName) + super.hashCode();
   }
 
   @Override
@@ -96,13 +87,9 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode
       return true;
     }
 
-    if (!(obj instanceof AbstractSimpleDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    AbstractSimpleDeclaration other = (AbstractSimpleDeclaration) obj;
-
-    return Objects.equals(other.type, type)
+    return obj instanceof AbstractSimpleDeclaration other
+        && super.equals(obj)
+        && Objects.equals(other.getType(), getType())
         && Objects.equals(other.name, name)
         && Objects.equals(other.origName, origName);
   }

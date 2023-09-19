@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -161,13 +161,11 @@ public class ExpressionToFormulaVisitor
 
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
-      // this only gives the right value for "signed" because calculationType was determined using
-      // getCanonicalType, which e.g. converts a CNumericType.INT into a CNumericType.SIGNED_INT:
       signed = conv.machineModel.isSigned((CSimpleType) calculationType);
-    } else if (calculationType instanceof CPointerType) {
-      // pointers can also be signed if the machine model represents them using a signed type:
-      signed = conv.machineModel.getPointerEquivalentSimpleType().getCanonicalType().isSigned();
     } else {
+      // For pointers: happens only for additions/subtractions (for which signedness is irrelevant)
+      // and comparisons. GCC implements pointer comparisons as unsigned.
+      // For other types like structs signedness should be irrelevant as well.
       signed = false;
     }
 
@@ -269,30 +267,16 @@ public class ExpressionToFormulaVisitor
       case EQUALS:
       case NOT_EQUALS:
         {
-          BooleanFormula result;
-          switch (op) {
-            case GREATER_THAN:
-              result = mgr.makeGreaterThan(f1, f2, signed);
-              break;
-            case GREATER_EQUAL:
-              result = mgr.makeGreaterOrEqual(f1, f2, signed);
-              break;
-            case LESS_THAN:
-              result = mgr.makeLessThan(f1, f2, signed);
-              break;
-            case LESS_EQUAL:
-              result = mgr.makeLessOrEqual(f1, f2, signed);
-              break;
-            case EQUALS:
-              result = handleEquals(exp, f1, f2);
-              break;
-            case NOT_EQUALS:
-              result = conv.bfmgr.not(mgr.makeEqual(f1, f2));
-              break;
-            default:
-              throw new AssertionError();
-          }
-
+          BooleanFormula result =
+              switch (op) {
+                case GREATER_THAN -> mgr.makeGreaterThan(f1, f2, signed);
+                case GREATER_EQUAL -> mgr.makeGreaterOrEqual(f1, f2, signed);
+                case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
+                case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
+                case EQUALS -> handleEquals(exp, f1, f2);
+                case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
+                default -> throw new AssertionError();
+              };
           // Here we directly use the returnFormulaType instead of the calculcationType
           // to avoid a useless cast.
           // However, this means that we may not call makeCast() below
@@ -319,7 +303,7 @@ public class ExpressionToFormulaVisitor
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
-        && e1 instanceof CBinaryExpression
+        && e1 instanceof CBinaryExpression or
         && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BINARY_OR) {
       // This is code like "(a | b) == 0".
       // According to LDV, GCC sometimes produces this during weaving,
@@ -327,7 +311,6 @@ public class ExpressionToFormulaVisitor
       // TODO Maybe refactor AutomatonASTComparator into something generic
       // and use this to match such cases.
 
-      final CBinaryExpression or = (CBinaryExpression) e1;
       final Formula zero = f2;
       final Formula a =
           processOperand(or.getOperand1(), exp.getCalculationType(), exp.getExpressionType());
@@ -411,15 +394,9 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CIdExpression idExp) throws UnrecognizedCodeException {
 
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       CType t = idExp.getExpressionType();
-      if (enumerator.hasValue()) {
-        return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
-      } else {
-        // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t);
-      }
+      return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
     }
 
     return conv.makeVariable(
@@ -478,7 +455,7 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCodeException {
     // we create a string constant representing the given
     // string literal
-    return conv.makeStringLiteral(lexp.getValue());
+    return conv.makeStringLiteral(lexp.getContentWithNullTerminator());
   }
 
   @Override
@@ -947,9 +924,7 @@ public class ExpressionToFormulaVisitor
             inequalityBuiltin(
                 functionName,
                 parameters,
-                (e1, e2) -> {
-                  return conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2));
-                },
+                (e1, e2) -> conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2)),
                 fpfmgr);
 
         if (result != null) {

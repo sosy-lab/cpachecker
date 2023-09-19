@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -172,7 +173,7 @@ public class CPABuilder {
             ImmutableList.of(CPAConfig.forClass(LocationCPA.class), SPECIFICATION_PLACEHOLDER);
       } else {
         insertionPoint.children =
-            from(insertionPoint.children).append(SPECIFICATION_PLACEHOLDER).toList();
+            listAndElement(insertionPoint.children, SPECIFICATION_PLACEHOLDER);
       }
       placeholderCount++;
     }
@@ -518,12 +519,16 @@ public class CPABuilder {
      * cpa.location.LocationCPA)
      */
     final String name;
+
     /** The alias for this CPA instance as given by the user or inferred */
     final String alias;
+
     /** The class of this CPA (null if placeholder instance). */
     final @Nullable Class<?> cpaClass;
+
     /** Config for child CPA if the "alias.cpa" option was given. */
     final @Nullable CPAConfig child;
+
     /** Config for children CPA if the "alias.cpas" option was given. */
     ImmutableList<CPAConfig> children;
 

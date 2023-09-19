@@ -28,7 +28,7 @@ public class RandomBalancedGraphPartitioner implements BalancedGraphPartitioner 
         "Partitioniong must contain at most 1 partition. Graph may not be null.");
     List<Set<Integer>> partitioning = new ArrayList<>(pNumPartitions);
     for (int i = 0; i < pNumPartitions; i++) {
-      partitioning.add(new HashSet<Integer>());
+      partitioning.add(new HashSet<>());
     }
 
     Random randomGen = new Random(0);

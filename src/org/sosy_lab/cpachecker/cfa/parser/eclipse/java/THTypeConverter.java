@@ -65,7 +65,7 @@ class THTypeConverter extends TypeConverter {
       } catch (ClassNotFoundException e) {
         try {
           cls = Class.forName("java.lang." + typeName);
-        } catch (ClassNotFoundException pE) {
+        } catch (ClassNotFoundException e2) {
           cls = null;
         }
       }

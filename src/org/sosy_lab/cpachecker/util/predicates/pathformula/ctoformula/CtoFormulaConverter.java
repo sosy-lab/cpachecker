@@ -33,6 +33,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -88,7 +89,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -149,6 +149,9 @@ public class CtoFormulaConverter {
           "memcpy", "memcpy",
           "memmove", "memmove",
           "memset", "memset");
+
+  private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
+      ImmutableSet.of("memcpy", "memmove", "memset");
 
   // names for special variables needed to deal with functions
   @Deprecated
@@ -265,7 +268,16 @@ public class CtoFormulaConverter {
         .containsEntry(compositeType, fieldName);
   }
 
-  protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
+  protected boolean isRelevantLeftHandSide(
+      final CLeftHandSide lhs, final Optional<CRightHandSide> rhs) {
+    if (rhs.isPresent()
+        && rhs.orElseThrow() instanceof CFunctionCallExpression funcCall
+        && SIDE_EFFECT_FUNCTIONS.contains(funcCall.getFunctionNameExpression().toString())) {
+      // Extern function calls like memset have side effects, we should not ignore this based on
+      // LHS alone.
+      return true;
+    }
+
     if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(lhs.getExpressionType())) {
       return false;
     }
@@ -285,8 +297,7 @@ public class CtoFormulaConverter {
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
     if (options.useHavocAbstraction()) {
-      if (var instanceof CVariableDeclaration) {
-        CVariableDeclaration vDecl = (CVariableDeclaration) var;
+      if (var instanceof CVariableDeclaration vDecl) {
         if (vDecl.isGlobal()) {
           return false;
         } else if (vDecl.getType() instanceof CPointerType) {
@@ -315,13 +326,12 @@ public class CtoFormulaConverter {
 
   public final FormulaType<?> getFormulaTypeFromCType(CType type) {
     type = type.getCanonicalType();
-    if (type instanceof CSimpleType) {
-      CSimpleType simpleType = (CSimpleType) type;
+    if (type instanceof CSimpleType simpleType) {
       switch (simpleType.getType()) {
         case FLOAT:
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
-          if (simpleType.isLong()) {
+          if (simpleType.hasLongSpecifier()) {
             if (machineModel.getSizeofLongDouble() == machineModel.getSizeofDouble()) {
               // architecture without extended precision format
               return FormulaType.getDoublePrecisionFloatingPointType();
@@ -593,11 +603,13 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Create a formula that reinterprets the raw bit values as a different type Returns {@code null}
-   * if this is not implemented for the given types. Both types need to have the same size
+   * Create a formula that reinterprets the raw bit values as a different type. Returns {@code null}
+   * if this is not implemented for the given types. Returns the original formula if no
+   * reinterpretation was necessary.
    */
   protected @Nullable Formula makeValueReinterpretation(
       final CType pFromType, final CType pToType, Formula formula) {
+    // This results in a signed type for pointers, but we only use its size, so this is irrelevant.
     CType fromType = handlePointerAndEnumAsInt(pFromType);
     CType toType = handlePointerAndEnumAsInt(pToType);
 
@@ -648,6 +660,56 @@ public class CtoFormulaConverter {
 
       return formula;
 
+    } else if (fromFormulaType.equals(toFormulaType)) {
+      // return the original formula
+      return formula;
+    } else {
+      return null; // TODO use UF
+    }
+  }
+
+  /**
+   * Create a formula that reinterprets the raw bit values as a bitvector formula with the same
+   * size. Useful for converting floats to bitvectors. Returns {@code null} if this is not
+   * implemented for the given types.
+   *
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula)}, this function
+   * returns the original formula if it was already a bitvector formula, not {@code null}.
+   */
+  protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
+      final CType pFromType, Formula formula) {
+    CType fromType = handlePointerAndEnumAsInt(pFromType);
+    FormulaType<?> fromFormulaType = getFormulaTypeFromCType(fromType);
+
+    if (fromFormulaType.isBitvectorType()) {
+      // already a bitvector
+      return (BitvectorFormula) formula;
+    } else if (fromFormulaType.isFloatingPointType()) {
+      return fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) formula);
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Create a formula that reinterprets a bitvector formula as a formula of a given type. Useful for
+   * converting floating-point values represented in bitvectors back to float. Returns {@code null}
+   * if this is not implemented for the given types.
+   *
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula)}, this function
+   * returns the original formula if {@code pToType} is represented by bitvector, not {@code null}.
+   */
+  protected @Nullable Formula makeValueReinterpretationFromBitvector(
+      final CType pToType, BitvectorFormula formula) {
+    CType toType = handlePointerAndEnumAsInt(pToType);
+    FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
+
+    if (toFormulaType.isFloatingPointType()) {
+      return fmgr.getFloatingPointFormulaManager()
+          .fromIeeeBitvector(formula, (FloatingPointType) toFormulaType);
+    } else if (toFormulaType.isBitvectorType()) {
+      // already a bitvector
+      return formula;
     } else {
       return null; // TODO use UF
     }
@@ -688,8 +750,7 @@ public class CtoFormulaConverter {
   private Formula encodeOverflowsWithUF(
       final Formula value, CType type, final Constraints constraints) {
     type = type.getCanonicalType();
-    if (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType()) {
-      final CSimpleType sType = (CSimpleType) type;
+    if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
       final FormulaType<Formula> numberType = fmgr.getFormulaType(value);
       final boolean signed = machineModel.isSigned(sType);
 
@@ -704,8 +765,8 @@ public class CtoFormulaConverter {
       // benefit: divide_by_constant works without UFs
       try {
         range = fmgr.simplify(range);
-      } catch (InterruptedException pE) {
-        throw propagateInterruptedException(pE);
+      } catch (InterruptedException e) {
+        throw propagateInterruptedException(e);
       }
       if (bfmgr.isTrue(range)) {
         return value;
@@ -738,8 +799,7 @@ public class CtoFormulaConverter {
    */
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
-    if (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType()) {
-      final CSimpleType sType = (CSimpleType) type;
+    if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
       final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
       final Formula lowerBound =
@@ -776,18 +836,14 @@ public class CtoFormulaConverter {
       fromType = new CPointerType(false, false, fromType);
     }
 
+    // This results in a signed type for pointers, which is what we need because GCC does sign
+    // extension when casting from a pointer to a larger integer:
+    // https://gcc.gnu.org/onlinedocs/gcc/Arrays-and-pointers-implementation.html
     fromType = handlePointerAndEnumAsInt(fromType);
     toType = handlePointerAndEnumAsInt(toType);
 
     if (isSimple(fromType) && isSimple(toType)) {
       return makeSimpleCast(fromType, toType, formula);
-    }
-
-    if (fromType instanceof CPointerType || toType instanceof CPointerType) {
-      // Ignore casts between Pointer and right sized types
-      if (getFormulaTypeFromCType(toType).equals(getFormulaTypeFromCType(fromType))) {
-        return formula;
-      }
     }
 
     if (getBitSizeof(fromType) == getBitSizeof(toType)) {
@@ -800,9 +856,12 @@ public class CtoFormulaConverter {
     }
   }
 
+  /**
+   * Resolve enums and pointers to correctly sized integer types. For pointers, a signed type is
+   * returned, so make sure this is what you actually need.
+   */
   private CType handlePointerAndEnumAsInt(CType pType) {
-    if (pType instanceof CBitFieldType) {
-      CBitFieldType type = (CBitFieldType) pType;
+    if (pType instanceof CBitFieldType type) {
       CType innerType = type.getType();
       CType normalizedInnerType = handlePointerAndEnumAsInt(innerType);
       if (innerType == normalizedInnerType) {
@@ -811,10 +870,10 @@ public class CtoFormulaConverter {
       return new CBitFieldType(normalizedInnerType, type.getBitFieldSize());
     }
     if (pType instanceof CPointerType) {
-      return machineModel.getPointerEquivalentSimpleType();
+      return machineModel.getPointerSizedSignedIntType();
     }
-    if (pType instanceof CEnumType) {
-      return ((CEnumType) pType).getEnumerators().get(0).getType();
+    if (pType instanceof CEnumType enumType) {
+      return enumType.getCompatibleType();
     }
     if (pType instanceof CElaboratedType
         && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM) {
@@ -837,9 +896,18 @@ public class CtoFormulaConverter {
     // array-to-pointer conversion
     CArrayType arrayType = (CArrayType) arrayExpression.getExpressionType().getCanonicalType();
     CPointerType pointerType = arrayType.asPointerType();
+    CExpression firstElementExpression =
+        new CArraySubscriptExpression(
+            arrayExpression.getFileLocation(),
+            arrayType.getType(),
+            arrayExpression,
+            CIntegerLiteralExpression.ZERO);
 
     return new CUnaryExpression(
-        arrayExpression.getFileLocation(), pointerType, arrayExpression, UnaryOperator.AMPER);
+        arrayExpression.getFileLocation(),
+        pointerType,
+        firstElementExpression,
+        UnaryOperator.AMPER);
   }
 
   /**
@@ -854,11 +922,9 @@ public class CtoFormulaConverter {
           if (t instanceof CSimpleType) {
             return machineModel.isSigned((CSimpleType) t);
           }
-          if (t instanceof CBitFieldType) {
-            CBitFieldType bitFieldType = (CBitFieldType) t;
-            if (bitFieldType.getType() instanceof CSimpleType) {
-              return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
-            }
+          if ((t instanceof CBitFieldType bitFieldType)
+              && (bitFieldType.getType() instanceof CSimpleType)) {
+            return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
           }
           throw new AssertionError("Not a simple type: " + t);
         };
@@ -936,16 +1002,8 @@ public class CtoFormulaConverter {
   }
 
   private boolean isSimple(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return true;
-    }
-    if (pType instanceof CBitFieldType) {
-      CBitFieldType type = (CBitFieldType) pType;
-      if (type.getType() instanceof CSimpleType) {
-        return true;
-      }
-    }
-    return false;
+    return pType instanceof CSimpleType
+        || (pType instanceof CBitFieldType type && type.getType() instanceof CSimpleType);
   }
 
   /**
@@ -982,10 +1040,7 @@ public class CtoFormulaConverter {
   }
 
   private static boolean isFloatingPointType(final CType pType) {
-    if (pType instanceof CSimpleType) {
-      return ((CSimpleType) pType).getType().isFloatingPointType();
-    }
-    return false;
+    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
   }
 
   //  @Override
@@ -1179,10 +1234,8 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     switch (edge.getEdgeType()) {
       case StatementEdge:
-        {
-          return makeStatement(
-              (CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeStatement(
+            (CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case ReturnStatementEdge:
         {
@@ -1198,10 +1251,8 @@ public class CtoFormulaConverter {
         }
 
       case DeclarationEdge:
-        {
-          return makeDeclaration(
-              (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeDeclaration(
+            (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case AssumeEdge:
         {
@@ -1218,15 +1269,11 @@ public class CtoFormulaConverter {
         }
 
       case BlankEdge:
-        {
-          return bfmgr.makeTrue();
-        }
+        return bfmgr.makeTrue();
 
       case FunctionCallEdge:
-        {
-          return makeFunctionCall(
-              (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeFunctionCall(
+            (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case FunctionReturnEdge:
         {
@@ -1254,8 +1301,7 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException, InterruptedException {
 
     CStatement stmt = statement.getStatement();
-    if (stmt instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) stmt;
+    if (stmt instanceof CAssignment assignment) {
       return makeAssignment(
           assignment.getLeftHandSide(),
           assignment.getRightHandSide(),
@@ -1416,8 +1462,7 @@ public class CtoFormulaConverter {
       // this should be a void return, just do nothing...
       return bfmgr.makeTrue();
 
-    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
+    } else if (retExp instanceof CFunctionCallAssignmentStatement exp) {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
@@ -1448,8 +1493,7 @@ public class CtoFormulaConverter {
       // Check if we have a function pointer here.
       CExpression functionNameExpression = funcCallExp.getFunctionNameExpression();
       CType expressionType = functionNameExpression.getExpressionType().getCanonicalType();
-      if (expressionType instanceof CFunctionType) {
-        CFunctionType funcPtrType = (CFunctionType) expressionType;
+      if (expressionType instanceof CFunctionType funcPtrType) {
         retType = funcPtrType.getReturnType();
       } else if (CTypes.isFunctionPointer(expressionType)) {
         CFunctionType funcPtrType =
@@ -1635,7 +1679,7 @@ public class CtoFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (!isRelevantLeftHandSide(lhsForChecking)) {
+    if (!isRelevantLeftHandSide(lhsForChecking, Optional.of(rhs))) {
       // Optimization for unused variables and fields
       return bfmgr.makeTrue();
     }
@@ -1652,7 +1696,8 @@ public class CtoFormulaConverter {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
-    Formula l = null, r = null;
+    Formula l;
+    Formula r;
     if (direction == AnalysisDirection.BACKWARD) {
       l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
@@ -1728,7 +1773,7 @@ public class CtoFormulaConverter {
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
-    Optional<Triple<BooleanFormula, T, T>> split;
+    Optional<FormulaManagerView.IfThenElseParts<T>> split;
     try {
       split = fmgr.splitIfThenElse(pF);
     } catch (UnsupportedOperationException e) {
@@ -1736,13 +1781,13 @@ public class CtoFormulaConverter {
       split = Optional.empty();
     }
     if (split.isPresent()) {
-      Triple<BooleanFormula, T, T> parts = split.orElseThrow();
+      FormulaManagerView.IfThenElseParts<T> parts = split.orElseThrow();
 
       T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
-      if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
-        return parts.getFirst();
-      } else if (parts.getSecond().equals(zero) && parts.getThird().equals(one)) {
-        return bfmgr.not(parts.getFirst());
+      if (parts.thenBranch().equals(one) && parts.elseBranch().equals(zero)) {
+        return parts.condition();
+      } else if (parts.thenBranch().equals(zero) && parts.elseBranch().equals(one)) {
+        return bfmgr.not(parts.condition());
       }
     }
     return bfmgr.not(fmgr.makeEqual(pF, zero));

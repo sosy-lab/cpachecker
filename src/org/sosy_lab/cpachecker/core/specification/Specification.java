@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
@@ -128,16 +129,11 @@ public final class Specification {
     ImmutableListMultimap.Builder<Path, Automaton> specificationAutomata =
         ImmutableListMultimap.builder();
 
-    Scope scope;
-    switch (cfa.getLanguage()) {
-      case C:
-        scope = new CProgramScope(cfa, logger);
-        break;
-      default:
-        scope = DummyScope.getInstance();
-        break;
-    }
-
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
     // for deduplicating values returned by getAutomatonForProperty()
     Set<Path> handledAutomataForProperties = new HashSet<>();
 
@@ -234,9 +230,13 @@ public final class Specification {
       }
       AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
       assert acslParser.areIsomorphicCFAs(cfa)
-          : "CFAs of task program and annotated program differ, "
+          : "CFAs of task program and annotated progra m differ, "
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
+    } else if (AutomatonYAMLParser.isYAMLWitness(specFile)) {
+      AutomatonYAMLParser yamlParser =
+          new AutomatonYAMLParser(config, logger, pShutdownNotifier, cfa, scope);
+      automata = ImmutableList.of(yamlParser.parseAutomatonFile(specFile));
     } else {
       automata =
           AutomatonParser.parseAutomatonFile(
@@ -370,11 +370,8 @@ public final class Specification {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof Specification)) {
-      return false;
-    }
-    Specification other = (Specification) obj;
-    return pathToSpecificationAutomata.equals(other.pathToSpecificationAutomata);
+    return obj instanceof Specification other
+        && pathToSpecificationAutomata.equals(other.pathToSpecificationAutomata);
   }
 
   @Override

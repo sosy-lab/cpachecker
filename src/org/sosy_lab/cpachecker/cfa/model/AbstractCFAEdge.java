@@ -78,12 +78,9 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public boolean equals(Object pOther) {
-    if (!(pOther instanceof AbstractCFAEdge)) {
-      return false;
-    }
-
-    AbstractCFAEdge otherEdge = (AbstractCFAEdge) pOther;
-    return predecessor.equals(otherEdge.predecessor) && successor.equals(otherEdge.successor);
+    return pOther instanceof AbstractCFAEdge otherEdge
+        && predecessor.equals(otherEdge.predecessor)
+        && successor.equals(otherEdge.successor);
   }
 
   @Override

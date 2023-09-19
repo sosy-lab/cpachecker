@@ -51,22 +51,26 @@ public class EclipseCdtWrapper {
     shutdownNotifier = pShutdownNotifier;
     parserLog = new ShutdownNotifierLogAdapter(shutdownNotifier);
 
-    switch (pOptions.getDialect()) {
-      case C99:
-        language = new CLanguage(new ANSICParserExtensionConfiguration());
-        break;
-      case GNUC:
-        language = GCCLanguage.getDefault();
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown C dialect");
-    }
+    language =
+        switch (pOptions.getDialect()) {
+          case C99 -> new CLanguage(new ANSICParserExtensionConfiguration());
+          case GNUC -> GCCLanguage.getDefault();
+        };
   }
 
   static FileContent wrapCode(final Path pFileName, final String pCode) {
     return FileContent.create(pFileName.toString(), pCode.toCharArray());
   }
 
+  /**
+   * Reads the content of a file located at the given {@code Path} and wraps it into a {@code
+   * FileContent} object. The content is read using the system's default character set.
+   *
+   * @param pFileName The {@code Path} object representing the location of the file to read.
+   * @return A new {@code FileContent} object containing the content of the file.
+   * @throws IOException If an I/O error occurs reading from the file or a malformed or unmappable
+   *     byte sequence is read.
+   */
   public static FileContent wrapFile(final Path pFileName) throws IOException {
     final String code = Files.readString(pFileName, Charset.defaultCharset());
     return wrapCode(pFileName, code);

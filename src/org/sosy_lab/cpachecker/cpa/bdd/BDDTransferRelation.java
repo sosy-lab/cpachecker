@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -166,8 +165,7 @@ public class BDDTransferRelation
 
     BDDState newState = state;
     CRightHandSide rhs = assignment.getRightHandSide();
-    if (rhs instanceof CExpression) {
-      final CExpression exp = (CExpression) rhs;
+    if (rhs instanceof CExpression exp) {
       final Partition partition = varClass.getPartitionForEdge(edge);
 
       if (isUsedInExpression(varName, exp)) {
@@ -290,8 +288,7 @@ public class BDDTransferRelation
   protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws UnsupportedCodeException {
 
-    if (decl instanceof CVariableDeclaration) {
-      CVariableDeclaration vdecl = (CVariableDeclaration) decl;
+    if (decl instanceof CVariableDeclaration vdecl) {
       if (vdecl.getType().isIncomplete()) {
         // Variables of such types cannot store values, only their address can be taken.
         // We can ignore them.
@@ -377,10 +374,7 @@ public class BDDTransferRelation
    */
   @Override
   protected BDDState handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String outerFunctionName) {
+      CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String outerFunctionName) {
     BDDState newState = state;
 
     // set result of function equal to variable on left side
@@ -389,7 +383,7 @@ public class BDDTransferRelation
     // handle assignments like "y = f(x);"
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
       final String returnVar =
-          fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
+          cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
       final int size = bvComputer.getBitsize(partition, lhs.getExpressionType());
@@ -595,8 +589,7 @@ public class BDDTransferRelation
     while (true) {
       if (expr instanceof CIdExpression) {
         return ((CIdExpression) expr).getDeclaration().getQualifiedName() + name;
-      } else if (expr instanceof CFieldReference) {
-        CFieldReference fieldRef = (CFieldReference) expr;
+      } else if (expr instanceof CFieldReference fieldRef) {
         name = (fieldRef.isPointerDereference() ? "->" : ".") + fieldRef.getFieldName() + name;
         expr = fieldRef.getFieldOwner();
       } else {
@@ -627,8 +620,7 @@ public class BDDTransferRelation
   private BDDState strengthenWithPointerInformation(PointerState pPointerInfo, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
 
-    if (cfaEdge instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+    if (cfaEdge instanceof CAssumeEdge assumeEdge) {
       return handleAssumption(
           assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption(), pPointerInfo);
     }
@@ -655,12 +647,10 @@ public class BDDTransferRelation
     MemoryLocation value = null;
     CType valueType = null;
     ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(cfaEdge);
-    if (rightHandSide instanceof CIdExpression) {
-      CIdExpression idExpr = (CIdExpression) rightHandSide;
+    if (rightHandSide instanceof CIdExpression idExpr) {
       value = MemoryLocation.forDeclaration(idExpr.getDeclaration());
       valueType = idExpr.getDeclaration().getType();
-    } else if (rightHandSide instanceof CPointerExpression) {
-      CPointerExpression ptrExpr = (CPointerExpression) rightHandSide;
+    } else if (rightHandSide instanceof CPointerExpression ptrExpr) {
       value = getLocationForRhs(pPointerInfo, ptrExpr);
       valueType = ptrExpr.getExpressionType().getCanonicalType();
     }
@@ -691,11 +681,9 @@ public class BDDTransferRelation
     if (!(directLocation instanceof ExplicitLocationSet)) {
       LocationSet indirectLocation =
           PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
-      if (indirectLocation instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
-        if (explicitSet.getSize() == 1) {
-          directLocation = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
-        }
+      if ((indirectLocation instanceof ExplicitLocationSet explicitSet)
+          && (explicitSet.getSize() == 1)) {
+        directLocation = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
       }
     }
     if (directLocation instanceof ExplicitLocationSet) {
@@ -707,16 +695,11 @@ public class BDDTransferRelation
   static @Nullable MemoryLocation getLocationForRhs(
       PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCodeException {
     LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
-    if (fullSet instanceof ExplicitLocationSet) {
-      ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-      if (explicitSet.getSize() == 1) {
-        LocationSet pointsToSet =
-            pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
-        if (pointsToSet instanceof ExplicitLocationSet) {
-          ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-          if (explicitPointsToSet.getSize() == 1) {
-            return Iterables.getOnlyElement(explicitPointsToSet);
-          }
+    if ((fullSet instanceof ExplicitLocationSet explicitSet) && (explicitSet.getSize() == 1)) {
+      LocationSet pointsToSet = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
+      if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
+        if (explicitPointsToSet.getSize() == 1) {
+          return Iterables.getOnlyElement(explicitPointsToSet);
         }
       }
     }

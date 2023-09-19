@@ -285,6 +285,7 @@ public class AutomatonTransferRelation implements TransferRelation {
                 state.getOwningAutomaton(),
                 instantiatedAssumes,
                 t.getCandidateInvariants(),
+                t.hasDefaultCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),
                 targetInformation,
@@ -418,9 +419,7 @@ public class AutomatonTransferRelation implements TransferRelation {
         newPartialCombinations.add(new ArrayList<>());
         for (AbstractState otherState : otherStates) {
           AbstractState toAdd = otherState;
-          if (otherState instanceof AutomatonUnknownState) {
-            AutomatonUnknownState unknownState = (AutomatonUnknownState) otherState;
-
+          if (otherState instanceof AutomatonUnknownState unknownState) {
             // Compute the successors of the other unknown state
             List<AbstractState> statesOtherToCurrent = new ArrayList<>(otherStates);
             statesOtherToCurrent.remove(unknownState);

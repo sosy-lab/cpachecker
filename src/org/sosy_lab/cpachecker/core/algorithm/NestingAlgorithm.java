@@ -39,12 +39,13 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /** abstract algorithm for executing other nested algorithms. */
 public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider {
+
+  protected record NestedAnalysis(
+      Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -62,7 +63,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     logger = Objects.requireNonNull(pLogger);
   }
 
-  protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
+  protected NestedAnalysis createAlgorithm(
       Path singleConfigFileName,
       CFANode initialNode,
       CFA pCfa,
@@ -83,7 +84,6 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
         new CoreComponentsFactory(
             singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(pCfa, specification);
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
     ReachedSet reached = createInitialReachedSet(cpa, initialNode, coreComponents, singleLogger);
 
@@ -94,7 +94,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       ((StatisticsProvider) algorithm).collectStatistics(stats);
     }
 
-    return Triple.of(algorithm, cpa, reached);
+    return new NestedAnalysis(algorithm, cpa, reached);
   }
 
   private Configuration buildSubConfig(Path singleConfigFileName, Collection<String> ignoreOptions)

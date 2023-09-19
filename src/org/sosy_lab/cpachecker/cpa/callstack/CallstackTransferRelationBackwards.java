@@ -97,7 +97,7 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       case FunctionReturnEdge:
         {
           FunctionReturnEdge edge = (FunctionReturnEdge) pEdge;
-          CFANode correspondingCallNode = edge.getSummaryEdge().getPredecessor();
+          CFANode correspondingCallNode = edge.getCallNode();
           if (hasRecursion(e, nextAnalysisFunction)) {
             if (options.skipRecursion()) {
               logger.logOnce(

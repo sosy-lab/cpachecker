@@ -38,7 +38,7 @@ final class SummaryEdgeBuilder {
      * Find multiple summary edges at once. This may be useful for methods that have multiple
      * formal-in/out nodes.
      */
-    BATCH;
+    BATCH,
   }
 
   private SummaryEdgeBuilder() {}

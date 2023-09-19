@@ -54,6 +54,7 @@ public abstract class ConditionFolder {
     LOOP_SAME_CONTEXT
   }
 
+  @FunctionalInterface
   private interface MergeUpdateFunction {
     void updateAfterMerging(ARGState merged, ARGState mergedInto);
   }
@@ -69,18 +70,16 @@ public abstract class ConditionFolder {
     }
 
     private Map<CFANode, Loop> buildLoopMap() {
-      Map<CFANode, Loop> loopMapResult = Maps.newHashMapWithExpectedSize(cfa.getAllNodes().size());
+      Map<CFANode, Loop> loopMapResult = Maps.newHashMapWithExpectedSize(cfa.nodes().size());
 
       Deque<Pair<CFANode, List<Loop>>> toVisit = new ArrayDeque<>();
       toVisit.push(Pair.of(cfa.getMainFunction(), ImmutableList.of()));
       loopMapResult.put(cfa.getMainFunction(), null);
-      List<Loop> loopStack, succLoopStack;
-      CFANode node;
-      Loop l, lsucc;
 
       while (!toVisit.isEmpty()) {
-        node = toVisit.peek().getFirst();
-        loopStack = toVisit.pop().getSecond();
+        CFANode node = toVisit.peek().getFirst();
+        List<Loop> loopStack = toVisit.pop().getSecond();
+        Loop l;
         if (loopStack.isEmpty()) {
           l = null;
         } else {
@@ -92,8 +91,8 @@ public abstract class ConditionFolder {
             continue;
           }
 
-          succLoopStack = loopStack;
-          lsucc = l;
+          List<Loop> succLoopStack = loopStack;
+          Loop lsucc = l;
 
           if (edge instanceof CFunctionReturnEdge) {
             continue; // successor treated by FunctionSummaryEdge
@@ -213,14 +212,13 @@ public abstract class ConditionFolder {
     Map<ARGState, ARGState> mergedInto = new HashMap<>();
     Deque<Pair<ARGState, ARGState>> toMerge = new ArrayDeque<>();
     toMerge.push(Pair.of(newState1, newState2));
-    ARGState merge, mergeInto;
 
     while (!toMerge.isEmpty()) {
-      merge = toMerge.peek().getFirst();
+      ARGState merge = toMerge.peek().getFirst();
       while (mergedInto.containsKey(merge)) {
         merge = mergedInto.get(merge);
       }
-      mergeInto = toMerge.pop().getSecond();
+      ARGState mergeInto = toMerge.pop().getSecond();
       while (mergedInto.containsKey(mergeInto)) {
         mergeInto = mergedInto.get(mergeInto);
       }
@@ -253,17 +251,14 @@ public abstract class ConditionFolder {
 
     @Override
     public ARGState foldARG(ARGState pARGRoot) {
-      ARGState newRoot;
       Map<Pair<LocationState, CallstackStateEqualsWrapper>, ARGState> foldedNodesToNewARGNode =
           new HashMap<>();
 
       Set<ARGState> seen = new HashSet<>();
       Deque<Pair<ARGState, Pair<LocationState, CallstackStateEqualsWrapper>>> toProcess =
           new ArrayDeque<>();
-      ARGState currentARGState, newChild;
-      Pair<LocationState, CallstackStateEqualsWrapper> foldedNode, foldedChild;
 
-      foldedNode =
+      Pair<LocationState, CallstackStateEqualsWrapper> foldedNode =
           Pair.of(
               AbstractStates.extractStateByType(pARGRoot, LocationState.class),
               new CallstackStateEqualsWrapper(
@@ -271,23 +266,23 @@ public abstract class ConditionFolder {
       seen.add(pARGRoot);
       toProcess.add(Pair.of(pARGRoot, foldedNode));
 
-      newRoot = new ARGState(foldedNode.getFirst(), null);
+      ARGState newRoot = new ARGState(foldedNode.getFirst(), null);
       foldedNodesToNewARGNode.put(foldedNode, newRoot);
 
       while (!toProcess.isEmpty()) {
-        currentARGState = toProcess.peek().getFirst();
+        ARGState currentARGState = toProcess.peek().getFirst();
         foldedNode = toProcess.pop().getSecond();
 
         for (ARGState child : currentARGState.getChildren()) {
           if (seen.add(child)) {
-            foldedChild =
+            Pair<LocationState, CallstackStateEqualsWrapper> foldedChild =
                 Pair.of(
                     AbstractStates.extractStateByType(child, LocationState.class),
                     new CallstackStateEqualsWrapper(
                         AbstractStates.extractStateByType(child, CallstackState.class)));
             toProcess.add(Pair.of(child, foldedChild));
 
-            newChild = foldedNodesToNewARGNode.get(foldedChild);
+            ARGState newChild = foldedNodesToNewARGNode.get(foldedChild);
 
             if (newChild == null) {
               newChild =
@@ -348,40 +343,32 @@ public abstract class ConditionFolder {
           };
 
       Deque<Pair<ARGState, T>> waitlist = new ArrayDeque<>();
-      ARGState foldedNode;
-      Set<ARGState> foldedStates;
-      Set<T> loopContexts;
-      ARGState oldState, newState, newChild;
-      CFANode loc, locChild;
-      CFAEdge edge;
-      T foldID, foldIDChild;
-
-      foldedNode = new ARGState(pRoot.getWrappedState(), null);
+      ARGState foldedNode = new ARGState(pRoot.getWrappedState(), null);
       oldARGToFoldedState.put(pRoot, foldedNode);
-      foldedStates = new HashSet<>();
+      Set<ARGState> foldedStates = new HashSet<>();
       foldedStates.add(pRoot);
       newARGToFoldedStates.put(foldedNode, foldedStates);
-      loc = AbstractStates.extractLocation(pRoot);
+      CFANode loc = AbstractStates.extractLocation(pRoot);
       T id = getRootFoldId(pRoot);
       if (shouldFold(loc)) {
         folderStatesFoldIDToFoldedARGState.put(id, foldedNode);
-        loopContexts = new HashSet<>();
+        Set<T> loopContexts = new HashSet<>();
         loopContexts.add(id);
         foldedARGStateToFoldIDs.put(foldedNode, loopContexts);
       }
       waitlist.push(Pair.of(pRoot, id));
 
       while (!waitlist.isEmpty()) {
-        oldState = waitlist.peek().getFirst();
-        foldID = waitlist.pop().getSecond();
+        ARGState oldState = waitlist.peek().getFirst();
+        T foldID = waitlist.pop().getSecond();
         loc = AbstractStates.extractLocation(oldState);
 
         for (ARGState child : oldState.getChildren()) {
-          locChild = AbstractStates.extractLocation(child);
-          edge = oldState.getEdgeToChild(child);
+          CFANode locChild = AbstractStates.extractLocation(child);
+          CFAEdge edge = oldState.getEdgeToChild(child);
           child = getUncoveredChild(child);
 
-          foldIDChild = adaptID(edge, foldID, child);
+          T foldIDChild = adaptID(edge, foldID, child);
 
           if (!oldARGToFoldedState.containsKey(child)) {
             if (shouldFold(locChild)
@@ -390,7 +377,7 @@ public abstract class ConditionFolder {
               assert Objects.equals(locChild, AbstractStates.extractLocation(foldedNode));
             } else {
               foldedNode = null;
-              newState = oldARGToFoldedState.get(oldState);
+              ARGState newState = oldARGToFoldedState.get(oldState);
               for (ARGState newARGChild : newState.getChildren()) {
                 if (edge.equals(newState.getEdgeToChild(newARGChild))) {
                   foldedNode = newARGChild;
@@ -419,8 +406,8 @@ public abstract class ConditionFolder {
             waitlist.push(Pair.of(child, foldIDChild));
           }
 
-          newState = oldARGToFoldedState.get(oldState);
-          newChild = null;
+          ARGState newState = oldARGToFoldedState.get(oldState);
+          ARGState newChild = null;
           for (ARGState newARGChild : newState.getChildren()) {
             if (edge.equals(newState.getEdgeToChild(newARGChild))) {
               newChild = newARGChild;

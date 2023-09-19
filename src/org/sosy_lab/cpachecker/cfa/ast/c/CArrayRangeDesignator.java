@@ -12,7 +12,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CArrayRangeDesignator extends CDesignator {
+public final class CArrayRangeDesignator extends CDesignator {
 
   private static final long serialVersionUID = -2956484289176841585L;
   private final AExpression rangeFloor;
@@ -75,13 +75,9 @@ public class CArrayRangeDesignator extends CDesignator {
       return true;
     }
 
-    if (!(obj instanceof CArrayRangeDesignator) || !super.equals(obj)) {
-      return false;
-    }
-
-    CArrayRangeDesignator other = (CArrayRangeDesignator) obj;
-
-    return Objects.equals(other.rangeCeiling, rangeCeiling)
+    return obj instanceof CArrayRangeDesignator other
+        && super.equals(obj)
+        && Objects.equals(other.rangeCeiling, rangeCeiling)
         && Objects.equals(other.rangeFloor, rangeFloor);
   }
 }
