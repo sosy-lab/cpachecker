@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 class CProgramCounterValueAssumeEdge extends CAssumeEdge implements ProgramCounterValueAssumeEdge {
 
   private static final long serialVersionUID = 914295017485509753L;
+
   /** The program counter value assumed. */
   private final int pcValue;
 

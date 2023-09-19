@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.SingleLoopHead;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 public class CFANode implements Comparable<CFANode>, Serializable {
