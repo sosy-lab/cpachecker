@@ -169,87 +169,51 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       pReachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
-
-    if (cfa.getAllLoopHeads().isEmpty()) {
-      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
-      isInterpolationEnabled = false;
-    }
-    if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
-      if (isInterpolationEnabled) {
-        if (fallBack) {
-          fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
-        } else {
-          throw new CPAException("Multi-loop programs are not supported yet");
-        }
-      }
-    }
+    adjustConfigsAccordingToCFA();
 
     logger.log(Level.FINE, "Performing dual approximated reachability model checking");
     PartitionedFormulas partitionedFormulas =
         PartitionedFormulas.createForwardPartitionedFormulas(bfmgr, logger, false);
-    DualInterpolationSequence dualSequence = new DualInterpolationSequence();
 
-    do {
+    // Unroll CFA two times if possible, so we obtain all necessary formulas, i.e. INIT, TR and not
+    // P.
+    // If Interpolation is not enabled, it will just perform BMC.
+    while (!isInterpolationEnabled || getCurrentMaxLoopIterations() <= 2) {
       shutdownNotifier.shutdownIfNecessary();
-      // Unroll of the system two times to get necessary conditions
-      if (!isInterpolationEnabled || getCurrentMaxLoopIterations() <= 2) {
-        if (!unrollProgram(pReachedSet, partitionedFormulas, true)) {
+      unrollProgram(pReachedSet);
+      if (findCexByBMC(pReachedSet) || !adjustConditions()) {
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      }
+      if (getCurrentMaxLoopIterations() > 1) {
+        stats.interpolationPreparation.start();
+        partitionedFormulas.collectFormulasFromARG(pReachedSet);
+        stats.interpolationPreparation.stop();
+      }
+      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+    }
+
+    DualInterpolationSequence dualSequence = new DualInterpolationSequence();
+    dualSequence.initializeSequences(partitionedFormulas);
+    // DAR, from the second iteration, when all of the formulas are collected
+    while (!checkFixedPoint(dualSequence)) {
+      shutdownNotifier.shutdownIfNecessary();
+      // Check if interpolation or forward-condition check is applicable
+      adjustConfigsAccordingToARG(pReachedSet);
+      if (!partitionedFormulas.isInitialized()) {
+        stats.interpolationPreparation.start();
+        partitionedFormulas.collectFormulasFromARG(pReachedSet);
+        stats.interpolationPreparation.stop();
+      }
+      if (performLocalStrengthening(dualSequence, partitionedFormulas)) {
+        if (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
       }
-      shutdownNotifier.shutdownIfNecessary();
-      // Check if interpolation or forward-condition check is applicable
-      if (isInterpolationEnabled
-          && !InterpolationHelper.checkAndAdjustARG(
-              logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
-        if (fallBack) {
-          fallBackToBMC("The check of ARG failed");
-        } else {
-          throw new CPAException("ARG does not meet the requirements");
-        }
-      }
-      if (checkForwardConditions && InterpolationHelper.hasCoveredStates(pReachedSet)) {
-        if (fallBack) {
-          fallBackToBMCWithoutForwardCondition(
-              "Covered states in ARG: forward-condition might be unsound!");
-        } else {
-          throw new CPAException("ARG does not meet the requirements");
-        }
-      }
-      // DAR, from the second iteration, when all of the formulas are collected
-      if (isInterpolationEnabled && getCurrentMaxLoopIterations() > 2) {
-        // Collect the partition formulas in the beginning
-        if (!partitionedFormulas.isInitialized()) {
-          stats.interpolationPreparation.start();
-          partitionedFormulas.collectFormulasFromARG(pReachedSet);
-          stats.interpolationPreparation.stop();
-        }
-        if (dualSequence.getSize() == 0) {
-          dualSequence.initializeSequences(partitionedFormulas);
-        }
-        if (performLocalStrengthening(dualSequence, partitionedFormulas)) {
-          if (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          }
-        }
-      }
       // Forward-condition check
-      if (checkForwardConditions) {
-        stats.assertionsCheck.start();
-        final boolean isStopStateUnreachable;
-        try {
-          isStopStateUnreachable =
-              solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
-        } finally {
-          stats.assertionsCheck.stop();
-        }
-        if (isStopStateUnreachable) {
-          logger.log(Level.FINE, "The program cannot be further unrolled");
-          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
+      if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
-    } while (!checkFixedPoint(dualSequence));
+    }
     InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
@@ -417,14 +381,20 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return interpolant;
   }
 
-  private boolean isBMCCheckSat(ReachedSet pReachedSet)
+  /**
+   * Check if a target (error) state is reachable by BMC within current unrolling bound
+   *
+   * @return {@code true} if a counterexample is found, i.e., property is violated; {@code false}
+   *     otherwise
+   * @throws InterruptedException On shutdown request.
+   */
+  private boolean findCexByBMC(ReachedSet pReachedSet)
       throws InterruptedException, SolverException, CPAException {
-    stats.bmcPreparation.start();
+    final boolean isTargetStateReachable;
     try (ProverEnvironment bmcProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       BooleanFormula targetFormula =
           InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
       stats.satCheck.start();
-      final boolean isTargetStateReachable;
       try {
         bmcProver.push(targetFormula);
         isTargetStateReachable = !bmcProver.isUnsat();
@@ -434,12 +404,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (isTargetStateReachable) {
         logger.log(Level.FINE, "A target state is reached by BMC");
         analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
-        stats.bmcPreparation.stop();
-        return true;
       }
     }
-    stats.bmcPreparation.stop();
-    return false;
+    return isTargetStateReachable;
   }
 
   /**
@@ -474,40 +441,74 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return -1;
   }
 
-  private void unrollBMC(ReachedSet pReachedSet) throws InterruptedException, CPAException {
+  /** Check the loop structure of the input program and adjust configurations accordingly */
+  private void adjustConfigsAccordingToCFA() throws CPAException {
+    if (cfa.getAllLoopHeads().isEmpty()) {
+      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
+      isInterpolationEnabled = false;
+    }
+    if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
+      if (isInterpolationEnabled) {
+        if (fallBack) {
+          fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
+        } else {
+          throw new CPAException("Multi-loop programs are not supported yet");
+        }
+      }
+    }
+  }
+
+  /**
+   * Determine if interpolation or forward-condition check is applicable with the current unrolled
+   * ARG and adjust configurations accordingly
+   */
+  private void adjustConfigsAccordingToARG(ReachedSet pReachedSet)
+      throws CPAException, SolverException, InterruptedException {
+    // Check if interpolation or forward-condition check is applicable
+    if (isInterpolationEnabled
+        && !InterpolationHelper.checkAndAdjustARG(
+            logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
+      if (fallBack) {
+        fallBackToBMC("The check of ARG failed");
+      } else {
+        throw new CPAException("ARG does not meet the requirements");
+      }
+    }
+    if (checkForwardConditions && InterpolationHelper.hasCoveredStates(pReachedSet)) {
+      if (fallBack) {
+        fallBackToBMCWithoutForwardCondition(
+            "Covered states in ARG: forward-condition might be unsound!");
+      } else {
+        throw new CPAException("ARG does not meet the requirements");
+      }
+    }
+  }
+
+  /** Check forward conditions, i.e. if the program can be further unrolled */
+  private boolean isFurtherUnrollingPossible(ReachedSet pReachedSet)
+      throws SolverException, InterruptedException {
+    stats.assertionsCheck.start();
+    final boolean isStopStateUnreachable;
+    try {
+      isStopStateUnreachable =
+          solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+    } finally {
+      stats.assertionsCheck.stop();
+    }
+    if (isStopStateUnreachable) {
+      logger.log(Level.INFO, "The program cannot be further unrolled");
+      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+    }
+    return !isStopStateUnreachable;
+  }
+
+  private void unrollProgram(ReachedSet pReachedSet) throws InterruptedException, CPAException {
     stats.bmcPreparation.start();
     try {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
     } finally {
       stats.bmcPreparation.stop();
     }
-  }
-
-  private boolean adjustConditionsAndCollectFormulas(
-      ReachedSet pReachedSet, PartitionedFormulas pFormulas) {
-    boolean collectFormulas = (getCurrentMaxLoopIterations() > 1);
-    boolean result = adjustConditions();
-
-    if (collectFormulas) {
-      stats.interpolationPreparation.start();
-      pFormulas.collectFormulasFromARG(pReachedSet);
-      stats.interpolationPreparation.stop();
-    }
-    InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-
-    return result;
-  }
-
-  /** Returns true if it was able to unroll the CFA, returns false otherwise */
-  private boolean unrollProgram(
-      ReachedSet pReachedSet, PartitionedFormulas pFormulas, boolean pCheckForBMC)
-      throws CPAException, InterruptedException, SolverException {
-    unrollBMC(pReachedSet);
-    if (pCheckForBMC && isBMCCheckSat(pReachedSet)) {
-      return false;
-    }
-
-    return adjustConditionsAndCollectFormulas(pReachedSet, pFormulas);
   }
 
   private boolean isGlobalQuerySat(
@@ -549,18 +550,29 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     for (int i = 2; i <= pDualSequence.getSize(); i++) {
       // Unrolling CFA if necessary
       if (pFormulas.getLoopFormulaSsaMaps().size() <= i - 2) {
-        if (!unrollProgram(pReachedSet, pFormulas, false)) {
+        unrollProgram(pReachedSet);
+        if (!adjustConditions()) {
           return -1;
         }
+        stats.interpolationPreparation.start();
+        pFormulas.collectFormulasFromARG(pReachedSet);
+        stats.interpolationPreparation.stop();
+        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
       }
       if (!replaceGlobalPhaseWithBMC && isGlobalQuerySat(pDualSequence, i, pFormulas)) {
         return i;
       }
     }
     // BMC check in the end, for B_0
-    if (!unrollProgram(pReachedSet, pFormulas, true) || isBMCCheckSat(pReachedSet)) {
+    unrollProgram(pReachedSet);
+    if (findCexByBMC(pReachedSet) || !adjustConditions()) {
       return -1;
     }
+    stats.interpolationPreparation.start();
+    pFormulas.collectFormulasFromARG(pReachedSet);
+    stats.interpolationPreparation.stop();
+    InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+
     return pDualSequence.getSize() + 1;
   }
 
@@ -605,8 +617,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A method that strengthens a forward sequence with interpolation sequence, that was
-   * collected from unsatisfiable global check.
+   * A method that strengthens a forward sequence with interpolation sequence, that was collected
+   * from unsatisfiable global check.
    *
    * @param pDualSequence contains the forward vector that needs to be strengthen
    * @param pItpSequence the interpolation sequence derived at the current iteration
