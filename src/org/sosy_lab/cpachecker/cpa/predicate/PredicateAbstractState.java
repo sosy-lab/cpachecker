@@ -20,6 +20,9 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.VerificationConditionReportingState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil.UniqueIndexProvider;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -35,7 +38,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** AbstractState for Symbolic Predicate Abstraction CPA */
 public abstract sealed class PredicateAbstractState
-    implements AbstractState, Partitionable, Serializable, Splitable {
+    implements AbstractState,
+        Partitionable,
+        Serializable,
+        Splitable,
+        VerificationConditionReportingState {
 
   private static final long serialVersionUID = -265763837277453447L;
 
@@ -135,6 +142,11 @@ public abstract sealed class PredicateAbstractState
       Preconditions.checkNotNull(pMergedInto);
       mergedInto = pMergedInto;
     }
+
+    @Override
+    public BooleanFormula getVerificationCondition(FormulaManagerView manager) {
+      return getFormulaApproximation(manager);
+    }
   }
 
   private static final class NonAbstractionState extends PredicateAbstractState {
@@ -182,6 +194,13 @@ public abstract sealed class PredicateAbstractState
     @Override
     public String toString() {
       return "Abstraction location: false";
+    }
+
+    @Override
+    public BooleanFormula getVerificationCondition(FormulaManagerView manager) {
+      return PredicateOperatorUtil.uninstantiate(
+              getPathFormula(), manager, UniqueIndexProvider.withUUID())
+          .booleanFormula();
     }
   }
 

@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil.SubstitutedBooleanFormula;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -56,6 +53,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
             pMessage, predicateCPA.getClass(), formulaManagerView);
     SSAMap map = SSAMap.emptySSAMap();
     PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
+
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
     try {
       if (pMessage instanceof BlockSummaryPostConditionMessage bspcm) {
@@ -73,29 +71,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
         PredicateOperatorUtil.getPathFormula(
             formula, pathFormulaManager, formulaManagerView, pts, map);
 
-    PredicateAbstractState deserialized;
-    if (pMessage.getType() == MessageType.ERROR_CONDITION) {
-      deserialized =
-          PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-              abstraction, previousState);
-    } else {
-      SubstitutedBooleanFormula uninstantiated =
-          PredicateOperatorUtil.uninstantiate(abstraction, formulaManagerView);
-      deserialized =
-          PredicateAbstractState.mkAbstractionState(
-              pathFormulaManager.makeEmptyPathFormula(),
-              predicateCPA
-                  .getPredicateManager()
-                  .asAbstraction(
-                      uninstantiated.booleanFormula(),
-                      pathFormulaManager
-                          .makeEmptyPathFormulaWithContext(
-                              uninstantiated.ssaMap(), PointerTargetSet.emptyPointerTargetSet())
-                          .withFormula(uninstantiated.booleanFormula())),
-              PathCopyingPersistentTreeMap.of(),
-              previousState);
-    }
-
-    return deserialized;
+    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+        abstraction, previousState);
   }
 }

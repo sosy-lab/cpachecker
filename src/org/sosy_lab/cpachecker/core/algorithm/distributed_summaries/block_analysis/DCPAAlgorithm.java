@@ -304,12 +304,12 @@ public class DCPAAlgorithm {
     if (result.getBlockEndStates().isEmpty()) {
       messages.add(
           BlockSummaryMessage.newErrorConditionUnreachableMessage(
-              block.getId(), "Condition unsatisfiable (no state reached on block end)"));
+              block.getId(), "Condition unsatisfiable (no state present on block end)"));
     } else if (block.isAbstractionPossible() && result.getAbstractionStates().isEmpty()) {
+      messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false));
       messages.add(
           BlockSummaryMessage.newErrorConditionUnreachableMessage(
-              block.getId(), "Condition unsatisfiable"));
-      messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false));
+              block.getId(), "Condition unsatisfiable (after strengthening)"));
     } else {
       Collection<BlockSummaryMessage> errorConditions =
           reportErrorConditions(
@@ -320,7 +320,8 @@ public class DCPAAlgorithm {
       if (errorConditions.isEmpty()) {
         messages.add(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(
-                block.getId(), "VerificationCondition is not reachable."));
+                block.getId(),
+                "Condition unsatisfiable (not reachable, but error conditions present)"));
       } else {
         messages.addAll(errorConditions);
       }

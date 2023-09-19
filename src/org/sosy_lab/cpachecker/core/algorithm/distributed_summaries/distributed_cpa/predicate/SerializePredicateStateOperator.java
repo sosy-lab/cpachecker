@@ -41,9 +41,11 @@ public class SerializePredicateStateOperator implements SerializeOperator {
       booleanFormula = state.getAbstractionFormula().asFormula();
       SSAMapBuilder reset = SSAMap.emptySSAMap().builder();
       for (String variable : ssaMap.allVariables()) {
-        reset.setIndex(variable, ssaMap.getType(variable), ssaMap.getIndex(variable));
+        reset.setIndex(variable, ssaMap.getType(variable), 1);
       }
       ssaMap = reset.build();
+      booleanFormula =
+          predicateCPA.getSolver().getFormulaManager().instantiate(booleanFormula, ssaMap);
     } else {
       booleanFormula = state.getPathFormula().getFormula();
     }

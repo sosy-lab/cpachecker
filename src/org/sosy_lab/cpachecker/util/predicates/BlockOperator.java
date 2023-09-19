@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
@@ -128,6 +129,9 @@ public class BlockOperator {
   @Option(secure = true, description = "abstraction always at function exit nodes.")
   private boolean alwaysAtFunctionExit = false;
 
+  @Option(secure = true, description = "abstraction always at nodes with outgoing ghost edges")
+  private boolean alwaysAtGhostEdges = false;
+
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
@@ -162,6 +166,10 @@ public class BlockOperator {
 
     if (threshold == 1) {
       // check SBE case here to avoid need for loop-structure information
+      return true;
+    }
+
+    if (alwaysAtGhostEdges && !CFAUtils.allLeavingEdges(loc).filter(GhostEdge.class).isEmpty()) {
       return true;
     }
 
