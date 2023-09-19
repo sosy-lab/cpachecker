@@ -196,6 +196,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     dualSequence.initializeSequences(partitionedFormulas);
     // DAR, from the second iteration, when all of the formulas are collected
     while (!checkFixedPoint(dualSequence)) {
+      // Forward-condition check
+      if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
       shutdownNotifier.shutdownIfNecessary();
       // Check if interpolation or forward-condition check is applicable
       adjustConfigsAccordingToARG(pReachedSet);
@@ -208,10 +212,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
-      }
-      // Forward-condition check
-      if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
-        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
     }
     InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
