@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -209,22 +210,18 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     dualSequence.initializeSequences(partitionedFormulas);
     // DAR, from the second iteration, when all of the formulas are collected
     while (!checkFixedPoint(dualSequence)) {
-      // Check if interpolation or forward-condition check is applicable
-      adjustConfigsAccordingToARG(pReachedSet);
-      // Forward-condition check
-      if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
-        return AlgorithmStatus.SOUND_AND_PRECISE;
-      }
       shutdownNotifier.shutdownIfNecessary();
       if (performLocalStrengthening(dualSequence, partitionedFormulas)
           == StrengtheningStatus.FAILED) {
-        if (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)
-            == StrengtheningStatus.FAILED) {
-          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        switch (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
+          case SUCCEEDED_AND_COMPLETE:
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          case FAILED:
+            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+          default:
         }
       }
     }
-    InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
@@ -279,8 +276,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * Checks global safety of the sequences. Further, it extends them by new overapproximating
    * formulas.
    *
-   * @return {@link StrengtheningStatus#SUCCEEDED} if a violation point is found, i.e. there is a
-   *     counterexample; {@link StrengtheningStatus#FAILED} otherwise, i.e. the program is safe at
+   * @return {@link StrengtheningStatus#FAILED} if a counterexample is found or {@link
+   *     AbstractBMCAlgorithm#adjustConditions} failed; {@link
+   *     StrengtheningStatus#SUCCEEDED_AND_COMPLETE} if the program is safe and cannot be further
+   *     unrolled; {@link StrengtheningStatus#SUCCEEDED} otherwise, i.e. the program is safe at
    *     bound n.
    */
   private StrengtheningStatus performGlobalStrengthening(
@@ -288,16 +287,50 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, InterruptedException, SolverException {
     // Global phase of DAR
     stats.numOfDARGlobalPhases += 1;
-    int indexOfGlobalViolation = performGlobalCheck(pFormulas, pDualSequence, pReachedSet);
-    if (indexOfGlobalViolation == -1) {
-      // A counterexample was found
-      return StrengtheningStatus.FAILED;
+    ///
+    Preconditions.checkArgument(pFormulas.getNumLoops() < pDualSequence.getSize());
+    int globalUnsatIndex = 1;
+    for (final int n = pDualSequence.getSize(); globalUnsatIndex <= n; ++globalUnsatIndex) {
+      // Unrolling CFA if necessary
+      if (pFormulas.getNumLoops() < globalUnsatIndex) {
+        unrollProgram(pReachedSet);
+        // BMC check for B_0
+        if (globalUnsatIndex == n && findCexByBMC(pReachedSet)) {
+          return StrengtheningStatus.FAILED;
+        }
+        // Check if interpolation or forward-condition check is applicable
+        adjustConfigsAccordingToARG(pReachedSet);
+        // Forward-condition check
+        if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
+          return StrengtheningStatus.SUCCEEDED_AND_COMPLETE;
+        }
+        if (!adjustConditions()) {
+          return StrengtheningStatus.FAILED;
+        }
+        stats.interpolationPreparation.start();
+        pFormulas.collectFormulasFromARG(pReachedSet);
+        stats.interpolationPreparation.stop();
+        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+        assert pFormulas.getNumLoops() == globalUnsatIndex;
+      }
+      if (globalUnsatIndex == n) {
+        assert isGlobalQueryUnsat(pDualSequence, globalUnsatIndex, pFormulas);
+        break;
+      }
+      if (!replaceGlobalPhaseWithBMC
+          && isGlobalQueryUnsat(pDualSequence, globalUnsatIndex, pFormulas)) {
+        break;
+      }
+    }
+    assert globalUnsatIndex <= pDualSequence.getSize();
+    if (!isInterpolationEnabled) {
+      throw new CPAException("Interpolation disabled. Cannot continue.");
     }
     List<BooleanFormula> itpSequence =
-        getInterpolationSequence(pFormulas, pDualSequence, indexOfGlobalViolation);
+        getInterpolationSequence(pFormulas, pDualSequence, globalUnsatIndex);
     strengthenForwardVectorWithInterpolants(pDualSequence, itpSequence, pFormulas);
     iterativeLocalStrengthening(pDualSequence, pFormulas, itpSequence.size() - 1);
-    return StrengtheningStatus.FAILED;
+    return StrengtheningStatus.SUCCEEDED;
   }
 
   /**
@@ -524,67 +557,31 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
-  private boolean isGlobalQuerySat(
-      DualReachabilitySequence pDualSequence, int indexOfCheck, PartitionedFormulas pFormulas)
+  private boolean isGlobalQueryUnsat(
+      DualReachabilitySequence pDualSequence, int indexToCheck, PartitionedFormulas pFormulas)
       throws SolverException, InterruptedException {
-    boolean counterexampleIsSpurious;
     BooleanFormula backwardFormula =
-        pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - indexOfCheck + 1);
+        pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - indexToCheck);
     backwardFormula =
         fmgr.instantiate(
             fmgr.uninstantiate(backwardFormula),
-            pFormulas.getLoopFormulaSsaMaps().get(indexOfCheck - 2));
+            pFormulas.getLoopFormulaSsaMaps().get(indexToCheck - 1));
 
     BooleanFormula unrolledConcretePaths =
         bfmgr.and(
             new ImmutableList.Builder<BooleanFormula>()
                 .add(pFormulas.getPrefixFormula())
-                .addAll(pFormulas.getLoopFormulas().subList(0, indexOfCheck - 1))
+                .addAll(pFormulas.getLoopFormulas().subList(0, indexToCheck))
                 .add(backwardFormula)
                 .build());
+    boolean isUnsat;
     stats.assertionsCheck.start();
     try {
-      counterexampleIsSpurious = solver.isUnsat(unrolledConcretePaths);
+      isUnsat = solver.isUnsat(unrolledConcretePaths);
     } finally {
       stats.assertionsCheck.stop();
     }
-    return counterexampleIsSpurious;
-  }
-
-  /**
-   * Iteratively unrolls backward sequence and checks if it is reachable from initial states. In the
-   * end, it checks against B_0, which is a target formula and therefore performs BMC check.
-   */
-  private int performGlobalCheck(
-      PartitionedFormulas pFormulas, DualReachabilitySequence pDualSequence, ReachedSet pReachedSet)
-      throws InterruptedException, SolverException, CPAException {
-    for (int i = 2; i <= pDualSequence.getSize(); i++) {
-      // Unrolling CFA if necessary
-      if (pFormulas.getLoopFormulaSsaMaps().size() <= i - 2) {
-        unrollProgram(pReachedSet);
-        if (!adjustConditions()) {
-          return -1;
-        }
-        stats.interpolationPreparation.start();
-        pFormulas.collectFormulasFromARG(pReachedSet);
-        stats.interpolationPreparation.stop();
-        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-      }
-      if (!replaceGlobalPhaseWithBMC && isGlobalQuerySat(pDualSequence, i, pFormulas)) {
-        return i;
-      }
-    }
-    // BMC check in the end, for B_0
-    unrollProgram(pReachedSet);
-    if (findCexByBMC(pReachedSet) || !adjustConditions()) {
-      return -1;
-    }
-    stats.interpolationPreparation.start();
-    pFormulas.collectFormulasFromARG(pReachedSet);
-    stats.interpolationPreparation.stop();
-    InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-
-    return pDualSequence.getSize() + 1;
+    return isUnsat;
   }
 
   /**
@@ -596,20 +593,19 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableList<BooleanFormula> getInterpolationSequence(
       PartitionedFormulas pFormulas,
       DualReachabilitySequence pDualSequence,
-      int pIndexOfGlobalViolation)
+      int pIndexOfGlobalUnsat)
       throws InterruptedException, CPAException {
+    Preconditions.checkArgument(pIndexOfGlobalUnsat <= pDualSequence.getSize());
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     BooleanFormula backwardFormula =
-        pDualSequence
-            .getBackwardReachVector()
-            .get(pDualSequence.getSize() - pIndexOfGlobalViolation + 1);
+        pDualSequence.getBackwardReachVector().get(pDualSequence.getSize() - pIndexOfGlobalUnsat);
 
     // We cannot uninstantiate B_0, so we check if the global phase was unsat with B_0 or some B_i
-    if (pDualSequence.getSize() - pIndexOfGlobalViolation + 1 > 0) {
+    if (pDualSequence.getSize() > pIndexOfGlobalUnsat) {
       backwardFormula =
           fmgr.instantiate(
               fmgr.uninstantiate(backwardFormula),
-              pFormulas.getLoopFormulaSsaMaps().get(pIndexOfGlobalViolation - 2));
+              pFormulas.getLoopFormulaSsaMaps().get(pIndexOfGlobalUnsat - 1));
     } else {
       backwardFormula = pFormulas.getAssertionFormula();
     }
@@ -617,7 +613,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
             .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
-            .addAll(pFormulas.getLoopFormulas().subList(1, pIndexOfGlobalViolation - 1))
+            .addAll(pFormulas.getLoopFormulas().subList(1, pIndexOfGlobalUnsat))
             .add(backwardFormula)
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
