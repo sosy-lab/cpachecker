@@ -264,9 +264,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * otherwise it returns false, i.e. the program is safe at bound n.
    */
   private boolean performGlobalStrengthening(
-      PartitionedFormulas pFormulas,
-      DualReachabilitySequence pDualSequence,
-      ReachedSet pReachedSet)
+      PartitionedFormulas pFormulas, DualReachabilitySequence pDualSequence, ReachedSet pReachedSet)
       throws CPAException, InterruptedException, SolverException {
     // Global phase of DAR
     stats.numOfDARGlobalPhases += 1;
@@ -538,9 +536,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * end, it checks against B_0, which is a target formula and therefore performs BMC check.
    */
   private int performGlobalCheck(
-      PartitionedFormulas pFormulas,
-      DualReachabilitySequence pDualSequence,
-      ReachedSet pReachedSet)
+      PartitionedFormulas pFormulas, DualReachabilitySequence pDualSequence, ReachedSet pReachedSet)
       throws InterruptedException, SolverException, CPAException {
     for (int i = 2; i <= pDualSequence.getSize(); i++) {
       // Unrolling CFA if necessary
