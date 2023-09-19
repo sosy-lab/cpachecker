@@ -189,6 +189,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (findCexByBMC(pReachedSet) || !adjustConditions()) {
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
+      adjustConfigsAccordingToARG(pReachedSet);
       // Forward-condition check
       if (checkForwardConditions && !isFurtherUnrollingPossible(pReachedSet)) {
         return AlgorithmStatus.SOUND_AND_PRECISE;
