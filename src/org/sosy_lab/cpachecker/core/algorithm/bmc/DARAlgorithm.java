@@ -203,11 +203,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       shutdownNotifier.shutdownIfNecessary();
       // Check if interpolation or forward-condition check is applicable
       adjustConfigsAccordingToARG(pReachedSet);
-      if (!partitionedFormulas.isInitialized()) {
-        stats.interpolationPreparation.start();
-        partitionedFormulas.collectFormulasFromARG(pReachedSet);
-        stats.interpolationPreparation.stop();
-      }
       if (performLocalStrengthening(dualSequence, partitionedFormulas)) {
         if (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
