@@ -18,11 +18,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * backward reachability sequences. It can also strengthen the sequences by forward and backward
  * interpolants.
  */
-class DualInterpolationSequence {
+class DualReachabilitySequence {
   private List<BooleanFormula> forwardReachVector;
   private List<BooleanFormula> backwardReachVector;
 
-  DualInterpolationSequence() {
+  DualReachabilitySequence() {
     forwardReachVector = new ArrayList<>();
     backwardReachVector = new ArrayList<>();
   }

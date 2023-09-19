@@ -67,16 +67,11 @@ class PartitionedFormulas {
     this.assertAllTargets = assertAllTargets;
     this.swapPrefixAndTarget = swapPrefixAndTarget;
 
-    isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
     loopFormulaSsaMaps = ImmutableList.of();
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
-  }
-
-  public boolean isInitialized() {
-    return isInitialized;
   }
 
   static PartitionedFormulas createForwardPartitionedFormulas(

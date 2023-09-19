@@ -192,7 +192,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     }
 
-    DualInterpolationSequence dualSequence = new DualInterpolationSequence();
+    DualReachabilitySequence dualSequence = new DualReachabilitySequence();
     dualSequence.initializeSequences(partitionedFormulas);
     // DAR, from the second iteration, when all of the formulas are collected
     while (!checkFixedPoint(dualSequence)) {
@@ -213,7 +213,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  private boolean checkFixedPoint(DualInterpolationSequence pDualSequence)
+  private boolean checkFixedPoint(DualReachabilitySequence pDualSequence)
       throws InterruptedException, SolverException {
     if (pDualSequence.getSize() < 1) {
       return false;
@@ -241,7 +241,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * it returns true.
    */
   private boolean performLocalStrengthening(
-      DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
+      DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
       throws CPAException, SolverException, InterruptedException {
     stats.numOfDARLocalPhases += 1;
     int indexOfLocalContradiction;
@@ -265,7 +265,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private boolean performGlobalStrengthening(
       PartitionedFormulas pFormulas,
-      DualInterpolationSequence pDualSequence,
+      DualReachabilitySequence pDualSequence,
       ReachedSet pReachedSet)
       throws CPAException, InterruptedException, SolverException {
     // Global phase of DAR
@@ -287,7 +287,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * to (Fn, B0) and (F0, Bn). Further it extends the sequences.
    */
   private void iterativeLocalStrengthening(
-      DualInterpolationSequence pDualSequence,
+      DualReachabilitySequence pDualSequence,
       PartitionedFormulas pPartitionedFormulas,
       int pIndexOfLocalContradiction)
       throws CPAException, InterruptedException {
@@ -328,7 +328,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * satisfiability with backward interpolant that has SSA indices of the first transition formula.
    */
   private BooleanFormula constructForwardInterpolant(
-      DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
+      DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
       throws CPAException, InterruptedException {
     int lastIndexOfSequences = pDualSequence.getForwardReachVector().size() - 1;
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
@@ -355,7 +355,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * satisfiability with forward interpolant that has SSA indices of the prefix formula.
    */
   private BooleanFormula constructBackwardInterpolant(
-      DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
+      DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
       throws CPAException, InterruptedException {
     int lastIndexOfSequences = pDualSequence.getBackwardReachVector().size() - 1;
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
@@ -410,7 +410,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * that no counterexample of length n+1 exists.
    */
   private int findIndexOfUnsatisfiableLocalCheck(
-      DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
+      DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
       throws SolverException, InterruptedException {
     List<BooleanFormula> FRS = pDualSequence.getForwardReachVector();
     List<BooleanFormula> BRS = pDualSequence.getBackwardReachVector();
@@ -507,7 +507,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private boolean isGlobalQuerySat(
-      DualInterpolationSequence pDualSequence, int indexOfCheck, PartitionedFormulas pFormulas)
+      DualReachabilitySequence pDualSequence, int indexOfCheck, PartitionedFormulas pFormulas)
       throws SolverException, InterruptedException {
     boolean counterexampleIsSpurious;
     BooleanFormula backwardFormula =
@@ -539,7 +539,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private int performGlobalCheck(
       PartitionedFormulas pFormulas,
-      DualInterpolationSequence pDualSequence,
+      DualReachabilitySequence pDualSequence,
       ReachedSet pReachedSet)
       throws InterruptedException, SolverException, CPAException {
     for (int i = 2; i <= pDualSequence.getSize(); i++) {
@@ -579,7 +579,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private ImmutableList<BooleanFormula> getInterpolationSequence(
       PartitionedFormulas pFormulas,
-      DualInterpolationSequence pDualSequence,
+      DualReachabilitySequence pDualSequence,
       int pIndexOfGlobalViolation)
       throws InterruptedException, CPAException {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
@@ -619,7 +619,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @param pItpSequence the interpolation sequence derived at the current iteration
    */
   private void strengthenForwardVectorWithInterpolants(
-      DualInterpolationSequence pDualSequence,
+      DualReachabilitySequence pDualSequence,
       List<BooleanFormula> pItpSequence,
       PartitionedFormulas pFormulas) {
     logger.log(Level.FINE, "Updating reachability vector");
