@@ -12,8 +12,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -46,8 +49,17 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DCPAAlgorithm {
@@ -120,20 +132,80 @@ public class DCPAAlgorithm {
   }
 
   private Collection<BlockSummaryMessage> reportBlockPostConditions(
-      Set<ARGState> blockEnds, boolean allowTop) {
+      Set<ARGState> blockEnds, boolean allowTop) throws InterruptedException {
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
-    for (ARGState blockEndState : blockEnds) {
-      if (!dcpa.isTop(blockEndState) || allowTop) {
-        BlockSummaryMessagePayload serialized =
-            dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
-        messages.add(
-            BlockSummaryMessage.newBlockPostCondition(
-                block.getId(),
-                block.getLast().getNodeNumber(),
-                DCPAAlgorithms.appendStatus(status, serialized),
-                true));
+    if (blockEnds.size() == 1) {
+      ARGState blockEndState = Iterables.getOnlyElement(blockEnds);
+      if (dcpa.isTop(blockEndState) && !allowTop) {
+        return ImmutableSet.of();
+      }
+      BlockSummaryMessagePayload serialized =
+          dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
+      messages.add(
+          BlockSummaryMessage.newBlockPostCondition(
+              block.getId(),
+              block.getLast().getNodeNumber(),
+              DCPAAlgorithms.appendStatus(status, serialized),
+              true));
+      return messages.build();
+    }
+    AbstractState start =
+        dcpa.getInitialState(block.getLast(), StateSpacePartition.getDefaultPartition());
+    PredicateCPA predicateCPA =
+        Objects.requireNonNull(CPAs.retrieveCPA(dcpa.getCPA(), PredicateCPA.class));
+
+    SSAMapBuilder newMap = SSAMap.emptySSAMap().builder();
+    BooleanFormulaManagerView bmgr =
+        predicateCPA.getSolver().getFormulaManager().getBooleanFormulaManager();
+    BooleanFormula formula = bmgr.makeFalse();
+    for (PredicateAbstractState abstractState :
+        FluentIterable.from(blockEnds)
+            .transform(b -> AbstractStates.extractStateByType(b, PredicateAbstractState.class))) {
+      formula = bmgr.or(formula, abstractState.getAbstractionFormula().asFormula());
+      SSAMap ssa = abstractState.getPathFormula().getSsa();
+      for (String variable : ssa.allVariables()) {
+        if (!newMap.build().containsVariable(variable)) {
+          newMap.setIndex(variable, ssa.getType(variable), 1);
+        }
       }
     }
+    formula =
+        predicateCPA
+            .getSolver()
+            .getFormulaManager()
+            .simplifyBooleanFormula(
+                predicateCPA.getSolver().getFormulaManager().instantiate(formula, newMap.build()));
+    var state =
+        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+            predicateCPA
+                .getPathFormulaManager()
+                .makeEmptyPathFormulaWithContext(
+                    newMap.build(), PointerTargetSet.emptyPointerTargetSet())
+                .withFormula(formula),
+            Objects.requireNonNull(
+                AbstractStates.extractStateByType(startState, PredicateAbstractState.class)));
+    List<AbstractState> curr = new ArrayList<>();
+    for (AbstractState wrappedState :
+        Objects.requireNonNull(AbstractStates.extractStateByType(start, CompositeState.class))
+            .getWrappedStates()) {
+      if (wrappedState instanceof PredicateAbstractState) {
+        curr.add(state);
+      } else {
+        curr.add(wrappedState);
+      }
+    }
+    ARGState blockEndState = new ARGState(new CompositeState(curr), null);
+    if (dcpa.isTop(blockEndState) && !allowTop) {
+      return ImmutableSet.of();
+    }
+    BlockSummaryMessagePayload serialized =
+        dcpa.serialize(blockEndState, reachedSet.getPrecision(Iterables.get(blockEnds, 0)));
+    messages.add(
+        BlockSummaryMessage.newBlockPostCondition(
+            block.getId(),
+            block.getLast().getNodeNumber(),
+            DCPAAlgorithms.appendStatus(status, serialized),
+            true));
     return messages.build();
   }
 
