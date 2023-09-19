@@ -162,8 +162,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
       Optional<MemoryLocation> representedLocation = pIdentifier.getRepresentedLocation();
       // TODO: Temporary workaround for SMG2, todo: improve
       if (representedLocation.isEmpty()) {
-        return "id#"
-            + pIdentifier.getId();
+        return "id#" + pIdentifier.getId();
       }
       assert representedLocation.isPresent();
       return representedLocation.orElseThrow().getExtendedQualifiedName()
