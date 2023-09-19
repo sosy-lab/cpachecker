@@ -22,8 +22,6 @@ FROM ubuntu:20.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-      zip \
-      python3-pip \
       nodejs \
       npm \
       openjdk-17-jre-headless \
@@ -32,28 +30,3 @@ RUN apt-get update && apt-get install -y \
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     apt-get install -y ./google-chrome-stable_current_amd64.deb && \
     rm google-chrome-stable_current_amd64.deb
-
-RUN pip3 install webdriver-manager
-
-RUN echo test > /usr/local/bin/npx
-
-# We need to override the command "npx" with a hack
-# that installs chromedriver using https://pypi.org/project/webdriver-manager/
-# when called as "npx webdriver-manager update --versions.chrome $VERSION",
-# because Protractor's webdriver-manager no longer supports downloading
-# the latest chromedriver (cf. issue #1141).
-
-RUN printf '#!/bin/bash\n\
-     set -euo pipefail\n\
-     \n\
-     if [[ "${1:-}" = "webdriver-manager" && "${2:-}" = update && "${3:-}" = "--versions.chrome" && ! -z "${4:-}" ]]; then\n\
-       VERSION="$4"\n\
-       BINARY=$(python3 -c "from webdriver_manager.chrome import ChromeDriverManager; print(ChromeDriverManager(driver_version=\"$VERSION\").install())")\n\
-       echo "$BINARY"\n\
-       mkdir -p node_modules/protractor/node_modules/webdriver-manager/selenium/\n\
-       zip -j "node_modules/protractor/node_modules/webdriver-manager/selenium/chromedriver_$VERSION.zip" "$BINARY"\n\
-     fi\n\
-     \n\
-     exec /usr/bin/npx "$@"\n\
-     ' > /usr/local/bin/npx;\
-     chmod +x /usr/local/bin/npx
