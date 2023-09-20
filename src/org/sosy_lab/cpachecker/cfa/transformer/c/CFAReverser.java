@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -99,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -241,7 +243,7 @@ public class CFAReverser {
      */
     private CFA createCfa() {
 
-      // Preprocess target
+      // preprocess target
       Set<CFANode> entryTargets =
           new HashSet<>(
               targets.stream().filter(node -> node instanceof CFunctionEntryNode).toList());
@@ -253,7 +255,7 @@ public class CFAReverser {
         targets.remove(entryTarget);
       }
 
-      // Reverse each function's CFA
+      // reverse each function's CFA
       for (Map.Entry<String, FunctionEntryNode> function : pCfa.getAllFunctions().entrySet()) {
         String name = function.getKey();
         CFunctionEntryNode entryNode = (CFunctionEntryNode) function.getValue();
@@ -264,12 +266,12 @@ public class CFAReverser {
         }
       }
 
-      // Get the main entry node for the new CFA
+      // get the main entry node for the new CFA
       FunctionEntryNode reverseMainEntry = findMainEntry();
 
       checkNotNull(reverseMainEntry);
 
-      // Insert Error State
+      // insert Error State
       insertErrorLabel(reverseMainEntry);
 
       MutableCFA newMutableCfa =
@@ -309,6 +311,7 @@ public class CFAReverser {
       private Map<String, CVariableDeclaration> variables; // Function scope variables
       private CFunctionEntryNode oldEntryNode; // Entry node for the old Function CFA
       private int branchCnt; // How many branch in this function
+      private int tmpCnt;
       private Set<CFANode> localTargets;
       private Map<CParameterDeclaration, CVariableDeclaration> parameters; // Function parameters
 
@@ -317,6 +320,7 @@ public class CFAReverser {
         this.parameters = new HashMap<>();
         this.oldEntryNode = oldEntryNode;
         this.branchCnt = 0;
+        this.tmpCnt = 0;
         this.localTargets = new HashSet<>();
       }
 
@@ -668,14 +672,7 @@ public class CFAReverser {
         CFunctionDeclaration newFuncDecl = funcDecls.get(funcName);
 
         if (newFuncDecl == null) {
-          newFuncDecl =
-              new CFunctionDeclaration(
-                  FileLocation.DUMMY,
-                  oldFuncDecl.getType(),
-                  oldFuncDecl.getName(),
-                  oldFuncDecl.getOrigName(),
-                  oldFuncDecl.getParameters(),
-                  oldFuncDecl.getAttributes());
+          newFuncDecl = reverseFunctionDeclaration(oldFuncDecl);
           funcDecls.put(funcName, newFuncDecl);
         }
 
@@ -699,48 +696,135 @@ public class CFAReverser {
       }
 
       private CFunctionDeclaration reverseFunctionDeclaration(CFunctionDeclaration funcDecl) {
+        if (funcDecls.get(funcDecl.getName()) != null) {
+          return funcDecls.get(funcDecl.getName());
+        }
+
+        if (funcDecl.getName().equals("main")) {
+          return new CFunctionDeclaration(
+              FileLocation.DUMMY,
+              funcDecl.getType(),
+              funcDecl.getName(),
+              funcDecl.getParameters(),
+              funcDecl.getAttributes());
+        }
+
+        List<CParameterDeclaration> paras = new ArrayList<>();
+        for (CParameterDeclaration para : funcDecl.getParameters()) {
+          paras.add(para);
+        }
+
+        CType returnType = funcDecl.getType().getReturnType();
+        CParameterDeclaration returnVarDecl =
+            new CParameterDeclaration(FileLocation.DUMMY, returnType, "__rev__retval__");
+        returnVarDecl.setQualifiedName(funcDecl.getName() + "__rev__retval__");
+
+        List<CType> paraTypes = new ArrayList<>();
+        for (CType type : funcDecl.getType().getParameters()) {
+          paraTypes.add(type);
+        }
+        if (returnType != CVoidType.VOID) {
+          paras.add(returnVarDecl);
+          paraTypes.add(returnType);
+        }
+        CFunctionType functionType = new CFunctionType(CVoidType.VOID, paraTypes, false);
+
         return new CFunctionDeclaration(
             funcDecl.getFileLocation(),
-            funcDecl.getType(),
+            functionType,
             funcDecl.getName(),
             funcDecl.getOrigName(),
-            funcDecl.getParameters(),
+            paras,
             funcDecl.getAttributes());
       }
 
       private void reverseFunctionSummaryEdge(CFunctionSummaryEdge edge, CFANode from, CFANode to) {
-
         CFunctionCall oldCall = edge.getExpression();
         CFunctionCall newCall = reverseFunctionCall(oldCall);
-
         CStatementEdge newEdge = new CStatementEdge("", newCall, FileLocation.DUMMY, from, to);
-
         addToCFA(newEdge);
       }
 
       private CFunctionCall reverseFunctionCall(CFunctionCall call) {
-        if (call instanceof CFunctionCallStatement) {
-          CFunctionCallExpression callExpr =
-              ((CFunctionCallStatement) call).getFunctionCallExpression();
-          CFunctionCallExpression newCallExpr = reverseFunctionCallExpression(callExpr);
-          return new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
-        } else {
-          LeftSideVariableFinder lFinder = new LeftSideVariableFinder();
-          CExpression lExpr =
-              ((CFunctionCallAssignmentStatement) call).getLeftHandSide().accept(lFinder);
-          CFunctionCallExpression rExpr =
-              reverseFunctionCallExpression(
-                  ((CFunctionCallAssignmentStatement) call).getFunctionCallExpression());
-          return new CFunctionCallAssignmentStatement(
-              FileLocation.DUMMY, (CLeftHandSide) lExpr, rExpr);
+        CFunctionCallExpression callExpr = call.getFunctionCallExpression();
+        CFunctionDeclaration decl = callExpr.getDeclaration();
+        String funcName = decl.getName();
+        CFunctionDeclaration funcDecl = funcDecls.get(funcName);
+        if (funcDecl == null) {
+          CFunctionDeclaration newDecl = reverseFunctionDeclaration(decl);
+          funcDecls.put(funcName, newDecl);
+          funcDecl = newDecl;
         }
+        List<CExpression> argsList = handleFunctionArgs(callExpr.getParameterExpressions());
+
+        // add the left side variable to the argument list
+        if (call instanceof CFunctionCallStatement) {
+          CType retType = decl.getType().getReturnType();
+          if (retType != CVoidType.VOID) {
+            String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
+            tmpCnt += 1;
+            CVariableDeclaration tmpDecl =
+                new CVariableDeclaration(
+                    FileLocation.DUMMY,
+                    false,
+                    CStorageClass.AUTO,
+                    retType,
+                    tmpName,
+                    tmpName,
+                    tmpName,
+                    null);
+            CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmpDecl);
+            variables.put(tmpName, tmpDecl);
+            argsList.add(tmpExpr);
+          }
+
+        } else { // CFunctionCallAssignmentStatement
+          LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
+          CExpression lvalue =
+              ((CFunctionCallAssignmentStatement) call).getLeftHandSide().accept(lfinder);
+          argsList.add(lvalue);
+        }
+
+        checkNotNull(funcDecl);
+        CIdExpression funcExpr = new CIdExpression(FileLocation.DUMMY, funcDecl);
+
+        CFunctionCallExpression newCallExpr =
+            new CFunctionCallExpression(
+                FileLocation.DUMMY, callExpr.getExpressionType(), funcExpr, argsList, funcDecl);
+        return new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
       }
 
       // TODO: reverseReturnStmtEdge
       private void reverseReturnStmtEdge(CReturnStatementEdge edge, CFANode from, CFANode to) {
-        BlankEdge blankEdge =
-            new BlankEdge("", FileLocation.DUMMY, from, to, "_" + edge.getDescription() + "_");
-        addToCFA(blankEdge);
+        CReturnStatement stmt = edge.getReturnStatement();
+        // `return;`
+        if (stmt.getReturnValue().isEmpty()) {
+          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, from, to, "");
+          addToCFA(blankEdge);
+          return;
+        }
+
+        LeftSideVariableFinder retValfinder = new LeftSideVariableFinder();
+        CExpression retVal = stmt.getReturnValue().orElseThrow().accept(retValfinder);
+
+        CParameterDeclaration retVarDecl =
+            handleReturnVariable(
+                (CIdExpression) stmt.asAssignment().orElseThrow().getLeftHandSide(),
+                from.getFunctionName());
+        CIdExpression retVar = new CIdExpression(FileLocation.DUMMY, retVarDecl);
+        CBinaryExpression assumeExpr = createAssumeExpr(retVal, retVar);
+        CAssumeEdge assumeEdge =
+            new CAssumeEdge("", FileLocation.DUMMY, from, to, assumeExpr, true, false, false);
+        addToCFA(assumeEdge);
+      }
+
+      private CParameterDeclaration handleReturnVariable(CIdExpression retVar, String funcName) {
+        String retVarName = "__rev__retval__";
+        CParameterDeclaration retVarDecl =
+            new CParameterDeclaration(
+                FileLocation.DUMMY, retVar.getExpressionType(), "__rev__retval__");
+        retVarDecl.setQualifiedName(funcName + retVarName);
+        return retVarDecl;
       }
 
       private void reverseAssumeEdge(CAssumeEdge edge, CFANode from, CFANode to) {
@@ -921,7 +1005,7 @@ public class CFAReverser {
       }
 
       /////////////////////////////////////////////////////////////////////////////
-      // Statement Handlers
+      // statement Handlers
       /////////////////////////////////////////////////////////////////////////////
       private void handleExprAssignStmt(
           CExpressionAssignmentStatement stmt, CFANode from, CFANode to) {
@@ -968,31 +1052,16 @@ public class CFAReverser {
       private void handleCallAssignStmt(
           CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
 
-        CFunctionCallExpression callExpr = stmt.getFunctionCallExpression();
-        CFunctionCallExpression rExpr = reverseFunctionCallExpression(callExpr);
-
-        LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
-        CLeftHandSide lExpr = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
-
-        CFunctionCallAssignmentStatement callAssignmentStatement =
-            new CFunctionCallAssignmentStatement(FileLocation.DUMMY, lExpr, rExpr);
-
         CStatementEdge newStmtEdge =
-            new CStatementEdge("", callAssignmentStatement, FileLocation.DUMMY, from, to);
+            new CStatementEdge("", reverseFunctionCall(stmt), FileLocation.DUMMY, from, to);
 
         addToCFA(newStmtEdge);
       }
 
       private void handleCallStmt(CFunctionCallStatement stmt, CFANode from, CFANode to) {
 
-        CFunctionCallExpression callExpr = stmt.getFunctionCallExpression();
-        CFunctionCallExpression newCallExpr = reverseFunctionCallExpression(callExpr);
-
-        CFunctionCallStatement newCallStmt =
-            new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
-
         CStatementEdge newCallStmtEdge =
-            new CStatementEdge("", newCallStmt, FileLocation.DUMMY, from, to);
+            new CStatementEdge("", reverseFunctionCall(stmt), FileLocation.DUMMY, from, to);
 
         addToCFA(newCallStmtEdge);
       }
@@ -1007,42 +1076,6 @@ public class CFAReverser {
         }
 
         return newArgsList;
-      }
-
-      /**
-       * @param callExpr the original function call expression
-       * @return the reverse function call expression
-       */
-      private CFunctionCallExpression reverseFunctionCallExpression(
-          CFunctionCallExpression callExpr) {
-
-        // TODO: handle parameter list
-        CFunctionDeclaration decl = callExpr.getDeclaration();
-        String funcName = decl.getName();
-
-        CFunctionDeclaration funcDecl = funcDecls.get(funcName);
-        if (funcDecl == null) {
-          CFunctionDeclaration newDecl =
-              new CFunctionDeclaration(
-                  FileLocation.DUMMY,
-                  decl.getType(),
-                  decl.getName(),
-                  decl.getOrigName(),
-                  decl.getParameters(),
-                  decl.getAttributes());
-          funcDecls.put(funcName, newDecl);
-          funcDecl = newDecl;
-        }
-
-        checkNotNull(funcDecl);
-
-        CIdExpression funcExpr = new CIdExpression(FileLocation.DUMMY, funcDecl);
-        return new CFunctionCallExpression(
-            FileLocation.DUMMY,
-            callExpr.getExpressionType(),
-            funcExpr,
-            handleFunctionArgs(callExpr.getParameterExpressions()),
-            funcDecl);
       }
 
       /////////////////////////////////////////////////////////////////////////////
@@ -1099,13 +1132,22 @@ public class CFAReverser {
           CVariableDeclaration varaDecl = variables.get(paraDecl.getQualifiedName());
 
           // handle new parameter
+          // handle new parameter
           if (varaDecl == null) {
-            varaDecl = paraDecl.asVariableDeclaration();
+            varaDecl =
+                new CVariableDeclaration(
+                    FileLocation.DUMMY,
+                    false,
+                    CStorageClass.AUTO,
+                    paraDecl.getType(),
+                    paraDecl.getName() + "__PARAMETER",
+                    paraDecl.getOrigName() + "__PARAMETER",
+                    paraDecl.getQualifiedName() + "__PARAMETER",
+                    null);
             CParameterDeclaration newParaDecl =
                 new CParameterDeclaration(
-                    FileLocation.DUMMY,
-                    paraDecl.getType(),
-                    "PARAMETER__" + paraDecl.getQualifiedName());
+                    FileLocation.DUMMY, paraDecl.getType(), paraDecl.getName());
+            newParaDecl.setQualifiedName(paraDecl.getQualifiedName());
             parameters.put(newParaDecl, varaDecl);
           }
 
@@ -1232,7 +1274,6 @@ public class CFAReverser {
 
         @Override
         public CExpression visit(CCastExpression pIastCastExpression) throws NoException {
-
           CExpression expr = pIastCastExpression.getOperand().accept(this);
           CType type = pIastCastExpression.getExpressionType();
           return new CCastExpression(FileLocation.DUMMY, type, expr);
