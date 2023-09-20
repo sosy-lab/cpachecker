@@ -637,7 +637,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Updating reachability vector");
     ImmutableList<BooleanFormula> forwardVector = pDualSequence.getForwardReachVector();
     SSAMap prefixSsaMap = pFormulas.getPrefixSsaMap();
-    for (int i = 0; (i < forwardVector.size()) && (i <= pItpSequence.size()); ++i) {
+    for (int i = 1; (i < forwardVector.size()) && (i <= pItpSequence.size()); ++i) {
       BooleanFormula image = forwardVector.get(i);
       pDualSequence.updateForwardReachVector(
           bfmgr.and(

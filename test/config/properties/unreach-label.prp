@@ -1,2 +1,1 @@
 CHECK( init(main()), LTL(G ! label(ERROR)) )
-
