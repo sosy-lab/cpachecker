@@ -32,8 +32,13 @@ public class BMCStatistics implements Statistics {
   final Timer fixedPointComputation = new Timer();
   int numOfInterpolationCalls = -1;
   int numOfInterpolants = -1;
+  int numOfAtomsInInterpolants = -1;
+  int minNumOfAtomsInInterpolants = -1;
+  int maxNumOfAtomsInInterpolants = -1;
+  int numOfBoolOpsInInterpolants = -1;
+  int minNumOfBoolOpsInInterpolants = -1;
+  int maxNumOfBoolOpsInInterpolants = -1;
   int fixedPointConvergenceLength = -1;
-
   // DAR specific
   int numOfDARGlobalPhases = -1;
   int numOfDARLocalPhases = -1;
@@ -69,6 +74,26 @@ public class BMCStatistics implements Statistics {
     }
     if (numOfInterpolationCalls >= 0) {
       out.println("Total number of interpolation calls:             " + numOfInterpolationCalls);
+    }
+    if (numOfAtomsInInterpolants >= 0) {
+      out.println("Total number of atoms in interpolants:           " + numOfAtomsInInterpolants);
+      out.println(
+          "  Avg. #atoms:                                   "
+              + (float) numOfAtomsInInterpolants / numOfInterpolants);
+      out.println(
+          "  Min. #atoms:                                   " + minNumOfAtomsInInterpolants);
+      out.println(
+          "  Max. #atoms:                                   " + maxNumOfAtomsInInterpolants);
+    }
+    if (numOfBoolOpsInInterpolants >= 0) {
+      out.println("Total number of Boolean ops in interpolants:     " + numOfBoolOpsInInterpolants);
+      out.println(
+          "  Avg. #Boolean-ops:                             "
+              + (float) numOfBoolOpsInInterpolants / numOfInterpolants);
+      out.println(
+          "  Min. #Boolean-ops:                             " + minNumOfBoolOpsInInterpolants);
+      out.println(
+          "  Max. #Boolean-ops:                             " + maxNumOfBoolOpsInInterpolants);
     }
     if (fixedPointConvergenceLength >= 0) {
       out.println(

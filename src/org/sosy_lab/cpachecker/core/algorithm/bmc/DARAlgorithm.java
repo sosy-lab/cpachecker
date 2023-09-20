@@ -397,6 +397,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     stats.numOfInterpolationCalls += 1;
     stats.numOfInterpolants += 1;
     stats.numOfDARLocalInterpolants += 1;
+    InterpolationHelper.recordInterpolantStats(fmgr, interpolant, stats);
     return interpolant;
   }
 
@@ -424,6 +425,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     stats.numOfInterpolationCalls += 1;
     stats.numOfInterpolants += 1;
     stats.numOfDARLocalInterpolants += 1;
+    InterpolationHelper.recordInterpolantStats(fmgr, interpolant, stats);
     return interpolant;
   }
 
@@ -619,6 +621,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
     stats.numOfInterpolationCalls += 1;
     stats.numOfInterpolants += itpSequence.size();
+    InterpolationHelper.recordInterpolantStats(fmgr, itpSequence, stats);
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     return itpSequence;
   }
