@@ -839,7 +839,9 @@ public class CFASingleLoopTransformation {
     pLoopHead.setReversePostorderId(-1);
 
     // Instantiate the transformed graph in a preliminary form
-    MutableCFA cfa = new MutableCFA(functions, allNodes, pOriginalCfa.getMetadata());
+    MutableCFA cfa =
+        new MutableCFA(
+            functions, allNodes, pOriginalCfa.getMetadata().withMainFunctionEntry(pStartNode));
 
     // Get information about the loop structure
     cfa.setLoopStructure(LoopStructure.getLoopStructureForSingleLoop(pLoopHead));

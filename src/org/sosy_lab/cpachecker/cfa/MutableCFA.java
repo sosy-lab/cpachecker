@@ -56,9 +56,8 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
       NavigableMap<String, FunctionEntryNode> pFunctions,
       TreeMultimap<String, CFANode> pAllNodes,
       CfaMetadata pCfaMetadata) {
-    checkArgument(pFunctions.keySet().equals(pAllNodes.keySet()));
-    checkArgument(pAllNodes.entries().containsAll(pFunctions.entrySet()));
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
+    checkArgument(pFunctions.keySet().equals(pAllNodes.keySet()));
     checkArgument(mainFunctionEntry.equals(pFunctions.get(mainFunctionEntry.getFunctionName())));
 
     functions = pFunctions;
