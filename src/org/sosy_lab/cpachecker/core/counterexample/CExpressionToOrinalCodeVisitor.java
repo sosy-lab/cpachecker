@@ -187,12 +187,12 @@ public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String
 
     CType cType = pIntegerLiteralExpression.getExpressionType();
     if (cType instanceof CSimpleType type) {
-      if (type.isUnsigned()) {
+      if (type.hasUnsignedSpecifier()) {
         result.append("U");
       }
-      if (type.isLong()) {
+      if (type.hasLongSpecifier()) {
         result.append("L");
-      } else if (type.isLongLong()) {
+      } else if (type.hasLongLongSpecifier()) {
         result.append("LL");
       }
     }

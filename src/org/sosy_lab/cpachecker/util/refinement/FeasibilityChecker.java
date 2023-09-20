@@ -88,7 +88,7 @@ public interface FeasibilityChecker<S extends AbstractState> {
    *
    * @return true if we are currently refining/checking MemorySafety.
    */
-  public default boolean isRefineMemorySafety() {
+  default boolean isRefineMemorySafety() {
     return false;
   }
 }

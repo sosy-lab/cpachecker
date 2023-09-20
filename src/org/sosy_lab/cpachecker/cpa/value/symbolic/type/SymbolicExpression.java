@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -26,16 +27,29 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
 
   private final Optional<MemoryLocation> representedLocation;
 
+  // For some analysis, we need the state to decide equality of abstract expressions instead of
+  // MemLoc
+  private final Optional<AbstractState> stateWithRepresentation;
+
   protected SymbolicExpression(final MemoryLocation pRepresentedLocation) {
     representedLocation = Optional.of(pRepresentedLocation);
+    stateWithRepresentation = Optional.empty();
+  }
+
+  protected SymbolicExpression(final AbstractState pStateWithRepresentation) {
+    representedLocation = Optional.empty();
+    stateWithRepresentation = Optional.of(pStateWithRepresentation);
   }
 
   protected SymbolicExpression() {
     representedLocation = Optional.empty();
+    stateWithRepresentation = Optional.empty();
   }
 
   @Override
   public abstract SymbolicExpression copyForLocation(MemoryLocation pRepresentedLocation);
+
+  public abstract SymbolicExpression copyForState(AbstractState pCurrentState);
 
   @Override
   public Optional<MemoryLocation> getRepresentedLocation() {
@@ -69,6 +83,14 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
    */
   public abstract boolean isTrivial();
 
+  public AbstractState getAbstractState() {
+    return stateWithRepresentation.orElseThrow();
+  }
+
+  public boolean hasAbstractState() {
+    return stateWithRepresentation.isPresent();
+  }
+
   @Override
   public boolean isNumericValue() {
     return false;
@@ -96,11 +118,14 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
 
   @Override
   public int hashCode() {
+    // TODO: for all values this needs to be overridden with new hashcodes based on value + state
     return Objects.hashCode(representedLocation);
   }
 
   @Override
   public boolean equals(final Object pObj) {
+    // This equals should be overridden for state dependant values, as the states might be equal,
+    // but the values not. -> Override always!
     return pObj instanceof SymbolicExpression
         && Objects.equals(representedLocation, ((SymbolicExpression) pObj).representedLocation);
   }

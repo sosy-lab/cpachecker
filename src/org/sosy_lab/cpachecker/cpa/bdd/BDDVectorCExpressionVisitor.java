@@ -183,7 +183,7 @@ public class BDDVectorCExpressionVisitor
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).isUnsigned();
+      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
     }
 
     switch (op) {
@@ -228,7 +228,7 @@ public class BDDVectorCExpressionVisitor
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).isUnsigned();
+      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
     }
 
     switch (op) {

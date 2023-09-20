@@ -77,7 +77,7 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
       // Automatic Generation of Path Covers Based on the Control Flow Analysis of Computer Programs
       return new HashSet<>(
           transformedImmutableSetCopy(
-              Sets.intersection(domLeaves, postDomLeaves), node -> node.getRepresentedEdge()));
+              Sets.intersection(domLeaves, postDomLeaves), CFAEdgeNode::getRepresentedEdge));
     }
   }
 
@@ -91,7 +91,7 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
     return new HashSet<>(
         FluentIterable.from(pLeaves)
             .filter(node -> !ldSet.contains(node))
-            .transform(node -> node.getRepresentedEdge())
+            .transform(CFAEdgeNode::getRepresentedEdge)
             .toSet());
   }
 }

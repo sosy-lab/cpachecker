@@ -379,18 +379,18 @@ public enum MachineModel {
   }
 
   /**
-   * Determine whether a type is signed or unsigned. Contrary to {@link CSimpleType#isSigned()} and
-   * {@link CSimpleType#isUnsigned()} this method leaves no third option and should thus be
-   * preferred. For floating point types it returns true, for types where signedness makes no sense
-   * (bool, void) it returns false.
+   * Determine whether a type is signed or unsigned. Contrary to {@link
+   * CSimpleType#hasSignedSpecifier()} and {@link CSimpleType#hasUnsignedSpecifier()} this method
+   * leaves no third option and should thus be preferred. For floating point types it returns true,
+   * for types where signedness makes no sense (bool, void) it returns false.
    */
   public boolean isSigned(CSimpleType t) {
     // resolve UNSPECIFIED and INT to SIGNED INT etc.
     t = t.getCanonicalType();
 
-    if (t.isSigned()) {
+    if (t.hasSignedSpecifier()) {
       return true;
-    } else if (t.isUnsigned()) {
+    } else if (t.hasUnsignedSpecifier()) {
       return false;
     }
 
@@ -476,11 +476,11 @@ public enum MachineModel {
         return getSizeofFloat();
       case UNSPECIFIED: // unspecified is the same as int
       case INT:
-        if (type.isLongLong()) {
+        if (type.hasLongLongSpecifier()) {
           return getSizeofLongLongInt();
-        } else if (type.isLong()) {
+        } else if (type.hasLongSpecifier()) {
           return getSizeofLongInt();
-        } else if (type.isShort()) {
+        } else if (type.hasShortSpecifier()) {
           return getSizeofShort();
         } else {
           return getSizeofInt();
@@ -488,7 +488,7 @@ public enum MachineModel {
       case INT128:
         return getSizeofInt128();
       case DOUBLE:
-        if (type.isLong()) {
+        if (type.hasLongSpecifier()) {
           return getSizeofLongDouble();
         } else {
           return getSizeofDouble();
@@ -870,11 +870,11 @@ public enum MachineModel {
           return model.getAlignofFloat();
         case UNSPECIFIED: // unspecified is the same as int
         case INT:
-          if (pSimpleType.isLongLong()) {
+          if (pSimpleType.hasLongLongSpecifier()) {
             return model.getAlignofLongLongInt();
-          } else if (pSimpleType.isLong()) {
+          } else if (pSimpleType.hasLongSpecifier()) {
             return model.getAlignofLongInt();
-          } else if (pSimpleType.isShort()) {
+          } else if (pSimpleType.hasShortSpecifier()) {
             return model.getAlignofShort();
           } else {
             return model.getAlignofInt();
@@ -882,7 +882,7 @@ public enum MachineModel {
         case INT128:
           return model.getAlignofInt128();
         case DOUBLE:
-          if (pSimpleType.isLong()) {
+          if (pSimpleType.hasLongSpecifier()) {
             return model.getAlignofLongDouble();
           } else {
             return model.getAlignofDouble();

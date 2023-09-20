@@ -149,6 +149,37 @@ public class SMGOptions {
       description = "Enable track predicates on SMG state")
   private boolean trackPredicates = false;
 
+  private enum CheckStrategy {
+    AT_ASSUME,
+    AT_TARGET
+  }
+
+  @Option(
+      name = "satCheckStrategy",
+      description = "When to check the satisfiability of constraints")
+  private CheckStrategy satCheckStrategy = CheckStrategy.AT_ASSUME;
+
+  @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
+  private boolean cacheSubsets = false;
+
+  @Option(secure = true, description = "Whether to use superset caching", name = "cacheSupersets")
+  private boolean cacheSupersets = false;
+
+  @Option(
+      secure = true,
+      description = "Whether to perform SAT checks only for the last added constraint",
+      name = "minimalSatCheck")
+  private boolean performMinimalSatCheck = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to perform caching of constraint satisfiability results",
+      name = "cache")
+  private boolean doCaching = true;
+
+  @Option(secure = true, description = "Resolve definite assignments", name = "resolveDefinites")
+  private boolean resolveDefinites = true;
+
   @Option(
       secure = true,
       name = "trackErrorPredicates",
@@ -225,7 +256,7 @@ public class SMGOptions {
       name = "joinOnBlockEnd",
       description =
           "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
-  private boolean joinOnBlockEnd = true;
+  private boolean joinOnBlockEnd = false;
 
   @Option(
       secure = true,
@@ -451,5 +482,29 @@ public class SMGOptions {
 
   boolean isAssignSymbolicValues() {
     return assignSymbolicValues;
+  }
+
+  public boolean isSatCheckStrategyAtAssume() {
+    return satCheckStrategy == CheckStrategy.AT_ASSUME;
+  }
+
+  public boolean isDoConstraintCaching() {
+    return doCaching;
+  }
+
+  public boolean isUseConstraintCacheSupersets() {
+    return cacheSupersets;
+  }
+
+  public boolean isUseConstraintCacheSubsets() {
+    return cacheSubsets;
+  }
+
+  public boolean isPerformMinimalConstraintSatCheck() {
+    return performMinimalSatCheck;
+  }
+
+  public boolean isResolveDefinites() {
+    return resolveDefinites;
   }
 }

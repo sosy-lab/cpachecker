@@ -3039,6 +3039,15 @@ cpa.smg2.assignEqualityAssumptions = true
 # Treat symbolic values as unknowns and assign new concrete values to them.
 cpa.smg2.assignSymbolicValues = true
 
+# Whether to perform caching of constraint satisfiability results
+cpa.smg2.cache = true
+
+# Whether to use subset caching
+cpa.smg2.cacheSubsets = false
+
+# Whether to use superset caching
+cpa.smg2.cacheSupersets = false
+
 # with this option enabled, memory addresses (pointers) are transformed into
 # a numeric assumption upon casting the pointer to a number. This assumption
 # can be returned to a proper pointer by casting it back. This enables
@@ -3116,7 +3125,7 @@ cpa.smg2.initialPredicatePrecisionFile = no default value
 
 # Perform merge SMGStates by SMGJoin on ends of code block. Works with
 # 'merge=JOIN'
-cpa.smg2.joinOnBlockEnd = true
+cpa.smg2.joinOnBlockEnd = false
 
 # If this option is enabled, a call to malloc with value zero results in a
 # return value that is equal to zero. If this option is disabled, a non-zero
@@ -3141,6 +3150,9 @@ cpa.smg2.memoryErrors = true
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
   allowed values: [SEP]
+
+# Whether to perform SAT checks only for the last added constraint
+cpa.smg2.minimalSatCheck = true
 
 # Assume that variables used only in a boolean context are either zero or
 # one.
@@ -3171,6 +3183,9 @@ cpa.smg2.refinement.performEdgeBasedInterpolation = true
 cpa.smg2.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
 
+# Resolve definite assignments
+cpa.smg2.resolveDefinites = true
+
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.smg2.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
@@ -3178,6 +3193,10 @@ cpa.smg2.runtimeCheck = NONE
 # Which unknown function are always considered as safe functions, i.e., free
 # of memory-related side-effects?
 cpa.smg2.safeUnknownFunctions = {"abort"}
+
+# When to check the satisfiability of constraints
+cpa.smg2.satCheckStrategy = AT_ASSUME
+  enum:     [AT_ASSUME, AT_TARGET]
 
 # which stop operator to use for the SMGCPA
 cpa.smg2.stop = "SEP"
@@ -4409,7 +4428,7 @@ pixelgraphic.export.scaling = 2
 # Highlight not only corresponding graph nodes, but background of
 # corresponding line, too. This may give an better overview, but also
 # introduces more clutter
-pixelgraphic.export.strongHighlight = true
+pixelgraphic.export.strongHighlight = false
 
 # Width of the bitmap in pixels. If set to -1, width is computed in relation
 # to the height. If both are set to -1, the optimal bitmap size to represent

@@ -200,5 +200,9 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.21.1"/>
 
+        <!-- SpotBugs has a dependency on log4j-core without an exact revision.
+             This causes Ivy to loook up versions only and breaks CPAchecker builds without internet.
+             So we specify some version here to make offline builds work. -->
+        <override org="org.apache.logging.log4j" module="log4j-core" rev="2.20.0"/>
     </dependencies>
 </ivy-module>

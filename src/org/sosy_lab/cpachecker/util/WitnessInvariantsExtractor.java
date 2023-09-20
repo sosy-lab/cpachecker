@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -219,7 +220,6 @@ public class WitnessInvariantsExtractor {
 
     Set<Invariant> invariants = automatonYAMLParser.generateInvariants(pPathToWitnessFile);
     Set<ExpressionTreeLocationInvariant> candidateInvariants = new HashSet<>();
-    int randomGroupId = 0;
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
 
     // Match the invariants with their corresponding CFA Nodes
@@ -255,10 +255,18 @@ public class WitnessInvariantsExtractor {
               && (e.getFileLocation().isOffsetRelatedToOrigin()
                   ? e.getFileLocation().getNodeOffset() == invariant.getLocation().getNodeOffset()
                   : true)) {
+            if (e instanceof FunctionCallEdge) {
+              node = e.getPredecessor();
+            }
             candidateInvariants.add(
                 new ExpressionTreeLocationInvariant(
-                    "" + randomGroupId, node, invariant.getFormula(), toCodeVisitorCache));
-            randomGroupId++;
+                    "Invariant matched at line "
+                        + invariant.getLocation().getStartingLineInOrigin()
+                        + " with Offset "
+                        + invariant.getLocation().getNodeOffset(),
+                    node,
+                    invariant.getFormula(),
+                    toCodeVisitorCache));
             break;
           }
         }

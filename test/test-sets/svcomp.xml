@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="8">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="4">
 
   <!--
     Benchmark definition for SV-COMP configuration and benchmarks.

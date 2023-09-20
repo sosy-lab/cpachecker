@@ -217,109 +217,7 @@ public final class InvariantWitnessWriter {
     String startNode = pWitness.getEntryStateNodeId();
     List<SegmentRecord> segments = new ArrayList<>();
     GraphTraverser<String, YamlWitnessExportException> traverser =
-        new GraphTraverser<>(startNode) {
-
-          @Override
-          protected String visit(String pSuccessor) {
-            return pSuccessor;
-          }
-
-          @Override
-          public Iterable<String> getSuccessors(String pCurrent) throws YamlWitnessExportException {
-            Collection<Edge> outEdges = pWitness.getLeavingEdges().get(pCurrent);
-            if (outEdges.size() > 2) {
-              // we assume that violation witnesses only contain branchings at conditions,
-              // and there should be only 2 successors in this case
-              throw new YamlWitnessExportException(
-                  "Expecting there to be at least two successors per node in a violation witness");
-            }
-            ImmutableList.Builder<String> builder = ImmutableList.builder();
-            for (Edge e : outEdges) {
-              TransitionCondition label = e.getLabel();
-              Map<KeyDef, String> attrs = label.getMapping();
-              String successor = e.getTarget();
-              if (pWitness.getNodeFlags().get(successor).contains(NodeFlag.ISSINKNODE)) {
-                continue; // we ignore sink nodes for now
-              }
-              if (attrs.get(FUNCTIONENTRY) != null) {
-                SegmentRecord segement = makeFunctionEntryWaypoint(pWitness, attrs);
-                segments.add(segement);
-              } else if (attrs.get(CONTROLCASE) != null) {
-                SegmentRecord waypoint = makeBranchingWaypoint(pWitness, attrs);
-                segments.add(waypoint);
-              } else if (attrs.get(ASSUMPTION) != null) {
-                SegmentRecord waypoint = makeAssumptionWaypoint(pWitness, attrs);
-                segments.add(waypoint);
-              }
-              builder.add(successor);
-            }
-            return builder.build();
-          }
-
-          private SegmentRecord makeBranchingWaypoint(Witness witness, Map<KeyDef, String> attrs) {
-            Preconditions.checkState(
-                ImmutableSet.of("condition-true", "condition-false")
-                    .contains(attrs.get(CONTROLCASE)));
-            InformationRecord info =
-                new InformationRecord(
-                    attrs.get(CONTROLCASE).equals("condition-true") ? "true" : "false", null, null);
-            LocationRecord location = createLocationRecord(witness, attrs);
-            WaypointRecord waypoint =
-                new WaypointRecord(
-                    WaypointRecord.WaypointType.BRANCHING,
-                    WaypointRecord.WaypointAction.FOLLOW,
-                    info,
-                    location);
-            return new SegmentRecord(ImmutableList.of(waypoint));
-          }
-
-          private SegmentRecord makeAssumptionWaypoint(Witness witness, Map<KeyDef, String> attrs) {
-            LocationRecord location = createLocationRecord(witness, attrs);
-            InformationRecord inv = new InformationRecord(attrs.get(ASSUMPTION), null, "C");
-            WaypointRecord waypoint =
-                new WaypointRecord(
-                    WaypointRecord.WaypointType.ASSUMPTION,
-                    WaypointRecord.WaypointAction.FOLLOW,
-                    inv,
-                    location);
-            return new SegmentRecord(ImmutableList.of(waypoint));
-          }
-
-          private SegmentRecord makeFunctionEntryWaypoint(
-              Witness witness, Map<KeyDef, String> attrs) {
-            LocationRecord location = createLocationRecord(witness, attrs);
-            WaypointRecord waypoint =
-                new WaypointRecord(
-                    WaypointRecord.WaypointType.FUNCTION_ENTER,
-                    WaypointRecord.WaypointAction.FOLLOW,
-                    null,
-                    location);
-            return new SegmentRecord(ImmutableList.of(waypoint));
-          }
-
-          private LocationRecord createLocationRecord(Witness witness, Map<KeyDef, String> attrs) {
-            @Nullable String function = attrs.get(ASSUMPTIONSCOPE);
-            int startline = Integer.parseInt(attrs.get(STARTLINE));
-            int lineoffset = lineOffsetsByFile.get(witness.getOriginFile()).get(startline - 1);
-            int column = Integer.parseInt(attrs.get(OFFSET)) - lineoffset;
-            LocationRecord location =
-                new LocationRecord(
-                    witness.getOriginFile(), getProgramHash(witness), startline, column, function);
-            return location;
-          }
-
-          private String getProgramHash(Witness witness) {
-            String programHash;
-            try {
-              programHash =
-                  AutomatonGraphmlCommon.computeHash(witness.getCfa().getFileNames().get(0));
-            } catch (IOException e1) {
-              programHash = "";
-              logger.logfException(WARNING, e1, "Could not compute program hash!");
-            }
-            return programHash;
-          }
-        };
+        new ViolationWitnessToYamlWitnessTraverser(startNode, segments, pWitness);
     try {
       traverser.traverse();
       if (segments.isEmpty()) {
@@ -408,6 +306,121 @@ public final class InvariantWitnessWriter {
             producerDescription,
             taskDescription);
     return metadata;
+  }
+
+  private final class ViolationWitnessToYamlWitnessTraverser
+      extends GraphTraverser<String, YamlWitnessExportException> {
+    private final List<SegmentRecord> segments;
+    private final Witness witness;
+
+    private ViolationWitnessToYamlWitnessTraverser(
+        String pStartNode, List<SegmentRecord> pSegments, Witness pWitness) {
+      super(pStartNode);
+      segments = pSegments;
+      witness = pWitness;
+    }
+
+    @Override
+    protected String visit(String pSuccessor) {
+      return pSuccessor;
+    }
+
+    @Override
+    public Iterable<String> getSuccessors(String pCurrent) throws YamlWitnessExportException {
+      Collection<Edge> outEdges = witness.getLeavingEdges().get(pCurrent);
+      if (outEdges.size() > 2) {
+        // we assume that violation witnesses only contain branchings at conditions,
+        // and there should be only 2 successors in this case
+        logger.logf(
+            WARNING,
+            "Expecting there to be at least two successors per node in a violation witness, but"
+                + " found %d, which might indicate a branching condition with a disjunction or"
+                + " conjunction",
+            outEdges.size());
+      }
+      ImmutableList.Builder<String> builder = ImmutableList.builder();
+      for (Edge e : outEdges) {
+        TransitionCondition label = e.getLabel();
+        Map<KeyDef, String> attrs = label.getMapping();
+        String successor = e.getTarget();
+        if (witness.getNodeFlags().get(successor).contains(NodeFlag.ISSINKNODE)) {
+          continue; // we ignore sink nodes for now
+        }
+        if (attrs.get(FUNCTIONENTRY) != null) {
+          SegmentRecord segement = makeFunctionEntryWaypoint(attrs);
+          segments.add(segement);
+        } else if (attrs.get(CONTROLCASE) != null) {
+          SegmentRecord waypoint = makeBranchingWaypoint(attrs);
+          segments.add(waypoint);
+        } else if (attrs.get(ASSUMPTION) != null) {
+          SegmentRecord waypoint = makeAssumptionWaypoint(attrs);
+          segments.add(waypoint);
+        }
+        builder.add(successor);
+      }
+      return builder.build();
+    }
+
+    private SegmentRecord makeBranchingWaypoint(Map<KeyDef, String> attrs) {
+      Preconditions.checkState(
+          ImmutableSet.of("condition-true", "condition-false").contains(attrs.get(CONTROLCASE)));
+      InformationRecord info =
+          new InformationRecord(
+              attrs.get(CONTROLCASE).equals("condition-true") ? "true" : "false", null, null);
+      LocationRecord location = createLocationRecord(attrs);
+      WaypointRecord waypoint =
+          new WaypointRecord(
+              WaypointRecord.WaypointType.BRANCHING,
+              WaypointRecord.WaypointAction.FOLLOW,
+              info,
+              location);
+      return new SegmentRecord(ImmutableList.of(waypoint));
+    }
+
+    private SegmentRecord makeAssumptionWaypoint(Map<KeyDef, String> attrs) {
+      LocationRecord location = createLocationRecord(attrs);
+      InformationRecord inv = new InformationRecord(attrs.get(ASSUMPTION), null, "C");
+      WaypointRecord waypoint =
+          new WaypointRecord(
+              WaypointRecord.WaypointType.ASSUMPTION,
+              WaypointRecord.WaypointAction.FOLLOW,
+              inv,
+              location);
+      return new SegmentRecord(ImmutableList.of(waypoint));
+    }
+
+    private SegmentRecord makeFunctionEntryWaypoint(Map<KeyDef, String> attrs) {
+      LocationRecord location = createLocationRecord(attrs);
+      WaypointRecord waypoint =
+          new WaypointRecord(
+              WaypointRecord.WaypointType.FUNCTION_ENTER,
+              WaypointRecord.WaypointAction.FOLLOW,
+              null,
+              location);
+      return new SegmentRecord(ImmutableList.of(waypoint));
+    }
+
+    private LocationRecord createLocationRecord(Map<KeyDef, String> attrs) {
+      @Nullable String function = attrs.get(ASSUMPTIONSCOPE);
+      int startline = Integer.parseInt(attrs.get(STARTLINE));
+      int lineoffset = lineOffsetsByFile.get(witness.getOriginFile()).get(startline - 1);
+      int column = Integer.parseInt(attrs.get(OFFSET)) - lineoffset;
+      LocationRecord location =
+          new LocationRecord(
+              witness.getOriginFile(), getProgramHash(), startline, column, function);
+      return location;
+    }
+
+    private String getProgramHash() {
+      String programHash;
+      try {
+        programHash = AutomatonGraphmlCommon.computeHash(witness.getCfa().getFileNames().get(0));
+      } catch (IOException e1) {
+        programHash = "";
+        logger.logfException(WARNING, e1, "Could not compute program hash!");
+      }
+      return programHash;
+    }
   }
 
   public static class YamlWitnessExportException extends Exception {
