@@ -830,6 +830,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "The current image is", currentImage);
       assert interpolants.orElseThrow().size() == 2;
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+      InterpolationHelper.recordInterpolantStats(fmgr, interpolant, stats);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
@@ -888,6 +889,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     stats.numOfInterpolationCalls += 1;
     stats.numOfInterpolants += itpSequence.size();
+    InterpolationHelper.recordInterpolantStats(fmgr, itpSequence, stats);
     return itpSequence;
   }
 

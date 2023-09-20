@@ -12,6 +12,7 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -225,6 +227,35 @@ public final class InterpolationHelper {
       PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
       predState.setAbstraction(
           pPredAbsMgr.asAbstraction(pFixedPoint, pPfmgr.makeEmptyPathFormula()));
+    }
+  }
+
+  static void recordInterpolantStats(
+      FormulaManagerView fmgr, BooleanFormula itp, BMCStatistics stats) {
+    final int numAtoms = fmgr.extractAtoms(itp, false).size();
+    final int numOps = fmgr.countBooleanOperations(itp).intValueExact();
+    if (stats.numOfAtomsInInterpolants == -1) {
+      stats.numOfAtomsInInterpolants = numAtoms;
+      stats.minNumOfAtomsInInterpolants = numAtoms;
+      stats.maxNumOfAtomsInInterpolants = numAtoms;
+      stats.numOfBoolOpsInInterpolants = numOps;
+      stats.minNumOfBoolOpsInInterpolants = numOps;
+      stats.maxNumOfBoolOpsInInterpolants = numOps;
+    } else {
+      assert stats.numOfBoolOpsInInterpolants >= 0;
+      stats.numOfAtomsInInterpolants += numAtoms;
+      stats.minNumOfAtomsInInterpolants = Math.min(numAtoms, stats.minNumOfAtomsInInterpolants);
+      stats.maxNumOfAtomsInInterpolants = Math.max(numAtoms, stats.maxNumOfAtomsInInterpolants);
+      stats.numOfBoolOpsInInterpolants += numOps;
+      stats.minNumOfBoolOpsInInterpolants = Math.min(numOps, stats.minNumOfBoolOpsInInterpolants);
+      stats.maxNumOfBoolOpsInInterpolants = Math.max(numOps, stats.maxNumOfBoolOpsInInterpolants);
+    }
+  }
+
+  static void recordInterpolantStats(
+      FormulaManagerView fmgr, ImmutableList<BooleanFormula> itps, BMCStatistics stats) {
+    for (BooleanFormula itp : itps) {
+      recordInterpolantStats(fmgr, itp, stats);
     }
   }
 }
