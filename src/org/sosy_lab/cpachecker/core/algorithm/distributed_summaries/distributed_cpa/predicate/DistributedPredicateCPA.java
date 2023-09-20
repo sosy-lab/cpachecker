@@ -53,6 +53,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final PathFormulaManager backwardManager;
+  private final boolean hasRootAsPredecessor;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -64,6 +65,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       Map<Integer, CFANode> pIdToNodeMap)
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
+    hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
@@ -134,8 +136,8 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
       throws CPATransferException,
           InterruptedException,
-          VerificationConditionException,
-          SolverException {
+          SolverException,
+          VerificationConditionException {
     PathFormula result;
     if (pPreviousCondition == null) {
       result = backwardManager.makeEmptyPathFormula();
@@ -152,7 +154,11 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
       result = backwardManager.makeAnd(result, cfaEdge);
     }
-
+    if (hasRootAsPredecessor) {
+      if (predicateCPA.getSolver().isUnsat(result.getFormula())) {
+        throw new VerificationConditionException("Formula is unsat at root.");
+      }
+    }
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         result,
         (PredicateAbstractState)

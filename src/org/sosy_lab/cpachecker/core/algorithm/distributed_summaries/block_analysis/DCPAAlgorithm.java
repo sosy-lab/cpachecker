@@ -218,11 +218,13 @@ public class DCPAAlgorithm {
       Set<ARGState> violations, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
     ImmutableSet<@NonNull ARGPath> pathsToViolations =
-        transformedImmutableSetCopy(violations, v ->
-                    ARGUtils.tryGetOrCreateCounterexampleInformation(
-                            v, dcpa.getCPA(), assumptionToEdgeAllocator)
-                        .orElseThrow()
-                        .getTargetPath());
+        transformedImmutableSetCopy(
+            violations,
+            v ->
+                ARGUtils.tryGetOrCreateCounterexampleInformation(
+                        v, dcpa.getCPA(), assumptionToEdgeAllocator)
+                    .orElseThrow()
+                    .getTargetPath());
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations) {
