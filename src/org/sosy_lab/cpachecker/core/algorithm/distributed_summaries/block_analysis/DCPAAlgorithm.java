@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -217,14 +218,11 @@ public class DCPAAlgorithm {
       Set<ARGState> violations, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
     ImmutableSet<@NonNull ARGPath> pathsToViolations =
-        FluentIterable.from(violations)
-            .transform(
-                v ->
+        transformedImmutableSetCopy(violations, v ->
                     ARGUtils.tryGetOrCreateCounterexampleInformation(
                             v, dcpa.getCPA(), assumptionToEdgeAllocator)
                         .orElseThrow()
-                        .getTargetPath())
-            .toSet();
+                        .getTargetPath());
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations) {
