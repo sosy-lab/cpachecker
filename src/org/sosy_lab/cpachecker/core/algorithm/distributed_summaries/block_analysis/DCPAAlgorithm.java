@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -73,13 +74,12 @@ public class DCPAAlgorithm {
   private final AbstractState startState;
   private final Set<String> predecessors;
   private final Set<String> loopPredecessors;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   // forward analysis variables
   private AlgorithmStatus status;
   private boolean alreadyReportedInfeasibility;
   private Precision blockStartPrecision;
-
-  private static final int FALLBACK_LIMIT = 0;
 
   public DCPAAlgorithm(
       LogManager pLogger,
@@ -93,6 +93,8 @@ public class DCPAAlgorithm {
     AnalysisComponents parts =
         DCPAAlgorithmFactory.createAlgorithm(
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
+    assumptionToEdgeAllocator =
+        AssumptionToEdgeAllocator.create(pConfiguration, pLogger, pCFA.getMachineModel());
     // prepare dcpa and the algorithms
     status = AlgorithmStatus.SOUND_AND_PRECISE;
     algorithm = parts.algorithm();
@@ -177,7 +179,7 @@ public class DCPAAlgorithm {
             .getFormulaManager()
             .simplifyBooleanFormula(
                 predicateCPA.getSolver().getFormulaManager().instantiate(formula, newMap.build()));
-    var state =
+    PredicateAbstractState state =
         PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
             predicateCPA
                 .getPathFormulaManager()
@@ -212,33 +214,17 @@ public class DCPAAlgorithm {
   }
 
   private Collection<BlockSummaryMessage> reportErrorConditions(
-      Set<ARGState> violations, Set<ARGState> blockEnds, ARGState condition, boolean first)
+      Set<ARGState> violations, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
-    ImmutableSet<@NonNull ARGPath> pathsToViolations;
-    if (!violations.isEmpty()
-        && reachedSet.stream()
-            .filter(AbstractStates::isTargetState)
-            .allMatch(a -> ((ARGState) a).getCounterexampleInformation().isEmpty())) {
-      pathsToViolations =
-          FluentIterable.from(blockEnds)
-              .transformAndConcat(v -> ARGUtils.getAllPaths(reachedSet, v))
-              .toSet();
-      if (pathsToViolations.size() > FALLBACK_LIMIT
-          || block.getPredecessorIds().stream().anyMatch(id -> id.equals("root"))) {
-        throw new CPAException(
-            "Abstraction state did not contain a counterexample, fallback produced "
-                + pathsToViolations.size()
-                + " violation(s) (exceeds the limit of "
-                + FALLBACK_LIMIT
-                + ").");
-      }
-    } else {
-      pathsToViolations =
-          FluentIterable.from(violations)
-              .filter(v -> v.getCounterexampleInformation().isPresent())
-              .transform(v -> v.getCounterexampleInformation().orElseThrow().getTargetPath())
-              .toSet();
-    }
+    ImmutableSet<@NonNull ARGPath> pathsToViolations =
+        FluentIterable.from(violations)
+            .transform(
+                v ->
+                    ARGUtils.tryGetOrCreateCounterexampleInformation(
+                            v, dcpa.getCPA(), assumptionToEdgeAllocator)
+                        .orElseThrow()
+                        .getTargetPath())
+            .toSet();
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations) {
@@ -279,7 +265,7 @@ public class DCPAAlgorithm {
       return reportBlockPostConditions(result.getBlockEndStates(), true);
     }
 
-    return reportErrorConditions(result.getViolationStates(), ImmutableSet.of(), null, true);
+    return reportErrorConditions(result.getViolationStates(), null, true);
   }
 
   /**
@@ -354,22 +340,13 @@ public class DCPAAlgorithm {
       return processing;
     }
 
-    final AbstractState translatedErrorCondition =
-        dcpa.getDeserializeOperator()
-            .deserialize(
-                BlockSummaryMessage.newBlockPostCondition(
-                    pErrorCondition.getBlockId(),
-                    pErrorCondition.getTargetNodeNumber(),
-                    getDCPA().getSerializeOperator().serialize(errorCondition),
-                    true));
-
     prepareReachedSet();
 
     reachedSet.forEach(
         abstractState ->
             Objects.requireNonNull(
                     AbstractStates.extractStateByType(abstractState, BlockState.class))
-                .setErrorCondition(translatedErrorCondition));
+                .setErrorCondition(errorCondition));
 
     BlockAnalysisIntermediateResult result =
         DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
@@ -388,11 +365,7 @@ public class DCPAAlgorithm {
               block.getId(), "Condition unsatisfiable (after strengthening)"));
     } else {
       Collection<BlockSummaryMessage> errorConditions =
-          reportErrorConditions(
-              result.getAbstractionStates(),
-              result.getBlockEndStates(),
-              ((ARGState) errorCondition),
-              false);
+          reportErrorConditions(result.getAbstractionStates(), ((ARGState) errorCondition), false);
       if (errorConditions.isEmpty()) {
         messages.add(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(

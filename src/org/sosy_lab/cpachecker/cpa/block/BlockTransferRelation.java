@@ -16,7 +16,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -31,11 +30,10 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
     BlockState blockState = (BlockState) element;
     CFANode node = blockState.getLocationNode();
-    // block end cannot be reached directly after processing the first edge
-    if (blockState.getType().equals(BlockStateType.INITIAL)) {
-      if (cfaEdge instanceof GhostEdge) {
-        return ImmutableSet.of();
-      }
+
+    // block end cannot be reached directly before processing the first edge
+    if (blockState.getType().equals(BlockStateType.INITIAL) && cfaEdge instanceof GhostEdge) {
+      return ImmutableSet.of();
     }
 
     final BlockState successor =
@@ -49,9 +47,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
         Sets.intersection(
             CFAUtils.leavingEdges(node).toSet(), blockState.getBlockNode().getEdges());
 
-    if (intersection.contains(cfaEdge)
-        || (cfaEdge instanceof CFunctionCallEdge callEdge
-            && intersection.contains(callEdge.getSummaryEdge()))) {
+    if (intersection.contains(cfaEdge)) {
       return ImmutableList.of(successor);
     }
 
