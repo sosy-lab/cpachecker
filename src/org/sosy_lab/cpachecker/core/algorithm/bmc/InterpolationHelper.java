@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -233,7 +234,7 @@ public final class InterpolationHelper {
   static void recordInterpolantStats(
       FormulaManagerView fmgr, BooleanFormula itp, BMCStatistics stats) {
     final int numAtoms = fmgr.extractAtoms(itp, false).size();
-    final int numOps = fmgr.countBooleanOperations(itp).intValueExact();
+    final BigInteger numOps = fmgr.countBooleanOperations(itp);
     if (stats.numOfAtomsInInterpolants == -1) {
       stats.numOfAtomsInInterpolants = numAtoms;
       stats.minNumOfAtomsInInterpolants = numAtoms;
@@ -242,13 +243,13 @@ public final class InterpolationHelper {
       stats.minNumOfBoolOpsInInterpolants = numOps;
       stats.maxNumOfBoolOpsInInterpolants = numOps;
     } else {
-      assert stats.numOfBoolOpsInInterpolants >= 0;
+      assert stats.numOfBoolOpsInInterpolants.compareTo(BigInteger.ZERO) >= 0;
       stats.numOfAtomsInInterpolants += numAtoms;
       stats.minNumOfAtomsInInterpolants = Math.min(numAtoms, stats.minNumOfAtomsInInterpolants);
       stats.maxNumOfAtomsInInterpolants = Math.max(numAtoms, stats.maxNumOfAtomsInInterpolants);
-      stats.numOfBoolOpsInInterpolants += numOps;
-      stats.minNumOfBoolOpsInInterpolants = Math.min(numOps, stats.minNumOfBoolOpsInInterpolants);
-      stats.maxNumOfBoolOpsInInterpolants = Math.max(numOps, stats.maxNumOfBoolOpsInInterpolants);
+      stats.numOfBoolOpsInInterpolants = stats.numOfBoolOpsInInterpolants.add(numOps);
+      stats.minNumOfBoolOpsInInterpolants = stats.minNumOfBoolOpsInInterpolants.min(numOps);
+      stats.maxNumOfBoolOpsInInterpolants = stats.maxNumOfBoolOpsInInterpolants.max(numOps);
     }
   }
 
