@@ -239,6 +239,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (solver.implies(forwardFormula, forwardImage)
           || solver.implies(backwardFormula, backwardImage)) {
         stats.fixedPointConvergenceLength = pDualSequence.getSize();
+        logger.log(Level.INFO, "Fixed point reached");
         return true;
       }
       forwardImage = bfmgr.or(forwardFormula, forwardImage);
