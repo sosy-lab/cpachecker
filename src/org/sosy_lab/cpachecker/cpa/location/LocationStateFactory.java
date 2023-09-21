@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.cpa.location;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,7 +40,7 @@ public class LocationStateFactory {
   private boolean followFunctionCalls = true;
 
   @Option(description = "Function names in this List will be ignored in the analysis process")
-  private List<String> ignoreFunctions = new ArrayList<>();
+  private Set<String> ignoreFunctions = ImmutableSet.of();
 
   public LocationStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
       throws InvalidConfigurationException {
@@ -80,7 +80,7 @@ public class LocationStateFactory {
 
   private LocationState createLocationState(CFANode node) {
     return locationType == AnalysisDirection.BACKWARD
-        ? new BackwardsLocationState(node, followFunctionCalls, ignoreFunctions)
+        ? new BackwardsLocationState(node, followFunctionCalls)
         : new LocationState(node, followFunctionCalls, ignoreFunctions);
   }
 }
