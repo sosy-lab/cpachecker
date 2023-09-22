@@ -39,7 +39,7 @@ public class LocationStateFactory {
               + " without following function calls (in this case FunctionSummaryEdges are used)")
   private boolean followFunctionCalls = true;
 
-  @Option(description = "Function names in this List will be ignored in the analysis process")
+  @Option(secure = true, description = "Function names in this List will be ignored in the analysis process")
   private Set<String> ignoreFunctions = ImmutableSet.of();
 
   public LocationStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
