@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -350,8 +351,8 @@ public final class InvariantWitnessWriter {
           SegmentRecord segement = makeFunctionEntryWaypoint(attrs);
           segments.add(segement);
         } else if (attrs.get(CONTROLCASE) != null) {
-          SegmentRecord waypoint = handleControlEdge(attrs);
-          segments.add(waypoint);
+          Optional<SegmentRecord> segment = handleControlEdge(attrs);
+          segment.ifPresent(segments::add);
         } else if (attrs.get(ASSUMPTION) != null) {
           SegmentRecord waypoint = makeAssumptionWaypoint(attrs);
           segments.add(waypoint);
@@ -361,7 +362,7 @@ public final class InvariantWitnessWriter {
       return builder.build();
     }
 
-    private SegmentRecord handleControlEdge(Map<KeyDef, String> attrs) {
+    private Optional<SegmentRecord> handleControlEdge(Map<KeyDef, String> attrs) {
       Preconditions.checkState(
           ImmutableSet.of("condition-true", "condition-false").contains(attrs.get(CONTROLCASE)));
       InformationRecord info =
@@ -374,7 +375,7 @@ public final class InvariantWitnessWriter {
               WaypointRecord.WaypointAction.FOLLOW,
               info,
               location);
-      return new SegmentRecord(ImmutableList.of(waypoint));
+      return Optional.of(new SegmentRecord(ImmutableList.of(waypoint)));
     }
 
     private SegmentRecord makeAssumptionWaypoint(Map<KeyDef, String> attrs) {
