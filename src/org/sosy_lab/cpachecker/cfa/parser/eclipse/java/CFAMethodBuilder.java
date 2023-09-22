@@ -2873,6 +2873,13 @@ class CFAMethodBuilder extends ASTVisitor {
               true);
       addToCFA(exceptionIsInstance);
 
+      locStack.push(correct);
+
+      CFANode helperNull = new CFANode(cfa.getFunction());
+      cfaNodes.add(helperNull);
+      setHelperNull(helperNull);
+      locStack.push(helperNull);
+
       if (!temp.equals(incorrect)) {
         nextExceptionOrEnd = temp;
       }
@@ -2885,8 +2892,6 @@ class CFAMethodBuilder extends ASTVisitor {
     } else {
       endOfCatch.add(incorrect);
     }
-
-    locStack.push(correct);
   }
 
   @Override
@@ -2982,26 +2987,9 @@ class CFAMethodBuilder extends ASTVisitor {
     return SKIP_CHILDREN;
   }
 
-  private JExpressionAssignmentStatement setVariableRightSideExpression(
-      FileLocation fileL, JType type, String name, JSimpleDeclaration dec, JExpression expression) {
-    JLeftHandSide helperLeft = new JIdExpression(fileL, type, name, dec);
-
-    JExpressionAssignmentStatement helperExpression =
-        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
-
-    return helperExpression;
-  }
-
-  @Override
-  public void endVisit(CatchClause cc) {
-
-    numberCatches = numberCatches - 1;
-
+  private void setHelperNull(CFANode next) {
     CFANode current = locStack.pop();
-    CFANode next = new CFANode(cfa.getFunction());
-
     cfaNodes.add(current);
-    cfaNodes.add(next);
 
     JExpressionAssignmentStatement helperNullAssignment =
         HelperVariable.getInstance().getHelperIsNull();
@@ -3015,14 +3003,48 @@ class CFAMethodBuilder extends ASTVisitor {
             next);
 
     addToCFA(edge);
+  }
 
-    BlankEdge temp = new BlankEdge("", FileLocation.DUMMY, next, locStack.peek(), "");
-    addToCFA(temp);
+  private JExpressionAssignmentStatement setVariableRightSideExpression(
+      FileLocation fileL, JType type, String name, JSimpleDeclaration dec, JExpression expression) {
+    JLeftHandSide helperLeft = new JIdExpression(fileL, type, name, dec);
+
+    JExpressionAssignmentStatement helperExpression =
+        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
+
+    return helperExpression;
+  }
+
+  @Override
+  public void endVisit(CatchClause cc) {
+    numberCatches = numberCatches - 1;
+
+    CFANode next = new CFANode(cfa.getFunction());
+    cfaNodes.add(next);
+
+
+    if (!finallyExists.peek()) {
+      setHelperNull(next);
+      BlankEdge temp = new BlankEdge("", FileLocation.DUMMY, next, locStack.peek(), "");
+      addToCFA(temp);
+    } else { // TODO look at else case because it can probably be handled better than that
+      CFANode current = locStack.pop();
+      BlankEdge tempCurrent = new BlankEdge("", FileLocation.DUMMY, current, next, "");
+      addToCFA(tempCurrent);
+
+      BlankEdge temp = new BlankEdge("", FileLocation.DUMMY, next, locStack.peek(), "");
+      addToCFA(temp);
+    }
 
     if (numberCatches != 0) {
       locStack.push(nextCatchBlockOrError.peek());
     } else {
       numberCatchesNested.pop();
+
+      numberNestedTryCatch -= 1;
+      if (numberNestedTryCatch == 0) {
+        isNested = false;
+      }
 
       if (!numberCatchesNested.isEmpty()) {
         numberCatches = numberCatchesNested.peek();
@@ -3040,14 +3062,10 @@ class CFAMethodBuilder extends ASTVisitor {
           addToCFA(tempEdge);
         }
         nextCatchBlockOrError.clear();
-      } else if (numberNestedTryCatch > 0) {
+      } else if (isNested) {
         lastNestedCatch.add(nextCatchBlockOrError.pop());
       } else {
         endOfCatch.add(nextCatchBlockOrError.pop());
-      }
-      numberNestedTryCatch -= 1;
-      if(numberNestedTryCatch == 0) {
-        isNested = false;
       }
     }
   }
