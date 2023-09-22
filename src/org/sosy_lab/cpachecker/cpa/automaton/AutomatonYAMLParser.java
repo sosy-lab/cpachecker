@@ -443,7 +443,9 @@ public class AutomatonYAMLParser {
       int line = follow.getLocation().getLine();
       AutomatonBoolExpr expr = new CheckCoversLines(ImmutableSet.of(line));
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
-      handleAssumptionWaypoint(allowedLines, follow, line, builder);
+      if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
+        handleAssumptionWaypoint(follow, line, builder);
+      }
 
       ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
       actionBuilder.add(
@@ -500,22 +502,19 @@ public class AutomatonYAMLParser {
   }
 
   private void handleAssumptionWaypoint(
-      Set<Integer> allowedLines,
       WaypointRecord follow,
       int line,
       AutomatonTransition.Builder builder)
       throws InterruptedException, InvalidConfigurationException {
-    if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
-      String invariantString = follow.getConstraint().getString();
-      Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
-      try {
-        AExpression exp =
-            createExpressionTreeFromString(resultFunction, invariantString, line, null)
-                .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
-        builder.withAssumptions(ImmutableList.of(exp));
-      } catch (UnrecognizedCodeException e) {
-        throw new InvalidConfigurationException("Could not parse string into valid expression", e);
-      }
+    String invariantString = follow.getConstraint().getString();
+    Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
+    try {
+      AExpression exp =
+          createExpressionTreeFromString(resultFunction, invariantString, line, null)
+              .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+      builder.withAssumptions(ImmutableList.of(exp));
+    } catch (UnrecognizedCodeException e) {
+      throw new InvalidConfigurationException("Could not parse string into valid expression", e);
     }
   }
 
