@@ -470,9 +470,9 @@ public class AutomatonYAMLParser {
           new AutomatonInternalState(
               currentStateId,
               ImmutableList.of(
-                  new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
-                      .withAssertion(createViolationAssertion())
-                      .build()),
+                  new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
+                          .withAssertion(createViolationAssertion()))),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
@@ -502,9 +502,7 @@ public class AutomatonYAMLParser {
   }
 
   private void handleAssumptionWaypoint(
-      WaypointRecord follow,
-      int line,
-      AutomatonTransition.Builder builder)
+      WaypointRecord follow, int line, AutomatonTransition.Builder builder)
       throws InterruptedException, InvalidConfigurationException {
     String invariantString = follow.getConstraint().getString();
     Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());

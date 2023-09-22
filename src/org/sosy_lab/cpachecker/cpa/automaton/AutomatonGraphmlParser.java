@@ -1959,9 +1959,9 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
+  public static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
+    public TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
       super(pBuilder);
     }
 
