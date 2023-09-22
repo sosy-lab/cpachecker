@@ -8,8 +8,37 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
-import java.util.Collection;
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public record ASTElement(FileLocation location, Collection<CFAEdge> edges) {}
+public class ASTElement {
+  private final FileLocation location;
+  private ImmutableSet<CFAEdge> allEdges;
+  private Set<CFAEdge> edges = null;
+
+  public ASTElement(FileLocation pLocation, ImmutableSet<CFAEdge> pAllEdges) {
+    location = pLocation;
+    allEdges = pAllEdges;
+  }
+
+  public FileLocation location() {
+    return location;
+  }
+
+  /**
+   * @return the set of CFA edges belonging to this ASTElement.
+   */
+  public Set<CFAEdge> edges() {
+    // we calculate this set lazily upon the first invocation
+    if (edges == null) {
+      edges =
+          allEdges.stream()
+              .filter(x -> FileLocationUtils.entails(location, x.getFileLocation()))
+              .collect(ImmutableSet.toImmutableSet());
+      allEdges = null; // free reference
+    }
+    return edges;
+  }
+}

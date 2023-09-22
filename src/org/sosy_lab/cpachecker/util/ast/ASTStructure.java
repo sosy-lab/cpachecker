@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -64,7 +65,7 @@ public class ASTStructure {
 
   private void updateIfStructures(CFA pCfa) {
     // CFA is still mutable => prevent calculating edge set multiple times:
-    Set<CFAEdge> edges = CFAUtils.allEdges(pCfa).toSet();
+    ImmutableSet<CFAEdge> edges = CFAUtils.allEdges(pCfa).toSet();
     for (FileLocation loc : classifier.ifLocations) {
       ifStructures.add(
           new IfStructure(
@@ -78,7 +79,7 @@ public class ASTStructure {
 
   private void updateIterationStructures(CFA pCfa) {
     // CFA is still mutable => prevent calculating edge set multiple times:
-    Set<CFAEdge> edges = CFAUtils.allEdges(pCfa).toSet();
+    ImmutableSet<CFAEdge> edges = CFAUtils.allEdges(pCfa).toSet();
     for (FileLocation loc : classifier.loopLocations) {
       iterationStructures.add(
           new IterationStructure(

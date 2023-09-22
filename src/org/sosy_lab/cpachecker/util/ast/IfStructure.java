@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.ast;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -23,21 +22,19 @@ public class IfStructure extends StatementStructure {
   private final ASTElement thenElement;
   private final Optional<ASTElement> maybeElseElement;
 
-  private final Collection<CFAEdge> thenEdges;
-  private final Collection<CFAEdge> elseEdges;
+  private Collection<CFAEdge> thenEdges = null;
+  private Collection<CFAEdge> elseEdges = null;
 
   IfStructure(
       FileLocation pIfLocation,
       FileLocation pConditionLocation,
       FileLocation pThenLocation,
       Optional<FileLocation> pMaybeElseLocation,
-      Set<CFAEdge> pEdges) {
+      ImmutableSet<CFAEdge> pEdges) {
     completeElement = determineElement(pIfLocation, pEdges);
     conditionElement = determineElement(pConditionLocation, pEdges);
     thenElement = determineElement(pThenLocation, pEdges);
     maybeElseElement = pMaybeElseLocation.map(x -> determineElement(x, pEdges));
-    thenEdges = findThenEdges();
-    elseEdges = findElseEdges();
   }
 
   @Override
@@ -58,10 +55,16 @@ public class IfStructure extends StatementStructure {
   }
 
   public Collection<CFAEdge> getThenEdges() {
+    if (thenEdges == null) {
+      thenEdges = findThenEdges();
+    }
     return thenEdges;
   }
 
   public Collection<CFAEdge> getElseEdges() {
+    if (elseEdges == null) {
+      elseEdges = findElseEdges();
+    }
     return elseEdges;
   }
 

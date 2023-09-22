@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -29,7 +29,7 @@ public class IterationStructure extends BranchingStructure {
       FileLocation pBodyLocation,
       Optional<FileLocation> pMaybeInitClause,
       Optional<FileLocation> pMaybeIterationExpression,
-      Set<CFAEdge> pEdges) {
+      ImmutableSet<CFAEdge> pEdges) {
     clause = determineElement(pClauseLocation, pEdges);
     body = determineElement(pBodyLocation, pEdges);
     completeElement = determineElement(pIterationStatementLocation, pEdges);

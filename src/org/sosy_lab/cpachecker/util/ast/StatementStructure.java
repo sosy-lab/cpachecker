@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -17,11 +16,8 @@ public abstract class StatementStructure {
 
   public abstract ASTElement getCompleteElement();
 
-  public ASTElement determineElement(FileLocation pConditionLocation, Collection<CFAEdge> pEdges) {
-    return new ASTElement(
-        pConditionLocation,
-        pEdges.stream()
-            .filter(x -> FileLocationUtils.entails(pConditionLocation, x.getFileLocation()))
-            .collect(ImmutableSet.toImmutableSet()));
+  public ASTElement determineElement(
+      FileLocation pConditionLocation, ImmutableSet<CFAEdge> pEdges) {
+    return new ASTElement(pConditionLocation, pEdges);
   }
 }
