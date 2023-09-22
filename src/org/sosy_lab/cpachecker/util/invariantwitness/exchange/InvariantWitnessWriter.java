@@ -348,13 +348,13 @@ public final class InvariantWitnessWriter {
           continue; // we ignore sink nodes for now
         }
         if (attrs.get(FUNCTIONENTRY) != null) {
-          SegmentRecord segement = makeFunctionEntryWaypoint(attrs);
+          SegmentRecord segement = makeFunctionEntrySegment(attrs);
           segments.add(segement);
         } else if (attrs.get(CONTROLCASE) != null) {
           Optional<SegmentRecord> segment = handleControlEdge(attrs);
           segment.ifPresent(segments::add);
         } else if (attrs.get(ASSUMPTION) != null) {
-          SegmentRecord waypoint = makeAssumptionWaypoint(attrs);
+          SegmentRecord waypoint = makeAssumptionSegment(attrs);
           segments.add(waypoint);
         }
         builder.add(successor);
@@ -378,7 +378,7 @@ public final class InvariantWitnessWriter {
       return Optional.of(new SegmentRecord(ImmutableList.of(waypoint)));
     }
 
-    private SegmentRecord makeAssumptionWaypoint(Map<KeyDef, String> attrs) {
+    private SegmentRecord makeAssumptionSegment(Map<KeyDef, String> attrs) {
       LocationRecord location = createLocationRecord(attrs);
       InformationRecord inv = new InformationRecord(attrs.get(ASSUMPTION), null, "C");
       WaypointRecord waypoint =
@@ -390,7 +390,7 @@ public final class InvariantWitnessWriter {
       return new SegmentRecord(ImmutableList.of(waypoint));
     }
 
-    private SegmentRecord makeFunctionEntryWaypoint(Map<KeyDef, String> attrs) {
+    private SegmentRecord makeFunctionEntrySegment(Map<KeyDef, String> attrs) {
       LocationRecord location = createLocationRecord(attrs);
       WaypointRecord waypoint =
           new WaypointRecord(
