@@ -95,6 +95,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       new StatInt(StatKind.MAX, "Worker without abstraction");
 
   @Option(
+      secure = true,
       description =
           "Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION creates blocks"
               + " from each merge/branching point to the next merge/branching point."
@@ -104,6 +105,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private DecompositionType decompositionType = DecompositionType.FUNCTION_DECOMPOSITION;
 
   @Option(
+      secure = true,
       description =
           "Whether to spawn util workers. "
               + "Util workers listen to every message and create visual output for debugging. "
