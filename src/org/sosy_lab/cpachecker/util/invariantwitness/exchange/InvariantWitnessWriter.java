@@ -350,7 +350,7 @@ public final class InvariantWitnessWriter {
           SegmentRecord segement = makeFunctionEntryWaypoint(attrs);
           segments.add(segement);
         } else if (attrs.get(CONTROLCASE) != null) {
-          SegmentRecord waypoint = makeBranchingWaypoint(attrs);
+          SegmentRecord waypoint = handleControlEdge(attrs);
           segments.add(waypoint);
         } else if (attrs.get(ASSUMPTION) != null) {
           SegmentRecord waypoint = makeAssumptionWaypoint(attrs);
@@ -361,7 +361,7 @@ public final class InvariantWitnessWriter {
       return builder.build();
     }
 
-    private SegmentRecord makeBranchingWaypoint(Map<KeyDef, String> attrs) {
+    private SegmentRecord handleControlEdge(Map<KeyDef, String> attrs) {
       Preconditions.checkState(
           ImmutableSet.of("condition-true", "condition-false").contains(attrs.get(CONTROLCASE)));
       InformationRecord info =
