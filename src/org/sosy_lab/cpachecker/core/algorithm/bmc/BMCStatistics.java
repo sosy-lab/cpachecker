@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.math.IntMath;
 import java.io.PrintStream;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -80,7 +82,7 @@ public class BMCStatistics implements Statistics {
       out.println("Total number of atoms in interpolants:           " + numOfAtomsInInterpolants);
       out.println(
           "  Avg. #atoms:                                   "
-              + (float) numOfAtomsInInterpolants / numOfInterpolants);
+              + IntMath.divide(numOfAtomsInInterpolants, numOfInterpolants, RoundingMode.HALF_UP));
       out.println(
           "  Min. #atoms:                                   " + minNumOfAtomsInInterpolants);
       out.println(
@@ -90,7 +92,7 @@ public class BMCStatistics implements Statistics {
       out.println("Total number of Boolean ops in interpolants:     " + numOfBoolOpsInInterpolants);
       out.println(
           "  Avg. #Boolean-ops:                             "
-              + numOfBoolOpsInInterpolants.doubleValue() / numOfInterpolants);
+              + numOfBoolOpsInInterpolants.divide(BigInteger.valueOf(numOfInterpolants)));
       out.println(
           "  Min. #Boolean-ops:                             " + minNumOfBoolOpsInInterpolants);
       out.println(
