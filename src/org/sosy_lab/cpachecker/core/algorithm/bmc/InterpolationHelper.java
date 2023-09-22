@@ -234,11 +234,15 @@ public final class InterpolationHelper {
   static void recordInterpolantStats(
       FormulaManagerView fmgr, BooleanFormula itp, BMCStatistics stats) {
     final int numAtoms = fmgr.extractAtoms(itp, false).size();
+    final int numVars = fmgr.extractVariableNames(itp).size();
     final BigInteger numOps = fmgr.countBooleanOperations(itp);
     if (stats.numOfAtomsInInterpolants == -1) {
       stats.numOfAtomsInInterpolants = numAtoms;
       stats.minNumOfAtomsInInterpolants = numAtoms;
       stats.maxNumOfAtomsInInterpolants = numAtoms;
+      stats.numOfVarsInInterpolants = numVars;
+      stats.minNumOfVarsInInterpolants = numVars;
+      stats.maxNumOfVarsInInterpolants = numVars;
       stats.numOfBoolOpsInInterpolants = numOps;
       stats.minNumOfBoolOpsInInterpolants = numOps;
       stats.maxNumOfBoolOpsInInterpolants = numOps;
@@ -247,6 +251,9 @@ public final class InterpolationHelper {
       stats.numOfAtomsInInterpolants += numAtoms;
       stats.minNumOfAtomsInInterpolants = Math.min(numAtoms, stats.minNumOfAtomsInInterpolants);
       stats.maxNumOfAtomsInInterpolants = Math.max(numAtoms, stats.maxNumOfAtomsInInterpolants);
+      stats.numOfVarsInInterpolants += numVars;
+      stats.minNumOfVarsInInterpolants = Math.min(numVars, stats.minNumOfVarsInInterpolants);
+      stats.maxNumOfVarsInInterpolants = Math.max(numVars, stats.maxNumOfVarsInInterpolants);
       stats.numOfBoolOpsInInterpolants = stats.numOfBoolOpsInInterpolants.add(numOps);
       stats.minNumOfBoolOpsInInterpolants = stats.minNumOfBoolOpsInInterpolants.min(numOps);
       stats.maxNumOfBoolOpsInInterpolants = stats.maxNumOfBoolOpsInInterpolants.max(numOps);
