@@ -132,12 +132,8 @@ public class ASTStructure {
         statementStartEdges.stream()
             .map(
                 x ->
-                    x.getFileLocation().getNodeOffset()
-                        + ":"
-                        + (x.getFileLocation().getNodeOffset()
-                            + x.getFileLocation().getNodeLength())
-                        + " "
-                        + x.toString())
+                    x.getFileLocation().getNodeOffset() + ":" + (x.getFileLocation().getNodeOffset()
+                            + x.getFileLocation().getNodeLength()) + " " + x)
             .collect(Collectors.joining("\n")));
     logger.log(
         Level.INFO,
@@ -147,14 +143,9 @@ public class ASTStructure {
         declarationStartEdges.stream()
             .map(
                 x ->
-                    x.getFileLocation().getNodeOffset()
-                        + ":"
-                        + (x.getFileLocation().getNodeOffset()
-                            + x.getFileLocation().getNodeLength())
-                        + " "
-                        + x.toString())
+                    x.getFileLocation().getNodeOffset() + ":" + (x.getFileLocation().getNodeOffset()
+                            + x.getFileLocation().getNodeLength()) + " " + x)
             .collect(Collectors.joining("\n")));
-    ;
     logger.log(
         Level.INFO,
         "The following",
@@ -163,12 +154,8 @@ public class ASTStructure {
         otherEdges.stream()
             .map(
                 x ->
-                    x.getFileLocation().getNodeOffset()
-                        + ":"
-                        + (x.getFileLocation().getNodeOffset()
-                            + x.getFileLocation().getNodeLength())
-                        + " "
-                        + x.toString())
+                    x.getFileLocation().getNodeOffset() + ":" + (x.getFileLocation().getNodeOffset()
+                            + x.getFileLocation().getNodeLength()) + " " + x)
             .collect(Collectors.joining("\n")));
     for (FileLocation ifLocation : classifier.ifLocations) {
       List<CFAEdge> edges = new ArrayList<>();
@@ -187,7 +174,7 @@ public class ASTStructure {
                   + classifier.ifCondition.get(ifLocation).getNodeLength())
               + " has the following edges:\n"
               + edges.stream()
-                  .map(x -> x.getFileLocation().getNodeOffset() + " " + x.toString())
+                  .map(x -> x.getFileLocation().getNodeOffset() + " " + x)
                   .collect(Collectors.joining("\n")));
     }
   }

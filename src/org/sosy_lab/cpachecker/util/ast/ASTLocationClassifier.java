@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -65,13 +67,9 @@ class ASTLocationClassifier extends ASTVisitor {
 
   public void update() {
     statementStartOffsets =
-        statementLocations.stream()
-            .map(x -> x.getNodeOffset())
-            .collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(statementLocations, x->x.getNodeOffset());
     declarationStartOffsets =
-        declarationLocations.stream()
-            .map(x -> x.getNodeOffset())
-            .collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(declarationLocations, x->x.getNodeOffset());
   }
 
   public void indexFileNames(List<Path> pFileNames) {
