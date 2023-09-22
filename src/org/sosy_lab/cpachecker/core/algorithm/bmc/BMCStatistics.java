@@ -38,6 +38,9 @@ public class BMCStatistics implements Statistics {
   int numOfAtomsInInterpolants = -1;
   int minNumOfAtomsInInterpolants = -1;
   int maxNumOfAtomsInInterpolants = -1;
+  int numOfVarsInInterpolants = -1;
+  int minNumOfVarsInInterpolants = -1;
+  int maxNumOfVarsInInterpolants = -1;
   BigInteger numOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
   BigInteger minNumOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
   BigInteger maxNumOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
@@ -81,22 +84,30 @@ public class BMCStatistics implements Statistics {
     if (numOfAtomsInInterpolants >= 0) {
       out.println("Total number of atoms in interpolants:           " + numOfAtomsInInterpolants);
       out.println(
-          "  Avg. #atoms:                                   "
+          "  Avg. #atoms in itp:                            "
               + IntMath.divide(numOfAtomsInInterpolants, numOfInterpolants, RoundingMode.HALF_UP));
       out.println(
-          "  Min. #atoms:                                   " + minNumOfAtomsInInterpolants);
+          "  Min. #atoms in itp:                            " + minNumOfAtomsInInterpolants);
       out.println(
-          "  Max. #atoms:                                   " + maxNumOfAtomsInInterpolants);
+          "  Max. #atoms in itp:                            " + maxNumOfAtomsInInterpolants);
+    }
+    if (numOfVarsInInterpolants >= 0) {
+      out.println("Total number of vars in interpolants:            " + numOfVarsInInterpolants);
+      out.println(
+          "  Avg. #vars in itp:                             "
+              + IntMath.divide(numOfVarsInInterpolants, numOfInterpolants, RoundingMode.HALF_UP));
+      out.println("  Min. #vars in itp:                             " + minNumOfVarsInInterpolants);
+      out.println("  Max. #vars in itp:                             " + maxNumOfVarsInInterpolants);
     }
     if (numOfBoolOpsInInterpolants.compareTo(BigInteger.ZERO) >= 0) {
       out.println("Total number of Boolean ops in interpolants:     " + numOfBoolOpsInInterpolants);
       out.println(
-          "  Avg. #Boolean-ops:                             "
+          "  Avg. #Boolean-ops in itp:                      "
               + numOfBoolOpsInInterpolants.divide(BigInteger.valueOf(numOfInterpolants)));
       out.println(
-          "  Min. #Boolean-ops:                             " + minNumOfBoolOpsInInterpolants);
+          "  Min. #Boolean-ops in itp:                      " + minNumOfBoolOpsInInterpolants);
       out.println(
-          "  Max. #Boolean-ops:                             " + maxNumOfBoolOpsInInterpolants);
+          "  Max. #Boolean-ops in itp:                      " + maxNumOfBoolOpsInInterpolants);
     }
     if (fixedPointConvergenceLength >= 0) {
       out.println(
