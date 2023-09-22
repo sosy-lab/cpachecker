@@ -109,10 +109,16 @@ public class HelperVariable {
     return helperNotEqualsTemp;
   }
 
-  public JExpression getRunTimeTypeEqualsExpression(JClassType exception) {
+  public JIdExpression getCurrentHelperIdExpression() {
     JIdExpression helperIdExpression =
         new JIdExpression(
             FileLocation.DUMMY, currentType, "MainApp_helper", helperFieldDeclaration);
+
+    return helperIdExpression;
+  }
+
+  public JExpression getRunTimeTypeEqualsExpression(JClassType exception) {
+    JIdExpression helperIdExpression = getCurrentHelperIdExpression();
 
     JRunTimeTypeExpression helperRunTimeType =
         new JVariableRunTimeType(FileLocation.DUMMY, helperIdExpression);
@@ -140,9 +146,7 @@ public class HelperVariable {
   }
 
   public JExpressionAssignmentStatement setHelperRightSideExpression(JExpression expression) {
-    JLeftHandSide helperLeft =
-        new JIdExpression(
-            FileLocation.DUMMY, currentType, "MainApp_helper", helperFieldDeclaration);
+    JLeftHandSide helperLeft = getCurrentHelperIdExpression();
 
     JExpressionAssignmentStatement helperExpression =
         new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);

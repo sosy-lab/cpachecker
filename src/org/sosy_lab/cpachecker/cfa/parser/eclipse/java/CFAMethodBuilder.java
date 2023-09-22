@@ -2949,6 +2949,30 @@ class CFAMethodBuilder extends ASTVisitor {
 
     cc.getException().accept(this);
 
+    CFANode afterDeclaration = new CFANode(cfa.getFunction());
+    cfaNodes.add(afterDeclaration);
+    JType exceptionType = astCreator.convert(cc.getException()).getType();
+    JSimpleDeclaration declaration = astCreator.convert(cc.getException());
+
+    JExpressionAssignmentStatement exceptionDeclaration =
+        setVariableRightSideExpression(
+            astCreator.getFileLocation(cc.getException()),
+            exceptionType,
+            cc.getException().getName().toString(),
+            declaration,
+            HelperVariable.getInstance().getCurrentHelperIdExpression());
+
+    JStatementEdge edge =
+        new JStatementEdge(
+            exceptionDeclaration.toString(),
+            exceptionDeclaration,
+            FileLocation.DUMMY,
+            locStack.pop(),
+            afterDeclaration);
+    addToCFA(edge);
+
+    locStack.push(afterDeclaration);
+
     cc.getBody().accept(this);
 
     if (!lastNestedCatch.isEmpty()) {
@@ -2956,6 +2980,16 @@ class CFAMethodBuilder extends ASTVisitor {
       lastNestedCatch.clear();
     }
     return SKIP_CHILDREN;
+  }
+
+  private JExpressionAssignmentStatement setVariableRightSideExpression(
+      FileLocation fileL, JType type, String name, JSimpleDeclaration dec, JExpression expression) {
+    JLeftHandSide helperLeft = new JIdExpression(fileL, type, name, dec);
+
+    JExpressionAssignmentStatement helperExpression =
+        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
+
+    return helperExpression;
   }
 
   @Override
