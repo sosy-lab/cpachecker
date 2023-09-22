@@ -560,7 +560,7 @@ class ReachedSetExecutor {
   String getDependenciesAsDot() {
     final List<String> dependencies = new ArrayList<>();
     for (ReachedSetExecutor rse : reachedSetMapping.values()) {
-      for (ReachedSetExecutor dependentRse : rse.dependingFrom.keys()) {
+      for (ReachedSetExecutor dependentRse : rse.dependingFrom.keySet()) {
         dependencies.add(String.format("\"%s\" -> \"%s\"", rse, dependentRse));
       }
     }
