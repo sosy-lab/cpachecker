@@ -28,7 +28,7 @@ public class ASTElement {
   }
 
   /**
-   * @return the set of CFA edges belonging to this ASTElement.
+   * Returns the set of CFA edges belonging to this ASTElement.
    */
   public Set<CFAEdge> edges() {
     // we calculate this set lazily upon the first invocation
