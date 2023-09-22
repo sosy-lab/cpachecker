@@ -84,8 +84,8 @@ public class ASTStructure {
       iterationStructures.add(
           new IterationStructure(
               loc,
-              classifier.loopParenthesesBlock.get(loc),
-              classifier.loopControllingExpression.get(loc),
+              Optional.ofNullable(classifier.loopParenthesesBlock.get(loc)),
+              Optional.ofNullable(classifier.loopControllingExpression.get(loc)),
               classifier.loopBody.get(loc),
               Optional.ofNullable(classifier.loopInitializer.get(loc)),
               Optional.ofNullable(classifier.loopIterationStatement.get(loc)),

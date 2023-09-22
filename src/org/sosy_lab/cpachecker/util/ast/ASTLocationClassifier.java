@@ -133,18 +133,18 @@ class ASTLocationClassifier extends ASTVisitor {
   private void handleIterationStatement(IASTStatement statement) {
     FileLocation loc = getLocation(statement);
     IASTStatement body = null;
-    IASTExpression controllingExpression = null;
+    Optional<IASTExpression> controllingExpression = Optional.empty();
     Optional<IASTStatement> initializer = Optional.empty();
     Optional<IASTExpression> iteration = Optional.empty();
     if (statement instanceof IASTWhileStatement whileStatement) {
       body = whileStatement.getBody();
-      controllingExpression = whileStatement.getCondition();
+      controllingExpression = Optional.of(whileStatement.getCondition());
     } else if (statement instanceof IASTDoStatement doStatement) {
       body = doStatement.getBody();
-      controllingExpression = doStatement.getCondition();
+      controllingExpression = Optional.of(doStatement.getCondition());
     } else if (statement instanceof IASTForStatement forStatement) {
       body = forStatement.getBody();
-      controllingExpression = forStatement.getConditionExpression();
+      controllingExpression = Optional.ofNullable(forStatement.getConditionExpression());
       initializer = Optional.ofNullable(forStatement.getInitializerStatement());
       iteration = Optional.ofNullable(forStatement.getIterationExpression());
     } else {
@@ -152,8 +152,12 @@ class ASTLocationClassifier extends ASTVisitor {
     }
     // body and cond are not null at this point.
     loopBody.put(loc, getLocation(body));
-    loopControllingExpression.put(loc, getLocation(controllingExpression));
-    FileLocation parenthesesBlockLocation = getLocation(controllingExpression);
+    assert controllingExpression != null;
+    FileLocation parenthesesBlockLocation = null;
+    if (controllingExpression.isPresent()) {
+      loopControllingExpression.put(loc, getLocation(controllingExpression.orElseThrow()));
+      parenthesesBlockLocation = getLocation(controllingExpression.orElseThrow());
+    }
     if (initializer.isPresent()) {
       parenthesesBlockLocation =
           FileLocationUtils.merge(parenthesesBlockLocation, getLocation(initializer.orElseThrow()));
@@ -164,6 +168,8 @@ class ASTLocationClassifier extends ASTVisitor {
           FileLocationUtils.merge(parenthesesBlockLocation, getLocation(iteration.orElseThrow()));
       loopIterationStatement.put(loc, getLocation(iteration.orElseThrow()));
     }
-    loopParenthesesBlock.put(loc, parenthesesBlockLocation);
+    if (parenthesesBlockLocation != null) {
+      loopParenthesesBlock.put(loc, parenthesesBlockLocation);
+    }
   }
 }

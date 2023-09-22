@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
-import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class FileLocationUtils {
@@ -27,7 +26,9 @@ public class FileLocationUtils {
   }
 
   public static FileLocation merge(FileLocation a, FileLocation b) {
-    Preconditions.checkState(a.getFileName().equals(b.getFileName()));
+    if (a == null) {
+      return b;
+    }
     int startOffset = Math.min(a.getNodeOffset(), b.getNodeOffset());
     int endOffset =
         Math.max(a.getNodeOffset() + a.getNodeLength(), b.getNodeOffset() + b.getNodeLength());

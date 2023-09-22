@@ -15,31 +15,31 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class IterationStructure extends BranchingStructure {
 
-  private final ASTElement clause;
+  private final Optional<ASTElement> clause;
   private final ASTElement body;
   private final ASTElement completeElement;
-  private final ASTElement controllingExpression;
+  private final Optional<ASTElement> controllingExpression;
   private final Optional<ASTElement> initClause;
   private final Optional<ASTElement> iterationExpression;
 
   IterationStructure(
       FileLocation pIterationStatementLocation,
-      FileLocation pClauseLocation,
-      FileLocation pControllingExpression,
+      Optional<FileLocation> pClauseLocation,
+      Optional<FileLocation> pControllingExpression,
       FileLocation pBodyLocation,
       Optional<FileLocation> pMaybeInitClause,
       Optional<FileLocation> pMaybeIterationExpression,
       ImmutableSet<CFAEdge> pEdges) {
-    clause = determineElement(pClauseLocation, pEdges);
+    clause = pClauseLocation.map(x -> determineElement(x, pEdges));
     body = determineElement(pBodyLocation, pEdges);
     completeElement = determineElement(pIterationStatementLocation, pEdges);
-    controllingExpression = determineElement(pControllingExpression, pEdges);
+    controllingExpression = pControllingExpression.map(x -> determineElement(x, pEdges));
     initClause = pMaybeInitClause.map(x -> determineElement(x, pEdges));
     iterationExpression = pMaybeIterationExpression.map(x -> determineElement(x, pEdges));
   }
 
   @Override
-  public ASTElement getClause() {
+  public Optional<ASTElement> getClause() {
     return clause;
   }
 
@@ -49,19 +49,19 @@ public class IterationStructure extends BranchingStructure {
   }
 
   @Override
-  public ASTElement getControllingExpression() {
+  public Optional<ASTElement> getControllingExpression() {
     return controllingExpression;
   }
 
   public ASTElement getBody() {
-    return null;
+    return body;
   }
 
   public Optional<ASTElement> getInitClause() {
-    return Optional.empty();
+    return initClause;
   }
 
   public Optional<ASTElement> getIterationExpression() {
-    return Optional.empty();
+    return iterationExpression;
   }
 }
