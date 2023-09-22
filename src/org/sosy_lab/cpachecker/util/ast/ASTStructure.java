@@ -132,8 +132,12 @@ public class ASTStructure {
         statementStartEdges.stream()
             .map(
                 x ->
-                    x.getFileLocation().getNodeOffset() + ":" + (x.getFileLocation().getNodeOffset()
-                            + x.getFileLocation().getNodeLength()) + " " + x)
+                    x.getFileLocation().getNodeOffset()
+                        + ":"
+                        + (x.getFileLocation().getNodeOffset()
+                            + x.getFileLocation().getNodeLength())
+                        + " "
+                        + x)
             .collect(Collectors.joining("\n")));
     logger.log(
         Level.INFO,
@@ -143,8 +147,12 @@ public class ASTStructure {
         declarationStartEdges.stream()
             .map(
                 x ->
-                    x.getFileLocation().getNodeOffset() + ":" + (x.getFileLocation().getNodeOffset()
-                            + x.getFileLocation().getNodeLength()) + " " + x)
+                    x.getFileLocation().getNodeOffset()
+                        + ":"
+                        + (x.getFileLocation().getNodeOffset()
+                            + x.getFileLocation().getNodeLength())
+                        + " "
+                        + x)
             .collect(Collectors.joining("\n")));
     logger.log(
         Level.INFO,
@@ -154,8 +162,12 @@ public class ASTStructure {
         otherEdges.stream()
             .map(
                 x ->
-                    x.getFileLocation().getNodeOffset() + ":" + (x.getFileLocation().getNodeOffset()
-                            + x.getFileLocation().getNodeLength()) + " " + x)
+                    x.getFileLocation().getNodeOffset()
+                        + ":"
+                        + (x.getFileLocation().getNodeOffset()
+                            + x.getFileLocation().getNodeLength())
+                        + " "
+                        + x)
             .collect(Collectors.joining("\n")));
     for (FileLocation ifLocation : classifier.ifLocations) {
       List<CFAEdge> edges = new ArrayList<>();
@@ -191,6 +203,7 @@ public class ASTStructure {
    * a regular if only has one branching; a irregular if has a disjunction or conjunction or side
    * effects in the condition and thus has more complicated branching structure
    */
+  @SuppressWarnings("unused")
   public boolean isRegularIf(CFAEdge edge) {
     return false;
   }
