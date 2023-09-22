@@ -496,6 +496,9 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# add AST structure information to CFA.
+analysis.useASTStructure = false
+
 # Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 

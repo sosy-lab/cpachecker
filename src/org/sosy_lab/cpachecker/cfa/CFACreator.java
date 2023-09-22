@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
+import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -97,6 +98,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -171,6 +173,12 @@ public class CFACreator {
       name = "analysis.useGlobalVars",
       description = "add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
+
+  @Option(
+      secure = true,
+      name = "analysis.useASTStructure",
+      description = "add AST structure information to CFA.")
+  private boolean useASTStructure = false;
 
   @Option(
       secure = true,
@@ -611,6 +619,9 @@ public class CFACreator {
     // Annotate CFA nodes with reverse postorder information for later use.
     cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
+    if (useASTStructure) {
+      addASTStructure(cfa, config, logger);
+    }
     // get loop information
     // (needs post-order information)
     if (useLoopStructure) {
@@ -977,6 +988,14 @@ public class CFACreator {
       throw new InvalidConfigurationException("No entry function found, please specify one.");
     }
     return mainFunction;
+  }
+
+  private void addASTStructure(MutableCFA cfa, Configuration pConfig, LogManager pLogger) {
+    try {
+      cfa.setASTStructure(new ASTStructure(pConfig, shutdownNotifier, pLogger, cfa));
+    } catch (CoreException | InterruptedException | IOException | InvalidConfigurationException e) {
+      logger.logUserException(Level.WARNING, e, "Could not analyze AST structure of program.");
+    }
   }
 
   private void addLoopStructure(MutableCFA cfa) {
