@@ -60,6 +60,7 @@ import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerClause;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerList;
+import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
@@ -744,6 +745,9 @@ class ASTConverter {
 
         if (statements.length > 0) {
           IASTStatement lastStatement = statements[statements.length - 1];
+          while (lastStatement instanceof IASTLabelStatement labelStatement) {
+            lastStatement = labelStatement.getNestedStatement();
+          }
 
           if (lastStatement instanceof IASTExpressionStatement) {
             IASTExpression lastExpression =
