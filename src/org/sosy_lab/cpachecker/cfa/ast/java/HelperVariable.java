@@ -38,9 +38,32 @@ public class HelperVariable {
             VisibilityModifier.PUBLIC);
   }
 
+  private HelperVariable(JClassType jct) {
+    helperFieldDeclaration =
+        new JFieldDeclaration(
+            FileLocation.DUMMY,
+            jct,
+            "MainApp_helper",
+            "helper",
+            false,
+            true,
+            false,
+            false,
+            VisibilityModifier.PUBLIC);
+
+    throwableInstance = jct;
+  }
+
   public static HelperVariable getInstance() {
     if (instance == null) {
       instance = new HelperVariable();
+    }
+    return instance;
+  }
+
+  public static HelperVariable getInstance(JClassType throwable) {
+    if (instance == null) {
+      instance = new HelperVariable(throwable);
     }
     return instance;
   }
@@ -160,5 +183,9 @@ public class HelperVariable {
 
   public void setCurrentJClassType(JClassType type) {
     currentType = type;
+  }
+
+  public void setThrowableInstance(JClassType type) {
+    throwableInstance = type;
   }
 }

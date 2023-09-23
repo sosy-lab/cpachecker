@@ -30,6 +30,7 @@ import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.BreakStatement;
 import org.eclipse.jdt.core.dom.CatchClause;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
@@ -144,7 +145,6 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private Deque<Boolean> finallyExists = new ArrayDeque<>();
   private boolean currentlyInFinally = false;
-  private Deque<CFANode> connectToFinally = new ArrayDeque<>();
   private Deque<CFANode> lastNestedCatch = new ArrayDeque<>();
   private boolean isNested = false;
 
@@ -3072,15 +3072,17 @@ class CFAMethodBuilder extends ASTVisitor {
 
   @Override
   public boolean visit(ThrowStatement throwStatement) {
+    throwStatement.getExpression().accept(this);
+    return SKIP_CHILDREN;
+  }
 
-    HelperVariable.getInstance()
-        .setCurrentJClassType(
-            (JClassType)
-                astCreator
-                    .convertExpressionWithoutSideEffects(throwStatement.getExpression())
-                    .getExpressionType());
+  @Override
+  public boolean visit(ClassInstanceCreation cic) {
+    TypeHierarchy typeH = scope.getTypeHierarchy();
+    FileLocation fileloc = astCreator.getFileLocation(cic);
 
-    FileLocation fileloc = astCreator.getFileLocation(throwStatement);
+    JClassType jct = (JClassType) astCreator.convert(cic.getType());
+    HelperVariable.getInstance(typeH.getClassType("java.lang.Throwable")).setCurrentJClassType(jct);
 
     CFANode prevNode = locStack.pop();
     CFANode throwNode = new CFANode(cfa.getFunction());
@@ -3089,8 +3091,20 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(throwNode);
 
-    JExpression throwExpression =
-        astCreator.convertExpressionWithoutSideEffects(throwStatement.getExpression());
+    JConstructorType jcc = new JConstructorType(jct, cic.arguments(), false);
+
+    JSimpleDeclaration js =
+        new JConstructorDeclaration(
+            fileloc,
+            jcc,
+            jct.getName(),
+            jct.getSimpleName(),
+            cic.arguments(),
+            VisibilityModifier.PUBLIC,
+            false,
+            jct);
+
+    JExpression throwExpression = new JIdExpression(fileloc, jct, cic.toString(), js);
 
     JExpressionAssignmentStatement currentHelperAssignment =
         HelperVariable.getInstance().setHelperRightSideExpression(throwExpression);
@@ -3104,6 +3118,7 @@ class CFAMethodBuilder extends ASTVisitor {
             throwNode);
 
     addToCFA(edge);
+
     return SKIP_CHILDREN;
   }
 }
