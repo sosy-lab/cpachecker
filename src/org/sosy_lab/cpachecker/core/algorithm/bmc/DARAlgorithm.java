@@ -340,9 +340,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       PartitionedFormulas pPartitionedFormulas,
       int pIdxOfLocalContradiction)
       throws CPAException, InterruptedException {
+    logger.log(Level.FINE, "Strengthening forward and backward reachability vectors locally");
     final int lastIdxOfSequences = pDualSequence.getSize() - 1;
     // Updating forward sequence
-    logger.log(Level.FINE, "Strengthening forward reachability vector locally");
     for (int forwardIdx = pIdxOfLocalContradiction; forwardIdx < lastIdxOfSequences; ++forwardIdx) {
       BooleanFormula resultingForwardFormula = pDualSequence.getForwardImageAt(forwardIdx + 1);
       BooleanFormula interpolant =
@@ -350,13 +350,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       resultingForwardFormula = bfmgr.and(resultingForwardFormula, interpolant);
       pDualSequence.updateForwardReachVector(resultingForwardFormula, forwardIdx + 1);
     }
-    BooleanFormula newForwardReachFormula =
-        constructForwardInterpolant(pDualSequence, pPartitionedFormulas, lastIdxOfSequences);
-    pDualSequence.extendForwardReachVector(newForwardReachFormula);
-    logger.log(
-        Level.ALL, "Updated forward reachability vector:", pDualSequence.getForwardReachVector());
     // Updating backward sequence
-    logger.log(Level.FINE, "Strengthening forward reachability vector locally");
     for (int backwardIdx = lastIdxOfSequences - pIdxOfLocalContradiction;
         backwardIdx < lastIdxOfSequences;
         ++backwardIdx) {
@@ -366,9 +360,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       resultingBackwardFormula = bfmgr.and(resultingBackwardFormula, interpolant);
       pDualSequence.updateBackwardReachVector(resultingBackwardFormula, backwardIdx + 1);
     }
+    // Extend the reachability vectors
+    BooleanFormula newForwardReachFormula =
+        constructForwardInterpolant(pDualSequence, pPartitionedFormulas, lastIdxOfSequences);
     BooleanFormula newBackwardReachFormula =
         constructBackwardInterpolant(pDualSequence, pPartitionedFormulas, lastIdxOfSequences);
+    pDualSequence.extendForwardReachVector(newForwardReachFormula);
     pDualSequence.extendBackwardReachVector(newBackwardReachFormula);
+    logger.log(
+        Level.ALL, "Updated forward reachability vector:", pDualSequence.getForwardReachVector());
     logger.log(
         Level.ALL, "Updated backward reachability vector:", pDualSequence.getBackwardReachVector());
   }
