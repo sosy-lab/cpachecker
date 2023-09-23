@@ -22,12 +22,9 @@ class DualReachabilitySequence {
   private List<BooleanFormula> forwardReachVector;
   private List<BooleanFormula> backwardReachVector;
 
-  DualReachabilitySequence() {
+  DualReachabilitySequence(PartitionedFormulas pFormulas) {
     forwardReachVector = new ArrayList<>();
     backwardReachVector = new ArrayList<>();
-  }
-
-  void initializeSequences(PartitionedFormulas pFormulas) {
     extendBackwardReachVector(pFormulas.getAssertionFormula());
     extendForwardReachVector(pFormulas.getPrefixFormula());
   }
@@ -51,6 +48,14 @@ class DualReachabilitySequence {
   int getSize() {
     assert forwardReachVector.size() == backwardReachVector.size();
     return forwardReachVector.size();
+  }
+
+  BooleanFormula getForwardImageAt(int i) {
+    return forwardReachVector.get(i);
+  }
+
+  BooleanFormula getBackwardImageAt(int i) {
+    return backwardReachVector.get(i);
   }
 
   ImmutableList<BooleanFormula> getForwardReachVector() {
