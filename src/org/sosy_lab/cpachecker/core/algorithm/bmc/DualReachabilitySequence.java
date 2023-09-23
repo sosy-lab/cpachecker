@@ -22,12 +22,9 @@ class DualReachabilitySequence {
   private List<BooleanFormula> forwardReachVector;
   private List<BooleanFormula> backwardReachVector;
 
-  DualReachabilitySequence() {
+  DualReachabilitySequence(PartitionedFormulas pFormulas) {
     forwardReachVector = new ArrayList<>();
     backwardReachVector = new ArrayList<>();
-  }
-
-  void initializeSequences(PartitionedFormulas pFormulas) {
     extendBackwardReachVector(pFormulas.getAssertionFormula());
     extendForwardReachVector(pFormulas.getPrefixFormula());
   }

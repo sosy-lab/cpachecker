@@ -206,9 +206,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
     }
 
-    DualReachabilitySequence dualSequence = new DualReachabilitySequence();
-    dualSequence.initializeSequences(partitionedFormulas);
-    // DAR, from the second iteration, when all of the formulas are collected
+    DualReachabilitySequence dualSequence = new DualReachabilitySequence(partitionedFormulas);
+    // DAR, from the second iteration, when all formulas are collected
     while (!checkFixedPoint(dualSequence)) {
       shutdownNotifier.shutdownIfNecessary();
       if (performLocalStrengthening(dualSequence, partitionedFormulas)
