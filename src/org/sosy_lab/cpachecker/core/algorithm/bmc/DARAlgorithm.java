@@ -340,36 +340,33 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void iterativeLocalStrengthening(
       DualReachabilitySequence pDualSequence,
       PartitionedFormulas pPartitionedFormulas,
-      int pIndexOfLocalContradiction)
+      int pIdxOfLocalContradiction)
       throws CPAException, InterruptedException {
     List<BooleanFormula> forwardSequence = pDualSequence.getForwardReachVector();
     List<BooleanFormula> backwardSequence = pDualSequence.getBackwardReachVector();
-    int lastIndexOfSequences = pDualSequence.getSize() - 1;
-    int forwardSequenceIndex = pIndexOfLocalContradiction;
-    int backwardSequenceIndex = lastIndexOfSequences - pIndexOfLocalContradiction;
-
-    while (forwardSequenceIndex < lastIndexOfSequences) {
-      BooleanFormula resultingForwardFormula = forwardSequence.get(forwardSequenceIndex + 1);
+    final int lastIdxOfSequences = pDualSequence.getSize() - 1;
+    for (int forwardIdx = pIdxOfLocalContradiction; forwardIdx < lastIdxOfSequences; ++forwardIdx) {
+      BooleanFormula resultingForwardFormula = forwardSequence.get(forwardIdx + 1);
       BooleanFormula interpolant =
-          constructForwardInterpolant(pDualSequence, pPartitionedFormulas, forwardSequenceIndex);
+          constructForwardInterpolant(pDualSequence, pPartitionedFormulas, forwardIdx);
       resultingForwardFormula = bfmgr.and(resultingForwardFormula, interpolant);
-      pDualSequence.updateForwardReachVector(resultingForwardFormula, forwardSequenceIndex + 1);
-      forwardSequenceIndex++;
+      pDualSequence.updateForwardReachVector(resultingForwardFormula, forwardIdx + 1);
     }
     BooleanFormula newForwardReachFormula =
-        constructForwardInterpolant(pDualSequence, pPartitionedFormulas, forwardSequenceIndex);
+        constructForwardInterpolant(pDualSequence, pPartitionedFormulas, lastIdxOfSequences);
     pDualSequence.extendForwardReachVector(newForwardReachFormula);
 
-    while (backwardSequenceIndex < lastIndexOfSequences) {
-      BooleanFormula resultingBackwardFormula = backwardSequence.get(backwardSequenceIndex + 1);
+    for (int backwardIdx = lastIdxOfSequences - pIdxOfLocalContradiction;
+        backwardIdx < lastIdxOfSequences;
+        ++backwardIdx) {
+      BooleanFormula resultingBackwardFormula = backwardSequence.get(backwardIdx + 1);
       BooleanFormula interpolant =
-          constructBackwardInterpolant(pDualSequence, pPartitionedFormulas, backwardSequenceIndex);
+          constructBackwardInterpolant(pDualSequence, pPartitionedFormulas, backwardIdx);
       resultingBackwardFormula = bfmgr.and(resultingBackwardFormula, interpolant);
-      pDualSequence.updateBackwardReachVector(resultingBackwardFormula, backwardSequenceIndex + 1);
-      backwardSequenceIndex++;
+      pDualSequence.updateBackwardReachVector(resultingBackwardFormula, backwardIdx + 1);
     }
     BooleanFormula newBackwardReachFormula =
-        constructBackwardInterpolant(pDualSequence, pPartitionedFormulas, backwardSequenceIndex);
+        constructBackwardInterpolant(pDualSequence, pPartitionedFormulas, lastIdxOfSequences);
     pDualSequence.extendBackwardReachVector(newBackwardReachFormula);
   }
 
