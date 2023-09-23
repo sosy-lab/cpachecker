@@ -50,6 +50,14 @@ class DualReachabilitySequence {
     return forwardReachVector.size();
   }
 
+  BooleanFormula getForwardImageAt(int i) {
+    return forwardReachVector.get(i);
+  }
+
+  BooleanFormula getBackwardImageAt(int i) {
+    return backwardReachVector.get(i);
+  }
+
   ImmutableList<BooleanFormula> getForwardReachVector() {
     return ImmutableList.copyOf(forwardReachVector);
   }
