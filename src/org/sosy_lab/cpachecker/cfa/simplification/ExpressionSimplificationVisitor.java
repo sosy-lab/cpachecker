@@ -223,9 +223,12 @@ public class ExpressionSimplificationVisitor
 
     switch (idOperator) {
       case SIZEOF:
-        BigInteger size = machineModel.getSizeof(innerType);
-        return new CIntegerLiteralExpression(
-            expr.getFileLocation(), expr.getExpressionType(), size);
+        if (innerType.hasKnownConstantSize()) {
+          BigInteger size = machineModel.getSizeof(innerType);
+          return new CIntegerLiteralExpression(
+              expr.getFileLocation(), expr.getExpressionType(), size);
+        }
+        return visitDefault(expr); // TODO simplify inner part of expr?
 
       case ALIGNOF:
         int alignment = machineModel.getAlignof(innerType);
@@ -245,9 +248,7 @@ public class ExpressionSimplificationVisitor
     final CExpression operand = expr.getOperand();
     final CType operandType = operand.getExpressionType();
 
-    // in case of a SIZEOF we do not need to know the explicit value of the variable,
-    // it is enough to know its type
-    if (unaryOperator == UnaryOperator.SIZEOF) {
+    if (unaryOperator == UnaryOperator.SIZEOF && operandType.hasKnownConstantSize()) {
       return new CIntegerLiteralExpression(loc, exprType, machineModel.getSizeof(operandType));
     } else if (unaryOperator == UnaryOperator.ALIGNOF) {
       return new CIntegerLiteralExpression(
