@@ -254,6 +254,10 @@ class AssignmentHandler {
       // target type) to LHS
       final PartialAssignmentLhs partialLhs = new PartialAssignmentLhs(assignment.lhs, targetType);
       final long targetBitSize = typeHandler.getBitSizeof(targetType);
+      if (targetBitSize == 0) {
+        // e.g., zero-width bit field, ignore
+        continue;
+      }
       final PartialAssignmentRhs partialRhs =
           new PartialAssignmentRhs(new PartialSpan(0, 0, targetBitSize), assignment.rhs);
       final SingleRhsPartialAssignment partialAssignment =
