@@ -28,9 +28,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -342,17 +340,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (edge instanceof AStatementEdge) {
-        AStatement statement = ((AStatementEdge) edge).getStatement();
-        if (statement instanceof AFunctionCall functionCall) {
-          AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-          if (functionCallExpression.getFunctionNameExpression() instanceof AIdExpression) {
-            AIdExpression idExpression =
-                (AIdExpression) functionCallExpression.getFunctionNameExpression();
-            if (idExpression.getDeclaration().getOrigName().equals(functionName)) {
-              return CONST_TRUE;
-            }
-          }
+      if (edge instanceof AStatementEdge stmtEdge
+          && stmtEdge.getStatement() instanceof AFunctionCall functionCall
+          && functionCall.getFunctionCallExpression().getFunctionNameExpression()
+              instanceof AIdExpression idExpression) {
+        if (idExpression.getDeclaration().getOrigName().equals(functionName)) {
+          return CONST_TRUE;
         }
       }
       return CONST_FALSE;
