@@ -344,7 +344,11 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
           && stmtEdge.getStatement() instanceof AFunctionCall functionCall
           && functionCall.getFunctionCallExpression().getFunctionNameExpression()
               instanceof AIdExpression idExpression) {
-        if (idExpression.getDeclaration().getOrigName().equals(functionName)) {
+        String calledFunction =
+            idExpression.getDeclaration() != null
+                ? idExpression.getDeclaration().getOrigName()
+                : idExpression.getName(); // for builtin functions without declaration
+        if (calledFunction.equals(functionName)) {
           return CONST_TRUE;
         }
       }
