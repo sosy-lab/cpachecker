@@ -486,17 +486,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /** Check the loop structure of the input program and adjust configurations accordingly */
   private void adjustConfigsAccordingToCFA() throws CPAException {
-    if (cfa.getAllLoopHeads().isEmpty()) {
-      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
-      isInterpolationEnabled = false;
-    }
-    if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
-      if (isInterpolationEnabled) {
-        if (fallBack) {
-          fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
-        } else {
-          throw new CPAException("Multi-loop programs are not supported yet");
-        }
+    if (!cfa.getAllLoopHeads().isPresent() || cfa.getAllLoopHeads().orElseThrow().size() > 1) {
+      String reason =
+          cfa.getAllLoopHeads().isPresent()
+              ? "Multi-loop programs are not supported"
+              : "Loop structure could not be determined";
+      if (fallBack) {
+        fallBackToBMC(reason);
+      } else {
+        throw new CPAException(reason);
       }
     }
   }
@@ -650,9 +648,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void fallBackToBMC(final String pReason) {
-    logger.log(
-        Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
-    isInterpolationEnabled = false;
+    if (isInterpolationEnabled) {
+      logger.log(
+          Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
+      isInterpolationEnabled = false;
+    }
   }
 
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {

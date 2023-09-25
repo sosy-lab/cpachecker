@@ -592,30 +592,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /** Check the loop structure of the input program and adjust configurations accordingly */
   private void adjustConfigsAccordingToCFA() throws CPAException {
-    if (!cfa.getAllLoopHeads().isPresent()) {
-      if (isInterpolationEnabled()) {
-        logger.log(
-            Level.WARNING, "Disable interpolation as loop structure could not be determined");
-        fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
-      }
-      if (checkPropertyInductiveness) {
-        logger.log(
-            Level.WARNING, "Disable induction check as loop structure could not be determined");
-        checkPropertyInductiveness = false;
-      }
-    }
-    if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
-      if (isInterpolationEnabled()) {
-        if (fallBack) {
-          fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
-        } else {
-          throw new CPAException("Multi-loop programs are not supported yet");
-        }
-      }
-      if (checkPropertyInductiveness) {
-        logger.log(
-            Level.WARNING, "Disable induction check because the program contains multiple loops");
-        checkPropertyInductiveness = false;
+    if (!cfa.getAllLoopHeads().isPresent() || cfa.getAllLoopHeads().orElseThrow().size() > 1) {
+      String reason =
+          cfa.getAllLoopHeads().isPresent()
+              ? "Multi-loop programs are not supported"
+              : "Loop structure could not be determined";
+      if (fallBack) {
+        fallBackToBMC(reason);
+      } else {
+        throw new CPAException(reason);
       }
     }
   }
@@ -647,9 +632,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void fallBackToBMC(final String pReason) {
-    logger.log(
-        Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
-    fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
+    if (isInterpolationEnabled()) {
+      logger.log(
+          Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
+      fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
+    }
+    if (checkPropertyInductiveness) {
+      logger.log(
+          Level.WARNING,
+          "Induction check disabled because of " + pReason + ", falling back to BMC");
+      checkPropertyInductiveness = false;
+    }
   }
 
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
