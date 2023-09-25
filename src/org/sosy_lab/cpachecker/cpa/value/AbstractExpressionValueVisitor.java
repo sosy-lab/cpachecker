@@ -1546,8 +1546,11 @@ public abstract class AbstractExpressionValueVisitor
 
     switch (idOperator) {
       case SIZEOF:
-        BigInteger size = machineModel.getSizeof(innerType);
-        return new NumericValue(size);
+        if (innerType.hasKnownConstantSize()) {
+          BigInteger size = machineModel.getSizeof(innerType);
+          return new NumericValue(size);
+        }
+        return Value.UnknownValue.getInstance();
 
       case ALIGNOF:
         return new NumericValue(machineModel.getAlignof(innerType));
@@ -1572,7 +1575,8 @@ public abstract class AbstractExpressionValueVisitor
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
-    if (unaryOperator == UnaryOperator.SIZEOF) {
+    if (unaryOperator == UnaryOperator.SIZEOF
+        && unaryOperand.getExpressionType().hasKnownConstantSize()) {
       return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.ALIGNOF) {
