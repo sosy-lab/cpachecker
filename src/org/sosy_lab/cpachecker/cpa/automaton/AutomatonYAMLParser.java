@@ -401,22 +401,7 @@ public class AutomatonYAMLParser {
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
-    Map<Integer, Integer> lineFrequencies = new HashMap<>();
-
-    for (CFAEdge edge : cfa.edges()) {
-      int line = edge.getLineNumber();
-      if (lineFrequencies.containsKey(line)) {
-        lineFrequencies.put(line, lineFrequencies.get(line) + 1);
-      } else {
-        int count = lineFrequencies.containsKey(line) ? lineFrequencies.get(line) : 0;
-        lineFrequencies.put(line, count + 1);
-      }
-    }
-    Set<Integer> allowedLines =
-        lineFrequencies.entrySet().stream()
-            .filter(entry -> entry.getValue().equals(1))
-            .map(Map.Entry::getKey)
-            .collect(ImmutableSet.toImmutableSet());
+    Set<Integer> allowedLines = extractLineFrequencies();
 
     int counter = 0;
     final String initState = getStateName(counter++);
@@ -499,6 +484,26 @@ public class AutomatonYAMLParser {
     dumpAutomatonIfRequested(automaton);
 
     return automaton;
+  }
+
+  private Set<Integer> extractLineFrequencies() {
+    Map<Integer, Integer> lineFrequencies = new HashMap<>();
+
+    for (CFAEdge edge : cfa.edges()) {
+      int line = edge.getLineNumber();
+      if (lineFrequencies.containsKey(line)) {
+        lineFrequencies.put(line, lineFrequencies.get(line) + 1);
+      } else {
+        int count = lineFrequencies.containsKey(line) ? lineFrequencies.get(line) : 0;
+        lineFrequencies.put(line, count + 1);
+      }
+    }
+    Set<Integer> allowedLines =
+        lineFrequencies.entrySet().stream()
+            .filter(entry -> entry.getValue().equals(1))
+            .map(Map.Entry::getKey)
+            .collect(ImmutableSet.toImmutableSet());
+    return allowedLines;
   }
 
   private void handleAssumptionWaypoint(
