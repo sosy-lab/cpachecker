@@ -26,7 +26,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
   public static AutomatonVariable createAutomatonVariable(
       String pType, String pName, String... args) {
     if (pType.equalsIgnoreCase("int") || pType.equalsIgnoreCase("integer")) {
-      int value = args.length >= 1 ? Integer.valueOf(args[0]) : 0;
+      int value = args.length >= 1 ? Integer.parseInt(args[0]) : 0;
       return new AutomatonIntVariable(pName, value);
     } else if (pType.equalsIgnoreCase("set")) {
       if (args.length > 0) {
