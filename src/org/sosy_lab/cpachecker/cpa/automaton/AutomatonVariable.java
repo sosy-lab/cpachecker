@@ -26,7 +26,8 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
   public static AutomatonVariable createAutomatonVariable(
       String pType, String pName, String... args) {
     if (pType.equalsIgnoreCase("int") || pType.equalsIgnoreCase("integer")) {
-      return new AutomatonIntVariable(pName);
+      int value = args.length >= 1 ? Integer.valueOf(args[0]) : 0;
+      return new AutomatonIntVariable(pName, value);
     } else if (pType.equalsIgnoreCase("set")) {
       if (args.length > 0) {
         String elementType = args[0];
@@ -88,8 +89,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
     private int value;
 
     private AutomatonIntVariable(String pName) {
+      this(pName, 0);
+    }
+
+    private AutomatonIntVariable(String pName, int pValue) {
       super(pName);
-      value = 0;
+      value = pValue;
     }
 
     @Override
