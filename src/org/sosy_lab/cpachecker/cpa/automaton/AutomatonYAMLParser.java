@@ -423,10 +423,9 @@ public class AutomatonYAMLParser {
       String nextStateId = getStateName(counter++);
       if (follow.getType().equals(WaypointType.TARGET)) {
         nextStateId = "X";
-        // TODO: handle this more elegantly / add check that we are really in the last segment!
       }
       int line = follow.getLocation().getLine();
-      AutomatonBoolExpr expr = new CheckCoversLines(ImmutableSet.of(line));
+      AutomatonBoolExpr expr = new CheckReachesLine(line);
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
       if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
         handleAssumptionWaypoint(follow, line, builder);
@@ -436,7 +435,7 @@ public class AutomatonYAMLParser {
       actionBuilder.add(
           new AutomatonAction.Assignment(
               AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-              new AutomatonIntExpr.Constant(distance--)));
+              new AutomatonIntExpr.Constant(distance)));
       builder.withActions(actionBuilder.build());
       transitions.add(builder.build());
       automatonStates.add(
@@ -446,11 +445,13 @@ public class AutomatonYAMLParser {
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
+
+      distance--;
       currentStateId = nextStateId;
     }
 
     // add last state and stutter in it:
-    if (follow != null) {
+    if (follow != null && follow.getType().equals(WaypointType.TARGET)) {
       automatonStates.add(
           new AutomatonInternalState(
               currentStateId,
@@ -521,14 +522,19 @@ public class AutomatonYAMLParser {
     }
   }
 
-  private Map<WaypointRecord, List<WaypointRecord>> segmentize(List<AbstractEntry> pEntries) {
+  private Map<WaypointRecord, List<WaypointRecord>> segmentize(List<AbstractEntry> pEntries)
+      throws InvalidConfigurationException {
     Map<WaypointRecord, List<WaypointRecord>> segments = new LinkedHashMap<>();
+    WaypointRecord latest = null;
+    int numTargetWaypoints = 0;
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof ViolationSequenceEntry violationEntry) {
 
         List<WaypointRecord> avoids = new ArrayList<>();
         for (SegmentRecord segmentRecord : violationEntry.getContent()) {
           for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+            latest = waypoint;
+            numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
             if (waypoint.getAction().equals(WaypointAction.AVOID)) {
               avoids.add(waypoint);
               continue;
@@ -542,7 +548,25 @@ public class AutomatonYAMLParser {
         break; // for now just take the first ViolationSequenceEntry in the yaml witness
       }
     }
+    checkTargetIsAtEnd(latest, numTargetWaypoints);
     return segments;
+  }
+
+  private void checkTargetIsAtEnd(WaypointRecord latest, int numTargetWaypoints)
+      throws InvalidConfigurationException {
+    switch (numTargetWaypoints) {
+      case 0:
+        logger.log(Level.WARNING, "No target waypoint in yaml witness!");
+        break;
+      case 1:
+        if (latest != null && !latest.getType().equals(WaypointType.TARGET)) {
+          throw new InvalidConfigurationException(
+              "Target waypoint is not at the end in yaml witness!");
+        }
+        break;
+      default:
+        throw new InvalidConfigurationException("More than one target waypoint in yaml witness!");
+    }
   }
 
   private static String getStateName(int i) {
