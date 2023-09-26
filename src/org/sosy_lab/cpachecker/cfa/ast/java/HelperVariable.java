@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 public class HelperVariable {
 
   private static HelperVariable instance = null;
-  private JClassType currentType = null;
+  private JClassType currentType = JClassType.createUnresolvableType();
   private JFieldDeclaration helperFieldDeclaration;
   private JClassType throwableInstance = null;
 
@@ -101,13 +101,16 @@ public class HelperVariable {
 
     JIdExpression helperIdExpression =
         new JIdExpression(
-            FileLocation.DUMMY, currentType, "MainApp_helper", helperFieldDeclaration);
+            FileLocation.DUMMY,
+            currentType,
+            helperFieldDeclaration.getName(),
+            helperFieldDeclaration);
 
     JExpression helperFieldAccess =
         new JFieldAccess(
             FileLocation.DUMMY,
             currentType,
-            "MainApp_helper",
+            helperFieldDeclaration.getName(),
             helperFieldDeclaration,
             helperIdExpression);
 
@@ -135,7 +138,10 @@ public class HelperVariable {
   public JIdExpression getCurrentHelperIdExpression() {
     JIdExpression helperIdExpression =
         new JIdExpression(
-            FileLocation.DUMMY, currentType, "MainApp_helper", helperFieldDeclaration);
+            FileLocation.DUMMY,
+            currentType,
+            helperFieldDeclaration.getName(),
+            helperFieldDeclaration);
 
     return helperIdExpression;
   }
@@ -160,7 +166,10 @@ public class HelperVariable {
 
     JLeftHandSide helperLeft =
         new JIdExpression(
-            FileLocation.DUMMY, getThrowableInstance(), "MainApp_helper", helperFieldDeclaration);
+            FileLocation.DUMMY,
+            getThrowableInstance(),
+            helperFieldDeclaration.getName(),
+            helperFieldDeclaration);
 
     JExpressionAssignmentStatement helperNull =
         new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, nullExpression);
@@ -187,5 +196,9 @@ public class HelperVariable {
 
   public void setThrowableInstance(JClassType type) {
     throwableInstance = type;
+  }
+
+  public JClassType getCurrentClassType() {
+    return currentType;
   }
 }

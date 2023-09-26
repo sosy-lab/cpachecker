@@ -762,7 +762,6 @@ class CFAMethodBuilder extends ASTVisitor {
     }
   }
 
-  // TODO hier erstmal alle expression statements die innerhalb des catch sind in extra nodes packen
   @Override
   public boolean visit(ExpressionStatement expressionStatement) {
 
@@ -852,24 +851,41 @@ class CFAMethodBuilder extends ASTVisitor {
         afterStatement.push(nodeAfterStatement);
         cfaNodes.add(nodeAfterStatement);
 
+        JStatement helperNotEqualsStatement = null;
+        JExpression helperNotEqualsExpression = null;
+
+        if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
+          helperNotEqualsStatement =
+              HelperVariable.getInstance(
+                      scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+                  .helperNotEqualsStatement();
+          helperNotEqualsExpression =
+              HelperVariable.getInstance(
+                      scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+                  .helperNotEqualsExpression();
+        } else {
+          helperNotEqualsStatement = HelperVariable.getInstance().helperNotEqualsStatement();
+          helperNotEqualsExpression = HelperVariable.getInstance().helperNotEqualsExpression();
+        }
+
         JAssumeEdge notEqualsNullFalse =
             new JAssumeEdge(
-                HelperVariable.getInstance().helperNotEqualsStatement().toString(),
+                helperNotEqualsStatement.toString(),
                 FileLocation.DUMMY,
                 current,
                 nodeAfterStatement,
-                HelperVariable.getInstance().helperNotEqualsExpression(),
+                helperNotEqualsExpression,
                 false);
 
         addToCFA(notEqualsNullFalse);
 
         JAssumeEdge notEqualsNullTrue =
             new JAssumeEdge(
-                HelperVariable.getInstance().helperNotEqualsStatement().toString(),
+                helperNotEqualsStatement.toString(),
                 FileLocation.DUMMY,
                 current,
                 helperNotNull.peek(),
-                HelperVariable.getInstance().helperNotEqualsExpression(),
+                helperNotEqualsExpression,
                 true);
         addToCFA(notEqualsNullTrue);
 
@@ -2741,6 +2757,11 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(TryStatement tryStatement) {
 
+    JClassType test =
+        (JClassType)
+            (astCreator.convert(
+                ((CatchClause) tryStatement.catchClauses().get(0)).getException().getType()));
+
     boolean tempInFinally = currentlyInFinally;
     currentlyInFinally = false;
 
@@ -2962,7 +2983,7 @@ class CFAMethodBuilder extends ASTVisitor {
     JExpressionAssignmentStatement exceptionDeclaration =
         setVariableRightSideExpression(
             astCreator.getFileLocation(cc.getException()),
-            exceptionType,
+            HelperVariable.getInstance().getCurrentClassType(),
             cc.getException().getName().toString(),
             declaration,
             HelperVariable.getInstance().getCurrentHelperIdExpression());
@@ -3078,6 +3099,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   @Override
   public boolean visit(ClassInstanceCreation cic) {
+
     TypeHierarchy typeH = scope.getTypeHierarchy();
     FileLocation fileloc = astCreator.getFileLocation(cic);
 
@@ -3091,7 +3113,10 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(throwNode);
 
-    JConstructorType jcc = new JConstructorType(jct, cic.arguments(), false);
+    List<JType> parameters = new ArrayList<>();
+    List<JParameterDeclaration> parameterDeclaration = new ArrayList<>();
+
+    JConstructorType jcc = new JConstructorType(jct, parameters, false);
 
     JSimpleDeclaration js =
         new JConstructorDeclaration(
@@ -3099,22 +3124,45 @@ class CFAMethodBuilder extends ASTVisitor {
             jcc,
             jct.getName(),
             jct.getSimpleName(),
-            cic.arguments(),
+            parameterDeclaration,
             VisibilityModifier.PUBLIC,
             false,
-            jct);
+            scope.getCurrentClassType());
 
     JExpression throwExpression = new JIdExpression(fileloc, jct, cic.toString(), js);
 
+    AInitializer var = new JInitializerExpression(fileloc,throwExpression);
+
+    JVariableDeclaration jvd =
+        new JVariableDeclaration(
+            fileloc,
+            false,
+            jct,
+            "CPAchecker_temp_exception",
+            "CPAchecker_temp_exception",
+            "CPAchecker_temp_exception",
+            var,
+            false);
+
+    CFANode throwEdgeNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(throwEdgeNode);
+
+    JDeclarationEdge throwEdge =
+        new JDeclarationEdge(jvd.toASTString(), fileloc, prevNode, throwEdgeNode, jvd);
+
+    addToCFA(throwEdge);
+
+    JExpression variableAllocation = new JIdExpression(FileLocation.DUMMY, jct, jvd.getName(), jvd);
+
     JExpressionAssignmentStatement currentHelperAssignment =
-        HelperVariable.getInstance().setHelperRightSideExpression(throwExpression);
+        HelperVariable.getInstance().setHelperRightSideExpression(variableAllocation);
 
     JStatementEdge edge =
         new JStatementEdge(
-            currentHelperAssignment.toString(),
+            currentHelperAssignment.toASTString(),
             currentHelperAssignment,
             fileloc,
-            prevNode,
+            throwEdgeNode,
             throwNode);
 
     addToCFA(edge);
