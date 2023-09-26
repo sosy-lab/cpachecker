@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParse
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -493,7 +495,9 @@ public class AutomatonYAMLParser {
   private Set<Integer> linesWithExactlyOneEdge() {
     Map<Integer, Integer> lineFrequencies = new HashMap<>();
 
-    for (CFAEdge edge : cfa.edges()) {
+    // we filter ADeclarationEdges because lines like int x = 5; are broken down into two CFA edges,
+    // but we can savely ignore the declaration edge in these cases
+    for (CFAEdge edge : CFAUtils.allEdges(cfa).filter(x -> !(x instanceof ADeclarationEdge))) {
       int line = edge.getLineNumber();
       if (lineFrequencies.containsKey(line)) {
         lineFrequencies.put(line, lineFrequencies.get(line) + 1);
