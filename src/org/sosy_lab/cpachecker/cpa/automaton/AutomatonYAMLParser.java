@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
@@ -469,7 +470,9 @@ public class AutomatonYAMLParser {
     AutomatonIntVariable distanceVariable =
         (AutomatonIntVariable)
             AutomatonVariable.createAutomatonVariable(
-                "int", AutomatonGraphmlParser.DISTANCE_TO_VIOLATION);
+                "int",
+                AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+                Integer.toString(segments.size() + 1));
     automatonVariables.put(AutomatonGraphmlParser.DISTANCE_TO_VIOLATION, distanceVariable);
 
     // new AutomatonInternalState(entryStateId, transitions, false, false, true)
