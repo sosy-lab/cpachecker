@@ -127,6 +127,48 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  public static class CheckReachesLine implements AutomatonBoolExpr {
+    private final Integer lineToReach;
+
+    public CheckReachesLine(Integer pLine) {
+      lineToReach = pLine;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.CheckCoversLines");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+        return CONST_FALSE;
+      }
+      if (CFAUtils.leavingEdges(edge.getSuccessor())
+          .transform(e -> e.getFileLocation().getStartingLineInOrigin())
+          .contains(lineToReach)) {
+        return CONST_TRUE;
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_LINE(" + lineToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return lineToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckCoversLines
+          && lineToReach.equals(((CheckReachesLine) o).lineToReach);
+    }
+  }
+
   enum MatchProgramEntry implements AutomatonBoolExpr {
     INSTANCE;
 
