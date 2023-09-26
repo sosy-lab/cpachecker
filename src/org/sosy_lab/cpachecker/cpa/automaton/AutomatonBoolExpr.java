@@ -164,7 +164,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckCoversLines
+      return o instanceof CheckReachesLine
           && lineToReach.equals(((CheckReachesLine) o).lineToReach);
     }
   }
