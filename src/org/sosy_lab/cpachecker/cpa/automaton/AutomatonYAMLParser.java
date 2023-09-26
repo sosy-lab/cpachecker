@@ -402,7 +402,7 @@ public class AutomatonYAMLParser {
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
-    Set<Integer> allowedLines = extractLineFrequencies();
+    Set<Integer> allowedLines = linesWithExactlyOneEdge();
 
     int counter = 0;
     final String initState = getStateName(counter++);
@@ -490,7 +490,7 @@ public class AutomatonYAMLParser {
     return automaton;
   }
 
-  private Set<Integer> extractLineFrequencies() {
+  private Set<Integer> linesWithExactlyOneEdge() {
     Map<Integer, Integer> lineFrequencies = new HashMap<>();
 
     for (CFAEdge edge : cfa.edges()) {
