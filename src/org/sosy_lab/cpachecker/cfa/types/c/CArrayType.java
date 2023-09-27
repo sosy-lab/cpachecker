@@ -26,6 +26,10 @@ public final class CArrayType extends AArrayType implements CType {
   private final boolean isConst;
   private final boolean isVolatile;
 
+  public CArrayType(boolean pConst, boolean pVolatile, CType pType) {
+    this(pConst, pVolatile, pType, null);
+  }
+
   public CArrayType(boolean pConst, boolean pVolatile, CType pType, @Nullable CExpression pLength) {
     super(pType);
 

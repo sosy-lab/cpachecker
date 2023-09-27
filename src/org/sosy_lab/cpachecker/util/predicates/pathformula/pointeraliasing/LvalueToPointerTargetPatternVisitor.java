@@ -190,8 +190,7 @@ class LvalueToPointerTargetPatternVisitor
             new CArrayType(
                 containerType.isConst(), // TODO: Set array size
                 containerType.isVolatile(),
-                elementType,
-                null);
+                elementType);
       } else {
         elementType = ((CArrayType) containerType).getType();
       }
