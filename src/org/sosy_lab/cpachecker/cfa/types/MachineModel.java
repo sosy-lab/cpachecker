@@ -956,7 +956,7 @@ public enum MachineModel {
    */
   public Optional<BigInteger> getFieldOffsetInBytes(CCompositeType pOwnerType, String pFieldName) {
     BigInteger bitOffset = getFieldOffsetInBits(pOwnerType, pFieldName);
-    BigInteger divAndRemain[] = bitOffset.divideAndRemainder(BigInteger.valueOf(mSizeofCharInBits));
+    BigInteger[] divAndRemain = bitOffset.divideAndRemainder(BigInteger.valueOf(mSizeofCharInBits));
     if (divAndRemain[1].equals(BigInteger.ZERO)) {
       return Optional.of(divAndRemain[0]);
     }
