@@ -356,8 +356,8 @@ class ASTConverter {
     if (node == null || node instanceof CExpression) {
       return (CExpression) node;
 
-    } else if (node instanceof CFunctionCallExpression) {
-      return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
+    } else if (node instanceof CFunctionCallExpression funcCall) {
+      return addSideassignmentsForFunctionCallExpressions(funcCall, e);
 
     } else if (e instanceof IASTUnaryExpression
         && (((IASTUnaryExpression) e).getOperator() == IASTUnaryExpression.op_postFixDecr
@@ -392,19 +392,19 @@ class ASTConverter {
     return exp.accept(nonRecursiveExpressionSimplificator);
   }
 
-  private CExpression addSideassignmentsForExpressionsWithoutSideEffects(
-      CAstNode node, IASTExpression e) {
+  private CExpression addSideassignmentsForFunctionCallExpressions(
+      CFunctionCallExpression funcCall, IASTExpression e) {
     CIdExpression tmp;
     if (e.getExpressionType() instanceof IProblemType) {
       tmp =
           createInitializedTemporaryVariable(
-              getLocation(e), ((CRightHandSide) node).getExpressionType(), (CInitializer) null);
+              getLocation(e), funcCall.getExpressionType(), (CInitializer) null);
     } else {
       tmp = createTemporaryVariable(e);
     }
 
     sideAssignmentStack.addPreSideAssignment(
-        new CFunctionCallAssignmentStatement(getLocation(e), tmp, (CFunctionCallExpression) node));
+        new CFunctionCallAssignmentStatement(getLocation(e), tmp, funcCall));
     return tmp;
   }
 
