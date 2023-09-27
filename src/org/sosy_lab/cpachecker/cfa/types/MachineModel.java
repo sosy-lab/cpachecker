@@ -18,6 +18,7 @@ import java.nio.ByteOrder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -943,6 +944,24 @@ public enum MachineModel {
   public BigInteger getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
     checkNotNull(pFieldName);
     return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, pFieldName, null);
+  }
+
+  /**
+   * Calculates the offset of pFieldName in pOwnerType in bytes. Returns an empty optional if the
+   * field is a non-byte-aligned bit field.
+   *
+   * @param pOwnerType a {@link CCompositeType} to calculate its field offset
+   * @param pFieldName the name of the field to calculate its offset
+   * @return the offset of the given field
+   */
+  public Optional<BigInteger> getFieldOffsetInBytes(CCompositeType pOwnerType, String pFieldName) {
+    BigInteger bitOffset = getFieldOffsetInBits(pOwnerType, pFieldName);
+    BigInteger divAndRemain[] = bitOffset.divideAndRemainder(BigInteger.valueOf(mSizeofCharInBits));
+    if (divAndRemain[1].equals(BigInteger.ZERO)) {
+      return Optional.of(divAndRemain[0]);
+    }
+    // bit-field with non-byte-aligned offset
+    return Optional.empty();
   }
 
   /**

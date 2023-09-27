@@ -1592,9 +1592,12 @@ public abstract class AbstractExpressionValueVisitor
           && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
         Value baseAddress = cast.getOperand().accept(this);
         if (baseAddress.isNumericValue()) {
-          BigInteger offset =
-              machineModel.getFieldOffsetInBits(structType, fieldRef.getFieldName());
-          return new NumericValue(baseAddress.asNumericValue().bigIntegerValue().add(offset));
+          Optional<BigInteger> offset =
+              machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
+          if (offset.isPresent()) {
+            return new NumericValue(
+                baseAddress.asNumericValue().bigIntegerValue().add(offset.orElseThrow()));
+          }
         }
       }
       return Value.UnknownValue.getInstance();

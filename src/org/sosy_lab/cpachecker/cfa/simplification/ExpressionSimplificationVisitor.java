@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -309,15 +310,15 @@ public class ExpressionSimplificationVisitor
         && fieldRef.isPointerDereference()
         && fieldRef.getFieldOwner() instanceof CCastExpression cast
         && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
-        && pointerType.getType().getCanonicalType() instanceof CCompositeType structType
-    ) {
+        && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
       NumericValue baseAddress = getValue(cast.getOperand());
       if (baseAddress != null) {
-        BigInteger offset = machineModel.getFieldOffsetInBits(structType, fieldRef.getFieldName());
-        return new CIntegerLiteralExpression(
-            loc,
-            exprType,
-            baseAddress.bigIntegerValue().add(offset));
+        Optional<BigInteger> offset =
+            machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
+        if (offset.isPresent()) {
+          return new CIntegerLiteralExpression(
+              loc, exprType, baseAddress.bigIntegerValue().add(offset.orElseThrow()));
+        }
       }
     }
 
