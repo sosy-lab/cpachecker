@@ -1947,7 +1947,7 @@ class ASTConverter {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
-      Declarator declarator = convert(d, type);
+      Declarator declarator = convert(d, type, /* isFunctionParameter= */ false);
       type = declarator.type();
       IASTInitializer initializer = declarator.initializer();
       String name = declarator.name();
@@ -2126,7 +2126,7 @@ class ASTConverter {
     String name = null;
 
     if (d != null) {
-      Declarator declarator = convert(d, type);
+      Declarator declarator = convert(d, type, /* isFunctionParameter= */ false);
 
       if (declarator.initializer() != null) {
         throw parseContext.parseError("Unsupported initializer inside composite type", d);
@@ -2143,7 +2143,7 @@ class ASTConverter {
     return new CCompositeTypeMemberDeclaration(type, name);
   }
 
-  private Declarator convert(IASTDeclarator d, CType specifier) {
+  private Declarator convert(IASTDeclarator d, CType specifier, boolean isFunctionParameter) {
     while (d != null
         && d.getClass() == CASTDeclarator.class
         && d.getPointerOperators().length == 0
@@ -2249,7 +2249,7 @@ class ASTConverter {
         } else if (modifier instanceof IASTPointerOperator) {
           // add accumulated array modifiers before adding next pointer operator
           for (int i = tmpArrMod.size() - 1; i >= 0; i--) {
-            type = convert(tmpArrMod.get(i), type);
+            type = convert(tmpArrMod.get(i), type, isFunctionParameter);
           }
           // clear added modifiers
           tmpArrMod.clear();
@@ -2263,7 +2263,7 @@ class ASTConverter {
 
       // add last array modifiers if necessary
       for (int i = tmpArrMod.size() - 1; i >= 0; i--) {
-        type = convert(tmpArrMod.get(i), type);
+        type = convert(tmpArrMod.get(i), type, isFunctionParameter);
       }
 
       // Compute length if necessary and possible
@@ -2475,17 +2475,31 @@ class ASTConverter {
         newType.hasLongLongSpecifier());
   }
 
-  private CType convert(IASTArrayModifier am, CType type) {
+  private CType convert(IASTArrayModifier am, CType type, boolean isFunctionParameter) {
     if (am instanceof ICASTArrayModifier a) {
       CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
       if (lengthExp != null) {
         lengthExp = simplifyExpressionRecursively(lengthExp);
+      }
+      if (!isFunctionParameter && !isSafeAsArrayLength(lengthExp)) {
+        lengthExp = createTemporaryVariableWithInitializer(getLocation(am), lengthExp);
       }
       return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
 
     } else {
       throw parseContext.parseError("Unknown array modifier", am);
     }
+  }
+
+  private boolean isSafeAsArrayLength(CExpression lengthExp) {
+    if (lengthExp == null) {
+      return true;
+    } else if (lengthExp instanceof CIntegerLiteralExpression) {
+      return true;
+    } else if (lengthExp instanceof CIdExpression idExp) {
+      return idExp.getExpressionType().isConst();
+    }
+    return false;
   }
 
   private Declarator convert(IASTFunctionDeclarator d, CType returnType, boolean isStaticFunction) {
@@ -2523,7 +2537,8 @@ class ASTConverter {
     String origname;
     if (d.getNestedDeclarator() != null) {
 
-      Declarator nestedDeclarator = convert(d.getNestedDeclarator(), type);
+      Declarator nestedDeclarator =
+          convert(d.getNestedDeclarator(), type, /* isFunctionParameter= */ false);
 
       assert d.getName().getRawSignature().isEmpty() : d;
       assert nestedDeclarator.initializer() == null;
@@ -2970,7 +2985,8 @@ class ASTConverter {
       throw parseContext.parseError("Unsupported storage class for parameters", p);
     }
 
-    Declarator declarator = convert(p.getDeclarator(), specifier.getSecond());
+    Declarator declarator =
+        convert(p.getDeclarator(), specifier.getSecond(), /* isFunctionParameter= */ true);
 
     if (declarator.initializer() != null) {
       throw parseContext.parseError("Unsupported initializer for parameters", p);
@@ -2999,7 +3015,8 @@ class ASTConverter {
       throw parseContext.parseError("Unsupported storage class for type ids", t);
     }
 
-    Declarator declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
+    Declarator declarator =
+        convert(t.getAbstractDeclarator(), specifier.getSecond(), /* isFunctionParameter= */ false);
 
     if (declarator.initializer() != null) {
       throw parseContext.parseError("Unsupported initializer for type ids", t);
