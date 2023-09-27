@@ -766,7 +766,10 @@ class ASTConverter {
     return createTemporaryVariable(loc, pType, null);
   }
 
-  /** Create a temporary variable and initialize it with the given expression. */
+  /**
+   * Create a temporary variable and initialize it with the given expression. The variable will be
+   * declared as <code>const</code>, so use it only for read-only access.
+   */
   private CIdExpression createTemporaryVariableWithInitializer(
       final FileLocation loc, final CExpression initializer) {
     return createTemporaryVariable(
@@ -777,6 +780,9 @@ class ASTConverter {
    * Create a temporary variables with a declaration that is stored for later handling and return an
    * id expression with the name of the variable. If an initializer is given, it is added to the
    * declaration.
+   *
+   * <p>If an initializer is given, the variable is declared <code>const</code>, otherwise it is
+   * ensured that it is non-<code>const</code>.
    *
    * <p>Most callers should call one of the other methods like {@link
    * #createTemporaryVariableWithInitializer(FileLocation, CExpression)}, {@link
@@ -793,8 +799,8 @@ class ASTConverter {
     name += i;
 
     // If there is no initializer, the variable cannot be const.
-    // TODO: consider always adding a const modifier if there is an initializer
-    CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
+    // For others we add it as our temporary variables are single-use.
+    CType type = (initializer == null) ? CTypes.withoutConst(pType) : CTypes.withConst(pType);
 
     if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
       // Replace with pointer type.
