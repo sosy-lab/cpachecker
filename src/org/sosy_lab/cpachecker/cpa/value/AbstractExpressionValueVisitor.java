@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -1583,6 +1584,19 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
+      // We can handle &((struct foo*)0)->field
+      if (unaryOperand instanceof CFieldReference fieldRef
+          && fieldRef.isPointerDereference()
+          && fieldRef.getFieldOwner() instanceof CCastExpression cast
+          && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
+          && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
+        Value baseAddress = cast.getOperand().accept(this);
+        if (baseAddress.isNumericValue()) {
+          BigInteger offset =
+              machineModel.getFieldOffsetInBits(structType, fieldRef.getFieldName());
+          return new NumericValue(baseAddress.asNumericValue().bigIntegerValue().add(offset));
+        }
+      }
       return Value.UnknownValue.getInstance();
     }
 

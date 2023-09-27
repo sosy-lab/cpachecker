@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -35,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -299,6 +302,22 @@ public class ExpressionSimplificationVisitor
                 AbstractExpressionValueVisitor.castCValue(
                     new NumericValue(~value.longValue()), exprType, machineModel, logger, loc);
         return new CIntegerLiteralExpression(loc, exprType, complementValue.bigIntegerValue());
+      }
+
+    } else if (unaryOperator == UnaryOperator.AMPER // handle &((struct foo*)0)->field
+        && op instanceof CFieldReference fieldRef
+        && fieldRef.isPointerDereference()
+        && fieldRef.getFieldOwner() instanceof CCastExpression cast
+        && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
+        && pointerType.getType().getCanonicalType() instanceof CCompositeType structType
+    ) {
+      NumericValue baseAddress = getValue(cast.getOperand());
+      if (baseAddress != null) {
+        BigInteger offset = machineModel.getFieldOffsetInBits(structType, fieldRef.getFieldName());
+        return new CIntegerLiteralExpression(
+            loc,
+            exprType,
+            baseAddress.bigIntegerValue().add(offset));
       }
     }
 
