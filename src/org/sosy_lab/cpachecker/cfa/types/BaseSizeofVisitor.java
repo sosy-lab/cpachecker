@@ -63,7 +63,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
 
     switch (pCompositeType.getKind()) {
       case STRUCT:
-        return handleSizeOfStruct(pCompositeType);
+        return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
       case UNION:
         return handleSizeOfUnion(pCompositeType);
       case ENUM: // There is no such kind of Composit Type.
@@ -83,10 +83,6 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
       result = result.add(BigInteger.ONE);
     }
     return result;
-  }
-
-  private BigInteger handleSizeOfStruct(CCompositeType pCompositeType) {
-    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
   }
 
   private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) {
@@ -177,7 +173,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
         (pFieldName == null) || (outParameterMap == null),
         "Call of this method does only make sense if either pFieldName or outParameterMap "
             + "is of value null, otherwise it either stops the calculation with an incomplete "
-            + "map or wastes ressources by filling a map with values that are not required.");
+            + "map or wastes resources by filling a map with values that are not required.");
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 

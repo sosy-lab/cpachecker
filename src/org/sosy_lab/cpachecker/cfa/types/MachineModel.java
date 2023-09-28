@@ -17,7 +17,6 @@ import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.util.Map;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -707,27 +706,7 @@ public enum MachineModel {
     return Optional.empty();
   }
 
-  /**
-   * Compute size of composite types or offsets of fields in composite types, taking alignment and
-   * padding into account. Both tasks share the same complex logic, so we implement them in the same
-   * private method that is exposed via various public methods for individual tasks.
-   *
-   * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
-   * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
-   *     composites size
-   * @param outParameterMap a {@link Map} given as both, input and output, to store the mapping of
-   *     fields to offsets in; may be <code>null</code> if not required
-   * @return a long that is either the offset of the given field or the size of the whole type
-   */
-  BigInteger getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-      CCompositeType pOwnerType,
-      @Nullable String pFieldName,
-      ImmutableMap.@Nullable Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
-    return sizeofVisitor.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-        pOwnerType, pFieldName, outParameterMap);
-  }
-
-  @Deprecated
+  @Deprecated // should be private in BaseSizeofVisitor
   public BigInteger calculateNecessaryBitfieldOffset(
       BigInteger pBitFieldOffset, CType pType, long pSizeOfByte, BigInteger pBitFieldLength) {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
@@ -748,7 +727,7 @@ public enum MachineModel {
     return pBitFieldOffset;
   }
 
-  @Deprecated
+  @Deprecated // should be private in BaseSizeofVisitor
   public BigInteger calculatePaddedBitsize(
       BigInteger pBitOffset,
       BigInteger pSizeOfConsecutiveBitFields,
@@ -762,7 +741,7 @@ public enum MachineModel {
     return pBitOffset.add(getPadding(pBitOffset, pType)).multiply(BigInteger.valueOf(pSizeOfByte));
   }
 
-  @Deprecated
+  @Deprecated // should be private in BaseSizeofVisitor
   public BigInteger getPadding(BigInteger pOffset, CType pType) {
     return getPaddingInBits(pOffset, pType, 1L);
   }
