@@ -50,7 +50,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
     if (arrayLength instanceof CIntegerLiteralExpression) {
       BigInteger length = ((CIntegerLiteralExpression) arrayLength).getValue();
 
-      BigInteger sizeOfType = model.getSizeof(pArrayType.getType());
+      BigInteger sizeOfType = model.getSizeof(pArrayType.getType(), this);
       return length.multiply(sizeOfType);
     }
 
