@@ -24,9 +24,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-class CSizeOfVisitor extends BaseSizeofVisitor<NoException> {
+class CSizeOfVisitor extends BaseSizeofVisitor<CPATransferException> {
   private final CFAEdge edge;
   private final SMGState state;
   private final Optional<CExpression> expression;
@@ -45,7 +45,7 @@ class CSizeOfVisitor extends BaseSizeofVisitor<NoException> {
   }
 
   @Override
-  public BigInteger visit(CArrayType pArrayType) throws IllegalArgumentException {
+  public BigInteger visit(CArrayType pArrayType) throws CPATransferException {
 
     CExpression arrayLength = pArrayType.getLength();
 
@@ -69,15 +69,8 @@ class CSizeOfVisitor extends BaseSizeofVisitor<NoException> {
        * we simply need to calculate the current length of the array
        * from the given expression in the type.
        */
-      SMGExplicitValue lengthAsExplicitValue;
-
-      try {
-        lengthAsExplicitValue = eval.evaluateExplicitValueV2(state, edge, arrayLength);
-      } catch (CPATransferException e) {
-        throw new IllegalArgumentException(
-            "Exception when calculating array length of " + pArrayType.toASTString("") + ".", e);
-      }
-
+      SMGExplicitValue lengthAsExplicitValue =
+          eval.evaluateExplicitValueV2(state, edge, arrayLength);
       if (lengthAsExplicitValue.isUnknown()) {
         length = handleUnkownArrayLengthValue(pArrayType);
       } else {
@@ -101,7 +94,6 @@ class CSizeOfVisitor extends BaseSizeofVisitor<NoException> {
         } catch (CPATransferException e) {
           return handleUnkownArrayLengthValue(pArrayType);
         }
-
         assert !addressOfFieldAndState.isEmpty();
 
         SMGAddress addressOfField = addressOfFieldAndState.get(0).getObject();
@@ -122,8 +114,8 @@ class CSizeOfVisitor extends BaseSizeofVisitor<NoException> {
     return length.multiply(sizeOfType);
   }
 
-  BigInteger handleUnkownArrayLengthValue(CArrayType pArrayType) {
-    throw new IllegalArgumentException(
-        "Can't calculate array length of type " + pArrayType.toASTString("") + ".");
+  BigInteger handleUnkownArrayLengthValue(CArrayType pArrayType) throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException(
+        "Can't calculate array length of type " + pArrayType.toASTString("") + ".", edge);
   }
 }
