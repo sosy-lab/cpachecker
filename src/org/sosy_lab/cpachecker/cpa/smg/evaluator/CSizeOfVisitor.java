@@ -24,8 +24,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-class CSizeOfVisitor extends BaseSizeofVisitor {
+class CSizeOfVisitor extends BaseSizeofVisitor<NoException> {
   private final CFAEdge edge;
   private final SMGState state;
   private final Optional<CExpression> expression;

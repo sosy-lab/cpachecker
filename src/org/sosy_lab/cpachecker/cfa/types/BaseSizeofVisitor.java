@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
-public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgumentException> {
+public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigInteger, X> {
   private final MachineModel model;
 
   protected BaseSizeofVisitor(MachineModel model) {
@@ -42,7 +42,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
   }
 
   @Override
-  public BigInteger visit(CArrayType pArrayType) throws IllegalArgumentException {
+  public BigInteger visit(CArrayType pArrayType) throws X {
     // TODO: Take possible padding into account
 
     CExpression arrayLength = pArrayType.getLength();
@@ -59,7 +59,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
   }
 
   @Override
-  public BigInteger visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+  public BigInteger visit(CCompositeType pCompositeType) throws X {
 
     switch (pCompositeType.getKind()) {
       case STRUCT:
@@ -85,7 +85,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
     return result;
   }
 
-  private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) {
+  private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) throws X {
     BigInteger size = BigInteger.ZERO;
     BigInteger sizeOfType = BigInteger.ZERO;
     // TODO: Take possible padding into account
@@ -97,7 +97,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
   }
 
   @Override
-  public BigInteger visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+  public BigInteger visit(CElaboratedType pElaboratedType) throws X {
     CType def = pElaboratedType.getRealType();
     if (def != null) {
       return def.accept(this);
@@ -116,39 +116,39 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
   }
 
   @Override
-  public BigInteger visit(CFunctionType pFunctionType) throws IllegalArgumentException {
+  public BigInteger visit(CFunctionType pFunctionType) throws X {
     // A function does not really have a size,
     // but references to functions can be used as pointers.
     return BigInteger.valueOf(model.getSizeofPtr());
   }
 
   @Override
-  public BigInteger visit(CPointerType pPointerType) throws IllegalArgumentException {
+  public BigInteger visit(CPointerType pPointerType) throws X {
     return BigInteger.valueOf(model.getSizeofPtr());
   }
 
   @Override
-  public BigInteger visit(CProblemType pProblemType) throws IllegalArgumentException {
+  public BigInteger visit(CProblemType pProblemType) throws X {
     throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
   }
 
   @Override
-  public BigInteger visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+  public BigInteger visit(CSimpleType pSimpleType) throws X {
     return BigInteger.valueOf(model.getSizeof(pSimpleType));
   }
 
   @Override
-  public BigInteger visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+  public BigInteger visit(CTypedefType pTypedefType) throws X {
     return pTypedefType.getRealType().accept(this);
   }
 
   @Override
-  public BigInteger visit(CVoidType pVoidType) throws IllegalArgumentException {
+  public BigInteger visit(CVoidType pVoidType) throws X {
     return BigInteger.valueOf(model.getSizeofVoid());
   }
 
   @Override
-  public BigInteger visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
+  public BigInteger visit(CBitFieldType pCBitFieldType) throws X {
     return calculateByteSize(BigInteger.valueOf(pCBitFieldType.getBitFieldSize()));
   }
 
@@ -168,7 +168,8 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
   BigInteger getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
-      ImmutableMap.@Nullable Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
+      ImmutableMap.@Nullable Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap)
+      throws X {
     checkArgument(
         (pFieldName == null) || (outParameterMap == null),
         "Call of this method does only make sense if either pFieldName or outParameterMap "

@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -1277,7 +1278,7 @@ public class SMGCPAExpressionEvaluator {
     return getCanonicalType(exp.getExpressionType());
   }
 
-  public static class SMG2SizeofVisitor extends BaseSizeofVisitor {
+  public static class SMG2SizeofVisitor extends BaseSizeofVisitor<NoException> {
 
     private final MachineModel model;
     private final SMGState state;

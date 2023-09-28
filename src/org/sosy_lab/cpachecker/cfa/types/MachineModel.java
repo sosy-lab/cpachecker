@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /** This enum stores the sizes for all the basic types that exist. */
 public enum MachineModel {
@@ -615,7 +616,7 @@ public enum MachineModel {
 
   @SuppressFBWarnings("SE_BAD_FIELD")
   @SuppressWarnings("ImmutableEnumChecker")
-  private final BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(this);
+  private final BaseSizeofVisitor<NoException> sizeofVisitor = new BaseSizeofVisitor<>(this);
 
   public BigInteger getSizeof(CType pType) {
     checkArgument(
@@ -625,7 +626,8 @@ public enum MachineModel {
     return getSizeof(pType, sizeofVisitor);
   }
 
-  public BigInteger getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public <X extends Exception> BigInteger getSizeof(
+      CType pType, BaseSizeofVisitor<X> pSizeofVisitor) throws X {
     checkNotNull(pSizeofVisitor);
     return pType.accept(pSizeofVisitor);
   }
@@ -638,7 +640,8 @@ public enum MachineModel {
     return getSizeofInBits(pType, sizeofVisitor);
   }
 
-  public BigInteger getSizeofInBits(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public <X extends Exception> BigInteger getSizeofInBits(
+      CType pType, BaseSizeofVisitor<X> pSizeofVisitor) throws X {
     checkNotNull(pSizeofVisitor);
     if (pType instanceof CBitFieldType) {
       return BigInteger.valueOf(((CBitFieldType) pType).getBitFieldSize());
