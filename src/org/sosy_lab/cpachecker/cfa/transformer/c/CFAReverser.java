@@ -96,10 +96,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -542,7 +546,7 @@ public class CFAReverser {
           // Create Branching
           // newhead -> branchID1 -> newNext1
           //         -> branchID2 -> newNext2
-          if (oldhead.getNumEnteringEdges() > 1) {
+          if (oldhead.getNumEnteringEdges() > 1 && !(newhead instanceof FunctionExitNode)) {
             branchCnt += 1;
             usingBranch = true;
 
@@ -699,8 +703,18 @@ public class CFAReverser {
         if (funcDecls.get(funcDecl.getName()) != null) {
           return funcDecls.get(funcDecl.getName());
         }
+        String funcName = funcDecl.getName();
 
-        if (funcDecl.getName().equals("main")) {
+        if (funcName.equals("main")) {
+          return new CFunctionDeclaration(
+              FileLocation.DUMMY,
+              funcDecl.getType(),
+              funcDecl.getName(),
+              funcDecl.getParameters(),
+              funcDecl.getAttributes());
+        }
+
+        if (!pCfa.getAllFunctions().containsKey(funcName)) {
           return new CFunctionDeclaration(
               FileLocation.DUMMY,
               funcDecl.getType(),
@@ -750,6 +764,7 @@ public class CFAReverser {
         CFunctionDeclaration decl = callExpr.getDeclaration();
         String funcName = decl.getName();
         CFunctionDeclaration funcDecl = funcDecls.get(funcName);
+
         if (funcDecl == null) {
           CFunctionDeclaration newDecl = reverseFunctionDeclaration(decl);
           funcDecls.put(funcName, newDecl);
@@ -812,10 +827,10 @@ public class CFAReverser {
                 (CIdExpression) stmt.asAssignment().orElseThrow().getLeftHandSide(),
                 from.getFunctionName());
         CIdExpression retVar = new CIdExpression(FileLocation.DUMMY, retVarDecl);
-        CBinaryExpression assumeExpr = createAssumeExpr(retVal, retVar);
-        CAssumeEdge assumeEdge =
-            new CAssumeEdge("", FileLocation.DUMMY, from, to, assumeExpr, true, false, false);
-        addToCFA(assumeEdge);
+
+        CFANode curr = appendAssumeEdge(retVal, retVar, from, true);
+        BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
+        addToCFA(dummyEdge);
       }
 
       private CParameterDeclaration handleReturnVariable(CIdExpression retVar, String funcName) {
@@ -947,7 +962,7 @@ public class CFAReverser {
           CExpression arrayExpr,
           CArrayType arrayType,
           CFANode curr) {
-        int arrayLength = arrayType.getLengthAsInt().orElseThrow();
+        int arrayLength = initializerList.size();
 
         // reversely create the assume edge
         for (int i = arrayLength - 1; i >= 0; i--) {
@@ -1051,6 +1066,52 @@ public class CFAReverser {
 
       private void handleCallAssignStmt(
           CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
+
+        if (stmt.getFunctionCallExpression().getDeclaration() == null) {
+          LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
+          CLeftHandSide lvalue = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
+          CFunctionCallAssignmentStatement assignmentStatement =
+              new CFunctionCallAssignmentStatement(
+                  FileLocation.DUMMY, lvalue, stmt.getFunctionCallExpression());
+          CStatementEdge statementEdge =
+              new CStatementEdge("", assignmentStatement, FileLocation.DUMMY, from, to);
+          addToCFA(statementEdge);
+          return;
+        }
+
+        String funcName = stmt.getFunctionCallExpression().getDeclaration().getName();
+
+        if (!pCfa.getAllFunctionNames().contains(funcName)) {
+          String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
+          tmpCnt += 1;
+          CVariableDeclaration tmpDecl =
+              new CVariableDeclaration(
+                  FileLocation.DUMMY,
+                  false,
+                  CStorageClass.AUTO,
+                  stmt.getLeftHandSide().getExpressionType(),
+                  tmpName,
+                  tmpName,
+                  tmpName,
+                  null);
+          CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmpDecl);
+          variables.put(tmpName, tmpDecl);
+          CFunctionCallAssignmentStatement callAssignStmt =
+              new CFunctionCallAssignmentStatement(
+                  FileLocation.DUMMY, tmpExpr, stmt.getFunctionCallExpression());
+          CFANode curr = from;
+          CFANode next = new CFANode(curr.getFunction());
+          nodes.put(next.getFunctionName(), next);
+          CStatementEdge callAssignStatementEdge =
+              new CStatementEdge("", callAssignStmt, FileLocation.DUMMY, curr, next);
+          addToCFA(callAssignStatementEdge);
+          curr = next;
+          CExpression assumeExpr = createAssumeExpr(stmt.getLeftHandSide(), tmpExpr);
+          CAssumeEdge assumeEdge =
+              new CAssumeEdge("", FileLocation.DUMMY, curr, to, assumeExpr, true, false, false);
+          addToCFA(assumeEdge);
+          return;
+        }
 
         CStatementEdge newStmtEdge =
             new CStatementEdge("", reverseFunctionCall(stmt), FileLocation.DUMMY, from, to);
@@ -1573,7 +1634,7 @@ public class CFAReverser {
     }
 
     private CFunctionCallExpression createNoDetCallExpr(CType type) {
-      String funcName = "__VERIFIER_nondet_" + type;
+      String funcName = "__VERIFIER_nondet_" + type.getCanonicalType().toString();
       CFunctionDeclaration decl = funcDecls.get(funcName);
       if (decl == null) {
         CFunctionType functype = new CFunctionType(type, ImmutableList.of(), false);
@@ -1658,6 +1719,17 @@ public class CFAReverser {
       return builder.buildBinaryExpressionUnchecked(lExpr, rExpr, BinaryOperator.EQUALS);
     }
 
+    private CType getRealType(CType type) {
+      CType realType = type;
+      if (type instanceof CTypedefType) {
+        realType = ((CTypedefType) type).getRealType();
+      }
+      if (realType instanceof CElaboratedType) {
+        realType = ((CElaboratedType) realType).getRealType();
+      }
+      return realType;
+    }
+
     /**
      * Append an Assume edge
      *
@@ -1669,6 +1741,28 @@ public class CFAReverser {
      */
     private CFANode appendAssumeEdge(
         CExpression lExpr, CExpression rExpr, CFANode curr, boolean assume) {
+
+      CType realType = getRealType(lExpr.getExpressionType());
+
+      if (realType instanceof CCompositeType) {
+        List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) realType).getMembers();
+        for (CCompositeTypeMemberDeclaration member : members) {
+          CFieldReference lMember =
+              new CFieldReference(
+                  FileLocation.DUMMY, member.getType(), member.getName(), lExpr, false);
+          CFieldReference rMember =
+              new CFieldReference(
+                  FileLocation.DUMMY, member.getType(), member.getName(), rExpr, false);
+          CBinaryExpression assumeExpr = createAssumeExpr(lMember, rMember);
+          CFANode next = new CFANode(curr.getFunction());
+          nodes.put(next.getFunctionName(), next);
+          CAssumeEdge assumeEdge =
+              new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, assume, false, false);
+          addToCFA(assumeEdge);
+          curr = next;
+          return curr;
+        }
+      }
 
       CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
 
