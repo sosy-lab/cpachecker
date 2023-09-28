@@ -15,8 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -673,7 +671,7 @@ public enum MachineModel {
     ImmutableMap.Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap =
         ImmutableMap.builder();
 
-    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, outParameterMap);
+    sizeofVisitor.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, outParameterMap);
 
     return outParameterMap.buildOrThrow();
   }
@@ -687,7 +685,8 @@ public enum MachineModel {
    */
   public BigInteger getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
     checkNotNull(pFieldName);
-    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, pFieldName, null);
+    return sizeofVisitor.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+        pOwnerType, pFieldName, null);
   }
 
   /**
@@ -724,130 +723,8 @@ public enum MachineModel {
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
       ImmutableMap.@Nullable Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
-    checkArgument(
-        (pFieldName == null) || (outParameterMap == null),
-        "Call of this method does only make sense if either pFieldName or outParameterMap "
-            + "is of value null, otherwise it either stops the calculation with an incomplete "
-            + "map or wastes ressources by filling a map with values that are not required.");
-    final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
-    List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
-
-    BigInteger bitOffset = BigInteger.ZERO;
-    BigInteger sizeOfConsecutiveBitFields = BigInteger.ZERO;
-
-    long sizeOfByte = getSizeofCharInBits();
-
-    if (ownerTypeKind == ComplexTypeKind.UNION) {
-      if (outParameterMap == null) {
-        // If the field in question is a part of the Union,
-        // return an offset of 0.
-        // Otherwise, to indicate a problem, the return
-        // will be null.
-        if (typeMembers.stream().anyMatch(m -> m.getName().equals(pFieldName))) {
-          return bitOffset;
-        }
-      } else {
-        for (CCompositeTypeMemberDeclaration typeMember : typeMembers) {
-          outParameterMap.put(typeMember, BigInteger.ZERO);
-        }
-      }
-    } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
-
-      for (Iterator<CCompositeTypeMemberDeclaration> iterator = typeMembers.iterator();
-          iterator.hasNext(); ) {
-        CCompositeTypeMemberDeclaration typeMember = iterator.next();
-        CType type = typeMember.getType();
-
-        final BigInteger fieldSizeInBits;
-        if (!iterator.hasNext() && typeMember.isFlexibleArrayMember()) {
-          // If incomplete type at end of struct, just assume 0 for its size
-          // and compute its offset as usual, since it isn't affected.
-          fieldSizeInBits = BigInteger.ZERO;
-        } else {
-          fieldSizeInBits = getSizeofInBits(type);
-        }
-
-        if (type instanceof CBitFieldType) {
-          if (typeMember.getName().equals(pFieldName)) {
-            // just escape the loop and return the current offset
-            bitOffset = bitOffset.add(sizeOfConsecutiveBitFields);
-            return bitOffset;
-          }
-
-          CType innerType = ((CBitFieldType) type).getType();
-
-          if (fieldSizeInBits.compareTo(BigInteger.ZERO) == 0) {
-            // Bitfields with length 0 guarantee that
-            // the next bitfield starts at the beginning of the
-            // next address an object of the declaring
-            // type could be addressed by.
-            //
-            // E.g., if you have a struct like this:
-            //   struct s { int a : 8; char : 0; char b; };
-            //
-            // then the struct will be aligned to the size of int
-            // (4 Bytes) and will occupy 4 Bytes of memory.
-            //
-            // A struct like this:
-            //   struct t { int a : 8; int : 0; char b; };
-            //
-            // will also be aligned to the size of int, but
-            // since the 'int : 0;' member adjusts the next object
-            // to the next int-like addressable unit, t will
-            // occupy 8 Bytes instead of 4 (the char b is placed
-            // at the next 4-Byte addressable unit).
-            //
-            // At last, a struct like this:
-            //   struct u { char a : 4; char : 0; char b : 4; };
-            //
-            // will be aligned to size of char and occupy 2 Bytes
-            // in memory, while the same struct without the
-            // 'char : 0;' member would just occupy 1 Byte.
-            bitOffset =
-                calculatePaddedBitsize(
-                    bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
-            sizeOfConsecutiveBitFields = BigInteger.ZERO;
-          } else {
-            sizeOfConsecutiveBitFields =
-                calculateNecessaryBitfieldOffset(
-                        sizeOfConsecutiveBitFields.add(bitOffset),
-                        innerType,
-                        sizeOfByte,
-                        fieldSizeInBits)
-                    .subtract(bitOffset);
-            sizeOfConsecutiveBitFields = sizeOfConsecutiveBitFields.add(fieldSizeInBits);
-          }
-
-          // Put start offset of bitField to outParameterMap
-          if (outParameterMap != null) {
-            outParameterMap.put(
-                typeMember, bitOffset.add(sizeOfConsecutiveBitFields).subtract(fieldSizeInBits));
-          }
-        } else {
-          bitOffset =
-              calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, type, sizeOfByte);
-          sizeOfConsecutiveBitFields = BigInteger.ZERO;
-
-          if (typeMember.getName().equals(pFieldName)) {
-            // just escape the loop and return the current offset
-            return bitOffset;
-          }
-
-          if (outParameterMap != null) {
-            outParameterMap.put(typeMember, bitOffset);
-          }
-          bitOffset = bitOffset.add(fieldSizeInBits);
-        }
-      }
-    }
-
-    if (pFieldName != null) {
-      throw new IllegalArgumentException(
-          "could not find field " + pFieldName + " in " + pOwnerType);
-    }
-
-    // call with byte size of 1 to return size in bytes instead of bits
-    return calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1L);
+    return sizeofVisitor.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+        pOwnerType, pFieldName, outParameterMap);
   }
 
   @Deprecated
