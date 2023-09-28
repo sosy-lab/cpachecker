@@ -69,12 +69,16 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
       Map<String, String> pIdentificationMap,
       Map<String, String> pClassTypeMap,
       String pClassObjectScope,
-      Deque<String> pClassObjectStack) {
+      Deque<String> pClassObjectStack,
+      Set<String> pStaticFieldVariables,
+      Set<String> pNonStaticFieldVariables) {
     constantsMap = pConstantsMap;
     identificationMap = pIdentificationMap;
     classTypeMap = pClassTypeMap;
     classObjectStack = pClassObjectStack;
     classObjectScope = pClassObjectScope;
+    staticFieldVariables.addAll(pStaticFieldVariables);
+    nonStaticFieldVariables.addAll(pNonStaticFieldVariables);
   }
 
   /**
@@ -229,6 +233,9 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
     Map<String, String> newIdentificationMap = new HashMap<>(0);
     Map<String, String> newClassTypeMap = new HashMap<>(0);
 
+    Set<String> newStaticFieldSet = new HashSet<>();
+    Set<String> newNonStaticFieldSet = new HashSet<>();
+
     for (Map.Entry<String, String> otherEntry : other.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
 
@@ -253,10 +260,28 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
       }
     }
 
+    for (String otherEntry : other.getStaticFieldVariables()) {
+      if (staticFieldVariables.contains(otherEntry)) {
+        newStaticFieldSet.add(otherEntry);
+      }
+    }
+
+    for (String otherEntry : other.getNonStaticFieldVariables()) {
+      if (nonStaticFieldVariables.contains(otherEntry)) {
+        newNonStaticFieldSet.add(otherEntry);
+      }
+    }
+
     // TODO no this for unequal scope (Is it possible)
 
     return new RTTState(
-        newConstantsMap, newIdentificationMap, newClassTypeMap, classObjectScope, classObjectStack);
+        newConstantsMap,
+        newIdentificationMap,
+        newClassTypeMap,
+        classObjectScope,
+        classObjectStack,
+        newStaticFieldSet,
+        newNonStaticFieldSet);
   }
 
   /**
@@ -303,7 +328,9 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
         new HashMap<>(old.identificationMap),
         new HashMap<>(old.classTypeMap),
         old.classObjectScope,
-        newClassObjectStack);
+        newClassObjectStack,
+        old.getStaticFieldVariables(),
+        old.getNonStaticFieldVariables());
   }
 
   @Override
@@ -365,6 +392,14 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
 
   public String getRunTimeClassOfUniqueObject(String uniqueObject) {
     return classTypeMap.get(uniqueObject);
+  }
+
+  public Set<String> getStaticFieldVariables() {
+    return staticFieldVariables;
+  }
+
+  public Set<String> getNonStaticFieldVariables() {
+    return nonStaticFieldVariables;
   }
 
   @Override
