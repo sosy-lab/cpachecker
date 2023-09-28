@@ -20,24 +20,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
@@ -629,131 +620,6 @@ public enum MachineModel {
   @SuppressWarnings("ImmutableEnumChecker")
   private final BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(this);
 
-  public static class BaseSizeofVisitor
-      implements CTypeVisitor<BigInteger, IllegalArgumentException> {
-    private final MachineModel model;
-
-    protected BaseSizeofVisitor(MachineModel model) {
-      this.model = model;
-    }
-
-    @Override
-    public BigInteger visit(CArrayType pArrayType) throws IllegalArgumentException {
-      // TODO: Take possible padding into account
-
-      CExpression arrayLength = pArrayType.getLength();
-
-      if (arrayLength instanceof CIntegerLiteralExpression) {
-        BigInteger length = ((CIntegerLiteralExpression) arrayLength).getValue();
-
-        BigInteger sizeOfType = model.getSizeof(pArrayType.getType());
-        return length.multiply(sizeOfType);
-      }
-
-      // Treat arrays with variable length as pointer.
-      return BigInteger.valueOf(model.getSizeofPtr());
-    }
-
-    @Override
-    public BigInteger visit(CCompositeType pCompositeType) throws IllegalArgumentException {
-
-      switch (pCompositeType.getKind()) {
-        case STRUCT:
-          return handleSizeOfStruct(pCompositeType);
-        case UNION:
-          return handleSizeOfUnion(pCompositeType);
-        case ENUM: // There is no such kind of Composit Type.
-        default:
-          throw new AssertionError();
-      }
-    }
-
-    private BigInteger calculateByteSize(BigInteger pBitFieldsSize) {
-      if (pBitFieldsSize.compareTo(BigInteger.ZERO) == 0) {
-        return BigInteger.ZERO;
-      }
-
-      BigInteger charSizeInBits = BigInteger.valueOf(model.getSizeofCharInBits());
-      BigInteger result = pBitFieldsSize.divide(charSizeInBits);
-      if (pBitFieldsSize.mod(charSizeInBits).compareTo(BigInteger.ZERO) > 0) {
-        result = result.add(BigInteger.ONE);
-      }
-      return result;
-    }
-
-    private BigInteger handleSizeOfStruct(CCompositeType pCompositeType) {
-      return model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
-    }
-
-    private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) {
-      BigInteger size = BigInteger.ZERO;
-      BigInteger sizeOfType = BigInteger.ZERO;
-      // TODO: Take possible padding into account
-      for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-        sizeOfType = decl.getType().accept(this);
-        size = size.max(sizeOfType);
-      }
-      return size;
-    }
-
-    @Override
-    public BigInteger visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-      CType def = pElaboratedType.getRealType();
-      if (def != null) {
-        return def.accept(this);
-      }
-
-      if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return BigInteger.valueOf(model.getSizeofInt());
-      }
-
-      throw new IllegalArgumentException(
-          "Cannot compute size of incomplete type " + pElaboratedType);
-    }
-
-    @Override
-    public BigInteger visit(CEnumType pEnumType) throws IllegalArgumentException {
-      return BigInteger.valueOf(model.getSizeof(pEnumType.getCompatibleType()));
-    }
-
-    @Override
-    public BigInteger visit(CFunctionType pFunctionType) throws IllegalArgumentException {
-      // A function does not really have a size,
-      // but references to functions can be used as pointers.
-      return BigInteger.valueOf(model.getSizeofPtr());
-    }
-
-    @Override
-    public BigInteger visit(CPointerType pPointerType) throws IllegalArgumentException {
-      return BigInteger.valueOf(model.getSizeofPtr());
-    }
-
-    @Override
-    public BigInteger visit(CProblemType pProblemType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
-    }
-
-    @Override
-    public BigInteger visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      return BigInteger.valueOf(model.getSizeof(pSimpleType));
-    }
-
-    @Override
-    public BigInteger visit(CTypedefType pTypedefType) throws IllegalArgumentException {
-      return pTypedefType.getRealType().accept(this);
-    }
-
-    @Override
-    public BigInteger visit(CVoidType pVoidType) throws IllegalArgumentException {
-      return BigInteger.valueOf(model.getSizeofVoid());
-    }
-
-    @Override
-    public BigInteger visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
-      return calculateByteSize(BigInteger.valueOf(pCBitFieldType.getBitFieldSize()));
-    }
-  }
-
   public BigInteger getSizeof(CType pType) {
     checkArgument(
         pType.getCanonicalType() instanceof CVoidType || !pType.isIncomplete(),
@@ -788,128 +654,6 @@ public enum MachineModel {
   @SuppressWarnings("ImmutableEnumChecker")
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
       new BaseAlignofVisitor(this);
-
-  private static class BaseAlignofVisitor
-      implements CTypeVisitor<Integer, IllegalArgumentException> {
-    private final MachineModel model;
-
-    private BaseAlignofVisitor(MachineModel model) {
-      this.model = model;
-    }
-
-    @Override
-    public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
-      // the alignment of an array is the same as the alignment of an member of the array
-      return pArrayType.getType().accept(this);
-    }
-
-    @Override
-    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
-
-      switch (pCompositeType.getKind()) {
-        case STRUCT:
-        case UNION:
-          int alignof = 1;
-          // TODO: Take possible padding into account
-          for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-            int alignOfType = decl.getType().accept(this);
-            alignof = Math.max(alignof, alignOfType);
-          }
-          return alignof;
-
-        case ENUM: // There is no such kind of Composite Type.
-        default:
-          throw new AssertionError();
-      }
-    }
-
-    @Override
-    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-      CType def = pElaboratedType.getRealType();
-      if (def != null) {
-        return def.accept(this);
-      }
-
-      if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return model.getAlignofInt();
-      }
-
-      throw new IllegalArgumentException(
-          "Cannot compute alignment of incomplete type " + pElaboratedType);
-    }
-
-    @Override
-    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
-      // enums are always ints
-      return model.getAlignofInt();
-    }
-
-    @Override
-    public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
-      // function types have per definition the value 1 if compiled with gcc
-      return 1;
-    }
-
-    @Override
-    public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
-      return model.getAlignofPtr();
-    }
-
-    @Override
-    public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
-    }
-
-    @Override
-    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      switch (pSimpleType.getType()) {
-        case BOOL:
-          return model.getAlignofBool();
-        case CHAR:
-          return model.getAlignofChar();
-        case FLOAT:
-          return model.getAlignofFloat();
-        case UNSPECIFIED: // unspecified is the same as int
-        case INT:
-          if (pSimpleType.hasLongLongSpecifier()) {
-            return model.getAlignofLongLongInt();
-          } else if (pSimpleType.hasLongSpecifier()) {
-            return model.getAlignofLongInt();
-          } else if (pSimpleType.hasShortSpecifier()) {
-            return model.getAlignofShort();
-          } else {
-            return model.getAlignofInt();
-          }
-        case INT128:
-          return model.getAlignofInt128();
-        case DOUBLE:
-          if (pSimpleType.hasLongSpecifier()) {
-            return model.getAlignofLongDouble();
-          } else {
-            return model.getAlignofDouble();
-          }
-        case FLOAT128:
-          return model.getAlignofFloat128();
-        default:
-          throw new AssertionError("Unrecognized CBasicType " + pSimpleType.getType());
-      }
-    }
-
-    @Override
-    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
-      return pTypedefType.getRealType().accept(this);
-    }
-
-    @Override
-    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
-      return model.getAlignofVoid();
-    }
-
-    @Override
-    public Integer visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
-      return pCBitFieldType.getType().accept(this);
-    }
-  }
 
   public int getAlignof(CType type) {
     return type.accept(alignofVisitor);
@@ -976,7 +720,7 @@ public enum MachineModel {
    *     fields to offsets in; may be <code>null</code> if not required
    * @return a long that is either the offset of the given field or the size of the whole type
    */
-  private BigInteger getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+  BigInteger getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
       ImmutableMap.@Nullable Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
