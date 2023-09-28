@@ -86,7 +86,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
   }
 
   private BigInteger handleSizeOfStruct(CCompositeType pCompositeType) {
-    return model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
+    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
   }
 
   private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) {
@@ -213,7 +213,7 @@ public class BaseSizeofVisitor implements CTypeVisitor<BigInteger, IllegalArgume
           // and compute its offset as usual, since it isn't affected.
           fieldSizeInBits = BigInteger.ZERO;
         } else {
-          fieldSizeInBits = model.getSizeofInBits(type);
+          fieldSizeInBits = model.getSizeofInBits(type, this);
         }
 
         if (type instanceof CBitFieldType) {
