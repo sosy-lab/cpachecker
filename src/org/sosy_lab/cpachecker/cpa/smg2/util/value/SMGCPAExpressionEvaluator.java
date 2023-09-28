@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -1282,7 +1281,6 @@ public class SMGCPAExpressionEvaluator {
 
   public static class SMG2SizeofVisitor extends BaseSizeofVisitor<CPATransferException> {
 
-    private final MachineModel model;
     private final SMGState state;
     private final LogManagerWithoutDuplicates logger;
     private final SMGCPAExpressionEvaluator evaluator;
@@ -1295,7 +1293,6 @@ public class SMGCPAExpressionEvaluator {
         LogManagerWithoutDuplicates pLogger,
         SMGOptions pOptions) {
       super(pModel);
-      model = pModel;
       state = pState;
       logger = pLogger;
       evaluator = pEvaluator;
@@ -1303,21 +1300,8 @@ public class SMGCPAExpressionEvaluator {
     }
 
     @Override
-    public BigInteger visit(CArrayType pArrayType) throws CPATransferException {
-      // TODO: Take possible padding into account
-
-      CExpression arrayLength = pArrayType.getLength();
-      BigInteger sizeOfType = model.getSizeof(pArrayType.getType());
-
-      if (arrayLength instanceof CIntegerLiteralExpression) {
-        BigInteger length = ((CIntegerLiteralExpression) arrayLength).getValue();
-        return length.multiply(sizeOfType);
-      }
-
-      if (arrayLength == null) {
-        return super.visit(pArrayType);
-      }
-
+    protected BigInteger evaluateArrayLength(CExpression arrayLength, CArrayType pArrayType)
+        throws CPATransferException {
       // Try to get the length variable for arrays with variable length
       for (ValueAndSMGState lengthValueAndState :
           arrayLength.accept(
@@ -1330,9 +1314,9 @@ public class SMGCPAExpressionEvaluator {
         Value lengthValue = lengthValueAndState.getValue();
         // We simply ignore the State for this as if it's not numeric it does not matter
         if (lengthValue.isNumericValue()) {
-          return lengthValue.asNumericValue().bigIntegerValue().multiply(sizeOfType);
+          return lengthValue.asNumericValue().bigIntegerValue();
         } else if (options.isGuessSizeOfUnknownMemorySize()) {
-          return options.getGuessSize().multiply(sizeOfType);
+          return options.getGuessSize();
         }
       }
 

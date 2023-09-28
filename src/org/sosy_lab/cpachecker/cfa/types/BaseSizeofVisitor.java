@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.ForOverride;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
@@ -45,17 +46,36 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
   public BigInteger visit(CArrayType pArrayType) throws X {
     // TODO: Take possible padding into account
 
-    CExpression arrayLength = pArrayType.getLength();
+    @Nullable CExpression arrayLength = pArrayType.getLength();
+    @Nullable BigInteger length = null;
 
-    if (arrayLength instanceof CIntegerLiteralExpression) {
-      BigInteger length = ((CIntegerLiteralExpression) arrayLength).getValue();
+    if (arrayLength instanceof CIntegerLiteralExpression literal) {
+      length = literal.getValue();
+    } else if (arrayLength != null) {
+      length = evaluateArrayLength(arrayLength, pArrayType);
+    }
 
+    if (length != null) {
       BigInteger sizeOfType = model.getSizeof(pArrayType.getType(), this);
       return length.multiply(sizeOfType);
     }
 
     // Treat arrays with variable length as pointer.
     return BigInteger.valueOf(model.getSizeofPtr());
+  }
+
+  /**
+   * Evaluate the expression of an array length. Intended to be overwritten by subclasses.
+   *
+   * @param pLength The expression to evaluate.
+   * @param pArrayType The full array type (just for error messages etc.).
+   * @return The length of the array (number of elements, not the size!) or null if unknown.
+   * @throws X If any failure occurs, will be propagated through the visitor.
+   */
+  @ForOverride
+  protected @Nullable BigInteger evaluateArrayLength(CExpression pLength, CArrayType pArrayType)
+      throws X {
+    return null;
   }
 
   @Override
