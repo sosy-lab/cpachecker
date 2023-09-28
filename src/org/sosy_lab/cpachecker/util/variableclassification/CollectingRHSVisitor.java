@@ -22,9 +22,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -104,13 +105,37 @@ final class CollectingRHSVisitor
     return e.getOperand1().accept(this).withDependencies(e.getOperand2().accept(this));
   }
 
+  /** handle expressions contained in types */
+  private VarFieldDependencies visitType(CType type) {
+    type = type.getCanonicalType();
+    VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
+
+    if (type instanceof CArrayType arrayType) {
+      result = visitType(arrayType.getType());
+      if (arrayType.getLength() != null) {
+        result = result.withDependencies(arrayType.getLength().accept(this));
+      }
+
+    } else if (type instanceof CCompositeType compositeType) {
+      for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
+        result = result.withDependencies(visitType(member.getType()));
+      }
+    }
+    return result;
+  }
+
   @Override
   public VarFieldDependencies visit(final CUnaryExpression e) {
-    if (e.getOperator() != UnaryOperator.AMPER) {
-      return e.getOperand().accept(this);
-    } else {
-      return e.getOperand().accept(createAddressed());
-    }
+    return switch (e.getOperator()) {
+      case AMPER -> e.getOperand().accept(createAddressed());
+      case SIZEOF -> visitType(e.getOperand().getExpressionType());
+      default -> e.getOperand().accept(this);
+    };
+  }
+
+  @Override
+  public VarFieldDependencies visit(CTypeIdExpression e) {
+    return visitType(e.getType());
   }
 
   @Override
