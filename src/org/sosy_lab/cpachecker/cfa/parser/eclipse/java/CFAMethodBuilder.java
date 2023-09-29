@@ -30,7 +30,6 @@ import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.BreakStatement;
 import org.eclipse.jdt.core.dom.CatchClause;
-import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
@@ -3093,18 +3092,10 @@ class CFAMethodBuilder extends ASTVisitor {
 
   @Override
   public boolean visit(ThrowStatement throwStatement) {
-    throwStatement.getExpression().accept(this);
-    return SKIP_CHILDREN;
-  }
 
-  @Override
-  public boolean visit(ClassInstanceCreation cic) {
+    TypeHierarchy th = scope.getTypeHierarchy();
 
-    TypeHierarchy typeH = scope.getTypeHierarchy();
-    FileLocation fileloc = astCreator.getFileLocation(cic);
-
-    JClassType jct = (JClassType) astCreator.convert(cic.getType());
-    HelperVariable.getInstance(typeH.getClassType("java.lang.Throwable")).setCurrentJClassType(jct);
+    FileLocation throwLocation = astCreator.getFileLocation(throwStatement);
 
     CFANode prevNode = locStack.pop();
     CFANode throwNode = new CFANode(cfa.getFunction());
@@ -3113,60 +3104,86 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(throwNode);
 
-    List<JType> parameters = new ArrayList<>();
-    List<JParameterDeclaration> parameterDeclaration = new ArrayList<>();
+    JExpression exceptionExpression =
+        astCreator.convertExpressionWithoutSideEffects(throwStatement.getExpression());
 
-    JConstructorType jcc = new JConstructorType(jct, parameters, false);
+    CFANode nextNode = handleSideassignments(
+        prevNode, exceptionExpression.toASTString(), throwLocation);
+    cfaNodes.add(nextNode);
 
-    JSimpleDeclaration js =
-        new JConstructorDeclaration(
-            fileloc,
-            jcc,
-            jct.getName(),
-            jct.getSimpleName(),
-            parameterDeclaration,
-            VisibilityModifier.PUBLIC,
-            false,
-            scope.getCurrentClassType());
+    JExpressionAssignmentStatement currentHelperAssignment = null;
+    if (th.containsClassType("java.lang.Throwable")) {
 
-    JExpression throwExpression = new JIdExpression(fileloc, jct, cic.toString(), js);
-
-    AInitializer var = new JInitializerExpression(fileloc,throwExpression);
-
-    JVariableDeclaration jvd =
-        new JVariableDeclaration(
-            fileloc,
-            false,
-            jct,
-            "CPAchecker_temp_exception",
-            "CPAchecker_temp_exception",
-            "CPAchecker_temp_exception",
-            var,
-            false);
-
-    CFANode throwEdgeNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(throwEdgeNode);
-
-    JDeclarationEdge throwEdge =
-        new JDeclarationEdge(jvd.toASTString(), fileloc, prevNode, throwEdgeNode, jvd);
-
-    addToCFA(throwEdge);
-
-    JExpression variableAllocation = new JIdExpression(FileLocation.DUMMY, jct, jvd.getName(), jvd);
-
-    JExpressionAssignmentStatement currentHelperAssignment =
-        HelperVariable.getInstance().setHelperRightSideExpression(variableAllocation);
+      currentHelperAssignment =
+          HelperVariable.getInstance(th.getClassType("java.lang.Throwable"))
+              .setHelperRightSideExpression(exceptionExpression);
+    } else {
+      currentHelperAssignment =
+          HelperVariable.getInstance().setHelperRightSideExpression(exceptionExpression);
+    }
 
     JStatementEdge edge =
         new JStatementEdge(
             currentHelperAssignment.toASTString(),
             currentHelperAssignment,
-            fileloc,
-            throwEdgeNode,
+            FileLocation.DUMMY,
+            nextNode,
             throwNode);
 
     addToCFA(edge);
-
     return SKIP_CHILDREN;
   }
+
+  /*
+   * @Override public boolean visit(ClassInstanceCreation cic) {
+   *
+   * <p>TypeHierarchy typeH = scope.getTypeHierarchy(); FileLocation fileloc =
+   * astCreator.getFileLocation(cic);
+   *
+   * <p>JClassType jct = (JClassType) astCreator.convert(cic.getType());
+   * HelperVariable.getInstance(typeH.getClassType("java.lang.Throwable")).setCurrentJClassType(jct);
+   *
+   * <p>CFANode prevNode = locStack.pop(); CFANode throwNode = new CFANode(cfa.getFunction());
+   *
+   * <p>cfaNodes.add(throwNode);
+   *
+   * <p>locStack.push(throwNode);
+   *
+   * <p>List<JType> parameters = new ArrayList<>(); List<JParameterDeclaration> parameterDeclaration
+   * = new ArrayList<>();
+   *
+   * <p>JConstructorType jcc = new JConstructorType(jct, parameters, false);
+   *
+   * <p>JSimpleDeclaration js = new JConstructorDeclaration( fileloc, jcc, jct.getName(),
+   * jct.getSimpleName(), parameterDeclaration, VisibilityModifier.PUBLIC, false,
+   * scope.getCurrentClassType());
+   *
+   * <p>JExpression throwExpression = new JIdExpression(fileloc, jct, cic.toString(), js);
+   *
+   * <p>AInitializer var = new JInitializerExpression(fileloc,throwExpression);
+   *
+   * <p>JVariableDeclaration jvd = new JVariableDeclaration( fileloc, false, jct,
+   * "CPAchecker_temp_exception", "CPAchecker_temp_exception", "CPAchecker_temp_exception", var,
+   * false);
+   *
+   * <p>CFANode throwEdgeNode = new CFANode(cfa.getFunction()); cfaNodes.add(throwEdgeNode);
+   *
+   * <p>JDeclarationEdge throwEdge = new JDeclarationEdge(jvd.toASTString(), fileloc, prevNode,
+   * throwEdgeNode, jvd);
+   *
+   * <p>addToCFA(throwEdge);
+   *
+   * <p>JExpression variableAllocation = new JIdExpression(FileLocation.DUMMY, jct, jvd.getName(),
+   * jvd);
+   *
+   * <p>JExpressionAssignmentStatement currentHelperAssignment =
+   * HelperVariable.getInstance().setHelperRightSideExpression(variableAllocation);
+   *
+   * <p>JStatementEdge edge = new JStatementEdge( currentHelperAssignment.toASTString(),
+   * currentHelperAssignment, fileloc, throwEdgeNode, throwNode);
+   *
+   * <p>addToCFA(edge);
+   *
+   * <p>return SKIP_CHILDREN; }
+   */
 }
