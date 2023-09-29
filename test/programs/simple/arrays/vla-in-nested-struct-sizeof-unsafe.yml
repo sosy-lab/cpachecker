@@ -12,4 +12,4 @@ input_files: 'vla-in-nested-struct-sizeof-unsafe.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-label.prp
-    expected_verdict: true
+    expected_verdict: false
