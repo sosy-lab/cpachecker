@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -115,6 +116,8 @@ public final class ValueAnalysisState
 
   private final @Nullable MachineModel machineModel;
 
+  private final AtomicInteger counterForRandomInputValuesUsed;
+
   public ValueAnalysisState(MachineModel pMachineModel) {
     this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of());
   }
@@ -131,6 +134,7 @@ public final class ValueAnalysisState
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
     hashCode = constantsMap.hashCode();
+    counterForRandomInputValuesUsed = new AtomicInteger(0);
   }
 
   private ValueAnalysisState(ValueAnalysisState state) {
@@ -138,6 +142,8 @@ public final class ValueAnalysisState
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
+    counterForRandomInputValuesUsed =
+        new AtomicInteger(state.counterForRandomInputValuesUsed.get());
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
@@ -247,6 +253,13 @@ public final class ValueAnalysisState
     valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
 
     return new ValueAnalysisInformation(valueAssignment);
+  }
+
+  /** This method removes all memory location from the underlying map */
+  public void forgetAll() {
+    for (MemoryLocation value : constantsMap.keySet()) {
+      this.forget(value);
+    }
   }
 
   @Override
@@ -773,6 +786,10 @@ public final class ValueAnalysisState
   @Override
   public Object getPseudoHashCode() {
     return this;
+  }
+
+  public AtomicInteger getCounterForRandomInputValuesUsed() {
+    return counterForRandomInputValuesUsed;
   }
 
   @Override

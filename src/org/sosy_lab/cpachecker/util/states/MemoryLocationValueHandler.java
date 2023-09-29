@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.states;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -26,16 +28,18 @@ public interface MemoryLocationValueHandler {
    *
    * @param pMemLocation the memory location to alter
    * @param pType the type of the variable at the given memory location
-   * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use. Value
-   *     assignments will happen in this state
+   * @param pState the {@link ValueAnalysisState} to use. Value assignments will happen in this
+   *     state
    * @param pValueVisitor a value visitor for possibly needed evaluations or computations
+   * @return true if the analysis should stop here and false otherwise (which is the default case)
    * @throws UnrecognizedCodeException thrown if the given parameters do not fit. Other causes for
    *     this exception may be implementation-dependent
    */
-  void handle(
+  boolean handle(
       MemoryLocation pMemLocation,
       Type pType,
       ValueAnalysisState pState,
-      ExpressionValueVisitor pValueVisitor)
+      ExpressionValueVisitor pValueVisitor,
+      @Nullable ARightHandSide pExpression)
       throws UnrecognizedCodeException;
 }

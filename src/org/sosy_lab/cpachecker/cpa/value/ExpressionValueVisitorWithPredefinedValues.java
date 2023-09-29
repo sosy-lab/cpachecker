@@ -72,9 +72,9 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   public Value evaluate(CRightHandSide pExp, CType pTargetType) throws UnrecognizedCodeException {
     if ((lastRequestSuccessful && pExp instanceof CFunctionCallExpression call)
         && (call.getFunctionNameExpression() instanceof CIdExpression
-            && ((CIdExpression) call.getFunctionNameExpression())
-                .getName()
-                .startsWith(PATERN_FOR_RANDOM))) {
+        && ((CIdExpression) call.getFunctionNameExpression())
+        .getName()
+        .startsWith(PATERN_FOR_RANDOM))) {
 
       // We found a call to random. If available, return a new value from the predefined inputs.
       // Otherwise, delegate to super

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
@@ -23,16 +24,19 @@ public final class UnknownValueAssigner implements MemoryLocationValueHandler {
    *
    * @param pMemLocation the memory location to remove
    * @param pType the type of the memory location that should be removed
-   * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use. Value
-   *     assignments will happen in this state
+   * @param pState the {@link ValueAnalysisState} to use. Value assignments will happen in this
+   *     state
    * @param pValueVisitor unused, may be null
+   * @param pExpression unused, may be null
    */
   @Override
-  public void handle(
+  public boolean handle(
       MemoryLocation pMemLocation,
       Type pType,
       ValueAnalysisState pState,
-      @Nullable ExpressionValueVisitor pValueVisitor) {
+      @Nullable ExpressionValueVisitor pValueVisitor,
+      ARightHandSide pExpression) {
     pState.forget(pMemLocation);
+    return false;
   }
 }
