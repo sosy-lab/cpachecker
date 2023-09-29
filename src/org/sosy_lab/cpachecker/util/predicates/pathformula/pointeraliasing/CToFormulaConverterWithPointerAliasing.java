@@ -465,7 +465,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     } else {
       return buildTerm(
           new CTypeIdExpression(
-              FileLocation.DUMMY, type, TypeIdOperator.SIZEOF, CNumericTypes.SIZE_T),
+              FileLocation.DUMMY, CNumericTypes.SIZE_T, TypeIdOperator.SIZEOF, type),
           edge,
           function,
           ssa,
