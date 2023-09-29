@@ -114,7 +114,8 @@ final class AddressHandler {
     // the subscript must be multiplied by the sizeof the element type
     final Formula dereferencedBaseAddress = dereferencedBase.getAddress();
     final Formula sizeOfElement =
-        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
+        conv.fmgr.makeNumber(
+            conv.voidPointerFormulaType, conv.typeHandler.getApproximatedSizeof(elementType));
     final Formula adjustedAddress =
         conv.fmgr.makePlus(
             dereferencedBaseAddress, conv.fmgr.makeMultiply(sizeOfElement, subscript));

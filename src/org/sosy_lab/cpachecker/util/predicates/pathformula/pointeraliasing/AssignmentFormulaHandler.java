@@ -303,8 +303,8 @@ class AssignmentFormulaHandler {
     // formulas.
 
     final CType resultType = lhs.type();
-    long targetBitSize = typeHandler.getBitSizeof(targetType);
-    long lhsBitSize = typeHandler.getBitSizeof(resultType);
+    long targetBitSize = typeHandler.getExactBitSizeof(targetType);
+    long lhsBitSize = typeHandler.getExactBitSizeof(resultType);
 
     // Handle full-span assignments upfront, this is better than via the loop below.
     if (rhsList.size() == 1) {
@@ -559,7 +559,7 @@ class AssignmentFormulaHandler {
     final BitvectorFormula bitvectorFormula =
         conv.makeValueReinterpretationToBitvector(rhsType, rhsFormula);
 
-    final long fromBitSizeof = conv.getBitSizeof(rhsType);
+    final long fromBitSizeof = typeHandler.getExactBitSizeof(rhsType);
     // the type which we are repeating must be byte-sized
     // addressing would not make any sense otherwise
     verify(fromBitSizeof == conv.machineModel.getSizeofCharInBits());
@@ -660,7 +660,7 @@ class AssignmentFormulaHandler {
     assert !options.useArraysForHeap();
 
     checkIsSimplified(lvalueType);
-    final long size = conv.getSizeof(lvalueType);
+    final long size = typeHandler.getExactSizeof(lvalueType);
 
     if (options.useQuantifiersOnArrays()) {
       addRetentionConstraintsWithQuantifiers(
@@ -1115,7 +1115,7 @@ class AssignmentFormulaHandler {
                   updatedRegions,
                   condition,
                   useQuantifiers));
-      offset += conv.getSizeof(lvalueArrayType.getType());
+      offset += typeHandler.getExactSizeof(lvalueArrayType.getType());
     }
     return result;
   }

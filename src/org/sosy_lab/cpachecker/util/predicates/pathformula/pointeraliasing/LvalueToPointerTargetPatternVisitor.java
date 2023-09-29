@@ -197,7 +197,7 @@ class LvalueToPointerTargetPatternVisitor
       result.shift(containerType);
       final Long index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * typeHandler.getSizeof(elementType));
+        result.setProperOffset(index * typeHandler.getExactSizeof(elementType));
       }
       return result;
     } else {

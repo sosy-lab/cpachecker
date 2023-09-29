@@ -537,7 +537,7 @@ class DynamicMemoryHandler {
     assert sizeLiteral.getValue() != null;
 
     final long size = sizeLiteral.getValue().longValueExact();
-    final long typeSize = conv.getSizeof(type);
+    final long typeSize = typeHandler.getExactSizeof(type);
     if (type instanceof CArrayType) {
       // An array type is used in the cast or assignment, so its size should likely match the
       // allocated size.

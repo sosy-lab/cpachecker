@@ -461,7 +461,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (type.hasKnownConstantSize()) {
       // shortcut for common case instead of using visitor in else branch
-      return fmgr.makeNumber(voidPointerFormulaType, getSizeof(type));
+      return fmgr.makeNumber(voidPointerFormulaType, typeHandler.getExactSizeof(type));
     } else {
       return buildTerm(
           new CTypeIdExpression(
@@ -1443,18 +1443,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
     }
     return super.makeFreshIndex(pName, pType, pSsa);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected long getSizeof(CType pType) {
-    return super.getSizeof(pType);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected long getBitSizeof(CType pType) {
-    return super.getBitSizeof(pType);
   }
 
   /**

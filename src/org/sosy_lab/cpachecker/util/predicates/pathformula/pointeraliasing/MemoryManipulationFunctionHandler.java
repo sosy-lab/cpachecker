@@ -188,8 +188,8 @@ class MemoryManipulationFunctionHandler {
     CPointerType adjustedSourceType = (CPointerType) CTypes.adjustFunctionOrArrayType(sourceType);
 
     final long underlyingDestinationBitSize =
-        typeHandler.getBitSizeof(adjustedDestinationType.getType());
-    final long underlyingSourceBitSize = typeHandler.getBitSizeof(adjustedSourceType.getType());
+        typeHandler.getExactBitSizeof(adjustedDestinationType.getType());
+    final long underlyingSourceBitSize = typeHandler.getExactBitSizeof(adjustedSourceType.getType());
 
     if (underlyingDestinationBitSize != underlyingSourceBitSize) {
       throw new UnrecognizedCodeException(
@@ -339,7 +339,7 @@ class MemoryManipulationFunctionHandler {
 
     // take the byte size of the underlying type
     final CType underlyingType = pointerType.getType().getCanonicalType();
-    final long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
+    final long elementSizeInBytes = typeHandler.getExactSizeof(underlyingType);
 
     // we handle the possibility of having the last element partially copied
     // by treating it as being fully copied, as this situation can arise

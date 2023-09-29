@@ -233,28 +233,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  /**
-   * Returns the size in bits of the given type. Always use this method instead of
-   * machineModel.getSizeOf, because this method can handle dereference-types.
-   *
-   * @param pType the type to calculate the size of.
-   * @return the size in bits of the given type.
-   */
-  protected long getBitSizeof(CType pType) {
-    return typeHandler.getBitSizeof(pType);
-  }
-
-  /**
-   * Returns the size in bytes of the given type. Always use this method instead of
-   * machineModel.getSizeOf, because this method can handle dereference-types.
-   *
-   * @param pType the type to calculate the size of.
-   * @return the size in bytes of the given type.
-   */
-  protected long getSizeof(CType pType) {
-    return typeHandler.getSizeof(pType);
-  }
-
   protected boolean isRelevantField(final CCompositeType pCompositeType, final String fieldName) {
     if (!variableClassification.isPresent()
         || !options.ignoreIrrelevantVariables()
@@ -357,7 +335,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    int bitSize = Ints.checkedCast(typeHandler.getBitSizeof(type));
+    int bitSize = Ints.checkedCast(typeHandler.getExactBitSizeof(type));
 
     return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
@@ -846,7 +824,7 @@ public class CtoFormulaConverter {
       return makeSimpleCast(fromType, toType, formula);
     }
 
-    if (getBitSizeof(fromType) == getBitSizeof(toType)) {
+    if (typeHandler.getExactBitSizeof(fromType) == typeHandler.getExactBitSizeof(toType)) {
       // We can most likely just ignore this cast
       logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
@@ -1955,12 +1933,12 @@ public class CtoFormulaConverter {
 
     long offset = typeHandler.getBitOffset(structType, fExp.getFieldName());
     CType type = fExp.getExpressionType();
-    long fieldSize = getBitSizeof(type);
+    long fieldSize = typeHandler.getExactBitSizeof(type);
 
     // Crude hack for unions with zero-sized array fields produced by LDV
     // (ldv-consumption/32_7a_cilled_true_linux-3.8-rc1-32_7a-fs--ceph--ceph.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c)
     if (fieldSize == 0 && structType.getKind() == ComplexTypeKind.UNION) {
-      fieldSize = getBitSizeof(fieldRef.getExpressionType());
+      fieldSize = typeHandler.getExactBitSizeof(fieldRef.getExpressionType());
     }
 
     long lsb = offset;

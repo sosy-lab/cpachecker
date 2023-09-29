@@ -501,7 +501,7 @@ class CExpressionVisitorWithPointerAliasing
         } else {
           Formula size =
               conv.fmgr.makeNumber(
-                  conv.voidPointerFormulaType, typeHandler.getSizeof(base.getType()));
+                  conv.voidPointerFormulaType, typeHandler.getExactSizeof(base.getType()));
           pts.addNextBaseAddressConstraints(
               base.getName(), base.getType(), size, false, constraints);
           pts.addBase(base.getName(), base.getType());

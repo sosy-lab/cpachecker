@@ -119,7 +119,7 @@ public class ExpressionToFormulaVisitor
 
   private Formula getPointerTargetSizeLiteral(
       final CPointerType pointerType, final CType implicitType) {
-    final long pointerTargetSize = conv.getSizeof(pointerType.getType());
+    final long pointerTargetSize = conv.typeHandler.getApproximatedSizeof(pointerType.getType());
     return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
@@ -577,7 +577,8 @@ public class ExpressionToFormulaVisitor
   public Formula getSizeExpression(CType type) throws UnrecognizedCodeException {
     type = type.getCanonicalType();
     if (type.hasKnownConstantSize()) {
-      return mgr.makeNumber(conv.typeHandler.getPointerType(), conv.getSizeof(type));
+      return mgr.makeNumber(
+          conv.typeHandler.getPointerType(), conv.typeHandler.getExactSizeof(type));
 
     } else if (type instanceof CArrayType arrayType) {
       Formula elementSize = getSizeExpression(arrayType.getType());

@@ -253,7 +253,7 @@ class AssignmentHandler {
       // construct the partial assignment as if it is a full assignment from RHS (converted to
       // target type) to LHS
       final PartialAssignmentLhs partialLhs = new PartialAssignmentLhs(assignment.lhs, targetType);
-      final long targetBitSize = typeHandler.getBitSizeof(targetType);
+      final long targetBitSize = typeHandler.getApproximatedBitSizeof(targetType);
       if (targetBitSize == 0) {
         // e.g., zero-width bit field, ignore
         continue;
@@ -629,7 +629,7 @@ class AssignmentHandler {
     }
     if (originalSpan.lhsBitOffset() != 0
         || originalSpan.rhsTargetBitOffset() != 0
-        || originalSpan.bitSize() != typeHandler.getBitSizeof(lhsArrayType)) {
+        || originalSpan.bitSize() != typeHandler.getApproximatedBitSizeof(lhsArrayType)) {
       // we currently do not assign for incomplete spans as it would not be trivial
       conv.logger.logfOnce(
           Level.WARNING,
@@ -647,7 +647,8 @@ class AssignmentHandler {
 
     // full span
     final CType elementType = typeHandler.simplifyType(lhsArrayType.getType());
-    final PartialSpan elementSpan = new PartialSpan(0, 0, typeHandler.getBitSizeof(elementType));
+    final PartialSpan elementSpan =
+        new PartialSpan(0, 0, typeHandler.getApproximatedBitSizeof(elementType));
     final PartialAssignmentRhs elementSpanRhs = new PartialAssignmentRhs(elementSpan, elementRhs);
 
     // target type is now element type
@@ -680,7 +681,7 @@ class AssignmentHandler {
     final PartialSpan originalSpan = assignment.rhs().span();
 
     final long lhsMemberBitOffset = typeHandler.getBitOffset(lhsCompositeType, lhsMember);
-    final long lhsMemberBitSize = typeHandler.getBitSizeof(lhsMember.getType());
+    final long lhsMemberBitSize = typeHandler.getApproximatedBitSizeof(lhsMember.getType());
     final SliceExpression lhsMemberSlice = assignment.lhs().actual().withFieldAccess(lhsMember);
 
     // compare LHS assignment range with member range
