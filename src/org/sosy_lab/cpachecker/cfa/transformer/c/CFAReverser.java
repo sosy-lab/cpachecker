@@ -1633,8 +1633,15 @@ public class CFAReverser {
       CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
     }
 
+    private String getNondetFunctionName(CType type) {
+      if (type instanceof CSimpleType simpleType) {
+        return "__VERIFIER_nondet_" + simpleType.getType().toString();
+      }
+      throw new AssertionError("There is no nondet function for " + type.toString());
+    }
+
     private CFunctionCallExpression createNoDetCallExpr(CType type) {
-      String funcName = "__VERIFIER_nondet_" + type.toString();
+      String funcName = getNondetFunctionName(type);
       CFunctionDeclaration decl = funcDecls.get(funcName);
       if (decl == null) {
         CFunctionType functype = new CFunctionType(type, ImmutableList.of(), false);

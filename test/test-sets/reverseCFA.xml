@@ -14,11 +14,18 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
 
   <option name="-heap">13000M</option>
+  <option name="-noout"/>
   <option name="-benchmark"/>
-  <option name="-config">config/reverseCFA.properties</option>
+ 
+
+  <rundefinition name="reverse-cfa">
+     <option name="-config">config/reverseCFA.properties</option>
+  </rundefinition>
 
   <rundefinition name="bmc">
+     <option name="-config">config/bmc.properties</option>
   </rundefinition>
+
   <tasks name="ReachSafety-Arrays">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -26,6 +33,11 @@ SPDX-License-Identifier: Apache-2.0
 
    <tasks name="ReachSafety-BitVectors">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-ECA">
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
@@ -41,6 +53,11 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="ReachSafety-Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-Hardware">
+    <includesfile>../programs/benchmarks/ReachSafety-Hardware.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
