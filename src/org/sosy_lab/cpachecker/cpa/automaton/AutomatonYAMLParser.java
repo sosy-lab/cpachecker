@@ -245,7 +245,7 @@ public class AutomatonYAMLParser {
       if (entry instanceof InvariantEntry invariantEntry) {
         Optional<String> resultFunction =
             Optional.ofNullable(invariantEntry.getLocation().getFunction());
-        String invariantString = invariantEntry.getInvariant().getString();
+        String invariantString = invariantEntry.getInvariant().getValue();
         Integer line = invariantEntry.getLocation().getLine();
 
         if (!lineToSeenInvariants.containsKey(line)) {
@@ -329,7 +329,7 @@ public class AutomatonYAMLParser {
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantEntry invariantEntry) {
         Integer line = invariantEntry.getLocation().getLine();
-        String invariantString = invariantEntry.getInvariant().getString();
+        String invariantString = invariantEntry.getInvariant().getValue();
 
         // Parsing is expensive, therefore cache everything we can
         if (lineToSeenInvariants.get(line).contains(invariantString)) {
@@ -358,7 +358,7 @@ public class AutomatonYAMLParser {
       throws InterruptedException {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction = Optional.of(pInvariantEntry.getLocation().getFunction());
-    String invariantString = pInvariantEntry.getInvariant().getString();
+    String invariantString = pInvariantEntry.getInvariant().getValue();
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
@@ -517,7 +517,7 @@ public class AutomatonYAMLParser {
   private void handleAssumptionWaypoint(
       WaypointRecord follow, int line, AutomatonTransition.Builder builder)
       throws InterruptedException, InvalidConfigurationException {
-    String invariantString = follow.getConstraint().getString();
+    String invariantString = follow.getConstraint().getValue();
     Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
     try {
       AExpression exp =

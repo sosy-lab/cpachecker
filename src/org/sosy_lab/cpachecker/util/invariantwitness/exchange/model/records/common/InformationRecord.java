@@ -16,8 +16,8 @@ import java.util.Objects;
 
 @Immutable
 public class InformationRecord {
-  @JsonAlias({"string", "value"})
-  private final String string;
+  @JsonAlias({"value", "string"})
+  private final String value;
 
   @JsonProperty("type")
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -28,16 +28,16 @@ public class InformationRecord {
   private final String format;
 
   public InformationRecord(
-      @JsonProperty("string") String string,
+      @JsonProperty("value") String string,
       @JsonProperty("type") String type,
       @JsonProperty("format") String format) {
-    this.string = string;
+    this.value = string;
     this.type = type;
     this.format = format;
   }
 
-  public String getString() {
-    return string;
+  public String getValue() {
+    return value;
   }
 
   public String getType() {
@@ -54,14 +54,14 @@ public class InformationRecord {
       return true;
     }
     return o instanceof InformationRecord invariantStoreEntryLoopInvariant
-        && Objects.equals(string, invariantStoreEntryLoopInvariant.string)
+        && Objects.equals(value, invariantStoreEntryLoopInvariant.value)
         && Objects.equals(type, invariantStoreEntryLoopInvariant.type)
         && Objects.equals(format, invariantStoreEntryLoopInvariant.format);
   }
 
   @Override
   public int hashCode() {
-    int hashCode = string.hashCode();
+    int hashCode = value.hashCode();
     hashCode = 31 * hashCode + (type != null ? type.hashCode() : 0);
     hashCode = 31 * hashCode + (format != null ? format.hashCode() : 0);
     return hashCode;
@@ -71,7 +71,7 @@ public class InformationRecord {
   public String toString() {
     return "InformationRecord{"
         + " string='"
-        + getString()
+        + getValue()
         + "'"
         + ", type='"
         + getType()

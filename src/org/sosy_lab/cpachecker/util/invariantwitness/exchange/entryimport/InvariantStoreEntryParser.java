@@ -134,7 +134,7 @@ class InvariantStoreEntryParser {
 
       ExpressionTree<AExpression> invariantFormula =
           CParserUtils.parseStatementsAsExpressionTree(
-              ImmutableSet.of(entry.getInvariant().getString()),
+              ImmutableSet.of(entry.getInvariant().getValue()),
               Optional.empty(),
               parser,
               scopeWithPredicate,
