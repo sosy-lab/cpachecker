@@ -216,7 +216,9 @@ class AssignmentQuantifierHandler {
     errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
 
-    addressHandler = new AddressHandler(pConv, pSsa, pConstraints, pErrorConditions, pRegionMgr);
+    addressHandler =
+        new AddressHandler(
+            pConv, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions, pRegionMgr);
 
     assignmentOptions = pAssignmentOptions;
     resolvedLhsBases = pResolvedLhsBases;
@@ -649,7 +651,8 @@ class AssignmentQuantifierHandler {
 
     // construct a formula handler
     final AssignmentFormulaHandler assignmentFormulaHandler =
-        new AssignmentFormulaHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+        new AssignmentFormulaHandler(
+            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
 
     final SliceExpression lhsSlice = assignment.lhs.actual();
     final CType targetType = assignment.lhs.targetType();
@@ -710,7 +713,8 @@ class AssignmentQuantifierHandler {
    * @throws IllegalStateException If there are any unresolved modifiers.
    */
   private ResolvedSlice applySliceModifiersToResolvedBase(
-      final ResolvedSlice resolvedBase, final SliceExpression slice) {
+      final ResolvedSlice resolvedBase, final SliceExpression slice)
+      throws UnrecognizedCodeException {
     checkNotNull(resolvedBase);
     checkNotNull(slice);
 
@@ -792,7 +796,8 @@ class AssignmentQuantifierHandler {
    * @return Resolved slice with applied subscript modifier.
    */
   private ResolvedSlice applySubscriptModifier(
-      ResolvedSlice resolved, SliceIndexModifier modifier, boolean resolvedIsFunctionParameter) {
+      ResolvedSlice resolved, SliceIndexModifier modifier, boolean resolvedIsFunctionParameter)
+      throws UnrecognizedCodeException {
 
     // all subscript modifiers must be already resolved here
     SliceFormulaIndexModifier resolvedModifier = (SliceFormulaIndexModifier) modifier;

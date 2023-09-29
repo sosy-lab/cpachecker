@@ -152,6 +152,7 @@ class AssignmentFormulaHandler {
   AssignmentFormulaHandler(
       CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge,
+      String pFunction,
       SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
@@ -171,7 +172,9 @@ class AssignmentFormulaHandler {
     constraints = pConstraints;
     regionMgr = pRegionMgr;
 
-    addressHandler = new AddressHandler(pConv, pSsa, pConstraints, pErrorConditions, pRegionMgr);
+    addressHandler =
+        new AddressHandler(
+            pConv, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions, pRegionMgr);
   }
 
   /**

@@ -448,7 +448,8 @@ class AssignmentHandler {
       // modifiers in assignments
       // so we can substitute resolvedRhsBase.expression()
       final DynamicMemoryHandler memoryHandler =
-          new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+          new DynamicMemoryHandler(
+              conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       memoryHandler.handleDeferredAllocationsInAssignment(
           (CLeftHandSide) lhsDummy,
           rhsDummy,
