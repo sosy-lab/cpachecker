@@ -257,6 +257,15 @@ public class CFAReverser {
         for (CFAEdge edge : CFAUtils.allEnteringEdges(entryTarget)) {
           CFANode caller = edge.getPredecessor();
           targets.add(caller);
+          String callerFunc = caller.getFunctionName();
+          if (pCfa.getAllFunctions().get(callerFunc).getExitNode().isPresent()) {
+            FunctionExitNode callerExitNode =
+                pCfa.getAllFunctions().get(callerFunc).getExitNode().orElseThrow();
+            for (CFAEdge returnEdge : CFAUtils.leavingEdges(callerExitNode)) {
+              CFANode newTarget = returnEdge.getSuccessor();
+              targets.add(newTarget);
+            }
+          }
         }
         targets.remove(entryTarget);
       }
@@ -1633,15 +1642,8 @@ public class CFAReverser {
       CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
     }
 
-    private String getNondetFunctionName(CType type) {
-      if (type instanceof CSimpleType simpleType) {
-        return "__VERIFIER_nondet_" + simpleType.getType().toString();
-      }
-      throw new AssertionError("There is no nondet function for " + type.toString());
-    }
-
     private CFunctionCallExpression createNoDetCallExpr(CType type) {
-      String funcName = getNondetFunctionName(type);
+      String funcName = "__VERIFIER_nondet_" + getRealType(type).toString();
       CFunctionDeclaration decl = funcDecls.get(funcName);
       if (decl == null) {
         CFunctionType functype = new CFunctionType(type, ImmutableList.of(), false);
