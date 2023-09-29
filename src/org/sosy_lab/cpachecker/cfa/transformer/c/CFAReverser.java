@@ -936,15 +936,16 @@ public class CFAReverser {
         }
 
         if (init instanceof CInitializerExpression) {
-          CFANode curr = from;
           RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
           CExpression rvalue = ((CInitializerExpression) init).getExpression();
 
           CExpression rExpr = rvalue.accept(rfinder);
           CLeftHandSide lExpr = new CIdExpression(FileLocation.DUMMY, variables.get(var));
 
-          curr = appendAssumeEdge(lExpr, rExpr, curr, true);
-          createNonDetAssignEdge(lExpr, curr, to);
+          CExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
+          CAssumeEdge assumeEdge =
+              new CAssumeEdge("", FileLocation.DUMMY, from, to, assumeExpr, true, false, false);
+          addToCFA(assumeEdge);
         }
 
         // Array initialization
@@ -1050,7 +1051,7 @@ public class CFAReverser {
         curr = appendAssumeEdge(lhs, rhs, curr, true);
 
         // the left side
-        if (rfinder.tmpVarMap.size() == 0) {
+        if (rfinder.tmpVarMap.size() == 0 && !lvalue.getExpressionType().isConst()) {
           curr = appendNonDetAssignEdge(lhs, curr);
         } else { // i <- tmp_i;
           curr = rfinder.createTmpAssignEdge(curr);
@@ -1675,24 +1676,6 @@ public class CFAReverser {
 
       return new CFunctionCallExpression(
           FileLocation.DUMMY, type, funcexpr, ImmutableList.of(), decl);
-    }
-
-    /**
-     * Create an ndet assignment edge
-     *
-     * @param lhs expression at the left side
-     * @param from start node
-     * @param to end node
-     */
-    private void createNonDetAssignEdge(CLeftHandSide lhs, CFANode from, CFANode to) {
-      CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(lhs.getExpressionType());
-      CFunctionCallAssignmentStatement ndetAssign =
-          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, lhs, ndetCallExpr);
-
-      CStatementEdge ndetAssignEdge =
-          new CStatementEdge("", ndetAssign, FileLocation.DUMMY, from, to);
-
-      addToCFA(ndetAssignEdge);
     }
 
     /**
