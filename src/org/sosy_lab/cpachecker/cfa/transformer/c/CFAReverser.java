@@ -1642,8 +1642,24 @@ public class CFAReverser {
       CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
     }
 
+    private String getNonDetName(CType type) {
+      String prefix = "__VERIFIER_nondet_";
+      CType realType = getRealType(type);
+      if (realType instanceof CSimpleType simpleType) {
+        CBasicType basicType = simpleType.getType();
+
+        String typeName = basicType.toASTString();
+        if (simpleType.isUnsigned()) {
+          typeName = "u" + typeName;
+        }
+        return prefix + typeName;
+      } else {
+        throw new AssertionError("There is no non det function for " + type.toString());
+      }
+    }
+
     private CFunctionCallExpression createNoDetCallExpr(CType type) {
-      String funcName = "__VERIFIER_nondet_" + getRealType(type).toString();
+      String funcName = getNonDetName(type);
       CFunctionDeclaration decl = funcDecls.get(funcName);
       if (decl == null) {
         CFunctionType functype = new CFunctionType(type, ImmutableList.of(), false);
@@ -1680,7 +1696,7 @@ public class CFAReverser {
     }
 
     /**
-     * Appednd an ndet assignment edge
+     * Append an ndet assignment edge
      *
      * @param lhs expression at the left side
      * @param curr curr CFA node
