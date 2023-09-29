@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
@@ -22,9 +21,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.math.BigInteger;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,13 +29,13 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -59,6 +56,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -66,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -79,7 +77,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -452,45 +449,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
   }
 
-  /**
-   * This is a SizeofVisitor that always returns 0 for types that do not have a statically known
-   * size.
-   */
-  private static class StaticSizeofVisitor extends BaseSizeofVisitor<NoException> {
-
-    /**
-     * Compute the size of the given composite type excluding all members that do not have a
-     * statically known size.
-     */
-    BigInteger computeStaticSizeof(CCompositeType pType) {
-      // Note that this.visit(pType) would return 0 because pType has !hasKnownConstantSize(),
-      // so we need to call super.visit() here such that only the struct members get handled by
-      // this.visit()
-      return super.visit(pType);
-    }
-
-    private StaticSizeofVisitor(MachineModel pModel) {
-      super(pModel);
-    }
-
-    @Override
-    public BigInteger visit(CArrayType pArrayType) {
-      if (pArrayType.hasKnownConstantSize()) {
-        return super.visit(pArrayType);
-      }
-      return BigInteger.ZERO;
-    }
-
-    @Override
-    public BigInteger visit(CCompositeType pCompositeType) {
-      if (pCompositeType.hasKnownConstantSize()) {
-        return super.visit(pCompositeType);
-      }
-      return BigInteger.ZERO;
-    }
-  }
-
-  private Formula getSizeExpression(
+  Formula getSizeExpression(
       final CType type,
       final CFAEdge edge,
       final String function,
@@ -499,82 +458,21 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
+
     if (type.hasKnownConstantSize()) {
-      return fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(type));
-
-    } else if (type instanceof CArrayType arrayType) {
-      Formula elementSize =
-          getSizeExpression(
-              arrayType.getType(), edge, function, ssa, pts, constraints, errorConditions);
-
-      Formula elementCount =
-          buildTerm(arrayType.getLength(), edge, function, ssa, pts, constraints, errorConditions);
-      elementCount =
-          makeCast(
-              arrayType.getLength().getExpressionType(),
-              CPointerType.POINTER_TO_VOID,
-              elementCount,
-              constraints,
-              edge);
-
-      return fmgr.makeMultiply(elementSize, elementCount);
-
-    } else if (type instanceof CCompositeType compositeType) {
-      Deque<Formula> memberSizes = new ArrayDeque<>();
-
-      // It is not enough to just compute the sum/maximum over all member sizes because of padding.
-      // But we also do not want to reimplement the complex padding and bitfield computations here.
-      // So we help us with a trick: The next line computes the size of the whole struct/union as if
-      // the variable-length parts would have length 0. But this includes all other fields and all
-      // paddings (even those for variable-length arrays, because padding is always known).
-      // Then we just have to create expressions for the sizes of the variable-length parts and
-      // compute the final sum/maximum.
-      BigInteger staticallyKnownSize =
-          new StaticSizeofVisitor(machineModel).computeStaticSizeof(compositeType);
-
-      for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
-        if (!member.getType().hasKnownConstantSize()) {
-          memberSizes.add(
-              getSizeExpression(
-                  member.getType(), edge, function, ssa, pts, constraints, errorConditions));
-        }
-        // else the size is already part of staticallyKnownSize
-      }
-
-      verify(!memberSizes.isEmpty());
-      memberSizes.add(fmgr.makeNumber(voidPointerFormulaType, staticallyKnownSize));
-
-      // Now compute sum/maximum of memberSizes. Especially for the maximum (with if-then-else)
-      // a balanced tree of nested maximums seems to be likely better for the solver.
-      switch (compositeType.getKind()) {
-        case STRUCT:
-          return balancedDestructiveReduce(memberSizes, fmgr::makePlus);
-
-        case UNION:
-          return balancedDestructiveReduce(
-              memberSizes, (a, b) -> bfmgr.ifThenElse(fmgr.makeGreaterOrEqual(a, b, false), a, b));
-
-        default:
-          throw new AssertionError();
-      }
-
+      // shortcut for common case instead of using visitor in else branch
+      return fmgr.makeNumber(voidPointerFormulaType, getSizeof(type));
     } else {
-      throw new AssertionError("unexpected type without known constant size: " + type);
+      return buildTerm(
+          new CTypeIdExpression(
+              FileLocation.DUMMY, type, TypeIdOperator.SIZEOF, CNumericTypes.SIZE_T),
+          edge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
     }
-  }
-
-  /**
-   * Reduce the elements of a given deque in a balanced manner, e.g. for [1,2,3,4] and "+" it will
-   * produce (1+2)+(3+4). The deque will be drained.
-   */
-  private static <T> T balancedDestructiveReduce(
-      Deque<T> deque, BiFunction<? super T, ? super T, ? extends T> reducer) {
-    while (deque.size() > 1) {
-      T a = deque.pollFirst();
-      T b = deque.pollFirst();
-      deque.addLast(reducer.apply(a, b));
-    }
-    return deque.getFirst();
   }
 
   /**
@@ -1434,7 +1332,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
-    return super.makeVariable(pName, pType, pSsa);
+    return super.makeVariable(pName, typeHandler.simplifyType(pType), pSsa);
   }
 
   /** {@inheritDoc} */

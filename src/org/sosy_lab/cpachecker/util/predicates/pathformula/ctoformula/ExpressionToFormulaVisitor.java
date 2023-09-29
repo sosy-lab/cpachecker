@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -40,11 +43,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
@@ -503,7 +512,7 @@ public class ExpressionToFormulaVisitor
 
       case SIZEOF:
         CType lCType = exp.getOperand().getExpressionType();
-        return handleSizeof(exp, lCType);
+        return getSizeExpression(lCType);
 
       case ALIGNOF:
         return handleAlignOf(exp, exp.getOperand().getExpressionType());
@@ -519,7 +528,7 @@ public class ExpressionToFormulaVisitor
 
     switch (tIdExp.getOperator()) {
       case SIZEOF:
-        return handleSizeof(tIdExp, lCType);
+        return getSizeExpression(lCType);
       case ALIGNOF:
         return handleAlignOf(tIdExp, lCType);
       default:
@@ -527,9 +536,118 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  private Formula handleSizeof(CExpression pExp, CType pCType) {
-    return mgr.makeNumber(
-        conv.getFormulaTypeFromCType(pExp.getExpressionType()), conv.getSizeof(pCType));
+  /**
+   * This is a SizeofVisitor that always returns 0 for types that do not have a statically known
+   * size.
+   */
+  private static class StaticSizeofVisitor extends BaseSizeofVisitor<NoException> {
+
+    /**
+     * Compute the size of the given composite type excluding all members that do not have a
+     * statically known size.
+     */
+    BigInteger computeStaticSizeof(CCompositeType pType) {
+      // Note that this.visit(pType) would return 0 because pType has !hasKnownConstantSize(),
+      // so we need to call super.visit() here such that only the struct members get handled by
+      // this.visit()
+      return super.visit(pType);
+    }
+
+    private StaticSizeofVisitor(MachineModel pModel) {
+      super(pModel);
+    }
+
+    @Override
+    public BigInteger visit(CArrayType pArrayType) {
+      if (pArrayType.hasKnownConstantSize()) {
+        return super.visit(pArrayType);
+      }
+      return BigInteger.ZERO;
+    }
+
+    @Override
+    public BigInteger visit(CCompositeType pCompositeType) {
+      if (pCompositeType.hasKnownConstantSize()) {
+        return super.visit(pCompositeType);
+      }
+      return BigInteger.ZERO;
+    }
+  }
+
+  public Formula getSizeExpression(CType type) throws UnrecognizedCodeException {
+    type = type.getCanonicalType();
+    if (type.hasKnownConstantSize()) {
+      return mgr.makeNumber(conv.typeHandler.getPointerType(), conv.getSizeof(type));
+
+    } else if (type instanceof CArrayType arrayType) {
+      Formula elementSize = getSizeExpression(arrayType.getType());
+
+      Formula elementCount = arrayType.getLength().accept(this);
+      elementCount =
+          conv.makeCast(
+              arrayType.getLength().getExpressionType(),
+              CPointerType.POINTER_TO_VOID,
+              elementCount,
+              constraints,
+              edge);
+
+      return mgr.makeMultiply(elementSize, elementCount);
+
+    } else if (type instanceof CCompositeType compositeType) {
+      Deque<Formula> memberSizes = new ArrayDeque<>();
+
+      // It is not enough to just compute the sum/maximum over all member sizes because of padding.
+      // But we also do not want to reimplement the complex padding and bitfield computations here.
+      // So we help us with a trick: The next line computes the size of the whole struct/union as if
+      // the variable-length parts would have length 0. But this includes all other fields and all
+      // paddings (even those for variable-length arrays, because padding is always known).
+      // Then we just have to create expressions for the sizes of the variable-length parts and
+      // compute the final sum/maximum.
+      BigInteger staticallyKnownSize =
+          new StaticSizeofVisitor(conv.machineModel).computeStaticSizeof(compositeType);
+
+      for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
+        if (!member.getType().hasKnownConstantSize()) {
+          memberSizes.add(getSizeExpression(member.getType()));
+        }
+        // else the size is already part of staticallyKnownSize
+      }
+
+      verify(!memberSizes.isEmpty());
+      memberSizes.add(mgr.makeNumber(conv.typeHandler.getPointerType(), staticallyKnownSize));
+
+      // Now compute sum/maximum of memberSizes. Especially for the maximum (with if-then-else)
+      // a balanced tree of nested maximums seems to be likely better for the solver.
+      switch (compositeType.getKind()) {
+        case STRUCT:
+          return balancedDestructiveReduce(memberSizes, mgr::makePlus);
+
+        case UNION:
+          return balancedDestructiveReduce(
+              memberSizes,
+              (a, b) -> conv.bfmgr.ifThenElse(mgr.makeGreaterOrEqual(a, b, false), a, b));
+
+        default:
+          throw new AssertionError();
+      }
+
+    } else {
+      throw new AssertionError("unexpected type without known constant size: " + type);
+    }
+  }
+
+  /**
+   * Reduce the elements of a given deque in a balanced manner, e.g. for [1,2,3,4] and "+" it will
+   * produce (1+2)+(3+4). The deque will be drained.
+   */
+  private static <T> T balancedDestructiveReduce(
+      Deque<T> deque, BiFunction<? super T, ? super T, ? extends T> reducer) {
+    while (deque.size() > 1) {
+      T a = deque.pollFirst();
+      T b = deque.pollFirst();
+      deque.addLast(reducer.apply(a, b));
+    }
+    return deque.getFirst();
   }
 
   private Formula handleAlignOf(CExpression pExp, CType pCType) {
