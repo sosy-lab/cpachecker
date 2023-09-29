@@ -175,6 +175,7 @@ public class CFAReverser {
     private final Set<CFANode> targets;
     private final Map<String, CFunctionDeclaration> funcDecls;
     private final Map<CFANode, CFANode> nodeMap;
+    private int tmpCnt;
 
     private static CType intType =
         new CSimpleType(
@@ -195,6 +196,7 @@ public class CFAReverser {
       this.nodes = TreeMultimap.create();
       this.funcDecls = new HashMap<>();
       this.nodeMap = new HashMap<>();
+      this.tmpCnt = 0;
       // Search for the target in the original CFA
       this.targets =
           new HashSet<>(targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec));
@@ -315,7 +317,6 @@ public class CFAReverser {
       private Map<String, CVariableDeclaration> variables; // Function scope variables
       private CFunctionEntryNode oldEntryNode; // Entry node for the old Function CFA
       private int branchCnt; // How many branch in this function
-      private int tmpCnt;
       private Set<CFANode> localTargets;
       private Map<CParameterDeclaration, CVariableDeclaration> parameters; // Function parameters
 
@@ -324,7 +325,6 @@ public class CFAReverser {
         this.parameters = new HashMap<>();
         this.oldEntryNode = oldEntryNode;
         this.branchCnt = 0;
-        this.tmpCnt = 0;
         this.localTargets = new HashSet<>();
       }
 
@@ -1719,6 +1719,12 @@ public class CFAReverser {
       return builder.buildBinaryExpressionUnchecked(lExpr, rExpr, BinaryOperator.EQUALS);
     }
 
+    private CBinaryExpression createBinaryExpr(
+        CExpression lExpr, CExpression rExpr, BinaryOperator op) {
+      CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(MachineModel.LINUX64, pLog);
+      return builder.buildBinaryExpressionUnchecked(lExpr, rExpr, op);
+    }
+
     private CType getRealType(CType type) {
       CType realType = type;
       if (type instanceof CTypedefType) {
@@ -1742,7 +1748,92 @@ public class CFAReverser {
     private CFANode appendAssumeEdge(
         CExpression lExpr, CExpression rExpr, CFANode curr, boolean assume) {
 
-      CType realType = getRealType(lExpr.getExpressionType());
+      CType type = lExpr.getExpressionType();
+
+      if (type instanceof CArrayType) {
+
+        if (((CArrayType) type).getLengthAsInt().isEmpty()) {
+          CExpression length = ((CArrayType) type).getLength();
+
+          String indexName = curr.getFunctionName() + "::" + lExpr.toString() + "__index";
+          assert length.getExpressionType().equals(intType);
+          CVariableDeclaration index =
+              new CVariableDeclaration(
+                  FileLocation.DUMMY,
+                  false,
+                  CStorageClass.AUTO,
+                  length.getExpressionType(),
+                  indexName,
+                  indexName,
+                  indexName,
+                  null);
+          CIdExpression indexExpr = new CIdExpression(FileLocation.DUMMY, index);
+          curr = appendAssignEdge(indexExpr, length, curr);
+          CFANode loopHead = curr;
+          CFANode loopTail = new CFANode(loopHead.getFunction());
+          nodes.put(loopTail.getFunctionName(), loopTail);
+          curr.setLoopStart();
+          // i >= 0
+          CExpression contCondtion =
+              createBinaryExpr(
+                  indexExpr, CIntegerLiteralExpression.ZERO, BinaryOperator.GREATER_EQUAL);
+          CFANode next = new CFANode(curr.getFunction());
+          nodes.put(next.getFunctionName(), next);
+          CAssumeEdge contEdge =
+              new CAssumeEdge(
+                  "", FileLocation.DUMMY, loopHead, next, contCondtion, true, false, false);
+          addToCFA(contEdge);
+          curr = next;
+          CAssumeEdge breakEdge =
+              new CAssumeEdge(
+                  "", FileLocation.DUMMY, loopHead, loopTail, contCondtion, false, false, false);
+          addToCFA(breakEdge);
+
+          CType elemType = ((CArrayType) type).getType();
+          CExpression lElem =
+              new CArraySubscriptExpression(FileLocation.DUMMY, elemType, lExpr, indexExpr);
+          CExpression rElem =
+              new CArraySubscriptExpression(FileLocation.DUMMY, elemType, rExpr, indexExpr);
+          curr = appendAssumeEdge(lElem, rElem, curr, true);
+          // tmp = i;
+          String tmpName = indexName + "__TMP";
+          CVariableDeclaration tmp =
+              new CVariableDeclaration(
+                  FileLocation.DUMMY,
+                  false,
+                  CStorageClass.AUTO,
+                  intType,
+                  tmpName,
+                  tmpName,
+                  tmpName,
+                  null);
+          CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmp);
+          curr = appendAssignEdge(tmpExpr, indexExpr, curr);
+          // i = tmp - 1;
+          CExpression rvalue =
+              createBinaryExpr(tmpExpr, CIntegerLiteralExpression.ONE, BinaryOperator.MINUS);
+          curr = appendAssignEdge(indexExpr, rvalue, curr);
+
+          BlankEdge cont = new BlankEdge("", FileLocation.DUMMY, curr, loopHead, "continue;");
+          addToCFA(cont);
+          return loopTail;
+        }
+
+        int length = ((CArrayType) type).getLengthAsInt().orElseThrow();
+        CType elemType = ((CArrayType) type).getType();
+        for (int i = length; i >= 0; i--) {
+          CIntegerLiteralExpression subscriptExpr =
+              new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.valueOf(i));
+          CExpression lElem =
+              new CArraySubscriptExpression(FileLocation.DUMMY, elemType, lExpr, subscriptExpr);
+          CExpression rElem =
+              new CArraySubscriptExpression(FileLocation.DUMMY, elemType, rExpr, subscriptExpr);
+          curr = appendAssumeEdge(lElem, rElem, curr, true);
+        }
+        return curr;
+      }
+
+      CType realType = getRealType(type);
 
       if (realType instanceof CCompositeType) {
         List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) realType).getMembers();
