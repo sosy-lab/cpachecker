@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
@@ -15,7 +16,7 @@ import java.util.Objects;
 
 @Immutable
 public class InformationRecord {
-  @JsonProperty("string")
+  @JsonAlias({"string", "value"})
   private final String string;
 
   @JsonProperty("type")
