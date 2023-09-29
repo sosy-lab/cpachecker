@@ -273,15 +273,12 @@ public class CFAReverser {
       }
 
       // get the main entry node for the new CFA
-      FunctionEntryNode reverseMainEntry =
-          functions.get(targets.iterator().next().getFunctionName());
-
-      FunctionEntryNode reverseMainExit = findMainEntry();
+      FunctionEntryNode reverseMainEntry = findMainEntry();
 
       checkNotNull(reverseMainEntry);
 
       // insert Error State
-      insertErrorLabel(reverseMainExit);
+      insertErrorLabel(reverseMainEntry);
 
       MutableCFA newMutableCfa =
           new MutableCFA(
@@ -1637,7 +1634,7 @@ public class CFAReverser {
     }
 
     private CFunctionCallExpression createNoDetCallExpr(CType type) {
-      String funcName = "__VERIFIER_nondet_" + type.getCanonicalType().toString();
+      String funcName = "__VERIFIER_nondet_" + type.toString();
       CFunctionDeclaration decl = funcDecls.get(funcName);
       if (decl == null) {
         CFunctionType functype = new CFunctionType(type, ImmutableList.of(), false);
