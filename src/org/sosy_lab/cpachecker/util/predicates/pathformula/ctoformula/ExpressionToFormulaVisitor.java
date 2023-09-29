@@ -117,12 +117,6 @@ public class ExpressionToFormulaVisitor
     return conv.makeCast(t, calculationType, f, constraints, edge);
   }
 
-  private Formula getPointerTargetSizeLiteral(
-      final CPointerType pointerType, final CType implicitType) {
-    final long pointerTargetSize = conv.typeHandler.getApproximatedSizeof(pointerType.getType());
-    return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
-  }
-
   private CType getPromotedTypeForArithmetic(CExpression exp) {
     CType t = exp.getExpressionType();
     t = t.getCanonicalType();
@@ -194,17 +188,13 @@ public class ExpressionToFormulaVisitor
           // pointer target
           ret =
               mgr.makePlus(
-                  f1,
-                  mgr.makeMultiply(
-                      f2, getPointerTargetSizeLiteral((CPointerType) promT1, calculationType)));
+                  f1, mgr.makeMultiply(f2, getSizeExpression(((CPointerType) promT1).getType())));
         } else if (!(promT1 instanceof CPointerType)) {
           // operand2 is a pointer => we should multiply the first summand by the size of the
           // pointer target
           ret =
               mgr.makePlus(
-                  f2,
-                  mgr.makeMultiply(
-                      f1, getPointerTargetSizeLiteral((CPointerType) promT2, calculationType)));
+                  f2, mgr.makeMultiply(f1, getSizeExpression(((CPointerType) promT2).getType())));
         } else {
           throw new UnrecognizedCodeException("Can't add pointers", edge, exp);
         }
@@ -218,16 +208,14 @@ public class ExpressionToFormulaVisitor
           // target
           ret =
               mgr.makeMinus(
-                  f1,
-                  mgr.makeMultiply(
-                      f2, getPointerTargetSizeLiteral((CPointerType) promT1, calculationType)));
+                  f1, mgr.makeMultiply(f2, getSizeExpression(((CPointerType) promT1).getType())));
         } else if (promT1 instanceof CPointerType) {
           // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
           if (promT1.equals(promT2)) {
             ret =
                 mgr.makeDivide(
                     mgr.makeMinus(f1, f2),
-                    getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
+                    getSizeExpression(((CPointerType) promT1).getType()),
                     true);
           } else {
             throw new UnrecognizedCodeException(
