@@ -273,12 +273,15 @@ public class CFAReverser {
       }
 
       // get the main entry node for the new CFA
-      FunctionEntryNode reverseMainEntry = findMainEntry();
+      FunctionEntryNode reverseMainEntry =
+          functions.get(targets.iterator().next().getFunctionName());
+
+      FunctionEntryNode reverseMainExit = findMainEntry();
 
       checkNotNull(reverseMainEntry);
 
       // insert Error State
-      insertErrorLabel(reverseMainEntry);
+      insertErrorLabel(reverseMainExit);
 
       MutableCFA newMutableCfa =
           new MutableCFA(
@@ -1844,15 +1847,9 @@ public class CFAReverser {
           CFieldReference rMember =
               new CFieldReference(
                   FileLocation.DUMMY, member.getType(), member.getName(), rExpr, false);
-          CBinaryExpression assumeExpr = createAssumeExpr(lMember, rMember);
-          CFANode next = new CFANode(curr.getFunction());
-          nodes.put(next.getFunctionName(), next);
-          CAssumeEdge assumeEdge =
-              new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, assume, false, false);
-          addToCFA(assumeEdge);
-          curr = next;
-          return curr;
+          curr = appendAssumeEdge(lMember, rMember, curr, true);
         }
+        return curr;
       }
 
       CBinaryExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
