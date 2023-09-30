@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with â€™,â€™ to seperate options. Optionname and value can
+# "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -158,7 +158,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 UniversitÃ© Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -1194,6 +1194,18 @@ cpa.abe.useCachingPathFormulaManager = true
 # only store pure C expressions without ACSL-specific constructs
 cpa.acsl.usePureExpressionsOnly = true
 
+# threshold for unrolling loops of the program (0 is infinite)
+cpa.aggressiveloopbound.maxLoopIterations = no default value
+
+# if there is a branch not associated with a loop, only take the left branch.
+cpa.aggressiveloopbound.useLeftPathInsideLoops = no default value
+
+# For nested loops: Reset the counter for inner loops at each iteration of
+# the outer loop. Meanign that, if the loobound is set to 3, the inner loop
+# is executed 3 times in each iteration of the outer loop (hence 9 times in
+# total
+cpa.aggressiveloopbound.useStack = no default value
+
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
   enum:     [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
@@ -1795,6 +1807,19 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# Number of testcases to generate
+cpa.inputGenWithRandomWalk.abortAfterUnsuccessfulRetries = no default value
+
+# List of names (or a part of the name) of functions, that return a random
+# value
+cpa.inputGenWithRandomWalk.namesOfRandomFunctions = no default value
+
+# Number of testcases to generate
+cpa.inputGenWithRandomWalk.numberOfTestcases = no default value
+
+# Names of the files for the testcases
+cpa.inputGenWithRandomWalk.testcaseName = no default value
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -2767,6 +2792,42 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 # empty string represents an empty parameter list.
 cpa.propertychecker.parameters = ""
 
+# Maximal number of branches taken before the computation aborts (-1 is no
+# abort)
+cpa.randomWalk.maxBranchesLength = no default value
+
+# If there is an if and else branch, take first with this probability in % 
+cpa.randomWalk.probForLeftBranchForAssign = no default value
+
+# If there is an if and else branch for a loophead, take first with this
+# probability in % 
+cpa.randomWalk.probForLeftBranchForLoop = no default value
+
+# If no path is given for the path2InputFile, try to load it automatically
+cpa.rangedAnalysis.autoLoadPath2Input = no default value
+
+# The path for the input file to handle input/random values for the constant
+# propagation following the lower bound. If no path is given, there is no
+# lower bound.
+cpa.rangedAnalysis.path2LowerInputFile = no default value
+
+# The path for the input file to handle input/random values for the constant
+# propagation following the upper bound. If no path is given, there is no
+# upper bound.
+cpa.rangedAnalysis.path2UpperInputFile = no default value
+
+# If the bound reaches a node that is a loophead leading to a loop that has
+# no outgoing edges, use the middle state instead of the lower or upper
+# bound.
+cpa.rangedAnalysis.useMiddleStateAtEndlessLoopHeads = no default value
+
+# List of names (or a part of the name) of functions, that return a random
+# value
+cpa.rangedExecutionInput.namesOfRandomFunctions = no default value
+
+# Names of the files for the testcases
+cpa.rangedExecutionInput.testcaseName = no default value
+
 # Whether to consider constraints on program variables (e.g., x > 10) as
 # definitions)
 cpa.reachdef.constraintIsDef = false
@@ -2782,6 +2843,14 @@ cpa.reachdef.stop = "SEP"
 # Do not report 'False' result, return UNKNOWN instead.  Useful for
 # incomplete analysis with no counterexample checking.
 cpa.reportFalseAsUnknown = false
+
+# The path for the input file to handle input/random values for the constant
+# propagation following the lower bound. If no path is given, there is no
+# lower bound.
+cpa.sequenceCPA.path2Bound = no default value
+
+# Stop if the list of decisions taken is empty.
+cpa.sequenceCPA.stopIfUnderspecifiedTestcase = no default value
 
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"
@@ -3470,18 +3539,16 @@ cpa.value.allowedUnsupportedFunctions = {}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
+# Instead of aborting the computation, if no sucessor state is known, the
+# state is cleard (all values are forgotten) and the analysis continues.
+cpa.value.forgetValuesInsteadOfAbort = false
+
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
 
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
-
-# If 'ignoreFunctionValue' is set to true, this option allows to provide a
-# fixed set of values in the TestComp format. It is used for function-calls
-# to calls of VERIFIER_nondet_*. The file is provided via the option
-# functionValuesForRandom 
-cpa.value.ignoreFunctionValueExceptRandom = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -3616,6 +3683,14 @@ cpa.value.reuse.precision.predicate.useControl = false
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER, EQUALS]
 
+# If 'ignoreFunctionValueExceptRandom' is set to true, and
+# functionValuesForRandom are present,this option determines the analysis
+# behaviour, if all values from the file are used and another call to
+# VERIFIER_nondet_* is present. If it is set to true, the analysis aborts the
+# computation. If set to false, an unknown value is used.
+# functionValuesForRandom 
+cpa.value.stopIfAllValuesForUnknownAreUsed = false
+
 # Default size of arrays whose length can't be determined.
 cpa.value.symbolic.defaultArraySize = 20
 
@@ -3647,9 +3722,12 @@ cpa.value.symbolic.simplifySymbolics = false
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
 
+# If the value could not be loaded, try to use long to load the value 
+cpa.value.tryToParseAllValues = true
+
 # Tells the value analysis how to handle unknown values.
 cpa.value.unknownValueHandling = DISCARD
-  enum:     [DISCARD, INTRODUCE_SYMBOLIC]
+  enum:     [DISCARD, INTRODUCE_SYMBOLIC, FROM_INPUT_FOR_VERIFIER_NONDET]
 
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
@@ -4531,6 +4609,22 @@ program.splitter.heuristic = no default value
 
 # maximal number
 program.splitter.max = 2
+
+# List of files with configurations to use. The files are used in order,
+# hence the first file is used for the left most bound, ..., the last file is
+# used for the right most bound.
+rangeExecution.configFiles = no default value
+
+# How to determine the bound splitting lower and upper half
+rangeExecution.configForTestcase = no default value
+
+# Names of the files for the testcases
+rangeExecution.testcaseNames = no default value
+
+# List of values for the loopbound. The values are used in order, hence the
+# first loopbound is used for the upper bound of the leftmost analysis and so
+# on. Need to have the same size as configFiles.
+rangeExecution.valuesForLoopBound = no default value
 
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
