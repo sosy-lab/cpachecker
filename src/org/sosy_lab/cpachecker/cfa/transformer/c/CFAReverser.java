@@ -635,6 +635,17 @@ public class CFAReverser {
               new CDeclarationEdge("", decl.getFileLocation(), curr, next, decl);
           addToCFA(ndeclEdge);
           curr = next;
+          CIdExpression lhs = new CIdExpression(FileLocation.DUMMY, decl);
+          CType realType = getRealType(lhs.getExpressionType());
+          if (realType instanceof CCompositeType compositeType) {
+            List<CCompositeTypeMemberDeclaration> members = compositeType.getMembers();
+            for (CCompositeTypeMemberDeclaration member : members) {
+              CFieldReference fieldReference =
+                  new CFieldReference(
+                      FileLocation.DUMMY, member.getType(), member.getName(), lhs, false);
+              curr = appendNonDetAssignEdge(fieldReference, curr);
+            }
+          }
         }
         return curr;
       }
@@ -1351,22 +1362,22 @@ public class CFAReverser {
         }
 
         @Override
-        public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-            throws NoException {
-          // TODO CAddressOfLabelExpression
-          return null;
+        public CExpression visit(CComplexCastExpression pComplexCastExpression) throws NoException {
+          // TODO : CComplexCastExpression
+          throw new AssertionError(pComplexCastExpression.toString());
         }
 
         @Override
-        public CExpression visit(CComplexCastExpression pComplexCastExpression) throws NoException {
-          // TODO : CComplexCastExpression
-          return null;
+        public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
+            throws NoException {
+          // TODO CAddressOfLabelExpression
+          throw new AssertionError(pAddressOfLabelExpression.toString());
         }
 
         @Override
         public CExpression visit(CTypeIdExpression pIastTypeIdExpression) throws NoException {
           // TODO CTypeIdExpressio
-          return null;
+          throw new AssertionError(pIastTypeIdExpression.toString());
         }
       }
 
@@ -1618,20 +1629,20 @@ public class CFAReverser {
         @Override
         public CExpression visit(CComplexCastExpression pComplexCastExpression) throws NoException {
           // TODO : CComplexCastExpression
-          return null;
+          throw new AssertionError(pComplexCastExpression.toString());
         }
 
         @Override
         public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
             throws NoException {
           // TODO CAddressOfLabelExpression
-          return null;
+          throw new AssertionError(pAddressOfLabelExpression.toString());
         }
 
         @Override
         public CExpression visit(CTypeIdExpression pIastTypeIdExpression) throws NoException {
           // TODO CTypeIdExpressio
-          return null;
+          throw new AssertionError(pIastTypeIdExpression.toString());
         }
       }
     }
