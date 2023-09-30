@@ -60,6 +60,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -782,11 +784,21 @@ public class ARGToCTranslator {
                     + " resolved.");
           }
 
-          if (lDeclarationEdge.getDeclaration().isGlobal()) {
-            globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
-          } else {
+        //Avoid declaration of structs with Empty initializers, as they are not allowed by the C standard.
+        if (lDeclarationEdge.getDeclaration().getType() instanceof CComplexType complexType
+            && complexType.getKind() == ComplexTypeKind.STRUCT){
+          int assignAfterPos = declaration.indexOf("=") + 1;
+          if (assignAfterPos > 0 && declaration.substring(assignAfterPos).strip().equals("{  };")){
+            declaration = declaration.substring(0, assignAfterPos-1) + ";";
             return declaration;
           }
+        }
+
+        if (lDeclarationEdge.getDeclaration().isGlobal()) {
+          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+        } else {
+          return declaration;
+        }
 
           break;
         }
@@ -825,15 +837,19 @@ public class ARGToCTranslator {
       // create temp variable to avoid name clashes
       String tempVariableName = TMPVARPREFIX + getFreshIndex();
       String tempVariableType = formalParam.getType().toASTString(tempVariableName);
-
-      actualParamAssignStatements.add(new SimpleStatement(pCFAEdge, tempVariableType + ";"));
-      actualParamAssignStatements.add(
-          new SimpleStatement(pCFAEdge, tempVariableName + " = " + actualParamSignature + ";"));
-      formalParamAssignStatements.add(new SimpleStatement(pCFAEdge, formalParamSignature + ";"));
-      formalParamAssignStatements.add(
-          new SimpleStatement(
-              pCFAEdge,
-              formalParam.getQualifiedName().replace("::", "__") + " = " + tempVariableName + ";"));
+      if (formalParam.getType().isConst()){
+        actualParamAssignStatements.add(new SimpleStatement(pCFAEdge, tempVariableType +" = " + actualParamSignature + ";"));
+        formalParamAssignStatements.add(new SimpleStatement(pCFAEdge, formalParamSignature + " = " + tempVariableName + ";"));
+      }else{
+        actualParamAssignStatements.add(new SimpleStatement(pCFAEdge, tempVariableType + ";"));
+        actualParamAssignStatements.add(
+            new SimpleStatement(pCFAEdge, tempVariableName + " = " + actualParamSignature + ";"));
+        formalParamAssignStatements.add(new SimpleStatement(pCFAEdge, formalParamSignature + ";"));
+        formalParamAssignStatements.add(
+            new SimpleStatement(
+                pCFAEdge,
+                formalParam.getQualifiedName().replace("::", "__") + " = " + tempVariableName + ";"));
+      }
     }
 
     for (Statement stmt : actualParamAssignStatements) {

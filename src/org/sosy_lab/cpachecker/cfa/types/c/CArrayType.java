@@ -94,6 +94,13 @@ public final class CArrayType extends AArrayType implements CType {
 
   private String toASTString(String pDeclarator, boolean pQualified) {
     checkNotNull(pDeclarator);
+    if (getType() instanceof  CArrayType arrayType){
+      return (isConst() ? "const " : "")
+          + (isVolatile() ? "volatile " : "")
+          + arrayType
+          .toASTString(
+              pDeclarator + ("[" + (length != null ? length.toASTString(pQualified) : "") + "]"), pQualified);
+    }
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + getType()

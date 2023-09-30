@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -93,7 +94,10 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
     lASTString.append(cStorageClass.toASTString());
     if (pQualified) {
-      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
+      if (getType() instanceof CArrayType arrayType){
+        lASTString.append(arrayType.toQualifiedASTString(getQualifiedName().replace("::", "__")));
+      }else{
+        lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));}
     } else {
       lASTString.append(getType().toASTString(getName()));
     }
