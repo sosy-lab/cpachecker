@@ -56,10 +56,9 @@ public class SequenceState implements LatticeAbstractState<SequenceState>, Targe
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof SequenceState)) {
+    if (!(pO instanceof SequenceState that)) {
       return false;
     }
-    SequenceState that = (SequenceState) pO;
     return Objects.equals(remainingDecisionsToTake, that.remainingDecisionsToTake);
   }
 
@@ -100,7 +99,7 @@ public class SequenceState implements LatticeAbstractState<SequenceState>, Targe
 
   public boolean thisEdgeShouldBeTaken(AssumeEdge pCfaEdge) {
 
-    if (remainingDecisionsToTake.size() == 0) {
+    if (remainingDecisionsToTake.isEmpty()) {
       // Do not take the edge if there are no decisions left to take and we should stop if the
       // testcase is underspecified.
       return !stopIfUnderspecifiedTestcase;
@@ -114,9 +113,8 @@ public class SequenceState implements LatticeAbstractState<SequenceState>, Targe
   }
 
   public SequenceState takeEdge(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof AssumeEdge) {
-      AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
-      if (thisEdgeShouldBeTaken(assumeEdge) && remainingDecisionsToTake.size() > 0) {
+    if (pCfaEdge instanceof AssumeEdge assumeEdge) {
+      if (thisEdgeShouldBeTaken(assumeEdge) && !remainingDecisionsToTake.isEmpty()) {
         return new SequenceState(
             remainingDecisionsToTake.subList(1, remainingDecisionsToTake.size()),
             stopIfUnderspecifiedTestcase);

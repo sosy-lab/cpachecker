@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -18,6 +19,7 @@ import org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence.SequenceBoundAnalysis.
 public class RangedAnalysisState
     implements LatticeAbstractState<RangedAnalysisState>, Serializable, Graphable {
 
+  @Serial
   private static final long serialVersionUID = 6762491514691078996L;
 
   private final @Nullable SequenceState leftState;
@@ -80,10 +82,9 @@ public class RangedAnalysisState
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof RangedAnalysisState)) {
+    if (!(pO instanceof RangedAnalysisState that)) {
       return false;
     }
-    RangedAnalysisState that = (RangedAnalysisState) pO;
     return Objects.equals(leftState, that.leftState) && Objects.equals(rightState, that.rightState);
   }
 

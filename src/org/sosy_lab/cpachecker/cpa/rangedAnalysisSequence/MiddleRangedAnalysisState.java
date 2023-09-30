@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence;
 
+import java.io.Serial;
+
 public class MiddleRangedAnalysisState extends RangedAnalysisState {
 
+  @Serial
   private static final long serialVersionUID = 6769991514691078996L;
 
   public MiddleRangedAnalysisState() {

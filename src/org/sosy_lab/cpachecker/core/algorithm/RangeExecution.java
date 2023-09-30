@@ -73,8 +73,8 @@ public class RangeExecution extends NestingAlgorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate testcaseNames = PathTemplate.ofFormatString("testcase.%d.xml");
 
-  private CFA cfa;
-  private AggregatedReachedSets aggregatedReachedSets;
+  private final CFA cfa;
+  private final AggregatedReachedSets aggregatedReachedSets;
 
   protected RangeExecution(
       Configuration config,

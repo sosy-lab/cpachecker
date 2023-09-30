@@ -57,12 +57,12 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class TestcaseGenUtils {
   private static final long DEFAULT_LONG = 0;
-  private ImmutableSet<String> namesOfRandomFunctions;
-  private Solver solver;
-  private LogManager logger;
-  private PathFormulaManager pfManager;
-  private FormulaManagerView fmgr;
-  private CFA cfa;
+  private final ImmutableSet<String> namesOfRandomFunctions;
+  private final Solver solver;
+  private final LogManager logger;
+  private final  PathFormulaManager pfManager;
+  private final FormulaManagerView fmgr;
+  private final CFA cfa;
 
   public TestcaseGenUtils(
       ImmutableSet<String> pNamesOfRandomFunctions,

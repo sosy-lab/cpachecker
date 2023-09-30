@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class SequenceTransferRelation extends SingleEdgeTransferRelation {
 
-  private LogManager logger;
+  private final LogManager logger;
 
   SequenceTransferRelation(CFA pCFA, LogManager pLogger) {
     checkNotNull(pCFA, "CFA instance needed to create LoopBoundCPA");

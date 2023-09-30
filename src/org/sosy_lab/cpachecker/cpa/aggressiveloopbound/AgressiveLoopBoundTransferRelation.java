@@ -60,7 +60,7 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
   private final String nameOfMainFunction;
 
   private final Level currentLogLevel = Level.FINE;
-  private LogManager logger;
+  private final LogManager logger;
 
   @Option(
       secure = true,

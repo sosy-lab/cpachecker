@@ -35,9 +35,9 @@ public class RandomWalkState
         Comparable<RandomWalkState> {
 
   private @Nullable PathFormula currentPathFormula;
-  private List<CFANode> nodesOnPath;
+  private final List<CFANode> nodesOnPath;
 
-  private List<Integer> numberOfSuccessorTaken;
+  private final List<Integer> numberOfSuccessorTaken;
 
   private CFAEdge edgeToTakeNext;
 
