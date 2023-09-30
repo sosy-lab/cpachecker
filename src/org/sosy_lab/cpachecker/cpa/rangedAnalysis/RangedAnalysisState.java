@@ -80,10 +80,9 @@ public class RangedAnalysisState
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof RangedAnalysisState)) {
+    if (!(pO instanceof RangedAnalysisState that)) {
       return false;
     }
-    RangedAnalysisState that = (RangedAnalysisState) pO;
     return Objects.equals(leftState, that.leftState) && Objects.equals(rightState, that.rightState);
   }
 

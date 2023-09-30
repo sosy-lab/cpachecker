@@ -50,6 +50,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -620,7 +621,7 @@ public class ARGUtils {
 
         if (!pReached.contains(child)) {
           assert (child.isCovered() && child.getChildren().isEmpty()) // 1)
-                  || pReached.getWaitlist().containsAll(child.getParents()) // 2)
+              || pReached.getWaitlist().containsAll(child.getParents()) // 2)
               : "Referenced child is missing in reached set.";
         }
       }
@@ -1286,11 +1287,22 @@ public class ARGUtils {
   /** Returns all possible paths from the given state to the root of the ARG. */
   public static Set<ARGPath> getAllPaths(final ReachedSet pReachedSet, final ARGState pStart) {
     ARGState root = AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
+    return getArgPaths(pStart, root);
+  }
+
+  /** Returns all possible paths from the given state pStart to pTarget. */
+  public static Set<ARGPath> getAllPathsFromTo(final ARGState pStart, final ARGState pTarget) {
+    ARGState root = AbstractStates.extractStateByType(pStart, ARGState.class);
+    return getArgPaths(pTarget, root);
+  }
+
+  @Nonnull
+  private static ImmutableSet<ARGPath> getArgPaths(ARGState pTarget, ARGState root) {
     List<ARGState> states = new ArrayList<>();
     ImmutableSet.Builder<ARGPath> results = ImmutableSet.builder();
     List<List<ARGState>> paths = new ArrayList<>();
 
-    states.add(pStart);
+    states.add(pTarget);
     paths.add(states);
 
     // This is assuming from each node there is a way to go to the start

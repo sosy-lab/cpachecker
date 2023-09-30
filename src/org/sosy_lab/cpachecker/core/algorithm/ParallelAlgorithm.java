@@ -92,24 +92,24 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
-  private static final String SUCCESS_MESSAGE =
+  protected static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
 
   private final Configuration globalConfig;
-  private final LogManager logger;
-  private final ShutdownManager shutdownManager;
+  protected final LogManager logger;
+  protected final ShutdownManager shutdownManager;
   private final CFA cfa;
   private final Specification specification;
-  private final ParallelAlgorithmStatistics stats;
+  protected final ParallelAlgorithmStatistics stats;
 
-  private ParallelAnalysisResult finalResult = null;
-  private CFANode mainEntryNode = null;
-  private final AggregatedReachedSetManager aggregatedReachedSetManager;
+  protected ParallelAnalysisResult finalResult = null;
+  protected CFANode mainEntryNode = null;
+  protected final AggregatedReachedSetManager aggregatedReachedSetManager;
 
-  private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
+  protected final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
 
-  private final ImmutableList<Callable<ParallelAnalysisResult>> analyses;
+  protected ImmutableList<Callable<ParallelAnalysisResult>> analyses;
 
   public ParallelAlgorithm(
       Configuration config,
@@ -137,6 +137,30 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       analysesBuilder.add(createParallelAnalysis(p, ++stats.noOfAlgorithmsUsed));
     }
     analyses = analysesBuilder.build();
+  }
+
+  public ParallelAlgorithm(
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
+      CFA pCfa,
+      AggregatedReachedSets pAggregatedReachedSets,
+      ImmutableList<Callable<ParallelAnalysisResult>> pAnalyses)
+      throws InvalidConfigurationException {
+    config.inject(this, ParallelAlgorithm.class);
+
+    stats = new ParallelAlgorithmStatistics(pLogger);
+    globalConfig = config;
+    logger = checkNotNull(pLogger);
+    shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
+    specification = checkNotNull(pSpecification);
+    cfa = checkNotNull(pCfa);
+
+    aggregatedReachedSetManager = new AggregatedReachedSetManager();
+    aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
+
+    analyses = pAnalyses;
   }
 
   @Override
@@ -176,8 +200,30 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
+  private static boolean awaitTermination(
+      ListeningExecutorService exec, long timeout, TimeUnit unit) {
+    long timeoutNanos = unit.toNanos(timeout);
+    long endNanos = System.nanoTime() + timeoutNanos;
+
+    boolean interrupted = Thread.interrupted();
+    try {
+      while (true) {
+        try {
+          return exec.awaitTermination(timeoutNanos, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+          interrupted = false;
+          timeoutNanos = Math.max(0, endNanos - System.nanoTime());
+        }
+      }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
   @SuppressWarnings("checkstyle:IllegalThrows")
-  private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
+  protected void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, Error, CPAException {
 
     List<CPAException> exceptions = new ArrayList<>();
@@ -240,14 +286,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final boolean supplyRefinableReached;
 
     final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
-    if (singleConfig == null) {
-      return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
-    }
-    final ShutdownManager singleShutdownManager =
-        ShutdownManager.createWithParent(shutdownManager.getNotifier());
-
-    final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
-
     if (pSingleConfigFileName.annotation().isPresent()) {
       supplyRefinableReached =
           switch (pSingleConfigFileName.annotation().orElseThrow()) {
@@ -269,6 +307,29 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       supplyReached = false;
       supplyRefinableReached = false;
     }
+    return createParallelAnalysis(
+        singleConfig,
+        analysisNumber,
+        supplyReached,
+        supplyRefinableReached,
+        singleConfigFileName.toString());
+  }
+
+  protected Callable<ParallelAnalysisResult> createParallelAnalysis(
+      @Nullable Configuration singleConfig,
+      final int analysisNumber,
+      boolean supplyReached,
+      boolean supplyRefinableReached,
+      String singleConfigFileName)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+
+    if (singleConfig == null) {
+      return () -> ParallelAnalysisResult.absent(singleConfigFileName);
+    }
+    final ShutdownManager singleShutdownManager =
+        ShutdownManager.createWithParent(shutdownManager.getNotifier());
+
+    final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
 
     final ResourceLimitChecker singleAnalysisOverallLimit =
         ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
@@ -288,7 +349,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     StatisticsEntry statisticsEntry =
         stats.getNewSubStatistics(
             reached,
-            singleConfigFileName.toString(),
+            singleConfigFileName,
             Iterables.getOnlyElement(
                 FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
                     .filter(ThreadCpuTimeLimit.class),
@@ -315,12 +376,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         singleLogger.logUserException(
             Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
         terminated.set(true);
-        return ParallelAnalysisResult.absent(singleConfigFileName.toString());
+        return ParallelAnalysisResult.absent(singleConfigFileName);
       }
 
       ParallelAnalysisResult r =
           runParallelAnalysis(
-              singleConfigFileName.toString(),
+              singleConfigFileName,
               algorithm,
               reached,
               singleLogger,
@@ -334,7 +395,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     };
   }
 
-  private ParallelAnalysisResult runParallelAnalysis(
+  protected ParallelAnalysisResult runParallelAnalysis(
       final String analysisName,
       final Algorithm algorithm,
       final ReachedSet reached,
@@ -392,7 +453,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           // check if we could prove the program to be safe
           if (status.isSound()
               && !from(currentReached)
-                  .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
+              .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
             ReachedSet oldReachedSet = oldReached.get();
             if (oldReachedSet != null) {
               aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
@@ -482,7 +543,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void initializeReachedSet(
+  protected void initializeReachedSet(
       ConfigurableProgramAnalysis cpa, CFANode mainFunction, ReachedSet reached)
       throws InterruptedException {
     AbstractState initialState = cpa.getInitialState(mainFunction, getDefaultPartition());
@@ -490,7 +551,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     reached.add(initialState, initialPrecision);
   }
 
-  private static class ParallelAnalysisResult {
+  static class ParallelAnalysisResult {
 
     private final @Nullable ReachedSet reached;
     private final @Nullable AlgorithmStatus status;
@@ -519,9 +580,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
       return (status.isPrecise() && from(reached).anyMatch(AbstractStates::isTargetState))
           || ((status.isSound() || !status.wasPropertyChecked())
-              && !reached.hasWaitingState()
-              && !from(reached)
-                  .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
+          && !reached.hasWaitingState()
+          && !from(reached)
+          .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
     }
 
     public @Nullable ReachedSet getReached() {
@@ -537,12 +598,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class ParallelAlgorithmStatistics implements Statistics {
+  protected static class ParallelAlgorithmStatistics implements Statistics {
 
     private final LogManager logger;
     private final List<StatisticsEntry> allAnalysesStats = new CopyOnWriteArrayList<>();
     private int noOfAlgorithmsUsed = 0;
-    private String successfulAnalysisName = null;
+    protected String successfulAnalysisName = null;
 
     ParallelAlgorithmStatistics(LogManager pLogger) {
       logger = checkNotNull(pLogger);
@@ -655,11 +716,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
-  private static class StatisticsEntry {
+  protected static class StatisticsEntry {
 
     private final Collection<Statistics> subStatistics;
 
-    private final AtomicReference<ReachedSet> reachedSet;
+    protected final AtomicReference<ReachedSet> reachedSet;
 
     private final String name;
 

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RandomTestGeneratorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RangeExecution;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
@@ -64,6 +65,10 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorit
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.InputGenerationWithRandomWalkAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.RangedExecutionInputComputation;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences.InputGenerationWithRandomWalkAlgorithmSequence;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences.RangedExecutionInputComputationSequence;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
@@ -193,6 +198,12 @@ public class CoreComponentsFactory {
       name = "restartAfterUnknown",
       description = "restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "useCombinedRangeExecutionAlgorithm",
+      description = "restart the analysis using a different configuration after unknown result")
+  private boolean useCombinedRangeExecutionAlgorithm = false;
 
   @Option(
       secure = true,
@@ -380,6 +391,13 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.computeRSEInput",
+      description =
+          "Use algorithm to compute the input for ranged symbolic execution for a given bound")
+  private boolean useComputeRSEInput = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.configurableComponents",
       description = "Distribute predicate analysis to multiple workers")
   private boolean useConfigurableComponents = false;
@@ -392,6 +410,19 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
+
+  @Option(
+      secure = true,
+      name = "algorithm.inputGenRandomWalk",
+      description =
+          "Generate a set of test inputs using a random exploration of the executino tree.")
+  private boolean useInputGenerationWithRandomWalk = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.genSequenceForRangedExeceution",
+      description = "Generate a sequence instead of a testcase for ranged symbolic execution.")
+  private boolean genSequence = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -492,6 +523,12 @@ public class CoreComponentsFactory {
     } else if (useHeuristicSelectionAlgorithm) {
       logger.log(Level.INFO, "Using heuristics to select analysis");
       algorithm = new SelectionAlgorithm(cfa, shutdownNotifier, config, specification, logger);
+
+    } else if (useCombinedRangeExecutionAlgorithm) {
+      logger.log(Level.INFO, "Using Combined Range Execution analysis");
+      algorithm =
+          RangeExecution.create(
+              config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
@@ -577,6 +614,24 @@ public class CoreComponentsFactory {
         algorithm =
             new CEGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
                 .newInstance();
+      }
+      if (useInputGenerationWithRandomWalk) {
+        if (genSequence) {
+          algorithm =
+              new InputGenerationWithRandomWalkAlgorithmSequence(
+                  cpa, algorithm, cfa, logger, config);
+        } else {
+          algorithm =
+              new InputGenerationWithRandomWalkAlgorithm(cpa, algorithm, cfa, logger, config);
+        }
+      }
+      if (useComputeRSEInput) {
+        if (genSequence) {
+          algorithm =
+              new RangedExecutionInputComputationSequence(config, algorithm, logger, cfa, cpa);
+        } else {
+          algorithm = new RangedExecutionInputComputation(config, algorithm, logger, cfa, cpa);
+        }
       }
 
       if (usePDR) {
@@ -749,6 +804,7 @@ public class CoreComponentsFactory {
     if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
+        || useCombinedRangeExecutionAlgorithm
         || useParallelAlgorithm
         || asConditionalVerifier
         || useFaultLocalizationWithDistanceMetrics
@@ -775,6 +831,7 @@ public class CoreComponentsFactory {
     if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
+        || useCombinedRangeExecutionAlgorithm
         || useParallelAlgorithm
         || useProofCheckAlgorithmWithStoredConfig
         || useProofCheckWithARGCMCStrategy

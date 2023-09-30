@@ -14,6 +14,7 @@ import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,8 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
   protected record NestedAnalysis(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
+  public record AdditionalConfigParameter(String name, String value) {}
+
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   protected final Configuration globalConfig;
@@ -72,8 +75,29 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       Collection<String> ignoreOptions,
       Collection<Statistics> stats)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
+    return createAlgorithm(
+        singleConfigFileName,
+        initialNode,
+        pCfa,
+        singleShutdownManager,
+        aggregateReached,
+        ignoreOptions,
+        new HashSet<>(),
+        stats);
+  }
 
-    Configuration singleConfig = buildSubConfig(singleConfigFileName, ignoreOptions);
+  protected NestedAnalysis createAlgorithm(
+      Path singleConfigFileName,
+      CFANode initialNode,
+      CFA pCfa,
+      ShutdownManager singleShutdownManager,
+      AggregatedReachedSets aggregateReached,
+      Collection<String> ignoreOptions,
+      Collection<AdditionalConfigParameter> additionalOptions,
+      Collection<Statistics> stats)
+      throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
+    Configuration singleConfig =
+        buildSubConfig(singleConfigFileName, ignoreOptions, additionalOptions);
     LogManager singleLogger = logger.withComponentName("Analysis " + singleConfigFileName);
 
     ResourceLimitChecker singleLimits =
@@ -97,7 +121,8 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     return new NestedAnalysis(algorithm, cpa, reached);
   }
 
-  private Configuration buildSubConfig(Path singleConfigFileName, Collection<String> ignoreOptions)
+  private Configuration buildSubConfig(Path singleConfigFileName, Collection<String> ignoreOptions,
+                                       Collection<AdditionalConfigParameter> pAdditionalOptions)
       throws IOException, InvalidConfigurationException {
 
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -109,6 +134,11 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     // TODO next line overrides existing options with options loaded from file.
     // Perhaps we want to keep some global options like 'specification'?
     singleConfigBuilder.loadFromFile(singleConfigFileName);
+    for (AdditionalConfigParameter entry : pAdditionalOptions) {
+      if (entry.name() != null && entry.value() != null) {
+        singleConfigBuilder.setOption(entry.name(), entry.value());
+      }
+    }
 
     Configuration singleConfig = singleConfigBuilder.build();
     checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);

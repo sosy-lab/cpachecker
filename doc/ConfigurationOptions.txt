@@ -204,6 +204,10 @@ analysis.algorithm.MPV = false
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
 
+# Use algorithm to compute the input for ranged symbolic execution for a
+# given bound
+analysis.algorithm.computeRSEInput = false
+
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
@@ -220,11 +224,18 @@ analysis.algorithm.faultLocalization.by_distance = false
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
 
+# Generate a sequence instead of a testcase for ranged symbolic execution.
+analysis.algorithm.genSequenceForRangedExeceution = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
 # Import faults stored in a JSON format.
 analysis.algorithm.importFaults = false
+
+# Generate a set of test inputs using a random exploration of the executino
+# tree.
+analysis.algorithm.inputGenRandomWalk = false
 
 # use nontermination witness validator to check a violation witness for
 # termination
@@ -501,6 +512,9 @@ analysis.useASTStructure = false
 
 # Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
+
+# restart the analysis using a different configuration after unknown result
+analysis.useCombinedRangeExecutionAlgorithm = false
 
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
@@ -1194,17 +1208,23 @@ cpa.abe.useCachingPathFormulaManager = true
 # only store pure C expressions without ACSL-specific constructs
 cpa.acsl.usePureExpressionsOnly = true
 
-# threshold for unrolling loops of the program (0 is infinite)
-cpa.aggressiveloopbound.maxLoopIterations = no default value
-
 # if there is a branch not associated with a loop, only take the left branch.
-cpa.aggressiveloopbound.useLeftPathInsideLoops = no default value
+cpa.aggressiveloopbound.alwaysUseLeftPath = true
+
+# threshold for unrolling loops of the program (0 is infinite)
+cpa.aggressiveloopbound.maxLoopIterations = 0
+
+# Ignore functions with assume_abort_if_not
+cpa.aggressiveloopbound.stepThoughAssumeAbortIfNot = true
+
+# if there is a branch associated with a loop, only take the left branch.
+cpa.aggressiveloopbound.useLeftPathInsideLoops = true
 
 # For nested loops: Reset the counter for inner loops at each iteration of
 # the outer loop. Meanign that, if the loobound is set to 3, the inner loop
 # is executed 3 times in each iteration of the outer loop (hence 9 times in
 # total
-cpa.aggressiveloopbound.useStack = no default value
+cpa.aggressiveloopbound.useStack = true
 
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
@@ -1809,17 +1829,23 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
 # Number of testcases to generate
-cpa.inputGenWithRandomWalk.abortAfterUnsuccessfulRetries = no default value
+cpa.inputGenWithRandomWalk.abortAfterUnsuccessfulRetries = numberOfTestcases * 5
+
+# Throw an exception, if only a true sequence is generated
+cpa.inputGenWithRandomWalk.abortOnTrueSequence = false
+
+# List of Functions not exported in the sequences
+cpa.inputGenWithRandomWalk.blacklist = {"__VERIFIER_assert"}
 
 # List of names (or a part of the name) of functions, that return a random
 # value
-cpa.inputGenWithRandomWalk.namesOfRandomFunctions = no default value
+cpa.inputGenWithRandomWalk.namesOfRandomFunctions = {"rand", "__VERIFIER_nondet_"}
 
 # Number of testcases to generate
-cpa.inputGenWithRandomWalk.numberOfTestcases = no default value
+cpa.inputGenWithRandomWalk.numberOfTestcases = 2
 
 # Names of the files for the testcases
-cpa.inputGenWithRandomWalk.testcaseName = no default value
+cpa.inputGenWithRandomWalk.testcaseName = "testcase.%d.xml"
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -2794,17 +2820,17 @@ cpa.propertychecker.parameters = ""
 
 # Maximal number of branches taken before the computation aborts (-1 is no
 # abort)
-cpa.randomWalk.maxBranchesLength = no default value
+cpa.randomWalk.maxBranchesLength = -1
 
 # If there is an if and else branch, take first with this probability in % 
-cpa.randomWalk.probForLeftBranchForAssign = no default value
+cpa.randomWalk.probForLeftBranchForAssign = 50
 
 # If there is an if and else branch for a loophead, take first with this
 # probability in % 
-cpa.randomWalk.probForLeftBranchForLoop = no default value
+cpa.randomWalk.probForLeftBranchForLoop = 50
 
 # If no path is given for the path2InputFile, try to load it automatically
-cpa.rangedAnalysis.autoLoadPath2Input = no default value
+cpa.rangedAnalysis.autoLoadPath2Input = false
 
 # The path for the input file to handle input/random values for the constant
 # propagation following the lower bound. If no path is given, there is no
@@ -2816,12 +2842,21 @@ cpa.rangedAnalysis.path2LowerInputFile = no default value
 # upper bound.
 cpa.rangedAnalysis.path2UpperInputFile = no default value
 
+# Throw an exception, if only a true sequence is generated
+cpa.rangedExecutionInput.abortOnTrueSequence = false
+
+# List of Functions not exported in the sequences
+cpa.rangedExecutionInput.blacklist = {"__VERIFIER_assert"}
+
+# Generate a sequence instead of a testcase
+cpa.rangedExecutionInput.generateSequences = false
+
 # List of names (or a part of the name) of functions, that return a random
 # value
-cpa.rangedExecutionInput.namesOfRandomFunctions = no default value
+cpa.rangedExecutionInput.namesOfRandomFunctions = {"rand", "__VERIFIER_nondet_"}
 
 # Names of the files for the testcases
-cpa.rangedExecutionInput.testcaseName = no default value
+cpa.rangedExecutionInput.testcaseName = "testcase.0.xml"
 
 # Whether to consider constraints on program variables (e.g., x > 10) as
 # definitions)
@@ -2838,14 +2873,6 @@ cpa.reachdef.stop = "SEP"
 # Do not report 'False' result, return UNKNOWN instead.  Useful for
 # incomplete analysis with no counterexample checking.
 cpa.reportFalseAsUnknown = false
-
-# The path for the input file to handle input/random values for the constant
-# propagation following the lower bound. If no path is given, there is no
-# lower bound.
-cpa.sequenceCPA.path2Bound = no default value
-
-# Stop if the list of decisions taken is empty.
-cpa.sequenceCPA.stopIfUnderspecifiedTestcase = no default value
 
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"
@@ -4614,12 +4641,12 @@ rangeExecution.configFiles = no default value
 rangeExecution.configForTestcase = no default value
 
 # Names of the files for the testcases
-rangeExecution.testcaseNames = no default value
+rangeExecution.testcaseNames = "testcase.%d.xml"
 
 # List of values for the loopbound. The values are used in order, hence the
 # first loopbound is used for the upper bound of the leftmost analysis and so
 # on. Need to have the same size as configFiles.
-rangeExecution.valuesForLoopBound = no default value
+rangeExecution.valuesForLoopBound = Lists.newArrayList(3)
 
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
