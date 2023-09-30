@@ -2874,6 +2874,14 @@ cpa.reachdef.stop = "SEP"
 # incomplete analysis with no counterexample checking.
 cpa.reportFalseAsUnknown = false
 
+# The path for the input file to handle input/random values for the constant
+# propagation following the lower bound. If no path is given, there is no
+# lower bound.
+cpa.sequenceCPA.path2Bound = no default value
+
+# Stop if the list of decisions taken is empty.
+cpa.sequenceCPA.stopIfUnderspecifiedTestcase = false
+
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"
   allowed values: [SEP, JOIN]
