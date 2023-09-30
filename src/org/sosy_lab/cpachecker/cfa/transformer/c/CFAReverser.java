@@ -1300,8 +1300,10 @@ public class CFAReverser {
         public CExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
             throws NoException {
           CExpression array = pIastArraySubscriptExpression.getArrayExpression().accept(this);
+          // index do not need to be dumped
+          RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
           CExpression subscript =
-              pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
+              pIastArraySubscriptExpression.getSubscriptExpression().accept(rfinder);
           CType type = pIastArraySubscriptExpression.getExpressionType();
 
           CArraySubscriptExpression expr =
