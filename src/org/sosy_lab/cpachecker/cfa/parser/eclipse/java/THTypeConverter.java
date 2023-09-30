@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.cfa.parser.eclipse.java.NameConverter.conv
 
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
@@ -112,7 +113,12 @@ class THTypeConverter extends TypeConverter {
     if ("java.lang.Object".equals(superclass.getName())) {
       jTypeOfSuperClass = JClassType.getTypeOfObject();
     } else {
-      jTypeOfSuperClass = createJClassTypeFromClass(superclass);
+      JClassType newType = checkIfClassTypeAlreadyAvailable(superclass);
+      if (newType != null) {
+        jTypeOfSuperClass = newType;
+      } else {
+        jTypeOfSuperClass = createJClassTypeFromClass(superclass);
+      }
     }
     ModifierBean modifierBean = ModifierBean.getModifiers(pClazz.getModifiers());
     final JClassType jClassType =
@@ -127,6 +133,36 @@ class THTypeConverter extends TypeConverter {
             ImmutableSet.of());
     typeTable.registerType(jClassType);
     return jClassType;
+  }
+
+  private JClassType checkIfClassTypeAlreadyAvailable(Class<?> pSuperClass) {
+    for (Map.Entry<String, JClassOrInterfaceType> entry : typeTable.getTypes().entrySet()) {
+      JClassOrInterfaceType type = entry.getValue();
+
+      if(type.getName().equals(pSuperClass.getName())) {
+        return (JClassType)type;
+      } else {
+        JClassOrInterfaceType temp = checkSubTypes(type.getAllSubTypesOfType(), pSuperClass);
+        if (temp != null) {
+          return (JClassType) temp;
+        }
+      }
+    }
+    return null;
+  }
+
+  private JClassOrInterfaceType checkSubTypes(Set<? extends JClassOrInterfaceType> pSet, Class<?> pSuperClass) {
+    for(JClassOrInterfaceType type: pSet) {
+      if(type.getName().equals(pSuperClass.getName())) {
+        return type;
+      } else {
+        JClassOrInterfaceType temp = checkSubTypes(type.getAllSubTypesOfType(),pSuperClass);
+        if(temp != null) {
+          return temp;
+        }
+      }
+    }
+    return null;
   }
 
   @Override
