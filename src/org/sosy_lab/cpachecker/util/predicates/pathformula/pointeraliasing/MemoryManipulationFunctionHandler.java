@@ -189,7 +189,8 @@ class MemoryManipulationFunctionHandler {
 
     final long underlyingDestinationBitSize =
         typeHandler.getExactBitSizeof(adjustedDestinationType.getType());
-    final long underlyingSourceBitSize = typeHandler.getExactBitSizeof(adjustedSourceType.getType());
+    final long underlyingSourceBitSize =
+        typeHandler.getExactBitSizeof(adjustedSourceType.getType());
 
     if (underlyingDestinationBitSize != underlyingSourceBitSize) {
       throw new UnrecognizedCodeException(
