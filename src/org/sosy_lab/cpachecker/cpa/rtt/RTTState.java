@@ -260,13 +260,13 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
       }
     }
 
-    for (String otherEntry : other.getStaticFieldVariables()) {
+    for (String otherEntry : other.staticFieldVariables) {
       if (staticFieldVariables.contains(otherEntry)) {
         newStaticFieldSet.add(otherEntry);
       }
     }
 
-    for (String otherEntry : other.getNonStaticFieldVariables()) {
+    for (String otherEntry : other.nonStaticFieldVariables) {
       if (nonStaticFieldVariables.contains(otherEntry)) {
         newNonStaticFieldSet.add(otherEntry);
       }
@@ -329,8 +329,8 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
         new HashMap<>(old.classTypeMap),
         old.classObjectScope,
         newClassObjectStack,
-        old.getStaticFieldVariables(),
-        old.getNonStaticFieldVariables());
+        old.staticFieldVariables,
+        old.nonStaticFieldVariables);
   }
 
   @Override
@@ -392,14 +392,6 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
 
   public String getRunTimeClassOfUniqueObject(String uniqueObject) {
     return classTypeMap.get(uniqueObject);
-  }
-
-  public Set<String> getStaticFieldVariables() {
-    return staticFieldVariables;
-  }
-
-  public Set<String> getNonStaticFieldVariables() {
-    return nonStaticFieldVariables;
   }
 
   @Override
