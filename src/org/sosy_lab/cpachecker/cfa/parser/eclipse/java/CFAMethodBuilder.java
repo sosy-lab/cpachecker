@@ -143,6 +143,8 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private Deque<Boolean> finallyExists = new ArrayDeque<>();
   private boolean currentlyInFinally = false;
+  private CFANode nestedFinallyIncorrect = null;
+  private int isNested = 0;
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
@@ -2757,6 +2759,7 @@ class CFAMethodBuilder extends ASTVisitor {
     boolean tempInCatch = inCatchBlock;
     currentlyInFinally = false;
     inCatchBlock = false;
+    isNested += 1;
 
     CFANode helperNotNullNode = new CFANode(cfa.getFunction());
     helperNotNull.push(helperNotNullNode);
@@ -2798,7 +2801,7 @@ class CFAMethodBuilder extends ASTVisitor {
     if (tryStatement.getFinally() != null) {
       handleFinallyBlock(tryStatement.getFinally());
     }
-
+    isNested -=1;
     inCatchBlock = tempInCatch;
     return SKIP_CHILDREN;
   }
@@ -2809,19 +2812,37 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   private void handleFinallyBlock(Block finallyBlock) {
+    boolean oldCurrentlyInFinally = currentlyInFinally;
     currentlyInFinally = true;
     finallyBlock.accept(this);
     CFANode currentAfterCorrect = locStack.pop();
 
-    locStack.push(nextCatchBlockOrError.pop());
+    CFANode beforeIncorrect = nextCatchBlockOrError.pop();
+    locStack.push(beforeIncorrect);
     finallyBlock.accept(this);
     CFANode currentAfterIncorrect = locStack.pop();
-    nextCatchBlockOrError.push(currentAfterIncorrect);
+
+    if (nestedFinallyIncorrect != null) {
+      BlankEdge tempCurrent =
+          new BlankEdge("", FileLocation.DUMMY, nestedFinallyIncorrect, beforeIncorrect, "");
+      addToCFA(tempCurrent);
+    }
+
+    if (isNested > 1 && !oldCurrentlyInFinally) {
+      nestedFinallyIncorrect = currentAfterIncorrect;
+    } else {
+      nextCatchBlockOrError.addLast(currentAfterIncorrect);
+    }
 
     locStack.push(currentAfterCorrect);
 
     handleEndOfCatch();
-    currentlyInFinally = false;
+
+    if (isNested == 1) {
+      currentlyInFinally = false;
+    } else {
+      currentlyInFinally = oldCurrentlyInFinally;
+    }
   }
 
   @Override
@@ -2959,7 +2980,10 @@ class CFAMethodBuilder extends ASTVisitor {
       if (!numberCatchesNested.isEmpty()) {
         numberCatches = numberCatchesNested.peek();
       }
-      endOfCatch.add(nextCatchBlockOrError.pop());
+      if (!nextCatchBlockOrError.isEmpty() && isNested == 1) {
+        endOfCatch.addAll(nextCatchBlockOrError);
+        nextCatchBlockOrError.clear();
+      }
     }
   }
 
