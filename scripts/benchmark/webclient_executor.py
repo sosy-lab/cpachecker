@@ -18,8 +18,12 @@ import shutil
 import threading
 
 from requests import HTTPError
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    as_completed,
+    wait,
+    FIRST_COMPLETED,
+)
 
 import benchexec
 import benchexec.tooladapter
@@ -227,21 +231,26 @@ def _handle_results(result_futures, output_handler, benchmark, run_set):
         raise UserAbortError("User interrupt detected during _handle_results")
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
-    for result_future in as_completed(result_futures.keys()):
-        run = result_futures[result_future]
-        try:
-            result = result_future.result()
-            f = executor.submit(
-                _unzip_and_handle_result, result, run, output_handler, benchmark
-            )
-            f.add_done_callback(_log_future_exception)
+    remaining_futures = result_futures.keys()
+    while remaining_futures:
+        completed_futures, remaining_futures = wait(remaining_futures, timeout=1, return_when=FIRST_COMPLETED)
+        if not _webclient:
+            raise UserAbortError
+        for result_future in completed_futures:
+            run = result_futures[result_future]
+            try:
+                result = result_future.result()
+                f = executor.submit(
+                    _unzip_and_handle_result, result, run, output_handler, benchmark
+                )
+                f.add_done_callback(_log_future_exception)
 
-        except WebClientError as e:
-            output_handler.set_error("VerifierCloud problem", run_set)
-            logging.warning("Execution of %s failed: %s", run.identifier, e)
-        except UserAbortError as e:
-            output_handler.set_error("interrupted", run_set)
-            logging.warning("Execution of %s aborted: %s", run.identifier, e)
+            except WebClientError as e:
+                output_handler.set_error("VerifierCloud problem", run_set)
+                logging.warning("Execution of %s failed: %s", run.identifier, e)
+            except UserAbortError as e:
+                output_handler.set_error("interrupted", run_set)
+                logging.warning("Execution of %s aborted: %s", run.identifier, e)
 
     executor.shutdown(wait=True)
 
