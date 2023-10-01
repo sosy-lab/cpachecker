@@ -1062,7 +1062,7 @@ class WebInterface:
         self.active = False
         self._result_downloader.shutdown()
 
-        if self._run_collection_ids != None:
+        if self._run_collection_ids != None and self._unfinished_runs:
             for id in self._run_collection_ids:
                 try:
                     logging.info("Deleting run collection %s", id)
@@ -1074,7 +1074,7 @@ class WebInterface:
                         e
                     )
             self._run_collection_ids = []
-        elif len(self._unfinished_runs) > 0:
+        elif self._unfinished_runs:
             logging.info("Stopping tasks on server...")
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
             stop_tasks = set()
