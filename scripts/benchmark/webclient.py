@@ -424,6 +424,7 @@ class WebInterface:
         self._read_hash_code_cache()
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
+        self._run_collection_ids = None
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -966,6 +967,7 @@ class WebInterface:
                 ",".join(run_collections),
             )
             self._result_downloader.start()
+        self._run_collection_ids = run_collections
 
         return run_collections
 
@@ -1060,7 +1062,19 @@ class WebInterface:
         self.active = False
         self._result_downloader.shutdown()
 
-        if len(self._unfinished_runs) > 0:
+        if self._run_collection_ids != None:
+            for id in self._run_collection_ids:
+                try:
+                    logging.info("Deleting run collection %s", id)
+                    logging.info(self._request("DELETE", "runs/collection/" + id)[0].decode("utf-8"))
+                except HTTPError as e:
+                    logging.info(
+                        "Stopping of run collection %s failed: %s",
+                        id,
+                        e
+                    )
+            self._run_collection_ids = []
+        elif len(self._unfinished_runs) > 0:
             logging.info("Stopping tasks on server...")
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
             stop_tasks = set()
