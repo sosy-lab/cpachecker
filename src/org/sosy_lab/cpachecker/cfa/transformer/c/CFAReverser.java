@@ -385,10 +385,10 @@ public class CFAReverser {
         nodeMap.put(oldExitNode, initDoneNode);
         nodes.put(funcName, initDoneNode);
 
-        // BFS the CFA
+        // bfs the CFA
         newEntryNode = bfs(funcName, oldExitNode, newEntryNode, newFuncDecl);
 
-        // Create a ndet variable for target branching
+        // create a ndet variable for target branching
         CVariableDeclaration targetBranchVarDecl =
             new CVariableDeclaration(
                 FileLocation.DUMMY,
@@ -404,11 +404,11 @@ public class CFAReverser {
         CIdExpression targetBranchVarExpr =
             new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
 
-        // Declare local variables
+        // declare local variables
         CFANode curr = initStartNode;
         curr = createVariableDeclaration(curr);
 
-        // Create non det branch for each target
+        // create non det branch for each target
         jumpToTargets(targetBranchVarExpr, curr, initDoneNode);
 
         // insert function epilogue
@@ -1088,20 +1088,31 @@ public class CFAReverser {
       private void handleCallAssignStmt(
           CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
 
+        // builtin function
         if (stmt.getFunctionCallExpression().getDeclaration() == null) {
+          CFANode curr = from;
           LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
           CLeftHandSide lvalue = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
           CFunctionCallAssignmentStatement assignmentStatement =
               new CFunctionCallAssignmentStatement(
                   FileLocation.DUMMY, lvalue, stmt.getFunctionCallExpression());
+          CFANode next = new CFANode(curr.getFunction());
+          nodes.put(next.getFunctionName(), next);
           CStatementEdge statementEdge =
-              new CStatementEdge("", assignmentStatement, FileLocation.DUMMY, from, to);
+              new CStatementEdge("", assignmentStatement, FileLocation.DUMMY, curr, next);
           addToCFA(statementEdge);
+          curr = next;
+          // reset
+          curr = appendNonDetAssignEdge(lvalue, curr);
+          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
+          addToCFA(blankEdge);
+
           return;
         }
 
         String funcName = stmt.getFunctionCallExpression().getDeclaration().getName();
 
+        // extern function
         if (!pCfa.getAllFunctionNames().contains(funcName)) {
           String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
           tmpCnt += 1;
@@ -1127,10 +1138,19 @@ public class CFAReverser {
               new CStatementEdge("", callAssignStmt, FileLocation.DUMMY, curr, next);
           addToCFA(callAssignStatementEdge);
           curr = next;
+
+          next = new CFANode(curr.getFunction());
+          nodes.put(next.getFunctionName(), next);
           CExpression assumeExpr = createAssumeExpr(stmt.getLeftHandSide(), tmpExpr);
           CAssumeEdge assumeEdge =
-              new CAssumeEdge("", FileLocation.DUMMY, curr, to, assumeExpr, true, false, false);
+              new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, true, false, false);
           addToCFA(assumeEdge);
+          curr = next;
+          LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
+          CLeftHandSide lvalue = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
+          curr = appendNonDetAssignEdge(lvalue, curr);
+          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
+          addToCFA(blankEdge);
           return;
         }
 
