@@ -1062,16 +1062,17 @@ class WebInterface:
         self.active = False
         self._result_downloader.shutdown()
 
-        if self._run_collection_ids != None and self._unfinished_runs:
-            for id in self._run_collection_ids:
+        if self._run_collection_ids is not None and self._unfinished_runs:
+            for run_collection_id in self._run_collection_ids:
                 try:
-                    logging.info("Deleting run collection %s", id)
-                    logging.info(self._request("DELETE", "runs/collection/" + id)[0].decode("utf-8"))
+                    logging.info("Deleting run collection %s", run_collection_id)
+                    server_reply = self._request(
+                        "DELETE", "runs/collection/" + run_collection_id
+                    )[0].decode("utf-8")
+                    logging.info(server_reply)
                 except HTTPError as e:
                     logging.info(
-                        "Stopping of run collection %s failed: %s",
-                        id,
-                        e
+                        "Stopping of run collection %s failed: %s", run_collection_id, e
                     )
             self._run_collection_ids = []
         elif self._unfinished_runs:

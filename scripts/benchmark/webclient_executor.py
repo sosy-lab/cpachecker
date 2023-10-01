@@ -233,7 +233,9 @@ def _handle_results(result_futures, output_handler, benchmark, run_set):
 
     remaining_futures = result_futures.keys()
     while remaining_futures:
-        completed_futures, remaining_futures = wait(remaining_futures, timeout=1, return_when=FIRST_COMPLETED)
+        completed_futures, remaining_futures = wait(
+            remaining_futures, timeout=1, return_when=FIRST_COMPLETED
+        )
         if not _webclient:
             raise UserAbortError
         for result_future in completed_futures:
