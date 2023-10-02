@@ -225,7 +225,7 @@ public class CFAReverser {
       // exitEdge
       CFAEdge exitEdge = exitNode.getEnteringEdge(0);
 
-      // TODO: possible to be return edge in the future
+      // TODO: possible to be return edge
       assert exitEdge instanceof BlankEdge;
       CFANode predeccsorNode = exitEdge.getPredecessor();
       CFACreationUtils.removeEdgeFromNodes(exitEdge);
@@ -673,6 +673,7 @@ public class CFAReverser {
         } else if (edge instanceof CAssumeEdge assumeEdge) {
           reverseAssumeEdge(assumeEdge, from, to);
         } else if (edge instanceof CFunctionSummaryEdge funcSummaryEdge) {
+          pLog.log(Level.INFO, "CFunctionSummaryEdge: " + edge);
           reverseFunctionSummaryEdge(funcSummaryEdge, from, to);
         } else if (edge instanceof CReturnStatementEdge returnStmtEdge) {
           reverseReturnStmtEdge(returnStmtEdge, from, to);
@@ -778,61 +779,211 @@ public class CFAReverser {
 
       private void reverseFunctionSummaryEdge(CFunctionSummaryEdge edge, CFANode from, CFANode to) {
         CFunctionCall oldCall = edge.getExpression();
-        CFunctionCall newCall = reverseFunctionCall(oldCall);
-        CStatementEdge newEdge = new CStatementEdge("", newCall, FileLocation.DUMMY, from, to);
-        addToCFA(newEdge);
+        if (oldCall instanceof CFunctionCallAssignmentStatement funcCallAssignStmt) {
+          handleCallAssignStmt(funcCallAssignStmt, from, to);
+        } else if (oldCall instanceof CFunctionCallStatement funcCallStmt) {
+          handleCallStmt(funcCallStmt, from, to);
+        } else {
+          throw new AssertionError("Illegal function summary edge: " + edge);
+        }
       }
 
-      private CFunctionCall reverseFunctionCall(CFunctionCall call) {
-        CFunctionCallExpression callExpr = call.getFunctionCallExpression();
-        CFunctionDeclaration decl = callExpr.getDeclaration();
-        String funcName = decl.getName();
-        CFunctionDeclaration funcDecl = funcDecls.get(funcName);
+      private void handleBuiltInFunc(
+          CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
+        CFANode curr = from;
+        LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
+        CLeftHandSide lvalue = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
+        CFunctionCallAssignmentStatement assignmentStatement =
+            new CFunctionCallAssignmentStatement(
+                FileLocation.DUMMY, lvalue, stmt.getFunctionCallExpression());
+        CFANode next = new CFANode(curr.getFunction());
+        nodes.put(next.getFunctionName(), next);
+        CStatementEdge statementEdge =
+            new CStatementEdge("", assignmentStatement, FileLocation.DUMMY, curr, next);
+        addToCFA(statementEdge);
+        curr = next;
+        // reset
+        curr = appendNonDetAssignEdge(lvalue, curr);
+        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
+        addToCFA(blankEdge);
+      }
+
+      private void handleExternFunc(
+          CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
+
+        String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
+        CType type = stmt.getLeftHandSide().getExpressionType();
+        tmpCnt += 1;
+        // TODO: nodet assign tmp var
+        CVariableDeclaration tmpDecl =
+            new CVariableDeclaration(
+                FileLocation.DUMMY,
+                false,
+                CStorageClass.AUTO,
+                type,
+                tmpName,
+                tmpName,
+                tmpName,
+                null);
+        CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmpDecl);
+        variables.put(tmpName, tmpDecl);
+
+        CFunctionCallAssignmentStatement callAssignStmt =
+            new CFunctionCallAssignmentStatement(
+                FileLocation.DUMMY, tmpExpr, stmt.getFunctionCallExpression());
+
+        CFANode curr = from;
+        CFANode next = new CFANode(curr.getFunction());
+        nodes.put(next.getFunctionName(), next);
+
+        CStatementEdge callAssignStatementEdge =
+            new CStatementEdge("", callAssignStmt, FileLocation.DUMMY, curr, next);
+        addToCFA(callAssignStatementEdge);
+        curr = next;
+
+        next = new CFANode(curr.getFunction());
+        nodes.put(next.getFunctionName(), next);
+        CExpression assumeExpr = createAssumeExpr(stmt.getLeftHandSide(), tmpExpr);
+        CAssumeEdge assumeEdge =
+            new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, true, false, false);
+        addToCFA(assumeEdge);
+        curr = next;
+        LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
+        CLeftHandSide lvalue = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
+        curr = appendNonDetAssignEdge(lvalue, curr);
+        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
+        addToCFA(blankEdge);
+      }
+
+      /**
+       * handle call assignment statement edge like `x = foo();`
+       *
+       * @param stmt the original function call assignment statement
+       * @param from head node of edge chain
+       * @param to tail node of edge chain
+       */
+      private void handleCallAssignStmt(
+          CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
+
+        String funcName = stmt.getFunctionCallExpression().getDeclaration().getName();
+
+        // builtin function
+        if (stmt.getFunctionCallExpression().getDeclaration() == null) {
+          handleBuiltInFunc(stmt, from, to);
+          return;
+        }
+
+        // extern function
+        if (!pCfa.getAllFunctionNames().contains(funcName)) {
+          handleExternFunc(stmt, from, to);
+          return;
+        }
+
+        CFunctionCallExpression callExpr = stmt.getFunctionCallExpression();
+        CFunctionDeclaration oldDecl = callExpr.getDeclaration();
+        CFunctionDeclaration newDecl = funcDecls.get(funcName);
 
         // add new function declaration
-        if (funcDecl == null) {
-          CFunctionDeclaration newDecl = reverseFunctionDeclaration(decl);
+        if (newDecl == null) {
+          newDecl = reverseFunctionDeclaration(oldDecl);
           funcDecls.put(funcName, newDecl);
-          funcDecl = newDecl;
         }
 
-        List<CExpression> argsList = handleFunctionArgs(callExpr.getParameterExpressions());
+        checkNotNull(newDecl);
 
-        // add the left side variable to the argument list
-        if (call instanceof CFunctionCallStatement) {
-          CType retType = decl.getType().getReturnType();
-          if (retType != CVoidType.VOID) {
-            String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
-            tmpCnt += 1;
-            CVariableDeclaration tmpDecl =
-                new CVariableDeclaration(
-                    FileLocation.DUMMY,
-                    false,
-                    CStorageClass.AUTO,
-                    retType,
-                    tmpName,
-                    tmpName,
-                    tmpName,
-                    null);
-            CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmpDecl);
-            variables.put(tmpName, tmpDecl);
-            argsList.add(tmpExpr);
-          }
+        LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
+        CExpression lvalue = stmt.getLeftHandSide().accept(lfinder);
 
-        } else { // CFunctionCallAssignmentStatement
-          LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
-          CExpression lvalue =
-              ((CFunctionCallAssignmentStatement) call).getLeftHandSide().accept(lfinder);
-          argsList.add(lvalue);
+        List<CExpression> newArgsList = new ArrayList<>();
+
+        for (CExpression arg : callExpr.getParameterExpressions()) {
+          CExpression newArg = arg.accept(lfinder);
+          newArgsList.add(newArg);
         }
 
-        checkNotNull(funcDecl);
-        CIdExpression funcExpr = new CIdExpression(FileLocation.DUMMY, funcDecl);
+        newArgsList.add(lvalue);
+
+        CIdExpression funcExpr = new CIdExpression(FileLocation.DUMMY, newDecl);
 
         CFunctionCallExpression newCallExpr =
             new CFunctionCallExpression(
-                FileLocation.DUMMY, callExpr.getExpressionType(), funcExpr, argsList, funcDecl);
-        return new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
+                FileLocation.DUMMY, callExpr.getExpressionType(), funcExpr, newArgsList, newDecl);
+
+        CFunctionCallStatement newFuncCallStmt =
+            new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
+
+        CStatementEdge newStmtEdge =
+            new CStatementEdge("", newFuncCallStmt, FileLocation.DUMMY, from, to);
+
+        addToCFA(newStmtEdge);
+      }
+
+      /**
+       * handle call statement edge like `foo();`
+       *
+       * @param stmt the original function call statement
+       * @param from head node of edge chain
+       * @param to tail node of edge chain
+       */
+      private void handleCallStmt(CFunctionCallStatement stmt, CFANode from, CFANode to) {
+
+        CFunctionDeclaration oldDecl = stmt.getFunctionCallExpression().getDeclaration();
+        String funcName = oldDecl.getName();
+        CFunctionDeclaration newDecl = funcDecls.get(funcName);
+
+        // add new function declaration
+        if (newDecl == null) {
+          newDecl = reverseFunctionDeclaration(oldDecl);
+          funcDecls.put(funcName, newDecl);
+        }
+
+        checkNotNull(newDecl);
+
+        List<CExpression> newArgsList = new ArrayList<>();
+
+        RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
+
+        for (CExpression arg : stmt.getFunctionCallExpression().getParameterExpressions()) {
+          CExpression newArg = arg.accept(rfinder);
+          newArgsList.add(newArg);
+        }
+
+        CType retType = oldDecl.getType().getReturnType();
+        if (retType != CVoidType.VOID) {
+          String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
+          tmpCnt += 1;
+          CVariableDeclaration tmpDecl =
+              new CVariableDeclaration(
+                  FileLocation.DUMMY,
+                  false,
+                  CStorageClass.AUTO,
+                  retType,
+                  tmpName,
+                  tmpName,
+                  tmpName,
+                  null);
+          CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmpDecl);
+          variables.put(tmpName, tmpDecl);
+          newArgsList.add(tmpExpr);
+        }
+
+        CIdExpression newFuncExpr = new CIdExpression(FileLocation.DUMMY, newDecl);
+
+        CFunctionCallExpression newCallExpr =
+            new CFunctionCallExpression(
+                FileLocation.DUMMY,
+                stmt.getFunctionCallExpression().getExpressionType(),
+                newFuncExpr,
+                newArgsList,
+                newDecl);
+
+        CFunctionCallStatement newCallStmt =
+            new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
+
+        CStatementEdge newCallStmtEdge =
+            new CStatementEdge("", newCallStmt, FileLocation.DUMMY, from, to);
+
+        addToCFA(newCallStmtEdge);
       }
 
       private void reverseReturnStmtEdge(CReturnStatementEdge edge, CFANode from, CFANode to) {
@@ -1090,101 +1241,6 @@ public class CFAReverser {
         addToCFA(stmtEdge);
       }
 
-      private void handleCallAssignStmt(
-          CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
-
-        // builtin function
-        if (stmt.getFunctionCallExpression().getDeclaration() == null) {
-          CFANode curr = from;
-          LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
-          CLeftHandSide lvalue = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
-          CFunctionCallAssignmentStatement assignmentStatement =
-              new CFunctionCallAssignmentStatement(
-                  FileLocation.DUMMY, lvalue, stmt.getFunctionCallExpression());
-          CFANode next = new CFANode(curr.getFunction());
-          nodes.put(next.getFunctionName(), next);
-          CStatementEdge statementEdge =
-              new CStatementEdge("", assignmentStatement, FileLocation.DUMMY, curr, next);
-          addToCFA(statementEdge);
-          curr = next;
-          // reset
-          curr = appendNonDetAssignEdge(lvalue, curr);
-          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
-          addToCFA(blankEdge);
-
-          return;
-        }
-
-        String funcName = stmt.getFunctionCallExpression().getDeclaration().getName();
-
-        // extern function
-        if (!pCfa.getAllFunctionNames().contains(funcName)) {
-          String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
-          tmpCnt += 1;
-          CVariableDeclaration tmpDecl =
-              new CVariableDeclaration(
-                  FileLocation.DUMMY,
-                  false,
-                  CStorageClass.AUTO,
-                  stmt.getLeftHandSide().getExpressionType(),
-                  tmpName,
-                  tmpName,
-                  tmpName,
-                  null);
-          CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmpDecl);
-          variables.put(tmpName, tmpDecl);
-          CFunctionCallAssignmentStatement callAssignStmt =
-              new CFunctionCallAssignmentStatement(
-                  FileLocation.DUMMY, tmpExpr, stmt.getFunctionCallExpression());
-          CFANode curr = from;
-          CFANode next = new CFANode(curr.getFunction());
-          nodes.put(next.getFunctionName(), next);
-          CStatementEdge callAssignStatementEdge =
-              new CStatementEdge("", callAssignStmt, FileLocation.DUMMY, curr, next);
-          addToCFA(callAssignStatementEdge);
-          curr = next;
-
-          next = new CFANode(curr.getFunction());
-          nodes.put(next.getFunctionName(), next);
-          CExpression assumeExpr = createAssumeExpr(stmt.getLeftHandSide(), tmpExpr);
-          CAssumeEdge assumeEdge =
-              new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, true, false, false);
-          addToCFA(assumeEdge);
-          curr = next;
-          LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
-          CLeftHandSide lvalue = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
-          curr = appendNonDetAssignEdge(lvalue, curr);
-          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
-          addToCFA(blankEdge);
-          return;
-        }
-
-        CStatementEdge newStmtEdge =
-            new CStatementEdge("", reverseFunctionCall(stmt), FileLocation.DUMMY, from, to);
-
-        addToCFA(newStmtEdge);
-      }
-
-      private void handleCallStmt(CFunctionCallStatement stmt, CFANode from, CFANode to) {
-
-        CStatementEdge newCallStmtEdge =
-            new CStatementEdge("", reverseFunctionCall(stmt), FileLocation.DUMMY, from, to);
-
-        addToCFA(newCallStmtEdge);
-      }
-
-      private List<CExpression> handleFunctionArgs(List<CExpression> argsList) {
-        List<CExpression> newArgsList = new ArrayList<>();
-
-        for (CExpression arg : argsList) {
-          LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
-          CExpression newArg = arg.accept(lfinder);
-          newArgsList.add(newArg);
-        }
-
-        return newArgsList;
-      }
-
       /////////////////////////////////////////////////////////////////////////////
       // Expression Visitor
       /////////////////////////////////////////////////////////////////////////////
@@ -1413,12 +1469,12 @@ public class CFAReverser {
       private final class RightSideVariableFinder
           implements CExpressionVisitor<CExpression, NoException> {
 
-        private final Set<CLeftHandSide> lvalues; // left values in left side
+        private final ImmutableSet<CLeftHandSide> lvalues; // left values in left side
 
         private final Map<CLeftHandSide, CIdExpression> tmpVarMap;
 
         private RightSideVariableFinder(Set<CLeftHandSide> lvalues) {
-          this.lvalues = lvalues;
+          this.lvalues = ImmutableSet.copyOf(lvalues);
           this.tmpVarMap = new HashMap<>();
         }
 
