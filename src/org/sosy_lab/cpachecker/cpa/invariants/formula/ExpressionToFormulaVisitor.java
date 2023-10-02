@@ -168,8 +168,15 @@ public class ExpressionToFormulaVisitor
   }
 
   private NumeralFormula<CompoundInterval> asVariable(Type pType, MemoryLocation pMemoryLocation) {
-    return InvariantsFormulaManager.INSTANCE.asVariable(
-        BitVectorInfo.from(machineModel, pType), pMemoryLocation);
+    if (BitVectorInfo.isSupported(pType)) {
+      return InvariantsFormulaManager.INSTANCE.asVariable(
+          BitVectorInfo.from(machineModel, pType), pMemoryLocation);
+    } else {
+      // Use dummy type. Would be better to not use a 0-size bitvector type,
+      // but at least this is better than a wrong non-zero size.
+      return InvariantsFormulaManager.INSTANCE.asVariable(
+          BitVectorInfo.from(0, false), pMemoryLocation);
+    }
   }
 
   @Override
