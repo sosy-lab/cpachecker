@@ -25,11 +25,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
@@ -60,7 +60,8 @@ final class CollectingRHSVisitor
   public VarFieldDependencies visit(final CArraySubscriptExpression e) {
     return e.getSubscriptExpression()
         .accept(this)
-        .withDependencies(e.getArrayExpression().accept(this));
+        .withDependencies(e.getArrayExpression().accept(this))
+        .withDependencies(visitType(e.getArrayExpression().getExpressionType()));
   }
 
   @Override
@@ -107,19 +108,9 @@ final class CollectingRHSVisitor
 
   /** handle expressions contained in types */
   private VarFieldDependencies visitType(CType type) {
-    type = type.getCanonicalType();
     VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
-
-    if (type instanceof CArrayType arrayType) {
-      result = visitType(arrayType.getType());
-      if (arrayType.getLength() != null) {
-        result = result.withDependencies(arrayType.getLength().accept(this));
-      }
-
-    } else if (type instanceof CCompositeType compositeType) {
-      for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
-        result = result.withDependencies(visitType(member.getType()));
-      }
+    for (CExpression exp : CTypes.getArrayLengthExpressions(type)) {
+      result = result.withDependencies(exp.accept(this));
     }
     return result;
   }
@@ -150,7 +141,7 @@ final class CollectingRHSVisitor
 
   @Override
   public VarFieldDependencies visit(final CCastExpression e) {
-    return e.getOperand().accept(this);
+    return e.getOperand().accept(this).withDependencies(visitType(e.getCastType()));
   }
 
   @Override
