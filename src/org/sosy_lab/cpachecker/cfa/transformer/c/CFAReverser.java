@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -299,9 +300,8 @@ public class CFAReverser {
       LoopStructure loopStructure = null;
       try {
         loopStructure = LoopStructure.getLoopStructure(newMutableCfa);
-        pLog.log(Level.INFO, "found loop count: " + loopStructure.getCount());
       } catch (Exception e) {
-        pLog.log(Level.WARNING, "failed to get the loop structure" + e);
+        throw new AssertionError("failed to get the loop structure due to " + e);
       }
       newMutableCfa.setLoopStructure(loopStructure);
 
@@ -312,7 +312,7 @@ public class CFAReverser {
         newMutableCfa.setMetadata(
             newMutableCfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
       } catch (Exception e) {
-        pLog.log(Level.WARNING, "Failed to insert connect cfas" + e);
+        throw new AssertionError("failed to connect cfas due to " + e);
       }
 
       return newMutableCfa;
@@ -347,7 +347,7 @@ public class CFAReverser {
             new HashSet<>(
                 targets.stream().filter(node -> node.getFunctionName().equals(funcName)).toList());
 
-        if (oldLocalTargets.size() == 0 && oldEntryNode.getExitNode().isEmpty()) {
+        if (oldLocalTargets.isEmpty() && oldEntryNode.getExitNode().isEmpty()) {
           return Optional.empty();
         }
 
@@ -625,6 +625,13 @@ public class CFAReverser {
         return newEntryNode;
       }
 
+      /**
+       * append the variable declaration edge chain to the head node In some cases, this method
+       * should also be responsible for initializing the variables.
+       *
+       * @param curr the head node
+       * @return the tail node
+       */
       private CFANode createVariableDeclaration(CFANode curr) {
         CFANode next = null;
 
@@ -657,24 +664,24 @@ public class CFAReverser {
 
         CFANode to = reverseCFANode(edge.getPredecessor());
 
-        pLog.log(Level.INFO, "Reversing Edge: " + edge + " " + edge.getClass());
-
         assert !(edge instanceof CFunctionCallEdge || edge instanceof CFunctionReturnEdge);
 
-        if (edge instanceof BlankEdge) {
-          reverseBlankEdge((BlankEdge) edge, from, to);
-        } else if (edge instanceof CDeclarationEdge) {
-          reverseDeclEdge((CDeclarationEdge) edge, from, to);
-        } else if (edge instanceof CAssumeEdge) {
-          reverseAssumeEdge((CAssumeEdge) edge, from, to);
-        } else if (edge instanceof CFunctionSummaryEdge) {
-          reverseFunctionSummaryEdge((CFunctionSummaryEdge) edge, from, to);
-        } else if (edge instanceof CReturnStatementEdge) {
-          reverseReturnStmtEdge((CReturnStatementEdge) edge, from, to);
+        if (edge instanceof BlankEdge blankEdge) {
+          reverseBlankEdge(blankEdge, from, to);
+        } else if (edge instanceof CDeclarationEdge declEdge) {
+          reverseDeclEdge(declEdge, from, to);
+        } else if (edge instanceof CAssumeEdge assumeEdge) {
+          reverseAssumeEdge(assumeEdge, from, to);
+        } else if (edge instanceof CFunctionSummaryEdge funcSummaryEdge) {
+          reverseFunctionSummaryEdge(funcSummaryEdge, from, to);
+        } else if (edge instanceof CReturnStatementEdge returnStmtEdge) {
+          reverseReturnStmtEdge(returnStmtEdge, from, to);
         } else if (edge instanceof CFunctionSummaryStatementEdge) {
           pLog.log(Level.INFO, "CFunctionSummaryStatementEdge: " + edge);
-        } else {
+        } else if (edge instanceof CStatementEdge stmtEdge) {
           reverseStmtEdge((CStatementEdge) edge, from, to);
+        } else {
+          throw new AssertionError("Illegal edge: " + edge);
         }
 
         return to;
@@ -744,9 +751,7 @@ public class CFAReverser {
         }
 
         List<CParameterDeclaration> paras = new ArrayList<>();
-        for (CParameterDeclaration para : funcDecl.getParameters()) {
-          paras.add(para);
-        }
+        Iterables.addAll(paras, funcDecl.getParameters());
 
         CType returnType = funcDecl.getType().getReturnType();
         CParameterDeclaration returnVarDecl =
@@ -754,9 +759,8 @@ public class CFAReverser {
         returnVarDecl.setQualifiedName(funcDecl.getName() + "__rev__retval__");
 
         List<CType> paraTypes = new ArrayList<>();
-        for (CType type : funcDecl.getType().getParameters()) {
-          paraTypes.add(type);
-        }
+        Iterables.addAll(paraTypes, funcDecl.getType().getParameters());
+
         if (returnType != CVoidType.VOID) {
           paras.add(returnVarDecl);
           paraTypes.add(returnType);
@@ -785,11 +789,13 @@ public class CFAReverser {
         String funcName = decl.getName();
         CFunctionDeclaration funcDecl = funcDecls.get(funcName);
 
+        // add new function declaration
         if (funcDecl == null) {
           CFunctionDeclaration newDecl = reverseFunctionDeclaration(decl);
           funcDecls.put(funcName, newDecl);
           funcDecl = newDecl;
         }
+
         List<CExpression> argsList = handleFunctionArgs(callExpr.getParameterExpressions());
 
         // add the left side variable to the argument list
@@ -829,7 +835,6 @@ public class CFAReverser {
         return new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
       }
 
-      // TODO: reverseReturnStmtEdge
       private void reverseReturnStmtEdge(CReturnStatementEdge edge, CFANode from, CFANode to) {
         CReturnStatement stmt = edge.getReturnStatement();
         // `return;`
@@ -1029,19 +1034,19 @@ public class CFAReverser {
 
       private void reverseStmtEdge(CStatementEdge edge, CFANode from, CFANode to) {
         CStatement stmt = edge.getStatement();
-        if (stmt instanceof CExpressionAssignmentStatement) {
-          handleExprAssignStmt((CExpressionAssignmentStatement) stmt, from, to);
-        } else if (stmt instanceof CExpressionStatement) {
-          handleExprStmt((CExpressionStatement) stmt, from, to);
-        } else if (stmt instanceof CFunctionCallAssignmentStatement) {
-          handleCallAssignStmt((CFunctionCallAssignmentStatement) stmt, from, to);
-        } else if (stmt instanceof CFunctionCallStatement) {
-          handleCallStmt((CFunctionCallStatement) stmt, from, to);
+        if (stmt instanceof CExpressionAssignmentStatement exprAssignStmt) {
+          handleExprAssignStmt(exprAssignStmt, from, to);
+        } else if (stmt instanceof CExpressionStatement exprStmt) {
+          handleExprStmt(exprStmt, from, to);
+        } else if (stmt instanceof CFunctionCallAssignmentStatement funcCallAssignStmt) {
+          handleCallAssignStmt(funcCallAssignStmt, from, to);
+        } else if (stmt instanceof CFunctionCallStatement funcCallStmt) {
+          handleCallStmt(funcCallStmt, from, to);
         }
       }
 
       /////////////////////////////////////////////////////////////////////////////
-      // statement Handlers
+      // Statement Handlers
       /////////////////////////////////////////////////////////////////////////////
       private void handleExprAssignStmt(
           CExpressionAssignmentStatement stmt, CFANode from, CFANode to) {
@@ -1181,8 +1186,9 @@ public class CFAReverser {
       }
 
       /////////////////////////////////////////////////////////////////////////////
-      // Left Side Expression Visitor
+      // Expression Visitor
       /////////////////////////////////////////////////////////////////////////////
+      /** Visitor to get the new left side expression */
       private final class LeftSideVariableFinder
           implements CExpressionVisitor<CExpression, NoException> {
 
@@ -1403,9 +1409,7 @@ public class CFAReverser {
         }
       }
 
-      /////////////////////////////////////////////////////////////////////////////
-      // Right Side Expression Visitor
-      /////////////////////////////////////////////////////////////////////////////
+      /** Visitor to get the new right side expression */
       private final class RightSideVariableFinder
           implements CExpressionVisitor<CExpression, NoException> {
 
@@ -1672,10 +1676,23 @@ public class CFAReverser {
     /////////////////////////////////////////////////////////////////////////////
     // Helper methods
     /////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * add the egde to the CFA
+     *
+     * @param edge CFA edge
+     */
     private void addToCFA(CFAEdge edge) {
+      // avoid the assertion during reversing the CFAs
       CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
     }
 
+    /**
+     * get the nondet function name for a type
+     *
+     * @param type function 's return type
+     * @return function name
+     */
     private String getNonDetName(CType type) {
       String prefix = "__VERIFIER_nondet_";
       CType realType = getRealType(type);
@@ -1688,10 +1705,16 @@ public class CFAReverser {
         }
         return prefix + typeName;
       } else {
-        throw new AssertionError("There is no non det function for " + type.toString());
+        throw new AssertionError("There is no non det function for " + type);
       }
     }
 
+    /**
+     * create a nondet function call for a type
+     *
+     * @param type function call's return type
+     * @return the function call
+     */
     private CFunctionCallExpression createNoDetCallExpr(CType type) {
       String funcName = getNonDetName(type);
       CFunctionDeclaration decl = funcDecls.get(funcName);
@@ -1796,7 +1819,7 @@ public class CFAReverser {
         if (((CArrayType) type).getLengthAsInt().isEmpty()) {
           CExpression length = ((CArrayType) type).getLength();
 
-          String indexName = curr.getFunctionName() + "::" + lExpr.toString() + "__index";
+          String indexName = curr.getFunctionName() + "::" + lExpr + "__index";
           assert length.getExpressionType().equals(intType);
           CVariableDeclaration index =
               new CVariableDeclaration(
