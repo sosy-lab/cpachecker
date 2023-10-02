@@ -176,6 +176,7 @@ public class CFAReverser {
     private final Set<CFANode> targets;
     private final Map<String, CFunctionDeclaration> funcDecls;
     private final Map<CFANode, CFANode> nodeMap;
+    private Map<String, CVariableDeclaration> variables; // variables
     private int tmpCnt;
 
     private static CType intType =
@@ -197,6 +198,7 @@ public class CFAReverser {
       this.nodes = TreeMultimap.create();
       this.funcDecls = new HashMap<>();
       this.nodeMap = new HashMap<>();
+      this.variables = new HashMap<>();
       this.tmpCnt = 0;
       // Search for the target in the original CFA
       this.targets =
@@ -323,14 +325,14 @@ public class CFAReverser {
     /////////////////////////////////////////////////////////////////////////////
     private final class CfaFunctionBuilder {
 
-      private Map<String, CVariableDeclaration> variables; // Function scope variables
+      // private Map<String, CVariableDeclaration> variables; // Function scope variables
       private CFunctionEntryNode oldEntryNode; // Entry node for the old Function CFA
       private int branchCnt; // How many branch in this function
       private Set<CFANode> localTargets;
       private Map<CParameterDeclaration, CVariableDeclaration> parameters; // Function parameters
 
       private CfaFunctionBuilder(CFunctionEntryNode oldEntryNode) {
-        this.variables = new HashMap<>();
+        // this.variables = new HashMap<>();
         this.parameters = new HashMap<>();
         this.oldEntryNode = oldEntryNode;
         this.branchCnt = 0;
@@ -633,15 +635,7 @@ public class CFAReverser {
        * @return the tail node
        */
       private CFANode createVariableDeclaration(CFANode curr) {
-        CFANode next = null;
-
         for (CVariableDeclaration decl : variables.values()) {
-          next = new CFANode(curr.getFunction());
-          nodes.put(next.getFunctionName(), next);
-          CDeclarationEdge ndeclEdge =
-              new CDeclarationEdge("", decl.getFileLocation(), curr, next, decl);
-          addToCFA(ndeclEdge);
-          curr = next;
           CIdExpression lhs = new CIdExpression(FileLocation.DUMMY, decl);
           CType realType = getRealType(lhs.getExpressionType());
           if (realType instanceof CCompositeType compositeType) {
@@ -1814,6 +1808,18 @@ public class CFAReverser {
      * @return the next CFA node
      */
     private CFANode appendNonDetAssignEdge(CLeftHandSide lhs, CFANode curr) {
+      CType realType = getRealType(lhs.getExpressionType());
+      if (realType instanceof CCompositeType compositeType) {
+        List<CCompositeTypeMemberDeclaration> members = compositeType.getMembers();
+        for (CCompositeTypeMemberDeclaration member : members) {
+          CFieldReference fieldReference =
+              new CFieldReference(
+                  FileLocation.DUMMY, member.getType(), member.getName(), lhs, false);
+          curr = appendNonDetAssignEdge(fieldReference, curr);
+        }
+        return curr;
+      }
+
       CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(lhs.getExpressionType());
       CFunctionCallAssignmentStatement ndetAssign =
           new CFunctionCallAssignmentStatement(FileLocation.DUMMY, lhs, ndetCallExpr);
