@@ -673,7 +673,6 @@ public class CFAReverser {
         } else if (edge instanceof CAssumeEdge assumeEdge) {
           reverseAssumeEdge(assumeEdge, from, to);
         } else if (edge instanceof CFunctionSummaryEdge funcSummaryEdge) {
-          pLog.log(Level.INFO, "CFunctionSummaryEdge: " + edge);
           reverseFunctionSummaryEdge(funcSummaryEdge, from, to);
         } else if (edge instanceof CReturnStatementEdge returnStmtEdge) {
           reverseReturnStmtEdge(returnStmtEdge, from, to);
@@ -865,6 +864,8 @@ public class CFAReverser {
       private void handleCallAssignStmt(
           CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
 
+        CFANode curr = from;
+
         String funcName = stmt.getFunctionCallExpression().getDeclaration().getName();
 
         // builtin function
@@ -892,15 +893,16 @@ public class CFAReverser {
         checkNotNull(newDecl);
 
         LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
-        CExpression lvalue = stmt.getLeftHandSide().accept(lfinder);
+        CLeftHandSide lvalue = (CLeftHandSide) stmt.getLeftHandSide().accept(lfinder);
+
+        RightSideVariableFinder rfinder = new RightSideVariableFinder(lfinder.lvalues);
 
         List<CExpression> newArgsList = new ArrayList<>();
 
         for (CExpression arg : callExpr.getParameterExpressions()) {
-          CExpression newArg = arg.accept(lfinder);
+          CExpression newArg = arg.accept(rfinder);
           newArgsList.add(newArg);
         }
-
         newArgsList.add(lvalue);
 
         CIdExpression funcExpr = new CIdExpression(FileLocation.DUMMY, newDecl);
@@ -912,10 +914,24 @@ public class CFAReverser {
         CFunctionCallStatement newFuncCallStmt =
             new CFunctionCallStatement(FileLocation.DUMMY, newCallExpr);
 
-        CStatementEdge newStmtEdge =
-            new CStatementEdge("", newFuncCallStmt, FileLocation.DUMMY, from, to);
+        CFANode next = new CFANode(curr.getFunction());
+        nodes.put(next.getFunctionName(), next);
 
+        CStatementEdge newStmtEdge =
+            new CStatementEdge("", newFuncCallStmt, FileLocation.DUMMY, curr, next);
         addToCFA(newStmtEdge);
+
+        curr = next;
+
+        if (rfinder.tmpVarMap.size() == 0 && !lvalue.getExpressionType().isConst()) {
+          curr = appendNonDetAssignEdge(lvalue, curr);
+        } else { // i <- tmp_i;
+          curr = rfinder.createTmpAssignEdge(curr);
+          curr = rfinder.resetTmpVar(curr);
+        }
+
+        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
+        addToCFA(blankEdge);
       }
 
       /**
