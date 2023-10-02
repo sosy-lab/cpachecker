@@ -190,15 +190,14 @@ class LvalueToPointerTargetPatternVisitor
             new CArrayType(
                 containerType.isConst(), // TODO: Set array size
                 containerType.isVolatile(),
-                elementType,
-                null);
+                elementType);
       } else {
         elementType = ((CArrayType) containerType).getType();
       }
       result.shift(containerType);
       final Long index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * typeHandler.getSizeof(elementType));
+        result.setProperOffset(index * typeHandler.getExactSizeof(elementType));
       }
       return result;
     } else {

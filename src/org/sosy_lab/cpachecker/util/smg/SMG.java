@@ -447,6 +447,17 @@ public class SMG {
     return new SMG(newObjects, smgValues, newHVEdges, pointsToEdges, sizeOfPointer);
   }
 
+  /**
+   * Validated the entered SMGObject (that is assumed to be in the SMG!).
+   *
+   * @param pObject the {@link SMGObject} to be validated.
+   * @return a new SMG with the object validated.
+   */
+  public SMG copyAndValidateObject(SMGObject pObject) {
+    PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, true);
+    return new SMG(newObjects, smgValues, hasValueEdges, pointsToEdges, sizeOfPointer);
+  }
+
   public SMG copyAndRemoveObjects(Collection<SMGObject> pUnreachableObjects) {
     SMG returnSmg = this;
     for (SMGObject smgObject : pUnreachableObjects) {
@@ -1010,14 +1021,13 @@ public class SMG {
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
     return getHasValueEdgesByPredicate(
             pObject,
-            edge -> {
-              // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
-              return (edge.getOffset().compareTo(pFieldOffset) <= 0
-                      && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
-                  // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
-                  || (edge.getOffset().compareTo(pFieldOffset) > 0
-                      && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0);
-            })
+            edge ->
+                // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
+                ((edge.getOffset().compareTo(pFieldOffset) <= 0
+                        && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
+                    // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+                    || (edge.getOffset().compareTo(pFieldOffset) > 0
+                        && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0)))
         .toSortedSet(Comparator.comparing(SMGHasValueEdge::getOffset));
   }
 
@@ -1036,8 +1046,7 @@ public class SMG {
    * @return Set of all SMGHasValueEdges of this SMG.
    */
   public FluentIterable<SMGHasValueEdge> getHVEdges() {
-    return FluentIterable.from(hasValueEdges.values())
-        .transformAndConcat(edges -> FluentIterable.from(edges));
+    return FluentIterable.concat(hasValueEdges.values());
   }
 
   /**
@@ -1148,7 +1157,7 @@ public class SMG {
                   && edge.pointsTo().equals(targetObject);
             })
         .findAny()
-        .map(entry -> entry.getKey());
+        .map(Entry::getKey);
   }
 
   /*
@@ -1201,11 +1210,8 @@ public class SMG {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof SMG)) {
-      return false;
-    }
-    SMG other = (SMG) obj;
-    return Objects.equals(hasValueEdges, other.hasValueEdges)
+    return obj instanceof SMG other
+        && Objects.equals(hasValueEdges, other.hasValueEdges)
         && Objects.equals(smgObjects, other.smgObjects)
         && Objects.equals(pointsToEdges, other.pointsToEdges)
         && Objects.equals(smgValues, other.smgValues);

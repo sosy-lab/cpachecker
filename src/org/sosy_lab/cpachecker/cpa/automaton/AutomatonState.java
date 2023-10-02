@@ -70,7 +70,7 @@ public class AutomatonState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return pProperty.toLowerCase().equals("state == top");
+      return pProperty.equalsIgnoreCase("state == top");
     }
 
     @Override
@@ -98,7 +98,7 @@ public class AutomatonState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return pProperty.toLowerCase().equals("state == bottom");
+      return pProperty.equalsIgnoreCase("state == bottom");
     }
 
     @Override
@@ -224,10 +224,7 @@ public class AutomatonState
     if (this == pObj) {
       return true;
     }
-    if (pObj == null) {
-      return false;
-    }
-    if (!pObj.getClass().equals(this.getClass())) {
+    if (pObj == null || getClass() != pObj.getClass()) {
       return false;
     }
 
@@ -332,10 +329,7 @@ public class AutomatonState
       if (this == pObj) {
         return true;
       }
-      if (pObj == null) {
-        return false;
-      }
-      if (!pObj.getClass().equals(this.getClass())) {
+      if (pObj == null || getClass() != pObj.getClass()) {
         return false;
       }
       AutomatonUnknownState otherState = (AutomatonUnknownState) pObj;

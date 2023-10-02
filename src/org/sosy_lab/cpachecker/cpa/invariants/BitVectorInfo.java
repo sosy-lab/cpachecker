@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -84,10 +83,7 @@ public class BitVectorInfo implements TypeInfo {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof BitVectorInfo other) {
-      return size == other.size && signed == other.signed;
-    }
-    return false;
+    return pOther instanceof BitVectorInfo other && size == other.size && signed == other.signed;
   }
 
   public static BitVectorInfo from(int pSize, boolean pSigned) {
@@ -123,10 +119,10 @@ public class BitVectorInfo implements TypeInfo {
       if (isBitField) {
         size = bitFieldSize;
       } else {
-        if (!(cType instanceof CProblemType) && !cType.isIncomplete()) {
+        if (cType.hasKnownConstantSize()) {
           size = pMachineModel.getSizeofInBits(cType).intValueExact();
         } else {
-          size = pMachineModel.getSizeofPtrInBits();
+          throw new IllegalArgumentException("Unsupported type: " + type);
         }
       }
       assert size >= 0;
@@ -177,8 +173,8 @@ public class BitVectorInfo implements TypeInfo {
     if (type instanceof CType) {
       type = ((CType) type).getCanonicalType();
     }
-    if (type instanceof CType) {
-      if (((CType) type).isIncomplete()) {
+    if (type instanceof CType cType) {
+      if (!cType.hasKnownConstantSize() || cType.isIncomplete()) {
         return false;
       }
       if (!(type instanceof CSimpleType)) {

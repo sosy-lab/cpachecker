@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -49,7 +50,7 @@ public class BAMSubgraphIterator {
   // Actually it is possible to implement an optimization,
   // which allows to search forks not from the first state, but from a some middle state
   private ARGPath computeNextPath(
-      BackwardARGState lastAffectedState, Set<List<Integer>> pRefinedStates) {
+      BackwardARGState lastAffectedState, Set<ImmutableList<Integer>> pRefinedStates) {
     assert lastAffectedState != null;
 
     ARGState nextParent = null;
@@ -206,7 +207,7 @@ public class BAMSubgraphIterator {
     return potentialForkStates;
   }
 
-  public ARGPath nextPath(Set<List<Integer>> pRefinedStatesIds) {
+  public ARGPath nextPath(Set<ImmutableList<Integer>> pRefinedStatesIds) {
     ARGPath path;
     if (!hasNextPath) {
       return null;

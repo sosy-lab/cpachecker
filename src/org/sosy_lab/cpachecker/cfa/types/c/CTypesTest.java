@@ -71,8 +71,7 @@ public class CTypesTest {
       new CArrayType(false, false, CNumericTypes.INT, TWO);
   private static final CArrayType VARIABLE_ARRAY =
       new CArrayType(false, false, CNumericTypes.INT, VAR_N);
-  private static final CArrayType UNKNOWN_ARRAY =
-      new CArrayType(false, false, CNumericTypes.INT, null);
+  private static final CArrayType UNKNOWN_ARRAY = new CArrayType(false, false, CNumericTypes.INT);
 
   @Parameters(name = "{0}")
   public static List<Object[]> parameters() {
@@ -109,7 +108,7 @@ public class CTypesTest {
         new Object[] {VARIABLE_ARRAY, true, false, -1},
         new Object[] {new CArrayType(false, false, CNumericTypes.INT, VAR_CONST), true, false, -1},
         new Object[] {new CArrayType(false, false, CONSTANT_ARRAY, TWO), true, true, 2 * 8},
-        new Object[] {new CArrayType(false, false, CONSTANT_ARRAY, null), false, false, -1},
+        new Object[] {new CArrayType(false, false, CONSTANT_ARRAY), false, false, -1},
         new Object[] {new CArrayType(false, false, CONSTANT_ARRAY, VAR_N), true, false, -1},
         new Object[] {new CArrayType(false, false, VARIABLE_ARRAY, TWO), true, false, -1},
         new Object[] {

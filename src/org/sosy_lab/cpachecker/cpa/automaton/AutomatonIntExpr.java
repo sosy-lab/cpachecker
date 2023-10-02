@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -155,7 +156,8 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
             "Failed to modify queryString \"" + queryString + "\"", "AutomatonIntExpr.CPAQuery");
       }
 
-      for (AbstractState ae : pArgs.getAbstractStates()) {
+      List<AbstractState> abstractStates = pArgs.getAbstractStates();
+      for (AbstractState ae : abstractStates) {
         if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
           try {
             Object result = aqe.evaluateProperty(modifiedQueryString);
@@ -194,7 +196,12 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
           String.format(
               "Did not find the CPA to be queried %s CPA on Edge %s.",
               cpaName, pArgs.getCfaEdge().getDescription());
-      pArgs.getLogger().log(Level.WARNING, cpaNotAvailableMessage);
+      if (!abstractStates.isEmpty()) {
+        // If there are abstract states but the queried CPA was not included, warn the user.
+        // We skip this warning if there are no abstract states, because this is the default
+        // when multiple CFA edges are handled at once at the beginning of the analysis.
+        pArgs.getLogger().log(Level.WARNING, cpaNotAvailableMessage);
+      }
       return new ResultValue<>(cpaNotAvailableMessage, "AutomatonIntExpr.CPAQuery");
     }
 
@@ -205,10 +212,9 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery other) {
-        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
-      }
-      return false;
+      return o instanceof CPAQuery other
+          && cpaName.equals(other.cpaName)
+          && queryString.equals(other.queryString);
     }
   }
 
@@ -258,10 +264,10 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       if (this == o) {
         return true;
       }
-      if (o instanceof BinaryAutomatonIntExpr other) {
-        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
-      }
-      return false;
+      return o instanceof BinaryAutomatonIntExpr other
+          && a.equals(other.a)
+          && b.equals(other.b)
+          && repr.equals(other.repr);
     }
   }
 

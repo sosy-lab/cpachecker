@@ -36,10 +36,7 @@ class JavaBDDRegion implements Region {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof JavaBDDRegion) {
-      return bddRepr.equals(((JavaBDDRegion) o).bddRepr);
-    }
-    return false;
+    return o instanceof JavaBDDRegion && bddRepr.equals(((JavaBDDRegion) o).bddRepr);
   }
 
   @Override

@@ -83,7 +83,7 @@ public class TestVector {
         inputValues.size()
             == inputVariableValues.size()
                 + inputFunctionValues.values().stream()
-                    .map(l -> l.size())
+                    .map(ImmutableList::size)
                     .reduce(0, (x, y) -> x + y));
     return inputValues;
   }
@@ -147,11 +147,9 @@ public class TestVector {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof TestVector other) {
-      return inputFunctionValues.equals(other.inputFunctionValues)
-          && inputVariableValues.equals(other.inputVariableValues);
-    }
-    return false;
+    return pObj instanceof TestVector other
+        && inputFunctionValues.equals(other.inputFunctionValues)
+        && inputVariableValues.equals(other.inputVariableValues);
   }
 
   @Override
@@ -165,13 +163,12 @@ public class TestVector {
 
   private static final Ordering<AParameterDeclaration> PARAMETER_ORDERING =
       Ordering.from(
-          (pA, pB) -> {
-            return ComparisonChain.start()
-                .compare(pA.getQualifiedName(), pB.getQualifiedName())
-                .compare(pA.getType(), pB.getType(), Ordering.usingToString())
-                .compare(pA.getFileLocation(), pB.getFileLocation())
-                .result();
-          });
+          (pA, pB) ->
+              ComparisonChain.start()
+                  .compare(pA.getQualifiedName(), pB.getQualifiedName())
+                  .compare(pA.getType(), pB.getType(), Ordering.usingToString())
+                  .compare(pA.getFileLocation(), pB.getFileLocation())
+                  .result());
 
   private static class ComparableFunctionDeclaration
       implements Comparable<ComparableFunctionDeclaration> {
@@ -206,10 +203,8 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof ComparableFunctionDeclaration) {
-        return declaration.equals(((ComparableFunctionDeclaration) pObj).declaration);
-      }
-      return false;
+      return pObj instanceof ComparableFunctionDeclaration
+          && declaration.equals(((ComparableFunctionDeclaration) pObj).declaration);
     }
 
     @Override
@@ -252,10 +247,8 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof ComparableVariableDeclaration) {
-        return declaration.equals(((ComparableVariableDeclaration) pObj).declaration);
-      }
-      return false;
+      return pObj instanceof ComparableVariableDeclaration
+          && declaration.equals(((ComparableVariableDeclaration) pObj).declaration);
     }
 
     @Override
@@ -304,13 +297,12 @@ public class TestVector {
 
     @Override
     public boolean equals(Object pObj) {
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
-      if (pObj instanceof TargetTestVector other) {
-        return edgeToTarget.equals(other.edgeToTarget) && testVector.equals(other.testVector);
-      }
-      return false;
+      return pObj instanceof TargetTestVector other
+          && edgeToTarget.equals(other.edgeToTarget)
+          && testVector.equals(other.testVector);
     }
   }
 }

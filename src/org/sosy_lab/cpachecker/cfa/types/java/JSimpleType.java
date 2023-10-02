@@ -140,12 +140,9 @@ public final class JSimpleType implements JType {
       return true;
     }
 
-    if (!(obj instanceof JSimpleType)) {
-      return false;
-    }
-
-    JSimpleType other = (JSimpleType) obj;
-    return type == other.type && isPrimitive == other.isPrimitive;
+    return obj instanceof JSimpleType other
+        && type == other.type
+        && isPrimitive == other.isPrimitive;
   }
 
   @Override

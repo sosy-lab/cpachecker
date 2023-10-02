@@ -155,11 +155,9 @@ public class PolicyIterationStatistics implements Statistics {
 
     @Override
     public boolean equals(Object o) {
-      if (!(o instanceof TemplateUpdateEvent)) {
-        return false;
-      }
-      TemplateUpdateEvent other = (TemplateUpdateEvent) o;
-      return locationID == other.locationID && template.equals(other.template);
+      return o instanceof TemplateUpdateEvent other
+          && locationID == other.locationID
+          && template.equals(other.template);
     }
 
     @Override

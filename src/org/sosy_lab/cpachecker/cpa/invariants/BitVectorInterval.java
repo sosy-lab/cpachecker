@@ -379,14 +379,11 @@ public class BitVectorInterval implements BitVectorType {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
-    } else if (!(pObj instanceof BitVectorInterval)) {
-      return false;
     }
-
-    BitVectorInterval other = (BitVectorInterval) pObj;
-    return Objects.equals(lowerBound, other.lowerBound)
+    return pObj instanceof BitVectorInterval other
+        && Objects.equals(lowerBound, other.lowerBound)
         && Objects.equals(upperBound, other.upperBound);
   }
 

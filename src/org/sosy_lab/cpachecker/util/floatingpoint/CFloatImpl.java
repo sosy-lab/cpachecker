@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -65,12 +66,12 @@ public class CFloatImpl extends CFloat {
   public CFloatImpl(final String pRep, final int pType) {
     type = pType;
 
-    if (DEFAULT_VALUES.contains(pRep.toLowerCase())) {
+    if (DEFAULT_VALUES.contains(Ascii.toLowerCase(pRep))) {
       wrapper = new CFloatWrapper();
       long exp = 0;
       long man = 0;
 
-      switch (pRep.toLowerCase()) {
+      switch (Ascii.toLowerCase(pRep)) {
         case "0.0":
         case "0":
           break;
@@ -1273,8 +1274,8 @@ public class CFloatImpl extends CFloat {
 
       man &= intMask;
 
-      long carryMask;
-      if ((carryMask = ((intMask >> 1) & fractionalPart)) != 0) {
+      long carryMask = ((intMask >> 1) & fractionalPart);
+      if (carryMask != 0) {
         man += (carryMask << 1);
         if ((man & intMask) == 0) {
           exp++;

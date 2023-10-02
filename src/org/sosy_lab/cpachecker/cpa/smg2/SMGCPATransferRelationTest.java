@@ -813,10 +813,53 @@ public class SMGCPATransferRelationTest {
         // TODO:
         SMGState stateAfterMallocAssignSuccess;
         if (sizeInBytes.compareTo(BigInteger.ZERO) == 0) {
-          // malloc(0) is always a single null pointer
-          assertThat(
-                  checkMallocFailure(statesListAfterMallocAssign.get(0), variableName, pointerType))
-              .isTrue();
+          // malloc(0) is always a single null pointer or a non-zero pointer that may not be
+          // accessed but freed
+          if (smgOptions.isMallocZeroReturnsZero()) {
+            assertThat(
+                    checkMallocFailure(
+                        statesListAfterMallocAssign.get(0), variableName, pointerType))
+                .isTrue();
+          } else {
+            // Non zero return
+            SymbolicProgramConfiguration memoryModel =
+                statesListAfterMallocAssign.get(0).getMemoryModel();
+            assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+            SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+            List<ValueAndSMGState> readValueAndState =
+                statesListAfterMallocAssign
+                    .get(0)
+                    .readValue(
+                        memoryObject,
+                        BigInteger.ZERO,
+                        MACHINE_MODEL.getSizeofInBits(pointerType),
+                        null);
+            Preconditions.checkArgument(readValueAndState.size() == 1);
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .isPointer(readValueAndState.get(0).getValue()))
+                .isTrue();
+            SMGObject mallocMemoryObject =
+                statesListAfterMallocAssign
+                    .get(0)
+                    .getPointsToTarget(readValueAndState.get(0).getValue())
+                    .orElseThrow()
+                    .getSMGObject();
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .isObjectValid(mallocMemoryObject))
+                .isFalse();
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .memoryIsResultOfMallocZero(mallocMemoryObject))
+                .isTrue();
+          }
           continue;
 
         } else if (!smgOptions.isEnableMallocFailure()) {
@@ -959,11 +1002,55 @@ public class SMGCPATransferRelationTest {
           // TODO:
           SMGState stateAfterMallocAssignSuccess;
           if (sizeMultiplikator.compareTo(BigInteger.ZERO) == 0) {
-            // malloc(0) is always a single null pointer
-            assertThat(
-                    checkMallocFailure(
-                        statesListAfterMallocAssign.get(0), variableName, pointerType))
-                .isTrue();
+            // malloc(0) is always a single null pointer or a non-zero pointer that may not be
+            // accessed but freed
+            if (smgOptions.isMallocZeroReturnsZero()) {
+              assertThat(
+                      checkMallocFailure(
+                          statesListAfterMallocAssign.get(0), variableName, pointerType))
+                  .isTrue();
+            } else {
+              // Non 0, invalid memory
+              SymbolicProgramConfiguration memoryModel =
+                  statesListAfterMallocAssign.get(0).getMemoryModel();
+              assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName))
+                  .isTrue();
+              SMGObject memoryObject =
+                  memoryModel.getStackFrames().peek().getVariable(variableName);
+              List<ValueAndSMGState> readValueAndState =
+                  statesListAfterMallocAssign
+                      .get(0)
+                      .readValue(
+                          memoryObject,
+                          BigInteger.ZERO,
+                          MACHINE_MODEL.getSizeofInBits(pointerType),
+                          null);
+              Preconditions.checkArgument(readValueAndState.size() == 1);
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .isPointer(readValueAndState.get(0).getValue()))
+                  .isTrue();
+              SMGObject mallocMemoryObject =
+                  statesListAfterMallocAssign
+                      .get(0)
+                      .getPointsToTarget(readValueAndState.get(0).getValue())
+                      .orElseThrow()
+                      .getSMGObject();
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .isObjectValid(mallocMemoryObject))
+                  .isFalse();
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .memoryIsResultOfMallocZero(mallocMemoryObject))
+                  .isTrue();
+            }
             continue;
 
           } else if (!smgOptions.isEnableMallocFailure()) {
@@ -1030,6 +1117,7 @@ public class SMGCPATransferRelationTest {
   /*
    * Checks the state for a variable with the name entered and the type entered.
    * This variable should have a failed malloc (value = 0) result.
+   * If malloc returns non-zero, the memory is invalid.
    * If this is not the case, this method returns false.
    * True if the value read from the variable is zero, which is a malloc failure.
    */
@@ -1075,7 +1163,7 @@ public class SMGCPATransferRelationTest {
     for (CType testType : ARRAY_TEST_TYPES) {
       variableName = variableName + testType;
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1108,7 +1196,7 @@ public class SMGCPATransferRelationTest {
 
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1134,7 +1222,7 @@ public class SMGCPATransferRelationTest {
 
     for (CType testType : ARRAY_TEST_TYPES) {
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1182,7 +1270,7 @@ public class SMGCPATransferRelationTest {
 
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1218,7 +1306,8 @@ public class SMGCPATransferRelationTest {
       List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
       BigInteger[] values = new BigInteger[structTestTypes.size()];
       for (int i = 0; i < structTestTypes.size(); i++) {
-        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) structTestTypes.get(i)).hasSignedSpecifier()
+            && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1261,7 +1350,7 @@ public class SMGCPATransferRelationTest {
         assertThat(currentFieldType instanceof CSimpleType).isTrue();
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) currentFieldType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) currentFieldType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1295,7 +1384,8 @@ public class SMGCPATransferRelationTest {
       List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
       BigInteger[] values = new BigInteger[structTestTypes.size()];
       for (int i = 0; i < structTestTypes.size(); i++) {
-        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) structTestTypes.get(i)).hasSignedSpecifier()
+            && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1350,7 +1440,7 @@ public class SMGCPATransferRelationTest {
         assertThat(currentFieldType).isInstanceOf(CSimpleType.class);
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) currentFieldType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) currentFieldType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1374,7 +1464,7 @@ public class SMGCPATransferRelationTest {
       for (int i = 0; i < 2; i++) {
         String variableNamePlus = variableName + i;
         BigInteger value;
-        if (((CSimpleType) type).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) type).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           value = BigInteger.valueOf(-i);
         } else {
@@ -1514,7 +1604,8 @@ public class SMGCPATransferRelationTest {
       List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
       BigInteger[] values = new BigInteger[structTestTypes.size()];
       for (int i = 0; i < structTestTypes.size(); i++) {
-        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) structTestTypes.get(i)).hasSignedSpecifier()
+            && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1585,7 +1676,7 @@ public class SMGCPATransferRelationTest {
       String variableName2 = "testStruct2_" + testType;
       BigInteger[] values = new BigInteger[TEST_ARRAY_LENGTH.intValue()];
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
-        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+        if (((CSimpleType) testType).hasSignedSpecifier() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {

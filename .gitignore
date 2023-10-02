@@ -25,6 +25,7 @@ a.out
 /cpachecker.jar
 /CPAchecker-*.zip
 /CPAchecker-*.tar.*
+/error-prone.patch
 /SpotBugs.html
 /SpotBugs.xml
 /SpotBugs.diff.html
@@ -69,7 +70,9 @@ src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLSymbols.java
 
 # /test/programs/
 /test/programs/benchmarks
+/test/programs/java-benchmarks
 /test/programs/ldv-benchmarks
+/test/programs/ldv-klever-benchmarks
 
 # /test/results/
 /test/results/*

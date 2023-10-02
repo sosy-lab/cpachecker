@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -102,9 +103,7 @@ public class CParserUtils {
     for (CStatement statement : assumptions) {
 
       if (statement instanceof CAssignment assignment) {
-        if (assignment.getRightHandSide() instanceof CExpression) {
-
-          CExpression expression = (CExpression) assignment.getRightHandSide();
+        if (assignment.getRightHandSide() instanceof CExpression expression) {
           CBinaryExpression assumeExp =
               expressionBuilder.buildBinaryExpressionUnchecked(
                   assignment.getLeftHandSide(),
@@ -349,7 +348,8 @@ public class CParserUtils {
           pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
       // Check that no expressions were split
       if (!FluentIterable.from(statements)
-          .anyMatch(statement -> statement.toString().toUpperCase().contains("__CPACHECKER_TMP"))) {
+          .anyMatch(
+              statement -> Ascii.toUpperCase(statement.toString()).contains("__CPACHECKER_TMP"))) {
         return And.of(FluentIterable.from(statements).transform(fromStatement));
       }
     }
@@ -623,8 +623,8 @@ public class CParserUtils {
       if (canonicalType instanceof CSimpleType simpleType) {
         CBasicType basicType = simpleType.getType();
         if (basicType.equals(CBasicType.CHAR)
-            && !simpleType.isSigned()
-            && !simpleType.isUnsigned()) {
+            && !simpleType.hasSignedSpecifier()
+            && !simpleType.hasUnsignedSpecifier()) {
           CExpression rightHandSide = statement.getRightHandSide();
           CExpression castedRightHandSide =
               new CCastExpression(rightHandSide.getFileLocation(), canonicalType, rightHandSide);

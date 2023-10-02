@@ -55,10 +55,6 @@ public final class CExpressionAssignmentStatement extends AExpressionAssignmentS
       return true;
     }
 
-    if (!(obj instanceof CExpressionAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CExpressionAssignmentStatement && super.equals(obj);
   }
 }

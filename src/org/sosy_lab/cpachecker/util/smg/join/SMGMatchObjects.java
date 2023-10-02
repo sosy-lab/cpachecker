@@ -112,7 +112,7 @@ public class SMGMatchObjects extends SMGAbstractJoin {
         .collect(
             ImmutableMap.toImmutableMap(
                 hvEdge -> new OffsetAndSize(hvEdge.getOffset(), hvEdge.getSizeInBits()),
-                hvEdge -> hvEdge.hasValue()));
+                SMGHasValueEdge::hasValue));
   }
 
   /**

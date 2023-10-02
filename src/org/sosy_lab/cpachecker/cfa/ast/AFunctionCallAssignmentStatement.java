@@ -71,13 +71,9 @@ public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
       return true;
     }
 
-    if (!(obj instanceof AFunctionCallAssignmentStatement) || !super.equals(obj)) {
-      return false;
-    }
-
-    AFunctionCallAssignmentStatement other = (AFunctionCallAssignmentStatement) obj;
-
-    return Objects.equals(other.leftHandSide, leftHandSide)
+    return obj instanceof AFunctionCallAssignmentStatement other
+        && super.equals(obj)
+        && Objects.equals(other.leftHandSide, leftHandSide)
         && Objects.equals(other.rightHandSide, rightHandSide);
   }
 }

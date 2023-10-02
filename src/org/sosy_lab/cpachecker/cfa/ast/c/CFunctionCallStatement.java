@@ -49,10 +49,6 @@ public sealed class CFunctionCallStatement extends AFunctionCallStatement
       return true;
     }
 
-    if (!(obj instanceof CFunctionCallStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CFunctionCallStatement && super.equals(obj);
   }
 }

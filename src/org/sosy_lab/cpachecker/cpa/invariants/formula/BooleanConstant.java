@@ -28,6 +28,7 @@ public class BooleanConstant<ConstantType> implements BooleanFormula<ConstantTyp
 
   @Override
   public boolean equals(Object pOther) {
+    // Sanity check that this multiton works as expected.
     assert (this == pOther
             && pOther instanceof BooleanConstant
             && value == ((BooleanConstant<?>) pOther).value)

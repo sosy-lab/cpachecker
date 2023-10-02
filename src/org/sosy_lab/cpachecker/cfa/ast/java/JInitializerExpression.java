@@ -43,10 +43,6 @@ public final class JInitializerExpression extends AInitializerExpression impleme
       return true;
     }
 
-    if (!(obj instanceof JInitializerExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JInitializerExpression && super.equals(obj);
   }
 }

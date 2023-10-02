@@ -69,6 +69,7 @@ public class UsageCPAStatistics implements Statistics {
   final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
   private final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   private final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
+
   // public final StatCounter numberOfStatesCounter = new StatCounter("Number of states");
 
   public UsageCPAStatistics(

@@ -391,8 +391,7 @@ class ASTTypeConverter {
         return CVoidType.create(dd.isConst(), dd.isVolatile());
       case IASTSimpleDeclSpecifier.t_typeof:
         CType ctype;
-        if (dd.getDeclTypeExpression() instanceof IASTTypeIdExpression) {
-          IASTTypeIdExpression typeId = (IASTTypeIdExpression) dd.getDeclTypeExpression();
+        if (dd.getDeclTypeExpression() instanceof IASTTypeIdExpression typeId) {
           verify(
               typeId.getOperator() == IASTTypeIdExpression.op_typeof,
               "Unepxected type-id expression %s for typeof operator",

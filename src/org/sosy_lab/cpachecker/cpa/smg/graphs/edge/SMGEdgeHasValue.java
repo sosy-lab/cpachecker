@@ -100,11 +100,9 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SMGEdgeHasValue)) {
-      return false;
-    }
-    SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
-    return super.equals(obj) && sizeInBits.equals(other.sizeInBits);
+    return obj instanceof SMGEdgeHasValue other
+        && super.equals(obj)
+        && sizeInBits.equals(other.sizeInBits);
   }
 
   @Override

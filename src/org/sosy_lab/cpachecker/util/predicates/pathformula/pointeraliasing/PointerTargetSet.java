@@ -93,18 +93,15 @@ public final class PointerTargetSet implements Serializable {
   public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
-    } else if (!(obj instanceof PointerTargetSet)) {
-      return false;
-    } else {
-      PointerTargetSet other = (PointerTargetSet) obj;
-      // No need to check for equality of targets
-      // because if bases and fields are equal, targets is equal, too.
-      return bases.equals(other.bases)
-          && fields.equals(other.fields)
-          && deferredAllocations.equals(other.deferredAllocations)
-          && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
-          && allocationCount == other.allocationCount;
     }
+    // No need to check for equality of targets
+    // because if bases and fields are equal, targets is equal, too.
+    return obj instanceof PointerTargetSet other
+        && bases.equals(other.bases)
+        && fields.equals(other.fields)
+        && deferredAllocations.equals(other.deferredAllocations)
+        && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
+        && allocationCount == other.allocationCount;
   }
 
   PointerTargetSet(

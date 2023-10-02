@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.cpa.overflow;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -83,16 +81,5 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     } catch (UnrecognizedCodeException e) {
       throw new AssertionError(e);
     }
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState state,
-      Iterable<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
-      Precision precision)
-      throws CPATransferException, InterruptedException {
-    OverflowState overflowState = (OverflowState) state;
-    return Collections.singleton(overflowState);
   }
 }

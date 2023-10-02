@@ -15,8 +15,10 @@ public final class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinke
 
   /** head field offset */
   private final long hfo;
+
   /** prev field offset */
   private final long pfo;
+
   /** next field offset */
   private final long nfo;
 
@@ -42,10 +44,7 @@ public final class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinke
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     SMGDoublyLinkedListShape other = (SMGDoublyLinkedListShape) obj;

@@ -102,14 +102,10 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     totalTimeOfTransfer.start();
 
     TransferCallable tc =
-        new TransferCallable() {
-          @Override
-          public Collection<? extends AbstractState> call()
-              throws CPATransferException, InterruptedException {
-            assert !(element.getWrappedState() instanceof MonitorState) : element;
-            return transferRelation.getAbstractSuccessorsForEdge(
-                element.getWrappedState(), pPrecision, pCfaEdge);
-          }
+        () -> {
+          assert !(element.getWrappedState() instanceof MonitorState) : element;
+          return transferRelation.getAbstractSuccessorsForEdge(
+              element.getWrappedState(), pPrecision, pCfaEdge);
         };
 
     Pair<PreventingHeuristic, Long> preventingCondition = null;
@@ -193,14 +189,9 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     totalTimeOfTransfer.start();
 
     TransferCallable sc =
-        new TransferCallable() {
-          @Override
-          public Collection<? extends AbstractState> call()
-              throws CPATransferException, InterruptedException {
-            return transferRelation.strengthen(
+        () ->
+            transferRelation.strengthen(
                 element.getWrappedState(), otherElements, cfaEdge, precision);
-          }
-        };
 
     Pair<PreventingHeuristic, Long> preventingCondition = null;
 

@@ -212,7 +212,7 @@ public class FaultLocalizationByImport implements Algorithm {
       for (CounterexampleInfo counterExample : counterExamples) {
         CFAPathWithAssumptions assumptions = counterExample.getCFAPathWithAssignments();
         final List<CFAEdge> edgeList =
-            transformedImmutableListCopy(assumptions, assumption -> assumption.getCFAEdge());
+            transformedImmutableListCopy(assumptions, CFAEdgeWithAssumptions::getCFAEdge);
         if (edgeList.isEmpty()) {
           continue;
         }
@@ -247,7 +247,7 @@ public class FaultLocalizationByImport implements Algorithm {
         }
         reachedSet.clear();
         Set<CFAEdge> edges =
-            FluentIterable.concat(faults).transform(f -> f.correspondingEdge()).toSet();
+            FluentIterable.concat(faults).transform(FaultContribution::correspondingEdge).toSet();
         Comparator<List<CFAEdge>> mostIntersections =
             Comparator.comparingInt(
                 path -> Sets.intersection(ImmutableSet.copyOf(path), edges).size());
@@ -296,8 +296,7 @@ public class FaultLocalizationByImport implements Algorithm {
         }
         if (intendedIndex) {
           faults =
-              ImmutableList.sortedCopyOf(
-                  Comparator.comparingInt(f -> f.getIntendedIndex()), faults);
+              ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), faults);
         }
         for (Fault fault : faults) {
           FaultExplanation.explain(fault, explanationsArray);

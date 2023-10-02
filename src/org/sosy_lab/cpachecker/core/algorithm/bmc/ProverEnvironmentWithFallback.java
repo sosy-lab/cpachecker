@@ -257,7 +257,7 @@ public class ProverEnvironmentWithFallback
   }
 
   @Override
-  public void push() {
+  public void push() throws InterruptedException {
     ensureInitialized();
     if (supportsInterpolation()) {
       interpolatingProverEnvironment.push();

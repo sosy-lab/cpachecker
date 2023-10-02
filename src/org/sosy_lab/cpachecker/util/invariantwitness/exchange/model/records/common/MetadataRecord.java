@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 @Immutable
+@JsonPropertyOrder({"format_version", "uuid", "creation_time", "producer", "task"})
 public class MetadataRecord {
   @JsonProperty("format_version")
   private final String formatVersion;
@@ -65,14 +67,11 @@ public class MetadataRecord {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o) {
       return true;
     }
-    if (!(o instanceof MetadataRecord)) {
-      return false;
-    }
-    MetadataRecord invariantStoreEntryMetadata = (MetadataRecord) o;
-    return Objects.equals(formatVersion, invariantStoreEntryMetadata.formatVersion)
+    return o instanceof MetadataRecord invariantStoreEntryMetadata
+        && Objects.equals(formatVersion, invariantStoreEntryMetadata.formatVersion)
         && Objects.equals(uuid, invariantStoreEntryMetadata.uuid)
         && Objects.equals(creationTime, invariantStoreEntryMetadata.creationTime)
         && Objects.equals(producer, invariantStoreEntryMetadata.producer)

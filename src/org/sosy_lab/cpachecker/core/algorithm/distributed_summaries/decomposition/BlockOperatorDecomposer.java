@@ -177,10 +177,9 @@ public class BlockOperatorDecomposer implements CFADecomposer {
 
     @Override
     public boolean equals(Object pO) {
-      if (pO instanceof Entry entry) {
-        return Objects.equals(node, entry.getNode()) && Objects.equals(seen, entry.getSeen());
-      }
-      return false;
+      return pO instanceof Entry entry
+          && Objects.equals(node, entry.getNode())
+          && Objects.equals(seen, entry.getSeen());
     }
 
     public Set<CFANode> getSeen() {

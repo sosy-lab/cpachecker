@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
@@ -73,12 +74,14 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -435,7 +438,7 @@ public abstract class AbstractExpressionValueVisitor
     // because Java only has SIGNED_LONGLONG
     CSimpleType st = getArithmeticType(calculationType);
     if (st != null) {
-      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.isUnsigned()) {
+      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.hasUnsignedSpecifier()) {
         switch (op) {
           case DIVIDE:
             if (r == 0) {
@@ -516,7 +519,7 @@ public abstract class AbstractExpressionValueVisitor
 
     checkArgument(
         calculationType.getCanonicalType() instanceof CSimpleType
-            && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
+            && !((CSimpleType) calculationType.getCanonicalType()).hasLongSpecifier(),
         "Value analysis can't compute long double values in a precise manner");
 
     switch (op) {
@@ -678,7 +681,7 @@ public abstract class AbstractExpressionValueVisitor
           }
         case DOUBLE:
           {
-            if (type.isLong()) {
+            if (type.hasLongSpecifier()) {
               return arithmeticOperationForLongDouble(
                   lNum, rNum, op, calculationType, machineModel, logger);
             } else {
@@ -874,15 +877,9 @@ public abstract class AbstractExpressionValueVisitor
           return BuiltinOverflowFunctions.evaluateFunctionCall(
               pIastFunctionCallExpression, this, machineModel, logger);
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
-          assert parameterValues.size() == 1;
+          final Value parameter = Iterables.getOnlyElement(parameterValues);
 
-          final CType parameterType = parameterExpressions.get(0).getExpressionType();
-          final Value parameter = parameterValues.get(0);
-
-          if (parameterType instanceof CSimpleType && !((CSimpleType) parameterType).isSigned()) {
-            return parameter;
-
-          } else if (parameter.isExplicitlyKnown()) {
+          if (parameter.isExplicitlyKnown()) {
             assert parameter.isNumericValue();
             final double absoluteValue = Math.abs(((NumericValue) parameter).doubleValue());
 
@@ -1551,8 +1548,11 @@ public abstract class AbstractExpressionValueVisitor
 
     switch (idOperator) {
       case SIZEOF:
-        BigInteger size = machineModel.getSizeof(innerType);
-        return new NumericValue(size);
+        if (innerType.hasKnownConstantSize()) {
+          BigInteger size = machineModel.getSizeof(innerType);
+          return new NumericValue(size);
+        }
+        return Value.UnknownValue.getInstance();
 
       case ALIGNOF:
         return new NumericValue(machineModel.getAlignof(innerType));
@@ -1562,10 +1562,45 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  private final class SizeofVisitor extends BaseSizeofVisitor<UnrecognizedCodeException> {
+
+    private boolean sizeKnown = true;
+
+    SizeofVisitor() {
+      super(machineModel);
+    }
+
+    Value evaluateSizeof(CType pType) throws UnrecognizedCodeException {
+      BigInteger size = machineModel.getSizeof(pType, this);
+      if (sizeKnown) {
+        return new NumericValue(size);
+      } else {
+        return Value.UnknownValue.getInstance();
+      }
+    }
+
+    @Override
+    protected BigInteger evaluateArrayLength(CExpression pLength, CArrayType pArrayType)
+        throws UnrecognizedCodeException {
+      // This covers the most common and relevant case, handling other cases could be unsound
+      // because we would need to use variable values from the declaration time of the array.
+      // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1146
+      if (pLength instanceof CIdExpression idExpression
+          && idExpression.getExpressionType().isConst()) {
+        Value lengthValue = pLength.accept(AbstractExpressionValueVisitor.this);
+        if (lengthValue.isNumericValue()) {
+          return lengthValue.asNumericValue().bigIntegerValue();
+        }
+      }
+
+      sizeKnown = false;
+      return BigInteger.ZERO; // dummy value, will be ignored in evaluateSizeof()
+    }
+  }
+
   @Override
   public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       // TODO rewrite CEnumerator to handle abstract type Value and not just Long
       return new NumericValue(enumerator.getValue());
     }
@@ -1579,12 +1614,28 @@ public abstract class AbstractExpressionValueVisitor
     final CExpression unaryOperand = unaryExpression.getOperand();
 
     if (unaryOperator == UnaryOperator.SIZEOF) {
-      return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
+      return new SizeofVisitor().evaluateSizeof(unaryOperand.getExpressionType());
     }
     if (unaryOperator == UnaryOperator.ALIGNOF) {
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
+      // We can handle &((struct foo*)0)->field
+      if (unaryOperand instanceof CFieldReference fieldRef
+          && fieldRef.isPointerDereference()
+          && fieldRef.getFieldOwner() instanceof CCastExpression cast
+          && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
+          && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
+        Value baseAddress = cast.getOperand().accept(this);
+        if (baseAddress.isNumericValue()) {
+          Optional<BigInteger> offset =
+              machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
+          if (offset.isPresent()) {
+            return new NumericValue(
+                baseAddress.asNumericValue().bigIntegerValue().add(offset.orElseThrow()));
+          }
+        }
+      }
       return Value.UnknownValue.getInstance();
     }
 

@@ -74,12 +74,12 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
       LogManager pLogger,
       BasicProverEnvironment<T> bpe,
       FormulaManagerView pFmgr,
-      UFCheckingProverOptions options) {
+      UFCheckingProverOptions pOptions) {
     delegate = bpe;
     logger = pLogger;
     bfmgr = pFmgr.getBooleanFormulaManager();
-    faMgr = new FunctionApplicationManager(pFmgr, pLogger, options);
-    this.options = options;
+    faMgr = new FunctionApplicationManager(pFmgr, pLogger, pOptions);
+    options = pOptions;
   }
 
   @Override
@@ -112,7 +112,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
-  public void push() {
+  public void push() throws InterruptedException {
 
     // add new level
     pushedConstraints.addLast(0);

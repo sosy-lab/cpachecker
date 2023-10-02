@@ -68,12 +68,9 @@ public final class JParameterDeclaration extends AParameterDeclaration
       return true;
     }
 
-    if (!(obj instanceof JParameterDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JParameterDeclaration other = (JParameterDeclaration) obj;
-
-    return other.isFinal == isFinal && qualifiedName.equals(other.qualifiedName);
+    return obj instanceof JParameterDeclaration other
+        && super.equals(obj)
+        && other.isFinal == isFinal
+        && qualifiedName.equals(other.qualifiedName);
   }
 }

@@ -42,6 +42,7 @@ public final class PolicyBound {
 
   private record SerializedPolicy(
       PolicyAbstractedState from, BooleanFormula policy, PolicyAbstractedState to) {}
+
   // TODO: static fields may fall dreadfully if multiple LPI CPAs are running in parallel.
   private static final Map<SerializedPolicy, Integer> serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
@@ -130,10 +131,7 @@ public final class PolicyBound {
     if (this == other) {
       return true;
     }
-    if (other == null) {
-      return false;
-    }
-    if (other.getClass() != this.getClass()) {
+    if (other == null || getClass() != other.getClass()) {
       return false;
     }
     PolicyBound o = (PolicyBound) other;

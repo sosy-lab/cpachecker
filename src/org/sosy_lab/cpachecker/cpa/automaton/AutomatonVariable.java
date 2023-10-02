@@ -25,15 +25,16 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
   public static AutomatonVariable createAutomatonVariable(
       String pType, String pName, String... args) {
-    if (pType.toLowerCase().equals("int") || pType.toLowerCase().equals("integer")) {
-      return new AutomatonIntVariable(pName);
-    } else if (pType.toLowerCase().equals("set")) {
+    if (pType.equalsIgnoreCase("int") || pType.equalsIgnoreCase("integer")) {
+      int value = args.length >= 1 ? Integer.parseInt(args[0]) : 0;
+      return new AutomatonIntVariable(pName, value);
+    } else if (pType.equalsIgnoreCase("set")) {
       if (args.length > 0) {
         String elementType = args[0];
         AutomatonSetVariable<?> result;
-        if (elementType.toLowerCase().equals("int")) {
+        if (elementType.equalsIgnoreCase("int")) {
           result = new AutomatonSetVariable<Integer>(pName);
-        } else if (elementType.toLowerCase().equals("string")) {
+        } else if (elementType.equalsIgnoreCase("string")) {
           result = new AutomatonSetVariable<String>(pName);
         } else {
           throw new IllegalArgumentException(
@@ -44,7 +45,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
           if (!value.trim().isEmpty()) {
             for (String elem : Splitter.on(',').split(value)) {
               elem = elem.trim();
-              if (elementType.toLowerCase().equals("int")) {
+              if (elementType.equalsIgnoreCase("int")) {
                 try {
                   result.add(Integer.valueOf(elem));
                 } catch (NumberFormatException e) {
@@ -88,8 +89,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
     private int value;
 
     private AutomatonIntVariable(String pName) {
+      this(pName, 0);
+    }
+
+    private AutomatonIntVariable(String pName, int pValue) {
       super(pName);
-      value = 0;
+      value = pValue;
     }
 
     @Override
@@ -108,14 +113,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
     @Override
     public boolean equals(Object pObj) {
-      if (super.equals(pObj)) {
+      if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof AutomatonIntVariable)) {
-        return false;
-      }
-      AutomatonIntVariable otherVar = (AutomatonIntVariable) pObj;
-      return (value == otherVar.value) && name.equals(otherVar.name);
+      return pObj instanceof AutomatonIntVariable otherVar
+          && (value == otherVar.value)
+          && name.equals(otherVar.name);
     }
 
     @Override
@@ -185,14 +188,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
     @Override
     public boolean equals(Object pObj) {
-      if (super.equals(pObj)) {
+      if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof AutomatonSetVariable<?>)) {
-        return false;
-      }
-      AutomatonSetVariable<?> otherVar = (AutomatonSetVariable<?>) pObj;
-      return set.equals(otherVar.set) && name.equals(otherVar.name);
+      return pObj instanceof AutomatonSetVariable<?> otherVar
+          && set.equals(otherVar.set)
+          && name.equals(otherVar.name);
     }
 
     @Override

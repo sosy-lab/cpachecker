@@ -368,13 +368,9 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
       return true;
     }
 
-    if (!(other instanceof OctagonIntervalCoefficients) || !super.equals(other)) {
-      return false;
-    }
-
-    OctagonIntervalCoefficients octCoefficients = (OctagonIntervalCoefficients) other;
-
-    return Arrays.equals(coefficients, octCoefficients.coefficients)
+    return other instanceof OctagonIntervalCoefficients octCoefficients
+        && super.equals(other)
+        && Arrays.equals(coefficients, octCoefficients.coefficients)
         && size == octCoefficients.size;
   }
 

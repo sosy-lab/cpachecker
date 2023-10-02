@@ -72,12 +72,8 @@ public class Behavior {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof Behavior)) {
-      return false;
-    }
-    Behavior behavior = (Behavior) other;
     // We require that behaviors have globally unique names, so this is enough here
-    return Objects.equals(name, behavior.name);
+    return other instanceof Behavior behavior && Objects.equals(name, behavior.name);
   }
 
   @Override

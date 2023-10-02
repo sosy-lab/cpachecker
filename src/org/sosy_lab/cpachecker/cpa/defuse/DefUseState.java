@@ -47,12 +47,7 @@ public class DefUseState implements AbstractState, Iterable<DefUseDefinition> {
       return true;
     }
 
-    if (!(other instanceof DefUseState)) {
-      return false;
-    }
-
-    DefUseState otherDefUse = (DefUseState) other;
-    return otherDefUse.definitions.equals(definitions);
+    return other instanceof DefUseState otherDefUse && otherDefUse.definitions.equals(definitions);
   }
 
   @Override

@@ -318,7 +318,7 @@ final class SliceToCfaConversion {
               .getReturnVariable()
               .map(returnVariable -> (CVariableDeclaration) returnVariable)
               .filter(relevantDeclarations::contains)
-              .map(variable -> variable.getType())
+              .map(CVariableDeclaration::getType)
               .orElse(CVoidType.VOID);
 
       CFunctionType functionType = pFunctionDeclaration.getType();

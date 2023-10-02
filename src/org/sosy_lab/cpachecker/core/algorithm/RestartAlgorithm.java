@@ -69,13 +69,13 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   private static class RestartAlgorithmStatistics extends MultiStatistics {
 
-    private final int noOfAlgorithms;
+    private final List<String> algorithms;
     private int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
-    public RestartAlgorithmStatistics(int pNoOfAlgorithms, LogManager pLogger) {
+    public RestartAlgorithmStatistics(List<String> pAlgorithms, LogManager pLogger) {
       super(pLogger);
-      noOfAlgorithms = pNoOfAlgorithms;
+      algorithms = pAlgorithms;
     }
 
     @Override
@@ -91,7 +91,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     private void printIntermediateStatistics(PrintStream out, Result result, ReachedSet reached) {
 
-      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
+      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + algorithms.size();
       out.println(text);
       out.println("=".repeat(text.length()));
 
@@ -102,8 +102,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-      out.println("Number of algorithms provided:    " + noOfAlgorithms);
+      out.println("Number of algorithms provided:    " + algorithms.size());
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
+      out.println("Last algorithm used:        " + algorithms.get(noOfAlgorithmsUsed - 1));
 
       printSubStatistics(out, result, reached);
     }
@@ -192,7 +193,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           "Need at least one configuration for restart algorithm!");
     }
 
-    stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
+    List<String> configNames =
+        configFiles.stream().map(AnnotatedValue::value).map(Path::toString).toList();
+    stats = new RestartAlgorithmStatistics(configNames, pLogger);
 
     logShutdownListener =
         reason ->

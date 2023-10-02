@@ -219,8 +219,7 @@ public class BVConverter extends Converter {
     // sufficient for a valid formula, we want one bit for bv0
     int bitsize = Math.max(1, n.bitLength());
     return Pair.of(
-        getNumber(n, bitsize),
-        new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(bitsize)));
+        getNumber(n, bitsize), new Type<>(FormulaType.getBitvectorTypeWithSize(bitsize)));
   }
 
   private String getNumber(BigInteger num, int bitsize) {
@@ -252,7 +251,7 @@ public class BVConverter extends Converter {
           format(
               "(= (_ bv0 %d) (bvsrem %s (_ bv%d %d)))",
               bitsize, Iterables.getOnlyElement(terms).getFirst(), N, bitsize),
-          new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(bitsize)));
+          new Type<>(FormulaType.getBitvectorTypeWithSize(bitsize)));
 
     } else if (terms.size() == 1 && "__string__".equals(op.getFirst())) {
       // we convert "(__string__ (_ bvN M))" into "(__string__ N)",
@@ -260,8 +259,7 @@ public class BVConverter extends Converter {
       int n =
           Integer.parseInt(
               Splitter.on(' ').splitToList(terms.get(0).getFirst()).get(1).substring(2));
-      return Pair.of(
-          format("(__string__ %d)", n), new Type<FormulaType<?>>(op.getSecond().getReturnType()));
+      return Pair.of(format("(__string__ %d)", n), new Type<>(op.getSecond().getReturnType()));
 
     } else if (terms.size() == 1 && unaryOps.containsKey(op.getFirst())) {
       return Pair.of(
@@ -311,7 +309,7 @@ public class BVConverter extends Converter {
       if (FormulaType.BooleanType.equals(eIf.getSecond().getReturnType())) {
         return Pair.of(
             format("(ite %s %s %s)", cond.getFirst(), eIf.getFirst(), eElse.getFirst()),
-            new Type<FormulaType<?>>(FormulaType.BooleanType));
+            new Type<>(FormulaType.BooleanType));
       } else {
         int sIf = getBVsize(eIf.getSecond().getReturnType());
         int sElse = getBVsize(eElse.getSecond().getReturnType());
@@ -333,7 +331,7 @@ public class BVConverter extends Converter {
           format(
               "(%s %s)",
               op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
-          new Type<FormulaType<?>>(FormulaType.BooleanType));
+          new Type<>(FormulaType.BooleanType));
 
     } else if (symbolEncoding.containsSymbol(op.getFirst())) {
       // UF --> cast every parameter to correct bitsize

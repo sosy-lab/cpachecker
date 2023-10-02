@@ -8,31 +8,36 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 @Immutable
 public class InformationRecord {
-  @JsonProperty("string")
-  private final String string;
+  @JsonAlias({"value", "string"})
+  private final String value;
 
   @JsonProperty("type")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private final String type;
 
   @JsonProperty("format")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private final String format;
 
   public InformationRecord(
-      @JsonProperty("string") String string,
+      @JsonProperty("value") String string,
       @JsonProperty("type") String type,
       @JsonProperty("format") String format) {
-    this.string = string;
+    this.value = string;
     this.type = type;
     this.format = format;
   }
 
-  public String getString() {
-    return string;
+  public String getValue() {
+    return value;
   }
 
   public String getType() {
@@ -45,23 +50,20 @@ public class InformationRecord {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o) {
       return true;
     }
-    if (!(o instanceof InformationRecord)) {
-      return false;
-    }
-    InformationRecord invariantStoreEntryLoopInvariant = (InformationRecord) o;
-    return string.equals(invariantStoreEntryLoopInvariant.string)
-        && type.equals(invariantStoreEntryLoopInvariant.type)
-        && format.equals(invariantStoreEntryLoopInvariant.format);
+    return o instanceof InformationRecord invariantStoreEntryLoopInvariant
+        && Objects.equals(value, invariantStoreEntryLoopInvariant.value)
+        && Objects.equals(type, invariantStoreEntryLoopInvariant.type)
+        && Objects.equals(format, invariantStoreEntryLoopInvariant.format);
   }
 
   @Override
   public int hashCode() {
-    int hashCode = string.hashCode();
-    hashCode = 31 * hashCode + type.hashCode();
-    hashCode = 31 * hashCode + format.hashCode();
+    int hashCode = value.hashCode();
+    hashCode = 31 * hashCode + (type != null ? type.hashCode() : 0);
+    hashCode = 31 * hashCode + (format != null ? format.hashCode() : 0);
     return hashCode;
   }
 
@@ -69,7 +71,7 @@ public class InformationRecord {
   public String toString() {
     return "InformationRecord{"
         + " string='"
-        + getString()
+        + getValue()
         + "'"
         + ", type='"
         + getType()

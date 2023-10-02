@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** {@link BinarySymbolicExpression} representing the 'logical and' operation. */
@@ -33,10 +34,25 @@ public final class LogicalAndExpression extends BinarySymbolicExpression {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 
+  private LogicalAndExpression(
+      final SymbolicExpression pOperand1,
+      final SymbolicExpression pOperand2,
+      final Type pExpressionType,
+      final Type pCalculationType,
+      final AbstractState pAbstractState) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
+  }
+
   @Override
   public LogicalAndExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new LogicalAndExpression(
         getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new LogicalAndExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pCurrentState);
   }
 
   @Override

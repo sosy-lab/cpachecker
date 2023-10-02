@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class ConstraintsStrengthenOperator implements Statistics {
 
   @Option(description = "Whether to simplify symbolic expressions, if possible.")
-  private boolean simplifySymbolics = true;
+  private boolean simplifySymbolics = false;
 
   // statistics
   private final Timer totalTime = new Timer();

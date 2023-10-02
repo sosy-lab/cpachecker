@@ -160,15 +160,7 @@ class PushValueToEnvironmentVisitor
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pNot);
-    CompoundInterval parameter = compoundIntervalManager.intersect(evaluate(pNot), pParameter);
-    if (parameter.isBottom()) {
-      return false;
-    }
-    if (!pNot.getFlipped().accept(this, parameter.invert())) {
-      return false;
-    }
-    return true;
+    return getCompoundIntervalManager(pNot).doIntersect(evaluate(pNot), pParameter);
   }
 
   @Override
@@ -269,12 +261,10 @@ class PushValueToEnvironmentVisitor
       }
       return true;
     }
-    CompoundInterval pushLeftValue = compoundIntervalManager.divide(parameter, rightValue);
-    CompoundInterval pushRightValue = compoundIntervalManager.divide(parameter, leftValue);
-    if (!pMultiply.getFactor1().accept(this, pushLeftValue)
-        || !pMultiply.getFactor2().accept(this, pushRightValue)) {
-      return false;
-    }
+    // Here we could potentially check more precisely whether pMultiply may intersect pParameter
+    // by resolving the multiplication. But we cannot use divide() as it was used in the past
+    // because for bitvectors division is not the inverse of multiplication
+    // (because of truncation and overflows).
     return true;
   }
 
