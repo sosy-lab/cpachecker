@@ -260,17 +260,11 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
       }
     }
 
-    for (String otherEntry : other.staticFieldVariables) {
-      if (staticFieldVariables.contains(otherEntry)) {
-        newStaticFieldSet.add(otherEntry);
-      }
-    }
+    newStaticFieldSet.addAll(staticFieldVariables);
+    newStaticFieldSet.addAll(other.staticFieldVariables);
 
-    for (String otherEntry : other.nonStaticFieldVariables) {
-      if (nonStaticFieldVariables.contains(otherEntry)) {
-        newNonStaticFieldSet.add(otherEntry);
-      }
-    }
+    newNonStaticFieldSet.addAll(nonStaticFieldVariables);
+    newNonStaticFieldSet.addAll(other.nonStaticFieldVariables);
 
     // TODO no this for unequal scope (Is it possible)
 
