@@ -141,7 +141,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
-        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.5.1" conf="build->default" />
+        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.6" conf="build->default" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
@@ -159,7 +159,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.44.1" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.12.3" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.12.4" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

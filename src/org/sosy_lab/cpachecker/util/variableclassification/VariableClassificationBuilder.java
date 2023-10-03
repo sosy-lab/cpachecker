@@ -75,6 +75,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -580,6 +582,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       nonIntAddVars.add(varName);
     }
 
+    handleType(edge, vdecl.getType(), varName);
+
     final CInitializer initializer = vdecl.getInitializer();
 
     if (!(initializer instanceof CInitializerExpression)) {
@@ -743,6 +747,13 @@ public class VariableClassificationBuilder implements StatisticsProvider {
         // next line is not necessary, but we do it for completeness, TODO correct?
         dependencies.addVar(scopedRetVal);
       }
+    }
+  }
+
+  /** handle expressions contained in types */
+  private void handleType(CFAEdge edge, CType type, String varName) {
+    for (CExpression exp : CTypes.getArrayLengthExpressions(type)) {
+      handleExpression(edge, exp, varName);
     }
   }
 

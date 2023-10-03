@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -1561,6 +1562,42 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  private final class SizeofVisitor extends BaseSizeofVisitor<UnrecognizedCodeException> {
+
+    private boolean sizeKnown = true;
+
+    SizeofVisitor() {
+      super(machineModel);
+    }
+
+    Value evaluateSizeof(CType pType) throws UnrecognizedCodeException {
+      BigInteger size = machineModel.getSizeof(pType, this);
+      if (sizeKnown) {
+        return new NumericValue(size);
+      } else {
+        return Value.UnknownValue.getInstance();
+      }
+    }
+
+    @Override
+    protected BigInteger evaluateArrayLength(CExpression pLength, CArrayType pArrayType)
+        throws UnrecognizedCodeException {
+      // This covers the most common and relevant case, handling other cases could be unsound
+      // because we would need to use variable values from the declaration time of the array.
+      // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1146
+      if (pLength instanceof CIdExpression idExpression
+          && idExpression.getExpressionType().isConst()) {
+        Value lengthValue = pLength.accept(AbstractExpressionValueVisitor.this);
+        if (lengthValue.isNumericValue()) {
+          return lengthValue.asNumericValue().bigIntegerValue();
+        }
+      }
+
+      sizeKnown = false;
+      return BigInteger.ZERO; // dummy value, will be ignored in evaluateSizeof()
+    }
+  }
+
   @Override
   public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
@@ -1576,9 +1613,8 @@ public abstract class AbstractExpressionValueVisitor
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
-    if (unaryOperator == UnaryOperator.SIZEOF
-        && unaryOperand.getExpressionType().hasKnownConstantSize()) {
-      return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
+    if (unaryOperator == UnaryOperator.SIZEOF) {
+      return new SizeofVisitor().evaluateSizeof(unaryOperand.getExpressionType());
     }
     if (unaryOperator == UnaryOperator.ALIGNOF) {
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));

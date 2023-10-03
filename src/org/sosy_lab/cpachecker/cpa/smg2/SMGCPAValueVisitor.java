@@ -390,7 +390,7 @@ public class SMGCPAValueVisitor
 
   private List<ValueAndSMGState> handleBinaryOperation(
       Value leftValue, Value rightValue, CBinaryExpression e, SMGState currentState)
-      throws SMGException {
+      throws CPATransferException {
     final BinaryOperator binaryOperator = e.getOperator();
     final CType calculationType = e.getCalculationType();
     final CExpression lVarInBinaryExp = e.getOperand1();
@@ -577,7 +577,8 @@ public class SMGCPAValueVisitor
     return builder.build();
   }
 
-  public ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState) {
+  public ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState)
+      throws CPATransferException {
     MachineModel machineModel = evaluator.getMachineModel();
     if (targetType instanceof CPointerType) {
       if (value instanceof AddressExpression || value instanceof NumericValue) {
@@ -2034,7 +2035,6 @@ public class SMGCPAValueVisitor
    * @return {@link ValueAndSMGState} with the result Value that may be {@link AddressExpression} /
    *     {@link UnknownValue} or a symbolic/numeric one depending on input + the new up-to-date
    *     state.
-   * @throws SMGException in case of critical errors when materilizing abstract memory.
    */
   private List<ValueAndSMGState> calculatePointerArithmetics(
       Value leftValue,
@@ -2043,7 +2043,7 @@ public class SMGCPAValueVisitor
       CType expressionType,
       CType calculationType,
       SMGState currentState)
-      throws SMGException {
+      throws CPATransferException {
     // Find the address, check that the other is a numeric value and use as offset, else if both
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
     // TODO: stop for illegal pointer arith?
