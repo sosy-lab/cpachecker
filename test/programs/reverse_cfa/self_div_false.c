@@ -7,9 +7,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+extern void reach_error();
+
 int main()
 { 
 	int a = 85;
 	a = a / 2; 
-	if ( a == 42 ) { ERROR: ; } 
+	if ( a == 42 ) { reach_error(); } 
 }

@@ -12,5 +12,5 @@ int main()
 	int b = 4; 
 	int c = 0;
 	c = a * b; 
-	if ( c == 12 ) { ERROR: ; } 
+	if ( c == 12 ) { extern void reach_error(); } 
 }
