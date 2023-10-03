@@ -1121,9 +1121,21 @@ public class CFAReverser {
           CLeftHandSide lExpr = new CIdExpression(FileLocation.DUMMY, variables.get(var));
 
           CExpression assumeExpr = createAssumeExpr(lExpr, rExpr);
+
+          CFANode curr = from;
+          CFANode next = new CFANode(curr.getFunction());
+          nodes.put(next.getFunctionName(), next);
+
           CAssumeEdge assumeEdge =
-              new CAssumeEdge("", FileLocation.DUMMY, from, to, assumeExpr, true, false, false);
+              new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, true, false, false);
           addToCFA(assumeEdge);
+
+          curr = next;
+          curr = appendNonDetAssignEdge(lExpr, curr);
+
+          BlankEdge dummyEdge =
+              new BlankEdge("", FileLocation.DUMMY, curr, to, edge.getDescription());
+          addToCFA(dummyEdge);
         }
 
         // Array initialization
