@@ -256,6 +256,7 @@ public class CFAReverser {
       Set<CFANode> entryTargets =
           new HashSet<>(
               targets.stream().filter(node -> node instanceof CFunctionEntryNode).toList());
+
       for (CFANode entryTarget : entryTargets) {
         for (CFAEdge edge : CFAUtils.allEnteringEdges(entryTarget)) {
           CFANode caller = edge.getPredecessor();
@@ -673,7 +674,7 @@ public class CFAReverser {
         } else if (edge instanceof CFunctionSummaryStatementEdge) {
           pLog.log(Level.INFO, "CFunctionSummaryStatementEdge: " + edge);
         } else if (edge instanceof CStatementEdge stmtEdge) {
-          reverseStmtEdge((CStatementEdge) edge, from, to);
+          reverseStmtEdge(stmtEdge, from, to);
         } else {
           throw new AssertionError("Illegal edge: " + edge);
         }
