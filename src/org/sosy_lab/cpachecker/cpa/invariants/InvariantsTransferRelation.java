@@ -331,7 +331,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
 
       NumeralFormula<CompoundInterval> value =
-          actualParam.accept(actualParamExpressionToFormulaVisitor);
+          ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
+                  actualParam, declaration.getType())
+              .accept(actualParamExpressionToFormulaVisitor);
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
       }
