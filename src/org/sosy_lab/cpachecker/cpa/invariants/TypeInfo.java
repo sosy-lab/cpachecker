@@ -29,23 +29,10 @@ public interface TypeInfo {
   String abbrev();
 
   static TypeInfo from(MachineModel pMachineModel, Type pType) {
-    Type type = pType;
-    if (type instanceof CType) {
-      type = ((CType) type).getCanonicalType();
-    }
-    final int size;
-    final boolean signed;
-    if (type instanceof CType) {
-      boolean isBitField = false;
-      int bitFieldSize = 0;
-      if (type instanceof CBitFieldType) {
-        isBitField = true;
-        CBitFieldType bitFieldType = (CBitFieldType) type;
-        type = bitFieldType.getType();
-        bitFieldSize = bitFieldType.getBitFieldSize();
-      }
-      if (type instanceof CSimpleType) {
-        CBasicType basicType = ((CSimpleType) type).getType();
+    if (pType instanceof CType cType) {
+      cType = cType.getCanonicalType();
+      if (cType instanceof CSimpleType simpleType) {
+        CBasicType basicType = simpleType.getType();
         if (basicType == CBasicType.FLOAT) {
           return FloatingPointTypeInfo.FLOAT;
         }
@@ -53,104 +40,57 @@ public interface TypeInfo {
           return FloatingPointTypeInfo.DOUBLE;
         }
       }
-      CType cType = (CType) type;
-      if (isBitField) {
-        size = bitFieldSize;
-      } else {
-        if (cType.hasKnownConstantSize()) {
-          size = pMachineModel.getSizeofInBits(cType).intValueExact();
-        } else {
-          throw new IllegalArgumentException("Unsupported type: " + type);
-        }
+      if (!cType.hasKnownConstantSize()) {
+        throw new IllegalArgumentException("Unsupported type: " + cType);
       }
+      final int size = pMachineModel.getSizeofInBits(cType).intValueExact();
       assert size >= 0;
-      signed = (type instanceof CSimpleType) && pMachineModel.isSigned((CSimpleType) type);
-    } else if (type instanceof JSimpleType) {
-      switch (((JSimpleType) type).getType()) {
-        case BOOLEAN:
-          size = 32;
-          signed = false;
-          break;
-        case BYTE:
-          size = 8;
-          signed = true;
-          break;
-        case CHAR:
-          size = 16;
-          signed = false;
-          break;
-        case SHORT:
-          size = 16;
-          signed = true;
-          break;
-        case INT:
-          size = 32;
-          signed = true;
-          break;
-        case LONG:
-          size = 64;
-          signed = true;
-          break;
-        case FLOAT:
-          return FloatingPointTypeInfo.FLOAT;
-        case DOUBLE:
-          return FloatingPointTypeInfo.DOUBLE;
-        case UNSPECIFIED:
-        case VOID:
-        default:
-          throw new IllegalArgumentException("Unsupported type: " + type);
-      }
+      final boolean signed =
+          (cType instanceof CSimpleType simpleType) && pMachineModel.isSigned(simpleType);
+      return BitVectorInfo.from(size, signed);
+
+    } else if (pType instanceof JSimpleType simpleType) {
+      return switch (simpleType.getType()) {
+        case BOOLEAN -> BitVectorInfo.from(32, false);
+        case BYTE -> BitVectorInfo.from(8, true);
+        case CHAR -> BitVectorInfo.from(16, false);
+        case SHORT -> BitVectorInfo.from(16, true);
+        case INT -> BitVectorInfo.from(32, true);
+        case LONG -> BitVectorInfo.from(64, true);
+        case FLOAT -> FloatingPointTypeInfo.FLOAT;
+        case DOUBLE -> FloatingPointTypeInfo.DOUBLE;
+        default -> throw new IllegalArgumentException("Unsupported type: " + simpleType);
+      };
     } else {
-      throw new IllegalArgumentException("Unsupported type: " + type);
+      throw new IllegalArgumentException("Unsupported type: " + pType);
     }
-    return BitVectorInfo.from(size, signed);
   }
 
   static boolean isSupported(Type pType) {
-    Type type = pType;
-    if (type instanceof CType) {
-      type = ((CType) type).getCanonicalType();
-    }
-    if (type instanceof CType cType) {
+    if (pType instanceof CType cType) {
+      cType = cType.getCanonicalType();
       if (!cType.hasKnownConstantSize() || cType.isIncomplete()) {
         return false;
       }
-      if (!(type instanceof CSimpleType)) {
-        return type instanceof CPointerType
-            || type instanceof CEnumType
-            || type instanceof CBitFieldType;
+      if (cType instanceof CSimpleType simpleType) {
+        return switch (simpleType.getType()) {
+          case CHAR, INT, BOOL, INT128, FLOAT, DOUBLE, FLOAT128 -> true;
+          default -> false;
+        };
+      } else {
+        return cType instanceof CPointerType
+            || cType instanceof CEnumType
+            || cType instanceof CBitFieldType;
       }
-      switch (((CSimpleType) type).getType()) {
-        case CHAR:
-        case INT:
-        case BOOL:
-        case INT128:
-        case FLOAT:
-        case DOUBLE:
-        case FLOAT128:
-          return true;
-        case UNSPECIFIED:
-        default:
-          return false;
-      }
+
+    } else if (pType instanceof JSimpleType simpleType) {
+      return switch (simpleType.getType()) {
+        case BOOLEAN, BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> true;
+        default -> false;
+      };
+
+    } else {
+      return false;
     }
-    if (type instanceof JSimpleType) {
-      switch (((JSimpleType) type).getType()) {
-        case BOOLEAN:
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
-          return true;
-        case UNSPECIFIED:
-        case VOID:
-        default:
-          return false;
-      }
-    }
-    return false;
   }
 }
