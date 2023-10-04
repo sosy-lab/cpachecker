@@ -25,12 +25,13 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordDeserializer;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordSerializer;
 
 @JsonDeserialize(using = InvariantRecordDeserializer.class)
 @JsonSerialize(using = InvariantRecordSerializer.class)
-public class InvariantRecord extends InformationRecord {
+public final class InvariantRecord extends AbstractInformationRecord {
 
   @JsonProperty("location")
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -138,5 +139,44 @@ public class InvariantRecord extends InformationRecord {
       // End the wrapper object
       gen.writeEndObject();
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    return o instanceof InvariantRecord invariantStoreEntryLoopInvariant
+        && Objects.equals(value, invariantStoreEntryLoopInvariant.value)
+        && Objects.equals(type, invariantStoreEntryLoopInvariant.type)
+        && Objects.equals(format, invariantStoreEntryLoopInvariant.format)
+        && Objects.equals(location, invariantStoreEntryLoopInvariant.location);
+  }
+
+  @Override
+  public int hashCode() {
+    int hashCode = value.hashCode();
+    hashCode = 31 * hashCode + (type != null ? type.hashCode() : 0);
+    hashCode = 31 * hashCode + (format != null ? format.hashCode() : 0);
+    hashCode = 31 * hashCode + (location != null ? location.hashCode() : 0);
+    return hashCode;
+  }
+
+  @Override
+  public String toString() {
+    return "InvariantRecord{"
+        + " string='"
+        + getValue()
+        + "'"
+        + ", type='"
+        + getType()
+        + "'"
+        + ", format='"
+        + getFormat()
+        + "'"
+        + ", location='"
+        + getLocation()
+        + "'"
+        + "}";
   }
 }
