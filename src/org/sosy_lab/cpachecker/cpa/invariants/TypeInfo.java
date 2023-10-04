@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -115,14 +116,19 @@ public interface TypeInfo {
         return false;
       }
       if (!(type instanceof CSimpleType)) {
-        return type instanceof CPointerType;
+        return type instanceof CPointerType
+            || type instanceof CEnumType
+            || type instanceof CBitFieldType;
       }
       switch (((CSimpleType) type).getType()) {
         case CHAR:
         case INT:
-          return true;
+        case BOOL:
+        case INT128:
         case FLOAT:
         case DOUBLE:
+        case FLOAT128:
+          return true;
         case UNSPECIFIED:
         default:
           return false;
@@ -136,9 +142,9 @@ public interface TypeInfo {
         case SHORT:
         case INT:
         case LONG:
-          return true;
         case FLOAT:
         case DOUBLE:
+          return true;
         case UNSPECIFIED:
         case VOID:
         default:
