@@ -4021,6 +4021,10 @@ invariantGeneration.kInduction.terminateOnCounterexample = false
 # The directory where the invariants are stored.
 invariantStore.export.outDir = "invariantWitnesses"
 
+# If enabled, this option will output the invariants in the now deprecated
+# YAML format.
+invariantStore.export.outputDeprecatedYAMLFormat = false
+
 # If enabled, this option will not just output loop invariants,but also
 # general location invariants at other locations.
 invariantStore.export.writeLocationInvariants = false

@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
@@ -131,13 +132,6 @@ public class AutomatonYAMLParser {
   }
 
   public static List<AbstractEntry> parseYAML(InputStream pInputStream) throws IOException {
-    // Currently we assume that an empty witness is also valid. A empty witness corresponds to an
-    // empty list of entries. How this should be interpreted to see the type of a witness i.e.
-    // Violation or Correctness is unclear
-    if (pInputStream.available() == 0) {
-      return new ArrayList<>();
-    }
-
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.findAndRegisterModules();
     List<AbstractEntry> entries =
@@ -146,10 +140,7 @@ public class AutomatonYAMLParser {
   }
 
   public static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {
-    if (entries.isEmpty()) {
-      // We consider an empty witness a valid correctness witness per default
-      return Optional.of(WitnessType.CORRECTNESS_WITNESS);
-    } else if (FluentIterable.from(entries).allMatch(e -> e instanceof ViolationSequenceEntry)) {
+    if (FluentIterable.from(entries).allMatch(e -> e instanceof ViolationSequenceEntry)) {
       return Optional.of(WitnessType.VIOLATION_WITNESS);
     } else if (FluentIterable.from(entries).allMatch(e -> !(e instanceof ViolationSequenceEntry))) {
       return Optional.of(WitnessType.CORRECTNESS_WITNESS);
@@ -242,37 +233,39 @@ public class AutomatonYAMLParser {
     Map<Integer, Set<Pair<String, String>>> lineToSeenInvariants = new HashMap<>();
 
     for (AbstractEntry entry : entries) {
-      if (entry instanceof InvariantEntry invariantEntry) {
-        Optional<String> resultFunction =
-            Optional.ofNullable(invariantEntry.getLocation().getFunction());
-        String invariantString = invariantEntry.getInvariant().getValue();
-        Integer line = invariantEntry.getLocation().getLine();
+      if (entry instanceof InvariantSetEntry invariantSetEntry) {
+        for (InvariantEntry invariantEntry : invariantSetEntry.toInvariantEntries()) {
+          Optional<String> resultFunction =
+              Optional.ofNullable(invariantEntry.getLocation().getFunction());
+          String invariantString = invariantEntry.getInvariant().getValue();
+          Integer line = invariantEntry.getLocation().getLine();
 
-        if (!lineToSeenInvariants.containsKey(line)) {
-          lineToSeenInvariants.put(line, new HashSet<>());
+          if (!lineToSeenInvariants.containsKey(line)) {
+            lineToSeenInvariants.put(line, new HashSet<>());
+          }
+
+          // Parsing is expensive for long invariants, we therefore try to reduce it
+          Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
+
+          if (lineToSeenInvariants.get(line).contains(lookupKey)) {
+            continue;
+          } else {
+            lineToSeenInvariants.get(line).add(lookupKey);
+          }
+
+          ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
+
+          if (invariant.equals(ExpressionTrees.getTrue())) {
+            continue;
+          }
+
+          transitions.add(
+              new AutomatonTransition.Builder(
+                      new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
+                  .withCandidateInvariants(invariant)
+                  .build());
+          automatonName = invariantEntry.getMetadata().getUuid();
         }
-
-        // Parsing is expensive for long invariants, we therefore try to reduce it
-        Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
-
-        if (lineToSeenInvariants.get(line).contains(lookupKey)) {
-          continue;
-        } else {
-          lineToSeenInvariants.get(line).add(lookupKey);
-        }
-
-        ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
-
-        if (invariant.equals(ExpressionTrees.getTrue())) {
-          continue;
-        }
-
-        transitions.add(
-            new AutomatonTransition.Builder(
-                    new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
-                .withCandidateInvariants(invariant)
-                .build());
-        automatonName = invariantEntry.getMetadata().getUuid();
       } else {
         throw new WitnessParseException(
             "The witness contained other statements than Loop Invariants!");
@@ -327,28 +320,31 @@ public class AutomatonYAMLParser {
     SetMultimap<Integer, String> lineToSeenInvariants = HashMultimap.create();
 
     for (AbstractEntry entry : pEntries) {
-      if (entry instanceof InvariantEntry invariantEntry) {
-        Integer line = invariantEntry.getLocation().getLine();
-        String invariantString = invariantEntry.getInvariant().getValue();
+      if (entry instanceof InvariantSetEntry invariantSetEntry) {
+        for (InvariantEntry invariantEntry : invariantSetEntry.toInvariantEntries()) {
+          Integer line = invariantEntry.getLocation().getLine();
+          String invariantString = invariantEntry.getInvariant().getValue();
 
-        // Parsing is expensive, therefore cache everything we can
-        if (lineToSeenInvariants.get(line).contains(invariantString)) {
-          continue;
+          // Parsing is expensive, therefore cache everything we can
+          if (lineToSeenInvariants.get(line).contains(invariantString)) {
+            continue;
+          }
+
+          ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
+
+          FileLocation loc =
+              new FileLocation(
+                  Path.of(invariantEntry.getLocation().getFileName()),
+                  lineToOffset.get(invariantEntry.getLocation().getFileName()).get(line - 1)
+                      + invariantEntry.getLocation().getColumn(),
+                  -1, // The length is currently not important enough to warrant computing it
+                  line,
+                  line);
+          invariants.add(
+              new Invariant(invariant, loc, invariantEntry instanceof LoopInvariantEntry));
+
+          lineToSeenInvariants.get(line).add(invariantString);
         }
-
-        ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
-
-        FileLocation loc =
-            new FileLocation(
-                Path.of(invariantEntry.getLocation().getFileName()),
-                lineToOffset.get(invariantEntry.getLocation().getFileName()).get(line - 1)
-                    + invariantEntry.getLocation().getColumn(),
-                -1, // The length is currently not important enough to warrant computing it
-                line,
-                line);
-        invariants.add(new Invariant(invariant, loc, invariantEntry instanceof LoopInvariantEntry));
-
-        lineToSeenInvariants.get(line).add(invariantString);
       }
     }
     return invariants;

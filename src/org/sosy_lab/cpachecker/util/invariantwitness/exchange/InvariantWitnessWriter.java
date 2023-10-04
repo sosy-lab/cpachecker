@@ -64,10 +64,13 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.WitnessToYamlWitnessConverter;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LocationInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
@@ -102,6 +105,12 @@ public final class InvariantWitnessWriter {
           "If enabled, this option will not just output loop invariants,"
               + "but also general location invariants at other locations.")
   private boolean writeLocationInvariants = false;
+
+  @Option(
+      secure = true,
+      description =
+          "If enabled, this option will output the invariants in the now deprecated YAML format.")
+  private boolean outputDeprecatedYAMLFormat = false;
 
   private InvariantWitnessWriter(
       Configuration pConfig,
@@ -197,11 +206,18 @@ public final class InvariantWitnessWriter {
     logger.logf(
         Level.INFO, "Exporting %d invariant witnesses to %s", invariantWitnesses.size(), outFile);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      for (InvariantWitness invariantWitness : invariantWitnesses) {
-        InvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
-        String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
+      if (outputDeprecatedYAMLFormat) {
+        for (InvariantWitness invariantWitness : invariantWitnesses) {
+          InvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
+          String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
+          writer.write(entryYaml);
+        }
+      } else {
+        InvariantSetEntry invariantSet = invariantWitnessesToInvariantEntry(invariantWitnesses);
+        String entryYaml = mapper.writeValueAsString(ImmutableList.of(invariantSet));
         writer.write(entryYaml);
       }
+
     } catch (IOException e) {
       logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
     }
@@ -293,6 +309,45 @@ public final class InvariantWitnessWriter {
     }
 
     return entry;
+  }
+
+  private InvariantSetEntry invariantWitnessesToInvariantEntry(
+      Collection<InvariantWitness> pInvariantWitnesses) {
+    final MetadataRecord metadata = createMetadataRecord();
+
+    ImmutableList.Builder<InvariantRecord> invariantRecordBuilder = ImmutableList.builder();
+    for (InvariantWitness invariantWitness : pInvariantWitnesses) {
+      final String fileName = invariantWitness.getLocation().getFileName().toString();
+      final int lineNumber = invariantWitness.getLocation().getStartingLineInOrigin();
+      final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
+      final int offsetInLine = invariantWitness.getLocation().getNodeOffset() - lineOffset;
+
+      LocationRecord location =
+          new LocationRecord(
+              fileName,
+              "file_hash",
+              lineNumber,
+              offsetInLine,
+              invariantWitness.getNode().getFunctionName());
+
+      if (invariantWitness.getNode().isLoopStart()) {
+        invariantRecordBuilder.add(
+            new InvariantRecord(
+                invariantWitness.getFormula().toString(),
+                InvariantRecordType.LOOP_INVARIANT.getKeyword(),
+                "c_expression",
+                location));
+      } else {
+        invariantRecordBuilder.add(
+            new InvariantRecord(
+                invariantWitness.getFormula().toString(),
+                InvariantRecordType.LOCATION_INVARIANT.getKeyword(),
+                "c_expression",
+                location));
+      }
+    }
+
+    return new InvariantSetEntry(metadata, invariantRecordBuilder.build());
   }
 
   private MetadataRecord createMetadataRecord() {

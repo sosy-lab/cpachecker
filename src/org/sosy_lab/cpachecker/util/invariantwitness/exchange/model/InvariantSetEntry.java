@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 
+@JsonPropertyOrder({"entry_type", "metadata", "content"})
 public class InvariantSetEntry extends AbstractEntry {
 
   private static final String INVARIANT_SET_ENTRY_IDENTIFIER = "invariant_set";
