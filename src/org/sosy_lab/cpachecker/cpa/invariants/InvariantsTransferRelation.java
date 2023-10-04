@@ -123,7 +123,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private NumeralFormula<CompoundInterval> allPossibleValues(Type pType) {
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pType);
+    TypeInfo typeInfo = TypeInfo.from(machineModel, pType);
     return InvariantsFormulaManager.INSTANCE.asConstant(
         typeInfo, getCompoundIntervalManager(typeInfo).allPossibleValues());
   }
@@ -264,7 +264,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Ignore unsupported types
-    if (!BitVectorInfo.isSupported(decl.getType())) {
+    if (!TypeInfo.isSupported(decl.getType())) {
       return pElement;
     }
 
@@ -326,7 +326,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       CParameterDeclaration declaration = declarationIterator.next();
 
       // Ignore unsupported types
-      if (!BitVectorInfo.isSupported(declaration.getType())) {
+      if (!TypeInfo.isSupported(declaration.getType())) {
         continue;
       }
 
@@ -389,7 +389,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         CExpression functionNameExpression = cFunctionCallExpression.getFunctionNameExpression();
         if ((functionNameExpression instanceof CIdExpression idExpression)
             && idExpression.getName().equals("__VERIFIER_nondet_uint")) {
-          TypeInfo typeInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
+          TypeInfo typeInfo = TypeInfo.from(machineModel, leftHandSide.getExpressionType());
           value =
               InvariantsFormulaManager.INSTANCE.asConstant(
                   typeInfo, getCompoundIntervalManager(typeInfo).singleton(0).extendToMaxValue());
