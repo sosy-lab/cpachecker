@@ -4517,7 +4517,7 @@ report.export = true
 report.file = "Report.html"
 
 # Generate Witness
-report.witness = true
+report.genWitness = true
 
 # output file for visualizing message exchange
 reportFile = "block_analysis/block_analysis.json"

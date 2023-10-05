@@ -117,7 +117,7 @@ public class ReportGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Path.of("Report.html");
 
-  @Option(secure = true, name = "report.witness", description = "Generate Witness")
+  @Option(secure = true, name = "report.genWitness", description = "Generate Witness")
   private boolean generateWitness = true;
 
   @Option(
