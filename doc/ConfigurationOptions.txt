@@ -3767,6 +3767,15 @@ distributedSummaries.decompositionType = MERGE_DECOMPOSITION
   enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
              NO_DECOMPOSITION]
 
+# Whether to stop after exporting the blockgraph
+distributedSummaries.generateBlockGraphOnly = false
+
+# Where to find messages in a file format
+distributedSummaries.inputMessages = "input/"
+
+# Where to write responses
+distributedSummaries.outputMessages = "messages/"
+
 # Change the queue type. ERRROR_CONDITION prioritizes the processing
 # ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
 # ErrorCondition messages.
@@ -3778,11 +3787,8 @@ distributedSummaries.queue = DEFAULT
 # not be used for benchmarks.
 distributedSummaries.spawnUtilWorkers = false
 
-# Configuration for backward analysis in computation of distributed summaries
-distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"
-
-# whether error conditions are always checked for unsatisfiability
-distributedSummaries.worker.checkEveryErrorCondition = true
+# Whether to spawn a worker for only one block id
+distributedSummaries.spawnWorkerForId = ""
 
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
@@ -3790,17 +3796,6 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-block-sum
 # Destination directory for the logfiles of all BlockSummaryWorkers. The
 # logfiles have the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_summary/logfiles"
-
-# Whether loop free programs have to deny all possible error messages. Enable
-# this option to eagerly process every possible error message that occurs
-# after an precondition update.
-distributedSummaries.worker.sendEveryErrorMessage = false
-
-# Specifies which serialization type should be used. Possible values are
-# IDENTITY to pass the actual abstract state objects and BYTE to serialize
-# the abstract state to a byte string.
-distributedSummaries.worker.serializationType = BYTE
-  enum:     [IDENTITY, BYTE]
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
