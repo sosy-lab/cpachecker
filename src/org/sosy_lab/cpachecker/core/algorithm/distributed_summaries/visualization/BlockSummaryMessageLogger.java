@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -68,7 +69,8 @@ public class BlockSummaryMessageLogger {
   // suppress warnings is fine here because error-prone does not recognize that we call
   // getEpochSeconds before accessing nanos.
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
-  public synchronized void log(BlockSummaryMessage pMessage) throws IOException {
+  public synchronized void log(BlockSummaryMessage pMessage, Predicate<String> pFilter)
+      throws IOException {
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
     BigInteger secondsToNano =
@@ -78,8 +80,12 @@ public class BlockSummaryMessageLogger {
     messageToJSON.put("timestamp", secondsToNano.toString());
     messageToJSON.put("hashCode", hashCode);
     messageToJSON.put("from", pMessage.getUniqueBlockId());
-    messageToJSON.put("payload", pMessage.getPayloadJSON(s -> s.contains("readable")));
+    messageToJSON.put("payload", pMessage.getPayloadJSON(pFilter));
     JSON.writeJSONString(
         messageToJSON, reportFiles.resolve("M" + ID_GENERATOR.getFreshId() + ".json"));
+  }
+
+  public synchronized void log(BlockSummaryMessage pMessage) throws IOException {
+    log(pMessage, s -> s.contains("readable"));
   }
 }

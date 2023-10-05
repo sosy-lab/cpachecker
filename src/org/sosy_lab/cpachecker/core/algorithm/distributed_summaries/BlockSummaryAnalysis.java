@@ -11,8 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -21,14 +25,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -52,10 +60,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryPrioritizeErrorConditionQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.BlockSummaryMessageLogger;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder;
@@ -129,6 +140,20 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + "They are needed to strengthen the preconditions of blocks. "
               + "Missing blocks make the analysis slower but not impossible.")
   private boolean allowMissingAbstractionNodes = true;
+
+  @Option(description = "Whether to stop after exporting the blockgraph")
+  private boolean generateBlockGraphOnly = false;
+
+  @Option(description = "Whether to spawn a worker for only one block id")
+  private String spawnWorkerForId = "";
+
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  @Option(description = "Where to find messages in a file format")
+  private Path inputMessages = Path.of("input/");
+
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  @Option(description = "Where to write responses")
+  private Path outputMessages = Path.of("messages/");
 
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
@@ -223,8 +248,38 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           blockGraph.getNodes().size(),
           decompositionType);
 
+      if (generateBlockGraphOnly) {
+        new BlockSummaryMessageLogger(blockGraph, configuration).logBlockGraph();
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
+
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();
+      if (!spawnWorkerForId.isBlank()) {
+        FileUtils.deleteDirectory(outputMessages.toFile());
+        int counter = 0;
+        MessageConverter converter = new MessageConverter();
+        BlockNode blockNode =
+            blocks.stream().filter(b -> b.getId().equals(spawnWorkerForId)).findAny().orElseThrow();
+        Components build =
+            new BlockSummaryWorkerBuilder(
+                    cfa,
+                    new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
+                    specification)
+                .addAnalysisWorker(blockNode, options)
+                .build();
+        BlockSummaryAnalysisWorker actor =
+            (BlockSummaryAnalysisWorker) Iterables.getOnlyElement(build.actors());
+        for (File file : Objects.requireNonNull(inputMessages.toFile().listFiles(File::isFile))) {
+          for (BlockSummaryMessage blockSummaryMessage :
+              actor.processMessage(converter.jsonToMessage(Files.readAllBytes(file.toPath())))) {
+            Path message = outputMessages.resolve("M" + counter++ + ".txt");
+            Files.write(message, converter.messageToJson(blockSummaryMessage));
+          }
+        }
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
+
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
                   cfa,

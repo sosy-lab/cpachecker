@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -322,12 +323,12 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
     public byte[] messageToJson(BlockSummaryMessage pMessage) throws IOException {
       // return mapper.writeValueAsBytes(pMessage);
-      return mapper.writeValueAsBytes(pMessage);
+      return Base64.getEncoder().encode(mapper.writeValueAsBytes(pMessage));
     }
 
     public BlockSummaryMessage jsonToMessage(byte[] pBytes) throws IOException {
       // return mapper.readValue(pBytes, Message.class);
-      return mapper.readValue(pBytes, BlockSummaryMessage.class);
+      return mapper.readValue(Base64.getDecoder().decode(pBytes), BlockSummaryMessage.class);
     }
   }
 
