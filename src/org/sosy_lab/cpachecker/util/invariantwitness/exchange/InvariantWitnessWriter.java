@@ -13,8 +13,6 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyD
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef.ASSUMPTIONSCOPE;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef.CONTROLCASE;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef.FUNCTIONENTRY;
-import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef.OFFSET;
-import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef.STARTLINE;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -51,22 +50,27 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.WitnessToYamlWitnessConverter;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LocationInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
@@ -101,6 +105,12 @@ public final class InvariantWitnessWriter {
           "If enabled, this option will not just output loop invariants,"
               + "but also general location invariants at other locations.")
   private boolean writeLocationInvariants = false;
+
+  @Option(
+      secure = true,
+      description =
+          "If enabled, this option will output the invariants in the now deprecated YAML format.")
+  private boolean outputDeprecatedYAMLFormat = false;
 
   private InvariantWitnessWriter(
       Configuration pConfig,
@@ -196,11 +206,18 @@ public final class InvariantWitnessWriter {
     logger.logf(
         Level.INFO, "Exporting %d invariant witnesses to %s", invariantWitnesses.size(), outFile);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      for (InvariantWitness invariantWitness : invariantWitnesses) {
-        InvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
-        String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
+      if (outputDeprecatedYAMLFormat) {
+        for (InvariantWitness invariantWitness : invariantWitnesses) {
+          InvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
+          String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
+          writer.write(entryYaml);
+        }
+      } else {
+        InvariantSetEntry invariantSet = invariantWitnessesToInvariantEntry(invariantWitnesses);
+        String entryYaml = mapper.writeValueAsString(ImmutableList.of(invariantSet));
         writer.write(entryYaml);
       }
+
     } catch (IOException e) {
       logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
     }
@@ -294,6 +311,45 @@ public final class InvariantWitnessWriter {
     return entry;
   }
 
+  private InvariantSetEntry invariantWitnessesToInvariantEntry(
+      Collection<InvariantWitness> pInvariantWitnesses) {
+    final MetadataRecord metadata = createMetadataRecord();
+
+    ImmutableList.Builder<InvariantRecord> invariantRecordBuilder = ImmutableList.builder();
+    for (InvariantWitness invariantWitness : pInvariantWitnesses) {
+      final String fileName = invariantWitness.getLocation().getFileName().toString();
+      final int lineNumber = invariantWitness.getLocation().getStartingLineInOrigin();
+      final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
+      final int offsetInLine = invariantWitness.getLocation().getNodeOffset() - lineOffset;
+
+      LocationRecord location =
+          new LocationRecord(
+              fileName,
+              "file_hash",
+              lineNumber,
+              offsetInLine,
+              invariantWitness.getNode().getFunctionName());
+
+      if (invariantWitness.getNode().isLoopStart()) {
+        invariantRecordBuilder.add(
+            new InvariantRecord(
+                invariantWitness.getFormula().toString(),
+                InvariantRecordType.LOOP_INVARIANT.getKeyword(),
+                "c_expression",
+                location));
+      } else {
+        invariantRecordBuilder.add(
+            new InvariantRecord(
+                invariantWitness.getFormula().toString(),
+                InvariantRecordType.LOCATION_INVARIANT.getKeyword(),
+                "c_expression",
+                location));
+      }
+    }
+
+    return new InvariantSetEntry(metadata, invariantRecordBuilder.build());
+  }
+
   private MetadataRecord createMetadataRecord() {
     ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
     String creationTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
@@ -343,42 +399,46 @@ public final class InvariantWitnessWriter {
         TransitionCondition label = e.getLabel();
         Map<KeyDef, String> attrs = label.getMapping();
         String successor = e.getTarget();
+        builder.add(successor);
         if (witness.getNodeFlags().get(successor).contains(NodeFlag.ISSINKNODE)) {
           continue; // we ignore sink nodes for now
         }
+        Optional<LocationRecord> location = createLocationRecord(attrs, e);
+        if (location.isEmpty()) {
+          continue;
+        }
         if (attrs.get(FUNCTIONENTRY) != null) {
-          SegmentRecord segement = makeFunctionEntryWaypoint(attrs);
+          SegmentRecord segement = makeFunctionEntrySegment(attrs, location.orElseThrow());
           segments.add(segement);
         } else if (attrs.get(CONTROLCASE) != null) {
-          SegmentRecord waypoint = makeBranchingWaypoint(attrs);
-          segments.add(waypoint);
+          Optional<SegmentRecord> segment = handleControlEdge(attrs, location.orElseThrow());
+          segment.ifPresent(segments::add);
         } else if (attrs.get(ASSUMPTION) != null) {
-          SegmentRecord waypoint = makeAssumptionWaypoint(attrs);
+          SegmentRecord waypoint = makeAssumptionSegment(attrs, location.orElseThrow());
           segments.add(waypoint);
         }
-        builder.add(successor);
       }
       return builder.build();
     }
 
-    private SegmentRecord makeBranchingWaypoint(Map<KeyDef, String> attrs) {
+    private Optional<SegmentRecord> handleControlEdge(
+        Map<KeyDef, String> attrs, LocationRecord location) {
       Preconditions.checkState(
           ImmutableSet.of("condition-true", "condition-false").contains(attrs.get(CONTROLCASE)));
       InformationRecord info =
           new InformationRecord(
               attrs.get(CONTROLCASE).equals("condition-true") ? "true" : "false", null, null);
-      LocationRecord location = createLocationRecord(attrs);
       WaypointRecord waypoint =
           new WaypointRecord(
               WaypointRecord.WaypointType.BRANCHING,
               WaypointRecord.WaypointAction.FOLLOW,
               info,
               location);
-      return new SegmentRecord(ImmutableList.of(waypoint));
+      return Optional.of(new SegmentRecord(ImmutableList.of(waypoint)));
     }
 
-    private SegmentRecord makeAssumptionWaypoint(Map<KeyDef, String> attrs) {
-      LocationRecord location = createLocationRecord(attrs);
+    private SegmentRecord makeAssumptionSegment(
+        Map<KeyDef, String> attrs, LocationRecord location) {
       InformationRecord inv = new InformationRecord(attrs.get(ASSUMPTION), null, "C");
       WaypointRecord waypoint =
           new WaypointRecord(
@@ -389,8 +449,8 @@ public final class InvariantWitnessWriter {
       return new SegmentRecord(ImmutableList.of(waypoint));
     }
 
-    private SegmentRecord makeFunctionEntryWaypoint(Map<KeyDef, String> attrs) {
-      LocationRecord location = createLocationRecord(attrs);
+    private SegmentRecord makeFunctionEntrySegment(
+        @SuppressWarnings("unused") Map<KeyDef, String> attrs, LocationRecord location) {
       WaypointRecord waypoint =
           new WaypointRecord(
               WaypointRecord.WaypointType.FUNCTION_ENTER,
@@ -400,15 +460,55 @@ public final class InvariantWitnessWriter {
       return new SegmentRecord(ImmutableList.of(waypoint));
     }
 
-    private LocationRecord createLocationRecord(Map<KeyDef, String> attrs) {
+    private Optional<LocationRecord> createLocationRecord(Map<KeyDef, String> attrs, Edge edge) {
+      CFAEdge e = tryFindNextEdgeInWitness(edge);
+      if (e == null) {
+        return Optional.empty();
+      }
+      int offset = e.getFileLocation().getNodeOffset();
+      int line = e.getFileLocation().getStartingLineInOrigin();
+      if (line == 0) {
+        return Optional.empty();
+      }
+      int lineoffset = lineOffsetsByFile.get(witness.getOriginFile()).get(line - 1);
+      int column = offset - lineoffset;
       @Nullable String function = attrs.get(ASSUMPTIONSCOPE);
-      int startline = Integer.parseInt(attrs.get(STARTLINE));
-      int lineoffset = lineOffsetsByFile.get(witness.getOriginFile()).get(startline - 1);
-      int column = Integer.parseInt(attrs.get(OFFSET)) - lineoffset;
       LocationRecord location =
-          new LocationRecord(
-              witness.getOriginFile(), getProgramHash(), startline, column, function);
-      return location;
+          new LocationRecord(witness.getOriginFile(), getProgramHash(), line, column, function);
+      return Optional.of(location);
+    }
+
+    private @Nullable CFAEdge tryFindNextEdgeInWitness(Edge edge) {
+      List<CFAEdge> cfaEdges = witness.getCFAEdgeFor(edge);
+      if (cfaEdges.size() != 1) {
+        return null;
+      }
+      CFAEdge cfaEdge = cfaEdges.get(0);
+      Set<CFAEdge> linearReach = forwardLinearReach(cfaEdge);
+      String target = edge.getTarget();
+      for (Edge e : witness.getLeavingEdges().get(target)) {
+        String successor = e.getTarget();
+        if (witness.getNodeFlags().get(successor).contains(NodeFlag.ISSINKNODE)) {
+          continue;
+        }
+        List<CFAEdge> currentlyRepresentedCFAEdges = witness.getCFAEdgeFor(e);
+        Set<CFAEdge> intersection = new HashSet<>(currentlyRepresentedCFAEdges);
+        intersection.retainAll(linearReach);
+        if (!intersection.isEmpty()) {
+          return intersection.iterator().next();
+        }
+      }
+      return null;
+    }
+
+    private Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
+      CFAEdge current = edge;
+      ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+      while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
+        current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
+        builder.add(current);
+      }
+      return builder.build();
     }
 
     private String getProgramHash() {

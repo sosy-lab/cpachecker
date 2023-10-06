@@ -8,43 +8,17 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 @Immutable
-public class InformationRecord {
-  @JsonProperty("string")
-  private final String string;
-
-  @JsonProperty("type")
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  private final String type;
-
-  @JsonProperty("format")
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  private final String format;
-
+public final class InformationRecord extends AbstractInformationRecord {
   public InformationRecord(
-      @JsonProperty("string") String string,
+      @JsonProperty("value") String string,
       @JsonProperty("type") String type,
       @JsonProperty("format") String format) {
-    this.string = string;
-    this.type = type;
-    this.format = format;
-  }
-
-  public String getString() {
-    return string;
-  }
-
-  public String getType() {
-    return type;
-  }
-
-  public String getFormat() {
-    return format;
+    super(string, type, format);
   }
 
   @Override
@@ -53,14 +27,14 @@ public class InformationRecord {
       return true;
     }
     return o instanceof InformationRecord invariantStoreEntryLoopInvariant
-        && Objects.equals(string, invariantStoreEntryLoopInvariant.string)
+        && Objects.equals(value, invariantStoreEntryLoopInvariant.value)
         && Objects.equals(type, invariantStoreEntryLoopInvariant.type)
         && Objects.equals(format, invariantStoreEntryLoopInvariant.format);
   }
 
   @Override
   public int hashCode() {
-    int hashCode = string.hashCode();
+    int hashCode = value.hashCode();
     hashCode = 31 * hashCode + (type != null ? type.hashCode() : 0);
     hashCode = 31 * hashCode + (format != null ? format.hashCode() : 0);
     return hashCode;
@@ -70,7 +44,7 @@ public class InformationRecord {
   public String toString() {
     return "InformationRecord{"
         + " string='"
-        + getString()
+        + getValue()
         + "'"
         + ", type='"
         + getType()

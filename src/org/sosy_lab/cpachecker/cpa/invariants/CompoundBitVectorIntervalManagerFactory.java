@@ -41,7 +41,7 @@ public final class CompoundBitVectorIntervalManagerFactory
   @Override
   public CompoundIntervalManager createCompoundIntervalManager(
       MachineModel pMachineModel, Type pType) {
-    return createCompoundIntervalManager(BitVectorInfo.from(pMachineModel, pType));
+    return createCompoundIntervalManager(TypeInfo.from(pMachineModel, pType));
   }
 
   @Override

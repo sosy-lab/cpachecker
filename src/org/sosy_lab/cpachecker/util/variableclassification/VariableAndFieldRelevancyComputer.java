@@ -49,10 +49,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -472,17 +472,14 @@ final class VariableAndFieldRelevancyComputer {
           if (!(decl instanceof CVariableDeclaration)) {
             break;
           }
-          CType declType = decl.getType().getCanonicalType();
-          if (declType instanceof CArrayType) {
-            CExpression length = ((CArrayType) declType).getLength();
-            if (length != null) {
-              result =
-                  result.withDependencies(
-                      length.accept(
-                          CollectingRHSVisitor.create(
-                              pCfa, VariableOrField.newVariable(decl.getQualifiedName()))));
-            }
+          for (CExpression exp : CTypes.getArrayLengthExpressions(decl.getType())) {
+            result =
+                result.withDependencies(
+                    exp.accept(
+                        CollectingRHSVisitor.create(
+                            pCfa, VariableOrField.newVariable(decl.getQualifiedName()))));
           }
+
           CollectingLHSVisitor collectingLHSVisitor = CollectingLHSVisitor.create(pCfa);
           for (CExpressionAssignmentStatement init :
               CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {

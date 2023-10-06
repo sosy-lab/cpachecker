@@ -41,7 +41,7 @@ public class InvariantWitnessTest {
       if (e instanceof LoopInvariantEntry invEntry) {
         assertThat(invEntry.getLocation().getFileName()).isEqualTo("multivar_1-1.c");
       } else if (e instanceof LoopInvariantCertificateEntry invCertEntry) {
-        assertThat(invCertEntry.getCertification().getString()).isEqualTo("confirmed");
+        assertThat(invCertEntry.getCertification().getValue()).isEqualTo("confirmed");
       }
     }
   }
@@ -55,7 +55,7 @@ public class InvariantWitnessTest {
         List<SegmentRecord> sequence = ((ViolationSequenceEntry) e).getContent();
         assertThat(sequence).hasSize(5);
         assertThat(sequence.get(0).getSegment().size()).isAtLeast(1);
-        assertThat(sequence.get(0).getSegment().get(0).getConstraint().getString())
+        assertThat(sequence.get(0).getSegment().get(0).getConstraint().getValue())
             .isEqualTo("(x >= 1024U)");
       }
     }

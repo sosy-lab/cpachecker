@@ -69,12 +69,16 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
       Map<String, String> pIdentificationMap,
       Map<String, String> pClassTypeMap,
       String pClassObjectScope,
-      Deque<String> pClassObjectStack) {
+      Deque<String> pClassObjectStack,
+      Set<String> pStaticFieldVariables,
+      Set<String> pNonStaticFieldVariables) {
     constantsMap = pConstantsMap;
     identificationMap = pIdentificationMap;
     classTypeMap = pClassTypeMap;
     classObjectStack = pClassObjectStack;
     classObjectScope = pClassObjectScope;
+    staticFieldVariables.addAll(pStaticFieldVariables);
+    nonStaticFieldVariables.addAll(pNonStaticFieldVariables);
   }
 
   /**
@@ -229,6 +233,9 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
     Map<String, String> newIdentificationMap = new HashMap<>(0);
     Map<String, String> newClassTypeMap = new HashMap<>(0);
 
+    Set<String> newStaticFieldSet = new HashSet<>();
+    Set<String> newNonStaticFieldSet = new HashSet<>();
+
     for (Map.Entry<String, String> otherEntry : other.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
 
@@ -253,10 +260,22 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
       }
     }
 
+    newStaticFieldSet.addAll(staticFieldVariables);
+    newStaticFieldSet.addAll(other.staticFieldVariables);
+
+    newNonStaticFieldSet.addAll(nonStaticFieldVariables);
+    newNonStaticFieldSet.addAll(other.nonStaticFieldVariables);
+
     // TODO no this for unequal scope (Is it possible)
 
     return new RTTState(
-        newConstantsMap, newIdentificationMap, newClassTypeMap, classObjectScope, classObjectStack);
+        newConstantsMap,
+        newIdentificationMap,
+        newClassTypeMap,
+        classObjectScope,
+        classObjectStack,
+        newStaticFieldSet,
+        newNonStaticFieldSet);
   }
 
   /**
@@ -303,7 +322,9 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
         new HashMap<>(old.identificationMap),
         new HashMap<>(old.classTypeMap),
         old.classObjectScope,
-        newClassObjectStack);
+        newClassObjectStack,
+        old.staticFieldVariables,
+        old.nonStaticFieldVariables);
   }
 
   @Override

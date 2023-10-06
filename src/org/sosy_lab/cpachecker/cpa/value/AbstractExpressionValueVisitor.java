@@ -74,12 +74,14 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -1546,14 +1548,53 @@ public abstract class AbstractExpressionValueVisitor
 
     switch (idOperator) {
       case SIZEOF:
-        BigInteger size = machineModel.getSizeof(innerType);
-        return new NumericValue(size);
+        if (innerType.hasKnownConstantSize()) {
+          BigInteger size = machineModel.getSizeof(innerType);
+          return new NumericValue(size);
+        }
+        return Value.UnknownValue.getInstance();
 
       case ALIGNOF:
         return new NumericValue(machineModel.getAlignof(innerType));
 
       default: // TODO support more operators
         return Value.UnknownValue.getInstance();
+    }
+  }
+
+  private final class SizeofVisitor extends BaseSizeofVisitor<UnrecognizedCodeException> {
+
+    private boolean sizeKnown = true;
+
+    SizeofVisitor() {
+      super(machineModel);
+    }
+
+    Value evaluateSizeof(CType pType) throws UnrecognizedCodeException {
+      BigInteger size = machineModel.getSizeof(pType, this);
+      if (sizeKnown) {
+        return new NumericValue(size);
+      } else {
+        return Value.UnknownValue.getInstance();
+      }
+    }
+
+    @Override
+    protected BigInteger evaluateArrayLength(CExpression pLength, CArrayType pArrayType)
+        throws UnrecognizedCodeException {
+      // This covers the most common and relevant case, handling other cases could be unsound
+      // because we would need to use variable values from the declaration time of the array.
+      // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1146
+      if (pLength instanceof CIdExpression idExpression
+          && idExpression.getExpressionType().isConst()) {
+        Value lengthValue = pLength.accept(AbstractExpressionValueVisitor.this);
+        if (lengthValue.isNumericValue()) {
+          return lengthValue.asNumericValue().bigIntegerValue();
+        }
+      }
+
+      sizeKnown = false;
+      return BigInteger.ZERO; // dummy value, will be ignored in evaluateSizeof()
     }
   }
 
@@ -1573,12 +1614,28 @@ public abstract class AbstractExpressionValueVisitor
     final CExpression unaryOperand = unaryExpression.getOperand();
 
     if (unaryOperator == UnaryOperator.SIZEOF) {
-      return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
+      return new SizeofVisitor().evaluateSizeof(unaryOperand.getExpressionType());
     }
     if (unaryOperator == UnaryOperator.ALIGNOF) {
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
+      // We can handle &((struct foo*)0)->field
+      if (unaryOperand instanceof CFieldReference fieldRef
+          && fieldRef.isPointerDereference()
+          && fieldRef.getFieldOwner() instanceof CCastExpression cast
+          && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
+          && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
+        Value baseAddress = cast.getOperand().accept(this);
+        if (baseAddress.isNumericValue()) {
+          Optional<BigInteger> offset =
+              machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
+          if (offset.isPresent()) {
+            return new NumericValue(
+                baseAddress.asNumericValue().bigIntegerValue().add(offset.orElseThrow()));
+          }
+        }
+      }
       return Value.UnknownValue.getInstance();
     }
 

@@ -163,13 +163,19 @@ public class ExpressionToFormulaVisitor
   }
 
   private NumeralFormula<CompoundInterval> asConstant(Type pType, CompoundInterval pValue) {
-    return InvariantsFormulaManager.INSTANCE.asConstant(
-        BitVectorInfo.from(machineModel, pType), pValue);
+    return InvariantsFormulaManager.INSTANCE.asConstant(TypeInfo.from(machineModel, pType), pValue);
   }
 
   private NumeralFormula<CompoundInterval> asVariable(Type pType, MemoryLocation pMemoryLocation) {
-    return InvariantsFormulaManager.INSTANCE.asVariable(
-        BitVectorInfo.from(machineModel, pType), pMemoryLocation);
+    if (TypeInfo.isSupported(pType)) {
+      return InvariantsFormulaManager.INSTANCE.asVariable(
+          TypeInfo.from(machineModel, pType), pMemoryLocation);
+    } else {
+      // Use dummy type. Would be better to not use a 0-size bitvector type,
+      // but at least this is better than a wrong non-zero size.
+      return InvariantsFormulaManager.INSTANCE.asVariable(
+          BitVectorInfo.from(0, false), pMemoryLocation);
+    }
   }
 
   @Override
@@ -228,7 +234,7 @@ public class ExpressionToFormulaVisitor
               operandExpression, pCUnaryExpression.getExpressionType());
     }
     NumeralFormula<CompoundInterval> operand = operandExpression.accept(this);
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pCUnaryExpression.getExpressionType());
+    TypeInfo typeInfo = TypeInfo.from(machineModel, pCUnaryExpression.getExpressionType());
     operand = compoundIntervalFormulaManager.cast(typeInfo, operand);
     final NumeralFormula<CompoundInterval> result =
         switch (pCUnaryExpression.getOperator()) {
@@ -254,7 +260,7 @@ public class ExpressionToFormulaVisitor
     CExpression expression =
         makeCastFromArrayToPointerIfNecessary(
             pCCastExpression.getOperand(), pCCastExpression.getCastType());
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pCCastExpression.getCastType());
+    TypeInfo typeInfo = TypeInfo.from(machineModel, pCCastExpression.getCastType());
     return compoundIntervalFormulaManager.cast(typeInfo, expression.accept(this));
   }
 
@@ -282,7 +288,7 @@ public class ExpressionToFormulaVisitor
     final CType promLeft = getPromotedCType(t1).getCanonicalType();
     final CType promRight = getPromotedCType(t2).getCanonicalType();
 
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, calculationType);
+    TypeInfo typeInfo = TypeInfo.from(machineModel, calculationType);
     NumeralFormula<CompoundInterval> left =
         makeCastFromArrayToPointerIfNecessary(pCBinaryExpression.getOperand1(), calculationType)
             .accept(this);
@@ -454,7 +460,7 @@ public class ExpressionToFormulaVisitor
     BooleanFormula<CompoundInterval> logicalLeft = compoundIntervalFormulaManager.fromNumeral(left);
     BooleanFormula<CompoundInterval> logicalRight =
         compoundIntervalFormulaManager.fromNumeral(right);
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pBinaryExpression.getExpressionType());
+    TypeInfo typeInfo = TypeInfo.from(machineModel, pBinaryExpression.getExpressionType());
     switch (pBinaryExpression.getOperator()) {
       case BINARY_AND:
         return allPossibleValues(pBinaryExpression);
@@ -563,7 +569,7 @@ public class ExpressionToFormulaVisitor
   @Override
   public NumeralFormula<CompoundInterval> visit(JUnaryExpression pUnaryExpression)
       throws UnrecognizedCodeException {
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pUnaryExpression.getExpressionType());
+    TypeInfo typeInfo = TypeInfo.from(machineModel, pUnaryExpression.getExpressionType());
     switch (pUnaryExpression.getOperator()) {
       case MINUS:
         return compoundIntervalFormulaManager.negate(pUnaryExpression.getOperand().accept(this));
@@ -646,7 +652,7 @@ public class ExpressionToFormulaVisitor
   @Override
   public NumeralFormula<CompoundInterval> visit(JCastExpression pCastExpression)
       throws UnrecognizedCodeException {
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pCastExpression.getCastType());
+    TypeInfo typeInfo = TypeInfo.from(machineModel, pCastExpression.getCastType());
     return compoundIntervalFormulaManager.cast(typeInfo, pCastExpression.getOperand().accept(this));
   }
 
@@ -694,7 +700,7 @@ public class ExpressionToFormulaVisitor
       Type pTargetType,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
 
-    TypeInfo typeInfo = BitVectorInfo.from(pMachineModel, pTargetType);
+    TypeInfo typeInfo = TypeInfo.from(pMachineModel, pTargetType);
 
     CompoundIntervalFormulaManager cifm =
         new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);

@@ -72,7 +72,7 @@ public class LocationRecord {
     }
     return o instanceof LocationRecord other
         && fileName.equals(other.fileName)
-        && fileHash.equals(other.fileHash)
+        && Objects.equals(fileHash, other.fileHash)
         && line == other.line
         && column == other.column
         && Objects.equals(function, other.function);
@@ -81,7 +81,7 @@ public class LocationRecord {
   @Override
   public int hashCode() {
     int hashCode = fileName.hashCode();
-    hashCode = 31 * hashCode + fileHash.hashCode();
+    hashCode = 31 * hashCode + (fileHash != null ? fileHash.hashCode() : 0);
     hashCode = 31 * hashCode + Integer.hashCode(line);
     hashCode = 31 * hashCode + Integer.hashCode(column);
     hashCode = 31 * hashCode + (function != null ? function.hashCode() : 0);

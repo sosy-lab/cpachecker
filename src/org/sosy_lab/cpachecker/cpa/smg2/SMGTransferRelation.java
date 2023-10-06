@@ -605,7 +605,7 @@ public class SMGTransferRelation
       CType cParamType,
       CFAEdge callEdge,
       SMGState pCurrentState)
-      throws SMGException {
+      throws CPATransferException {
     SMGState currentState = pCurrentState;
     if (valueType instanceof CArrayType && cParamType instanceof CArrayType) {
       // Take the pointer to the local array and get the memory area, then associate this memory
@@ -730,7 +730,7 @@ public class SMGTransferRelation
           for (SMGState stateWithConstraint : statesWithConstraints) {
             if (options.isSatCheckStrategyAtAssume()) {
               BooleanAndSMGState solverResult = solver.isUnsat(stateWithConstraint, functionName);
-              if (solverResult.getBoolean()) {
+              if (!solverResult.getBoolean()) {
                 resultStateBuilder.add(solverResult.getState());
               }
               // We might add/return nothing here if the check was UNSAT
@@ -1099,7 +1099,7 @@ public class SMGTransferRelation
       CType rightHandSideType,
       SMGState pCurrentState,
       CFAEdge edge)
-      throws SMGException {
+      throws CPATransferException {
     SMGState currentState = pCurrentState;
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
