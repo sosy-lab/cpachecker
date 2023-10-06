@@ -2861,8 +2861,9 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode dummyExceptionEquals = new CFANode(cfa.getFunction());
     cfaNodes.add(dummyExceptionEquals);
 
-    nextCatchBlockOrError.push(new CFANode(cfa.getFunction()));
-    cfaNodes.add(nextCatchBlockOrError.peek());
+    CFANode afterCurrentCatch = new CFANode(cfa.getFunction());
+    nextCatchBlockOrError.add(afterCurrentCatch);
+    cfaNodes.add(afterCurrentCatch);
 
     CFANode start = null;
 
@@ -2974,7 +2975,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private void handleEndOfCatch() {
     if (numberCatches != 0) {
-      locStack.push(nextCatchBlockOrError.peek());
+      locStack.push(nextCatchBlockOrError.pop());
     } else {
       numberCatchesNested.pop();
       if (!numberCatchesNested.isEmpty()) {
