@@ -37,8 +37,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BridgeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.FunctionDecomposer;
@@ -49,8 +51,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryDefaultQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryPrioritizeErrorConditionQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
@@ -63,6 +68,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.Block
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder.Components;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -277,15 +283,64 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           Precision initialPrecision = reachedSet.getPrecision(state);
           assert cState != null;
           List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
-          states.add(DummyTargetState.withoutTargetInformation());
-          logger.logf(Level.INFO, "Number of Found Error: %s", resultPair.violations().size());
-          for (int i = 0; i < resultPair.violations().size(); i++) {
-            logger.logf(Level.INFO, "Error Number: %s", i + 1);
-            logger.logf(Level.INFO, "Error Node: %s", resultPair.violations().get(i).get(0));
-            logger.logf(Level.INFO, "Error Trace: %s", resultPair.violations().get(i).get(2));
-            states.add((ARGState) resultPair.violations().get(i).get(1));
+          if (decompositionType != DecompositionType.FUNCTION_DECOMPOSITION) {
+            states.add(DummyTargetState.withoutTargetInformation());
+            reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
+          } else {
+            ConfigurableProgramAnalysis cpa =
+                DCPAAlgorithmFactory.createAlgorithm(
+                        logger,
+                        specification,
+                        cfa,
+                        configuration,
+                        shutdownManager,
+                        blockGraph.getRoot())
+                    .cpa();
+            DistributedConfigurableProgramAnalysis distribute =
+                DCPAFactory.distribute(cpa, blockGraph.getRoot(), AnalysisDirection.FORWARD, cfa);
+            logger.logf(Level.INFO, "Number of Found Error: %s", resultPair.violations().size());
+            int y = 0;
+            for (var x : resultPair.violations()) {
+              y++;
+              logger.logf(Level.INFO, "Error Number: %s", y);
+              assert distribute != null;
+              logger.logf(
+                  Level.INFO,
+                  "Error Node: %s",
+                  ((ARGState)
+                          distribute
+                              .getDeserializeOperator()
+                              .deserialize(
+                                  (BlockSummaryMessage.newSerializationMessage(
+                                      "", (BlockSummaryMessagePayload) x.get(1)))))
+                      .getStateId());
+              ARGState last = null;
+              for (BlockSummaryMessagePayload o : (List<BlockSummaryMessagePayload>) x.get(2)) {
+                if (last != null) {
+                  last =
+                      new ARGState(
+                          ((ARGState)
+                                  distribute
+                                      .getDeserializeOperator()
+                                      .deserialize(
+                                          BlockSummaryMessage.newSerializationMessage("", o)))
+                              .getWrappedState(),
+                          last);
+                } else {
+                  last =
+                      ((ARGState)
+                          (distribute
+                              .getDeserializeOperator()
+                              .deserialize((BlockSummaryMessage.newSerializationMessage("", o)))));
+                  states.add(last);
+                }
+              }
+              reachedSet.addNoWaitlist(
+                  new ARGState(new CompositeState(states), null), initialPrecision);
+              logger.logf(Level.INFO, "Error Trace: %s", reachedSet);
+            }
           }
-          reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
+
         } else if (result == Result.TRUE) {
           reachedSet.clear();
         }

@@ -200,6 +200,17 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
   }
 
+  public static BlockSummaryMessage newSerializationMessage(
+      String pUniqueBlockId, BlockSummaryMessagePayload pPayload) {
+    return new BlockSummaryErrorConditionMessage(
+        pUniqueBlockId,
+        0,
+        BlockSummaryMessagePayload.builder()
+            .addEntry("serializedErrorPaths", pPayload)
+            .buildPayload(),
+        Instant.now());
+  }
+
   public static BlockSummaryMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
     return new BlockSummaryExceptionMessage(
         pUniqueBlockId,

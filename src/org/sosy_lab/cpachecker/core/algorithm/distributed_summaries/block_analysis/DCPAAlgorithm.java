@@ -13,8 +13,10 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,7 +41,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -47,6 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -314,6 +317,15 @@ public class DCPAAlgorithm {
       if (!isInfer) {
         initial = DCPAAlgorithms.appendStatus(status, initial);
       } else {
+        final List<BlockSummaryMessagePayload> errorPath = new ArrayList<>();
+        ARGPath targetPath =
+            targetState.getCounterexampleInformation().orElseThrow().getTargetPath();
+        PathIterator it = targetPath.fullPathIterator();
+        while (it.hasNext()) {
+          ARGState state = it.getAbstractState();
+          it.advance();
+          errorPath.add(dcpa.getSerializeOperator().serialize(state));
+        }
         initial =
             BlockSummaryMessagePayload.builder()
                 .addAllEntries(initial)
@@ -321,13 +333,8 @@ public class DCPAAlgorithm {
                     "violations",
                     transformedImmutableListCopy(
                         violations, v -> AbstractStates.extractLocation(v)))
-                .addEntry("violationState", targetState)
-                .addEntry(
-                    "violationPath",
-                    targetState
-                        .getCounterexampleInformation()
-                        .orElse(CounterexampleInfo.spurious())
-                        .getCFAPathWithAssignments())
+                .addEntry("violationState", dcpa.getSerializeOperator().serialize(targetState))
+                .addEntry("violationPath", errorPath)
                 .buildPayload();
       }
       answers.add(

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -52,6 +53,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
     errorMessage = Optional.empty();
     result = Optional.empty();
     numberOfBlocks = pNumberOfBlocks;
+    collectedBlockSummaryErrorMessages = new ArrayList<>();
   }
 
   @Override
