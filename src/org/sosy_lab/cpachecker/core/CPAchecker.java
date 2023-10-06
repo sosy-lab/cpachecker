@@ -321,7 +321,7 @@ public class CPAchecker {
       case LLVM -> msg.append(
           "If you want to use the LLVM frontend, please make sure that\n"
               + "the code can be compiled by clang or input valid LLVM code.\n");
-      default -> { } // do not log additional messages
+      default -> {} // do not log additional messages
     }
     msg.append(
         "If the error still occurs, please send this error message\n"
