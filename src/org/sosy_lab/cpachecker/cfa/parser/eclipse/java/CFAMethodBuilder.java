@@ -2895,28 +2895,43 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(dummyExceptionEquals);
 
-    cc.getException().accept(this);
+    JDeclaration declaration = astCreator.convert(cc.getException());
+    JClassType type = (JClassType) astCreator.convert(cc.getException().getType());
+    FileLocation fileLoc = astCreator.getFileLocation(cc.getException());
+
+    CFANode prevNode = locStack.pop();
+
+    CFANode nextNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(nextNode);
+
+    final JDeclarationEdge edge =
+        new JDeclarationEdge(
+            cc.getException().toString(), fileLoc, prevNode, nextNode, declaration);
+    addToCFA(edge);
+
+    scope.registerDeclarationOfThisClass(declaration);
+
+    locStack.push(nextNode);
 
     CFANode afterDeclaration = new CFANode(cfa.getFunction());
     cfaNodes.add(afterDeclaration);
-    JDeclaration declaration = astCreator.convert(cc.getException());
 
     JExpressionAssignmentStatement exceptionDeclaration =
         setVariableRightSideExpression(
-            astCreator.getFileLocation(cc.getException()),
-            HelperVariable.getInstance().getCurrentClassType(),
+            fileLoc,
+            type,
             cc.getException().getName().toString(),
             declaration,
             HelperVariable.getInstance().getCurrentHelperIdExpression());
 
-    JStatementEdge edge =
+    JStatementEdge assignmentEdge =
         new JStatementEdge(
             exceptionDeclaration.toString(),
             exceptionDeclaration,
             FileLocation.DUMMY,
             locStack.pop(),
             afterDeclaration);
-    addToCFA(edge);
+    addToCFA(assignmentEdge);
 
     locStack.push(afterDeclaration);
 
