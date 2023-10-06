@@ -26,8 +26,10 @@ import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
-public class RTTState extends AbstractAppender implements LatticeAbstractState<RTTState> {
+public class RTTState extends AbstractAppender
+    implements LatticeAbstractState<RTTState>, Graphable {
 
   public static final String KEYWORD_THIS = "this";
 
@@ -397,5 +399,21 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
 
   void assignAssumptionType(String pReferenz, JClassOrInterfaceType pAssignableType) {
     assignNewUniqueObject(pReferenz, pAssignableType.getName());
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("[");
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, constantsMap);
+    sb.append("]");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 }
