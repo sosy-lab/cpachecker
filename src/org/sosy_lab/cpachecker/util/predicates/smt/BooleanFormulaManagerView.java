@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collector;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
@@ -119,6 +118,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     return manager.makeBoolean(pValue);
   }
 
+  @Override
   public BooleanFormula makeTrue() {
     return manager.makeTrue();
   }
