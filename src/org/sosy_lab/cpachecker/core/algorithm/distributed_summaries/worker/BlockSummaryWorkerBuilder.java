@@ -107,6 +107,26 @@ public class BlockSummaryWorkerBuilder {
     return this;
   }
 
+  @CanIgnoreReturnValue
+  public BlockSummaryWorkerBuilder addHubWorker(
+      BlockNode pNode,
+      BlockSummaryAnalysisOptions pOptions,
+      ShutdownManager pShutdownManager,
+      int pMaxThreads) {
+    workerGenerators.add(
+        connection ->
+            new BlockSummaryHubAnalysisWorker(
+                nextId(pNode.getId()),
+                connection,
+                cfa,
+                specification,
+                pShutdownManager,
+                pMaxThreads,
+                pNode,
+                pOptions));
+    return this;
+  }
+
   private String nextId(String pAdditionalIdentifier) {
     return "W" + workerGenerators.size() + pAdditionalIdentifier;
   }

@@ -107,6 +107,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
   @Option(
       description =
+          "How workers should behave. Unlike DSS, INVARIANTS works with guessed summaries.")
+  private Strategy strategy = Strategy.DSS;
+
+  @Option(
+      description =
           "Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION creates blocks"
               + " from each merge/branching point to the next merge/branching point."
               + " MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION. The final"
@@ -165,6 +170,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private enum QueueType {
     ERROR_CONDITION,
     DEFAULT
+  }
+
+  private enum Strategy {
+    DSS,
+    INVARIANTS
   }
 
   public BlockSummaryAnalysis(
@@ -280,24 +290,10 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
 
-      BlockSummaryWorkerBuilder builder =
-          new BlockSummaryWorkerBuilder(
-                  cfa,
-                  new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
-                  specification)
-              .createAdditionalConnections(1)
-              .addRootWorker(blockGraph.getRoot(), options);
-      for (BlockNode distinctNode : blocks) {
-        averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
-        builder = builder.addAnalysisWorker(distinctNode, options);
+      Components components = createComponents(cfa, blockGraph);
+      if (components.connections().size() != 1) {
+        throw new CPAException("Components need to provide exactly one additional connection");
       }
-      builder = builder.addResultCollectorWorker(blocks, options);
-
-      if (spawnUtilWorkers) {
-        builder = builder.addVisualizationWorker(blockGraph, options);
-      }
-
-      Components components = builder.build();
 
       numberWorkers.setNextValue(components.actors().size());
 
@@ -337,6 +333,62 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
+  }
+
+  private Components createComponents(CFA pCfa, BlockGraph pBlockGraph)
+      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+    return switch (strategy) {
+      case DSS -> createComponentsDSS(pCfa, pBlockGraph);
+      case INVARIANTS -> createComponentsInvariants(pCfa, pBlockGraph);
+    };
+  }
+
+  private Components createComponentsDSS(CFA cfa, BlockGraph blockGraph)
+      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+    ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
+    BlockSummaryWorkerBuilder builder =
+        new BlockSummaryWorkerBuilder(
+                cfa, new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()), specification)
+            .createAdditionalConnections(1)
+            .addRootWorker(blockGraph.getRoot(), options);
+    for (BlockNode distinctNode : blocks) {
+      averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
+      builder = builder.addAnalysisWorker(distinctNode, options);
+    }
+    builder = builder.addResultCollectorWorker(blocks, options);
+    if (spawnUtilWorkers) {
+      builder = builder.addVisualizationWorker(blockGraph, options);
+    }
+    return builder.build();
+  }
+
+  private Components createComponentsInvariants(CFA cfa, BlockGraph blockGraph)
+      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+    ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
+    BlockSummaryWorkerBuilder builder =
+        new BlockSummaryWorkerBuilder(
+                cfa, new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()), specification)
+            .createAdditionalConnections(1)
+            .addRootWorker(blockGraph.getRoot(), options);
+    int sum =
+        Integer.max(
+            1,
+            blocks.stream()
+                .mapToInt(b -> b.getSuccessorIds().size() * b.getPredecessorIds().size())
+                .sum());
+    int cores = Runtime.getRuntime().availableProcessors();
+    for (BlockNode distinctNode : blocks) {
+      averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
+      int share = distinctNode.getSuccessorIds().size() * distinctNode.getPredecessorIds().size();
+      double percentage = ((double) share) / ((double) sum);
+      int coresForBlock = Integer.max(1, (int) Math.round(percentage * cores));
+      builder = builder.addHubWorker(distinctNode, options, shutdownManager, coresForBlock);
+    }
+    builder = builder.addResultCollectorWorker(blocks, options);
+    if (spawnUtilWorkers) {
+      builder = builder.addVisualizationWorker(blockGraph, options);
+    }
+    return builder.build();
   }
 
   @Override

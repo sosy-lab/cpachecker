@@ -3790,6 +3790,11 @@ distributedSummaries.spawnUtilWorkers = false
 # Whether to spawn a worker for only one block id
 distributedSummaries.spawnWorkerForId = ""
 
+# How workers should behave. Unlike DSS, INVARIANTS works with guessed
+# summaries.
+distributedSummaries.strategy = DSS
+  enum:     [DSS, INVARIANTS]
+
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
 
