@@ -13,16 +13,20 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Strings;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemHolder;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
+import org.eclipse.cdt.core.dom.ast.IType;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.CodePosition;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 class ParseContext {
 
@@ -31,6 +35,12 @@ class ParseContext {
   private final Function<String, String> niceFileNameFunction;
 
   private final CSourceOriginMapping sourceOriginMapping;
+
+  /**
+   * cache for all ITypes, so that they don't have to be parsed again and again (Eclipse seems to
+   * give us identical objects for identical types already).
+   */
+  private final Map<String, Map<IType, CType>> typeConversions = new HashMap<>();
 
   ParseContext(
       Function<String, String> pNiceFileNameFunction, CSourceOriginMapping pSourceOriginMapping) {
@@ -108,6 +118,20 @@ class ParseContext {
     }
 
     return sb.toString();
+  }
+
+  CType getCType(IType type, String filePrefix) {
+    if (!typeConversions.containsKey(filePrefix)) {
+      return null;
+    }
+    return typeConversions.get(filePrefix).get(type);
+  }
+
+  void rememberCType(IType originalType, CType cType, String filePrefix) {
+    if (!typeConversions.containsKey(filePrefix)) {
+      typeConversions.put(filePrefix, new HashMap<>());
+    }
+    typeConversions.get(filePrefix).put(originalType, cType);
   }
 
   /** This function returns the converted file-location of an IASTNode. */

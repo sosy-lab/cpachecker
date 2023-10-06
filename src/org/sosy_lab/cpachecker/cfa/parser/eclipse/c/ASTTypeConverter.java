@@ -13,11 +13,7 @@ import static com.google.common.base.Verify.verify;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
@@ -78,41 +74,15 @@ class ASTTypeConverter {
     converter = pConverter;
     filePrefix = pFilePrefix;
     parseContext = pParseContext;
-    if (!typeConversions.containsKey(filePrefix)) {
-      typeConversions.put(filePrefix, new IdentityHashMap<>());
-    }
-  }
-
-  /**
-   * cache for all ITypes, so that they don't have to be parsed again and again (Eclipse seems to
-   * give us identical objects for identical types already).
-   */
-  private static final Map<String, Map<IType, CType>> typeConversions = new HashMap<>();
-
-  /**
-   * This can be used to rename a CType in case of Types with equal names but different fields, from
-   * different files.
-   */
-  static void overwriteType(IType cdtType, CType ourType, String filePrefix) {
-    typeConversions.get(filePrefix).put(cdtType, ourType);
-  }
-
-  static IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
-    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
-      if (ourCType.equals(entry.getValue())) {
-        return entry.getKey();
-      }
-    }
-    return null;
   }
 
   CType convert(IType t) {
-    CType result = typeConversions.get(filePrefix).get(t);
+    CType result = parseContext.getCType(t, filePrefix);
     if (result == null) {
       result = checkNotNull(convert0(t));
       // re-check, in some cases we updated the map already
-      if (!typeConversions.get(filePrefix).containsKey(t)) {
-        typeConversions.get(filePrefix).put(t, result);
+      if (parseContext.getCType(t, filePrefix) != null) {
+        parseContext.rememberCType(t, result, filePrefix);
       }
     }
     return result;
@@ -163,9 +133,9 @@ class ASTTypeConverter {
       // we cheat and put a CElaboratedType instance in the map.
       // This means that wherever the ICompositeType instance appears, it will be
       // replaced by an CElaboratedType.
-      typeConversions
-          .get(filePrefix)
-          .put(t, new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType));
+      CElaboratedType elaborateType =
+          new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType);
+      parseContext.rememberCType(t, elaborateType, filePrefix);
 
       compType.setMembers(conv(ct.getFields()));
 

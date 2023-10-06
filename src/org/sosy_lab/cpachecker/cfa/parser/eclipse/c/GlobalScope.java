@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.eclipse.cdt.core.dom.ast.IType;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
@@ -287,7 +286,6 @@ class GlobalScope extends AbstractScope {
       // the type from the other file
       if (programContainsEqualType) {
         CComplexTypeDeclaration oldProgDeclaration = programDeclarations.getEqualType(declaration);
-        overwriteTypeIfNecessary(type, oldProgDeclaration.getType());
         type = oldProgDeclaration.getType();
 
         // there was already a declaration with this typename before, however
@@ -295,7 +293,6 @@ class GlobalScope extends AbstractScope {
       } else if (programContainsExactNamedType) {
         declaration = createRenamedTypeDeclaration(declaration);
         name = declaration.getType().getQualifiedName();
-        overwriteTypeIfNecessary(type, declaration.getType());
       }
 
       // We now have a real declaration for a type for which we have seen a forward
@@ -311,7 +308,6 @@ class GlobalScope extends AbstractScope {
       // the type from this file instead of the new one
     } else if (programContainsEqualType) {
       declaration = programDeclarations.getEqualType(declaration);
-      overwriteTypeIfNecessary(type, declaration.getType());
 
       // there was no former type declaration here, but the NAME of the type that
       // should be declared is already known from another parsed file, so we rename
@@ -319,7 +315,6 @@ class GlobalScope extends AbstractScope {
     } else if (programContainsExactNamedType) {
       declaration = createRenamedTypeDeclaration(declaration);
       name = declaration.getType().getQualifiedName();
-      overwriteTypeIfNecessary(type, declaration.getType());
     }
 
     if (!programContainsEqualType) {
@@ -328,13 +323,6 @@ class GlobalScope extends AbstractScope {
 
     types.put(name, declaration);
     return true;
-  }
-
-  private void overwriteTypeIfNecessary(CType oldType, CType newType) {
-    IType iType = ASTTypeConverter.getTypeFromTypeConversion(oldType, currentFile);
-    if (iType != null) {
-      ASTTypeConverter.overwriteType(iType, newType, currentFile);
-    }
   }
 
   /**
@@ -386,7 +374,6 @@ class GlobalScope extends AbstractScope {
               renamedCompositeType.getName(),
               renamedCompositeType.getOrigName(),
               renamedCompositeType);
-      overwriteTypeIfNecessary(oldType, renamedElaboratedType);
 
       List<CCompositeTypeMemberDeclaration> newMembers =
           new ArrayList<>(oldCompositeType.getMembers().size());
