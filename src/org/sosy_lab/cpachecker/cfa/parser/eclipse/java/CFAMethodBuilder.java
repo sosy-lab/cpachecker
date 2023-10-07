@@ -866,6 +866,12 @@ class CFAMethodBuilder extends ASTVisitor {
           helperNotEqualsExpression = HelperVariable.getInstance().helperNotEqualsExpression();
         }
 
+        if (nestedFinallyIncorrect != null) {
+          BlankEdge tempCurrent =
+              new BlankEdge("", FileLocation.DUMMY, nestedFinallyIncorrect, current, "");
+          addToCFA(tempCurrent);
+        }
+
         JAssumeEdge notEqualsNullFalse =
             new JAssumeEdge(
                 helperNotEqualsStatement.toString(),
@@ -2799,7 +2805,7 @@ class CFAMethodBuilder extends ASTVisitor {
     currentlyInFinally = tempInFinally;
 
     if (tryStatement.getFinally() != null) {
-      handleFinallyBlock(tryStatement.getFinally());
+      handleFinallyBlock(tryStatement.getFinally(), tempInFinally, tempInCatch);
     }
     isNested -=1;
     inCatchBlock = tempInCatch;
@@ -2811,7 +2817,8 @@ class CFAMethodBuilder extends ASTVisitor {
     helperNotNull.pop();
   }
 
-  private void handleFinallyBlock(Block finallyBlock) {
+  private void handleFinallyBlock(
+      Block finallyBlock, boolean nestedInFinally, boolean nestedInCatch) {
     boolean oldCurrentlyInFinally = currentlyInFinally;
     currentlyInFinally = true;
     finallyBlock.accept(this);
@@ -2822,13 +2829,7 @@ class CFAMethodBuilder extends ASTVisitor {
     finallyBlock.accept(this);
     CFANode currentAfterIncorrect = locStack.pop();
 
-    if (nestedFinallyIncorrect != null) {
-      BlankEdge tempCurrent =
-          new BlankEdge("", FileLocation.DUMMY, nestedFinallyIncorrect, beforeIncorrect, "");
-      addToCFA(tempCurrent);
-    }
-
-    if (isNested > 1 && !oldCurrentlyInFinally) {
+    if (isNested > 1 && !nestedInFinally && !nestedInCatch) {
       nestedFinallyIncorrect = currentAfterIncorrect;
     } else {
       nextCatchBlockOrError.addLast(currentAfterIncorrect);
@@ -2862,7 +2863,7 @@ class CFAMethodBuilder extends ASTVisitor {
     cfaNodes.add(dummyExceptionEquals);
 
     CFANode afterCurrentCatch = new CFANode(cfa.getFunction());
-    nextCatchBlockOrError.add(afterCurrentCatch);
+    nextCatchBlockOrError.addFirst(afterCurrentCatch);
     cfaNodes.add(afterCurrentCatch);
 
     CFANode start = null;
