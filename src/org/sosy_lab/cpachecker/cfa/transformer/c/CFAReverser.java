@@ -252,7 +252,7 @@ public class CFAReverser {
      */
     private CFA createCfa() {
 
-      // preprocess target
+      // preprocess targets
       Set<CFANode> entryTargets =
           new HashSet<>(
               targets.stream().filter(node -> node instanceof CFunctionEntryNode).toList());
@@ -321,9 +321,7 @@ public class CFAReverser {
       return newMutableCfa;
     }
 
-    /////////////////////////////////////////////////////////////////////////////
-    // Function Reverser
-    /////////////////////////////////////////////////////////////////////////////
+    /** A Builder to create a reverse CFA corresponding the original CFA */
     private final class CfaFunctionBuilder {
 
       // private Map<String, CVariableDeclaration> variables; // Function scope variables
@@ -421,7 +419,7 @@ public class CFAReverser {
       }
 
       /**
-       * insert the function epilogue
+       * insert assumption edges for function parameters
        *
        * @param entryNode Function CFA entry node
        */
@@ -632,8 +630,8 @@ public class CFAReverser {
        * append the variable declaration edge chain to the head node In some cases, this method
        * should also be responsible for initializing the variables.
        *
-       * @param curr the head node
-       * @return the tail node
+       * @param curr head node of the edge chain
+       * @return tail node of the edge chain
        */
       private CFANode createVariableDeclaration(CFANode curr) {
         for (CVariableDeclaration decl : variables.values()) {
@@ -652,9 +650,13 @@ public class CFAReverser {
         return curr;
       }
 
-      /////////////////////////////////////////////////////////////////////////////
-      // Edge Reversing
-      /////////////////////////////////////////////////////////////////////////////
+      /**
+       * create the reverse edge chain for the original edge
+       *
+       * @param edge the original edge
+       * @param from head node of the reverse edge chain
+       * @return tail node of the reverse edge chain
+       */
       private CFANode reverseEdge(CFAEdge edge, CFANode from) {
 
         CFANode to = reverseCFANode(edge.getPredecessor());
@@ -853,8 +855,8 @@ public class CFAReverser {
        * handle call assignment statement edge like `x = foo();`
        *
        * @param stmt the original function call assignment statement
-       * @param from head node of edge chain
-       * @param to tail node of edge chain
+       * @param from head node of the edge chain
+       * @param to tail node of the edge chain
        */
       private void handleCallAssignStmt(
           CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
@@ -1219,9 +1221,6 @@ public class CFAReverser {
         }
       }
 
-      /////////////////////////////////////////////////////////////////////////////
-      // Statement Handlers
-      /////////////////////////////////////////////////////////////////////////////
       private void handleExprAssignStmt(
           CExpressionAssignmentStatement stmt, CFANode from, CFANode to) {
         checkNotNull(from, to);
@@ -1264,19 +1263,24 @@ public class CFAReverser {
         addToCFA(stmtEdge);
       }
 
-      /////////////////////////////////////////////////////////////////////////////
-      // Expression Visitor
-      /////////////////////////////////////////////////////////////////////////////
-      /** Visitor to get the new left side expression */
+      /** Visitor to create a new expression for a left side expression */
       private final class LeftSideVariableFinder
           implements CExpressionVisitor<CExpression, NoException> {
 
+        // subexpressions
         private Set<CLeftHandSide> lvalues;
 
         private LeftSideVariableFinder() {
           this.lvalues = new HashSet<>();
         }
 
+        /**
+         * get the variable declaration corresponding to the original declaration. If uncreated,
+         * then create a new variable declaration
+         *
+         * @param decl the original declaration
+         * @return the declaration in the reverse CFA
+         */
         private CVariableDeclaration createNewVar(CVariableDeclaration decl) {
           assert !variables.containsKey(decl.getQualifiedName());
 
@@ -1295,6 +1299,13 @@ public class CFAReverser {
           return newDecl;
         }
 
+        /**
+         * get the variable expression corresponding to the original variable expression. If
+         * uncreated, then create a new variable expression
+         *
+         * @param expr the variable expression in the original CFA
+         * @return the variable expression in the reverse CFA
+         */
         private CIdExpression handleVarDeclExpr(CIdExpression expr) {
           CVariableDeclaration decl = (CVariableDeclaration) expr.getDeclaration();
 
@@ -1313,12 +1324,18 @@ public class CFAReverser {
           return newExpr;
         }
 
+        /**
+         * get the variable expression corresponding to the original parameter expression. If
+         * uncreated, then create a new variable expressions
+         *
+         * @param expr the parameter expression in the original CFA
+         * @return the variable expression in the reverse CFA
+         */
         private CIdExpression handleParaDeclExpr(CIdExpression expr) {
 
           CParameterDeclaration paraDecl = (CParameterDeclaration) expr.getDeclaration();
           CVariableDeclaration varaDecl = variables.get(paraDecl.getQualifiedName());
 
-          // handle new parameter
           // handle new parameter
           if (varaDecl == null) {
             varaDecl =
@@ -1488,12 +1505,14 @@ public class CFAReverser {
         }
       }
 
-      /** Visitor to get the new right side expression */
+      /** Visitor to create a new expression for a right side expression */
       private final class RightSideVariableFinder
           implements CExpressionVisitor<CExpression, NoException> {
 
-        private final ImmutableSet<CLeftHandSide> lvalues; // left values in left side
+        // left values in left side
+        private final ImmutableSet<CLeftHandSide> lvalues;
 
+        // temporary variables for left values
         private final Map<CLeftHandSide, CIdExpression> tmpVarMap;
 
         private RightSideVariableFinder(Set<CLeftHandSide> lvalues) {
@@ -1501,7 +1520,12 @@ public class CFAReverser {
           this.tmpVarMap = new HashMap<>();
         }
 
-        // Create `i = tmp_i`
+        /**
+         * create `i = tmp_i` edges for each temporary variables
+         *
+         * @param from head node of the edge chain
+         * @return tail node of the edge chain
+         */
         private CFANode createTmpAssignEdge(CFANode from) {
           CFANode curr = from;
 
@@ -1513,6 +1537,12 @@ public class CFAReverser {
           return curr;
         }
 
+        /**
+         * create non-det assignment for each temporary variables
+         *
+         * @param from head node of the edge chain
+         * @return tail node of the edge chain
+         */
         private CFANode resetTmpVar(CFANode from) {
           CFANode curr = from;
           for (CIdExpression tmpExpr : tmpVarMap.values()) {
@@ -1521,6 +1551,12 @@ public class CFAReverser {
           return curr;
         }
 
+        /**
+         * create the temporary variable expression, corresponding to the left side subexpression
+         *
+         * @param expr the left side subexpression
+         * @return the temporary variable expression
+         */
         private CIdExpression createTmpValue(CLeftHandSide expr) {
 
           String tmpName = "tmp__" + expr.toQualifiedASTString();
