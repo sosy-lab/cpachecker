@@ -179,6 +179,12 @@ public class CFAReverser {
     private Map<String, CVariableDeclaration> variables; // variables
     private int tmpCnt;
 
+    private static final String parameterSuffix = "__REV_PARAMETER";
+    private static final String tmpPrefix = "__REV__TMP__";
+    private static final String targetPrefix = "__REV__TARGET__";
+    private static final String branchPrefix = "__REV__BRANCH__";
+    private static final String tmpSuffix = "__REV_TMP";
+
     private static CType intType =
         new CSimpleType(
             false, false, CBasicType.INT, false, false, false, false, false, false, false);
@@ -389,6 +395,8 @@ public class CFAReverser {
         // bfs the CFA
         newEntryNode = bfs(funcName, oldExitNode, newEntryNode, newFuncDecl);
 
+        String targetBranchName = newFuncDecl.getName() + "::" + targetPrefix + branchCnt;
+
         // create a ndet variable for target branching
         CVariableDeclaration targetBranchVarDecl =
             new CVariableDeclaration(
@@ -396,12 +404,12 @@ public class CFAReverser {
                 false,
                 CStorageClass.AUTO,
                 intType,
-                "TARGET__" + branchCnt,
-                "TARGET__" + branchCnt,
-                newFuncDecl.getName() + "::" + "TARGET__" + branchCnt,
+                targetPrefix + branchCnt,
+                targetPrefix + branchCnt,
+                targetBranchName,
                 null);
 
-        variables.put("TARGET__", targetBranchVarDecl);
+        variables.put(targetBranchName, targetBranchVarDecl);
         CIdExpression targetBranchVarExpr =
             new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
 
@@ -561,7 +569,7 @@ public class CFAReverser {
             usingBranch = true;
 
             // Create a ndet variable
-            String branchVarname = newFuncDecl.getName() + "::" + "BRANCH__" + branchCnt;
+            String branchVarname = newFuncDecl.getName() + "::" + branchPrefix + branchCnt;
 
             ndetBranchVarDecl =
                 new CVariableDeclaration(
@@ -807,7 +815,7 @@ public class CFAReverser {
       private void handleExternFunc(
           CFunctionCallAssignmentStatement stmt, CFANode from, CFANode to) {
 
-        String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
+        String tmpName = oldEntryNode.getFunctionName() + "::" + tmpPrefix + tmpCnt;
         CType type = stmt.getLeftHandSide().getExpressionType();
         tmpCnt += 1;
         // TODO: nodet assign tmp var
@@ -963,7 +971,7 @@ public class CFAReverser {
 
         CType retType = oldDecl.getType().getReturnType();
         if (retType != CVoidType.VOID) {
-          String tmpName = oldEntryNode.getFunctionName() + "::" + "__TMPREV__" + tmpCnt;
+          String tmpName = oldEntryNode.getFunctionName() + "::" + tmpPrefix + tmpCnt;
           tmpCnt += 1;
           CVariableDeclaration tmpDecl =
               new CVariableDeclaration(
@@ -1344,9 +1352,9 @@ public class CFAReverser {
                     false,
                     CStorageClass.AUTO,
                     paraDecl.getType(),
-                    paraDecl.getName() + "__PARAMETER",
-                    paraDecl.getOrigName() + "__PARAMETER",
-                    paraDecl.getQualifiedName() + "__PARAMETER",
+                    paraDecl.getName() + parameterSuffix,
+                    paraDecl.getOrigName() + parameterSuffix,
+                    paraDecl.getQualifiedName() + parameterSuffix,
                     null);
             CParameterDeclaration newParaDecl =
                 new CParameterDeclaration(
@@ -1559,7 +1567,7 @@ public class CFAReverser {
          */
         private CIdExpression createTmpValue(CLeftHandSide expr) {
 
-          String tmpName = "tmp__" + expr.toQualifiedASTString();
+          String tmpName = expr.toQualifiedASTString() + tmpSuffix;
           CVariableDeclaration tmpDecl =
               new CVariableDeclaration(
                   FileLocation.DUMMY,
@@ -1622,9 +1630,9 @@ public class CFAReverser {
                     false,
                     CStorageClass.AUTO,
                     paraDecl.getType(),
-                    paraDecl.getName() + "__PARAMETER",
-                    paraDecl.getOrigName() + "__PARAMETER",
-                    paraDecl.getQualifiedName() + "__PARAMETER",
+                    paraDecl.getName() + parameterSuffix,
+                    paraDecl.getOrigName() + parameterSuffix,
+                    paraDecl.getQualifiedName() + parameterSuffix,
                     null);
             CParameterDeclaration newParaDecl =
                 new CParameterDeclaration(
