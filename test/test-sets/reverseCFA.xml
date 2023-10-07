@@ -11,19 +11,55 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="5 min" hardtimelimit="6 min" memlimit="15 GB" cpuCores="2">
 
   <option name="-heap">13000M</option>
   <option name="-noout"/>
   <option name="-benchmark"/>
  
-
-  <rundefinition name="reverse-cfa">
-     <option name="-config">config/reverseCFA.properties</option>
+  <rundefinition name="bmc-rev">
+    <option name="-config">config/bmc.properties</option>
+    <option name="-setprop">cfa.reverseTransitions=true</option>
+    <option name="-setprop">counterexample.export.enabled=false</option>
+    <option name="-setprop">cpa.arg.witness.export=false</option>
+    <option name="-setprop">report.genWitness=false</option>
   </rundefinition>
 
   <rundefinition name="bmc">
-     <option name="-config">config/bmc.properties</option>
+    <option name="-config">config/bmc.properties</option>
+    <option name="-setprop">counterexample.export.enabled=false</option>
+    <option name="-setprop">cpa.arg.witness.export=false</option>
+    <option name="-setprop">report.genWitness=false</option>
+  </rundefinition>
+
+  <rundefinition name="k-induction-rev">
+    <option name="-config">config/components/kInduction/kInduction.properties</option>
+    <option name="-setprop">cfa.reverseTransitions=true</option>
+    <option name="-setprop">counterexample.export.enabled=false</option>
+    <option name="-setprop">cpa.arg.witness.export=false</option>
+    <option name="-setprop">report.genWitness=false</option>
+  </rundefinition>
+
+  <rundefinition name="k-induction">
+    <option name="-config">config/components/kInduction/kInduction.properties</option>
+    <option name="-setprop">counterexample.export.enabled=false</option>
+    <option name="-setprop">cpa.arg.witness.export=false</option>
+    <option name="-setprop">report.genWitness=false</option>
+  </rundefinition>
+
+  <rundefinition name="Predicate-Abstraction-rev">
+    <option name="-config">config/predicateAnalysis-PredAbsRefiner-ABEl.properties</option>
+    <option name="-setprop">cfa.reverseTransitions=true</option>
+    <option name="-setprop">counterexample.export.enabled=false</option>
+    <option name="-setprop">cpa.arg.witness.export=false</option>
+    <option name="-setprop">report.genWitness=false</option>
+  </rundefinition>
+
+ <rundefinition name="Predicate-Abstraction">
+    <option name="-config">config/predicateAnalysis-PredAbsRefiner-ABEl.properties</option>
+    <option name="-setprop">counterexample.export.enabled=false</option>
+    <option name="-setprop">cpa.arg.witness.export=false</option>
+    <option name="-setprop">report.genWitness=false</option>
   </rundefinition>
 
   <tasks name="ReachSafety-Arrays">
@@ -36,28 +72,13 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
-  <tasks name="ReachSafety-ECA">
-    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
   <tasks name="ReachSafety-ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   
-  <tasks name="ReachSafety-Floats">
-    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
   <tasks name="ReachSafety-Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
-  <tasks name="ReachSafety-Hardware">
-    <includesfile>../programs/benchmarks/ReachSafety-Hardware.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
