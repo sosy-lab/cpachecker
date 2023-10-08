@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JInstanceOfType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
@@ -960,6 +961,11 @@ public class CFAUtils {
     @Override
     public Iterable<AAstNode> visit(JRunTimeTypeEqualsType pExp) {
       return ImmutableList.of(pExp.getRunTimeTypeExpression());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(JInstanceOfType pInstanceOfType) throws NoException {
+      return ImmutableList.of(pInstanceOfType.getRunTimeTypeExpression());
     }
 
     @Override

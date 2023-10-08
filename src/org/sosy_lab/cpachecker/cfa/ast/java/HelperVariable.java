@@ -146,18 +146,18 @@ public class HelperVariable {
     return helperIdExpression;
   }
 
-  public JExpression getRunTimeTypeEqualsExpression(JClassType exception) {
+  public JInstanceOfType getRunTimeTypeEqualsExpression(JClassType exception) {
     JIdExpression helperIdExpression = getCurrentHelperIdExpression();
 
     JRunTimeTypeExpression helperRunTimeType =
         new JVariableRunTimeType(FileLocation.DUMMY, helperIdExpression);
 
-    return new JRunTimeTypeEqualsType(FileLocation.DUMMY, helperRunTimeType, exception);
+    return new JInstanceOfType(FileLocation.DUMMY, helperRunTimeType, exception);
   }
 
-  public JStatement getRunTimeTypeEqualsStatement(JClassType exception) {
+  public JStatement getInstanceOfStatement(JClassType exception) {
 
-    JExpression runTimeTypeEquals = getRunTimeTypeEqualsExpression(exception);
+    JInstanceOfType runTimeTypeEquals = getRunTimeTypeEqualsExpression(exception);
     return new JExpressionStatement(FileLocation.DUMMY, runTimeTypeEquals);
   }
 

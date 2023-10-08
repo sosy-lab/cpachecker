@@ -2856,8 +2856,7 @@ class CFAMethodBuilder extends ASTVisitor {
     JExpression catchException =
         HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
 
-    JStatement exception =
-        HelperVariable.getInstance().getRunTimeTypeEqualsStatement(exceptionClassType);
+    JStatement exception = HelperVariable.getInstance().getInstanceOfStatement(exceptionClassType);
 
     CFANode dummyExceptionEquals = new CFANode(cfa.getFunction());
     cfaNodes.add(dummyExceptionEquals);

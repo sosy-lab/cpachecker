@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JInstanceOfType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
@@ -498,6 +499,27 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
       return null;
     }
+
+    @Override
+    public String visit(JInstanceOfType pInstanceOfType) throws UnrecognizedCodeException {
+      JReferenceType assignableType = pInstanceOfType.getTypeDef();
+
+      String reference = pInstanceOfType.getRunTimeTypeExpression().accept(this);
+
+      if (reference == null) {
+        return null;
+      }
+
+      if (truthAssumption) {
+        if (assignableType instanceof JClassOrInterfaceType) {
+          newState.assignAssumptionType(reference, (JClassOrInterfaceType) assignableType);
+        } else {
+          // TODO
+        }
+      }
+
+      return null;
+    }
   }
 
   /** This visitor evaluates an expression and returns its content. */
@@ -724,6 +746,32 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         } else {
           return null;
         }
+      }
+    }
+
+    @Override
+    public String visit(JInstanceOfType jInstanceOfType) throws UnrecognizedCodeException {
+      String jrunTimeType = jInstanceOfType.getRunTimeTypeExpression().accept(this);
+
+      if (jrunTimeType == null) {
+        return null;
+      }
+
+      final JReferenceType typeDef = jInstanceOfType.getTypeDef();
+
+      return Boolean.toString(handleInstanceOf(jrunTimeType, typeDef));
+    }
+
+    private boolean handleInstanceOf(String runTimeType, JReferenceType typeDef) {
+      JClassType typeDefClass = (JClassType) typeDef;
+      String name = typeDefClass.getName();
+
+      if (name.equals(runTimeType)) {
+        return true;
+      } else if (name.equals(JClassType.getTypeOfObject().getName())) {
+        return false;
+      } else {
+        return handleInstanceOf(runTimeType, typeDefClass.getParentClass());
       }
     }
 

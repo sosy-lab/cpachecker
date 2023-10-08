@@ -40,6 +40,8 @@ public interface JExpressionVisitor<R, X extends Exception> extends JLeftHandSid
 
   R visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws X;
 
+  R visit(JInstanceOfType pInstanceOfType) throws X;
+
   R visit(JNullLiteralExpression pJNullLiteralExpression) throws X;
 
   R visit(JEnumConstantExpression pJEnumConstantExpression) throws X;

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JInstanceOfType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
@@ -307,5 +308,12 @@ public class JExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(JArraySubscriptExpression pAArraySubscriptExpression)
       throws UnrecognizedCodeException {
     return null; // TODO
+  }
+
+  @Override
+  public SymbolicExpression visit(JInstanceOfType pInstanceOfType)
+      throws UnrecognizedCodeException {
+    throw new UnsupportedOperationException(
+        "InstanceOf checks on runtime types can't be transformed to ConstraintExpressions");
   }
 }
