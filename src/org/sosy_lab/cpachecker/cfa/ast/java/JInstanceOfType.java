@@ -58,11 +58,15 @@ public final class JInstanceOfType extends AbstractExpression implements JExpres
     } else {
       name = ((JArrayType) getTypeDef()).getElementType().toASTString("");
     }
+
+    String variable =
+        ((JVariableRunTimeType) getRunTimeTypeExpression()).getReferencedVariable().getName();
+
     StringBuilder astString = new StringBuilder("(");
-    astString.append(getRunTimeTypeExpression().toASTString());
-    astString.append("_equals(");
+    astString.append(variable);
+    astString.append(" instanceof ");
     astString.append(name); // FIXME _class missing? I.e. var_getClass()_equals(typeDef_class)?
-    astString.append("))");
+    astString.append(")");
     return astString.toString();
   }
 
