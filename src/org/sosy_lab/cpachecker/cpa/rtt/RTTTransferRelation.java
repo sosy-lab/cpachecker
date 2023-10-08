@@ -751,6 +751,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     @Override
     public String visit(JInstanceOfType jInstanceOfType) throws UnrecognizedCodeException {
+
       String jrunTimeType = jInstanceOfType.getRunTimeTypeExpression().accept(this);
 
       if (jrunTimeType == null) {
@@ -766,13 +767,16 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       JClassType typeDefClass = (JClassType) typeDef;
       String name = typeDefClass.getName();
 
-      if (name.equals(runTimeType)) {
+      if (runTimeType.equals(name)) {
         return true;
-      } else if (name.equals(JClassType.getTypeOfObject().getName())) {
+      } else if (runTimeType.equals(JClassType.getTypeOfObject().getName())) {
         return false;
       } else {
-        return handleInstanceOf(runTimeType, typeDefClass.getParentClass());
+        for (JClassType type : typeDefClass.getDirectSubClasses()) {
+          return handleInstanceOf(runTimeType, type);
+        }
       }
+      return false;
     }
 
     @Override
