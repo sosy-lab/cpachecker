@@ -35,13 +35,15 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  *     aliased location or value. It is up to caller to ensure that the left-hand side is an array
  *     and the right-hand side formula will be a memory address. Cannot be set together with {@link
  *     #forcePointerAssignment}.
+ * @param forceLeftSideAssignment If set, LHS relevancy is ignored.
  */
 record AssignmentOptions(
     AssignmentOptions.ConversionType conversionType,
     boolean useOldSSAIndicesIfAliased,
     boolean forceEncodingQuantifiers,
     boolean forcePointerAssignment,
-    boolean forceArrayAttachment) {
+    boolean forceArrayAttachment,
+    boolean forceLeftSideAssignment) {
 
   AssignmentOptions {
     checkArgument(!forcePointerAssignment || !forceArrayAttachment);
@@ -121,6 +123,11 @@ record AssignmentOptions(
     private boolean forceArrayAttachment = false;
 
     /**
+     * @see AssignmentOptions#forceLeftSideAssignment
+     */
+    private boolean forceLeftSideAssignment = false;
+
+    /**
      * Constructs an assignment options builder with the given conversion type, not setting any
      * flags.
      *
@@ -190,6 +197,19 @@ record AssignmentOptions(
     }
 
     /**
+     * Sets whether LHS relevancy is ignored.
+     *
+     * <p>False by default when building.
+     *
+     * @see AssignmentOptions#forceLeftSideAssignment
+     * @return This builder with the flag set to the given value.
+     */
+    Builder setForceLeftSideAssignment(boolean value) {
+      forceLeftSideAssignment = value;
+      return this;
+    }
+
+    /**
      * Builds assignment options using the settings in this builder.
      *
      * @return The built assignment options.
@@ -210,6 +230,7 @@ record AssignmentOptions(
         builder.useOldSSAIndicesIfAliased,
         builder.forceEncodingQuantifiers,
         builder.forcePointerAssignment,
-        builder.forceArrayAttachment);
+        builder.forceArrayAttachment,
+        builder.forceLeftSideAssignment);
   }
 }

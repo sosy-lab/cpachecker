@@ -113,14 +113,14 @@ class AssignmentHandler {
           lhs.constructCanonical(), relevancyLhs, rhs().map(SliceExpression::constructCanonical));
     }
 
-    /*private boolean isRelevant(CToFormulaConverterWithPointerAliasing pConv) {
+    private boolean isRelevant(CToFormulaConverterWithPointerAliasing pConv) {
       // if relevancyLhs is empty in some assignment, treat it as relevant
       return relevancyLhs
           .map(
               presentRelevancyLhs ->
                   pConv.isRelevantLeftHandSide(presentRelevancyLhs, rhs.map(SliceExpression::base)))
           .orElse(true);
-    }*/
+    }
   }
 
   /** A helper record for storing a partial assignment which has exactly one right-hand side. */
@@ -199,9 +199,11 @@ class AssignmentHandler {
   BooleanFormula assign(List<SliceAssignment> pAssignments)
       throws UnrecognizedCodeException, InterruptedException {
 
-    // apply LHS relevancy
     Stream<SliceAssignment> assignmentsStream = pAssignments.stream();
-    // filter(assignment -> assignment.isRelevant(conv));
+    // apply LHS relevancy
+    if (!assignmentOptions.forceLeftSideAssignment()) {
+      assignmentsStream = assignmentsStream.filter(assignment -> assignment.isRelevant(conv));
+    }
 
     // make the slice expressions canonical, moving the trailing field accesses of bases to first
     // modifiers; this results in the same effective assignments, but the base encompasses more

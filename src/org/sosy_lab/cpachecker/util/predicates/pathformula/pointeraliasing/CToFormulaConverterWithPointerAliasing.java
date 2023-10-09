@@ -851,6 +851,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     AssignmentOptions assignmentOptions =
         new AssignmentOptions.Builder(ConversionType.CAST)
             .setForcePointerAssignment(forcePointerAssignment)
+            .setForceLeftSideAssignment(true)
             .build();
 
     AssignmentHandler assignmentHandler =
