@@ -156,9 +156,8 @@ public class CFAReverser {
     Path path =
         Classes.getCodeLocation(CFAReverser.class)
             .resolveSibling("config")
-            .resolve("properties")
-            .resolve("unreach-label.prp");
-
+            .resolve("specification")
+            .resolve("ErrorLabel.spc");
     return Specification.fromFiles(ImmutableSet.of(path), cfa, config, logger, pShutdownNotifier);
   }
 
