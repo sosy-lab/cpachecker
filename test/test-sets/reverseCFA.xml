@@ -22,14 +22,12 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cfa.reverseTransitions=true</option>
     <option name="-setprop">counterexample.export.enabled=false</option>
     <option name="-setprop">cpa.arg.witness.export=false</option>
-    <option name="-setprop">report.genWitness=false</option>
   </rundefinition>
 
   <rundefinition name="bmc">
     <option name="-config">config/bmc.properties</option>
     <option name="-setprop">counterexample.export.enabled=false</option>
     <option name="-setprop">cpa.arg.witness.export=false</option>
-    <option name="-setprop">report.genWitness=false</option>
   </rundefinition>
 
   <rundefinition name="k-induction-rev">
@@ -37,14 +35,12 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cfa.reverseTransitions=true</option>
     <option name="-setprop">counterexample.export.enabled=false</option>
     <option name="-setprop">cpa.arg.witness.export=false</option>
-    <option name="-setprop">report.genWitness=false</option>
   </rundefinition>
 
   <rundefinition name="k-induction">
     <option name="-config">config/components/kInduction/kInduction.properties</option>
     <option name="-setprop">counterexample.export.enabled=false</option>
     <option name="-setprop">cpa.arg.witness.export=false</option>
-    <option name="-setprop">report.genWitness=false</option>
   </rundefinition>
 
   <rundefinition name="Predicate-Abstraction-rev">
@@ -52,14 +48,12 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cfa.reverseTransitions=true</option>
     <option name="-setprop">counterexample.export.enabled=false</option>
     <option name="-setprop">cpa.arg.witness.export=false</option>
-    <option name="-setprop">report.genWitness=false</option>
   </rundefinition>
 
  <rundefinition name="Predicate-Abstraction">
     <option name="-config">config/predicateAnalysis-PredAbsRefiner-ABEl.properties</option>
     <option name="-setprop">counterexample.export.enabled=false</option>
     <option name="-setprop">cpa.arg.witness.export=false</option>
-    <option name="-setprop">report.genWitness=false</option>
   </rundefinition>
 
   <tasks name="ReachSafety-Arrays">

@@ -4516,9 +4516,6 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
-# Generate Witness
-report.genWitness = true
-
 # output file for visualizing message exchange
 reportFile = "block_analysis/block_analysis.json"
 
