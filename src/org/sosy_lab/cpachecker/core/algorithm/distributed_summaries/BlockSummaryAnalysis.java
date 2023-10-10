@@ -312,8 +312,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                           distribute
                               .getDeserializeOperator()
                               .deserialize(
-                                  (BlockSummaryMessage.newSerializationMessage(
-                                      "", (BlockSummaryMessagePayload) x.get(1)))))
+                                  BlockSummaryMessage.newSerializationMessage(
+                                      "", (BlockSummaryMessagePayload) x.get(1))))
                       .getStateId());
               ARGState last = null;
               for (BlockSummaryMessagePayload o : (List<BlockSummaryMessagePayload>) x.get(2)) {
@@ -330,9 +330,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                 } else {
                   last =
                       ((ARGState)
-                          (distribute
+                          distribute
                               .getDeserializeOperator()
-                              .deserialize((BlockSummaryMessage.newSerializationMessage("", o)))));
+                              .deserialize((BlockSummaryMessage.newSerializationMessage("", o))));
                   states.add(last);
                 }
               }
