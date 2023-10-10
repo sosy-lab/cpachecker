@@ -29,8 +29,8 @@ public class HelperVariable {
         new JFieldDeclaration(
             FileLocation.DUMMY,
             getThrowableInstance(),
-            "MainApp_helper",
-            "helper",
+            "CPAchecker_Exception_helper",
+            "exception_helper",
             false,
             true,
             false,
@@ -43,8 +43,8 @@ public class HelperVariable {
         new JFieldDeclaration(
             FileLocation.DUMMY,
             jct,
-            "MainApp_helper",
-            "helper",
+            "CPAchecker_Exception_helper",
+            "exception_helper",
             false,
             true,
             false,
