@@ -322,9 +322,11 @@ public class DCPAAlgorithm {
             targetState.getCounterexampleInformation().orElseThrow().getTargetPath();
         PathIterator it = targetPath.fullPathIterator();
         while (it.hasNext()) {
-          ARGState state = it.getAbstractState();
+          if (it.isPositionWithState()) {
+            ARGState state = it.getAbstractState();
+            errorPath.add(dcpa.getSerializeOperator().serialize(state));
+          }
           it.advance();
-          errorPath.add(dcpa.getSerializeOperator().serialize(state));
         }
         initial =
             BlockSummaryMessagePayload.builder()

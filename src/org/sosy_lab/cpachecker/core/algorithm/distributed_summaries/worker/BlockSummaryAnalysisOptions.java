@@ -35,6 +35,7 @@ public class BlockSummaryAnalysisOptions {
   private boolean sendEveryErrorMessage = false;
 
   @Option(
+      secure = true,
       description = "Configuration for forward analysis in computation of distributed summaries")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path forwardConfiguration =

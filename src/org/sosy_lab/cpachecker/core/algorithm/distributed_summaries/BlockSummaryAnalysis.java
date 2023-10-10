@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+@SuppressWarnings("unchecked")
 @Options(prefix = "distributedSummaries")
 public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
 
@@ -335,9 +336,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                   states.add(last);
                 }
               }
-              reachedSet.addNoWaitlist(
-                  new ARGState(new CompositeState(states), null), initialPrecision);
+              reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
               logger.logf(Level.INFO, "Error Trace: %s", reachedSet);
+              states.add(DummyTargetState.withoutTargetInformation());
             }
           }
 
