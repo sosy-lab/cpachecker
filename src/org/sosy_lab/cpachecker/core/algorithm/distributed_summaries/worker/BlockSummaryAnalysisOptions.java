@@ -42,6 +42,7 @@ public class BlockSummaryAnalysisOptions {
       Path.of("config/distributed-block-summaries/predicateAnalysis-block-forward.properties");
 
   @Option(
+      secure = true,
       description = "Configuration for backward analysis in computation of distributed summaries")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path backwardConfiguration =
