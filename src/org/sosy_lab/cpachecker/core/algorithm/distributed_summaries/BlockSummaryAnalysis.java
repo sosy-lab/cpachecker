@@ -332,7 +332,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                       ((ARGState)
                           distribute
                               .getDeserializeOperator()
-                              .deserialize((BlockSummaryMessage.newSerializationMessage("", o))));
+                              .deserialize(BlockSummaryMessage.newSerializationMessage("", o)));
                   states.add(last);
                 }
               }
