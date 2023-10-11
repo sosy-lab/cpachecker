@@ -76,7 +76,7 @@ public class DCPAAlgorithm {
   private Precision blockStartPrecision;
   private boolean hasSentFirstMessages;
 
-  @Option(description = "value to append Infer information")
+  @Option(secure = true, description = "value to append Infer information")
   private boolean isInfer = false;
 
   public DCPAAlgorithm(
