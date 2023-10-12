@@ -113,8 +113,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
           BlockSummaryErrorConditionMessage m = (BlockSummaryErrorConditionMessage) pMessage;
           List<Object> violations = m.getViolations();
           if (m.isFirst()) {
-            collectedBlockSummaryErrorMessages.add(
-                collectedBlockSummaryErrorMessages.size(), violations);
+            collectedBlockSummaryErrorMessages.add(violations);
           }
           if (blockCount + 1 == messageID.size()) {
             yield ImmutableSet.of(

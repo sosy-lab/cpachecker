@@ -62,7 +62,9 @@ public class BlockSummaryMessageLogger {
               attributes.put("successors", ImmutableList.copyOf(n.getSuccessorIds()));
               treeMap.put(n.getId(), attributes);
             });
-    JSON.writeJSONString(treeMap, blockCFAFile);
+    if (blockCFAFile != null) {
+      JSON.writeJSONString(treeMap, blockCFAFile);
+    }
   }
 
   // suppress warnings is fine here because error-prone does not recognize that we call
@@ -79,7 +81,9 @@ public class BlockSummaryMessageLogger {
     messageToJSON.put("hashCode", hashCode);
     messageToJSON.put("from", pMessage.getUniqueBlockId());
     messageToJSON.put("payload", pMessage.getPayloadJSON(s -> s.contains("readable")));
-    JSON.writeJSONString(
-        messageToJSON, reportFiles.resolve("M" + ID_GENERATOR.getFreshId() + ".json"));
+    if (reportFiles != null) {
+      JSON.writeJSONString(
+          messageToJSON, reportFiles.resolve("M" + ID_GENERATOR.getFreshId() + ".json"));
+    }
   }
 }

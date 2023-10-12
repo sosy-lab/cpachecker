@@ -38,7 +38,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private List<List<Object>> collectedBlockSummaryErrorMessages;
   private boolean foundResult = false;
 
-  public record StatusAndResult(
+  public record VerificationMetadata(
       AlgorithmStatus status, Result result, List<List<Object>> violations) {}
 
   public BlockSummaryObserverWorker(
@@ -81,7 +81,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
     return ImmutableList.of();
   }
 
-  public StatusAndResult observe() throws CPAException {
+  public VerificationMetadata observe() throws CPAException {
     super.run();
     if (errorMessage.isPresent()) {
       throw new CPAException(errorMessage.orElseThrow());
@@ -89,7 +89,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
     if (result.isEmpty()) {
       throw new CPAException("Analysis finished but no result is present...");
     }
-    return new StatusAndResult(
+    return new VerificationMetadata(
         statusObserver.finish(), result.orElseThrow(), collectedBlockSummaryErrorMessages);
   }
 

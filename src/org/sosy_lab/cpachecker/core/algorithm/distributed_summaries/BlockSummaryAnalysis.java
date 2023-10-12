@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -22,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BridgeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.FunctionDecomposer;
@@ -63,10 +62,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.mem
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.VerificationMetadata;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder.Components;
-import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -95,6 +93,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private final BlockSummaryAnalysisOptions options;
 
   private final Map<String, Object> stats;
+  private final ConfigurableProgramAnalysis cpa;
   private final StatInt numberWorkers = new StatInt(StatKind.MAX, "Number of worker");
   private final StatInt averageNumberOfEdges =
       new StatInt(StatKind.AVG, "Average number of edges in block");
@@ -149,6 +148,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       Configuration pConfig,
       LogManager pLogger,
       CFA pInitialCFA,
+      ConfigurableProgramAnalysis pCpa,
       ShutdownManager pShutdownManager,
       Specification pSpecification)
       throws InvalidConfigurationException {
@@ -156,6 +156,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     configuration.inject(this);
     logger = pLogger;
     initialCFA = pInitialCFA;
+    cpa = pCpa;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
     options = new BlockSummaryAnalysisOptions(configuration);
@@ -274,78 +275,65 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             new BlockSummaryObserverWorker(
                 "observer", mainThreadConnection, options, blocks.size());
         // blocks the thread until result message is received
-        StatusAndResult resultPair = observer.observe();
-        Result result = resultPair.result();
+        VerificationMetadata metadata = observer.observe();
+        Result result = metadata.result();
         stats.putAll(observer.getStats());
+        Precision initialPrecision =
+            reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
         if (result == Result.FALSE) {
-          ARGState state = (ARGState) reachedSet.getFirstState();
-          assert state != null;
-          CompositeState cState = (CompositeState) state.getWrappedState();
-          Precision initialPrecision = reachedSet.getPrecision(state);
-          assert cState != null;
-          List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
-          if (decompositionType != DecompositionType.FUNCTION_DECOMPOSITION) {
-            states.add(DummyTargetState.withoutTargetInformation());
-            reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
-          } else {
-            ConfigurableProgramAnalysis cpa =
-                DCPAAlgorithmFactory.createAlgorithm(
-                        logger,
-                        specification,
-                        cfa,
-                        configuration,
-                        shutdownManager,
-                        blockGraph.getRoot())
-                    .cpa();
-            DistributedConfigurableProgramAnalysis distribute =
-                DCPAFactory.distribute(cpa, blockGraph.getRoot(), AnalysisDirection.FORWARD, cfa);
-            logger.logf(Level.INFO, "Number of Found Error: %s", resultPair.violations().size());
-            int y = 0;
-            for (var x : resultPair.violations()) {
-              y++;
-              logger.logf(Level.INFO, "Error Number: %s", y);
-              assert distribute != null;
-              logger.logf(
-                  Level.INFO,
-                  "Error Node: %s",
-                  ((ARGState)
-                          distribute
-                              .getDeserializeOperator()
-                              .deserialize(
-                                  BlockSummaryMessage.newSerializationMessage(
-                                      "", (BlockSummaryMessagePayload) x.get(1))))
-                      .getStateId());
-              ARGState last = null;
-              for (BlockSummaryMessagePayload o : (List<BlockSummaryMessagePayload>) x.get(2)) {
-                if (last != null) {
-                  last =
-                      new ARGState(
-                          ((ARGState)
-                                  distribute
-                                      .getDeserializeOperator()
-                                      .deserialize(
-                                          BlockSummaryMessage.newSerializationMessage("", o)))
-                              .getWrappedState(),
-                          last);
-                } else {
-                  last =
-                      ((ARGState)
-                          distribute
-                              .getDeserializeOperator()
-                              .deserialize(BlockSummaryMessage.newSerializationMessage("", o)));
-                  states.add(last);
-                }
-              }
-              reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
-              logger.logf(Level.INFO, "Error Trace: %s", reachedSet);
-              states.add(DummyTargetState.withoutTargetInformation());
-            }
-          }
+          reachedSet.clear();
+          DistributedConfigurableProgramAnalysis distribute =
+              DCPAFactory.distribute(cpa, blockGraph.getRoot(), AnalysisDirection.FORWARD, cfa);
+          logger.logf(Level.INFO, "Number of Found Error: %s", metadata.violations().size());
+          int y = 0;
+          for (List<Object> violations : metadata.violations()) {
+            y++;
+            logger.logf(Level.INFO, "Error Number: %s", y);
+            assert distribute != null;
+            AbstractState deserialize =
+                distribute
+                    .getDeserializeOperator()
+                    .deserialize(
+                        BlockSummaryMessage.newBlockPostCondition(
+                            "", 0, (BlockSummaryMessagePayload) violations.get(1), true));
+            logger.logf(Level.INFO, "Error Node: %s", ((ARGState) deserialize).getStateId());
+            ARGState last = null;
+            for (BlockSummaryMessagePayload o :
+                (List<BlockSummaryMessagePayload>) violations.get(2)) {
+              AbstractState state =
+                  distribute
+                      .getDeserializeOperator()
+                      .deserialize(
+                          BlockSummaryMessage.newBlockPostCondition("main-thread", 0, o, true));
+              last =
+                  new ARGState(
+                      new CompositeState(
+                          ((CompositeState) ((ARGState) state).getWrappedState())
+                              .getWrappedStates()) {
+                        @Override
+                        public boolean isTarget() {
+                          return true;
+                        }
+                      },
+                      last) {
+                    @Override
+                    public boolean isTarget() {
+                      return true;
+                    }
+                  };
 
+              // TODO: if o == very last state of violations.get(2) then new ViolationARGState()
+              reachedSet.add(last, initialPrecision);
+            }
+            for (AbstractState abstractState : reachedSet) {
+              reachedSet.removeOnlyFromWaitlist(abstractState);
+            }
+            logger.logf(Level.INFO, "Error Trace: %s", reachedSet);
+          }
         } else if (result == Result.TRUE) {
           reachedSet.clear();
         }
-        return resultPair.status();
+        return metadata.status();
       }
     } catch (InvalidConfigurationException | IOException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");

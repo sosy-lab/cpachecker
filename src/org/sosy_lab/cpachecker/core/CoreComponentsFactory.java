@@ -719,6 +719,7 @@ public class CoreComponentsFactory {
                 config,
                 logger,
                 cfa,
+                cpa,
                 ShutdownManager.createWithParent(shutdownNotifier),
                 specification);
       }
