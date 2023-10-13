@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.composite.ViolationCompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -305,25 +306,24 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                       .getDeserializeOperator()
                       .deserialize(
                           BlockSummaryMessage.newBlockPostCondition("main-thread", 0, o, true));
-              last =
-                  new ARGState(
-                      new CompositeState(
-                          ((CompositeState) ((ARGState) state).getWrappedState())
-                              .getWrappedStates()) {
-                        @Override
-                        public boolean isTarget() {
-                          return true;
-                        }
-                      },
-                      last) {
-                    @Override
-                    public boolean isTarget() {
-                      return true;
-                    }
-                  };
-
-              // TODO: if o == very last state of violations.get(2) then new ViolationARGState()
-              reachedSet.add(last, initialPrecision);
+              if (o
+                  == ((List<?>) violations.get(2)).get(((List<?>) violations.get(2)).size() - 1)) {
+                last =
+                    new ARGState(
+                        new CompositeState(
+                            ((CompositeState) ((ARGState) state).getWrappedState())
+                                .getWrappedStates()),
+                        last);
+                reachedSet.add(last, initialPrecision);
+              } else {
+                last =
+                    new ARGState(
+                        new ViolationCompositeState(
+                            ((CompositeState) ((ARGState) state).getWrappedState())
+                                .getWrappedStates()),
+                        null);
+                reachedSet.add(last, initialPrecision);
+              }
             }
             for (AbstractState abstractState : reachedSet) {
               reachedSet.removeOnlyFromWaitlist(abstractState);
