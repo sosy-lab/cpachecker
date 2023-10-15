@@ -870,6 +870,7 @@ class CFAMethodBuilder extends ASTVisitor {
           BlankEdge tempCurrent =
               new BlankEdge("", FileLocation.DUMMY, nestedFinallyIncorrect, current, "");
           addToCFA(tempCurrent);
+          nestedFinallyIncorrect = null;
         }
 
         JAssumeEdge notEqualsNullFalse =
