@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -164,7 +165,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       forwardUnrollingAlgorithm =
           new SampleUnrollingAlgorithm(
               forwardConfig, pLogger, pShutdownManager, pCfa, pSpecification);
-
+      SerializationInfoStorage.clear();
       Configuration backwardConfig =
           Configuration.builder()
               .copyFrom(pConfig)
