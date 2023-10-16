@@ -123,7 +123,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private NumeralFormula<CompoundInterval> allPossibleValues(Type pType) {
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pType);
+    TypeInfo typeInfo = TypeInfo.from(machineModel, pType);
     return InvariantsFormulaManager.INSTANCE.asConstant(
         typeInfo, getCompoundIntervalManager(typeInfo).allPossibleValues());
   }
@@ -264,7 +264,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Ignore unsupported types
-    if (!BitVectorInfo.isSupported(decl.getType())) {
+    if (!TypeInfo.isSupported(decl.getType())) {
       return pElement;
     }
 
@@ -326,12 +326,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       CParameterDeclaration declaration = declarationIterator.next();
 
       // Ignore unsupported types
-      if (!BitVectorInfo.isSupported(declaration.getType())) {
+      if (!TypeInfo.isSupported(declaration.getType())) {
         continue;
       }
 
       NumeralFormula<CompoundInterval> value =
-          actualParam.accept(actualParamExpressionToFormulaVisitor);
+          ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
+                  actualParam, declaration.getType())
+              .accept(actualParamExpressionToFormulaVisitor);
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
       }
@@ -376,8 +378,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (pEdge.getStatement() instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) pEdge.getStatement();
+    if (pEdge.getStatement() instanceof CAssignment assignment) {
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();
@@ -390,7 +391,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         CExpression functionNameExpression = cFunctionCallExpression.getFunctionNameExpression();
         if ((functionNameExpression instanceof CIdExpression idExpression)
             && idExpression.getName().equals("__VERIFIER_nondet_uint")) {
-          TypeInfo typeInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
+          TypeInfo typeInfo = TypeInfo.from(machineModel, leftHandSide.getExpressionType());
           value =
               InvariantsFormulaManager.INSTANCE.asConstant(
                   typeInfo, getCompoundIntervalManager(typeInfo).singleton(0).extendToMaxValue());
@@ -483,7 +484,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
 
-    CFunctionCall expression = summaryEdge.getExpression();
+    final CFunctionCall expression = pFunctionReturnEdge.getFunctionCall();
 
     final String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
 
@@ -498,7 +499,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
                 new MemoryLocationExtractor(
                     compoundIntervalManagerFactory,
                     machineModel,
-                    summaryEdge.getFunctionEntry().getFunctionName(),
+                    pFunctionReturnEdge.getFunctionEntry().getFunctionName(),
                     pElement.getEnvironment()),
                 pElement);
         CExpression idExpression =
@@ -512,11 +513,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     } else {
       Iterator<CExpression> actualParamIterator =
-          summaryEdge
-              .getExpression()
-              .getFunctionCallExpression()
-              .getParameterExpressions()
-              .iterator();
+          expression.getFunctionCallExpression().getParameterExpressions().iterator();
       for (String formalParamName :
           pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
         if (!actualParamIterator.hasNext()) {

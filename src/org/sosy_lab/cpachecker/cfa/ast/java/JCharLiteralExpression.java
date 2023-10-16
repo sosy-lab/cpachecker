@@ -45,10 +45,6 @@ public final class JCharLiteralExpression extends ACharLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof JCharLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JCharLiteralExpression && super.equals(obj);
   }
 }

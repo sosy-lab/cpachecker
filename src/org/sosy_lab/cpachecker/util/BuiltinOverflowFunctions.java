@@ -100,7 +100,7 @@ public class BuiltinOverflowFunctions {
         return "";
       }
 
-      if (pType.isSigned()) {
+      if (pType.hasSignedSpecifier()) {
         return "s";
       }
 
@@ -112,9 +112,9 @@ public class BuiltinOverflowFunctions {
         return "";
       }
 
-      if (pType.isLong()) {
+      if (pType.hasLongSpecifier()) {
         return "l";
-      } else if (pType.isLongLong()) {
+      } else if (pType.hasLongLongSpecifier()) {
         return "ll";
       }
 
@@ -283,8 +283,8 @@ public class BuiltinOverflowFunctions {
             }
 
             // perform operation with infinite precision
-            BigInteger p1 = firstParameterValue.asNumericValue().bigInteger();
-            BigInteger p2 = secondParameterValue.asNumericValue().bigInteger();
+            BigInteger p1 = firstParameterValue.asNumericValue().bigIntegerValue();
+            BigInteger p2 = secondParameterValue.asNumericValue().bigIntegerValue();
 
             BigInteger resultOfComputation;
             BinaryOperator operator = getOperator(nameOfCalledFunc);
@@ -307,7 +307,7 @@ public class BuiltinOverflowFunctions {
                     logger,
                     functionCallExpression.getFileLocation());
 
-            if (resultValue.asNumericValue().bigInteger().equals(resultOfComputation)) {
+            if (resultValue.asNumericValue().bigIntegerValue().equals(resultOfComputation)) {
               return new NumericValue(0);
             } else {
               return new NumericValue(1);

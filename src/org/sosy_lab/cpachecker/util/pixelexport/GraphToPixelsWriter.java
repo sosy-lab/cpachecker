@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.pixelexport;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Ascii;
 import com.google.common.primitives.ImmutableIntArray;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -46,75 +47,82 @@ import org.w3c.dom.Document;
  * <p>A graph is represented as a tree structure. The depth of a graph node in the tree equals to
  * its shortest distance from the root of the graph.
  */
-@Options(prefix = "pixelgraphic.export")
 public abstract class GraphToPixelsWriter<Node> {
 
-  @Option(
-      secure = true,
-      description = "Padding of the bitmap on the left and right (each) in pixels")
-  private int xPadding = 2;
+  @Options(prefix = "pixelgraphic.export")
+  public static class PixelsWriterOptions {
+    @Option(
+        secure = true,
+        description = "Padding of the bitmap on the left and right (each) in pixels")
+    private int xPadding = 2;
 
-  @Option(
-      secure = true,
-      description = "Padding of the bitmap on the top and bottom (each) in pixels")
-  private int yPadding = 2;
+    @Option(
+        secure = true,
+        description = "Padding of the bitmap on the top and bottom (each) in pixels")
+    private int yPadding = 2;
 
-  @Option(
-      secure = true,
-      description =
-          "Width of the bitmap in pixels. If set to -1, width is computed"
-              + " in relation to the height. If both are set to -1, the optimal bitmap size"
-              + " to represent the graph is used. The final width is width*scaling")
-  private int width = -1;
+    @Option(
+        secure = true,
+        description =
+            "Width of the bitmap in pixels. If set to -1, width is computed"
+                + " in relation to the height. If both are set to -1, the optimal bitmap size"
+                + " to represent the graph is used. The final width is width*scaling")
+    private int width = -1;
 
-  @Option(
-      secure = true,
-      description =
-          "Height of the bitmap in pixels. If set to -1, height is "
-              + " computed in relation to the width. If both are set to -1, the optimal bitmap size"
-              + " to represent the graph is used. The final height is height*scaling")
-  private int height = -1;
+    @Option(
+        secure = true,
+        description =
+            "Height of the bitmap in pixels. If set to -1, height is  computed in relation to the"
+                + " width. If both are set to -1, the optimal bitmap size to represent the graph is"
+                + " used. The final height is height*scaling")
+    private int height = -1;
 
-  @Option(
-      secure = true,
-      description =
-          "Scaling of the bitmap. If set to 1, 1 pixel represents one "
-              + "graph node. If set to 2, 2 * 2 pixels represent one graph node, and so on.")
-  private int scaling = 2;
+    @Option(
+        secure = true,
+        description =
+            "Scaling of the bitmap. If set to 1, 1 pixel represents one "
+                + "graph node. If set to 2, 2 * 2 pixels represent one graph node, and so on.")
+    private int scaling = 2;
 
-  @Option(secure = true, description = "Format to use for image output", name = "format")
-  private String imageFormat = "svg";
+    @Option(secure = true, description = "Format to use for image output", name = "format")
+    private String imageFormat = "svg";
 
-  @Option(
-      secure = true,
-      description =
-          "Highlight not only corresponding graph nodes, but background of corresponding line, too."
-              + " This may give an better overview, but also introduces more clutter")
-  private boolean strongHighlight = true;
+    @Option(
+        secure = true,
+        description =
+            "Highlight not only corresponding graph nodes, but background of corresponding line,"
+                + " too. This may give an better overview, but also introduces more clutter")
+    // Set to false by default because the additional colors may be confusing
+    private boolean strongHighlight = false;
+
+    public PixelsWriterOptions(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+      imageFormat = Ascii.toLowerCase(imageFormat);
+
+      if (width == 0 || height == 0) {
+        throw new InvalidConfigurationException("Width and height may not be 0");
+      }
+      if (scaling == 0) {
+        throw new InvalidConfigurationException("Scaling may not be 0");
+      }
+    }
+  }
 
   public static final Color COLOR_BACKGROUND = Color.LIGHT_GRAY;
   public static final Color COLOR_NODE = Color.BLACK;
 
   private static final String FORMAT_SVG = "svg";
 
+  private final PixelsWriterOptions options;
   private final CanvasProvider canvasHandler;
 
-  protected GraphToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
-    pConfig.inject(this, GraphToPixelsWriter.class);
+  protected GraphToPixelsWriter(PixelsWriterOptions pOptions) {
+    options = pOptions;
 
-    imageFormat = imageFormat.toLowerCase();
-
-    if (width == 0 || height == 0) {
-      throw new InvalidConfigurationException("Width and height may not be 0");
-    }
-    if (scaling == 0) {
-      throw new InvalidConfigurationException("Scaling may not be 0");
-    }
-
-    if (imageFormat.equals(FORMAT_SVG)) {
+    if (options.imageFormat.equals(FORMAT_SVG)) {
       canvasHandler = new SvgProvider();
     } else {
-      canvasHandler = new BitmapProvider(imageFormat);
+      canvasHandler = new BitmapProvider(options.imageFormat);
     }
   }
 
@@ -166,9 +174,9 @@ public abstract class GraphToPixelsWriter<Node> {
     int finalWidth;
 
     { // Create block so neededWidth can only be used for allocation
-      int neededWidth = (scaling * pGraphStructure.getMaxWidth()) + xPadding * 2;
+      int neededWidth = (options.scaling * pGraphStructure.getMaxWidth()) + options.xPadding * 2;
 
-      int intendedWidth = scaling * width;
+      int intendedWidth = options.scaling * options.width;
 
       if (intendedWidth > 0) {
         if (intendedWidth < neededWidth) {
@@ -187,9 +195,9 @@ public abstract class GraphToPixelsWriter<Node> {
     int finalHeight;
 
     { // Create block so neededHeight can only be used for allocation
-      int neededHeight = (scaling * pArgStructure.getDepth()) + yPadding * 2;
+      int neededHeight = (options.scaling * pArgStructure.getDepth()) + options.yPadding * 2;
 
-      int intendedHeight = scaling * height;
+      int intendedHeight = options.scaling * options.height;
 
       if (intendedHeight > 0) {
         if (intendedHeight < neededHeight) {
@@ -211,31 +219,36 @@ public abstract class GraphToPixelsWriter<Node> {
     pCanvas.fillRect(0, 0, pWidth, pHeight);
 
     final int middle = pWidth / 2;
-    int yPos = yPadding;
+    int yPos = options.yPadding;
     for (GraphLevel level : pGraphStructure) {
       final int stateNum = level.getWidth();
-      final int lineWidth = stateNum * scaling;
+      final int lineWidth = stateNum * options.scaling;
 
       final int xPos = middle - lineWidth / 2;
 
-      if (strongHighlight) {
+      if (options.strongHighlight) {
         Color levelBackground = level.getBackgroundColor();
         pCanvas.setColor(levelBackground);
-        pCanvas.fillRect(0, yPos, pWidth, scaling);
+        pCanvas.fillRect(0, yPos, pWidth, options.scaling);
       }
 
       pCanvas.setColor(COLOR_NODE);
-      pCanvas.fillRect(xPos, yPos, lineWidth, scaling);
+      pCanvas.fillRect(xPos, yPos, lineWidth, options.scaling);
 
       final int currentYPos = yPos;
       for (Pair<ImmutableIntArray, Color> p : level.getGroups()) {
         pCanvas.setColor(p.getSecondNotNull());
         p.getFirstNotNull()
             .forEach(
-                idx -> pCanvas.fillRect(xPos + (idx - 1) * scaling, currentYPos, scaling, scaling));
+                idx ->
+                    pCanvas.fillRect(
+                        xPos + (idx - 1) * options.scaling,
+                        currentYPos,
+                        options.scaling,
+                        options.scaling));
       }
 
-      yPos += scaling;
+      yPos += options.scaling;
     }
   }
 
@@ -249,17 +262,17 @@ public abstract class GraphToPixelsWriter<Node> {
     Graphics2D g = canvasHandler.createCanvas(finalWidth, finalHeight);
     drawContent(g, finalWidth, finalHeight, structure);
 
-    Path fullOutputFile = Path.of(pOutputFile + "." + imageFormat);
+    Path fullOutputFile = Path.of(pOutputFile + "." + options.imageFormat);
     canvasHandler.writeToFile(fullOutputFile);
   }
 
-  private interface CanvasProvider {
+  private sealed interface CanvasProvider {
     Graphics2D createCanvas(int pWidth, int pHeight);
 
     void writeToFile(Path pOutputFile) throws IOException, InvalidConfigurationException;
   }
 
-  private static class BitmapProvider implements CanvasProvider {
+  private static final class BitmapProvider implements CanvasProvider {
 
     private String imageFormat;
     private BufferedImage bufferedImage = null;
@@ -291,7 +304,7 @@ public abstract class GraphToPixelsWriter<Node> {
     }
   }
 
-  private static class SvgProvider implements CanvasProvider {
+  private static final class SvgProvider implements CanvasProvider {
 
     private SVGGraphics2D svgGenerator = null;
 

@@ -97,7 +97,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public String getName() {
-    return this.getClass().getSimpleName();
+    return getClass().getSimpleName();
   }
 
   @Override
@@ -178,7 +178,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      */
     public Set<MemoryLocation> getMemoryLocationsExceedingThreshold() {
       Set<MemoryLocation> exceedingMemoryLocations = new HashSet<>();
-      for (MemoryLocation memoryLocation : mapping.keys()) {
+      for (MemoryLocation memoryLocation : mapping.keySet()) {
         if (mapping.get(memoryLocation).size() > threshold) {
           exceedingMemoryLocations.add(memoryLocation);
         }

@@ -76,11 +76,7 @@ final class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
 
     LocationBasedConstraintsPrecision that = (LocationBasedConstraintsPrecision) o;
 
-    if (!trackedLocations.equals(that.trackedLocations)) {
-      return false;
-    }
-
-    return true;
+    return trackedLocations.equals(that.trackedLocations);
   }
 
   @Override

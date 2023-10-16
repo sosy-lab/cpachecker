@@ -206,7 +206,7 @@ public class CEXWeakeningManager {
                 }
                 BooleanFormula out =
                     Collections.min(
-                        operands, Comparator.comparingInt((f) -> recursivelyCallSelf(f).size()));
+                        operands, Comparator.comparingInt(f -> recursivelyCallSelf(f).size()));
                 return TraversalProcess.custom(out);
               default:
                 throw new UnsupportedOperationException("Unexpected strategy");

@@ -11,12 +11,17 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Equivalence;
+import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /** Helper methods for CType instances. */
@@ -43,7 +48,7 @@ public final class CTypes {
         // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer
         // type"
         || (type instanceof CBitFieldType)
-        || (type instanceof CSimpleType && !((CSimpleType) type).isComplex());
+        || (type instanceof CSimpleType && !((CSimpleType) type).hasComplexSpecifier());
   }
 
   /**
@@ -57,19 +62,6 @@ public final class CTypes {
         // type"
         || (type instanceof CBitFieldType)
         || (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType());
-  }
-
-  /**
-   * Check whether a given type is a signed integer type according to the C standard § 6.2.5 (4).
-   * Also returns true for all qualified versions of signed integer types.
-   */
-  public static boolean isSignedIntegerType(CType type) {
-    type = type.getCanonicalType();
-    // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
-    return (type instanceof CBitFieldType && isSignedIntegerType(((CBitFieldType) type).getType()))
-        || (type instanceof CSimpleType
-            && ((CSimpleType) type).getType().isIntegerType()
-            && ((CSimpleType) type).isSigned());
   }
 
   /**
@@ -94,6 +86,18 @@ public final class CTypes {
   public static boolean isScalarType(CType type) {
     type = type.getCanonicalType();
     return (type instanceof CPointerType) || isArithmeticType(type);
+  }
+
+  /**
+   * Check whether a given type is a bool type. Also returns true for all qualified versions of bool
+   * types.
+   */
+  public static boolean isBoolType(CType type) {
+    type = type.getCanonicalType();
+    if (type instanceof CBitFieldType bitFieldType) {
+      type = bitFieldType.getType();
+    }
+    return type instanceof CSimpleType simpleType && simpleType.getType() == CBasicType.BOOL;
   }
 
   /**
@@ -446,7 +450,12 @@ public final class CTypes {
     @Override
     public CEnumType visit(CEnumType t) {
       return new CEnumType(
-          constValue, t.isVolatile(), t.getEnumerators(), t.getName(), t.getOrigName());
+          constValue,
+          t.isVolatile(),
+          t.getCompatibleType(),
+          t.getEnumerators(),
+          t.getName(),
+          t.getOrigName());
     }
 
     @Override
@@ -471,13 +480,13 @@ public final class CTypes {
           constValue,
           t.isVolatile(),
           t.getType(),
-          t.isLong(),
-          t.isShort(),
-          t.isSigned(),
-          t.isUnsigned(),
-          t.isComplex(),
-          t.isImaginary(),
-          t.isLongLong());
+          t.hasLongSpecifier(),
+          t.hasShortSpecifier(),
+          t.hasSignedSpecifier(),
+          t.hasUnsignedSpecifier(),
+          t.hasComplexSpecifier(),
+          t.hasImaginarySpecifier(),
+          t.hasLongLongSpecifier());
     }
 
     @Override
@@ -529,7 +538,12 @@ public final class CTypes {
     @Override
     public CEnumType visit(CEnumType t) {
       return new CEnumType(
-          t.isConst(), volatileValue, t.getEnumerators(), t.getName(), t.getOrigName());
+          t.isConst(),
+          volatileValue,
+          t.getCompatibleType(),
+          t.getEnumerators(),
+          t.getName(),
+          t.getOrigName());
     }
 
     @Override
@@ -554,13 +568,13 @@ public final class CTypes {
           t.isConst(),
           volatileValue,
           t.getType(),
-          t.isLong(),
-          t.isShort(),
-          t.isSigned(),
-          t.isUnsigned(),
-          t.isComplex(),
-          t.isImaginary(),
-          t.isLongLong());
+          t.hasLongSpecifier(),
+          t.hasShortSpecifier(),
+          t.hasSignedSpecifier(),
+          t.hasUnsignedSpecifier(),
+          t.hasComplexSpecifier(),
+          t.hasImaginarySpecifier(),
+          t.hasLongLongSpecifier());
     }
 
     @Override
@@ -577,6 +591,104 @@ public final class CTypes {
     public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
+    }
+  }
+
+  /**
+   * Return all expressions representing array lengths within the given type, even deeply nested and
+   * hidden inside typedefs. (No other expressions can occur in types, so this also returns all
+   * expressions referenced in this type.)
+   */
+  public static ImmutableSet<CExpression> getArrayLengthExpressions(CType type) {
+    return type.accept(new CollectArrayLengthsVisitor());
+  }
+
+  private static class CollectArrayLengthsVisitor
+      implements CTypeVisitor<ImmutableSet<CExpression>, NoException> {
+
+    @LazyInit // Visitor might be used very often for trivial types, do not allocate set eagerly.
+    private Set<CType> seen;
+
+    @Override
+    public ImmutableSet<CExpression> visit(CArrayType pArrayType) {
+      if (pArrayType.getLength() == null) {
+        return pArrayType.getType().accept(this);
+      }
+
+      return ImmutableSet.<CExpression>builder()
+          .add(pArrayType.getLength())
+          .addAll(pArrayType.getType().accept(this))
+          .build();
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CCompositeType pCompositeType) {
+      // need to prevent infinite recursion for members that have pointer to this type as type
+      if (seen == null) {
+        seen = new HashSet<>();
+        seen.add(pCompositeType);
+      } else if (!seen.add(pCompositeType)) {
+        return ImmutableSet.of();
+      }
+
+      ImmutableSet.Builder<CExpression> expressions = ImmutableSet.builder();
+      for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
+        expressions.addAll(member.getType().accept(this));
+      }
+      return expressions.build();
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CElaboratedType pElaboratedType) {
+      if (pElaboratedType.getRealType() == null) {
+        return ImmutableSet.of();
+      }
+      return pElaboratedType.getRealType().accept(this);
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CEnumType pEnumType) {
+      return ImmutableSet.of();
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CFunctionType pFunctionType) {
+      ImmutableSet.Builder<CExpression> expressions = ImmutableSet.builder();
+      expressions.addAll(pFunctionType.getReturnType().accept(this));
+      for (CType parameterType : pFunctionType.getParameters()) {
+        expressions.addAll(parameterType.accept(this));
+      }
+      return expressions.build();
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CPointerType pPointerType) {
+      return pPointerType.getType().accept(this);
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CProblemType pProblemType) {
+      return ImmutableSet.of();
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CSimpleType pSimpleType) {
+      return ImmutableSet.of();
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CTypedefType pTypedefType) {
+      return pTypedefType.getRealType().accept(this);
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CVoidType pVoidType) {
+      return ImmutableSet.of();
+    }
+
+    @Override
+    public ImmutableSet<CExpression> visit(CBitFieldType pCBitFieldType) {
+      return ImmutableSet.of();
     }
   }
 }

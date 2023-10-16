@@ -71,17 +71,11 @@ public final class CProblemType implements CType {
    */
   @Override
   public boolean equals(@Nullable Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CProblemType)) {
-      return false;
-    }
-
-    CProblemType other = (CProblemType) obj;
-
-    return Objects.equals(typeName, other.typeName);
+    return obj instanceof CProblemType other && Objects.equals(typeName, other.typeName);
   }
 
   @Override

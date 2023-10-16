@@ -177,13 +177,8 @@ public final class CElaboratedType implements CComplexType {
       return true;
     }
 
-    if (!(obj instanceof CElaboratedType)) {
-      return false;
-    }
-
-    CElaboratedType other = (CElaboratedType) obj;
-
-    return isConst == other.isConst
+    return obj instanceof CElaboratedType other
+        && isConst == other.isConst
         && isVolatile == other.isVolatile
         && kind == other.kind
         && Objects.equals(name, other.name)
@@ -196,13 +191,8 @@ public final class CElaboratedType implements CComplexType {
       return true;
     }
 
-    if (!(obj instanceof CElaboratedType)) {
-      return false;
-    }
-
-    CElaboratedType other = (CElaboratedType) obj;
-
-    return isConst == other.isConst
+    return obj instanceof CElaboratedType other
+        && isConst == other.isConst
         && isVolatile == other.isVolatile
         && kind == other.kind
         && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))

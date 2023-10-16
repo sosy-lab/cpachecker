@@ -98,7 +98,7 @@ public class TestDataTools {
   public static PathFormula toPathFormula(
       CFA cfa, SSAMap initialSSA, PathFormulaManager pfmgr, boolean ignoreDeclarations)
       throws Exception {
-    Map<CFANode, PathFormula> mapping = new HashMap<>(cfa.getAllNodes().size());
+    Map<CFANode, PathFormula> mapping = new HashMap<>(cfa.nodes().size());
     CFANode start = cfa.getMainFunction();
 
     PathFormula initial =

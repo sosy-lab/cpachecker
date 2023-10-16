@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -236,10 +235,7 @@ public class SMGTransferRelation
 
   @Override
   protected Collection<SMGState> handleFunctionReturnEdge(
-      CFunctionReturnEdge functionReturnEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge functionReturnEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
     Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge);
     if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
@@ -260,8 +256,7 @@ public class SMGTransferRelation
   private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
       throws CPATransferException {
 
-    CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
-    CFunctionCall exprOnSummary = summaryEdge.getExpression();
+    CFunctionCall exprOnSummary = functionReturnEdge.getFunctionCall();
     SMGState newState = state.copyOf();
 
     assert Iterables.getLast(newState.getHeap().getStackFrames())
@@ -371,9 +366,9 @@ public class SMGTransferRelation
       }
       // handle string argument
       if (exp instanceof CStringLiteralExpression strExp) {
-        cParamType = strExp.transformTypeToArrayType();
+        cParamType = strExp.getExpressionType();
 
-        String name = strExp.getContentString() + " string literal";
+        String name = strExp.getContentWithoutNullTerminator() + " string literal";
 
         SMGRegion stringObj = initialNewState.getHeap().getObjectForVisibleVariable(name);
 
@@ -478,7 +473,7 @@ public class SMGTransferRelation
       List<CParameterDeclaration> paramDecl,
       List<Pair<SMGRegion, SMGValue>> values,
       SMGState newState)
-      throws SMGInconsistentException, UnrecognizedCodeException {
+      throws CPATransferException {
 
     newState.addStackFrame(callEdge.getSuccessor().getFunctionDefinition());
 
@@ -641,8 +636,8 @@ public class SMGTransferRelation
           if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {
             result.add(newState);
           }
-        } catch (SolverException pE) {
-          throw new CPATransferException("Solver Exception on predicate " + predicateFormula, pE);
+        } catch (SolverException e) {
+          throw new CPATransferException("Solver Exception on predicate " + predicateFormula, e);
         }
       } else if ((truthValue && !explicitValue.equals(SMGZeroValue.INSTANCE))
           || (!truthValue && explicitValue.equals(SMGZeroValue.INSTANCE))) {
@@ -798,7 +793,7 @@ public class SMGTransferRelation
         /*Check for dereference errors in rValue*/
         List<SMGState> newStates =
             asSMGStateList(readValueToBeAssiged(pState.copyOf(), cfaEdge, rValue));
-        newStates.forEach(smgState -> smgState.unknownWrite());
+        newStates.forEach(SMGState::unknownWrite);
         result.addAll(newStates);
       } else {
         result.addAll(
@@ -1115,6 +1110,7 @@ public class SMGTransferRelation
       return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
     }
   }
+
   /*
    * Handle string literal expression initializer:
    * if a string initializer nested in struct type:
@@ -1145,8 +1141,8 @@ public class SMGTransferRelation
     if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
       // create a new global region for string literal expression
       List<SMGState> smgStates = new ArrayList<>();
-      CType cParamType = pExpression.transformTypeToArrayType();
-      String name = pExpression.getContentString() + " string literal";
+      CArrayType cParamType = pExpression.getExpressionType();
+      String name = pExpression.getContentWithoutNullTerminator() + " string literal";
       SMGRegion region = pNewState.getHeap().getObjectForVisibleVariable(name);
 
       if (region != null) {
@@ -1184,7 +1180,7 @@ public class SMGTransferRelation
                 pEdge,
                 pNewObject,
                 pOffset,
-                pExpression.getExpressionType(),
+                pExpression.getExpressionType().asPointerType(),
                 newInitializer));
       }
 
@@ -1192,7 +1188,7 @@ public class SMGTransferRelation
     }
     // create char array from string and call list init
     List<CInitializer> charInitialziers = new ArrayList<>();
-    CArrayType arrayType = pExpression.transformTypeToArrayType();
+    CArrayType arrayType = pExpression.getExpressionType();
     for (CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)) {
       charInitialziers.add(new CInitializerExpression(pFileLocation, charLiteralExp));
     }

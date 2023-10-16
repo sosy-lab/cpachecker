@@ -416,33 +416,20 @@ public class AutomatonInternalTest {
             Fact.simpleFact("expected to be a valid pattern"),
             Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
-        return new Matches() {
-          @Override
-          public StringSubject andVariable(int pVar) {
-            // Cannot test value of variable with failed parsing.
-            return ASTMatcherSubject.this.ignoreCheck().that("");
-          }
-        };
+        // Cannot test value of variable with failed parsing.
+        return pVar -> ASTMatcherSubject.this.ignoreCheck().that("");
       }
 
       if (!matches) {
         failWithActual(Fact.fact("expected to match", src));
-        return new Matches() {
-          @Override
-          public StringSubject andVariable(int pVar) {
-            // Cannot test value of variable if pattern does not match.
-            return ASTMatcherSubject.this.ignoreCheck().that("");
-          }
-        };
+        // Cannot test value of variable if pattern does not match.
+        return pVar -> ASTMatcherSubject.this.ignoreCheck().that("");
       }
-      return new Matches() {
-        @Override
-        public StringSubject andVariable(int pVar) {
-          check("getTransitionVariables()").that(args.getTransitionVariables()).containsKey(pVar);
-          return ASTMatcherSubject.this
-              .check("transition variable $%s", pVar)
-              .that(args.getTransitionVariable(pVar).toASTString());
-        }
+      return pVar -> {
+        check("getTransitionVariables()").that(args.getTransitionVariables()).containsKey(pVar);
+        return ASTMatcherSubject.this
+            .check("transition variable $%s", pVar)
+            .that(args.getTransitionVariable(pVar).toASTString());
       };
     }
 
@@ -467,6 +454,7 @@ public class AutomatonInternalTest {
     }
   }
 
+  @FunctionalInterface
   private interface Matches {
     StringSubject andVariable(int var);
   }

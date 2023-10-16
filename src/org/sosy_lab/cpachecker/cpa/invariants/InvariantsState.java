@@ -347,11 +347,11 @@ public class InvariantsState
     if (variableType == null) {
       return this;
     }
-    TypeInfo typeInfo = BitVectorInfo.from(machineModel, variableType);
+    TypeInfo typeInfo = TypeInfo.from(machineModel, variableType);
     NumeralFormula<CompoundInterval> value =
         tools.compoundIntervalFormulaManager.cast(typeInfo, pValue);
     for (MemoryLocation memoryLocation : environment.keySet()) {
-      TypeInfo varTypeInfo = BitVectorInfo.from(machineModel, getType(memoryLocation));
+      TypeInfo varTypeInfo = TypeInfo.from(machineModel, getType(memoryLocation));
       if (memoryLocation
               .getExtendedQualifiedName()
               .startsWith(pMemoryLocation.getExtendedQualifiedName() + "->")
@@ -703,7 +703,7 @@ public class InvariantsState
       if (type == null) {
         return this;
       }
-      typeInfo = BitVectorInfo.from(machineModel, type);
+      typeInfo = TypeInfo.from(machineModel, type);
     } else {
       typeInfo = previous.getTypeInfo();
     }
@@ -766,7 +766,7 @@ public class InvariantsState
         if (type == null) {
           continue;
         }
-        typeInfo = BitVectorInfo.from(machineModel, type);
+        typeInfo = TypeInfo.from(machineModel, type);
       } else {
         typeInfo = previous.getTypeInfo();
       }
@@ -841,8 +841,8 @@ public class InvariantsState
     for (Map.Entry<? extends MemoryLocation, ? extends Type> typeEntry : variableTypes.entrySet()) {
       MemoryLocation memoryLocation = typeEntry.getKey();
       Type type = typeEntry.getValue();
-      if (BitVectorInfo.isSupported(type)) {
-        TypeInfo typeInfo = BitVectorInfo.from(machineModel, typeEntry.getValue());
+      if (TypeInfo.isSupported(type)) {
+        TypeInfo typeInfo = TypeInfo.from(machineModel, typeEntry.getValue());
         CompoundIntervalManager cim =
             tools.compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
         CompoundInterval range = cim.allPossibleValues();
@@ -1325,13 +1325,10 @@ public class InvariantsState
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof InvariantsState)) {
-      return false;
-    }
-    return equalsState((InvariantsState) pObj);
+    return pObj instanceof InvariantsState && equalsState((InvariantsState) pObj);
   }
 
   private boolean equalsState(InvariantsState pOther) {
@@ -1772,17 +1769,13 @@ public class InvariantsState
       final Predicate<MemoryLocation> pMemoryLocationPredicate) {
     final Set<Variable<CompoundInterval>> result = new LinkedHashSet<>();
     Predicate<NumeralFormula<CompoundInterval>> pCondition =
-        new Predicate<>() {
-
-          @Override
-          public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
-            if (pFormula instanceof Variable) {
-              Variable<?> variable = (Variable<?>) pFormula;
-              MemoryLocation memoryLocation = variable.getMemoryLocation();
-              return pMemoryLocationPredicate.apply(memoryLocation) && !result.contains(variable);
-            }
-            return false;
+        pFormula -> {
+          if (pFormula instanceof Variable) {
+            Variable<?> variable = (Variable<?>) pFormula;
+            MemoryLocation memoryLocation = variable.getMemoryLocation();
+            return pMemoryLocationPredicate.apply(memoryLocation) && !result.contains(variable);
           }
+          return false;
         };
     CollectFormulasVisitor<CompoundInterval> collectVisitor =
         new CollectFormulasVisitor<>(pCondition);
@@ -1926,11 +1919,9 @@ public class InvariantsState
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Tools) {
-        // All tools are derived from the factory
-        return compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
-      }
-      return false;
+      // All tools are derived from the factory
+      return pObj instanceof Tools
+          && compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
     }
 
     @Override

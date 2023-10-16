@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isIntegerType;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isSignedIntegerType;
-import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
@@ -175,10 +173,10 @@ public class CFABuilder {
 
     addFunctionDeclarations(pItem, pFileName);
 
-    /* create globals */
+    // create globals
     iterateOverGlobals(pItem, pFileName);
 
-    /* create CFA for all functions */
+    // create CFA for all functions
     iterateOverFunctions(pItem, pFileName);
   }
 
@@ -198,7 +196,7 @@ public class CFABuilder {
 
   private void iterateOverGlobals(final Module pItem, final Path pFileName) throws LLVMException {
     Value globalItem = pItem.getFirstGlobal();
-    /* no globals? */
+    // no globals?
     if (globalItem == null) {
       return;
     }
@@ -211,7 +209,7 @@ public class CFABuilder {
 
       globalDeclarations.add(Pair.of(decl, globalItem.toString()));
 
-      /* we processed the last global variable? */
+      // we processed the last global variable?
       if (globalItem.equals(globalItemLast)) {
         break;
       }
@@ -1126,7 +1124,7 @@ public class CFABuilder {
         break;
       case LShr: // Logical shift right
         // GNU C performs a logical shift for unsigned types
-        op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned = */ true);
+        op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned= */ true);
         operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
         // $FALL-THROUGH$
       case AShr: // Arithmetic shift right
@@ -1146,13 +1144,8 @@ public class CFABuilder {
         }
 
         // operand2 should always be treated as an unsigned value
-        op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned = */ true);
+        op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned= */ true);
         operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
-
-        // GNU C performs an arithmetic shift for signed types
-        // op1type is signed by default for integer types
-        assert pOpCode != AShr || isSignedIntegerType(op1type)
-            : "First operand of right shift wasn't signed in the case of an arithmetic right shift";
 
         // calculate the shift with the signedness of op1type
         internalExpressionType = machineModel.applyIntegerPromotion(op1type);
@@ -1515,7 +1508,7 @@ public class CFABuilder {
     } else if (expressionType instanceof CPointerType) {
       return getDereference(location, expression);
     } else if (expressionType instanceof CArrayType) {
-      /* Pointer to an array is the pointer to the beginning of the array */
+      // Pointer to an array is the pointer to the beginning of the array
       if (pExpectedType instanceof CPointerType) {
         if (getReferencedType(pExpectedType)
             .equals(((CArrayType) expressionType).getType().getCanonicalType())) {
@@ -1566,14 +1559,11 @@ public class CFABuilder {
    * </ul>
    */
   private boolean pointerOf(CType pPotentialPointer, CType pPotentialPointee) {
-    if (pPotentialPointer instanceof CPointerType) {
-      return ((CPointerType) pPotentialPointer)
-          .getType()
-          .getCanonicalType()
-          .equals(pPotentialPointee.getCanonicalType());
-    } else {
-      return false;
-    }
+    return pPotentialPointer instanceof CPointerType
+        && ((CPointerType) pPotentialPointer)
+            .getType()
+            .getCanonicalType()
+            .equals(pPotentialPointee.getCanonicalType());
   }
 
   private String getName(final Value pValue) {
@@ -1704,7 +1694,7 @@ public class CFABuilder {
 
   private CExpression getReference(FileLocation fileLocation, CExpression expr) {
     CType exprType = expr.getExpressionType();
-    /* if this expression starts with *, just remove the * */
+    // if this expression starts with *, just remove the *
     if (expr instanceof CPointerExpression) {
       return ((CPointerExpression) expr).getOperand();
     } else if (expr instanceof CArraySubscriptExpression) {
@@ -1752,13 +1742,7 @@ public class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      CType constCharType =
-          new CSimpleType(
-              true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
-
-      CType stringType = new CPointerType(false, false, constCharType);
-
-      return new CStringLiteralExpression(fileLocation, stringType, '"' + constant + '"');
+      return new CStringLiteralExpression(fileLocation, '"' + constant + '"');
     }
 
     CType currentType = typeConverter.getCType(startPointer.typeOf());
@@ -1768,13 +1752,13 @@ public class CFABuilder {
         : "Too few operands in GEP operation : " + pItem.getNumOperands();
 
     for (int i = 1; i < pItem.getNumOperands(); i++) {
-      /* get the value of the index */
+      // get the value of the index
       Value indexValue = pItem.getOperand(i);
       CExpression index = getExpression(indexValue, CNumericTypes.INT, pFileName);
 
       if (currentType instanceof CPointerType) {
         if (valueIsZero(indexValue)) {
-          /* if we do not shift the pointer, just dereference the type (and expression) */
+          // if we do not shift the pointer, just dereference the type (and expression)
           currentExpression = getDereference(fileLocation, currentExpression);
         } else {
           currentExpression =
@@ -1805,7 +1789,7 @@ public class CFABuilder {
             ((CCompositeType) currentType).getMembers().get(memberIndex);
         String fieldName = field.getName();
 
-        /* use "ptr_to_struct->elem" instead of "(*ptr_to_struct).elem" */
+        // use "ptr_to_struct->elem" instead of "(*ptr_to_struct).elem"
         if (currentExpression instanceof CPointerExpression) {
           currentExpression =
               new CFieldReference(
@@ -1821,11 +1805,11 @@ public class CFABuilder {
         }
       }
 
-      /* update the expression type */
+      // update the expression type
       currentType = currentExpression.getExpressionType();
     }
 
-    /* we want pointer to the element */
+    // we want pointer to the element
     return getReference(fileLocation, currentExpression);
   }
 

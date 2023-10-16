@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -40,11 +43,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
@@ -108,12 +117,6 @@ public class ExpressionToFormulaVisitor
     return conv.makeCast(t, calculationType, f, constraints, edge);
   }
 
-  private Formula getPointerTargetSizeLiteral(
-      final CPointerType pointerType, final CType implicitType) {
-    final long pointerTargetSize = conv.getSizeof(pointerType.getType());
-    return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
-  }
-
   private CType getPromotedTypeForArithmetic(CExpression exp) {
     CType t = exp.getExpressionType();
     t = t.getCanonicalType();
@@ -161,13 +164,11 @@ public class ExpressionToFormulaVisitor
 
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
-      // this only gives the right value for "signed" because calculationType was determined using
-      // getCanonicalType, which e.g. converts a CNumericType.INT into a CNumericType.SIGNED_INT:
       signed = conv.machineModel.isSigned((CSimpleType) calculationType);
-    } else if (calculationType instanceof CPointerType) {
-      // pointers can also be signed if the machine model represents them using a signed type:
-      signed = conv.machineModel.getPointerEquivalentSimpleType().getCanonicalType().isSigned();
     } else {
+      // For pointers: happens only for additions/subtractions (for which signedness is irrelevant)
+      // and comparisons. GCC implements pointer comparisons as unsigned.
+      // For other types like structs signedness should be irrelevant as well.
       signed = false;
     }
 
@@ -187,17 +188,13 @@ public class ExpressionToFormulaVisitor
           // pointer target
           ret =
               mgr.makePlus(
-                  f1,
-                  mgr.makeMultiply(
-                      f2, getPointerTargetSizeLiteral((CPointerType) promT1, calculationType)));
+                  f1, mgr.makeMultiply(f2, getSizeExpression(((CPointerType) promT1).getType())));
         } else if (!(promT1 instanceof CPointerType)) {
           // operand2 is a pointer => we should multiply the first summand by the size of the
           // pointer target
           ret =
               mgr.makePlus(
-                  f2,
-                  mgr.makeMultiply(
-                      f1, getPointerTargetSizeLiteral((CPointerType) promT2, calculationType)));
+                  f2, mgr.makeMultiply(f1, getSizeExpression(((CPointerType) promT2).getType())));
         } else {
           throw new UnrecognizedCodeException("Can't add pointers", edge, exp);
         }
@@ -211,16 +208,14 @@ public class ExpressionToFormulaVisitor
           // target
           ret =
               mgr.makeMinus(
-                  f1,
-                  mgr.makeMultiply(
-                      f2, getPointerTargetSizeLiteral((CPointerType) promT1, calculationType)));
+                  f1, mgr.makeMultiply(f2, getSizeExpression(((CPointerType) promT1).getType())));
         } else if (promT1 instanceof CPointerType) {
           // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
           if (promT1.equals(promT2)) {
             ret =
                 mgr.makeDivide(
                     mgr.makeMinus(f1, f2),
-                    getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
+                    getSizeExpression(((CPointerType) promT1).getType()),
                     true);
           } else {
             throw new UnrecognizedCodeException(
@@ -396,15 +391,9 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CIdExpression idExp) throws UnrecognizedCodeException {
 
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       CType t = idExp.getExpressionType();
-      if (enumerator.hasValue()) {
-        return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
-      } else {
-        // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t);
-      }
+      return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
     }
 
     return conv.makeVariable(
@@ -463,7 +452,7 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCodeException {
     // we create a string constant representing the given
     // string literal
-    return conv.makeStringLiteral(lexp.getValue());
+    return conv.makeStringLiteral(lexp.getContentWithNullTerminator());
   }
 
   @Override
@@ -511,7 +500,7 @@ public class ExpressionToFormulaVisitor
 
       case SIZEOF:
         CType lCType = exp.getOperand().getExpressionType();
-        return handleSizeof(exp, lCType);
+        return getSizeExpression(lCType);
 
       case ALIGNOF:
         return handleAlignOf(exp, exp.getOperand().getExpressionType());
@@ -527,7 +516,7 @@ public class ExpressionToFormulaVisitor
 
     switch (tIdExp.getOperator()) {
       case SIZEOF:
-        return handleSizeof(tIdExp, lCType);
+        return getSizeExpression(lCType);
       case ALIGNOF:
         return handleAlignOf(tIdExp, lCType);
       default:
@@ -535,9 +524,119 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  private Formula handleSizeof(CExpression pExp, CType pCType) {
-    return mgr.makeNumber(
-        conv.getFormulaTypeFromCType(pExp.getExpressionType()), conv.getSizeof(pCType));
+  /**
+   * This is a SizeofVisitor that always returns 0 for types that do not have a statically known
+   * size.
+   */
+  private static class StaticSizeofVisitor extends BaseSizeofVisitor<NoException> {
+
+    /**
+     * Compute the size of the given composite type excluding all members that do not have a
+     * statically known size.
+     */
+    BigInteger computeStaticSizeof(CCompositeType pType) {
+      // Note that this.visit(pType) would return 0 because pType has !hasKnownConstantSize(),
+      // so we need to call super.visit() here such that only the struct members get handled by
+      // this.visit()
+      return super.visit(pType);
+    }
+
+    private StaticSizeofVisitor(MachineModel pModel) {
+      super(pModel);
+    }
+
+    @Override
+    public BigInteger visit(CArrayType pArrayType) {
+      if (pArrayType.hasKnownConstantSize()) {
+        return super.visit(pArrayType);
+      }
+      return BigInteger.ZERO;
+    }
+
+    @Override
+    public BigInteger visit(CCompositeType pCompositeType) {
+      if (pCompositeType.hasKnownConstantSize()) {
+        return super.visit(pCompositeType);
+      }
+      return BigInteger.ZERO;
+    }
+  }
+
+  public Formula getSizeExpression(CType type) throws UnrecognizedCodeException {
+    type = type.getCanonicalType();
+    if (type.hasKnownConstantSize()) {
+      return mgr.makeNumber(
+          conv.typeHandler.getPointerType(), conv.typeHandler.getExactSizeof(type));
+
+    } else if (type instanceof CArrayType arrayType) {
+      Formula elementSize = getSizeExpression(arrayType.getType());
+
+      Formula elementCount = arrayType.getLength().accept(this);
+      elementCount =
+          conv.makeCast(
+              arrayType.getLength().getExpressionType(),
+              CPointerType.POINTER_TO_VOID,
+              elementCount,
+              constraints,
+              edge);
+
+      return mgr.makeMultiply(elementSize, elementCount);
+
+    } else if (type instanceof CCompositeType compositeType) {
+      Deque<Formula> memberSizes = new ArrayDeque<>();
+
+      // It is not enough to just compute the sum/maximum over all member sizes because of padding.
+      // But we also do not want to reimplement the complex padding and bitfield computations here.
+      // So we help us with a trick: The next line computes the size of the whole struct/union as if
+      // the variable-length parts would have length 0. But this includes all other fields and all
+      // paddings (even those for variable-length arrays, because padding is always known).
+      // Then we just have to create expressions for the sizes of the variable-length parts and
+      // compute the final sum/maximum.
+      BigInteger staticallyKnownSize =
+          new StaticSizeofVisitor(conv.machineModel).computeStaticSizeof(compositeType);
+
+      for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
+        if (!member.getType().hasKnownConstantSize()) {
+          memberSizes.add(getSizeExpression(member.getType()));
+        }
+        // else the size is already part of staticallyKnownSize
+      }
+
+      verify(!memberSizes.isEmpty());
+      memberSizes.add(mgr.makeNumber(conv.typeHandler.getPointerType(), staticallyKnownSize));
+
+      // Now compute sum/maximum of memberSizes. Especially for the maximum (with if-then-else)
+      // a balanced tree of nested maximums seems to be likely better for the solver.
+      switch (compositeType.getKind()) {
+        case STRUCT:
+          return balancedDestructiveReduce(memberSizes, mgr::makePlus);
+
+        case UNION:
+          return balancedDestructiveReduce(
+              memberSizes,
+              (a, b) -> conv.bfmgr.ifThenElse(mgr.makeGreaterOrEqual(a, b, false), a, b));
+
+        default:
+          throw new AssertionError();
+      }
+
+    } else {
+      throw new AssertionError("unexpected type without known constant size: " + type);
+    }
+  }
+
+  /**
+   * Reduce the elements of a given deque in a balanced manner, e.g. for [1,2,3,4] and "+" it will
+   * produce (1+2)+(3+4). The deque will be drained.
+   */
+  private static <T> T balancedDestructiveReduce(
+      Deque<T> deque, BiFunction<? super T, ? super T, ? extends T> reducer) {
+    while (deque.size() > 1) {
+      T a = deque.pollFirst();
+      T b = deque.pollFirst();
+      deque.addLast(reducer.apply(a, b));
+    }
+    return deque.getFirst();
   }
 
   private Formula handleAlignOf(CExpression pExp, CType pCType) {
@@ -932,9 +1031,7 @@ public class ExpressionToFormulaVisitor
             inequalityBuiltin(
                 functionName,
                 parameters,
-                (e1, e2) -> {
-                  return conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2));
-                },
+                (e1, e2) -> conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2)),
                 fpfmgr);
 
         if (result != null) {

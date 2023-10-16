@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
+import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -97,10 +98,10 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
@@ -172,6 +173,12 @@ public class CFACreator {
       name = "analysis.useGlobalVars",
       description = "add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
+
+  @Option(
+      secure = true,
+      name = "analysis.useASTStructure",
+      description = "add AST structure information to CFA.")
+  private boolean useASTStructure = false;
 
   @Option(
       secure = true,
@@ -337,6 +344,8 @@ public class CFACreator {
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
     private final Timer exportTime = new Timer();
+    private final Timer loopStructureTime = new Timer();
+    private final Timer astStructureTime = new Timer();
     private final List<Statistics> statisticsCollection;
     private final LogManager logger;
 
@@ -358,6 +367,8 @@ public class CFACreator {
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
+      out.println("    Time for loop structure:  " + loopStructureTime);
+      out.println("    Time for AST structure:   " + astStructureTime);
 
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -575,14 +586,15 @@ public class CFACreator {
 
     assert mainFunction != null;
 
-    MutableCFA cfa =
-        new MutableCFA(
+    CfaMetadata cfaMetadata =
+        CfaMetadata.forMandatoryAttributes(
             machineModel,
-            pParseResult.getFunctions(),
-            pParseResult.getCFANodes(),
-            mainFunction,
+            language,
             pParseResult.getFileNames(),
-            language);
+            mainFunction,
+            CfaConnectedness.UNCONNECTED_FUNCTIONS);
+    MutableCFA cfa =
+        new MutableCFA(pParseResult.getFunctions(), pParseResult.getCFANodes(), cfaMetadata);
 
     stats.checkTime.start();
 
@@ -609,12 +621,19 @@ public class CFACreator {
     // THIRD, do read-only post-processings on each single function CFA
 
     // Annotate CFA nodes with reverse postorder information for later use.
-    cfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
+    cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
+    if (useASTStructure) {
+      stats.astStructureTime.start();
+      addASTStructure(cfa, config, logger);
+      stats.astStructureTime.stop();
+    }
     // get loop information
     // (needs post-order information)
     if (useLoopStructure) {
+      stats.loopStructureTime.start();
       addLoopStructure(cfa);
+      stats.loopStructureTime.stop();
     }
 
     // FOURTH, insert call and return edges and build the supergraph
@@ -622,6 +641,7 @@ public class CFACreator {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
       CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
       spbuilder.insertCallEdgesRecursively();
+      cfa.setMetadata(cfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
     }
 
     // FIFTH, do post-processings on the supergraph
@@ -634,34 +654,27 @@ public class CFACreator {
     // the cfa should not be modified after this line.
 
     // Get information about variables, needed for some analysis.
-    final Optional<VariableClassification> varClassification;
     if (language == Language.C) {
       try {
         VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
-        varClassification = Optional.of(builder.build(cfa));
+        cfa.setVariableClassification(builder.build(cfa));
         builder.collectStatistics(stats.statisticsCollection);
       } catch (UnrecognizedCodeException e) {
         throw new CParserException(e);
       }
-    } else {
-      varClassification = Optional.empty();
     }
 
     // create the live variables if the variable classification is present
-    if (findLiveVariables && (varClassification.isPresent() || cfa.getLanguage() != Language.C)) {
+    if (findLiveVariables
+        && (cfa.getVarClassification().isPresent() || cfa.getLanguage() != Language.C)) {
       cfa.setLiveVariables(
           LiveVariables.create(
-              varClassification,
-              pParseResult.getGlobalDeclarations(),
-              cfa,
-              logger,
-              shutdownNotifier,
-              config));
+              pParseResult.getGlobalDeclarations(), cfa, logger, shutdownNotifier, config));
     }
 
     stats.processingTime.stop();
 
-    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
+    final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
     if (pParseResult instanceof ParseResultWithCommentLocations withCommentLocations) {
       commentPositions.addAll(withCommentLocations.getCommentLocations());
@@ -812,19 +825,17 @@ public class CFACreator {
   /** check, whether the program contains function calls to crate a new thread. */
   private boolean isMultiThreadedProgram(MutableCFA pCfa) {
     // for all possible edges
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        // check for creation of new thread
-        if (edge instanceof AStatementEdge) {
-          final AStatement statement = ((AStatementEdge) edge).getStatement();
-          if (statement instanceof AFunctionCall) {
-            final AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              if (ThreadingTransferRelation.THREAD_START.equals(
-                  ((AIdExpression) functionNameExp).getName())) {
-                return true;
-              }
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
+      // check for creation of new thread
+      if (edge instanceof AStatementEdge) {
+        final AStatement statement = ((AStatementEdge) edge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          final AExpression functionNameExp =
+              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression) {
+            if (ThreadingTransferRelation.THREAD_START.equals(
+                ((AIdExpression) functionNameExp).getName())) {
+              return true;
             }
           }
         }
@@ -862,7 +873,7 @@ public class CFACreator {
     if (mainMethodValues.size() >= 2) {
       StringBuilder exceptionMessage = new StringBuilder();
       mainMethodValues.forEach(
-          (k) ->
+          k ->
               exceptionMessage
                   .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
                   .append("\n"));
@@ -987,6 +998,14 @@ public class CFACreator {
     return mainFunction;
   }
 
+  private void addASTStructure(MutableCFA cfa, Configuration pConfig, LogManager pLogger) {
+    try {
+      cfa.setASTStructure(new ASTStructure(pConfig, shutdownNotifier, pLogger, cfa));
+    } catch (CoreException | InterruptedException | IOException | InvalidConfigurationException e) {
+      logger.logUserException(Level.WARNING, e, "Could not analyze AST structure of program.");
+    }
+  }
+
   private void addLoopStructure(MutableCFA cfa) {
     try {
       cfa.setLoopStructure(LoopStructure.getLoopStructure(cfa));
@@ -1076,8 +1095,7 @@ public class CFACreator {
     // first, collect all variables which do have an explicit initializer
     Set<String> initializedVariables = new HashSet<>();
     for (Pair<ADeclaration, String> p : globalVars) {
-      if (p.getFirst() instanceof AVariableDeclaration) {
-        AVariableDeclaration v = (AVariableDeclaration) p.getFirst();
+      if (p.getFirst() instanceof AVariableDeclaration v) {
         if (v.getInitializer() != null) {
           initializedVariables.add(v.getName());
         }

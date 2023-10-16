@@ -137,6 +137,21 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure = true, description = "Use an optimisation for constraint generation")
   private boolean useConstraintOptimization = true;
 
+  @Option(
+      secure = true,
+      description =
+          "Enable handling of functions memset, memcopy, memmove. "
+              + "If disabled, using these functions will result in an error.")
+  private boolean enableMemoryAssignmentFunctions = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Prevent functions memset, memcopy, memmove from stopping verification "
+              + "if there is unrecognized code. Instead, they will just be skipped (unsound). "
+              + "Only relevant if enableMemoryAssignmentFunctions is set to true.")
+  private boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config)
       throws InvalidConfigurationException {
     super(config);
@@ -254,5 +269,13 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   public boolean useByteArrayForHeap() {
     return useByteArrayForHeap;
+  }
+
+  boolean enableMemoryAssignmentFunctions() {
+    return enableMemoryAssignmentFunctions;
+  }
+
+  boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions() {
+    return ignoreUnrecognizedCodeInMemoryAssignmentFunctions;
   }
 }

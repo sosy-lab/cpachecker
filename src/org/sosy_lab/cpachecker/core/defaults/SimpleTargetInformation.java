@@ -28,10 +28,7 @@ public final class SimpleTargetInformation implements TargetInformation {
 
   @Override
   public boolean equals(Object pOther) {
-    if (!(pOther instanceof SimpleTargetInformation)) {
-      return false;
-    }
-    return text.equals(pOther.toString());
+    return pOther instanceof SimpleTargetInformation && text.equals(pOther.toString());
   }
 
   @Override

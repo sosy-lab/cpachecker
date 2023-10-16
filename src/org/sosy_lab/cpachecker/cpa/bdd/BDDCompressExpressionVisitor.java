@@ -161,13 +161,8 @@ public class BDDCompressExpressionVisitor extends DefaultCExpressionVisitor<Regi
 
   @Override
   public Region[] visit(CIdExpression idExp) {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
-      if (enumerator.hasValue()) {
-        return intToRegions.get(BigInteger.valueOf(enumerator.getValue()));
-      } else {
-        return null;
-      }
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
+      return intToRegions.get(BigInteger.valueOf(enumerator.getValue()));
     }
     return predMgr.createPredicate(
         idExp.getDeclaration().getQualifiedName(),

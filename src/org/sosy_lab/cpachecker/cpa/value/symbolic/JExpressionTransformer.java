@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -289,7 +288,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = pJCastExpression.getOperand().accept(this);
 
-    return factory.cast(operand, pJCastExpression.getCastType(), Optional.empty());
+    return factory.cast(operand, pJCastExpression.getCastType());
   }
 
   @Override

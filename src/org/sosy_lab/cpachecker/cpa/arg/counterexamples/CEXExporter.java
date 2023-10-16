@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
@@ -67,7 +68,7 @@ public class CEXExporter {
 
   enum CounterexampleExportType {
     CBMC,
-    CONCRETE_EXECUTION;
+    CONCRETE_EXECUTION,
   }
 
   @Option(
@@ -106,6 +107,7 @@ public class CEXExporter {
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
+  private final InvariantWitnessWriter invariantWitnessWriter;
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
@@ -117,13 +119,15 @@ public class CEXExporter {
       CFA cfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
-      ExtendedWitnessExporter pExtendedWitnessExporter)
+      ExtendedWitnessExporter pExtendedWitnessExporter,
+      @Nullable InvariantWitnessWriter pInvariantWitnessWriter)
       throws InvalidConfigurationException {
     config.inject(this);
     options = pOptions;
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
+    invariantWitnessWriter = pInvariantWitnessWriter;
 
     if (!options.disabledCompletely()) {
       cexFilter =
@@ -180,8 +184,8 @@ public class CEXExporter {
         faultExporter.export(
             ((FaultLocalizationInfo) counterexample).getRankedList(),
             errorPath.get(errorPath.size() - 1).getCFAEdge());
-      } catch (IOException pE) {
-        logger.logUserException(Level.WARNING, pE, "Could not export faults as JSON.");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not export faults as JSON.");
       }
     }
 
@@ -301,30 +305,39 @@ public class CEXExporter {
       }
     }
 
-    try {
-      final Witness witness =
-          witnessExporter.generateErrorWitness(
-              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+    if (options.getWitnessFile() != null
+        || options.getWitnessDotFile() != null
+        || options.getYamlWitnessFile() != null) {
+      try {
+        final Witness witness =
+            witnessExporter.generateErrorWitness(
+                rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-      writeErrorPathFile(
-          options.getWitnessFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
-              },
-          compressWitness);
+        writeErrorPathFile(
+            options.getWitnessFile(),
+            uniqueId,
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+            compressWitness);
 
-      writeErrorPathFile(
-          options.getWitnessDotFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
-              },
-          compressWitness);
-    } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+        writeErrorPathFile(
+            options.getWitnessDotFile(),
+            uniqueId,
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+            compressWitness);
+
+        if (invariantWitnessWriter != null) {
+          writeErrorPathFile(
+              options.getYamlWitnessFile(),
+              uniqueId,
+              (Appender)
+                  pApp -> {
+                    invariantWitnessWriter.exportErrorWitnessAsYamlWitness(witness, pApp);
+                  },
+              compressWitness);
+        }
+      } catch (InterruptedException e) {
+        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+      }
     }
 
     if (options.getExtendedWitnessFile() != null) {
@@ -336,9 +349,7 @@ public class CEXExporter {
             options.getExtendedWitnessFile(),
             uniqueId,
             (Appender)
-                pAppendable -> {
-                  WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
-                },
+                pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable),
             compressWitness);
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");

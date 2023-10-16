@@ -80,4 +80,15 @@ public interface FeasibilityChecker<S extends AbstractState> {
       throws CPAException, InterruptedException {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * The feasibility checker and refiner refine by path. If the location that is flagged as error
+   * location is reachable, the error is feasible. This of course does not hold for MemorySafety,
+   * where the ErrorInfo also has to be set!
+   *
+   * @return true if we are currently refining/checking MemorySafety.
+   */
+  default boolean isRefineMemorySafety() {
+    return false;
+  }
 }

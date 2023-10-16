@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "sampling.unrolling")
@@ -83,7 +83,7 @@ public class SampleUnrollingAlgorithm {
         new CoreComponentsFactory(
             pConfig, logger, pShutdownManager.getNotifier(), AggregatedReachedSets.empty());
     cpa = coreComponents.createCPA(pCfa, pSpecification);
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+    SerializationInfoStorage.storeSerializationInformation(cpa, pCfa);
   }
 
   public Set<Sample> unrollSample(Sample initialSample, Loop loop)

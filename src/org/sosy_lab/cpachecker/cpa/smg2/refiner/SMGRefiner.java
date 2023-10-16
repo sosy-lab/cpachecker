@@ -149,13 +149,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final CFA cfa = smgCpa.getCFA();
 
     final StrongestPostOperator<SMGState> strongestPostOp =
-        new SMGStrongestPostOperator(logger, config, cfa);
+        new SMGStrongestPostOperator(smgCpa.getSolver(), logger, config, cfa);
 
     final SMGFeasibilityChecker checker =
         new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
     final GenericPrefixProvider<SMGState> prefixProvider =
-        new SMGPrefixProvider(logger, cfa, config, smgCpa.getShutdownNotifier());
+        new SMGPrefixProvider(
+            smgCpa.getSolver(), logger, cfa, config, smgCpa.getShutdownNotifier());
 
     return new SMGRefiner(
         checker,
@@ -190,7 +191,11 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pShutdownNotifier,
             pCfa),
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety()),
         pPathExtractor,
         pConfig,
         pLogger);

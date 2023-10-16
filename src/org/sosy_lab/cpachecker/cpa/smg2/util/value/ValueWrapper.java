@@ -32,8 +32,8 @@ public final class ValueWrapper extends Equivalence<Value> {
           && !(arg0Num instanceof Float)
           && !(arg1Num instanceof Float)) {
         try {
-          return pArg0.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0
-              && pArg1.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0;
+          return pArg0.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0
+              && pArg1.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0;
         } catch (NumberFormatException e) {
           // This happens for Nan, -/+Infinity
           // let equals handle this

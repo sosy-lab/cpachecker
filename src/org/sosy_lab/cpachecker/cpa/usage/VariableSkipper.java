@@ -65,11 +65,7 @@ public class VariableSkipper {
       return true;
     }
 
-    if (from(byFunctionPrefix).anyMatch(functionName::startsWith)) {
-      return true;
-    }
-
-    return false;
+    return from(byFunctionPrefix).anyMatch(functionName::startsWith);
   }
 
   private boolean checkId(SingleIdentifier singleId) {

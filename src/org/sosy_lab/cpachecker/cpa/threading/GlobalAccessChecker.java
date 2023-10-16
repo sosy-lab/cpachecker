@@ -87,7 +87,7 @@ public class GlobalAccessChecker {
       case FunctionCallEdge:
         return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
       case FunctionReturnEdge:
-        return hasGlobalAccess(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
+        return hasGlobalAccess(((FunctionReturnEdge) edge).getFunctionCall());
       default:
         throw new AssertionError("unexpected edge: " + edge);
     }

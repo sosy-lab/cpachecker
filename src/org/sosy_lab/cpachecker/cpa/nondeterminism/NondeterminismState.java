@@ -108,13 +108,11 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
 
     @Override
     public boolean equals(Object pObj) {
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
-      if (pObj instanceof NondeterminismNonAbstractionState other) {
-        return nondetVariables.equals(other.nondetVariables);
-      }
-      return super.equals(pObj);
+      return pObj instanceof NondeterminismNonAbstractionState other
+          && nondetVariables.equals(other.nondetVariables);
     }
 
     @Override
@@ -163,13 +161,11 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
 
     @Override
     public boolean equals(Object pObj) {
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
-      if (pObj instanceof NondeterminismAbstractionState other) {
-        return nondetVariablesPreAbstraction.equals(other.nondetVariablesPreAbstraction);
-      }
-      return super.equals(pObj);
+      return pObj instanceof NondeterminismAbstractionState other
+          && nondetVariablesPreAbstraction.equals(other.nondetVariablesPreAbstraction);
     }
 
     @Override

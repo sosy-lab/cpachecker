@@ -53,11 +53,8 @@ public class AutomatonTargetInformation implements TargetInformation {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof AutomatonTargetInformation)) {
-      return false;
-    }
-    AutomatonTargetInformation other = (AutomatonTargetInformation) obj;
-    return automatonTrans.equals(other.automatonTrans)
+    return obj instanceof AutomatonTargetInformation other
+        && automatonTrans.equals(other.automatonTrans)
         && automaton.equals(other.automaton)
         && propertyInstanceDescription.equals(other.propertyInstanceDescription);
   }

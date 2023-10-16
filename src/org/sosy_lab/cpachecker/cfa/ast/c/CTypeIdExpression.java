@@ -96,12 +96,9 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
       return true;
     }
 
-    if (!(obj instanceof CTypeIdExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    CTypeIdExpression other = (CTypeIdExpression) obj;
-
-    return Objects.equals(other.operator, operator) && Objects.equals(other.type, type);
+    return obj instanceof CTypeIdExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operator, operator)
+        && Objects.equals(other.type, type);
   }
 }

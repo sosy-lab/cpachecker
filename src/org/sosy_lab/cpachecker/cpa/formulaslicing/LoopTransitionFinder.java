@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -183,11 +184,13 @@ public class LoopTransitionFinder implements StatisticsProvider {
         return TraversalProcess.SKIP;
       }
       if (edge instanceof FunctionCallEdge) {
-        return onCallEdge(edge);
+        return onCallEdge((FunctionCallEdge) edge);
 
       } else if (edge instanceof FunctionReturnEdge) {
-        return onReturnEdge(edge);
-      } else if (edge instanceof FunctionSummaryEdge) {
+        return onReturnEdge((FunctionReturnEdge) edge);
+      } else if (edge instanceof FunctionSummaryEdge
+          || edge instanceof CFunctionSummaryStatementEdge) {
+        // skip because we handle the super edges instead
         return TraversalProcess.SKIP;
       } else {
         visitedEdges.add(edge);
@@ -195,9 +198,9 @@ public class LoopTransitionFinder implements StatisticsProvider {
       }
     }
 
-    abstract TraversalProcess onCallEdge(CFAEdge callEdge);
+    abstract TraversalProcess onCallEdge(FunctionCallEdge callEdge);
 
-    abstract TraversalProcess onReturnEdge(CFAEdge returnEdge);
+    abstract TraversalProcess onReturnEdge(FunctionReturnEdge returnEdge);
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
@@ -214,14 +217,14 @@ public class LoopTransitionFinder implements StatisticsProvider {
     private final Set<CFANode> expectedJoinNodes = new HashSet<>();
 
     @Override
-    TraversalProcess onCallEdge(CFAEdge callEdge) {
+    TraversalProcess onCallEdge(FunctionCallEdge callEdge) {
       visitedEdges.add(callEdge);
-      expectedJoinNodes.add(callEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor());
+      expectedJoinNodes.add(callEdge.getReturnNode());
       return TraversalProcess.CONTINUE;
     }
 
     @Override
-    TraversalProcess onReturnEdge(CFAEdge returnEdge) {
+    TraversalProcess onReturnEdge(FunctionReturnEdge returnEdge) {
       if (expectedJoinNodes.contains(returnEdge.getSuccessor())) {
         visitedEdges.add(returnEdge);
         return TraversalProcess.CONTINUE;
@@ -239,15 +242,15 @@ public class LoopTransitionFinder implements StatisticsProvider {
     private final Set<CFANode> expectedCallsites = new HashSet<>();
 
     @Override
-    TraversalProcess onReturnEdge(CFAEdge edge) {
-      CFANode callsite = edge.getSuccessor().getEnteringSummaryEdge().getPredecessor();
+    TraversalProcess onReturnEdge(FunctionReturnEdge edge) {
+      CFANode callsite = edge.getCallNode();
       expectedCallsites.add(callsite);
       visitedEdges.add(edge);
       return TraversalProcess.CONTINUE;
     }
 
     @Override
-    TraversalProcess onCallEdge(CFAEdge edge) {
+    TraversalProcess onCallEdge(FunctionCallEdge edge) {
       if (expectedCallsites.contains(edge.getPredecessor())) {
         visitedEdges.add(edge);
         return TraversalProcess.CONTINUE;
@@ -373,7 +376,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     return out;
   }
 
-  private interface EdgeWrapper {
+  private sealed interface EdgeWrapper {
     CFANode getPredecessor();
 
     CFANode getSuccessor();
@@ -385,7 +388,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     String prettyPrint(String prefix);
   }
 
-  private class SingleEdge implements EdgeWrapper {
+  private final class SingleEdge implements EdgeWrapper {
     private final CFAEdge edge;
 
     SingleEdge(CFAEdge e) {
@@ -420,7 +423,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  private class AndEdge implements EdgeWrapper {
+  private final class AndEdge implements EdgeWrapper {
     private final List<EdgeWrapper> edges;
     private final CFANode predecessor;
     private final CFANode successor;
@@ -472,7 +475,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  private class OrEdge implements EdgeWrapper {
+  private final class OrEdge implements EdgeWrapper {
     private final List<EdgeWrapper> edges;
     private final CFANode predecessor;
     private final CFANode successor;

@@ -9,8 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
-import java.util.TreeMap;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
@@ -75,7 +76,7 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockTypeSize, 32, obj1, SMGZeroValue.INSTANCE);
     smg1.addHasValueEdge(hv);
 
-    TreeMap<Long, Long> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
+    Map<Long, Long> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
     assertThat(nullEdges).containsExactly(32L, 32L);
   }
 
@@ -295,13 +296,7 @@ public class SMGTest {
     smg1.addObject(object_16b);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
-    boolean thrown = false;
-    try {
-      smg1.addHasValueEdge(hv_edge2);
-    } catch (AssertionError pAssertionError) {
-      thrown = true;
-    }
-    assertThat(thrown).isTrue();
+    assertThrows(AssertionError.class, () -> smg1.addHasValueEdge(hv_edge2));
   }
 
   @Test

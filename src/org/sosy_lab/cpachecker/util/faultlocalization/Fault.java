@@ -162,12 +162,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
 
   @Override
   public boolean equals(Object q) {
-    if (!(q instanceof Fault)) {
-      return false;
-    }
-
-    Fault comp = (Fault) q;
-    return errorSet.equals(comp.errorSet) && infos.equals(comp.infos);
+    return q instanceof Fault comp && errorSet.equals(comp.errorSet) && infos.equals(comp.infos);
   }
 
   @Override

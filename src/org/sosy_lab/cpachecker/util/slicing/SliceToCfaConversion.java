@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
 import java.util.List;
 import java.util.NavigableMap;
@@ -189,7 +190,7 @@ final class SliceToCfaConversion {
     NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
     TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
 
-    for (CFANode node : pCfa.getAllNodes()) {
+    for (CFANode node : pCfa.nodes()) {
 
       String functionName = node.getFunction().getQualifiedName();
       allNodes.put(functionName, node);
@@ -199,18 +200,11 @@ final class SliceToCfaConversion {
       }
     }
 
-    MutableCFA mutableSliceCfa =
-        new MutableCFA(
-            pCfa.getMachineModel(),
-            functionEntryNodes,
-            allNodes,
-            pCfa.getMainFunction(),
-            pCfa.getFileNames(),
-            pCfa.getLanguage());
+    MutableCFA mutableSliceCfa = new MutableCFA(functionEntryNodes, allNodes, pCfa.getMetadata());
 
     CFASimplifier.simplifyCFA(mutableSliceCfa);
 
-    return mutableSliceCfa.makeImmutableCFA(mutableSliceCfa.getVarClassification());
+    return mutableSliceCfa.immutableCopy();
   }
 
   /**
@@ -252,10 +246,7 @@ final class SliceToCfaConversion {
     irrelevantNodes.forEach(graph::removeNode);
 
     ImmutableMap<AFunctionDeclaration, FunctionEntryNode> functionToEntryNodeMap =
-        pSlice.getOriginalCfa().getAllFunctionHeads().stream()
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    entryNode -> entryNode.getFunction(), entryNode -> entryNode));
+        Maps.uniqueIndex(pSlice.getOriginalCfa().entryNodes(), FunctionEntryNode::getFunction);
 
     // if the program slice is empty, return a CFA containing an empty main function
     if (relevantEdges.isEmpty()) {
@@ -327,7 +318,7 @@ final class SliceToCfaConversion {
               .getReturnVariable()
               .map(returnVariable -> (CVariableDeclaration) returnVariable)
               .filter(relevantDeclarations::contains)
-              .map(variable -> variable.getType())
+              .map(CVariableDeclaration::getType)
               .orElse(CVoidType.VOID);
 
       CFunctionType functionType = pFunctionDeclaration.getType();

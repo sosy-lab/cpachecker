@@ -38,6 +38,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
   private static final long serialVersionUID = 8794036217601570272L;
   private final ImmutableList<JExpression> length;
   private final @Nullable JArrayInitializer initializer;
+
   // TODO Type Variables < Type { , Type } >
 
   public JArrayCreationExpression(
@@ -103,12 +104,9 @@ public final class JArrayCreationExpression extends AbstractExpression implement
       return true;
     }
 
-    if (!(obj instanceof JArrayCreationExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    JArrayCreationExpression other = (JArrayCreationExpression) obj;
-
-    return Objects.equals(other.initializer, initializer) && Objects.equals(other.length, length);
+    return obj instanceof JArrayCreationExpression other
+        && super.equals(obj)
+        && Objects.equals(other.initializer, initializer)
+        && Objects.equals(other.length, length);
   }
 }

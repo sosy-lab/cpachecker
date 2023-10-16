@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 public final class DOTBuilder {
 
   private DOTBuilder() {
-    /* utility class */
+    // utility class
   }
 
   private static final String MAIN_GRAPH = "____Main____Diagram__";
@@ -62,7 +62,7 @@ public final class DOTBuilder {
     // define the graphic representation for all subsequent nodes
     sb.append("node [shape=\"circle\"]\n");
 
-    for (FunctionEntryNode fnode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode fnode : cfa.entryNodes()) {
       // If Array belongs to functionCall in Parameter, replace [].
       // If Name Contains '.' replace with '_'
       sb.append(

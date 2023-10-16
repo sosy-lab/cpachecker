@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -176,7 +177,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private enum PointerStateComputationMethod {
     FLOW_SENSITIVE,
-    FLOW_INSENSITIVE;
+    FLOW_INSENSITIVE,
   }
 
   public CSystemDependenceGraphBuilder(
@@ -452,8 +453,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private Optional<MemoryLocation> getReturnVariable(CFunctionSummaryEdge pSummaryEdge) {
 
     CFunctionCallEdge callEdge = getCallEdge(pSummaryEdge);
-    Optional<CVariableDeclaration> returnVariable =
-        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable();
+    Optional<CVariableDeclaration> returnVariable = callEdge.getSuccessor().getReturnVariable();
 
     if (returnVariable.isPresent()) {
       return Optional.of(MemoryLocation.forDeclaration(returnVariable.orElseThrow()));
@@ -716,7 +716,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     ImmutableMultimap<String, CFAEdge> complexTypeDeclarationEdges =
         getComplexTypeDeclarationEdges(globalEdges);
 
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
 
       shutdownNotifier.shutdownIfNecessary();
 
@@ -751,7 +751,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private void insertControlDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions) {
 
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
 
       if (onlyReachableFunctions && !pReachableFunctions.contains(entryNode.getFunction())) {
         continue;
@@ -762,7 +762,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       Optional<AFunctionDeclaration> procedure = Optional.of(entryNode.getFunction());
 
-      for (CFAEdge edge : CFAUtils.allEnteringEdges(entryNode)) {
+      for (FunctionCallEdge edge : CFAUtils.enteringEdges(entryNode)) {
         if (edge instanceof CFunctionCallEdge callEdge) {
 
           builder
@@ -771,17 +771,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               .on(NodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty());
 
           CFunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
-          Optional<AFunctionDeclaration> summaryEdgeProcedure =
-              Optional.of(summaryEdge.getPredecessor().getFunction());
+          Optional<AFunctionDeclaration> callerProcedure =
+              Optional.of(callEdge.getPredecessor().getFunction());
 
           builder
               .node(NodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty())
               .depends(EdgeType.CALL_EDGE, Optional.empty())
-              .on(
-                  NodeType.STATEMENT,
-                  summaryEdgeProcedure,
-                  Optional.of(summaryEdge),
-                  Optional.empty());
+              .on(NodeType.STATEMENT, callerProcedure, Optional.of(summaryEdge), Optional.empty());
         }
       }
     }

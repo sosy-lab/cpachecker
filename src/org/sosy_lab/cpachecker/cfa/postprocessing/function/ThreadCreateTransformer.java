@@ -131,7 +131,7 @@ public class ThreadCreateTransformer {
   public void transform(CFA cfa) {
     ThreadFinder threadVisitor = new ThreadFinder();
 
-    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode functionStartNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
 

@@ -74,12 +74,9 @@ public final class CDesignatedInitializer extends AbstractInitializer implements
       return true;
     }
 
-    if (!(obj instanceof CDesignatedInitializer) || !super.equals(obj)) {
-      return false;
-    }
-
-    CDesignatedInitializer other = (CDesignatedInitializer) obj;
-
-    return Objects.equals(other.designators, designators) && Objects.equals(other.right, right);
+    return obj instanceof CDesignatedInitializer other
+        && super.equals(obj)
+        && Objects.equals(other.designators, designators)
+        && Objects.equals(other.right, right);
   }
 }

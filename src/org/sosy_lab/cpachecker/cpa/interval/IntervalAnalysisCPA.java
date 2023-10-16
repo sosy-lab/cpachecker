@@ -51,7 +51,6 @@ public class IntervalAnalysisCPA extends AbstractCPA
       toUppercase = true,
       values = {"SEP", "JOIN"},
       description = "which type of merge operator to use for IntervalAnalysisCPA")
-  /** the merge type of the interval analysis */
   private String mergeType = "SEP";
 
   @Option(

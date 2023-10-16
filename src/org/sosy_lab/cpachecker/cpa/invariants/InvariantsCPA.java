@@ -214,7 +214,7 @@ public class InvariantsCPA
   private final StateToFormulaWriter writer;
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory =
-      CompoundBitVectorIntervalManagerFactory.FORBID_SIGNED_WRAP_AROUND;
+      CompoundBitVectorIntervalManagerFactory.forbidSignedWrapAround();
 
   private final EdgeAnalyzer edgeAnalyzer;
 
@@ -324,7 +324,7 @@ public class InvariantsCPA
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
     } else {
-      relevantLocations.addAll(cfa.getAllNodes());
+      relevantLocations.addAll(cfa.nodes());
     }
 
     // Collect relevant edges and guess that information might be interesting
@@ -574,6 +574,8 @@ public class InvariantsCPA
 
   private static boolean mustReach(
       CFANode pStart, final CFANode pTarget, final CFAEdge pForbiddenEdge) {
+    // FIXME: Unclear whether this method does what it should do. Cf.
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/eb3e7ab32fc2e61edabd4d1ec2838fc6be072905
     Set<CFANode> visited = new HashSet<>();
     visited.add(pStart);
     Queue<CFANode> waitlist = new ArrayDeque<>();
@@ -586,7 +588,8 @@ public class InvariantsCPA
         for (CFAEdge leavingEdge : leavingEdges) {
           if (!leavingEdge.equals(pForbiddenEdge)) {
             CFANode successor = leavingEdge.getSuccessor();
-            if (continued |= visited.add(successor)) {
+            continued |= visited.add(successor);
+            if (continued) {
               waitlist.offer(successor);
             }
           }
@@ -693,7 +696,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class CompoundConditionAdjuster implements ConditionAdjuster {
+  private static final class CompoundConditionAdjuster implements ConditionAdjuster {
 
     private final InvariantsCPA cpa;
 
@@ -789,7 +792,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class InterestingVariableLimitAdjuster implements ValueIncreasingAdjuster {
+  private static final class InterestingVariableLimitAdjuster implements ValueIncreasingAdjuster {
 
     private final InvariantsCPA cpa;
 
@@ -832,7 +835,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class FormulaDepthAdjuster implements ValueIncreasingAdjuster {
+  private static final class FormulaDepthAdjuster implements ValueIncreasingAdjuster {
 
     private final InvariantsCPA cpa;
 
@@ -868,7 +871,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class AbstractionStrategyAdjuster implements ConditionAdjuster {
+  private static final class AbstractionStrategyAdjuster implements ConditionAdjuster {
 
     private final InvariantsCPA cpa;
 

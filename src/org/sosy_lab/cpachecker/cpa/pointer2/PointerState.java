@@ -193,10 +193,7 @@ public class PointerState implements AbstractState {
     if (this == pO) {
       return true;
     }
-    if (pO instanceof PointerState) {
-      return pointsToMap.equals(((PointerState) pO).pointsToMap);
-    }
-    return false;
+    return pO instanceof PointerState && pointsToMap.equals(((PointerState) pO).pointsToMap);
   }
 
   @Override

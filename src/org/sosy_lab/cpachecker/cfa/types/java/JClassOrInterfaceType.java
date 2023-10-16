@@ -162,13 +162,7 @@ public abstract sealed class JClassOrInterfaceType implements JReferenceType
       return true;
     }
 
-    if (!(pObj instanceof JClassOrInterfaceType)) {
-      return false;
-    }
-
-    JClassOrInterfaceType other = (JClassOrInterfaceType) pObj;
-
-    return Objects.equals(name, other.name);
+    return pObj instanceof JClassOrInterfaceType other && Objects.equals(name, other.name);
   }
 
   @Override

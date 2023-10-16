@@ -84,23 +84,26 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
       secure = true)
   private boolean useLiveness = true;
 
-  @Option(description = "Track overflows in left-shift operations.")
+  @Option(description = "Track overflows in left-shift operations.", secure = true)
   private boolean trackLeftShifts = true;
 
-  @Option(description = "Track overflows in additive(+/-) operations.")
+  @Option(description = "Track overflows in additive(+/-) operations.", secure = true)
   private boolean trackAdditiveOperations = true;
 
-  @Option(description = "Track overflows in multiplication operations.")
+  @Option(description = "Track overflows in multiplication operations.", secure = true)
   private boolean trackMultiplications = true;
 
-  @Option(description = "Track overflows in division(/ or %) operations.")
+  @Option(description = "Track overflows in division(/ or %) operations.", secure = true)
   private boolean trackDivisions = true;
 
-  @Option(description = "Track overflows in binary expressions involving pointers.")
+  @Option(description = "Track overflows in binary expressions involving pointers.", secure = true)
   private boolean trackPointers = false;
 
-  @Option(description = "Simplify overflow assumptions.")
+  @Option(description = "Simplify overflow assumptions.", secure = true)
   private boolean simplifyExpressions = true;
+
+  @Option(description = "Check for unsigned integer overflows", secure = true)
+  private boolean checkUnsigned = false;
 
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
@@ -145,6 +148,12 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     trackType(CNumericTypes.SIGNED_LONG_INT);
     trackType(CNumericTypes.LONG_LONG_INT);
     trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
+
+    if (checkUnsigned) {
+      trackType(CNumericTypes.UNSIGNED_INT);
+      trackType(CNumericTypes.UNSIGNED_LONG_INT);
+      trackType(CNumericTypes.UNSIGNED_LONG_LONG_INT);
+    }
 
     ofmgr = new OverflowAssumptionManager(machineModel, logger);
     simplificationVisitor =

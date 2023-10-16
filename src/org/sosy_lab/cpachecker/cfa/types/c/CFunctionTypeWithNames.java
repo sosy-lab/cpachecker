@@ -76,13 +76,9 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
       return true;
     }
 
-    if (!(obj instanceof CFunctionTypeWithNames) || !super.equals(obj)) {
-      return false;
-    }
-
-    CFunctionTypeWithNames other = (CFunctionTypeWithNames) obj;
-
-    return Objects.equals(parameters, other.parameters);
+    return obj instanceof CFunctionTypeWithNames other
+        && super.equals(obj)
+        && Objects.equals(parameters, other.parameters);
   }
 
   private Object writeReplace() {

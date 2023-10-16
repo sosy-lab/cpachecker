@@ -83,7 +83,7 @@ class ASTLiteralConverter {
         return parseFloatLiteral(fileLoc, type, valueStr, e);
 
       case IASTLiteralExpression.lk_string_literal:
-        return new CStringLiteralExpression(fileLoc, type, valueStr);
+        return new CStringLiteralExpression(fileLoc, valueStr);
 
       default:
         throw parseContext.parseError("Unknown literal", e);
@@ -98,13 +98,13 @@ class ASTLiteralConverter {
             type.isConst(),
             type.isVolatile(),
             type.getType(),
-            type.isLong(),
-            type.isShort(),
-            type.isSigned(),
-            type.isUnsigned(),
-            type.isComplex(),
+            type.hasLongSpecifier(),
+            type.hasShortSpecifier(),
+            type.hasSignedSpecifier(),
+            type.hasUnsignedSpecifier(),
+            type.hasComplexSpecifier(),
             true,
-            type.isLongLong());
+            type.hasLongLongSpecifier());
     switch (exp.getKind()) {
       case IASTLiteralExpression.lk_char_constant:
         return new CImaginaryLiteralExpression(
@@ -378,7 +378,7 @@ class ASTLiteralConverter {
       case L:
       case LL:
         if (pType == ConstantType.DECIMAL) {
-          stream = stream.filter(x -> x.isSigned());
+          stream = stream.filter(Suffix::isSigned);
         }
         break;
 
@@ -441,7 +441,7 @@ class ASTLiteralConverter {
     BINARY,
     OCTAL,
     DECIMAL,
-    HEXADECIMAL;
+    HEXADECIMAL,
   }
 
   private enum Suffix {

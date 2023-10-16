@@ -51,10 +51,6 @@ public abstract class ALiteralExpression extends AbstractExpression {
       return true;
     }
 
-    if (!(obj instanceof ALiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof ALiteralExpression && super.equals(obj);
   }
 }

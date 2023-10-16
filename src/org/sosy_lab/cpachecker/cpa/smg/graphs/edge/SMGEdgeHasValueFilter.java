@@ -178,10 +178,7 @@ public class SMGEdgeHasValueFilter {
 
     if (sizeInBits >= 0 && sizeInBits != pEdge.getSizeInBits()) {
       // zero edge with bigger size can hold current edge
-      if (sizeInBits < pEdge.getSizeInBits() && pEdge.getValue().isZero()) {
-        return true;
-      }
-      return false;
+      return sizeInBits < pEdge.getSizeInBits() && pEdge.getValue().isZero();
     }
 
     return true;
