@@ -607,9 +607,14 @@ class AssignmentHandler {
       // Flexible array members effectively have length zero, so nothing to copy.
       return;
     }
-
-    final PartialSpan originalSpan = assignment.rhs().span();
-
+    if (!lhsArrayType.hasKnownConstantSize()) {
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring assignment to array type %s with variable length",
+          edge.getFileLocation(),
+          lhsArrayType);
+      return;
+    }
     if (!lhsArrayType.equals(rhsType)) {
       // we currently do not assign to array types from different types as that would ideally
       // require spans to support quantification, which would be problematic
@@ -622,9 +627,10 @@ class AssignmentHandler {
           rhsType);
       return;
     }
+    final PartialSpan originalSpan = assignment.rhs().span();
     if (originalSpan.lhsBitOffset() != 0
         || originalSpan.rhsTargetBitOffset() != 0
-        || originalSpan.bitSize() != typeHandler.getApproximatedBitSizeof(lhsArrayType)) {
+        || originalSpan.bitSize() != typeHandler.getExactBitSizeof(lhsArrayType)) {
       // we currently do not assign for incomplete spans as it would not be trivial
       conv.logger.logfOnce(
           Level.WARNING,
@@ -643,7 +649,7 @@ class AssignmentHandler {
     // full span
     final CType elementType = typeHandler.simplifyType(lhsArrayType.getType());
     final PartialSpan elementSpan =
-        new PartialSpan(0, 0, typeHandler.getApproximatedBitSizeof(elementType));
+        new PartialSpan(0, 0, typeHandler.getExactBitSizeof(elementType));
     final PartialAssignmentRhs elementSpanRhs = new PartialAssignmentRhs(elementSpan, elementRhs);
 
     // target type is now element type
