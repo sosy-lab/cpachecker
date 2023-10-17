@@ -835,8 +835,7 @@ class CFAMethodBuilder extends ASTVisitor {
         locStack.push(lastNode);
       }
 
-      if (!inTryBlock.isEmpty()
-          && !currentlyInFinally
+      if (!currentlyInFinally
           && !inCatchBlock
           && expressionStatement
               .getExpression()
@@ -873,6 +872,15 @@ class CFAMethodBuilder extends ASTVisitor {
           nestedFinallyIncorrect = null;
         }
 
+        CFANode end = null;
+        if (helperNotNull.isEmpty()) {
+          end = new CFANode(cfa.getFunction());
+          cfaNodes.add(end);
+          endOfCatch.add(end);
+        } else {
+          end = helperNotNull.peek();
+        }
+
         JAssumeEdge notEqualsNullFalse =
             new JAssumeEdge(
                 helperNotEqualsStatement.toString(),
@@ -889,7 +897,7 @@ class CFAMethodBuilder extends ASTVisitor {
                 helperNotEqualsStatement.toString(),
                 FileLocation.DUMMY,
                 current,
-                helperNotNull.peek(),
+                end,
                 helperNotEqualsExpression,
                 true);
         addToCFA(notEqualsNullTrue);
