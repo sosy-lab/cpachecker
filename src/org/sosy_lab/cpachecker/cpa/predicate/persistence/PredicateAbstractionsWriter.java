@@ -148,6 +148,7 @@ public class PredicateAbstractionsWriter {
         } else {
           locationString = AbstractStates.extractLocations(state).toString();
         }
+        // TODO: export line number
         writer.append(
             String.format(
                 "%d (%s) @%s:",

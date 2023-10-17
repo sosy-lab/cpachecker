@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.tubes.ExportAssumeEdges;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -389,6 +390,9 @@ public class CoreComponentsFactory {
       name = "algorithm.importFaults",
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
+
+  @Option(secure = true, description = "whether to export assume edges as txt.")
+  private boolean exportAssumeEdges = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -732,6 +736,10 @@ public class CoreComponentsFactory {
       }
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
+      }
+
+      if (exportAssumeEdges) {
+        algorithm = new ExportAssumeEdges(algorithm, config, cfa, logger);
       }
     }
 

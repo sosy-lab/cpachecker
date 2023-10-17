@@ -301,6 +301,9 @@ analysis.disable = false
 # entry function
 analysis.entryFunction = "main"
 
+# whether to export assume edges as txt.
+analysis.exportAssumeEdges = false
+
 # do analysis and then extract pre- and post conditions for custom
 # instruction from analysis result
 analysis.extractRequirements.customInstruction = false
@@ -4935,6 +4938,9 @@ traceformula.makeFlowSensitive = false
 # selector for equal statements (on the same line), set this option to true.
 # Note that enabling this option  also decreases the quality of results.
 traceformula.reduceSelectors = false
+
+# where to write assume edges
+tubes.assumes.outputPath = "assumes.txt"
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
