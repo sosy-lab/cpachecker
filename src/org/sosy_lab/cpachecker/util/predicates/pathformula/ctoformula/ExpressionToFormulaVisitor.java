@@ -596,7 +596,8 @@ public class ExpressionToFormulaVisitor
           new StaticSizeofVisitor(conv.machineModel).computeStaticSizeof(compositeType);
 
       for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
-        if (!member.getType().hasKnownConstantSize()) {
+        if (!member.getType().hasKnownConstantSize() && !member.isFlexibleArrayMember()) {
+          // Size is not statically known (exceptions are flexible array members with size 0).
           memberSizes.add(getSizeExpression(member.getType()));
         }
         // else the size is already part of staticallyKnownSize
