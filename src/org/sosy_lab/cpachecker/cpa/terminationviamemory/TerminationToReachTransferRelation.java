@@ -9,12 +9,18 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Ints;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -23,8 +29,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
+  private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  public TerminationToReachTransferRelation(BooleanFormulaManagerView pBfmgr) {
+  public TerminationToReachTransferRelation(BooleanFormulaManagerView pBfmgr,
+                                            FormulaManagerView pFmgr) {
+    fmgr = pFmgr;
     bfmgr = pBfmgr;
   }
 
@@ -33,7 +42,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state,
       Precision precision,
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
-    return null;
+    return Collections.singleton(state);
   }
 
   @Override
@@ -42,8 +51,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       Iterable<AbstractState> pOtherStates,
       CFAEdge pCfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
-    CFANode location = AbstractStates.extractLocation(pState);
     LocationState locationState = getLocationState(pOtherStates);
+    CFANode location = AbstractStates.extractLocation(locationState);
     PredicateAbstractState predicateState = getPredicateState(pOtherStates);
     TerminationToReachState terminationState = (TerminationToReachState) pState;
     if (location == null) {
@@ -67,8 +76,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       }
     }
-
-    return super.strengthen(pState, pOtherStates, pCfaEdge, precision);
+    return Collections.singleton(pState);
   }
   /** Stores new assumptions about value of variables seen.
    * For instance, if there is x@2 in SSAmap then it will add a condition to the stored values:
@@ -80,10 +88,14 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
                               int pNumberOfIterationsAtLoopHead) {
     BooleanFormula extendedFormula = pAssignment;
     for (String variable : pCurrentValues.allVariables()) {
-      String newVariable = "__Q__" + variable + "#" + pNumberOfIterationsAtLoopHead;
-      extendedFormula = bfmgr.and(ImmutableList.of(extendedFormula,
-          bfmgr.equivalence(bfmgr.makeVariable(newVariable, pNumberOfIterationsAtLoopHead),
-                            bfmgr.makeVariable(variable, pCurrentValues.getIndex(variable)))));
+      String newVariable = "__Q__" + variable;
+      //TODO: implement converter from Ctype to FormulaType
+      //TODO: store it as list of lists of constraints instead of long formula
+      extendedFormula = bfmgr.and(extendedFormula,
+          fmgr.assignment(fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18),
+                  newVariable, pNumberOfIterationsAtLoopHead),
+                            fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18),
+                                variable, pCurrentValues.getIndex(variable))));
     }
     return extendedFormula;
   }
