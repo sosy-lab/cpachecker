@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.HelperVariable;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
@@ -101,6 +102,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -145,6 +147,8 @@ class CFAMethodBuilder extends ASTVisitor {
   private boolean currentlyInFinally = false;
   private CFANode nestedFinallyIncorrect = null;
   private int isNested = 0;
+
+  JFieldDeclaration currentFinallyBooleanVariable = null;
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
@@ -892,6 +896,12 @@ class CFAMethodBuilder extends ASTVisitor {
 
         addToCFA(notEqualsNullFalse);
 
+        locStack.push(nodeAfterStatement);
+
+        if (!finallyExists.isEmpty() && finallyExists.peek()) {
+          setFinallyVariableValue();
+        }
+
         JAssumeEdge notEqualsNullTrue =
             new JAssumeEdge(
                 helperNotEqualsStatement.toString(),
@@ -901,8 +911,6 @@ class CFAMethodBuilder extends ASTVisitor {
                 helperNotEqualsExpression,
                 true);
         addToCFA(notEqualsNullTrue);
-
-        locStack.push(nodeAfterStatement);
       }
     }
 
@@ -2770,11 +2778,21 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(TryStatement tryStatement) {
 
+    JFieldDeclaration tempFinallyBooleanVariable = currentFinallyBooleanVariable;
+    if (tryStatement.getFinally() != null) {
+      addFinallyVariable();
+      finallyExists.addFirst(true);
+    } else {
+      finallyExists.addFirst(false);
+    }
+
     boolean tempInFinally = currentlyInFinally;
     boolean tempInCatch = inCatchBlock;
     currentlyInFinally = false;
     inCatchBlock = false;
     isNested += 1;
+
+
 
     CFANode helperNotNullNode = new CFANode(cfa.getFunction());
     helperNotNull.push(helperNotNullNode);
@@ -2801,12 +2819,6 @@ class CFAMethodBuilder extends ASTVisitor {
       }
     }
 
-    if (tryStatement.getFinally() != null) {
-      finallyExists.addFirst(true);
-    } else {
-      finallyExists.addFirst(false);
-    }
-
     for (Object cc : tryStatement.catchClauses()) {
       ((CatchClause) cc).accept(this);
     }
@@ -2818,6 +2830,7 @@ class CFAMethodBuilder extends ASTVisitor {
     }
     isNested -=1;
     inCatchBlock = tempInCatch;
+    currentFinallyBooleanVariable = tempFinallyBooleanVariable;
     return SKIP_CHILDREN;
   }
 
@@ -2831,20 +2844,52 @@ class CFAMethodBuilder extends ASTVisitor {
     boolean oldCurrentlyInFinally = currentlyInFinally;
     currentlyInFinally = true;
     finallyBlock.accept(this);
-    CFANode currentAfterCorrect = locStack.pop();
 
-    CFANode beforeIncorrect = nextCatchBlockOrError.pop();
-    locStack.push(beforeIncorrect);
-    finallyBlock.accept(this);
-    CFANode currentAfterIncorrect = locStack.pop();
+    JExpression leftHandSide =
+        new JIdExpression(
+            FileLocation.DUMMY,
+            currentFinallyBooleanVariable.getType(),
+            currentFinallyBooleanVariable.getName(),
+            currentFinallyBooleanVariable);
+
+    JExpression rightHandSide = new JBooleanLiteralExpression(FileLocation.DUMMY, true);
+
+    JExpression isTrue =
+        new JBinaryExpression(
+            FileLocation.DUMMY,
+            currentFinallyBooleanVariable.getType(),
+            leftHandSide,
+            rightHandSide,
+            BinaryOperator.EQUALS);
+
+    CFANode failure = nextCatchBlockOrError.pop();
+    CFANode current = locStack.pop();
+
+    BlankEdge blank = new BlankEdge("", FileLocation.DUMMY, failure, current, "");
+    addToCFA(blank);
+
+    CFANode afterFalse = new CFANode(cfa.getFunction());
+    cfaNodes.add(afterFalse);
+    CFANode afterTrue = new CFANode(cfa.getFunction());
+    cfaNodes.add(afterTrue);
+
+    createConditionEdges(isTrue, FileLocation.DUMMY, current, afterTrue, afterFalse);
+
+    /*JAssumeEdge variableFalse =
+        new JAssumeEdge(isTrue.toString(), FileLocation.DUMMY, current, afterFalse, isTrue, false);
+    addToCFA(variableFalse);
+
+    JAssumeEdge variableTrue =
+        new JAssumeEdge(isTrue.toString(), FileLocation.DUMMY, current, afterTrue, isTrue, true);
+    addToCFA(variableTrue);*/
 
     if (isNested > 1 && !nestedInFinally && !nestedInCatch) {
-      nestedFinallyIncorrect = currentAfterIncorrect;
+      nestedFinallyIncorrect = afterFalse;
     } else {
-      nextCatchBlockOrError.addLast(currentAfterIncorrect);
+      nextCatchBlockOrError.addLast(afterFalse);
     }
 
-    locStack.push(currentAfterCorrect);
+    locStack.push(afterTrue);
 
     handleEndOfCatch();
 
@@ -2853,6 +2898,57 @@ class CFAMethodBuilder extends ASTVisitor {
     } else {
       currentlyInFinally = oldCurrentlyInFinally;
     }
+
+  }
+
+  private void addFinallyVariable() {
+    String name = "CPAchecker_TEMP_afterFinally_"+isNested;
+    JExpression finallyVariableExpression = new JBooleanLiteralExpression(FileLocation.DUMMY,false);
+    AInitializer boolInitializer = new JInitializerExpression(FileLocation.DUMMY,finallyVariableExpression);
+    JFieldDeclaration booleanFinally =
+        new JFieldDeclaration(
+            FileLocation.DUMMY,
+            JSimpleType.getBoolean(),
+            name,
+            name,
+            false,
+            false,
+            false,
+            false,
+            VisibilityModifier.NONE);
+
+
+    CFANode current = locStack.pop();
+
+    CFANode middle = new CFANode(cfa.getFunction());
+    cfaNodes.add(middle);
+
+    JDeclarationEdge edge =
+        new JDeclarationEdge(
+            booleanFinally.toASTString(), FileLocation.DUMMY, current, middle, booleanFinally);
+    addToCFA(edge);
+
+    CFANode next = new CFANode(cfa.getFunction());
+    cfaNodes.add(next);
+
+    JBooleanLiteralExpression falseExpression =
+        new JBooleanLiteralExpression(FileLocation.DUMMY, false);
+
+    JLeftHandSide helperLeft =
+        new JIdExpression(
+            FileLocation.DUMMY, booleanFinally.getType(), booleanFinally.getName(), booleanFinally);
+
+    JExpressionAssignmentStatement booleanFalse =
+        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, falseExpression);
+
+    JStatementEdge assignment =
+        new JStatementEdge(
+            booleanFalse.toASTString(), booleanFalse, FileLocation.DUMMY, middle, next);
+    addToCFA(assignment);
+
+    currentFinallyBooleanVariable = booleanFinally;
+
+    locStack.push(next);
   }
 
   @Override
@@ -2904,6 +3000,10 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(dummyExceptionEquals);
 
+    if (finallyExists.peek()) {
+      setFinallyVariableValue();
+    }
+
     JDeclaration declaration = astCreator.convert(cc.getException());
     JClassType type = (JClassType) astCreator.convert(cc.getException().getType());
     FileLocation fileLoc = astCreator.getFileLocation(cc.getException());
@@ -2951,6 +3051,36 @@ class CFAMethodBuilder extends ASTVisitor {
 
     cc.getBody().accept(this);
     return SKIP_CHILDREN;
+  }
+
+  private void setFinallyVariableValue() {
+
+    JBooleanLiteralExpression booleanTrue = new JBooleanLiteralExpression(FileLocation.DUMMY,true);
+
+    JLeftHandSide finallyBooleanLeft =
+        new JIdExpression(
+            FileLocation.DUMMY,
+            currentFinallyBooleanVariable.getType(),
+            currentFinallyBooleanVariable.getName(),
+            currentFinallyBooleanVariable);
+
+    JExpressionAssignmentStatement finallyVariableTrue =
+        new JExpressionAssignmentStatement(FileLocation.DUMMY, finallyBooleanLeft, booleanTrue);
+
+    CFANode current = locStack.pop();
+    CFANode next = new CFANode(cfa.getFunction());
+    cfaNodes.add(next);
+
+    JStatementEdge edge =
+        new JStatementEdge(
+            finallyVariableTrue.toASTString(),
+            finallyVariableTrue,
+            FileLocation.DUMMY,
+            current,
+            next);
+    addToCFA(edge);
+
+    locStack.push(next);
   }
 
   private void setHelperNull(CFANode next) {
