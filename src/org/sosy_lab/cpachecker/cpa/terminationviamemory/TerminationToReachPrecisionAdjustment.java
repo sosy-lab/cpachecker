@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
-import java.util.logging.Logger;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -59,53 +59,51 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     CFANode location = AbstractStates.extractLocation(locationState);
     PredicateAbstractState predicateState = AbstractStates.extractStateByType(fullState,
         PredicateAbstractState.class);
+
     SSAMap ssaMap = predicateState.getPathFormula().getSsa();
     PrecisionAdjustmentResult result =
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
 
     if (location.isLoopStart()) {
       if (terminationState.getStoredValues().containsKey(locationState)) {
-        for (int i = 0; i < terminationState.getNumberOfIterationsAtLoopHead(locationState); ++i) {
-          for (String variable : ssaMap.allVariables()) {
-            boolean isTargetStateReachable = false;
-            try (ProverEnvironment bmcProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-              Formula targetFormula = buildCycleFormula(variable,
-                  predicateState,
-                  (BooleanFormula) terminationState.getStoredValues().get(locationState),
-                  ssaMap,
-                  ssaMap.getIndex(variable));
-              try {
-                bmcProver.push((BooleanFormula) targetFormula);
-                isTargetStateReachable = !bmcProver.isUnsat();
-              } catch (SolverException e){
-                continue;
-              }
-              if (isTargetStateReachable) {
-                result = result.withAction(Action.BREAK);
-              }
+        for (int i = 0; i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1; ++i) {
+          boolean isTargetStateReachable = false;
+          BooleanFormula targetFormula = buildCycleFormula(predicateState,
+              terminationState.getStoredValues().get(locationState),
+              ssaMap,
+              i);
+          try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+              prover.push(targetFormula);
+              isTargetStateReachable = !prover.isUnsat();
+            } catch (SolverException e){
+              continue;
+            }
+            if (isTargetStateReachable) {
+              terminationState.makeTarget();
+              result = result.withAbstractState(terminationState);
+              return Optional.of(result.withAction(Action.BREAK));
             }
           }
         }
       }
-    }
-
     return Optional.of(result);
   }
 
-  private Formula buildCycleFormula(String pVariable,
-                                           PredicateAbstractState pPredicateState,
+  private BooleanFormula buildCycleFormula(PredicateAbstractState pPredicateState,
                                            BooleanFormula storedValues,
                                            SSAMap pSSAMap,
                                            int pSSAIndex) {
     BooleanFormula cycle = pPredicateState.getPathFormula().getFormula();
     cycle = bfmgr.and(cycle, storedValues);
-    String newVariable = "__Q__" + pVariable;
-    BooleanFormula extendedFormula;
-    extendedFormula = fmgr.assignment(fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18),
-                newVariable, pSSAIndex),
-            fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18),
-                pVariable, pSSAMap.getIndex(pVariable)));
-    cycle = fmgr.makeAnd(cycle, extendedFormula);
+    for (String variable : pSSAMap.allVariables()) {
+      String newVariable = "__Q__" + variable;
+      BooleanFormula extendedFormula;
+      extendedFormula =
+          fmgr.assignment(
+              fmgr.makeVariable(FormulaType.IntegerType, newVariable, pSSAIndex),
+              fmgr.makeVariable(FormulaType.IntegerType, variable, pSSAMap.getIndex(variable)));
+      cycle = bfmgr.and(cycle, extendedFormula);
+    }
     return cycle;
   }
 }

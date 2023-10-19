@@ -92,9 +92,9 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       //TODO: implement converter from Ctype to FormulaType
       //TODO: store it as list of lists of constraints instead of long formula
       extendedFormula = bfmgr.and(extendedFormula,
-          fmgr.assignment(fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18),
+          fmgr.assignment(fmgr.makeVariable(FormulaType.IntegerType,
                   newVariable, pNumberOfIterationsAtLoopHead),
-                            fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18),
+                            fmgr.makeVariable(FormulaType.IntegerType,
                                 variable, pCurrentValues.getIndex(variable))));
     }
     return extendedFormula;

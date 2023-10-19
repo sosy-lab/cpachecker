@@ -9,16 +9,20 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.util.Map;
+import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 /** Tracks already seen states at loop-head locations*/
 public class TerminationToReachState
-    implements Graphable, AbstractQueryableState {
+    implements Graphable, AbstractQueryableState, Targetable {
   /** We store values of variables that we have seen at the concrete loop-head location*/
+  private boolean isTarget;
   private Map<LocationState, BooleanFormula> storedValues;
   /** We store number of times that we have iterated over a loop*/
   private Map<LocationState, Integer> numberOfIterations;
@@ -27,6 +31,7 @@ public class TerminationToReachState
                                  Map<LocationState, Integer> pNumberOfIterations) {
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
+    isTarget = false;
   }
   public void increaseNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
     if (numberOfIterations.containsKey(pLoopHead)) {
@@ -46,6 +51,18 @@ public class TerminationToReachState
   }
   public Map<LocationState, BooleanFormula> getStoredValues() {
     return storedValues;
+  }
+
+  public void makeTarget() { isTarget = true; }
+
+  @Override
+  public boolean isTarget() {
+    return isTarget;
+  }
+
+  @Override
+  public Set<TargetInformation> getTargetInformation() {
+    return ImmutableSet.of();
   }
 
   @Override
