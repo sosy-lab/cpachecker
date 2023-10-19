@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -37,12 +38,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final Solver solver;
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
+  private final FormulaManagerView predFmgr;
   public TerminationToReachPrecisionAdjustment(Solver pSolver,
                                                BooleanFormulaManagerView pBfmgr,
-                                               FormulaManagerView pFmgr) {
+                                               FormulaManagerView pFmgr,
+                                               FormulaManagerView pPredFmgr) {
     solver = pSolver;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
+    predFmgr = pPredFmgr;
   }
 
   @Override
@@ -72,9 +76,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               terminationState.getStoredValues().get(locationState),
               ssaMap,
               i);
-          try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-              prover.push(targetFormula);
-              isTargetStateReachable = !prover.isUnsat();
+          try {
+              isTargetStateReachable = !solver.isUnsat(targetFormula);
             } catch (SolverException e){
               continue;
             }
@@ -93,15 +96,19 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                                            BooleanFormula storedValues,
                                            SSAMap pSSAMap,
                                            int pSSAIndex) {
-    BooleanFormula cycle = pPredicateState.getPathFormula().getFormula();
+    BooleanFormula cycle =
+        fmgr.translateFrom(
+            pPredicateState.getPathFormula().getFormula(),
+            predFmgr);
+    BooleanFormula extendedFormula;
+
     cycle = bfmgr.and(cycle, storedValues);
     for (String variable : pSSAMap.allVariables()) {
       String newVariable = "__Q__" + variable;
-      BooleanFormula extendedFormula;
       extendedFormula =
           fmgr.assignment(
-              fmgr.makeVariable(FormulaType.IntegerType, newVariable, pSSAIndex),
-              fmgr.makeVariable(FormulaType.IntegerType, variable, pSSAMap.getIndex(variable)));
+              fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18), newVariable, pSSAIndex),
+              fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18), variable, pSSAMap.getIndex(variable)));
       cycle = bfmgr.and(cycle, extendedFormula);
     }
     return cycle;

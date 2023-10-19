@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
@@ -241,6 +242,8 @@ public class PredicateCPA
             abstractionManager,
             abstractionStats,
             statistics);
+    //TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to be fixed !
+    SerializationInfoStorage.storeSerializationInformation(this, cfa);
   }
 
   @Override

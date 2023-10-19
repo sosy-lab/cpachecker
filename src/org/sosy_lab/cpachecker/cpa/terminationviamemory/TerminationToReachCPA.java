@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import java.text.Normalizer.Form;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -22,6 +23,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationPrecisionAdjustment;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -40,9 +42,10 @@ public class TerminationToReachCPA extends AbstractCPA {
   throws InvalidConfigurationException {
     super("sep", "sep", null);
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
+    FormulaManagerView predFmgr = SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, bfmgr, fmgr);
+    precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, bfmgr, fmgr, predFmgr);
   }
 
   public static CPAFactory factory() {
