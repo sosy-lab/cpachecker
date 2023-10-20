@@ -38,7 +38,9 @@ SPDX-License-Identifier: Apache-2.0
   <resultfiles>**/*.graphml</resultfiles>
 
 	<option name="-predicateAnalysis-block"/>
-	<option name="-setprop">distributedSummaries.worker.forwardConfiguration=config/distributed-block-summaries/symbolicExecution-block-forward.properties</option>
+	<option name="-setprop">distributedSummaries.worker.forwardConfiguration=config/distributed-block-summaries/valueAnalysis-FunctionDecomposer-block-forward.properties</option>
+    <option name="-setprop">cpa.value.mergeType=JOIN</option>
+    <option name="-setprop">cpa.constraints.mergeType=JOIN_FITTING_CONSTRAINTS</option>
 	<option name="-setprop">staticRefiner.addAllControlFlowAssumes=true</option>
 	<option name="-setprop">distributedSummaries.decompositionType=FUNCTION_DECOMPOSITION</option>
 	<option name="-setprop">distributedSummaries.spawnUtilWorkers=true</option>
