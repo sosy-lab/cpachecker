@@ -216,21 +216,10 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create blockGraph and reduce to relevant parts
       BlockSummaryCFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
-      if (!(decompositionType == DecompositionType.FUNCTION_DECOMPOSITION)) {
+      if (decompositionType != DecompositionType.FUNCTION_DECOMPOSITION) {
         blockGraph.checkConsistency(shutdownManager.getNotifier());
       }
       CFA cfa = initialCFA;
-      if (decompositionType != DecompositionType.FUNCTION_DECOMPOSITION) {
-        Modification modification =
-            BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
-        ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
-        numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
-        if (!abstractionDeadEnds.isEmpty()) {
-          logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
-        }
-        blockGraph = modification.blockGraph();
-        cfa = modification.cfa();
-      }
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",
