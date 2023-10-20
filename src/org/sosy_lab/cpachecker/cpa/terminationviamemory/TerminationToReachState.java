@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -54,6 +55,11 @@ public class TerminationToReachState
   }
 
   public void makeTarget() { isTarget = true; }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(storedValues, isTarget);
+  }
 
   @Override
   public boolean isTarget() {
