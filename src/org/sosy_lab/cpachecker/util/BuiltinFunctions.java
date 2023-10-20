@@ -26,6 +26,7 @@ public class BuiltinFunctions {
   private static final String FREE = "free";
   private static final String STRLEN = "strlen";
   private static final String POPCOUNT = "popcount";
+  private static final String FSCANF = "fscanf";
 
   private static final CType UNSPECIFIED_TYPE =
       new CSimpleType(
@@ -37,6 +38,7 @@ public class BuiltinFunctions {
         || pFunctionName.startsWith("__atomic_")
         || pFunctionName.equals(FREE)
         || matchesStrlen(pFunctionName)
+        || matchesScanfFamily(pFunctionName)
         || BuiltinFloatFunctions.isBuiltinFloatFunction(pFunctionName);
   }
 
@@ -71,6 +73,10 @@ public class BuiltinFunctions {
 
   public static boolean matchesStrlen(String pFunctionName) {
     return pFunctionName.equals(STRLEN);
+  }
+
+  public static boolean matchesScanfFamily(String pFunctionName) {
+    return pFunctionName.equals(FSCANF);
   }
 
   public static boolean isPopcountFunction(String pFunctionName) {
