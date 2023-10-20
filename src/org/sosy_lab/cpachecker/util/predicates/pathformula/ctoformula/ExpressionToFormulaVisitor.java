@@ -12,6 +12,8 @@ import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -58,7 +61,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
@@ -646,7 +652,8 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public Formula visit(CFunctionCallExpression e) throws UnrecognizedCodeException {
+  public Formula visit(CFunctionCallExpression e)
+      throws UnrecognizedCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
     final CType returnType = e.getExpressionType();
     final List<CExpression> parameters = e.getParameterExpressions();
@@ -667,6 +674,57 @@ public class ExpressionToFormulaVisitor
         // Function call like "random()".
         // Also "malloc()" etc. just return a random value, so handle them similarly.
         // Ignore parameters and just create a fresh variable for it.
+        return conv.makeNondet(functionName, returnType, ssa, constraints);
+
+      } else if (BuiltinFunctions.matchesScanfFamily(functionName)) {
+        /*
+         * fscanf(FILE *stream, const char *format, ...) returns the number of assigned items
+         * or EOF if no item has been assigned before the end of the file occurred.
+         * We can over-approximate the value with nondet.
+         */
+
+        CExpression file = parameters.get(0);
+        CExpression format = parameters.get(1);
+
+
+        // All values that will be changed
+        for (CExpression parameter : parameters.subList(2, parameters.size())) {
+          CType parameterType = parameter.getExpressionType();
+
+          if (parameter instanceof CUnaryExpression unaryParameter) {
+            UnaryOperator operator = unaryParameter.getOperator();
+            CExpression operand = unaryParameter.getOperand();
+            if (operator.equals(UnaryOperator.AMPER) && operand instanceof CIdExpression idExpression) {
+              // For simplicity, we start with the case where only paramters of the form "&id" occur
+              CType variableType = idExpression.getExpressionType();
+              CFunctionDeclaration nondetFun = new CFunctionDeclaration(
+                  edge.getFileLocation(),
+                  CFunctionType.functionTypeWithReturnType(variableType),
+                  "__Verifier_nondet", ImmutableList.of(), ImmutableSet.of() );
+              CIdExpression nondetFunctionName = new CIdExpression(edge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
+
+              CFunctionCallExpression rhs = new CFunctionCallExpression(
+                  edge.getFileLocation(),
+                  variableType,
+                  nondetFunctionName,
+                  ImmutableList.of(), nondetFun);
+
+              PointerTargetSetBuilder pts = conv.createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
+
+              try {
+                BooleanFormula assignment = conv.makeAssignment(idExpression, idExpression, rhs, edge, function, ssa, pts,
+                        constraints,
+                        ErrorConditions.dummyInstance(mgr.getBooleanFormulaManager()));
+                constraints.addConstraint(assignment);
+              } catch (InterruptedException interruptedException) {
+                throw new UnsupportedCodeException("Interrupted: fscanf", edge, e);
+              }
+
+            }
+          }
+        }
+
+
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
       } else if (conv.options.isExternModelFunction(functionName)) {
