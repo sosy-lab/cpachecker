@@ -76,7 +76,7 @@ public class TerminationToReachState
     if (this == pO) {
       return true;
     }
-    if (getClass() != pO.getClass()) {
+    if (!(pO instanceof TerminationToReachState)) {
       return false;
     }
     TerminationToReachState that = (TerminationToReachState) pO;
