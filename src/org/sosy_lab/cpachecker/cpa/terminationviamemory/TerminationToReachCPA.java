@@ -14,6 +14,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import java.util.HashMap;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationPrecisionAdjustment;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -35,17 +37,20 @@ public class TerminationToReachCPA extends AbstractCPA {
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private final PrecisionAdjustment precisionAdjustment;
+  private final CtoFormulaTypeHandler ctoFormulaTypeHandler;
 
   public TerminationToReachCPA(LogManager pLogger,
                                Configuration pConfiguration,
-                               ShutdownNotifier pShutdownNotifier)
+                               ShutdownNotifier pShutdownNotifier,
+                               CFA pCFA)
   throws InvalidConfigurationException {
     super("sep", "sep", null);
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView predFmgr = SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, bfmgr, fmgr, predFmgr);
+    ctoFormulaTypeHandler = new CtoFormulaTypeHandler(pLogger, pCFA.getMachineModel());
+    precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, bfmgr, fmgr, predFmgr, ctoFormulaTypeHandler);
   }
 
   public static CPAFactory factory() {
@@ -54,7 +59,7 @@ public class TerminationToReachCPA extends AbstractCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(bfmgr, fmgr);
+    return new TerminationToReachTransferRelation(bfmgr, fmgr, ctoFormulaTypeHandler);
   }
 
   @Override

@@ -9,8 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
+import org.sosy_lab.common.log.LogManager;
+import java.util.logging.Logger;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -39,14 +43,17 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
   private final FormulaManagerView predFmgr;
+  private final CtoFormulaTypeHandler ctoFormulaTypeHandler;
   public TerminationToReachPrecisionAdjustment(Solver pSolver,
                                                BooleanFormulaManagerView pBfmgr,
                                                FormulaManagerView pFmgr,
-                                               FormulaManagerView pPredFmgr) {
+                                               FormulaManagerView pPredFmgr,
+                                               CtoFormulaTypeHandler pCtoFormulaTypeHandler) {
     solver = pSolver;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
     predFmgr = pPredFmgr;
+    ctoFormulaTypeHandler = pCtoFormulaTypeHandler;
   }
 
   @Override
@@ -107,8 +114,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       String newVariable = "__Q__" + variable;
       extendedFormula =
           fmgr.assignment(
-              fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18), newVariable, pSSAIndex),
-              fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18), variable, pSSAMap.getIndex(variable)));
+              fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize((int) ctoFormulaTypeHandler.getExactBitSizeof(pSSAMap.getType(variable))), newVariable, pSSAIndex),
+              fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize((int) ctoFormulaTypeHandler.getExactBitSizeof(pSSAMap.getType(variable))), variable, pSSAMap.getIndex(variable)));
       cycle = bfmgr.and(cycle, extendedFormula);
     }
     return cycle;

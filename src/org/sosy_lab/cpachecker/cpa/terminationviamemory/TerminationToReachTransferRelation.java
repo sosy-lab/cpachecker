@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -31,10 +32,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
+  private final CtoFormulaTypeHandler ctoFormulaTypeHandler;
   public TerminationToReachTransferRelation(BooleanFormulaManagerView pBfmgr,
-                                            FormulaManagerView pFmgr) {
+                                            FormulaManagerView pFmgr,
+                                            CtoFormulaTypeHandler pCtoFormulaTypeHandler) {
     fmgr = pFmgr;
     bfmgr = pBfmgr;
+    ctoFormulaTypeHandler = pCtoFormulaTypeHandler;
   }
 
   @Override
@@ -83,19 +87,19 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
    * __Q__x0 = x@2
    * Where the storing variables are of the form __Q__[name of variable][number of loop iterations].
    * */
-  private BooleanFormula constructConstraintFormula(SSAMap pCurrentValues,
+  private BooleanFormula constructConstraintFormula(SSAMap pSSAMap,
                               BooleanFormula pAssignment,
                               int pNumberOfIterationsAtLoopHead) {
     BooleanFormula extendedFormula = pAssignment;
-    for (String variable : pCurrentValues.allVariables()) {
+    for (String variable : pSSAMap.allVariables()) {
       String newVariable = "__Q__" + variable;
       //TODO: implement converter from Ctype to FormulaType
       //TODO: store it as list of lists of constraints instead of long formula
       extendedFormula = bfmgr.and(extendedFormula,
-          fmgr.assignment(fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18),
+          fmgr.assignment(fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize((int) ctoFormulaTypeHandler.getExactBitSizeof(pSSAMap.getType(variable))),
                   newVariable, pNumberOfIterationsAtLoopHead),
-                            fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(18),
-                                variable, pCurrentValues.getIndex(variable))));
+                            fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize((int) ctoFormulaTypeHandler.getExactBitSizeof(pSSAMap.getType(variable))),
+                                variable, pSSAMap.getIndex(variable))));
     }
     return extendedFormula;
   }
