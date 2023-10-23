@@ -27,11 +27,16 @@ public class TerminationToReachState
   private Map<LocationState, BooleanFormula> storedValues;
   /** We store number of times that we have iterated over a loop*/
   private Map<LocationState, Integer> numberOfIterations;
+  /** Stores assumptions from path formula after i iterations of the loop*/
+  private Set<BooleanFormula> pathFormulaForIteration;
   private static final String PROPERTY_TERMINATION = "termination";
   public TerminationToReachState(Map<LocationState, BooleanFormula> pStoredValues,
-                                 Map<LocationState, Integer> pNumberOfIterations) {
+                                 Map<LocationState, Integer> pNumberOfIterations,
+                                 Set<BooleanFormula> pPathFormulaForIteration) {
+
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
+    pathFormulaForIteration = pPathFormulaForIteration;
     isTarget = false;
   }
   public void increaseNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
@@ -53,12 +58,17 @@ public class TerminationToReachState
   public Map<LocationState, BooleanFormula> getStoredValues() {
     return storedValues;
   }
-
+  public void putNewPathFormula(BooleanFormula pPathFormula) {
+    pathFormulaForIteration.add(pPathFormula);
+  }
+  public Set<BooleanFormula> getPathFormulas() {
+    return pathFormulaForIteration;
+  }
   public void makeTarget() { isTarget = true; }
 
   @Override
   public int hashCode() {
-    return Objects.hash(storedValues, isTarget);
+    return Objects.hash(storedValues, numberOfIterations, isTarget);
   }
 
   @Override

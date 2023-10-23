@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.text.Normalizer.Form;
+import java.util.HashSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -65,7 +66,7 @@ public class TerminationToReachCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(new HashMap<>(), new HashMap<>());
+    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new HashSet<>());
   }
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {

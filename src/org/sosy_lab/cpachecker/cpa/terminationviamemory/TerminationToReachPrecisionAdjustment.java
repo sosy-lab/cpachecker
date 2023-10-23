@@ -9,19 +9,16 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
-import org.sosy_lab.common.log.LogManager;
-import java.util.logging.Logger;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
-import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,6 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import scala.Int;
 
 public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustment {
   private final Solver solver;
@@ -75,38 +73,38 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     PrecisionAdjustmentResult result =
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
 
-    if (location.isLoopStart()) {
-      if (terminationState.getStoredValues().containsKey(locationState)) {
-        for (int i = 0; i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1; ++i) {
-          boolean isTargetStateReachable = false;
-          BooleanFormula targetFormula = buildCycleFormula(predicateState,
-              terminationState.getStoredValues().get(locationState),
-              ssaMap,
-              i);
-          try {
-              isTargetStateReachable = !solver.isUnsat(targetFormula);
-            } catch (SolverException e){
-              continue;
-            }
-            if (isTargetStateReachable) {
-              terminationState.makeTarget();
-              result = result.withAbstractState(terminationState);
-              return Optional.of(result.withAction(Action.BREAK));
-            }
-          }
+    if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
+      terminationState.putNewPathFormula(fmgr.translateFrom(
+                                                    predicateState.getPathFormula().getFormula(),
+                                                    predFmgr));
+
+      for (int i = 0; i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1; ++i) {
+        boolean isTargetStateReachable = false;
+        BooleanFormula targetFormula = buildCycleFormula(buildFullPathFormula(
+            terminationState.getPathFormulas()),
+            terminationState.getStoredValues().get(locationState),
+            ssaMap,
+            i);
+        try {
+            isTargetStateReachable = !solver.isUnsat(targetFormula);
+        } catch (SolverException e) {
+            continue;
+        }
+        if (isTargetStateReachable) {
+          terminationState.makeTarget();
+          result = result.withAbstractState(terminationState);
+          return Optional.of(result.withAction(Action.BREAK));
         }
       }
+    }
     return Optional.of(result);
   }
 
-  private BooleanFormula buildCycleFormula(PredicateAbstractState pPredicateState,
+  private BooleanFormula buildCycleFormula(BooleanFormula pFullPathFormula,
                                            BooleanFormula storedValues,
                                            SSAMap pSSAMap,
                                            int pSSAIndex) {
-    BooleanFormula cycle =
-        fmgr.translateFrom(
-            pPredicateState.getPathFormula().getFormula(),
-            predFmgr);
+    BooleanFormula cycle = pFullPathFormula;
     BooleanFormula extendedFormula;
 
     cycle = bfmgr.and(cycle, storedValues);
@@ -119,5 +117,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       cycle = bfmgr.and(cycle, extendedFormula);
     }
     return cycle;
+  }
+
+  private BooleanFormula buildFullPathFormula(Set<BooleanFormula> pPathFormulas) {
+    List<BooleanFormula> formulas = new ArrayList<>(pPathFormulas);
+    return bfmgr.and(formulas);
   }
 }
