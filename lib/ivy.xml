@@ -128,9 +128,9 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="7.2.100.202105180159"
+        <dependency org="org.eclipse.cdt" name="core" rev="8.3.1.202309150117"
                     conf="runtime->default; contrib->sources"/>
-        <dependency org="org.eclipse.jdt" name="core" rev="3.26.0.v20210609-0549"
+        <dependency org="org.eclipse.jdt" name="core" rev="3.35.0.v20230814-1356"
                     conf="runtime->default; contrib->sources"/>
 
         <!-- Google error-prone
