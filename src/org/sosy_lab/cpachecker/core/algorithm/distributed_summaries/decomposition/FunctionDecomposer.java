@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,12 +35,21 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
     Set<CFANode> nodes = new HashSet<>();
     Set<CFAEdge> edges = new HashSet<>();
     List<CFANode> waitlist = new ArrayList<>();
+    Collection<FunctionEntryNode> entryNodesSortedList = new HashSet<>();
+    Set<CFAEdge> assertionEdges = new HashSet<>();
     CFANode temp;
     CFANode exitNode = null;
     boolean foundExitNode = false;
-
-    for (FunctionEntryNode value : cfa.getAllFunctions().values()) {
-      // Complete Solution:
+    for (FunctionEntryNode entry : cfa.getAllFunctions().values()) {
+      if (entry.getFunctionName().contains("__VERIFIER_assert")) {
+        entryNodesSortedList.add(entry);
+      }
+    }
+    entryNodesSortedList.addAll(cfa.getAllFunctions().values());
+    for (FunctionEntryNode value : entryNodesSortedList) {
+      if (value.getFunctionName().equals("reach_error")) {
+        continue;
+      }
       waitlist.add(value);
       while (!waitlist.isEmpty()) {
         temp = waitlist.remove(0);
@@ -60,7 +70,7 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
 
           // Check if Function Call Edge or Duplicate
           if (edges.contains(e)) {
-            // Ignore this cases
+            continue;
           } else if (e instanceof FunctionCallEdge fce) {
             if (fce.getSuccessor().getFunctionName().equals("reach_error")) {
               edges.add(e);
@@ -71,6 +81,12 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
             waitlist.add(e.getSuccessor());
           }
         }
+      }
+      if (value.getFunctionName().contains("__VERIFIER_assert")) {
+        assertionEdges.addAll(edges);
+        continue;
+      } else if (!assertionEdges.isEmpty() && !value.getFunctionName().contains("__VERIFIER_assert")) {
+        edges.addAll(assertionEdges);
       }
       assert exitNode != null;
       BlockNodeWithoutGraphInformation nodeMetaData =

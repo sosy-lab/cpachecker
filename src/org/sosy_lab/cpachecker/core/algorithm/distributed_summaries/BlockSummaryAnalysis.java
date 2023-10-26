@@ -272,18 +272,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           DistributedConfigurableProgramAnalysis distribute =
               DCPAFactory.distribute(cpa, blockGraph.getRoot(), AnalysisDirection.FORWARD, cfa);
           logger.logf(Level.INFO, "Number of Found Error: %s", metadata.violations().size());
-          int y = 0;
           for (List<Object> violations : metadata.violations()) {
-            y++;
-            logger.logf(Level.INFO, "Error Number: %s", y);
             assert distribute != null;
-            AbstractState deserialize =
-                distribute
-                    .getDeserializeOperator()
-                    .deserialize(
-                        BlockSummaryMessage.newBlockPostCondition(
-                            "", 0, (BlockSummaryMessagePayload) violations.get(1), true));
-            logger.logf(Level.INFO, "Error Node: %s", ((ARGState) deserialize).getStateId());
             ARGState last = null;
             for (BlockSummaryMessagePayload o :
                 (List<BlockSummaryMessagePayload>) violations.get(2)) {
@@ -291,7 +281,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                   distribute
                       .getDeserializeOperator()
                       .deserialize(
-                          BlockSummaryMessage.newBlockPostCondition("main-thread", 0, o, true));
+                          BlockSummaryMessage.newBlockPostCondition("main-thread", ((CFANode) ((List<Object>) (violations).get(0)).get(0)).getNodeNumber(), o, true));
               if (o
                   == ((List<?>) violations.get(2)).get(((List<?>) violations.get(2)).size() - 1)) {
                 last =
