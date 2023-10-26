@@ -85,7 +85,8 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
       if (value.getFunctionName().contains("__VERIFIER_assert")) {
         assertionEdges.addAll(edges);
         continue;
-      } else if (!assertionEdges.isEmpty() && !value.getFunctionName().contains("__VERIFIER_assert")) {
+      } else if (!assertionEdges.isEmpty()
+          && !value.getFunctionName().contains("__VERIFIER_assert")) {
         edges.addAll(assertionEdges);
       }
       assert exitNode != null;
