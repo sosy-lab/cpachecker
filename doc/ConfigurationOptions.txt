@@ -524,6 +524,9 @@ analysis.useRandomTestCaseGeneratorAlgorithm = false
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
+# whether to use tube algorithm 
+analysis.useTubes = false
+
 # converts a witness to an ACSL annotated program
 analysis.useWitnessToACSLAlgorithm = false
 
@@ -1783,6 +1786,13 @@ cpa.dca.refiner.skipAnalysis = false
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
+
+# maximum distance to be tracked by DistanceCPA
+cpa.distance.maxDistance = 3
+
+# transfer mode to be used by DistanceCPA
+cpa.distance.transferMode = CHEAP
+  enum:     [CHEAP, EXPENSIVE]
 
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
@@ -4941,6 +4951,9 @@ traceformula.reduceSelectors = false
 
 # where to write assume edges
 tubes.assumes.outputPath = "assumes.txt"
+
+# Configuration for bounded predicate analysis
+tubes.boundedConfig = "config/boundedPredicateAnalysis.properties"
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true

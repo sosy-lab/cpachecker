@@ -55,7 +55,7 @@ public class PredicateAbstractionsWriter {
   }
 
   public void writeAbstractions(Path abstractionsFile, UnmodifiableReachedSet reached) {
-    writeAbstractions0(abstractionsFile, reached, /* asExpression= */ false);
+    // writeAbstractions0(abstractionsFile, reached, /* asExpression= */ false);
   }
 
   public void writeAbstractionsAsExpressions(

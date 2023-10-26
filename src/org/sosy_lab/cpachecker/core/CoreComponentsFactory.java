@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlg
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.tubes.ExportAssumeEdges;
+import org.sosy_lab.cpachecker.core.algorithm.tubes.TubeAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -394,6 +395,9 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "whether to export assume edges as txt.")
   private boolean exportAssumeEdges = false;
 
+  @Option(secure = true, description = "whether to use tube algorithm ")
+  private boolean useTubes = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -452,7 +456,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useInvariantExportAlgorithm);
+        && (useBMC || useIMC || useInvariantExportAlgorithm || useTubes);
   }
 
   public Algorithm createAlgorithm(
@@ -740,6 +744,11 @@ public class CoreComponentsFactory {
 
       if (exportAssumeEdges) {
         algorithm = new ExportAssumeEdges(algorithm, config, cfa, logger);
+      }
+
+      if (useTubes) {
+        algorithm =
+            new TubeAlgorithm(algorithm, logger, specification, cfa, config, shutdownManager);
       }
     }
 

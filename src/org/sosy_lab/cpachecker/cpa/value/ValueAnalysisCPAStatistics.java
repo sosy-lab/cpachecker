@@ -23,14 +23,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
@@ -59,6 +54,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    /*
     StatInt numberOfVariables = new StatInt(StatKind.AVG, "Number of variables per state");
     StatInt numberOfGlobalVariables =
         new StatInt(StatKind.AVG, "Number of global variables per state");
@@ -83,6 +79,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
         .put(assumptions)
         .put(deterministicAssumptions)
         .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
+     */
   }
 
   /**
