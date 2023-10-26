@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -46,7 +48,11 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state,
       Precision precision,
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
-    return Collections.singleton(state);
+    TerminationToReachState terminationState = (TerminationToReachState) state;
+    return Collections.singleton(new TerminationToReachState(
+        new HashMap<>(terminationState.getStoredValues()),
+        new HashMap<>(terminationState.getNumberOfIterationsMap()),
+        new HashSet<>(terminationState.getPathFormulas())));
   }
 
   @Override

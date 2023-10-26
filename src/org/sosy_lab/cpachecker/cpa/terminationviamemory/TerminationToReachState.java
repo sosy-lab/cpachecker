@@ -52,6 +52,10 @@ public class TerminationToReachState
     }
     return 0;
   }
+
+  public Map<LocationState, Integer> getNumberOfIterationsMap() {
+    return numberOfIterations;
+  }
   public void setNewStoredValues(LocationState pLoopHead, BooleanFormula pNewStoredValues) {
     storedValues.put(pLoopHead, pNewStoredValues);
   }
