@@ -80,11 +80,6 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      ValueAnalysisCPA pValueAnalysisCPA) {
-    return new DistributedValueAnalysisCPA(pValueAnalysisCPA);
-  }
-
-  private static DistributedConfigurableProgramAnalysis distribute(
       BlockCPA pBlockCPA,
       BlockNode pBlockNode,
       ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
