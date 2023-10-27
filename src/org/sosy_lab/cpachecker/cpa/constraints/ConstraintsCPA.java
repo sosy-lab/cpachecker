@@ -66,7 +66,7 @@ public class ConstraintsCPA
   @Option(description = "Type of less-or-equal operator to use", toUppercase = true)
   private ComparisonType lessOrEqualType = ComparisonType.SUBSET;
 
-  @Option(description = "Type of merge operator to use", toUppercase = true)
+  @Option(secure = true, description = "Type of merge operator to use", toUppercase = true)
   private MergeType mergeType = MergeType.SEP;
 
   private final LogManager logger;
