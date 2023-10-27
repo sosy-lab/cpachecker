@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import scala.concurrent.impl.FutureConvertersImpl.P;
 
 /** Tracks already seen states at loop-head locations*/
 public class TerminationToReachState
@@ -94,7 +95,15 @@ public class TerminationToReachState
       return false;
     }
     TerminationToReachState that = (TerminationToReachState) pO;
-    return storedValues.equals(that.getStoredValues());
+
+    for (LocationState loc : storedValues.keySet()) {
+      if (!that.getStoredValues().keySet().contains(loc) ||
+          storedValues.get(loc) != that.getStoredValues().get(loc)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   @Override
