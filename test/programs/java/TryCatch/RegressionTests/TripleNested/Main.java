@@ -36,11 +36,11 @@ public class Main {
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException b){
                                    try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException c){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -50,7 +50,7 @@ public class Main {
                                 try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException d){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -58,23 +58,23 @@ public class Main {
                         assert enteredH;
                     }
                     g();
-                } catch(ArrayIndexOutOfBoundsException a){
+                } catch(ArrayIndexOutOfBoundsException e){
                     try {
                                try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException f){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException g){
                             try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException h){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -84,7 +84,7 @@ public class Main {
                             try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException i){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -97,18 +97,18 @@ public class Main {
                                 try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException j){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException k){
                                 try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException l){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -118,7 +118,7 @@ public class Main {
                             try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException m){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -130,25 +130,25 @@ public class Main {
                 f();
                 i++;
             }
-        } catch (NullPointerException e) {
+        } catch (NullPointerException n) {
             try {
                 enteredG = false;
                 try {
                             try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException o){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException p){
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException q){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -158,7 +158,7 @@ public class Main {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException r){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -166,23 +166,23 @@ public class Main {
                         assert enteredH;
                     }
                     g();
-                } catch(ArrayIndexOutOfBoundsException a){
+                } catch(ArrayIndexOutOfBoundsException s){
                     try {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException t){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException u){
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException v){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -192,7 +192,7 @@ public class Main {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException w){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -205,18 +205,18 @@ public class Main {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException x){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException y){
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException z){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -226,7 +226,7 @@ public class Main {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException aa){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -244,18 +244,18 @@ public class Main {
                     try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException ab){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException ac){
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException ad){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -265,7 +265,7 @@ public class Main {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException ae){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -273,23 +273,23 @@ public class Main {
                         assert enteredH;
                     }
                     g();
-                } catch(ArrayIndexOutOfBoundsException a){
+                } catch(ArrayIndexOutOfBoundsException af){
                     try {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException ag){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException ah){
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException ai){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -299,7 +299,7 @@ public class Main {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException aj){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -312,18 +312,18 @@ public class Main {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException ak){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
                         }
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException al){
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException am){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;
@@ -333,7 +333,7 @@ public class Main {
                         try {
                             enteredJ = false;
                             j();
-                        } catch(IllegalArgumentException a){
+                        } catch(IllegalArgumentException an){
                             enteredJ = true;
                         } finally {
                             assert enteredJ;

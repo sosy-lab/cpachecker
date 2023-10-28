@@ -29,11 +29,11 @@ public class Main {
                         assert enteredH;
                     }
                     g();
-                } catch(ArrayIndexOutOfBoundsException a){
+                } catch(ArrayIndexOutOfBoundsException b){
                     try {
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException c){
                         enteredH = true;
                     } finally {
                         assert enteredH;
@@ -43,7 +43,7 @@ public class Main {
                     try {
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException d){
                         enteredH = true;
                     } finally {
                         assert enteredH;
@@ -59,17 +59,17 @@ public class Main {
                 try {
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException f){
                         enteredH = true;
                     } finally {
                         assert enteredH;
                     }
                     g();
-                } catch(ArrayIndexOutOfBoundsException a){
+                } catch(ArrayIndexOutOfBoundsException g){
                     try {
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException h){
                         enteredH = true;
                     } finally {
                         assert enteredH;
@@ -79,7 +79,7 @@ public class Main {
                     try {
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException i){
                         enteredH = true;
                     } finally {
                         assert enteredH;
@@ -95,17 +95,17 @@ public class Main {
                 try {
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException j){
                         enteredH = true;
                     } finally {
                         assert enteredH;
                     }
                     g();
-                } catch(ArrayIndexOutOfBoundsException a){
+                } catch(ArrayIndexOutOfBoundsException k){
                     try {
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException l){
                         enteredH = true;
                     } finally {
                         assert enteredH;
@@ -115,7 +115,7 @@ public class Main {
                     try {
                         enteredH = false;
                         h();
-                    } catch(NumberFormatException a){
+                    } catch(NumberFormatException m){
                         enteredH = true;
                     } finally {
                         assert enteredH;
