@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker">
+
+  <option name="-heap">150M</option>
+  <option name="-valueAnalysis-java-NoCegar-RTT"/>
+
+  <rundefinition/>
+  
+  <tasks>
+    <requiredfiles>../programs/java/TryCatch/AllRegressionPrograms</requiredfiles>
+    <option name="-cp">test/programs/java/TryCatch/AllRegressionPrograms</option>
+    <withoutfile>CatchNoEnter</withoutfile>
+    <withoutfile>CatchNoEnterWithFinally</withoutfile>
+    <withoutfile>CatchParentClass</withoutfile>
+    <withoutfile>CorrectExceptionDeclaration</withoutfile>
+    <withoutfile>DoubleNested</withoutfile>
+    <withoutfile>EnterCatch</withoutfile>
+    <withoutfile>MultipleCatchEnterFirst</withoutfile>
+    <withoutfile>MultipleCatchEnterSecond</withoutfile>
+    <withoutfile>NestedInCatch</withoutfile>
+    <withoutfile>NestedInFinally</withoutfile>
+    <withoutfile>NestedInFinallyBig</withoutfile>
+    <withoutfile>NestedInTry</withoutfile>
+    <withoutfile>NoCatch</withoutfile>
+    <withoutfile>TripleNested</withoutfile>
+  </tasks>
+  
+</benchmark>
