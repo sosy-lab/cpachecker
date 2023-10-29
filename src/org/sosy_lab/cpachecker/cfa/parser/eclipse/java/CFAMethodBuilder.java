@@ -350,6 +350,15 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode lastNode = locStack.pop();
 
+    if (!endOfCatch.isEmpty()) {
+      for (int i = 0; i < endOfCatch.size(); i++) {
+        CFANode temp = (CFANode) endOfCatch.toArray()[i];
+        BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, temp, lastNode, "");
+        addToCFA(bEdge);
+      }
+      endOfCatch.clear();
+    }
+
     // During method CFA construction, every function entry node must have a function exit node
     // (unreachable function exit nodes have not been removed yet).
     FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
@@ -368,15 +377,6 @@ class CFAMethodBuilder extends ASTVisitor {
     // if the function exit node doesn't have entering edges, it's unreachable and we remove it
     if (functionExitNode.getNumEnteringEdges() == 0) {
       cfa.removeExitNode();
-    }
-
-    if (!endOfCatch.isEmpty()) {
-      for (int i = 0; i < endOfCatch.size(); i++) {
-        CFANode temp = (CFANode) endOfCatch.toArray()[i];
-        BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, temp, lastNode, "");
-        addToCFA(bEdge);
-      }
-      endOfCatch.clear();
     }
 
     scope.leaveMethod();
