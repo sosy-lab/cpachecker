@@ -11,10 +11,10 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="8">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="3 GB" cpuCores="8">
 
   <option name="-valueAnalysis-java-NoCegar-RTT"/>
-  <option name="-heap">10000M</option>
+  <option name="-heap">2000M</option>
   <option name="-timelimit">900 s</option>
 
   <rundefinition/>
