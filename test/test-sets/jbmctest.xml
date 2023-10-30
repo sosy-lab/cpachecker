@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="jbmc" timelimit="15 min" memlimit="3 GB" cpuCores="8">
+
+  <option name="-heap">2000M</option>
+  <option name="-timelimit">900 s</option>
+
+<rundefinition>
+  <tasks name="Regression">
+    <includesfile>../programs/java/TryCatch/RegressionTests/regression.set</includesfile>
+    <propertyfile>../config/properties/assert.prp</propertyfile>
+  </tasks>
+</rundefinition>
+
+</benchmark>
