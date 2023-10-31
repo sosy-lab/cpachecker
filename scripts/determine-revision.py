@@ -26,10 +26,10 @@ def determineRevision(dir_path):
             env={"LANG": "C"},
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            text=True,
         )
         (stdout, stderr) = svnProcess.communicate()
-        stdout = _decode_to_string(stdout).strip()
-        stdout = stdout.split(":")[-1]
+        stdout = stdout.strip().split(":")[-1]
         if not (
             svnProcess.returncode
             or stderr
@@ -54,9 +54,10 @@ def determineRevision(dir_path):
             cwd=dir_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            text=True,
         )
         (stdout, stderr) = gitProcess.communicate()
-        stdout = _decode_to_string(stdout).strip()
+        stdout = stdout.strip()
         if not (gitProcess.returncode or stderr) and stdout:
             return stdout + ("M" if _isGitRepositoryDirty(dir_path) else "")
 
@@ -67,9 +68,10 @@ def determineRevision(dir_path):
             cwd=dir_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            text=True,
         )
         (stdout, stderr) = gitProcess.communicate()
-        stdout = _decode_to_string(stdout).strip()
+        stdout = stdout.strip()
         if not (gitProcess.returncode or stderr) and stdout:
             return stdout + ("+" if _isGitRepositoryDirty(dir_path) else "")
     except OSError:
@@ -89,17 +91,6 @@ def _isGitRepositoryDirty(dir_path):
     if not (gitProcess.returncode or stderr):
         return True if stdout else False  # True if stdout is non-empty
     return None
-
-
-def _decode_to_string(to_decode):
-    """
-    This function is needed for Python 3,
-    because a subprocess can return bytes instead of a string.
-    """
-    try:
-        return to_decode.decode("utf-8")
-    except AttributeError:  # bytesToDecode was of type string before
-        return to_decode
 
 
 if __name__ == "__main__":
