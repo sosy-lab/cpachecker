@@ -4,13 +4,12 @@
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
 #
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 import subprocess
 import sys
-import os
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
@@ -40,11 +39,10 @@ def determineRevision(dir_path):
 
     # Check for git-svn repository
     try:
-        with open(os.devnull, "wb") as DEVNULL:
-            # This will silently perform the migration from older git-svn directory layout.
-            # Otherwise, the migration may be performed by the next git svn invocation,
-            # producing nonempty stderr.
-            subprocess.call(["git", "svn", "migrate"], stderr=DEVNULL)
+        # This will silently perform the migration from older git-svn directory layout.
+        # Otherwise, the migration may be performed by the next git svn invocation,
+        # producing nonempty stderr.
+        subprocess.call(["git", "svn", "migrate"], stderr=subprocess.DEVNULL)
 
         gitProcess = subprocess.run(
             ["git", "svn", "find-rev", "HEAD"],
@@ -81,7 +79,7 @@ def _isGitRepositoryDirty(dir_path):
         capture_output=True,
     )
     if not (gitProcess.returncode or gitProcess.stderr):
-        return True if gitProcess.stdout else False  # True if stdout is non-empty
+        return bool(gitProcess.stdout)  # Dirty if stdout is non-empty
     return None
 
 
@@ -89,16 +87,10 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         sys.exit("Unsupported command-line parameters.")
 
-    dir_path = "."
-    if len(sys.argv) > 1:
-        dir_path = sys.argv[1]
+    dir_path = sys.argv[1] if len(sys.argv) > 1 else "."
 
     revision = determineRevision(dir_path)
     if revision:
         print(revision)
     else:
-        sys.exit(
-            "Directory {0} is not a supported version control checkout.".format(
-                dir_path
-            )
-        )
+        sys.exit(f"Directory {dir_path} is not a supported version control checkout.")
