@@ -21,18 +21,16 @@ def determineRevision(dir_path):
     """
     # Check for SVN repository
     try:
-        svnProcess = subprocess.Popen(
+        svnProcess = subprocess.run(
             ["svnversion", "--committed", dir_path],
             env={"LANG": "C"},
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
-        (stdout, stderr) = svnProcess.communicate()
-        stdout = stdout.strip().split(":")[-1]
+        stdout = svnProcess.stdout.strip().split(":")[-1]
         if not (
             svnProcess.returncode
-            or stderr
+            or svnProcess.stderr
             or (stdout == "exported")
             or (stdout == "Unversioned directory")
         ):
@@ -48,31 +46,27 @@ def determineRevision(dir_path):
             # producing nonempty stderr.
             subprocess.call(["git", "svn", "migrate"], stderr=DEVNULL)
 
-        gitProcess = subprocess.Popen(
+        gitProcess = subprocess.run(
             ["git", "svn", "find-rev", "HEAD"],
             env={"LANG": "C"},
             cwd=dir_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
-        (stdout, stderr) = gitProcess.communicate()
-        stdout = stdout.strip()
-        if not (gitProcess.returncode or stderr) and stdout:
+        stdout = gitProcess.stdout.strip()
+        if not (gitProcess.returncode or gitProcess.stderr) and stdout:
             return stdout + ("M" if _isGitRepositoryDirty(dir_path) else "")
 
         # Check for git repository
-        gitProcess = subprocess.Popen(
+        gitProcess = subprocess.run(
             ["git", "log", "-1", "--pretty=format:%h", "--abbrev-commit"],
             env={"LANG": "C"},
             cwd=dir_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
-        (stdout, stderr) = gitProcess.communicate()
-        stdout = stdout.strip()
-        if not (gitProcess.returncode or stderr) and stdout:
+        stdout = gitProcess.stdout.strip()
+        if not (gitProcess.returncode or gitProcess.stderr) and stdout:
             return stdout + ("+" if _isGitRepositoryDirty(dir_path) else "")
     except OSError:
         pass
@@ -80,16 +74,14 @@ def determineRevision(dir_path):
 
 
 def _isGitRepositoryDirty(dir_path):
-    gitProcess = subprocess.Popen(
+    gitProcess = subprocess.run(
         ["git", "status", "--porcelain"],
         env={"LANG": "C"},
         cwd=dir_path,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
-    (stdout, stderr) = gitProcess.communicate()
-    if not (gitProcess.returncode or stderr):
-        return True if stdout else False  # True if stdout is non-empty
+    if not (gitProcess.returncode or gitProcess.stderr):
+        return True if gitProcess.stdout else False  # True if stdout is non-empty
     return None
 
 
