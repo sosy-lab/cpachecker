@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -102,6 +103,16 @@ public class ExpressionTransformer
 
       SMGState currentState = operand1ExpressionAndState.getState();
       SymbolicExpression operand1Expression = operand1ExpressionAndState.getSymbolicExpression();
+
+      if (operand1Expression instanceof AddressExpression addrExpr) {
+        if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+          // TODO: for pointer comparisons etc. we need to unpack the correct value. We can currently handle this only for concrete values, and that is done by the valueVisitor. So we can't handle it here better.
+          // Dirty fix: if we end up here, it means we had a unknown before.
+          // We return a unknown again by creating one
+          operand1Expression = factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
+        }
+      }
+
       ExpressionTransformer newTransformerForNewState =
           new ExpressionTransformer(edge, currentState, machineModel, logger, options, evaluator);
 
@@ -110,6 +121,13 @@ public class ExpressionTransformer
 
         currentState = operand2ExpressionAndState.getState();
         SymbolicExpression operand2Expression = operand2ExpressionAndState.getSymbolicExpression();
+
+        if (operand2Expression instanceof AddressExpression addrExpr) {
+          if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+            // TODO: for pointer comparisons etc. we need to unpack the correct value. We can currently handle this only for concrete values, and that is done by the valueVisitor. So we can't handle it here better.
+            operand2Expression = factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
+          }
+        }
 
         final Type expressionType = pIastBinaryExpression.getExpressionType();
         final Type calculationType = pIastBinaryExpression.getCalculationType();
