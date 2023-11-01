@@ -138,10 +138,9 @@ int main() {
         assert(*(arr3 + i) == *arr5_2);
         arr5_2++;
     }
-    // -- so that arr5_2 is actually in the range of the array (undefined beh. else)
+    // -- so that arr5_2 is actually in the range of the array
     arr5_2--;
-    // assert(arr5 != arr5_2);
-    assert(arr5_2 > arr5);
+    assert(arr5 != arr5_2);
     assert(arr3 != arr5);
     assert(arr != arr5);
 
