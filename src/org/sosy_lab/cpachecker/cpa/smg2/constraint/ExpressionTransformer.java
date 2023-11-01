@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.smg2.constraint;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -34,7 +36,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -58,8 +62,9 @@ public class ExpressionTransformer
     implements CRightHandSideVisitor<
         Collection<SymbolicExpressionAndSMGState>, CPATransferException> {
 
-  // Initial edge of the call to this transformer
-  private final CFAEdge edge;
+  // Initial edge of the call to this transformer, may be null for transformations that don't use
+  // the value visitor (i.e. only memory access checks)
+  @Nullable private final CFAEdge edge;
 
   private final SMGState smgState;
 
@@ -74,7 +79,7 @@ public class ExpressionTransformer
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
   public ExpressionTransformer(
-      final CFAEdge pEdge,
+      @Nullable final CFAEdge pEdge,
       final SMGState pSmgState,
       final MachineModel pMachineModel,
       final LogManagerWithoutDuplicates pLogger,
@@ -128,7 +133,7 @@ public class ExpressionTransformer
           if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
             // TODO: for pointer comparisons etc. we need to unpack the correct value. We can
             // currently handle this only for concrete values, and that is done by the valueVisitor.
-            // So we can't handle it here better.
+            // So we can't handle it better here.
             operand2Expression =
                 factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
           }
@@ -391,6 +396,50 @@ public class ExpressionTransformer
               stateAfterEval));
     }
     return builder.build();
+  }
+
+  public Collection<Constraint> checkValidMemoryAccess(
+      Value offsetInBits,
+      Value readSizeInBits,
+      Value memoryRegionSizeInBits,
+      CType offsetType,
+      SMGState currentState) {
+    ImmutableSet.Builder<Constraint> constraintBuilder = ImmutableSet.builder();
+
+    SymbolicExpression symbOffsetValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(offsetInBits, offsetType)
+            .copyForState(currentState);
+
+    SymbolicExpression zeroValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(createNumericValue(BigInteger.ZERO), offsetType);
+
+    SymbolicExpression readSizeValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(readSizeInBits, offsetType)
+            .copyForState(currentState);
+
+    SymbolicExpression offsetPlusReadSize =
+        factory.add(symbOffsetValue, readSizeValue, offsetType, offsetType);
+
+    SymbolicExpression memoryRegionSizeValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(memoryRegionSizeInBits, offsetType)
+            .copyForState(currentState);
+
+    // offset < 0
+    SymbolicExpression offsetLessZero =
+        factory.lessThan(symbOffsetValue, zeroValue, offsetType, CNumericTypes.INT);
+    constraintBuilder.add((Constraint) offsetLessZero);
+
+    // offset + read size > size of memory region
+    SymbolicExpression offsetPlusSizeGTRegion =
+        factory.greaterThan(
+            offsetPlusReadSize, memoryRegionSizeValue, offsetType, CNumericTypes.INT);
+    constraintBuilder.add((Constraint) offsetPlusSizeGTRegion);
+
+    return constraintBuilder.build();
   }
 
   private SMGCPAValueVisitor getNewValueVisitor(final SMGState pState) {

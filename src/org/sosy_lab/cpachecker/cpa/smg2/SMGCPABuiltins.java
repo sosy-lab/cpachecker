@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGCPABuiltins {
 
@@ -174,7 +176,7 @@ public class SMGCPABuiltins {
       String functionName,
       SMGState pSmgState,
       CFAEdge pCfaEdge)
-      throws CPATransferException {
+      throws CPATransferException, SolverException, InterruptedException {
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge);
@@ -201,7 +203,7 @@ public class SMGCPABuiltins {
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
       SMGState pState)
-      throws CPATransferException {
+      throws CPATransferException, SolverException, InterruptedException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
       return evaluateExternalAllocation(cFCExpression, pState);
@@ -287,7 +289,7 @@ public class SMGCPABuiltins {
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaCopy(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
-      throws CPATransferException {
+      throws CPATransferException, SolverException, InterruptedException {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the destination
     CExpression destArg = cFCExpression.getParameterExpressions().get(0);
@@ -305,7 +307,7 @@ public class SMGCPABuiltins {
         evaluator.readStackOrGlobalVariable(
             pState,
             srcIdArg.getName(),
-            BigInteger.ZERO,
+            new NumericValue(BigInteger.ZERO),
             sizeInBits,
             SMGCPAExpressionEvaluator.getCanonicalType(srcIdArg));
     Preconditions.checkArgument(addressesAndStates.size() == 1);
@@ -320,7 +322,7 @@ public class SMGCPABuiltins {
     currentState =
         currentState.writeToStackOrGlobalVariable(
             destIdArg.getDeclaration().getQualifiedName(),
-            BigInteger.ZERO,
+            new NumericValue(BigInteger.ZERO),
             sizeInBits,
             addressAndState.getValue(),
             destIdArg.getExpressionType(),
@@ -405,10 +407,10 @@ public class SMGCPABuiltins {
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
       SMGObject targetObj = target.getSMGObject();
-      BigInteger offset = target.getOffsetForObject();
+      Value offset = target.getOffsetForObject();
 
       currentState =
-          currentState.writeValueTo(
+          currentState.writeValueWithChecks(
               targetObj, offset, sizeInBitsPointer, address, firstArg.getExpressionType(), cfaEdge);
     }
 
@@ -698,7 +700,7 @@ public class SMGCPABuiltins {
           sizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8));
 
       resultBuilder.addAll(
-          handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits));
+          handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits, cfaEdge));
     }
 
     return resultBuilder.build();
@@ -706,8 +708,8 @@ public class SMGCPABuiltins {
 
   // malloc(size) w size in bits
   private ImmutableList<ValueAndSMGState> handleConfigurableMemoryAllocation(
-      CFunctionCallExpression functionCall, SMGState pState, BigInteger sizeInBits)
-      throws SMGException {
+      CFunctionCallExpression functionCall, SMGState pState, BigInteger sizeInBits, CFAEdge edge)
+      throws SMGException, SMGSolverException {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     SMGState currentState = pState;
     String functionName = functionCall.getFunctionNameExpression().toASTString();
@@ -727,7 +729,9 @@ public class SMGCPABuiltins {
     if (options.getZeroingMemoryAllocation().contains(functionName)) {
       // Since this is newly created memory get(0) is fine
       stateWithNewHeap =
-          stateWithNewHeap.writeToZero(addressToNewRegion, functionCall.getExpressionType()).get(0);
+          stateWithNewHeap
+              .writeToZero(addressToNewRegion, functionCall.getExpressionType(), edge)
+              .get(0);
     }
     resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
 
@@ -1395,7 +1399,7 @@ public class SMGCPABuiltins {
       CType pCanonicalReturnType,
       CFAEdge pCfaEdge,
       CFunctionCallExpression functionCall)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
 
     if (!pState.getMemoryModel().isPointer(pPtrValue)) {
       // undefined beh
@@ -1411,7 +1415,7 @@ public class SMGCPABuiltins {
     // Handle (realloc(0, size) -> just malloc
     if (pPtrValue.isNumericValue()
         && pPtrValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
-      return handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits);
+      return handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits, pCfaEdge);
     }
 
     // Handle realloc(ptr, 0) (before C23), (C23 its just undefined beh)
@@ -1440,8 +1444,8 @@ public class SMGCPABuiltins {
               oldObj.getSMGObject(),
               oldObj.getOffsetForObject(),
               newMemory,
-              BigInteger.ZERO,
-              sizeInBits);
+              new NumericValue(BigInteger.ZERO),
+              new NumericValue(sizeInBits));
       for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
         resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, freedState));
       }

@@ -104,7 +104,8 @@ public class SMGCPAMaterializer {
     currentState = nextPointerAndState.getSMGState();
     SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
     // Write the value to the nfo of the previous object
-    currentState = currentState.writeValue(prevObj, nfo, pointerSize, nextPointerValue);
+    currentState =
+        currentState.writeValueWithoutChecks(prevObj, nfo, pointerSize, nextPointerValue);
     // We can assume that a 0+ does not have other valid pointers to it!
     // Remove all other pointers/subgraphs associated with the 0+ object
     // Also remove the object
@@ -149,12 +150,13 @@ public class SMGCPAMaterializer {
     if (maybeNextPointer.isPresent() && !maybeNextPointer.orElseThrow().pointsTo().isZero()) {
       // Write the prev pointer of the next object to the prev object
       currentState =
-          currentState.writeValue(
+          currentState.writeValueWithoutChecks(
               maybeNextPointer.orElseThrow().pointsTo(), pfo, pointerSize, prevPointerValue);
     }
 
     // Write the value to the nfo of the previous object
-    currentState = currentState.writeValue(prevObj, nfo, pointerSize, nextPointerValue);
+    currentState =
+        currentState.writeValueWithoutChecks(prevObj, nfo, pointerSize, nextPointerValue);
     // We can assume that a 0+ does not have other valid pointers to it!
     // Remove all other pointers/subgraphs associated with the 0+ object
     // Also remove the object
@@ -245,7 +247,7 @@ public class SMGCPAMaterializer {
 
     // Write the new value w pointer towards abstract region to new region
     currentState =
-        currentState.writeValue(
+        currentState.writeValueWithoutChecks(
             newConcreteRegion, nfo, pointerSize, newValuePointingToWardsAbstractList);
 
     assert checkPointersOfMaterializedSLL(newConcreteRegion, nfo, currentState);
@@ -348,12 +350,13 @@ public class SMGCPAMaterializer {
 
     // Write the new value w pointer towards abstract region to new concrete region as next pointer
     currentState =
-        currentState.writeValue(
+        currentState.writeValueWithoutChecks(
             newConcreteRegion, nfo, pointerSize, newValuePointingToWardsAbstractList);
 
     // Set the prev pointer of the new abstract segment to the new concrete segment
     currentState =
-        currentState.writeValue(newAbsListSeg, pfo, pointerSize, valueOfPointerToConcreteObject);
+        currentState.writeValueWithoutChecks(
+            newAbsListSeg, pfo, pointerSize, valueOfPointerToConcreteObject);
 
     SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
     currentState = nextPointerAndState.getSMGState();
@@ -366,7 +369,7 @@ public class SMGCPAMaterializer {
       // Write the prev pointer of the next object to the prev object
       // We expect that all valid objects nfo points to are list segments
       currentState =
-          currentState.writeValue(
+          currentState.writeValueWithoutChecks(
               maybeNextPointer.orElseThrow().pointsTo(),
               pfo,
               pointerSize,

@@ -13,13 +13,15 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisDelegatingRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -34,7 +36,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
    */
   public SMGPrefixProvider(
       SMGConstraintsSolver pSolver,
-      LogManager pLogger,
+      LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
       Configuration config,
       ShutdownNotifier pShutdownNotifier)
@@ -42,7 +44,17 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
 
     super(
         new SMGStrongestPostOperator(pSolver, pLogger, config, pCfa),
-        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(config), pCfa),
+        SMGState.of(
+            pCfa.getMachineModel(),
+            pLogger,
+            new SMGOptions(config),
+            pCfa,
+            new SMGCPAExpressionEvaluator(
+                pCfa.getMachineModel(),
+                pLogger,
+                SMGCPAExportOptions.getNoExportInstance(),
+                new SMGOptions(config),
+                null)),
         pLogger,
         pCfa,
         config,
