@@ -106,7 +106,9 @@ public class ExpressionTransformer
 
       if (operand1Expression instanceof AddressExpression addrExpr) {
         if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
-          // TODO: for pointer comparisons etc. we need to unpack the correct value. We can currently handle this only for concrete values, and that is done by the valueVisitor. So we can't handle it here better.
+          // TODO: for pointer comparisons etc. we need to unpack the correct value. We can
+          // currently handle this only for concrete values, and that is done by the valueVisitor.
+          // So we can't handle it here better.
           // Dirty fix: if we end up here, it means we had a unknown before.
           // We return a unknown again by creating one
           operand1Expression = factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
@@ -124,8 +126,11 @@ public class ExpressionTransformer
 
         if (operand2Expression instanceof AddressExpression addrExpr) {
           if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
-            // TODO: for pointer comparisons etc. we need to unpack the correct value. We can currently handle this only for concrete values, and that is done by the valueVisitor. So we can't handle it here better.
-            operand2Expression = factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
+            // TODO: for pointer comparisons etc. we need to unpack the correct value. We can
+            // currently handle this only for concrete values, and that is done by the valueVisitor.
+            // So we can't handle it here better.
+            operand2Expression =
+                factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
           }
         }
 

@@ -492,6 +492,7 @@ public class SMGCPAValueVisitor
 
         // Pointer arithmetics case and fall through (handled inside the method)
         // i.e. address + 3
+        // (This only handles address +- value!)
         return calculatePointerArithmetics(
             leftAddrExpr,
             rightAddrExpr,
@@ -499,6 +500,40 @@ public class SMGCPAValueVisitor
             e.getExpressionType(),
             calculationType,
             currentState);
+      } else if (binaryOperator == BinaryOperator.GREATER_EQUAL
+          || binaryOperator == BinaryOperator.LESS_EQUAL
+          || binaryOperator == BinaryOperator.GREATER_THAN
+          || binaryOperator == BinaryOperator.LESS_THAN) {
+        // < <= > >=
+        // For the same memory, we can check < etc.
+
+        // First check that left and right point to the SAME memory region
+        // Check that both Values are truly addresses
+        ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
+        leftValue = leftValueAndState.getValue();
+        ValueAndSMGState rightValueAndState =
+            evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
+        rightValue = rightValueAndState.getValue();
+        currentState = rightValueAndState.getState();
+        if (!evaluator.isPointerValue(rightValue, currentState)
+            || !evaluator.isPointerValue(leftValue, currentState)) {
+          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+        }
+        if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
+          // This is undefined behavior in C99/C11
+          // But since we don't really handle this i just return false :D
+          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+        }
+
+        // Then get the offsets
+        Value offsetLeft = currentState.getPointerOffset(leftValue);
+        Value offsetRight = currentState.getPointerOffset(rightValue);
+        if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
+          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+        }
+
+        // Create binary expr with offsets and restart this with it
+        return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
       }
     }
 

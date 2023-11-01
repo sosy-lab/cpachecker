@@ -1777,6 +1777,57 @@ public class SMGState
     return memoryModel.proveInequality(smgValue1.orElseThrow(), smgValue2.orElseThrow());
   }
 
+  /**
+   * True iff both values are pointers pointing to the same memory region. Offset does not matter!
+   *
+   * @param pValue1 a pointer {@link Value}
+   * @param pValue2 a pointer {@link Value}
+   * @return true iff both point to the same memory region.
+   */
+  public boolean pointsToSameMemoryRegion(Value pValue1, Value pValue2) {
+    if (!memoryModel.isPointer(pValue1) || !memoryModel.isPointer(pValue2)) {
+      return false;
+    }
+
+    Optional<SMGValue> maybeSmgValue1 = memoryModel.getSMGValueFromValue(pValue1);
+    Optional<SMGValue> maybeSmgValue2 = memoryModel.getSMGValueFromValue(pValue2);
+    if (maybeSmgValue1.isEmpty() || maybeSmgValue2.isEmpty()) {
+      return false;
+    }
+
+    SMGValue smgValue1 = maybeSmgValue1.orElseThrow();
+    SMGValue smgValue2 = maybeSmgValue2.orElseThrow();
+
+    SMGPointsToEdge targetEdge1 = memoryModel.getSmg().getPTEdge(smgValue1).orElseThrow();
+    SMGPointsToEdge targetEdge2 = memoryModel.getSmg().getPTEdge(smgValue2).orElseThrow();
+    if (targetEdge1.pointsTo().equals(targetEdge2.pointsTo())) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Returns the offset of a pointer in relation to the beginning of a memory region. Or UNKNOWN if
+   * some error happens.
+   *
+   * @param pValue some {@link Value} that may be a pointer.
+   * @return UNKNOWN or a {@link NumericValue} that is the offset.
+   */
+  public Value getPointerOffset(Value pValue) {
+    if (!memoryModel.isPointer(pValue)) {
+      return UnknownValue.getInstance();
+    }
+
+    Optional<SMGValue> maybeSmgValue1 = memoryModel.getSMGValueFromValue(pValue);
+    if (maybeSmgValue1.isEmpty()) {
+      return UnknownValue.getInstance();
+    }
+
+    SMGValue smgValue = maybeSmgValue1.orElseThrow();
+    SMGPointsToEdge targetEdge = memoryModel.getSmg().getPTEdge(smgValue).orElseThrow();
+    return new NumericValue(targetEdge.getOffset());
+  }
+
   /** Logs the error entered using the states logger. */
   private void logMemoryError(String pMessage, boolean pUndefinedBehavior) {
     if (options.isMemoryErrorTarget()) {
