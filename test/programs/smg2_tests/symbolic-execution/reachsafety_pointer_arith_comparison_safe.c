@@ -97,8 +97,8 @@ int main() {
     --arr3_3;
     assert(arr3_3 < arr3_2);
     arr3_3 = arr3_3 - 1;
-    assert((void *) arr == (void *) arr3_3);
-    assert((void *) arr3_2 > (void *) arr && arr3_3 < arr3_2);
+    assert((void *) arr3 == (void *) arr3_3);
+    assert((void *) arr3_2 > (void *) arr3 && arr3_3 < arr3_2);
 
     // SAFE
 	return 0;	
