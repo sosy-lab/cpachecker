@@ -72,7 +72,8 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
           if (edges.contains(e)) {
             continue;
           } else if (e instanceof FunctionCallEdge fce) {
-            if (fce.getSuccessor().getFunctionName().equals("reach_error")) {
+            if (fce.getSuccessor().getFunctionName().equals("reach_error")
+                || fce.getSuccessor().getFunctionName().equals("__VERIFIER_assert")) {
               edges.add(e);
             }
 
