@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
@@ -149,8 +151,7 @@ public final class InvariantWitnessWriter {
       Configuration pConfig, CFA pCFA, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException, IOException {
     if (pSpecification.getProperties().size() != 1) {
-      throw new InvalidConfigurationException(
-          "Invariant export only supported for specific verificaiton task");
+      pLogger.log(WARNING, "Invariant export only supported for specific verification task");
     }
     return new InvariantWitnessWriter(
         pConfig,
@@ -172,7 +173,11 @@ public final class InvariantWitnessWriter {
     for (Path inputFile : inputFiles) {
       inputFileHashes.put(inputFile.toString(), AutomatonGraphmlCommon.computeHash(inputFile));
     }
-    String specification = pSpecification.getProperties().iterator().next().toString();
+
+    String specification =
+        pSpecification.getProperties().stream()
+            .map(Property::toString)
+            .collect(Collectors.joining(" && "));
 
     return new TaskRecord(
         inputFiles.stream().map(Path::toString).collect(ImmutableList.toImmutableList()),
