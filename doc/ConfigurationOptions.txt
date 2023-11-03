@@ -3113,7 +3113,7 @@ cpa.smg2.handleUnknownFunctions = STRICT
 # If this option is enabled, a memory allocation (e.g. malloc or array
 # declaration) for unknown memory sizes does not abort, but also does not
 # create any memory.
-cpa.smg2.handleUnknownMemoryAllocation = IGNORE
+cpa.smg2.handleUnknownMemoryAllocation = STOP_ANALYSIS
   enum:     [IGNORE, MEMORY_ERROR, STOP_ANALYSIS]
 
 # if there is an assumption like (x!=0), this option sets unknown
