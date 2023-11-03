@@ -1349,28 +1349,29 @@ public class ExpressionToFormulaVisitor
   }
 
   private boolean checkFscanfFormatString(CExpression pFormat) {
-    ImmutableList<String> allowlistedFormatStrings = ImmutableList.<String>builder()
-        .add("%d") // decimal integer
-        .add("%i") // decimal, octal, or hexadecimal integer
-        .add("%o") // octal integer
-        .add("%u") // unsigned decimal integer
-        .add("%x") // hexadecimal integer
-        .add("%ld") // long decimal integer
-        .add("%li") // long decimal, octal, or hexadecimal integer
-        .add("%lo") // long octal integer
-        .add("%lu") // long unsigned decimal integer
-        .add("%lx") // long hexadecimal integer
-        .add("%hd") // short decimal integer
-        .add("%hi") // short decimal, octal, or hexadecimal integer
-        .add("%ho") // short octal integer
-        .add("%hu") // short unsigned decimal integer
-        .add("%hx") // short hexadecimal integer
-        .add("%lld") // long long decimal integer
-        .add("%lli") // long long decimal, octal, or hexadecimal integer
-        .add("%llo") // long long octal integer
-        .add("%llu") // long long unsigned decimal integer
-        .add("%llx") // long long hexadecimal integer
-        .build();
+    ImmutableList<String> allowlistedFormatStrings =
+        ImmutableList.<String>builder()
+            .add("%d") // decimal integer
+            .add("%i") // decimal, octal, or hexadecimal integer
+            .add("%o") // octal integer
+            .add("%u") // unsigned decimal integer
+            .add("%x") // hexadecimal integer
+            .add("%ld") // long decimal integer
+            .add("%li") // long decimal, octal, or hexadecimal integer
+            .add("%lo") // long octal integer
+            .add("%lu") // long unsigned decimal integer
+            .add("%lx") // long hexadecimal integer
+            .add("%hd") // short decimal integer
+            .add("%hi") // short decimal, octal, or hexadecimal integer
+            .add("%ho") // short octal integer
+            .add("%hu") // short unsigned decimal integer
+            .add("%hx") // short hexadecimal integer
+            .add("%lld") // long long decimal integer
+            .add("%lli") // long long decimal, octal, or hexadecimal integer
+            .add("%llo") // long long octal integer
+            .add("%llu") // long long unsigned decimal integer
+            .add("%llx") // long long hexadecimal integer
+            .build();
     if (pFormat instanceof CStringLiteralExpression stringLiteral) {
       String content = stringLiteral.getContentWithoutNullTerminator();
       // There is also j, z, t, and hh; for now we ignore these
