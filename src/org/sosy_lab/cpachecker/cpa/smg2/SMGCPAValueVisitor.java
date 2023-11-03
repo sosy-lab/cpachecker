@@ -1468,7 +1468,7 @@ public class SMGCPAValueVisitor
 
         CType functionType = BuiltinFunctions.getFunctionType(calledFunctionName);
 
-        if (isUnspecifiedType(functionType)) {
+        if (isUnspecifiedType(functionType) && !calledFunctionName.equals("__builtin_alloca")) {
           // unsupported formula
           return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
         }
@@ -1494,6 +1494,7 @@ public class SMGCPAValueVisitor
         }
         List<Value> parameterValues = parameterValuesBuilder.build();
 
+        // TODO: split this mess into functions
         if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           /*
            * Problem: this method needs a AbstractExpressionValueVisitor as input (this)
@@ -2068,9 +2069,7 @@ public class SMGCPAValueVisitor
       try {
         return smgBuiltins.handleFunctionCall(
             pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
-      } catch (InterruptedException e) {
-        throw new SMGSolverException(e, state);
-      } catch (SolverException e) {
+      } catch (InterruptedException | SolverException e) {
         throw new SMGSolverException(e, state);
       }
     }
