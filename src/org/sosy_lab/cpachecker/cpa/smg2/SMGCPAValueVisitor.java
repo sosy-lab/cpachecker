@@ -438,7 +438,7 @@ public class SMGCPAValueVisitor
       currentState = castRightValue.getState();
     }
 
-    if (leftValue instanceof AddressExpression
+    if ((leftValue instanceof AddressExpression
         || rightValue instanceof AddressExpression
         || (evaluator.isPointerValue(rightValue, currentState)
             && evaluator.isPointerValue(leftValue, currentState))
@@ -447,7 +447,8 @@ public class SMGCPAValueVisitor
                     ((ConstantSymbolicExpression) leftValue).getValue(), currentState))
             && (rightValue instanceof ConstantSymbolicExpression
                 && evaluator.isPointerValue(
-                    ((ConstantSymbolicExpression) rightValue).getValue(), currentState)))) {
+                    ((ConstantSymbolicExpression) rightValue).getValue(), currentState)))) && !(leftValue.isNumericValue() && rightValue.isNumericValue())) {
+
       // It is possible that addresses get cast to int or smth like it
       // Then the SymbolicIdentifier is returned not in a AddressExpression
       // They might be wrapped in a ConstantSymbolicExpression
@@ -539,7 +540,7 @@ public class SMGCPAValueVisitor
         }
         if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
           // This is undefined behavior in C99/C11
-          // But since we don't really handle this i just return false :D
+          // But since we don't really handle this we just return unknown :D
           return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
         }
 
