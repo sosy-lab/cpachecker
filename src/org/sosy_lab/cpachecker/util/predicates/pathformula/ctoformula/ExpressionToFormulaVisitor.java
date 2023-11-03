@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -48,13 +49,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -63,7 +67,6 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -683,55 +686,57 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFunctions.matchesFscanf(functionName)) {
 
+        CExpression receivingParameter = validateFscanfParameters(parameters, e);
 
-        CExpression file = parameters.get(0);
-        CExpression format = parameters.get(1);
+        if (receivingParameter instanceof CUnaryExpression unaryParameter) {
+          UnaryOperator operator = unaryParameter.getOperator();
+          CExpression operand = unaryParameter.getOperand();
+          if (operator.equals(UnaryOperator.AMPER)
+              && operand instanceof CIdExpression idExpression) {
+            // For simplicity, we start with the case where only paramters of the form "&id" occur
+            CType variableType = idExpression.getExpressionType();
 
-        // All values that will be changed
-        for (CExpression parameter : parameters.subList(2, parameters.size())) {
-          CType parameterType = parameter.getExpressionType();
+            if (!CTypes.isIntegerType(variableType)) {
+              throw new UnrecognizedCodeException(
+                  "fscanf with non-integer receiving type", edge, e);
+            }
 
-          if (parameter instanceof CUnaryExpression unaryParameter) {
-            UnaryOperator operator = unaryParameter.getOperator();
-            CExpression operand = unaryParameter.getOperand();
-            if (operator.equals(UnaryOperator.AMPER)
-                && operand instanceof CIdExpression idExpression) {
-              // For simplicity, we start with the case where only paramters of the form "&id" occur
-              CType variableType = idExpression.getExpressionType();
-              CFunctionDeclaration nondetFun =
-                  new CFunctionDeclaration(
-                      edge.getFileLocation(),
-                      CFunctionType.functionTypeWithReturnType(variableType),
-                      "__Verifier_nondet",
-                      ImmutableList.of(),
-                      ImmutableSet.of());
-              CIdExpression nondetFunctionName =
-                  new CIdExpression(
-                      edge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
+            CFunctionDeclaration nondetFun =
+                new CFunctionDeclaration(
+                    edge.getFileLocation(),
+                    CFunctionType.functionTypeWithReturnType(variableType),
+                    INTERNAL_NONDET_FUNCTION_NAME,
+                    ImmutableList.of(),
+                    ImmutableSet.of());
+            CIdExpression nondetFunctionName =
+                new CIdExpression(
+                    edge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
 
-              CFunctionCallExpression rhs =
-                  new CFunctionCallExpression(
-                      edge.getFileLocation(),
-                      variableType,
-                      nondetFunctionName,
-                      ImmutableList.of(),
-                      nondetFun);
-
-              PointerTargetSetBuilder pts = conv.createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
-
-              try {
-                BooleanFormula assignment = conv.makeAssignment(idExpression, idExpression, rhs, edge, function, ssa, pts,
-                        constraints,
-                        ErrorConditions.dummyInstance(mgr.getBooleanFormulaManager()));
-                constraints.addConstraint(assignment);
-              } catch (InterruptedException interruptedException) {
-                throw new UnsupportedCodeException("Interrupted: fscanf", edge, e);
-              }
-
+            CFunctionCallExpression rhs =
+                new CFunctionCallExpression(
+                    edge.getFileLocation(),
+                    variableType,
+                    nondetFunctionName,
+                    ImmutableList.of(),
+                    nondetFun);
+            try {
+              BooleanFormula assignment =
+                  conv.makeAssignment(
+                      idExpression,
+                      idExpression,
+                      rhs,
+                      edge,
+                      function,
+                      ssa,
+                      pts,
+                      constraints,
+                      errorConditions);
+              constraints.addConstraint(assignment);
+            } catch (InterruptedException interruptedException) {
+              CtoFormulaConverter.propagateInterruptedException(interruptedException);
             }
           }
         }
-
 
         // fscanf(FILE *stream, const char *format, ...) returns the number of assigned items
         // or EOF if no item has been assigned before the end of the file occurred.
@@ -1301,6 +1306,60 @@ public class ExpressionToFormulaVisitor
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
+  }
+
+  private CExpression validateFscanfParameters(
+      List<CExpression> pParameters, CFunctionCallExpression e) throws UnrecognizedCodeException {
+    if (pParameters.size() < 2) {
+      throw new UnrecognizedCodeException("fscanf() needs at least 2 parameters", edge, e);
+    }
+
+    if (pParameters.size() > 3) {
+      throw new UnrecognizedCodeException(
+          "fscanf() with more than 3 parameters is not supported", edge, e);
+    }
+
+    CExpression file = pParameters.get(0);
+
+    if (file instanceof CIdExpression idExpression) {
+      if (!isFilePointer(idExpression.getExpressionType())) {
+        throw new UnrecognizedCodeException("First parameter of fscanf() must be a FILE*", edge, e);
+      }
+    }
+
+    CExpression format = pParameters.get(1);
+    if (!checkFscanfFormatString(format)) {
+      throw new UnrecognizedCodeException("Format string of fscanf is not supported", edge, e);
+    }
+
+    return pParameters.get(2);
+  }
+
+  private boolean isFilePointer(CType pType) {
+    if (pType instanceof CPointerType pointerType) {
+      if (pointerType.getType() instanceof CTypedefType typedefType) {
+        CType realType = typedefType.getRealType();
+        if (realType instanceof CElaboratedType elaboratedType) {
+          return elaboratedType.getKind() == ComplexTypeKind.STRUCT
+              && elaboratedType.getName().equals("_IO_FILE");
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean checkFscanfFormatString(CExpression pFormat) {
+
+    if (pFormat instanceof CStringLiteralExpression stringLiteral) {
+      String content = stringLiteral.getContentWithoutNullTerminator();
+      return content.contentEquals("%d") // decimal integer
+          || content.contentEquals("%i") // decimal, octal, or hexadecimal integer
+          || content.contentEquals("%o") // octal integer
+          || content.contentEquals("%u") // unsigned decimal integer
+          || content.contentEquals("%x"); // hexadecimal integer
+    }
+
+    return false;
   }
 
   private @Nullable Formula roundNearestTiesAway(
