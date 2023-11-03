@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -2703,7 +2702,8 @@ public class SMGState
     if (newState.memoryModel.getValueFromSMGValue(readSMGValue).isEmpty()) {
       // The type should always be a pointer
       CType pointerType = CPointerType.POINTER_TO_VOID;
-      Preconditions.checkArgument(machineModel.getSizeofInBits(pointerType) == pSizeofInBits);
+      BigInteger sizeOfPointer = machineModel.getSizeofInBits(pointerType);
+      Preconditions.checkArgument(sizeOfPointer.equals(pSizeofInBits));
       Value unknownValue = getNewSymbolicValueForType(pointerType);
       return SMGValueAndSMGState.of(
           copyAndReplaceMemoryModel(
@@ -2823,9 +2823,9 @@ public class SMGState
 
       if (!addressExpr.getOffset().isNumericValue()) {
         // return a freed and an unfreed state for not numeric values
-        return ImmutableList.of(this,
-            this
-                .withInvalidFree("Invalid free of unallocated object is found.", addressToFree));
+        return ImmutableList.of(
+            this,
+            this.withInvalidFree("Invalid free of unallocated object is found.", addressToFree));
       }
       baseOffset = addressExpr.getOffset().asNumericValue().bigIntegerValue();
     }
