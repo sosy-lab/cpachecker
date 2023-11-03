@@ -1050,7 +1050,10 @@ public class SMGCPABuiltins {
       String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
       ValueAndSMGState addressValueAndState =
           evaluator.createStackAllocation(
-              allocationLabel, pSizeValue.asNumericValue().bigIntegerValue(), type, pState);
+              allocationLabel,
+              pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)),
+              type,
+              pState);
 
       currentState = addressValueAndState.getState();
 
