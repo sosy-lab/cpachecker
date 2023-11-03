@@ -439,15 +439,16 @@ public class SMGCPAValueVisitor
     }
 
     if ((leftValue instanceof AddressExpression
-        || rightValue instanceof AddressExpression
-        || (evaluator.isPointerValue(rightValue, currentState)
-            && evaluator.isPointerValue(leftValue, currentState))
-        || ((leftValue instanceof ConstantSymbolicExpression
-                && evaluator.isPointerValue(
-                    ((ConstantSymbolicExpression) leftValue).getValue(), currentState))
-            && (rightValue instanceof ConstantSymbolicExpression
-                && evaluator.isPointerValue(
-                    ((ConstantSymbolicExpression) rightValue).getValue(), currentState)))) && !(leftValue.isNumericValue() && rightValue.isNumericValue())) {
+            || rightValue instanceof AddressExpression
+            || (evaluator.isPointerValue(rightValue, currentState)
+                && evaluator.isPointerValue(leftValue, currentState))
+            || ((leftValue instanceof ConstantSymbolicExpression
+                    && evaluator.isPointerValue(
+                        ((ConstantSymbolicExpression) leftValue).getValue(), currentState))
+                && (rightValue instanceof ConstantSymbolicExpression
+                    && evaluator.isPointerValue(
+                        ((ConstantSymbolicExpression) rightValue).getValue(), currentState))))
+        && !(leftValue.isNumericValue() && rightValue.isNumericValue())) {
 
       // It is possible that addresses get cast to int or smth like it
       // Then the SymbolicIdentifier is returned not in a AddressExpression

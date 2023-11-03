@@ -1806,6 +1806,7 @@ public class SMGCPAExpressionEvaluator {
       typeSizeInBits = getBitSizeof(newState, cType);
     } catch (UnsupportedOperationException e) {
       // The visitor forced my hand here!
+      // Only to be caught by CEGAR based analyses!!!!
       if (options.isIgnoreUnknownMemoryAllocation()
           && e.getMessage().contains("Could not determine variable array length for length")) {
         return newState;

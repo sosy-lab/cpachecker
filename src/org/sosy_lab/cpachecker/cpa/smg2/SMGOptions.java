@@ -289,7 +289,7 @@ public class SMGOptions {
           "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
               + "unknown memory sizes does not abort, but also does not create any memory.")
   private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
-      UnknownMemoryAllocationHandling.IGNORE;
+      UnknownMemoryAllocationHandling.STOP_ANALYSIS;
 
   /*
    * Ignore: ignore allocation call and overapproximate.
