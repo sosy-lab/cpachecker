@@ -41,7 +41,7 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
     CFANode exitNode = null;
     boolean foundExitNode = false;
     for (FunctionEntryNode entry : cfa.getAllFunctions().values()) {
-      if (entry.getFunctionName().contains("__VERIFIER_assert")) {
+      if (entry.getFunctionName().equals("__VERIFIER_assert")) {
         entryNodesSortedList.add(entry);
       }
     }
@@ -83,11 +83,11 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
           }
         }
       }
-      if (value.getFunctionName().contains("__VERIFIER_assert")) {
+      if (value.getFunctionName().equals("__VERIFIER_assert")) {
         assertionEdges.addAll(edges);
         continue;
       } else if (!assertionEdges.isEmpty()
-          && !value.getFunctionName().contains("__VERIFIER_assert")) {
+          && !value.getFunctionName().equals("__VERIFIER_assert")) {
         edges.addAll(assertionEdges);
       }
       assert exitNode != null;
