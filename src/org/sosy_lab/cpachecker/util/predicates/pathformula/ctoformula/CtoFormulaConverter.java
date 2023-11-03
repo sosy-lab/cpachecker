@@ -1854,7 +1854,8 @@ public class CtoFormulaConverter {
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, pts, constraints, errorConditions);
+    return new ExpressionToFormulaVisitor(
+        this, fmgr, pEdge, pFunction, ssa, pts, constraints, errorConditions);
   }
 
   /** Creates a Formula which accesses the given bits. */

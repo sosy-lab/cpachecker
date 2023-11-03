@@ -658,8 +658,7 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public Formula visit(CFunctionCallExpression e)
-      throws UnrecognizedCodeException {
+  public Formula visit(CFunctionCallExpression e) throws UnrecognizedCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
     final CType returnType = e.getExpressionType();
     final List<CExpression> parameters = e.getParameterExpressions();
@@ -688,7 +687,6 @@ public class ExpressionToFormulaVisitor
         CExpression file = parameters.get(0);
         CExpression format = parameters.get(1);
 
-
         // All values that will be changed
         for (CExpression parameter : parameters.subList(2, parameters.size())) {
           CType parameterType = parameter.getExpressionType();
@@ -696,20 +694,28 @@ public class ExpressionToFormulaVisitor
           if (parameter instanceof CUnaryExpression unaryParameter) {
             UnaryOperator operator = unaryParameter.getOperator();
             CExpression operand = unaryParameter.getOperand();
-            if (operator.equals(UnaryOperator.AMPER) && operand instanceof CIdExpression idExpression) {
+            if (operator.equals(UnaryOperator.AMPER)
+                && operand instanceof CIdExpression idExpression) {
               // For simplicity, we start with the case where only paramters of the form "&id" occur
               CType variableType = idExpression.getExpressionType();
-              CFunctionDeclaration nondetFun = new CFunctionDeclaration(
-                  edge.getFileLocation(),
-                  CFunctionType.functionTypeWithReturnType(variableType),
-                  "__Verifier_nondet", ImmutableList.of(), ImmutableSet.of() );
-              CIdExpression nondetFunctionName = new CIdExpression(edge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
+              CFunctionDeclaration nondetFun =
+                  new CFunctionDeclaration(
+                      edge.getFileLocation(),
+                      CFunctionType.functionTypeWithReturnType(variableType),
+                      "__Verifier_nondet",
+                      ImmutableList.of(),
+                      ImmutableSet.of());
+              CIdExpression nondetFunctionName =
+                  new CIdExpression(
+                      edge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
 
-              CFunctionCallExpression rhs = new CFunctionCallExpression(
-                  edge.getFileLocation(),
-                  variableType,
-                  nondetFunctionName,
-                  ImmutableList.of(), nondetFun);
+              CFunctionCallExpression rhs =
+                  new CFunctionCallExpression(
+                      edge.getFileLocation(),
+                      variableType,
+                      nondetFunctionName,
+                      ImmutableList.of(),
+                      nondetFun);
 
               PointerTargetSetBuilder pts = conv.createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
 
@@ -727,6 +733,9 @@ public class ExpressionToFormulaVisitor
         }
 
 
+        // fscanf(FILE *stream, const char *format, ...) returns the number of assigned items
+        // or EOF if no item has been assigned before the end of the file occurred.
+        // We can over-approximate the value with nondet.
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
       } else if (conv.options.isExternModelFunction(functionName)) {
