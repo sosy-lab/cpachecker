@@ -1014,6 +1014,9 @@ public class SMGState
    */
   protected boolean isLocalVariablePresentOnPreviousStackFrame(String pVarName) {
     PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
+    if (frames.size() < 2) {
+      return false;
+    }
     StackFrame stackframe = frames.popAndCopy().peek();
     if (stackframe.getVariables().containsKey(pVarName)) {
       return true;
