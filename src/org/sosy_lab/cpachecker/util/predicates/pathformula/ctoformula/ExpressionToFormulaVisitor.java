@@ -676,12 +676,12 @@ public class ExpressionToFormulaVisitor
         // Ignore parameters and just create a fresh variable for it.
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
-      } else if (BuiltinFunctions.matchesScanfFamily(functionName)) {
         /*
          * fscanf(FILE *stream, const char *format, ...) returns the number of assigned items
          * or EOF if no item has been assigned before the end of the file occurred.
          * We can over-approximate the value with nondet.
          */
+      } else if (BuiltinFunctions.matchesFscanf(functionName)) {
 
         CExpression file = parameters.get(0);
         CExpression format = parameters.get(1);

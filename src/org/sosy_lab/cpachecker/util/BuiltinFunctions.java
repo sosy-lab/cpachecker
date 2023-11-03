@@ -38,7 +38,7 @@ public class BuiltinFunctions {
         || pFunctionName.startsWith("__atomic_")
         || pFunctionName.equals(FREE)
         || matchesStrlen(pFunctionName)
-        || matchesScanfFamily(pFunctionName)
+        || matchesFscanf(pFunctionName)
         || BuiltinFloatFunctions.isBuiltinFloatFunction(pFunctionName);
   }
 
@@ -75,7 +75,7 @@ public class BuiltinFunctions {
     return pFunctionName.equals(STRLEN);
   }
 
-  public static boolean matchesScanfFamily(String pFunctionName) {
+  public static boolean matchesFscanf(String pFunctionName) {
     return pFunctionName.equals(FSCANF);
   }
 
