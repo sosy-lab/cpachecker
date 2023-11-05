@@ -2034,6 +2034,19 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
+  public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress, CFAEdge edge) {
+    String errorMSG =
+        "Unknown value pointer dereference for value: " + unknownAddress + " at " + edge;
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(unknownAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
   /**
    * Error for dereferencing unknown pointer {@link Value} when reading with intent to write. I.e.
    * *value = 3; with value being unknown.

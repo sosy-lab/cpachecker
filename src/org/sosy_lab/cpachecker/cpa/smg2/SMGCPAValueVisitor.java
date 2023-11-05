@@ -1004,6 +1004,14 @@ public class SMGCPAValueVisitor
       SMGState currentState = valueAndState.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = valueAndState.getValue();
+      if (value.isUnknown()) {
+        // A possibility is that the program tries to deref a nondet for example
+        builder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge)));
+        continue;
+      }
+
       if (!(value instanceof AddressExpression)) {
         // The only valid pointer is numeric 0
         Preconditions.checkArgument(
