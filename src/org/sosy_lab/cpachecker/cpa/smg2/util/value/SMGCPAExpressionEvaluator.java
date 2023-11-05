@@ -2117,6 +2117,29 @@ public class SMGCPAExpressionEvaluator {
     return ImmutableList.of(currentState);
   }
 
+  /**
+   * Returns the name of the global variable for an entered String literal. We expect all String
+   * literals to be global variables after the first usage, so that they can always be found by this
+   * variable name.
+   *
+   * @param pCStringLiteralExpression a {@link CStringLiteralExpression}
+   * @return a {@link String} that is the (global) variable name.
+   */
+  public String getCStringLiteralExpressionVairableName(
+      CStringLiteralExpression pCStringLiteralExpression) {
+    return "_" + pCStringLiteralExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
+    /*
+    WHY did i do this?!
+          // If the var exists we change the name and create a new one
+      // (Don't reuse an old variable! They might be different from the new one!)
+      int num = 0;
+      while (pState.isGlobalVariablePresent(stringVarName + num)) {
+        num++;
+      }
+      stringVarName += num;
+     */
+  }
+
   /*
    * Handle string literal expression initializer:
    * if a string initializer is used with a pointer:
@@ -2143,15 +2166,7 @@ public class SMGCPAExpressionEvaluator {
     if (pCurrentExpressionType instanceof CPointerType) {
       // create a new memory region for the string (right hand side)
       CArrayType stringArrayType = pExpression.getExpressionType();
-      String stringVarName =
-          "_" + pExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
-      // If the var exists we change the name and create a new one
-      // (Don't reuse an old variable! They might be different from the new one!)
-      int num = 0;
-      while (pState.isGlobalVariablePresent(stringVarName + num)) {
-        num++;
-      }
-      stringVarName += num;
+      String stringVarName = getCStringLiteralExpressionVairableName(pExpression);
 
       BigInteger sizeOfString = getBitSizeof(pState, stringArrayType);
       SMGState currentState =
