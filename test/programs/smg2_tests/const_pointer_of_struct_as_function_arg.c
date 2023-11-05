@@ -14,7 +14,9 @@ struct Foo {
   int *p;
 };
 
-int bar(struct Foo *pa) {
+int bar(struct Foo *pa, int i) {
+  short temp_as_short = (short)(*(pa+(unsigned long)i)).temp;
+  assert(temp_as_short == 1);
   int value = blub(*pa);
   return value;
 }
@@ -25,6 +27,7 @@ int blub(struct Foo pap) {
 }
 
 int main() {
+  int i = 0;
   int a = 0;
   struct Foo f;
   f.temp = 1;
@@ -35,7 +38,7 @@ int main() {
   bla = (*fooPtr).temp;
   assert(bla == 1);
 
-  int res = bar(fooPtr);
+  int res = bar(fooPtr, i);
 
   assert(res == a); // SAFE
   return 0;
