@@ -1833,15 +1833,6 @@ public class SMGState
     return false;
   }
 
-  public boolean hasMemoryLeaks() {
-    for (SMGErrorInfo info : errorInfo) {
-      if (info.hasMemoryLeak()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /*
    * Check non-equality of the 2 entered potential addresses. Never use == or equals on addresses!
    * Tries to prove the not equality of two given addresses. Returns true if the prove of
