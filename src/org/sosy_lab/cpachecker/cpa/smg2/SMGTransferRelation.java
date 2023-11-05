@@ -682,29 +682,66 @@ public class SMGTransferRelation
         return currentState;
       }
 
-      Preconditions.checkArgument(paramValue instanceof SymbolicIdentifier);
-      Preconditions.checkArgument(
-          ((SymbolicIdentifier) paramValue).getRepresentedLocation().isPresent());
-      MemoryLocation locationInPrevStackFrame =
-          ((SymbolicIdentifier) paramValue).getRepresentedLocation().orElseThrow();
-      Optional<SMGObject> maybeKnownMemory =
-          currentState
-              .getMemoryModel()
-              .getObjectForVisibleVariableFromPreviousStackframe(
-                  locationInPrevStackFrame.getQualifiedName());
-      if (maybeKnownMemory.isEmpty()) {
-        throw new SMGException("Usage of unknown variable in function " + callEdge);
+      BigInteger offsetSource;
+      BigInteger sizeOfNewVariable;
+      SMGObject memorySource;
+      if (paramValue instanceof AddressExpression addrParamValue) {
+        // The SymbolicIdentifier might be wrapped in an AddressExpression,
+        // iff it results from a pointer deref on an address of a local struct
+        List<SMGStateAndOptionalSMGObjectAndOffset> derefedPointerOffsetAndState =
+            currentState.dereferencePointer(addrParamValue.getMemoryAddress());
+
+        // Nothing can materialize here
+        Preconditions.checkArgument(derefedPointerOffsetAndState.size() == 1);
+        currentState = derefedPointerOffsetAndState.get(0).getSMGState();
+
+        if (!derefedPointerOffsetAndState.get(0).hasSMGObjectAndOffset()) {
+          throw new SMGException("Usage of unknown variable in function " + callEdge);
+        }
+
+        Value offsetForObject = derefedPointerOffsetAndState.get(0).getOffsetForObject();
+        if (!offsetForObject.isNumericValue()) {
+          throw new SMGException(
+              "Usage of symbolic offsets in function arguments for structs not supported at the"
+                  + " moment. "
+                  + callEdge);
+        }
+        offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
+        memorySource = derefedPointerOffsetAndState.get(0).getSMGObject();
+        sizeOfNewVariable = memorySource.getSize().subtract(offsetSource);
+
+      } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
+        // Local struct to local struct copy
+        Preconditions.checkArgument(symbParamValue.getRepresentedLocation().isPresent());
+
+        MemoryLocation locationInPrevStackFrame =
+            symbParamValue.getRepresentedLocation().orElseThrow();
+
+        Optional<SMGObject> maybeKnownMemory =
+            currentState
+                .getMemoryModel()
+                .getObjectForVisibleVariableFromPreviousStackframe(
+                    locationInPrevStackFrame.getQualifiedName());
+
+        if (maybeKnownMemory.isEmpty()) {
+          throw new SMGException("Usage of unknown variable in function " + callEdge);
+        }
+
+        offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
+        memorySource = maybeKnownMemory.orElseThrow();
+        sizeOfNewVariable = memorySource.getSize().subtract(offsetSource);
+      } else {
+        throw new SMGException(
+            "Unexpected argument evaluation for struct argument in function call: " + callEdge);
       }
-      // Structs get copies
-      BigInteger offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
-      currentState =
-          currentState.copyAndAddLocalVariable(
-              maybeKnownMemory.orElseThrow().getSize().subtract(offsetSource), varName, cParamType);
+
+      currentState = currentState.copyAndAddLocalVariable(sizeOfNewVariable, varName, cParamType);
       SMGObject newMemory =
           currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
 
+      // We don't expect symbolic values for offsets/sizes etc. for now
       return currentState.copySMGObjectContentToSMGObject(
-          maybeKnownMemory.orElseThrow(),
+          memorySource,
           offsetSource,
           newMemory,
           BigInteger.ZERO,
