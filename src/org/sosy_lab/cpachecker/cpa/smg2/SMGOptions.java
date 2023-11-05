@@ -196,9 +196,9 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "crashOnUnknown",
-      description = "Crash on unknown array dereferences")
-  private boolean crashOnUnknown = false;
+      name = "crashOnUnknownInConstraint",
+      description = "Crash on unknown value when creating constraints of any form.")
+  private boolean crashOnUnknownInConstraint = false;
 
   @Option(
       secure = true,
@@ -472,8 +472,8 @@ public class SMGOptions {
     return joinOnBlockEnd;
   }
 
-  public boolean crashOnUnknown() {
-    return crashOnUnknown;
+  public boolean crashOnUnknownInConstraint() {
+    return crashOnUnknownInConstraint;
   }
 
   boolean isAssignEqualityAssumptions() {

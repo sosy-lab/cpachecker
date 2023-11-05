@@ -3063,8 +3063,8 @@ cpa.smg2.castMemoryAddressesToNumeric = false
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
 
-# Crash on unknown array dereferences
-cpa.smg2.crashOnUnknown = false
+# Crash on unknown value when creating constraints of any form.
+cpa.smg2.crashOnUnknownInConstraint = false
 
 # Deallocation functions
 cpa.smg2.deallocationFunctions = {"free"}

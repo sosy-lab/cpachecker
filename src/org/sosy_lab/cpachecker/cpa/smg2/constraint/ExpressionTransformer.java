@@ -380,12 +380,21 @@ public class ExpressionTransformer
     final SMGCPAValueVisitor vv = getNewValueVisitor(smgState);
     final CType type = SMGCPAExpressionEvaluator.getCanonicalType(pExpression);
     ImmutableList.Builder<SymbolicExpressionAndSMGState> builder = ImmutableList.builder();
+    if (pExpression.getFileLocation().getStartingLineInOrigin() == 8040) {
+      assert pExpression.getFileLocation().getStartingLineInOrigin() == 8040;
+    }
     for (ValueAndSMGState valueAndState : vv.evaluate(pExpression, type)) {
-      final Value idValue = valueAndState.getValue();
+      Value idValue = valueAndState.getValue();
       final SMGState stateAfterEval = valueAndState.getState();
 
-      // TODO: UNKNOWN is a VALID possibility here!
-      assert !idValue.isUnknown();
+      if (options.crashOnUnknownInConstraint()) {
+        assert !idValue.isUnknown();
+      } else if (idValue.isUnknown()) {
+        // Unknown is top, so we create a new value that does not have any constraints and put it in
+        // the constraint
+        SymbolicValueFactory svf = SymbolicValueFactory.getInstance();
+        idValue = svf.asConstant(svf.newIdentifier(null), type);
+      }
 
       // The vv takes care of the transformations for us
       builder.add(
