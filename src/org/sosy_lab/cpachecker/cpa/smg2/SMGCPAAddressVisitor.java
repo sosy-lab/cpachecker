@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -101,6 +102,22 @@ public class SMGCPAAddressVisitor
         state,
         cfaEdge.getRawStatement());
     return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(state));
+  }
+
+  @Override
+  public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CStringLiteralExpression e)
+      throws CPATransferException {
+    String globalVarName = evaluator.getCStringLiteralExpressionVairableName(e);
+    if (!state.isGlobalVariablePresent(globalVarName)) {
+      throw new SMGException("Could not find C String literal address.");
+    }
+    // TODO: assertion that the Strings are immutable
+    ValueAndSMGState addressValueAndState =
+        evaluator.createAddressForLocalOrGlobalVariable(globalVarName, state);
+    Value addressValue = addressValueAndState.getValue();
+    SMGState currentState = addressValueAndState.getState();
+
+    return currentState.dereferencePointer(addressValue);
   }
 
   @Override
