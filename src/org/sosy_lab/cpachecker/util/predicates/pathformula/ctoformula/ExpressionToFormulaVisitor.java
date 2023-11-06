@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.StdlibFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
@@ -742,7 +743,8 @@ public class ExpressionToFormulaVisitor
         // or EOF if no item has been assigned before the end of the file occurred.
         // We can over-approximate the value with nondet.
         return conv.makeNondet(functionName, returnType, ssa, constraints);
-
+      } else if (StdlibFunctions.isStdlibFunction(functionName)) {
+        return handleStdlibFunction(functionName, parameters, e);
       } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv, conv.bfmgr, conv.fmgr);
         BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
@@ -1305,6 +1307,22 @@ public class ExpressionToFormulaVisitor
       final CType realReturnType = conv.getReturnType(e, edge);
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
+    }
+  }
+
+  private Formula handleStdlibFunction(
+      String pFunctionName, List<CExpression> pParameters, CFunctionCallExpression pE)
+      throws UnrecognizedCodeException {
+    FormulaManagerView fmgr = conv.fmgr;
+    if (StdlibFunctions.matchesAbs(pFunctionName)) {
+      CExpression paramExpr = pParameters.get(0);
+      Formula param = toFormula(paramExpr);
+      Formula zero =
+          fmgr.makeNumber(conv.getFormulaTypeFromCType(paramExpr.getExpressionType()), 0);
+      BooleanFormula lessThanZero = fmgr.makeLessThan(param, zero, true);
+      return conv.bfmgr.ifThenElse(lessThanZero, fmgr.makeNegate(param), param);
+    } else {
+      throw new AssertionError("Unhandled builtin integer function " + pFunctionName);
     }
   }
 
