@@ -380,9 +380,7 @@ public class ExpressionTransformer
     final SMGCPAValueVisitor vv = getNewValueVisitor(smgState);
     final CType type = SMGCPAExpressionEvaluator.getCanonicalType(pExpression);
     ImmutableList.Builder<SymbolicExpressionAndSMGState> builder = ImmutableList.builder();
-    if (pExpression.getFileLocation().getStartingLineInOrigin() == 8040) {
-      assert pExpression.getFileLocation().getStartingLineInOrigin() == 8040;
-    }
+
     for (ValueAndSMGState valueAndState : vv.evaluate(pExpression, type)) {
       Value idValue = valueAndState.getValue();
       final SMGState stateAfterEval = valueAndState.getState();
