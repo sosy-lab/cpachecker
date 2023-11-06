@@ -959,12 +959,14 @@ public class SymbolicProgramConfiguration {
           .getQualifiedName()
           .contentEquals(variableFunctionName)) {
         // Check 1 frame above, sometimes CPAchecker forces us to look there
+        if (stackVariableMapping.size() > 1) {
         currentFrame = stackVariableMapping.popAndCopy().peek();
         Preconditions.checkArgument(
             currentFrame
                 .getFunctionDefinition()
                 .getQualifiedName()
                 .contentEquals(variableFunctionName));
+      }
       }
     }
     int sizeOfVariables = currentFrame.getVariables().size();
