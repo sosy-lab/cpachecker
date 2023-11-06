@@ -1012,11 +1012,17 @@ public class SMGCPAValueVisitor
         continue;
       }
 
+      if (!(value instanceof AddressExpression) && evaluator.isPointerValue(value, currentState)) {
+        // For pointer deref on arrays only
+        value =
+            AddressExpression.of(value, e.getExpressionType(), new NumericValue(BigInteger.ZERO));
+      }
+
       if (!(value instanceof AddressExpression)) {
         // The only valid pointer is numeric 0
         Preconditions.checkArgument(
             (value.isNumericValue()
-                    && value.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0)
+                    && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
         builder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
