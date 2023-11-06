@@ -93,6 +93,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -584,6 +585,17 @@ public class SMGTransferRelation
 
       ValueAndSMGState valueAndState;
       if (parameterType instanceof CPointerType && argumentType instanceof CArrayType) {
+        if (cParamExp instanceof CStringLiteralExpression stringExpr) {
+          // For example: print("string"); does not create a String constant beforehand
+          String stringName = evaluator.getCStringLiteralExpressionVairableName(stringExpr);
+          if (!currentState.isLocalOrGlobalVariablePresent(stringName)) {
+            List<SMGState> statesWithString =
+                evaluator.handleStringInitializer(currentState,
+                    paramDecl.get(i).asVariableDeclaration(), callEdge, stringName, new NumericValue(BigInteger.ZERO), parameterType, callEdge.getFileLocation(), stringExpr);
+            Preconditions.checkArgument(statesWithString.size() == 1);
+            currentState = statesWithString.get(0);
+          }
+        }
         // Implicit & on the array expr
         List<ValueAndSMGState> addressesAndStates =
             evaluator.createAddress(cParamExp, currentState, callEdge);
