@@ -1644,7 +1644,15 @@ public class SymbolicProgramConfiguration {
         } else {
           memoryString = memoryString + " invalid " + memory;
         }
-        for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
+        Set<SMGHasValueEdge> edges = smg.getEdges(memory);
+        if (edges.isEmpty()) {
+          builder
+              .append("  " + qualifiedName)
+              .append(": (empty)")
+              .append(memoryString)
+              .append("\n");
+        }
+        for (SMGHasValueEdge valueEdge : edges) {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
@@ -1668,7 +1676,7 @@ public class SymbolicProgramConfiguration {
       builder.append("\n");
     }
     builder.append("\n");
-    builder.append("Pointers and targets with values:");
+    builder.append("Pointers -> [pointer offset] targets[offset, size in bits) with values:");
     builder.append("\n");
 
     for (Entry<SMGValue, SMGPointsToEdge> entry : smg.getPTEdgeMapping().entrySet()) {
@@ -1679,7 +1687,6 @@ public class SymbolicProgramConfiguration {
       builder
           .append(entry.getKey())
           .append(" (" + entry.getKey().getNestingLevel() + ")")
-          .append(" -> ")
           .append(entry.getValue())
           .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true))
           .append(validity);

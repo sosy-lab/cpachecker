@@ -79,7 +79,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   @Override
   public String toString() {
-    return "SMGObject" + id;
+    return "SMGObject" + id + "[" + offset + ", " + size + ")";
   }
 
   /** Returns true if the checked {@link SMGObject} is the null instance. */
