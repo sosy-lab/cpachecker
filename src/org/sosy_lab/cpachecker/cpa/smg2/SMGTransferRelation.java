@@ -590,8 +590,15 @@ public class SMGTransferRelation
           String stringName = evaluator.getCStringLiteralExpressionVairableName(stringExpr);
           if (!currentState.isLocalOrGlobalVariablePresent(stringName)) {
             List<SMGState> statesWithString =
-                evaluator.handleStringInitializer(currentState,
-                    paramDecl.get(i).asVariableDeclaration(), callEdge, stringName, new NumericValue(BigInteger.ZERO), parameterType, callEdge.getFileLocation(), stringExpr);
+                evaluator.handleStringInitializer(
+                    currentState,
+                    paramDecl.get(i).asVariableDeclaration(),
+                    callEdge,
+                    stringName,
+                    new NumericValue(BigInteger.ZERO),
+                    parameterType,
+                    callEdge.getFileLocation(),
+                    stringExpr);
             Preconditions.checkArgument(statesWithString.size() == 1);
             currentState = statesWithString.get(0);
           }
