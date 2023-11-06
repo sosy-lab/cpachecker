@@ -669,7 +669,23 @@ public class SMGTransferRelation
       throws CPATransferException {
 
     SMGState currentState = pCurrentState;
-    if (valueType instanceof CArrayType && cParamType instanceof CArrayType) {
+    if ((valueType instanceof CArrayType && cParamType instanceof CArrayType)
+        || (valueType instanceof CPointerType && cParamType instanceof CArrayType)) {
+      if (paramValue instanceof AddressExpression addrParam) {
+        // For pointer -> array we get a addressExpr that wraps the pointer
+
+        // We don't support symbolic pointer arithmetics yet
+        if (!addrParam.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+          // UNKNOWN as we can't handle symbolic or non-zero offsets right now
+          // TODO: implement either a workaround for pointers with offset to a memory region or
+          // switch to pointers for arrays per default
+          throw new SMGException(
+              "Usage of symbolic or non-zero offsets for pointer targets in function arguments for"
+                  + " pointer to array assignment not supported at the moment: "
+                  + callEdge);
+        }
+        paramValue = addrParam.getMemoryAddress();
+      }
       // Take the pointer to the local array and get the memory area, then associate this memory
       // area with the variable name
       List<SMGStateAndOptionalSMGObjectAndOffset> knownMemoriesAndStates =
@@ -766,6 +782,7 @@ public class SMGTransferRelation
           BigInteger.ZERO,
           newMemory.getSize().subtract(offsetSource));
     } else {
+
       return evaluator.writeValueToNewVariableBasedOnTypes(
           paramValue, cParamType, valueType, varName, currentState, callEdge);
     }
@@ -998,7 +1015,7 @@ public class SMGTransferRelation
     if (cDecl instanceof CFunctionDeclaration cFuncDecl) {
       if (cFuncDecl.getQualifiedName().equals("main")) {
         if (cFuncDecl.getParameters() != null) {
-          // Init main parameters of there are any
+          // Init main parameters if there are any
           for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
             CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
             BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, paramType);
