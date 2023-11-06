@@ -917,6 +917,9 @@ public class SMGState
   public SMGState copyAndAddGlobalVariable(
       BigInteger pTypeSizeInBits, String pVarName, CType type) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
+    if (pVarName.endsWith("_STRING_LITERAL")) {
+      newObject = newObject.copyAsConstStringInBinary();
+    }
     return copyAndReplaceMemoryModel(memoryModel.copyAndAddGlobalObject(newObject, pVarName, type));
   }
 
@@ -1941,7 +1944,10 @@ public class SMGState
   public SMGState copyAndPruneUnreachable(CFAEdge edge) {
     SPCAndSMGObjects newHeapAndUnreachables = memoryModel.copyAndPruneUnreachable();
     SymbolicProgramConfiguration newHeap = newHeapAndUnreachables.getSPC();
-    Collection<SMGObject> unreachableObjects = newHeapAndUnreachables.getSMGObjects();
+    Collection<SMGObject> unreachableObjects =
+        newHeapAndUnreachables.getSMGObjects().stream()
+            .filter(o -> !o.isConstStringMemory())
+            .collect(ImmutableList.toImmutableList());
 
     if (unreachableObjects.isEmpty()) {
       return this;
