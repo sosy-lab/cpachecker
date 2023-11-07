@@ -12,7 +12,9 @@ import com.google.common.base.Function;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -37,18 +39,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final Solver solver;
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
-  private final FormulaManagerView predFmgr;
-  private final CtoFormulaTypeHandler ctoFormulaTypeHandler;
+  private final CtoFormulaConverter ctoFormulaConverter;
   public TerminationToReachPrecisionAdjustment(Solver pSolver,
                                                BooleanFormulaManagerView pBfmgr,
                                                FormulaManagerView pFmgr,
-                                               FormulaManagerView pPredFmgr,
-                                               CtoFormulaTypeHandler pCtoFormulaTypeHandler) {
+                                               CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
     solver = pSolver;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
-    predFmgr = pPredFmgr;
-    ctoFormulaTypeHandler = pCtoFormulaTypeHandler;
+    ctoFormulaConverter = pCtoFormulaConverter;
   }
 
   @Override
@@ -71,9 +70,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
 
     if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
-      terminationState.putNewPathFormula(fmgr.translateFrom(
-                                                    predicateState.getPathFormula().getFormula(),
-                                                    predFmgr));
+      terminationState.putNewPathFormula(predicateState.getPathFormula().getFormula());
 
       for (int i = 0; i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1; ++i) {
         boolean isTargetStateReachable = false;
@@ -109,8 +106,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       String newVariable = "__Q__" + variable;
       extendedFormula =
           fmgr.assignment(
-              fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize((int) ctoFormulaTypeHandler.getExactBitSizeof(pSSAMap.getType(variable))), newVariable, pSSAIndex),
-              fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize((int) ctoFormulaTypeHandler.getExactBitSizeof(pSSAMap.getType(variable))), variable, pSSAMap.getIndex(variable)));
+              fmgr.makeVariable(
+                  ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                  newVariable,
+                  pSSAIndex),
+              fmgr.makeVariable(
+                  ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                  variable,
+                  pSSAMap.getIndex(variable)));
       cycle = bfmgr.and(cycle, extendedFormula);
     }
     return cycle;
