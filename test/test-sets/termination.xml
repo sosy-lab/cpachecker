@@ -21,6 +21,7 @@
     <rundefinition>
         <option name="-predicateAnalysis--termination"/>
         <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
+        <option name="-setprop">solver.solver=Z3</option>
     </rundefinition>
 
     <tasks>
