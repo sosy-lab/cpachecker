@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,19 +34,12 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
     Set<CFANode> nodes = new HashSet<>();
     Set<CFAEdge> edges = new HashSet<>();
     List<CFANode> waitlist = new ArrayList<>();
-    Collection<FunctionEntryNode> entryNodesSortedList = new HashSet<>();
-    Set<CFAEdge> assertionEdges = new HashSet<>();
     CFANode temp;
     CFANode exitNode = null;
     boolean foundExitNode = false;
-    for (FunctionEntryNode entry : cfa.getAllFunctions().values()) {
-      if (entry.getFunctionName().equals("__VERIFIER_assert")) {
-        entryNodesSortedList.add(entry);
-      }
-    }
-    entryNodesSortedList.addAll(cfa.getAllFunctions().values());
-    for (FunctionEntryNode value : entryNodesSortedList) {
-      if (value.getFunctionName().equals("reach_error")) {
+    for (FunctionEntryNode value : cfa.getAllFunctions().values()) {
+      if (value.getFunctionName().equals("reach_error")
+          || value.getFunctionName().equals("__VERIFIER_assert")) {
         continue;
       }
       waitlist.add(value);
@@ -57,6 +49,7 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
           continue;
         }
         if ((temp.getNumLeavingEdges() == 0 || temp instanceof FunctionExitNode)
+            && temp.getFunctionName().equals(value.getFunctionName())
             && !foundExitNode) {
           if (temp instanceof FunctionExitNode) {
             foundExitNode = true;
@@ -75,20 +68,13 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
             if (fce.getSuccessor().getFunctionName().equals("reach_error")
                 || fce.getSuccessor().getFunctionName().equals("__VERIFIER_assert")) {
               edges.add(e);
+              waitlist.add(e.getSuccessor());
             }
-
           } else {
             edges.add(e);
             waitlist.add(e.getSuccessor());
           }
         }
-      }
-      if (value.getFunctionName().equals("__VERIFIER_assert")) {
-        assertionEdges.addAll(edges);
-        continue;
-      } else if (!assertionEdges.isEmpty()
-          && !value.getFunctionName().equals("__VERIFIER_assert")) {
-        edges.addAll(assertionEdges);
       }
       assert exitNode != null;
       BlockNodeWithoutGraphInformation nodeMetaData =
