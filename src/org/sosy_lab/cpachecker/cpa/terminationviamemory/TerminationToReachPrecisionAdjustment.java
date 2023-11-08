@@ -39,14 +39,17 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final Solver solver;
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
+  private final FormulaManagerView predFmgr;
   private final CtoFormulaConverter ctoFormulaConverter;
   public TerminationToReachPrecisionAdjustment(Solver pSolver,
                                                BooleanFormulaManagerView pBfmgr,
                                                FormulaManagerView pFmgr,
+                                               FormulaManagerView pPredFmgr,
                                                CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
     solver = pSolver;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
+    predFmgr = pPredFmgr;
     ctoFormulaConverter = pCtoFormulaConverter;
   }
 
@@ -70,7 +73,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
 
     if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
-      terminationState.putNewPathFormula(predicateState.getPathFormula().getFormula());
+      terminationState.putNewPathFormula(fmgr.translateFrom(
+          predicateState.getPathFormula().getFormula(),
+          predFmgr));
 
       for (int i = 0; i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1; ++i) {
         boolean isTargetStateReachable = false;
