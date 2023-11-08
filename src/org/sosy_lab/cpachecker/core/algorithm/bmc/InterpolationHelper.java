@@ -243,20 +243,13 @@ public final class InterpolationHelper {
       stats.numOfVarsInInterpolants = numVars;
       stats.minNumOfVarsInInterpolants = numVars;
       stats.maxNumOfVarsInInterpolants = numVars;
-      stats.numOfBoolOpsInInterpolants = numOps;
-      stats.minNumOfBoolOpsInInterpolants = numOps;
-      stats.maxNumOfBoolOpsInInterpolants = numOps;
     } else {
-      assert stats.numOfBoolOpsInInterpolants.compareTo(BigInteger.ZERO) >= 0;
       stats.numOfAtomsInInterpolants += numAtoms;
       stats.minNumOfAtomsInInterpolants = Math.min(numAtoms, stats.minNumOfAtomsInInterpolants);
       stats.maxNumOfAtomsInInterpolants = Math.max(numAtoms, stats.maxNumOfAtomsInInterpolants);
       stats.numOfVarsInInterpolants += numVars;
       stats.minNumOfVarsInInterpolants = Math.min(numVars, stats.minNumOfVarsInInterpolants);
       stats.maxNumOfVarsInInterpolants = Math.max(numVars, stats.maxNumOfVarsInInterpolants);
-      stats.numOfBoolOpsInInterpolants = stats.numOfBoolOpsInInterpolants.add(numOps);
-      stats.minNumOfBoolOpsInInterpolants = stats.minNumOfBoolOpsInInterpolants.min(numOps);
-      stats.maxNumOfBoolOpsInInterpolants = stats.maxNumOfBoolOpsInInterpolants.max(numOps);
     }
   }
 
