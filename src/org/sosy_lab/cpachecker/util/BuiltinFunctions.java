@@ -53,7 +53,9 @@ public class BuiltinFunctions {
           .put("%hu", CNumericTypes.UNSIGNED_SHORT_INT) // short unsigned decimal integer
           .put("%hx", CNumericTypes.UNSIGNED_SHORT_INT) // short hexadecimal integer
           .put("%lld", CNumericTypes.LONG_LONG_INT) // long long decimal integer
-          .put("%lli", CNumericTypes.LONG_LONG_INT) // long long decimal, octal, or hexadecimal integer
+          .put(
+              "%lli",
+              CNumericTypes.LONG_LONG_INT) // long long decimal, octal, or hexadecimal integer
           .put("%llo", CNumericTypes.UNSIGNED_LONG_LONG_INT) // long long octal integer
           .put("%llu", CNumericTypes.UNSIGNED_LONG_LONG_INT) // long long unsigned decimal integer
           .put("%llx", CNumericTypes.UNSIGNED_LONG_LONG_INT) // long long hexadecimal integer
@@ -124,7 +126,7 @@ public class BuiltinFunctions {
     return pFunctionName.equals(FSCANF);
   }
 
-  public static Optional<CType> getTypeFromScanfFormatSpecifier(String specifier){
+  public static Optional<CType> getTypeFromScanfFormatSpecifier(String specifier) {
     return Optional.ofNullable(supportedScanfFormatSpecifiers.get(specifier));
   }
 
