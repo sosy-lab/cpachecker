@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -85,12 +86,12 @@ public class ExpressionToFormulaVisitor
     extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Formula, UnrecognizedCodeException> {
 
+  protected final FormulaManagerView mgr;
+  protected final SSAMapBuilder ssa;
   private final CtoFormulaConverter conv;
   private final CFAEdge edge;
   private final String function;
   private final Constraints constraints;
-  protected final FormulaManagerView mgr;
-  protected final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
   private final ErrorConditions errorConditions;
 
@@ -112,6 +113,20 @@ public class ExpressionToFormulaVisitor
     mgr = pFmgr;
     pts = pPts;
     errorConditions = pErrorConditions;
+  }
+
+  /**
+   * Reduce the elements of a given deque in a balanced manner, e.g. for [1,2,3,4] and "+" it will
+   * produce (1+2)+(3+4). The deque will be drained.
+   */
+  private static <T> T balancedDestructiveReduce(
+      Deque<T> deque, BiFunction<? super T, ? super T, ? extends T> reducer) {
+    while (deque.size() > 1) {
+      T a = deque.pollFirst();
+      T b = deque.pollFirst();
+      deque.addLast(reducer.apply(a, b));
+    }
+    return deque.getFirst();
   }
 
   @Override
@@ -539,44 +554,6 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  /**
-   * This is a SizeofVisitor that always returns 0 for types that do not have a statically known
-   * size.
-   */
-  private static class StaticSizeofVisitor extends BaseSizeofVisitor<NoException> {
-
-    /**
-     * Compute the size of the given composite type excluding all members that do not have a
-     * statically known size.
-     */
-    BigInteger computeStaticSizeof(CCompositeType pType) {
-      // Note that this.visit(pType) would return 0 because pType has !hasKnownConstantSize(),
-      // so we need to call super.visit() here such that only the struct members get handled by
-      // this.visit()
-      return super.visit(pType);
-    }
-
-    private StaticSizeofVisitor(MachineModel pModel) {
-      super(pModel);
-    }
-
-    @Override
-    public BigInteger visit(CArrayType pArrayType) {
-      if (pArrayType.hasKnownConstantSize()) {
-        return super.visit(pArrayType);
-      }
-      return BigInteger.ZERO;
-    }
-
-    @Override
-    public BigInteger visit(CCompositeType pCompositeType) {
-      if (pCompositeType.hasKnownConstantSize()) {
-        return super.visit(pCompositeType);
-      }
-      return BigInteger.ZERO;
-    }
-  }
-
   public Formula getSizeExpression(CType type) throws UnrecognizedCodeException {
     type = type.getCanonicalType();
     if (type.hasKnownConstantSize()) {
@@ -640,20 +617,6 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  /**
-   * Reduce the elements of a given deque in a balanced manner, e.g. for [1,2,3,4] and "+" it will
-   * produce (1+2)+(3+4). The deque will be drained.
-   */
-  private static <T> T balancedDestructiveReduce(
-      Deque<T> deque, BiFunction<? super T, ? super T, ? extends T> reducer) {
-    while (deque.size() > 1) {
-      T a = deque.pollFirst();
-      T b = deque.pollFirst();
-      deque.addLast(reducer.apply(a, b));
-    }
-    return deque.getFirst();
-  }
-
   private Formula handleAlignOf(CExpression pExp, CType pCType) {
     return mgr.makeNumber(
         conv.getFormulaTypeFromCType(pExp.getExpressionType()),
@@ -686,9 +649,9 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFunctions.matchesFscanf(functionName)) {
 
-        CExpression receivingParameter = validateFscanfParameters(parameters, e);
+        ValidatedFScanFParameter receivingParameter = validateFscanfParameters(parameters, e);
 
-        if (receivingParameter instanceof CUnaryExpression unaryParameter) {
+        if (receivingParameter.receiver() instanceof CUnaryExpression unaryParameter) {
           UnaryOperator operator = unaryParameter.getOperator();
           CExpression operand = unaryParameter.getOperand();
           if (operator.equals(UnaryOperator.AMPER)
@@ -696,9 +659,11 @@ public class ExpressionToFormulaVisitor
             // For simplicity, we start with the case where only paramters of the form "&id" occur
             CType variableType = idExpression.getExpressionType();
 
-            if (!CTypes.isIntegerType(variableType)) {
-              throw new UnrecognizedCodeException(
-                  "fscanf with non-integer receiving type", edge, e);
+            if (!isCompatibleWithScanfFormatString(receivingParameter.format(), variableType)) {
+              throw new UnsupportedCodeException(
+                  "fscanf with receiving type <-> format specifier mismatch is not supported.",
+                  edge,
+                  e);
             }
 
             CFunctionDeclaration nondetFun =
@@ -1308,7 +1273,29 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  private CExpression validateFscanfParameters(
+  /**
+   * Checks whether the format specifier in the second argument of fscanf agrees with the type of
+   * the parameter it writes to. This function is very restrictive, resulting in a direct
+   * type comparison.
+   *
+   * @param formatString the scanf format string
+   * @param pVariableType the type of the receiving variable
+   * @return true if the scanf-format-specifier agrees with the type it writes to
+   * @throws UnsupportedCodeException if the format specifier is not supported
+   */
+  private boolean isCompatibleWithScanfFormatString(String formatString, CType pVariableType)
+      throws UnsupportedCodeException {
+    CType expectedType =
+        BuiltinFunctions.getTypeFromScanfFormatSpecifier(formatString)
+            .orElseThrow(
+                () ->
+                    new UnsupportedCodeException(
+                        "format specifier " + formatString + " not supported.", edge));
+
+    return pVariableType.getCanonicalType().equals(expectedType.getCanonicalType());
+  }
+
+  private ValidatedFScanFParameter validateFscanfParameters(
       List<CExpression> pParameters, CFunctionCallExpression e) throws UnrecognizedCodeException {
     if (pParameters.size() < 2) {
       throw new UnrecognizedCodeException("fscanf() needs at least 2 parameters", edge, e);
@@ -1328,11 +1315,14 @@ public class ExpressionToFormulaVisitor
     }
 
     CExpression format = pParameters.get(1);
-    if (!checkFscanfFormatString(format)) {
-      throw new UnrecognizedCodeException("Format string of fscanf is not supported", edge, e);
-    }
+    String formatString =
+        checkFscanfFormatString(format)
+            .orElseThrow(
+                () ->
+                    new UnrecognizedCodeException(
+                        "Format string of fscanf is not supported", edge, e));
 
-    return pParameters.get(2);
+    return new ValidatedFScanFParameter(formatString, pParameters.get(2));
   }
 
   private boolean isFilePointer(CType pType) {
@@ -1348,37 +1338,17 @@ public class ExpressionToFormulaVisitor
     return false;
   }
 
-  private boolean checkFscanfFormatString(CExpression pFormat) {
-    ImmutableList<String> allowlistedFormatStrings =
-        ImmutableList.<String>builder()
-            .add("%d") // decimal integer
-            .add("%i") // decimal, octal, or hexadecimal integer
-            .add("%o") // octal integer
-            .add("%u") // unsigned decimal integer
-            .add("%x") // hexadecimal integer
-            .add("%ld") // long decimal integer
-            .add("%li") // long decimal, octal, or hexadecimal integer
-            .add("%lo") // long octal integer
-            .add("%lu") // long unsigned decimal integer
-            .add("%lx") // long hexadecimal integer
-            .add("%hd") // short decimal integer
-            .add("%hi") // short decimal, octal, or hexadecimal integer
-            .add("%ho") // short octal integer
-            .add("%hu") // short unsigned decimal integer
-            .add("%hx") // short hexadecimal integer
-            .add("%lld") // long long decimal integer
-            .add("%lli") // long long decimal, octal, or hexadecimal integer
-            .add("%llo") // long long octal integer
-            .add("%llu") // long long unsigned decimal integer
-            .add("%llx") // long long hexadecimal integer
-            .build();
+  private Optional<String> checkFscanfFormatString(CExpression pFormat) {
+    ImmutableSet<String> allowlistedFormatStrings =
+        BuiltinFunctions.getAllowedScanfFormatSpecifiers();
     if (pFormat instanceof CStringLiteralExpression stringLiteral) {
       String content = stringLiteral.getContentWithoutNullTerminator();
-      // There is also j, z, t, and hh; for now we ignore these
-      return allowlistedFormatStrings.contains(content);
+      if (allowlistedFormatStrings.contains(content)) {
+        return Optional.of(content);
+      }
     }
 
-    return false;
+    return Optional.empty();
   }
 
   private @Nullable Formula roundNearestTiesAway(
@@ -1571,5 +1541,45 @@ public class ExpressionToFormulaVisitor
             + 1,
         edge,
         e);
+  }
+
+  private record ValidatedFScanFParameter(String format, CExpression receiver) {}
+
+  /**
+   * This is a SizeofVisitor that always returns 0 for types that do not have a statically known
+   * size.
+   */
+  private static class StaticSizeofVisitor extends BaseSizeofVisitor<NoException> {
+
+    private StaticSizeofVisitor(MachineModel pModel) {
+      super(pModel);
+    }
+
+    /**
+     * Compute the size of the given composite type excluding all members that do not have a
+     * statically known size.
+     */
+    BigInteger computeStaticSizeof(CCompositeType pType) {
+      // Note that this.visit(pType) would return 0 because pType has !hasKnownConstantSize(),
+      // so we need to call super.visit() here such that only the struct members get handled by
+      // this.visit()
+      return super.visit(pType);
+    }
+
+    @Override
+    public BigInteger visit(CArrayType pArrayType) {
+      if (pArrayType.hasKnownConstantSize()) {
+        return super.visit(pArrayType);
+      }
+      return BigInteger.ZERO;
+    }
+
+    @Override
+    public BigInteger visit(CCompositeType pCompositeType) {
+      if (pCompositeType.hasKnownConstantSize()) {
+        return super.visit(pCompositeType);
+      }
+      return BigInteger.ZERO;
+    }
   }
 }
