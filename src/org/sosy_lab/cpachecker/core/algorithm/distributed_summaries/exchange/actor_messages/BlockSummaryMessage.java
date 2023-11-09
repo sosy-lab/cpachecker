@@ -101,6 +101,10 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return Optional.ofNullable(value);
   }
 
+  public int getLocation() {
+    return (int) getPayload().getOrDefault("location", 0);
+  }
+
   public Optional<AlgorithmStatus> getOptionalStatus() {
     if (!(payload.containsKey(BlockSummaryMessagePayload.PRECISE)
         && payload.containsKey(BlockSummaryMessagePayload.PROPERTY)

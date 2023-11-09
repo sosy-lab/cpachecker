@@ -37,7 +37,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   @Override
   public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
     return new BlockState(
-        integerCFANodeMap.get(pMessage.getTargetNodeNumber()),
+        integerCFANodeMap.get(pMessage.getLocation()),
         blockNode,
         direction,
         BlockStateType.INITIAL,

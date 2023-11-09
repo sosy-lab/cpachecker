@@ -282,10 +282,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                       .getDeserializeOperator()
                       .deserialize(
                           BlockSummaryMessage.newBlockPostCondition(
-                              "main-thread",
-                              ((CFANode) ((List<Object>) violations.get(0)).get(0)).getNodeNumber(),
-                              o,
-                              true));
+                              "main-thread", (int) o.getOrDefault("location", 0), o, true));
               if (o
                   == ((List<?>) violations.get(2)).get(((List<?>) violations.get(2)).size() - 1)) {
                 last =
