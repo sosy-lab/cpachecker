@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="4">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="8">
   <require cpuModel="Intel Core i7-6700 @ 3.40 GHz"/>
 
   <!--
@@ -35,19 +35,14 @@ SPDX-License-Identifier: Apache-2.0
 
   <resultfiles>**/*.graphml</resultfiles>
 
-  <option name="-predicateAnalysis-block"/>
-  <option name="-setprop">distributedSummaries.worker.forwardConfiguration=config/distributed-block-summaries/predicateAnalysis-block-forward.properties</option>
-  <option name="-setprop">staticRefiner.addAllControlFlowAssumes=true</option>
-  <option name="-setprop">distributedSummaries.decompositionType=FUNCTION_DECOMPOSITION</option>
-  <option name="-setprop">distributedSummaries.spawnUtilWorkers=true</option>
-  <option name="-setprop">cpa.location.ignoreFunctions=reach_error,__VERIFIER_assert</option>
-  <option name="-setprop">cpa.location.followFunctionCalls=false</option>
+  <option name="-symbolicExecution"/>
   <option name="-heap">13000M</option>
   <option name="-noout"/>
   <option name="-benchmark"/>
   <option name="-disable-java-assertions"/>
 
-<rundefinition name="SV-COMP23_unreach-call">
+
+  <rundefinition name="SV-COMP23_unreach-call">
   <tasks name="ReachSafety-BitVectors">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>

@@ -27,8 +27,12 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
   <option name="-setprop">termination.compressWitness=true</option>
-  <option name="-setprop">cpa.location.ignoreFunctions=reach_error</option>
+  <option name="-setprop">cpa.location.ignoreFunctions=reach_error,__VERIFIER_assert</option>
   <option name="-setprop">cpa.location.followFunctionCalls=false</option>
+  <option name="-heap">13000M</option>
+  <option name="-noout"/>
+  <option name="-benchmark"/>
+  <option name="-disable-java-assertions"/>
 
   <!--
     The remainder of this file should be synced with

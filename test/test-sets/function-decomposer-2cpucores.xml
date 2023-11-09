@@ -40,8 +40,12 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-setprop">staticRefiner.addAllControlFlowAssumes=true</option>
   <option name="-setprop">distributedSummaries.decompositionType=FUNCTION_DECOMPOSITION</option>
   <option name="-setprop">distributedSummaries.spawnUtilWorkers=true</option>
-  <option name="-setprop">cpa.location.ignoreFunctions=reach_error</option>
+  <option name="-setprop">cpa.location.ignoreFunctions=reach_error,__VERIFIER_assert</option>
   <option name="-setprop">cpa.location.followFunctionCalls=false</option>
+  <option name="-heap">13000M</option>
+  <option name="-noout"/>
+  <option name="-benchmark"/>
+  <option name="-disable-java-assertions"/>
 
 <rundefinition name="SV-COMP23_unreach-call">
   <tasks name="ReachSafety-BitVectors">
