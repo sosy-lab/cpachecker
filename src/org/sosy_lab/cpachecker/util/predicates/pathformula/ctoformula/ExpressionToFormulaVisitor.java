@@ -1312,10 +1312,15 @@ public class ExpressionToFormulaVisitor
   }
 
   private record ValidatedFScanFParameter(String format, CExpression receiver) {}
+
   /**
    * Checks whether the format specifier in the second argument of fscanf agrees with the type of
-   * the parameter it writes to. This function is very restrictive, resulting in a direct type
-   * comparison.
+   * the parameter it writes to. Paragraph § 7.21.6.2 (10) of the C Standard says, that input item
+   * read form the stream is converted to the `appropriate` type according to the conversion
+   * specifier, e.g., %d. Further § 7.21.6.2 (11-12) tells us the expected argument (receiver) type
+   * for each argument, corresponding to a conversion specifier and length modifier .The exact
+   * mapping brought forward by the standard is reflected in {@link
+   * BuiltinFunctions#getTypeFromScanfFormatSpecifier(String)}.
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
