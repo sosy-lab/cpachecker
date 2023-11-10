@@ -1314,8 +1314,8 @@ public class ExpressionToFormulaVisitor
   private record ValidatedFScanFParameter(String format, CExpression receiver) {}
   /**
    * Checks whether the format specifier in the second argument of fscanf agrees with the type of
-   * the parameter it writes to. This function is very restrictive, resulting in a direct
-   * type comparison.
+   * the parameter it writes to. This function is very restrictive, resulting in a direct type
+   * comparison.
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
