@@ -87,9 +87,9 @@ QUALIFIERS = {
 }
 
 
-def write_c_program(name: Path, type: str, qualifier: str):
+def write_c_program(name: Path, ctype: str, qualifier: str):
     with open(name, "w") as f:
-        f.write(TEMPLATE.format(type=type, name=name.stem, qualifier=qualifier))
+        f.write(TEMPLATE.format(type=ctype, name=name.stem, qualifier=qualifier))
 
     output = subprocess.run(
         ["gcc", "-E", "-std=c11", name], stdout=subprocess.PIPE, check=True
@@ -103,25 +103,25 @@ def write_c_program(name: Path, type: str, qualifier: str):
         f.write(output.stdout)
 
 
-def write_yml(name: Path, property: str, verdict: str):
+def write_yml(name: Path, property_loc: str, verdict: str):
     with open(name.with_suffix(".yml"), "w") as f:
-        f.write(YAML.format(name=name.stem, property=property, verdict=verdict))
+        f.write(YAML.format(name=name.stem, property=property_loc, verdict=verdict))
 
 
 def gen_simple():
     all_types = set(QUALIFIERS.values())
 
-    for qualifier, type in QUALIFIERS.items():
+    for qualifier, ctype in QUALIFIERS.items():
         name = Path(
             "fscanf_gen_{type}_read_{qualifier}.c".format(
                 type=type.replace(" ", "_"), qualifier=qualifier
             )
         )
 
-        write_c_program(name, type, qualifier)
+        write_c_program(name, ctype, qualifier)
         write_yml(name, "../../../../config/properties/unreach-call.prp", "false")
 
-        bad_type = (all_types - set(type)).pop()
+        bad_type = (all_types - set(ctype)).pop()
         name = Path(
             "fscanf_gen_undef_{type}_read_{qualifier}.c".format(
                 type=bad_type.replace(" ", "_"), qualifier=qualifier
