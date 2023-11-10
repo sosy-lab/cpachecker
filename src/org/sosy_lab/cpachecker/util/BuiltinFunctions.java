@@ -77,7 +77,7 @@ public class BuiltinFunctions {
           .put("%Lg", CNumericTypes.LONG_DOUBLE)
           .put("%La", CNumericTypes.LONG_DOUBLE)
           .put("%c", CNumericTypes.CHAR)
-          .build();
+          .buildKeepingLast();
 
   public static boolean isBuiltinFunction(String pFunctionName) {
     return pFunctionName.startsWith("__builtin_")
