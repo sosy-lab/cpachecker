@@ -313,7 +313,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             for (AbstractState abstractState : reachedSet) {
               reachedSet.removeOnlyFromWaitlist(abstractState);
             }
-            logger.logf(Level.INFO, "Error Trace: %s", reachedSet);
           }
         } else if (result == Result.TRUE) {
           reachedSet.clear();
