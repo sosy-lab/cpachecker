@@ -273,28 +273,29 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final ResourceLimitChecker singleAnalysisOverallLimit =
         ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
 
-    final CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(
-            singleConfig,
-            singleLogger,
-            singleShutdownManager.getNotifier(),
-            aggregatedReachedSetManager.asView());
-
-    final ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
-    final Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-    final ReachedSet reached = coreComponents.createReachedSet(cpa);
-
-    AtomicBoolean terminated = new AtomicBoolean(false);
-    StatisticsEntry statisticsEntry =
-        stats.getNewSubStatistics(
-            reached,
-            singleConfigFileName.toString(),
-            Iterables.getOnlyElement(
-                FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
-                    .filter(ThreadCpuTimeLimit.class),
-                null),
-            terminated);
     return () -> {
+      final CoreComponentsFactory coreComponents =
+          new CoreComponentsFactory(
+              singleConfig,
+              singleLogger,
+              singleShutdownManager.getNotifier(),
+              aggregatedReachedSetManager.asView());
+
+      final ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
+      final Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      final ReachedSet reached = coreComponents.createReachedSet(cpa);
+
+      AtomicBoolean terminated = new AtomicBoolean(false);
+      StatisticsEntry statisticsEntry =
+          stats.getNewSubStatistics(
+              reached,
+              singleConfigFileName.toString(),
+              Iterables.getOnlyElement(
+                  FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
+                      .filter(ThreadCpuTimeLimit.class),
+                  null),
+              terminated);
+
       if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
         conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
       }
