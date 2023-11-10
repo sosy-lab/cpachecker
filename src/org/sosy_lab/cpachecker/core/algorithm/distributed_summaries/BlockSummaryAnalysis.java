@@ -36,6 +36,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -283,6 +284,13 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                       .deserialize(
                           BlockSummaryMessage.newBlockPostCondition(
                               "main-thread", (int) o.getOrDefault("location", 0), o, true));
+              boolean isSummaryEdge = false;
+              if (last != null) {
+                if (last.getEdgeToChild((ARGState) state) instanceof FunctionSummaryEdge) {
+                  isSummaryEdge = true;
+                }
+              }
+
               if (o
                   == ((List<?>) violations.get(2)).get(((List<?>) violations.get(2)).size() - 1)) {
                 last =
@@ -290,7 +298,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                         new CompositeState(
                             ((CompositeState) ((ARGState) state).getWrappedState())
                                 .getWrappedStates()),
-                        last);
+                        isSummaryEdge ? null : last);
                 reachedSet.add(last, initialPrecision);
               } else {
                 last =
@@ -298,7 +306,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                         new ViolationCompositeState(
                             ((CompositeState) ((ARGState) state).getWrappedState())
                                 .getWrappedStates()),
-                        null);
+                        isSummaryEdge ? null : last);
                 reachedSet.add(last, initialPrecision);
               }
             }
