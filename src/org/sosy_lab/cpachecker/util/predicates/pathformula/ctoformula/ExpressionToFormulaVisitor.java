@@ -86,12 +86,12 @@ public class ExpressionToFormulaVisitor
     extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Formula, UnrecognizedCodeException> {
 
-  protected final FormulaManagerView mgr;
-  protected final SSAMapBuilder ssa;
   private final CtoFormulaConverter conv;
   private final CFAEdge edge;
   private final String function;
   private final Constraints constraints;
+  protected final FormulaManagerView mgr;
+  protected final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
   private final ErrorConditions errorConditions;
 
@@ -113,20 +113,6 @@ public class ExpressionToFormulaVisitor
     mgr = pFmgr;
     pts = pPts;
     errorConditions = pErrorConditions;
-  }
-
-  /**
-   * Reduce the elements of a given deque in a balanced manner, e.g. for [1,2,3,4] and "+" it will
-   * produce (1+2)+(3+4). The deque will be drained.
-   */
-  private static <T> T balancedDestructiveReduce(
-      Deque<T> deque, BiFunction<? super T, ? super T, ? extends T> reducer) {
-    while (deque.size() > 1) {
-      T a = deque.pollFirst();
-      T b = deque.pollFirst();
-      deque.addLast(reducer.apply(a, b));
-    }
-    return deque.getFirst();
   }
 
   @Override
@@ -554,6 +540,44 @@ public class ExpressionToFormulaVisitor
     }
   }
 
+  /**
+   * This is a SizeofVisitor that always returns 0 for types that do not have a statically known
+   * size.
+   */
+  private static class StaticSizeofVisitor extends BaseSizeofVisitor<NoException> {
+
+    /**
+     * Compute the size of the given composite type excluding all members that do not have a
+     * statically known size.
+     */
+    BigInteger computeStaticSizeof(CCompositeType pType) {
+      // Note that this.visit(pType) would return 0 because pType has !hasKnownConstantSize(),
+      // so we need to call super.visit() here such that only the struct members get handled by
+      // this.visit()
+      return super.visit(pType);
+    }
+
+    private StaticSizeofVisitor(MachineModel pModel) {
+      super(pModel);
+    }
+
+    @Override
+    public BigInteger visit(CArrayType pArrayType) {
+      if (pArrayType.hasKnownConstantSize()) {
+        return super.visit(pArrayType);
+      }
+      return BigInteger.ZERO;
+    }
+
+    @Override
+    public BigInteger visit(CCompositeType pCompositeType) {
+      if (pCompositeType.hasKnownConstantSize()) {
+        return super.visit(pCompositeType);
+      }
+      return BigInteger.ZERO;
+    }
+  }
+
   public Formula getSizeExpression(CType type) throws UnrecognizedCodeException {
     type = type.getCanonicalType();
     if (type.hasKnownConstantSize()) {
@@ -615,6 +639,20 @@ public class ExpressionToFormulaVisitor
     } else {
       throw new AssertionError("unexpected type without known constant size: " + type);
     }
+  }
+
+  /**
+   * Reduce the elements of a given deque in a balanced manner, e.g. for [1,2,3,4] and "+" it will
+   * produce (1+2)+(3+4). The deque will be drained.
+   */
+  private static <T> T balancedDestructiveReduce(
+      Deque<T> deque, BiFunction<? super T, ? super T, ? extends T> reducer) {
+    while (deque.size() > 1) {
+      T a = deque.pollFirst();
+      T b = deque.pollFirst();
+      deque.addLast(reducer.apply(a, b));
+    }
+    return deque.getFirst();
   }
 
   private Formula handleAlignOf(CExpression pExp, CType pCType) {
@@ -1273,10 +1311,11 @@ public class ExpressionToFormulaVisitor
     }
   }
 
+  private record ValidatedFScanFParameter(String format, CExpression receiver) {}
   /**
    * Checks whether the format specifier in the second argument of fscanf agrees with the type of
-   * the parameter it writes to. This function is very restrictive, resulting in a direct type
-   * comparison.
+   * the parameter it writes to. This function is very restrictive, resulting in a direct
+   * type comparison.
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
@@ -1541,45 +1580,5 @@ public class ExpressionToFormulaVisitor
             + 1,
         edge,
         e);
-  }
-
-  private record ValidatedFScanFParameter(String format, CExpression receiver) {}
-
-  /**
-   * This is a SizeofVisitor that always returns 0 for types that do not have a statically known
-   * size.
-   */
-  private static class StaticSizeofVisitor extends BaseSizeofVisitor<NoException> {
-
-    private StaticSizeofVisitor(MachineModel pModel) {
-      super(pModel);
-    }
-
-    /**
-     * Compute the size of the given composite type excluding all members that do not have a
-     * statically known size.
-     */
-    BigInteger computeStaticSizeof(CCompositeType pType) {
-      // Note that this.visit(pType) would return 0 because pType has !hasKnownConstantSize(),
-      // so we need to call super.visit() here such that only the struct members get handled by
-      // this.visit()
-      return super.visit(pType);
-    }
-
-    @Override
-    public BigInteger visit(CArrayType pArrayType) {
-      if (pArrayType.hasKnownConstantSize()) {
-        return super.visit(pArrayType);
-      }
-      return BigInteger.ZERO;
-    }
-
-    @Override
-    public BigInteger visit(CCompositeType pCompositeType) {
-      if (pCompositeType.hasKnownConstantSize()) {
-        return super.visit(pCompositeType);
-      }
-      return BigInteger.ZERO;
-    }
   }
 }
