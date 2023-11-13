@@ -49,8 +49,8 @@ SPDX-License-Identifier: Apache-2.0
 
 
   <rundefinition name="SV-COMP23_unreach-call">
-    <tasks name="FunctionDecomposer-solveable-problems">
-      <includesfile>../programs/benchmarks/FunctionDecomposer-solveable-problems.set</includesfile>
+    <tasks name="FunctionDecomposer-solvable-problems">
+      <includesfile>../programs/benchmarks/FunctionDecomposer-solvable-problems.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
   </rundefinition>
