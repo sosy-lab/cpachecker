@@ -100,9 +100,6 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
                               int pNumberOfIterationsAtLoopHead) {
     BooleanFormula extendedFormula = pAssignment;
     for (String variable : pSSAMap.allVariables()) {
-      if (variable.startsWith("*")) {
-        continue;
-      }
       String newVariable = "__Q__" + variable;
       //TODO: store it as list of lists of constraints instead of long formula
       extendedFormula = bfmgr.and(extendedFormula,

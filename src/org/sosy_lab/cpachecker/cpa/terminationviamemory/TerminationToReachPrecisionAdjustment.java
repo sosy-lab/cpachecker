@@ -108,9 +108,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
     cycle = bfmgr.and(cycle, storedValues);
     for (String variable : pSSAMap.allVariables()) {
-      if (variable.startsWith("*")) {
-        continue;
-      }
       String newVariable = "__Q__" + variable;
       extendedFormula =
           fmgr.assignment(
