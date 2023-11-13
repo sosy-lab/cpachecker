@@ -19,7 +19,7 @@
     </rundefinition>
 
     <rundefinition>
-        <option name="-predicateAnalysis--termination"/>
+        <option name="-combinations-terminationCPA+lassoAnalysis"/>
         <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
