@@ -55,9 +55,6 @@ public class TerminationToReachCPA extends AbstractCPA {
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaEncodingWithPointerAliasingOptions options =
         new FormulaEncodingWithPointerAliasingOptions(pConfiguration);
-    FormulaManagerView predFmgr = SerializationInfoStorage
-        .getInstance()
-        .getPredicateFormulaManagerView();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     TypeHandlerWithPointerAliasing ctoFormulaTypeHandler = new TypeHandlerWithPointerAliasing(
@@ -74,8 +71,15 @@ public class TerminationToReachCPA extends AbstractCPA {
             pShutdownNotifier,
             ctoFormulaTypeHandler,
             AnalysisDirection.FORWARD);
-    precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, bfmgr,
-        fmgr, predFmgr, ctoFormulaConverter);
+    try {
+      FormulaManagerView predFmgr = SerializationInfoStorage
+          .getInstance()
+          .getPredicateFormulaManagerView();
+      precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, bfmgr,
+          fmgr, predFmgr, ctoFormulaConverter);
+    } finally {
+      SerializationInfoStorage.clear();
+    }
   }
 
   public static CPAFactory factory() {
