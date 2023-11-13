@@ -100,13 +100,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   }
 
   private BooleanFormula buildCycleFormula(BooleanFormula pFullPathFormula,
-                                           BooleanFormula storedValues,
+                                           List<BooleanFormula> storedValues,
                                            SSAMap pSSAMap,
                                            int pSSAIndex) {
     BooleanFormula cycle = pFullPathFormula;
     BooleanFormula extendedFormula;
 
-    cycle = bfmgr.and(cycle, storedValues);
+    cycle = bfmgr.and(cycle, storedValues.get(pSSAIndex));
     for (String variable : pSSAMap.allVariables()) {
       String newVariable = "__Q__" + variable;
       extendedFormula =

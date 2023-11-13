@@ -75,14 +75,12 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       if (terminationState.getStoredValues().containsKey(locationState)) {
         BooleanFormula newConstraintformula = constructConstraintFormula(
             currentValues,
-            terminationState.getStoredValues().get(locationState),
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.setNewStoredValues(locationState, newConstraintformula);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
         BooleanFormula newConstraintformula = constructConstraintFormula(
             currentValues,
-            bfmgr.makeTrue(),
             0);
         terminationState.setNewStoredValues(locationState, newConstraintformula);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
@@ -96,12 +94,10 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
    * Where the storing variables are of the form __Q__[name of variable][number of loop iterations].
    * */
   private BooleanFormula constructConstraintFormula(SSAMap pSSAMap,
-                              BooleanFormula pAssignment,
                               int pNumberOfIterationsAtLoopHead) {
-    BooleanFormula extendedFormula = pAssignment;
+    BooleanFormula extendedFormula = bfmgr.makeTrue();
     for (String variable : pSSAMap.allVariables()) {
       String newVariable = "__Q__" + variable;
-      //TODO: store it as list of lists of constraints instead of long formula
       extendedFormula = bfmgr.and(extendedFormula,
           fmgr.assignment(fmgr.makeVariable(
                             ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),

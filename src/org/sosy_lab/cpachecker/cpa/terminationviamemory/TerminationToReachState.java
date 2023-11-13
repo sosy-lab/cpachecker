@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -25,13 +28,13 @@ public class TerminationToReachState
     implements Graphable, AbstractQueryableState, Targetable {
   /** We store values of variables that we have seen at the concrete loop-head location*/
   private boolean isTarget;
-  private Map<LocationState, BooleanFormula> storedValues;
+  private Map<LocationState, List<BooleanFormula>> storedValues;
   /** We store number of times that we have iterated over a loop*/
   private Map<LocationState, Integer> numberOfIterations;
   /** Stores assumptions from path formula after i iterations of the loop*/
   private Set<BooleanFormula> pathFormulaForIteration;
   private static final String PROPERTY_TERMINATION = "termination";
-  public TerminationToReachState(Map<LocationState, BooleanFormula> pStoredValues,
+  public TerminationToReachState(Map<LocationState, List<BooleanFormula>> pStoredValues,
                                  Map<LocationState, Integer> pNumberOfIterations,
                                  Set<BooleanFormula> pPathFormulaForIteration) {
 
@@ -58,9 +61,15 @@ public class TerminationToReachState
     return numberOfIterations;
   }
   public void setNewStoredValues(LocationState pLoopHead, BooleanFormula pNewStoredValues) {
-    storedValues.put(pLoopHead, pNewStoredValues);
+    if (storedValues.containsKey(pLoopHead)) {
+      storedValues.get(pLoopHead).add(pNewStoredValues);
+    } else {
+      List<BooleanFormula> newValues = new ArrayList<>();
+      newValues.add(pNewStoredValues);
+      storedValues.put(pLoopHead, newValues);
+    }
   }
-  public Map<LocationState, BooleanFormula> getStoredValues() {
+  public Map<LocationState, List<BooleanFormula>> getStoredValues() {
     return storedValues;
   }
   public void putNewPathFormula(BooleanFormula pPathFormula) {
