@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="8">
+  <require cpuModel="Intel Core i7-6700 @ 3.40 GHz"/>
+
+  <!--
+    Benchmark definition for SV-COMP configuration and benchmarks.
+    When executing, a single run definition needs to be selected with "-r"
+    (e.g., "-r SV-COMP23_unreach-call")
+    because otherwise the results will be wrong.
+    In most cases also the core limit should be overwritten
+    on the command line in order to save resources.
+  -->
+
+  <!-- For local testing, compressed witnesses are fine: -->
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">termination.compressWitness=true</option>
+
+  <!--
+    The remainder of this file should be synced with
+    https://gitlab.com/sosy-lab/sv-comp/bench-defs/-/blob/main/benchmark-defs/cpachecker.xml
+  -->
+
+  <resultfiles>**/*.graphml</resultfiles>
+
+  <option name="-predicateAnalysis-block"/>
+  <option name="-setprop">distributedSummaries.worker.forwardConfiguration=config/distributed-block-summaries/predicateAnalysis-block-forward.properties</option>
+  <option name="-setprop">staticRefiner.addAllControlFlowAssumes=true</option>
+  <option name="-setprop">distributedSummaries.decompositionType=FUNCTION_DECOMPOSITION</option>
+  <option name="-setprop">distributedSummaries.spawnUtilWorkers=true</option>
+  <option name="-setprop">cpa.location.ignoreFunctions=reach_error,__VERIFIER_assert</option>
+  <option name="-setprop">cpa.location.followFunctionCalls=false</option>
+  <option name="-heap">13000M</option>
+  <option name="-noout"/>
+  <option name="-benchmark"/>
+  <option name="-disable-java-assertions"/>
+
+
+  <rundefinition name="SV-COMP23_unreach-call">
+    <tasks name="FunctionDecomposer-solveable-problems">
+      <includesfile>../programs/benchmarks/FunctionDecomposer-solveable-problems.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+
+  <columns>
+    <column title="UsedConfig">Used algorithm property</column>
+  </columns>
+
+
+</benchmark>
