@@ -73,6 +73,10 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (location.isLoopStart()) {
       SSAMap currentValues = predicateState.getPathFormula().getSsa();
       if (terminationState.getStoredValues().containsKey(locationState)) {
+        if (terminationState.getNumberOfIterationsAtLoopHead(locationState) <
+            terminationState.getStoredValues().get(locationState).size()) {
+          return Collections.singleton(pState);
+        }
         BooleanFormula newConstraintformula = constructConstraintFormula(
             currentValues,
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
