@@ -792,31 +792,34 @@ public class SMG {
     // should discuss it nevertheless.
     BigInteger searchOffsetPlusSize = offset.add(sizeInBits);
     ImmutableList.Builder<SMGHasValueEdge> returnEdgeBuilder = ImmutableList.builder();
-    for (SMGHasValueEdge hve : hasValueEdges.get(object)) {
-      if (hve.getOffset().equals(offset) && hve.getSizeInBits().equals(sizeInBits)) {
-        // if v != undefined then return (smg, v)
-        return SMGAndHasValueEdges.of(this, hve);
-      }
-      if (preciseRead) {
-        BigInteger hveOffset = hve.getOffset();
-        BigInteger hveOffsetPlusSize = hve.getSizeInBits().add(hveOffset);
-        // Iff we can't find an exact match, we can try to partially read by reading the larger
-        // value and extract the value we need from it
-        if (hveOffset.compareTo(offset) <= 0 && offset.compareTo(hveOffsetPlusSize) < 0) {
-          // The value we search for begins in this edge
-          returnEdgeBuilder.add(hve);
-          if (hveOffsetPlusSize.compareTo(searchOffsetPlusSize) > 0) {
-            // It also ends here
-            break;
+    PersistentSet<SMGHasValueEdge> edgesForObject = hasValueEdges.get(object);
+    if (edgesForObject != null) {
+      for (SMGHasValueEdge hve : edgesForObject) {
+        if (hve.getOffset().equals(offset) && hve.getSizeInBits().equals(sizeInBits)) {
+          // if v != undefined then return (smg, v)
+          return SMGAndHasValueEdges.of(this, hve);
+        }
+        if (preciseRead) {
+          BigInteger hveOffset = hve.getOffset();
+          BigInteger hveOffsetPlusSize = hve.getSizeInBits().add(hveOffset);
+          // Iff we can't find an exact match, we can try to partially read by reading the larger
+          // value and extract the value we need from it
+          if (hveOffset.compareTo(offset) <= 0 && offset.compareTo(hveOffsetPlusSize) < 0) {
+            // The value we search for begins in this edge
+            returnEdgeBuilder.add(hve);
+            if (hveOffsetPlusSize.compareTo(searchOffsetPlusSize) > 0) {
+              // It also ends here
+              break;
+            }
+          } else if (hveOffset.compareTo(searchOffsetPlusSize) < 0
+              && searchOffsetPlusSize.compareTo(hveOffsetPlusSize) <= 0) {
+            // The value we search for ends in this edge
+            returnEdgeBuilder.add(hve);
+          } else if (offset.compareTo(hveOffset) < 0
+              && hveOffsetPlusSize.compareTo(searchOffsetPlusSize) < 0) {
+            // The value we search for covers this edge completely
+            returnEdgeBuilder.add(hve);
           }
-        } else if (hveOffset.compareTo(searchOffsetPlusSize) < 0
-            && searchOffsetPlusSize.compareTo(hveOffsetPlusSize) <= 0) {
-          // The value we search for ends in this edge
-          returnEdgeBuilder.add(hve);
-        } else if (offset.compareTo(hveOffset) < 0
-            && hveOffsetPlusSize.compareTo(searchOffsetPlusSize) < 0) {
-          // The value we search for covers this edge completely
-          returnEdgeBuilder.add(hve);
         }
       }
     }

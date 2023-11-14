@@ -1218,7 +1218,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Read including the value1 bit
     SMGHasValueEdge[] expectedHVEs = {
       new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.ZERO, BigInteger.valueOf(31)),
-      new SMGHasValueEdge(value1, BigInteger.valueOf(31), BigInteger.valueOf(1))
+      new SMGHasValueEdge(value1, BigInteger.valueOf(31), BigInteger.valueOf(1)),
     };
     smg =
         checkReadPreciseValuesInOrder(
@@ -1228,7 +1228,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         new SMGHasValueEdge[] {
           new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.ZERO, BigInteger.valueOf(31)),
           new SMGHasValueEdge(value1, BigInteger.valueOf(31), BigInteger.valueOf(1)),
-          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(32), BigInteger.valueOf(32))
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(32), BigInteger.valueOf(32)),
         };
     smg =
         checkReadPreciseValuesInOrder(
@@ -1239,7 +1239,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     expectedHVEs =
         new SMGHasValueEdge[] {
           new SMGHasValueEdge(value1, BigInteger.valueOf(31), BigInteger.valueOf(1)),
-          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(32), BigInteger.valueOf(31))
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(32), BigInteger.valueOf(31)),
         };
     smg =
         checkReadPreciseValuesInOrder(
@@ -1252,7 +1252,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     expectedHVEs =
         new SMGHasValueEdge[] {
           new SMGHasValueEdge(value2, BigInteger.valueOf(254), BigInteger.ONE),
-          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1))
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1)),
         };
     smg =
         checkReadPreciseValuesInOrder(
@@ -1262,7 +1262,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         new SMGHasValueEdge[] {
           new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(253), BigInteger.valueOf(1)),
           new SMGHasValueEdge(value2, BigInteger.valueOf(254), BigInteger.valueOf(1)),
-          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1))
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1)),
         };
     smg =
         checkReadPreciseValuesInOrder(
@@ -1275,7 +1275,7 @@ public class SMGWriteReadTest extends SMGTest0 {
           new SMGHasValueEdge(
               SMGValue.zeroValue(), BigInteger.valueOf(32), BigInteger.valueOf(222)),
           new SMGHasValueEdge(value2, BigInteger.valueOf(254), BigInteger.valueOf(1)),
-          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1))
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1)),
         };
     smg =
         checkReadPreciseValuesInOrder(
@@ -1374,8 +1374,24 @@ public class SMGWriteReadTest extends SMGTest0 {
     }
     // Check with a precise read that we get the correct values back
     // Twice to make sure read changes nothing
-
-    // TODO:
+    start = 8;
+    for (j = 0; j < 2; j++) {
+      for (int i = 16; i < 256; i = i * 2) {
+        SMGValue expectedValue = values[j];
+        SMGAndHasValueEdges readEdgesAndSMG =
+            smg.readValue(testObject, BigInteger.valueOf(start), BigInteger.valueOf(i), true);
+        smg = readEdgesAndSMG.getSMG();
+        assertThat(readEdgesAndSMG.getHvEdges()).hasSize(1);
+        if (i < 128) {
+          assertThat(readEdgesAndSMG.getHvEdges().get(0).hasValue()).isEqualTo(expectedValue);
+        }
+        // TODO: unknown value in the end
+        assertThat(readEdgesAndSMG.getHvEdges().get(0).getOffset())
+            .isEqualTo(BigInteger.valueOf(start));
+        start = start + i;
+        j++;
+      }
+    }
   }
 
   /*

@@ -1601,7 +1601,8 @@ public class AutomatonGraphmlParser {
         } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
           logger.logf(
               Level.WARNING,
-              "Cannot map specification %s to property type. Will ignore it (would only be problematic if this were the termination property).",
+              "Cannot map specification %s to property type. Will ignore it (would only be"
+                  + " problematic if this were the termination property).",
               prop);
         }
       }

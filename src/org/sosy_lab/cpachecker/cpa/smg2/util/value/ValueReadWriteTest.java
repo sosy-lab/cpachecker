@@ -35,7 +35,7 @@ public class ValueReadWriteTest extends SMGCPATest0 {
 
   private static final int CHAR_SIZE_IN_BITS = 8;
   // Int is 32 Bytes, values = 0, 1, 2, 4,
-  private static Value[] INT_ARRAY_VALUES = new Value[64];
+  private static final Value[] INT_ARRAY_VALUES = new Value[64];
 
   @BeforeClass
   public static void prepareArrays() {
