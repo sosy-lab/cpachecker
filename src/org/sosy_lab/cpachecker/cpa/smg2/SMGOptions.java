@@ -25,7 +25,9 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
-          "with this option enabled, we try to gather information on memory reads from values that are overlapping but not exactly fitting to the read parameters. Example: int value = 1111; char a = (char)((char[])&value)[1];")
+          "with this option enabled, we try to gather information on memory reads from values that"
+              + " are overlapping but not exactly fitting to the read parameters. Example: int"
+              + " value = 1111; char a = (char)((char[])&value)[1];")
   private boolean preciseSMGRead = true;
 
   @Option(

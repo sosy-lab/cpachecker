@@ -3161,6 +3161,11 @@ cpa.smg2.minimalSatCheck = true
 # one.
 cpa.smg2.optimizeBooleanVariables = true
 
+# with this option enabled, we try to gather information on memory reads from
+# values that are overlapping but not exactly fitting to the read parameters.
+# Example: int value = 1111; char a = (char)((char[])&value)[1];
+cpa.smg2.preciseSMGRead = true
+
 # target file to hold the exported precision
 cpa.smg2.precisionFile = no default value
 
