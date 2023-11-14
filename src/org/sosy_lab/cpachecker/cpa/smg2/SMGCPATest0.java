@@ -273,11 +273,12 @@ public class SMGCPATest0 {
    * Builds an array (stack) in an object with the values given in the size given and returns the
    * array obj.
    */
+  @SuppressWarnings("NarrowCalculation")
   protected SMGObject buildFilledArray(int arraySize, Value[] valuesInOrder, int sizeOfElements)
       throws SMGSolverException {
+    int objectSize = arraySize * sizeOfElements * valuesInOrder.length;
     SMGObjectAndSMGState arrayAndState =
-        currentState.copyAndAddStackObject(
-            BigInteger.valueOf(arraySize * sizeOfElements * valuesInOrder.length));
+        currentState.copyAndAddStackObject(BigInteger.valueOf(objectSize));
     currentState = arrayAndState.getState();
     SMGObject array = arrayAndState.getSMGObject();
 
