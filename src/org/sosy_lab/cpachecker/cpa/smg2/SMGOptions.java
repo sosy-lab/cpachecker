@@ -25,6 +25,12 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
+          "with this option enabled, we try to gather information on memory reads from values that are overlapping but not exactly fitting to the read parameters. Example: int value = 1111; char a = (char)((char[])&value)[1];")
+  private boolean preciseSMGRead = true;
+
+  @Option(
+      secure = true,
+      description =
           "with this option enabled, memory addresses (pointers) are transformed into a numeric"
               + " assumption upon casting the pointer to a number. This assumption can be returned"
               + " to a proper pointer by casting it back. This enables numeric operations beyond"
@@ -366,6 +372,10 @@ public class SMGOptions {
 
   public boolean isCastMemoryAddressesToNumeric() {
     return castMemoryAddressesToNumeric;
+  }
+
+  public boolean isPreciseSMGRead() {
+    return preciseSMGRead;
   }
 
   public UnknownFunctionHandling getHandleUnknownFunctions() {
