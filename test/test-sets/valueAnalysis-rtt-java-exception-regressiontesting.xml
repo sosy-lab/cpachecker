@@ -11,16 +11,22 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker">
+<benchmark tool="cpachecker" timelimit="120 s" hardtimelimit="150 s" memlimit="3 GB" cpuCores="8">
 
-  <option name="-heap">150M</option>
   <option name="-valueAnalysis-java-NoCegar-RTT"/>
 
-  <rundefinition/>
+  <rundefinition>
   
   <tasks name="Regression">
     <includesfile>../programs/java/TryCatch/RegressionTests/regression.set</includesfile>
     <propertyfile>../config/properties/assert.prp</propertyfile>
   </tasks>
+  
+  <tasks name="SV-Benchmark-Java">
+    <includesfile>../programs/java/sv-benchmarks-main-java/java/SVBenchmark.set</includesfile>
+    <propertyfile>../programs/java/sv-benchmarks-main-java/java/properties/assert_java.prp</propertyfile>
+  </tasks>
+  
+  </rundefinition>
   
 </benchmark>

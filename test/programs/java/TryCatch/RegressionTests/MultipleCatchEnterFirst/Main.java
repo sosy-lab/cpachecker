@@ -3,10 +3,10 @@ public class Main {
     private static boolean entered = false;
 
     private static void f() {
-        throw new RuntimeException(); 
+        throw new NullPointerException(); 
     }
     private static void g() {
-        throw new NullPointerException();
+        throw new ArrayIndexOutOfBoundsException();
     }
 
     public static void main(String[] args) {
@@ -16,9 +16,9 @@ public class Main {
                 g();
                 i++;
             }
-        } catch (RuntimeException e) {
+        } catch (NullPointerException e) {
             entered = true;
-        } catch (NullPointerException n){
+        } catch (ArrayIndexOutOfBoundsException n){
             entered = false;
         }     
         assert entered;
