@@ -19,6 +19,15 @@
     </rundefinition>
 
     <rundefinition>
+        <option name="-predicateAnalysis--termination"/>
+        <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
+    </rundefinition>
+
+    <rundefinition name="SV-Comp23">
+        <option name="--svcomp23--termination"/>
+    </rundefinition>
+
+    <rundefinition name="Combination">
         <option name="-combinations-terminationCPA+lassoAnalysis"/>
         <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
