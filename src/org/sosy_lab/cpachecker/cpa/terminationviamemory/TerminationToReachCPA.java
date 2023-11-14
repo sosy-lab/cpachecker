@@ -94,7 +94,7 @@ public class TerminationToReachCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new HashSet<>());
+    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new HashSet<>(), bfmgr);
   }
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {

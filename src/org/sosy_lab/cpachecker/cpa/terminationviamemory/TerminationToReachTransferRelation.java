@@ -54,7 +54,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     return Collections.singleton(new TerminationToReachState(
         new HashMap<>(terminationState.getStoredValues()),
         new HashMap<>(terminationState.getNumberOfIterationsMap()),
-        new HashSet<>(terminationState.getPathFormulas())));
+        new HashSet<>(terminationState.getPathFormulas()),
+        bfmgr));
   }
 
   @Override
@@ -75,32 +76,22 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (location.isLoopStart()) {
       SSAMap currentValues = predicateState.getPathFormula().getSsa();
       if (terminationState.getStoredValues().containsKey(locationState)) {
-        if (terminationState.getNumberOfIterationsAtLoopHead(locationState) <
-            terminationState.getStoredValues().get(locationState).size()) {
-
-          newConstraintformula = constructConstraintFormula(
-              currentValues,
-              terminationState.getNumberOfIterationsAtLoopHead(locationState));
-          BooleanFormula oldConstraintformula = terminationState
-              .getStoredValues()
-              .get(locationState)
-              .get(terminationState.getNumberOfIterationsAtLoopHead(locationState));
-          terminationState.setNewStoredValues(
-              locationState,
-              bfmgr.or(newConstraintformula, oldConstraintformula));
-          terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
-          return Collections.singleton(pState);
-        }
         newConstraintformula = constructConstraintFormula(
             currentValues,
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
-        terminationState.setNewStoredValues(locationState, newConstraintformula);
+        terminationState.setNewStoredValues(
+            locationState,
+            newConstraintformula,
+            terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
         newConstraintformula = constructConstraintFormula(
             currentValues,
             0);
-        terminationState.setNewStoredValues(locationState, newConstraintformula);
+        terminationState.setNewStoredValues(
+            locationState,
+            newConstraintformula,
+            0);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       }
     }

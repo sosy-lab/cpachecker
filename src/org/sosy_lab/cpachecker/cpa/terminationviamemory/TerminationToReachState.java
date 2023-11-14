@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -33,15 +34,18 @@ public class TerminationToReachState
   private Map<LocationState, Integer> numberOfIterations;
   /** Stores assumptions from path formula after i iterations of the loop*/
   private Set<BooleanFormula> pathFormulaForIteration;
+  private BooleanFormulaManagerView bfmgr;
   private static final String PROPERTY_TERMINATION = "termination";
   public TerminationToReachState(Map<LocationState, List<BooleanFormula>> pStoredValues,
                                  Map<LocationState, Integer> pNumberOfIterations,
-                                 Set<BooleanFormula> pPathFormulaForIteration) {
+                                 Set<BooleanFormula> pPathFormulaForIteration,
+                                 BooleanFormulaManagerView pBfmgr) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     isTarget = false;
+    bfmgr = pBfmgr;
   }
   public void increaseNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
     if (numberOfIterations.containsKey(pLoopHead)) {
@@ -60,9 +64,14 @@ public class TerminationToReachState
   public Map<LocationState, Integer> getNumberOfIterationsMap() {
     return numberOfIterations;
   }
-  public void setNewStoredValues(LocationState pLoopHead, BooleanFormula pNewStoredValues) {
+  public void setNewStoredValues(LocationState pLoopHead, BooleanFormula pNewStoredValues, int index) {
     if (storedValues.containsKey(pLoopHead)) {
-      storedValues.get(pLoopHead).add(pNewStoredValues);
+      List<BooleanFormula> assumptions = storedValues.get(pLoopHead);
+      if (assumptions.size() <= index) {
+        assumptions.add(pNewStoredValues);
+      } else {
+        assumptions.add(index, pNewStoredValues);
+      }
     } else {
       List<BooleanFormula> newValues = new ArrayList<>();
       newValues.add(pNewStoredValues);
