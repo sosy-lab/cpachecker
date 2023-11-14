@@ -67,6 +67,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     CFANode location = AbstractStates.extractLocation(locationState);
     PredicateAbstractState predicateState = getPredicateState(pOtherStates);
     TerminationToReachState terminationState = (TerminationToReachState) pState;
+    BooleanFormula newConstraintformula;
+
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
@@ -75,15 +77,27 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       if (terminationState.getStoredValues().containsKey(locationState)) {
         if (terminationState.getNumberOfIterationsAtLoopHead(locationState) <
             terminationState.getStoredValues().get(locationState).size()) {
+
+          newConstraintformula = constructConstraintFormula(
+              currentValues,
+              terminationState.getNumberOfIterationsAtLoopHead(locationState));
+          BooleanFormula oldConstraintformula = terminationState
+              .getStoredValues()
+              .get(locationState)
+              .get(terminationState.getNumberOfIterationsAtLoopHead(locationState));
+          terminationState.setNewStoredValues(
+              locationState,
+              bfmgr.or(newConstraintformula, oldConstraintformula));
+          terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
           return Collections.singleton(pState);
         }
-        BooleanFormula newConstraintformula = constructConstraintFormula(
+        newConstraintformula = constructConstraintFormula(
             currentValues,
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.setNewStoredValues(locationState, newConstraintformula);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
-        BooleanFormula newConstraintformula = constructConstraintFormula(
+        newConstraintformula = constructConstraintFormula(
             currentValues,
             0);
         terminationState.setNewStoredValues(locationState, newConstraintformula);
