@@ -24,7 +24,7 @@
     </rundefinition>
 
     <rundefinition name="SV-Comp23">
-        <option name="--svcomp23--termination"/>
+        <option name="-svcomp23--termination"/>
     </rundefinition>
 
     <rundefinition name="Combination">
