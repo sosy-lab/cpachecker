@@ -738,7 +738,17 @@ public class ExpressionToFormulaVisitor
             } catch (InterruptedException interruptedException) {
               CtoFormulaConverter.propagateInterruptedException(interruptedException);
             }
+          } else {
+            throw new UnsupportedCodeException(
+                "Currently, only fscanf with a single parameter of the form &id is supported.",
+                edge,
+                e);
           }
+        } else {
+          throw new UnsupportedCodeException(
+              "Currently, only fscanf with a single parameter of the form &id is supported.",
+              edge,
+              e);
         }
 
         // fscanf(FILE *stream, const char *format, ...) returns the number of assigned items
