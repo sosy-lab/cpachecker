@@ -1356,7 +1356,7 @@ public class ExpressionToFormulaVisitor
     }
 
     if (pParameters.size() > 3) {
-      throw new UnrecognizedCodeException(
+      throw new UnsupportedCodeException(
           "fscanf() with more than 3 parameters is not supported", edge, e);
     }
 
@@ -1373,7 +1373,7 @@ public class ExpressionToFormulaVisitor
         checkFscanfFormatString(format)
             .orElseThrow(
                 () ->
-                    new UnrecognizedCodeException(
+                    new UnsupportedCodeException(
                         "Format string of fscanf is not supported", edge, e));
 
     return new ValidatedFScanFParameter(formatString, pParameters.get(2));
