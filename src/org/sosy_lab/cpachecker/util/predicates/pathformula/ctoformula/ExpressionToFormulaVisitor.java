@@ -694,7 +694,7 @@ public class ExpressionToFormulaVisitor
           CExpression operand = unaryParameter.getOperand();
           if (operator.equals(UnaryOperator.AMPER)
               && operand instanceof CIdExpression idExpression) {
-            // For simplicity, we start with the case where only paramters of the form "&id" occur
+            // For simplicity, we start with the case where only parameters of the form "&id" occur
             CType variableType = idExpression.getExpressionType();
 
             if (!isCompatibleWithScanfFormatString(receivingParameter.format(), variableType)) {
