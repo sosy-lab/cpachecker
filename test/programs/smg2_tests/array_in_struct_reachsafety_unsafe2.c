@@ -6,6 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// Currently fails due to a bug in the MachineModel, returning the (char*)&(s.c); offset for (char*)&s
 int main() {
   int size = 3;
   struct s {
