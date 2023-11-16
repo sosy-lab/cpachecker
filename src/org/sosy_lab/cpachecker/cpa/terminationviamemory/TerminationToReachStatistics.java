@@ -123,6 +123,7 @@ public class TerminationToReachStatistics implements Statistics {
     }
   }
 
+  @Override
   public String getName() {
     return null;
   }
