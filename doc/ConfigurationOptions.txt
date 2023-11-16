@@ -2989,6 +2989,10 @@ cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg2.GCCZeroLengthArray = false
 
+# aborts the analysis for a non-concrete (this includes symbolic values)
+# memory allocation of any kind.
+cpa.smg2.abortOnNonConcreteMemorySize = true
+
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
 
