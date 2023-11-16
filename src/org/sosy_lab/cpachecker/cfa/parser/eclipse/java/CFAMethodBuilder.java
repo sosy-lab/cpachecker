@@ -2862,8 +2862,16 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JClassType exceptionClassType = (JClassType) astCreator.convert(cc.getException()).getType();
 
-    JExpression catchException =
-        HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
+    JExpression catchException = null;
+
+    if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
+      catchException =
+          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .getRunTimeTypeEqualsExpression(exceptionClassType);
+    } else {
+      catchException =
+          HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
+    }
 
     JStatement exception = HelperVariable.getInstance().getInstanceOfStatement(exceptionClassType);
 
