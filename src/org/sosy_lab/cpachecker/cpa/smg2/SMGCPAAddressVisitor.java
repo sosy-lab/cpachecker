@@ -220,6 +220,32 @@ public class SMGCPAAddressVisitor
       return SMGStateAndOptionalSMGObjectAndOffset.of(
           maybeTargetMemoryAndOffset.getSMGObject(), finalOffset, pCurrentState);
 
+    } else if (arrayValue instanceof SymbolicIdentifier localArrayValue
+        && localArrayValue.getRepresentedLocation().isPresent()) {
+      // Local array in a local structure (e.g. a struct)
+      MemoryLocation memLoc = localArrayValue.getRepresentedLocation().orElseThrow();
+      String qualifiedVarName = memLoc.getIdentifier();
+      Value finalOffset =
+          SMGCPAExpressionEvaluator.addOffsetValues(
+              subscriptOffset, BigInteger.valueOf(memLoc.getOffset()));
+
+      if (!finalOffset.isNumericValue()) {
+        if (!options.trackPredicates()) {
+          throw new UnsupportedOperationException(
+              "Symbolic array subscript access not supported by this analysis.");
+        } else {
+          // TODO:
+          throw new UnsupportedOperationException(
+              "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
+                  + " analysis. Missing symbolic handling of a array subscript expression");
+        }
+      }
+
+      Optional<SMGObjectAndOffset> maybeTarget =
+          evaluator.getTargetObjectAndOffset(pCurrentState, qualifiedVarName, finalOffset);
+
+      return SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState, maybeTarget);
+
     } else {
       // Might be numeric 0 (0 object). All else cases are basically invalid requests.
       if (arrayValue.isNumericValue()
@@ -294,12 +320,8 @@ public class SMGCPAAddressVisitor
 
         Optional<SMGObjectAndOffset> maybeTarget =
             evaluator.getTargetObjectAndOffset(currentState, varName, finalFieldOffset);
-        if (maybeTarget.isPresent()) {
-          resultBuilder.add(
-              SMGStateAndOptionalSMGObjectAndOffset.of(maybeTarget.orElseThrow(), currentState));
-        } else {
-          resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
-        }
+
+        resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState, maybeTarget));
 
       } else {
         // Might be numeric 0 (0 object). All else cases are basically invalid requests.

@@ -165,7 +165,12 @@ public class SMGCPATransferRelationTest {
 
     LogManagerWithoutDuplicates logManager =
         new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
-    smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    Configuration defaultOptionsNoPreciseRead =
+        Configuration.builder()
+            .copyFrom(Configuration.defaultConfiguration())
+            .setOption("cpa.smg2.preciseSMGRead", "false")
+            .build();
+    smgOptions = new SMGOptions(defaultOptionsNoPreciseRead);
     SMGCPAExpressionEvaluator evaluator =
         new SMGCPAExpressionEvaluator(
             MACHINE_MODEL, logManager, SMGCPAExportOptions.getNoExportInstance(), smgOptions, null);

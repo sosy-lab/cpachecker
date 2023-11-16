@@ -25,6 +25,7 @@ class CallstackOptions {
       ImmutableSet.of(
           "pthread_create",
           "pthread_key_create",
+          "_longjmp",
           "longjmp",
           "siglongjmp",
           "__builtin_va_arg",

@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -266,5 +267,32 @@ public class SMGCPATest0 {
             .isEquivalentAccordingToCompareTo(BigInteger.valueOf(j));
       }
     }
+  }
+
+  /**
+   * Builds an array (stack) in an object with the values given in the size given and returns the
+   * array obj.
+   */
+  @SuppressWarnings("NarrowCalculation")
+  protected SMGObject buildFilledArray(int arraySize, Value[] valuesInOrder, int sizeOfElements)
+      throws SMGSolverException {
+    int objectSize = arraySize * sizeOfElements * valuesInOrder.length;
+    SMGObjectAndSMGState arrayAndState =
+        currentState.copyAndAddStackObject(BigInteger.valueOf(objectSize));
+    currentState = arrayAndState.getState();
+    SMGObject array = arrayAndState.getSMGObject();
+
+    for (int i = 0; i < valuesInOrder.length; i++) {
+      currentState =
+          currentState.writeValueWithChecks(
+              array,
+              new NumericValue(BigInteger.valueOf(i).multiply(BigInteger.valueOf(sizeOfElements))),
+              BigInteger.valueOf(sizeOfElements),
+              valuesInOrder[i],
+              null,
+              dummyCDAEdge);
+    }
+
+    return array;
   }
 }

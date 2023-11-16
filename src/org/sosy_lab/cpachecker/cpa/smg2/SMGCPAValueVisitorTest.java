@@ -154,7 +154,12 @@ public class SMGCPAValueVisitorTest {
   @Before
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
-    options = new SMGOptions(Configuration.defaultConfiguration());
+    Configuration defaultOptionsNoPreciseRead =
+        Configuration.builder()
+            .copyFrom(Configuration.defaultConfiguration())
+            .setOption("cpa.smg2.preciseSMGRead", "false")
+            .build();
+    options = new SMGOptions(defaultOptionsNoPreciseRead);
 
     // null, null is fine as long as builtin functions are not used!
     evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null, makeTestSolver());

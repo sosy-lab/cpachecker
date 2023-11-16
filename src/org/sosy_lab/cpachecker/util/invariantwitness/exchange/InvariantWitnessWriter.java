@@ -503,6 +503,14 @@ public final class InvariantWitnessWriter {
           return intersection.iterator().next();
         }
       }
+
+      // We only reach this place if the target node does not have any successors
+      // If we are calling the reach error function, we want to export this as node
+      // since this will likely be the target node
+      if (cfaEdge.getRawStatement().equals("reach_error();")) {
+        return cfaEdge;
+      }
+
       return null;
     }
 

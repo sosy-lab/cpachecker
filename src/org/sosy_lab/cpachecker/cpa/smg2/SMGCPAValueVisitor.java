@@ -519,6 +519,8 @@ public class SMGCPAValueVisitor
             binaryOperator,
             e.getExpressionType(),
             calculationType,
+            SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
+            SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
             currentState);
       } else if (binaryOperator == BinaryOperator.GREATER_EQUAL
           || binaryOperator == BinaryOperator.LESS_EQUAL
@@ -2128,6 +2130,8 @@ public class SMGCPAValueVisitor
       BinaryOperator binaryOperator,
       CType expressionType,
       CType calculationType,
+      CType leftValueType,
+      CType rightValueType,
       SMGState currentState)
       throws CPATransferException {
     // Find the address, check that the other is a numeric value and use as offset, else if both
@@ -2264,19 +2268,20 @@ public class SMGCPAValueVisitor
         // distance in bits / type size = distance
         // The type in both pointers is the same, we need the return type from one of them
         NumericValue size;
-        if (addressRight.getType() instanceof CPointerType) {
+        if (leftValueType instanceof CPointerType) {
           size =
               new NumericValue(
-                  evaluator.getBitSizeof(
-                      currentState, ((CPointerType) addressRight.getType()).getType()));
+                  evaluator.getBitSizeof(currentState, ((CPointerType) leftValueType).getType()));
         } else if (addressRight.getType() instanceof CArrayType) {
           size =
               new NumericValue(
-                  evaluator.getBitSizeof(currentState, ((CArrayType) addressRight.getType())));
+                  evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType()));
         } else {
           returnBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
           continue;
         }
+        // Undefined behavior if this assertion does not hold
+        assert leftValueType.equals(rightValueType);
         Value distance =
             arithmeticOperation(
                 (NumericValue) distanceInBits,
@@ -2864,7 +2869,7 @@ public class SMGCPAValueVisitor
    *
    * @param type the input type
    */
-  public @Nullable CSimpleType getArithmeticType(CType type) {
+  public static @Nullable CSimpleType getArithmeticType(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CPointerType) {
       return CNumericTypes.INT;

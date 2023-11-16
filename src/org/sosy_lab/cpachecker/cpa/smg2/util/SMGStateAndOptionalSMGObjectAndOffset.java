@@ -53,6 +53,16 @@ public class SMGStateAndOptionalSMGObjectAndOffset {
         objAndOff.getSMGObject(), objAndOff.getOffsetForObject(), pState);
   }
 
+  public static SMGStateAndOptionalSMGObjectAndOffset of(
+      SMGState pState, Optional<SMGObjectAndOffset> pMaybeObjectAndOffset) {
+    Preconditions.checkNotNull(pState);
+    Preconditions.checkNotNull(pMaybeObjectAndOffset);
+    if (pMaybeObjectAndOffset.isEmpty()) {
+      return SMGStateAndOptionalSMGObjectAndOffset.of(pState);
+    }
+    return SMGStateAndOptionalSMGObjectAndOffset.of(pMaybeObjectAndOffset.orElseThrow(), pState);
+  }
+
   public static SMGStateAndOptionalSMGObjectAndOffset of(SMGState pState) {
     Preconditions.checkNotNull(pState);
     return new SMGStateAndOptionalSMGObjectAndOffset(pState);

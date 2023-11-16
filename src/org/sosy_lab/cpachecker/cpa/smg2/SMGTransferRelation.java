@@ -982,7 +982,8 @@ public class SMGTransferRelation
             "Calling " + functionName + " and not using the return value results in a memory leak.";
         logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
         List<ValueAndSMGState> uselessValuesAndNewStates =
-            builtins.evaluateConfigurableAllocationFunction(cFCExpression, pState, pCfaEdge);
+            builtins.evaluateConfigurableAllocationFunction(
+                cFCExpression, calledFunctionName, pState, pCfaEdge);
         for (ValueAndSMGState valueAndState : uselessValuesAndNewStates) {
           newStatesBuilder.add(
               valueAndState
@@ -1029,10 +1030,9 @@ public class SMGTransferRelation
       // don't handle, just let pass through
     } else if (cDecl instanceof CTypeDefDeclaration) {
       // don't handle, just let pass through
-    } else if (cDecl instanceof CVariableDeclaration) {
+    } else if (cDecl instanceof CVariableDeclaration cVarDecl) {
       try {
-        return evaluator.handleVariableDeclaration(
-            currentState, (CVariableDeclaration) cDecl, edge);
+        return evaluator.handleVariableDeclaration(currentState, cVarDecl, edge);
       } catch (UnsupportedOperationException e) {
         // Since we lose the cfa edge (and the CExpression for other cases) we can not throw this in
         // the method directly

@@ -179,7 +179,8 @@ public class SMGCPABuiltins {
       throws CPATransferException, SolverException, InterruptedException {
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
-        return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge);
+        return evaluateConfigurableAllocationFunction(
+            pFunctionCall, functionName, pSmgState, pCfaEdge);
       } else {
         return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState);
       }
@@ -506,8 +507,8 @@ public class SMGCPABuiltins {
 
   /**
    * Gets the size of an allocation. This needs either 1 or 2 parameters. Those are read and
-   * evaluated to the size for the allocation. Might throw a exception in case of an error.
-   * Currently sizes are only calculated concretely, not symbolicly.
+   * evaluated to the size for the allocation. Might throw an exception in case of an error.
+   * Currently, sizes are only calculated concretely, not symbolicly.
    *
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
@@ -534,10 +535,20 @@ public class SMGCPABuiltins {
               functionCall,
               pState,
               cfaEdge)) {
+
         Value value1 = value1AndState.getValue();
         SMGState state1 = value1AndState.getState();
+
         if (!value1.isNumericValue()) {
-          // TODO: improve symbolic handling
+          String infoMsg =
+              "Could not determine a concrete size for a memory allocation function: "
+                  + functionCall.getFunctionNameExpression();
+          if (options.isAbortOnNonConcreteMemorySize()) {
+            throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+          } else {
+            logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
+          }
+          // Max overapproximation
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(state1));
           continue;
         }
@@ -552,6 +563,12 @@ public class SMGCPABuiltins {
           Value value2 = value2AndState.getValue();
           SMGState state2 = value2AndState.getState();
           if (!value2.isNumericValue()) {
+            logger.log(
+                Level.INFO,
+                "Could not determine a concrete value for a memory allocation function: "
+                    + functionName
+                    + ", in: "
+                    + cfaEdge);
             resultBuilder.add(ValueAndSMGState.ofUnknownValue(state2));
             continue;
           } else {
@@ -607,6 +624,7 @@ public class SMGCPABuiltins {
           Value forcedValue = new NumericValue(options.getGuessSize());
           resultBuilder.add(ValueAndSMGState.of(forcedValue, currentState));
         }
+
       } else {
         resultBuilder.add(sizeValueAndState);
       }
@@ -663,7 +681,7 @@ public class SMGCPABuiltins {
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   List<ValueAndSMGState> evaluateConfigurableAllocationFunction(
-      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      CFunctionCallExpression functionCall, String functionName, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
@@ -672,8 +690,16 @@ public class SMGCPABuiltins {
 
       Value sizeValue = sizeAndState.getValue();
       SMGState currentState = sizeAndState.getState();
-      if (!sizeValue.isNumericValue()) {
 
+      if (!sizeValue.isNumericValue()) {
+        String infoMsg =
+            "Could not determine a concrete size for a memory allocation function: "
+                + functionCall.getFunctionNameExpression();
+        if (options.isAbortOnNonConcreteMemorySize()) {
+          throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+        } else {
+          logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
+        }
         if (options.isGuessSizeOfUnknownMemorySize()) {
           sizeValue = new NumericValue(options.getGuessSize());
         } else if (options.isIgnoreUnknownMemoryAllocation()) {
@@ -691,7 +717,9 @@ public class SMGCPABuiltins {
           continue;
         } else {
           throw new AssertionError(
-              "An allocation function was called with a symbolic size. This is not supported"
+              "An allocation function ("
+                  + functionName
+                  + ") was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
       }
@@ -1013,6 +1041,18 @@ public class SMGCPABuiltins {
     // reuse MALLOC_PARAMETER since its just the first argument (and there is always just 1)
     for (ValueAndSMGState argumentAndState :
         getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge)) {
+
+      if (!argumentAndState.getValue().isNumericValue()) {
+        String infoMsg =
+            "Could not determine a concrete size for a memory allocation function: "
+                + functionCall.getFunctionNameExpression();
+        if (options.isAbortOnNonConcreteMemorySize()) {
+          throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+        } else {
+          logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
+        }
+      }
+
       resultBuilder.addAll(
           evaluateAlloca(
               argumentAndState.getState(),
@@ -1368,6 +1408,18 @@ public class SMGCPABuiltins {
         functionCall.getParameterExpressions().get(0).accept(valueVisitor)) {
       for (ValueAndSMGState argumentTwoAndState :
           getAllocateFunctionParameter(1, functionCall, argumentOneAndState.getState(), cfaEdge)) {
+
+        // First arg is the ptr to the existing memory
+        if (!argumentTwoAndState.getValue().isNumericValue()) {
+          String infoMsg =
+              "Could not determine a concrete size for a memory allocation function: "
+                  + functionCall.getFunctionNameExpression();
+          if (options.isAbortOnNonConcreteMemorySize()) {
+            throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+          } else {
+            logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
+          }
+        }
 
         resultBuilder.addAll(
             evaluateReallocWParameters(
