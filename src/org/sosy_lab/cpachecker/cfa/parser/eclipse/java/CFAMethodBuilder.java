@@ -848,23 +848,6 @@ class CFAMethodBuilder extends ASTVisitor {
         afterStatement.push(nodeAfterStatement);
         cfaNodes.add(nodeAfterStatement);
 
-        JStatement helperNotEqualsStatement = null;
-        JExpression helperNotEqualsExpression = null;
-
-        if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
-          helperNotEqualsStatement =
-              HelperVariable.getInstance(
-                      scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
-                  .helperNotEqualsStatement();
-          helperNotEqualsExpression =
-              HelperVariable.getInstance(
-                      scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
-                  .helperNotEqualsExpression();
-        } else {
-          helperNotEqualsStatement = HelperVariable.getInstance().helperNotEqualsStatement();
-          helperNotEqualsExpression = HelperVariable.getInstance().helperNotEqualsExpression();
-        }
-
         if (nestedFinallyIncorrect != null) {
           BlankEdge tempCurrent =
               new BlankEdge("", FileLocation.DUMMY, nestedFinallyIncorrect, current, "");
@@ -872,35 +855,16 @@ class CFAMethodBuilder extends ASTVisitor {
           nestedFinallyIncorrect = null;
         }
 
-        CFANode end = null;
+        /*CFANode end = null;
         if (helperNotNull.isEmpty()) {
           end = new CFANode(cfa.getFunction());
           cfaNodes.add(end);
           endOfCatch.add(end);
         } else {
           end = helperNotNull.peek();
-        }
+        }*/
 
-        JAssumeEdge notEqualsNullFalse =
-            new JAssumeEdge(
-                helperNotEqualsStatement.toString(),
-                FileLocation.DUMMY,
-                current,
-                nodeAfterStatement,
-                helperNotEqualsExpression,
-                false);
-
-        addToCFA(notEqualsNullFalse);
-
-        JAssumeEdge notEqualsNullTrue =
-            new JAssumeEdge(
-                helperNotEqualsStatement.toString(),
-                FileLocation.DUMMY,
-                current,
-                end,
-                helperNotEqualsExpression,
-                true);
-        addToCFA(notEqualsNullTrue);
+        addExceptionCheck(current, nodeAfterStatement);
 
         locStack.push(nodeAfterStatement);
       }
@@ -3061,6 +3025,65 @@ class CFAMethodBuilder extends ASTVisitor {
             throwNode);
 
     addToCFA(edge);
+
+    if (!inTryBlock.isEmpty() && inTryBlock.peek()) {
+      CFANode current = locStack.pop();
+      CFANode nodeAfterStatement = new CFANode(cfa.getFunction());
+      afterStatement.push(nodeAfterStatement);
+      cfaNodes.add(nodeAfterStatement);
+
+      addExceptionCheck(current, nodeAfterStatement);
+
+      locStack.push(nodeAfterStatement);
+    }
+
     return SKIP_CHILDREN;
+  }
+
+  private void addExceptionCheck(CFANode start, CFANode nodeAfterStatement) {
+    CFANode end = null;
+    if (helperNotNull.isEmpty()) {
+      end = new CFANode(cfa.getFunction());
+      cfaNodes.add(end);
+      endOfCatch.add(end);
+    } else {
+      end = helperNotNull.peek();
+    }
+
+    JStatement helperNotEqualsStatement = null;
+    JExpression helperNotEqualsExpression = null;
+
+    if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
+      helperNotEqualsStatement =
+          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .helperNotEqualsStatement();
+      helperNotEqualsExpression =
+          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .helperNotEqualsExpression();
+    } else {
+      helperNotEqualsStatement = HelperVariable.getInstance().helperNotEqualsStatement();
+      helperNotEqualsExpression = HelperVariable.getInstance().helperNotEqualsExpression();
+    }
+
+    JAssumeEdge notEqualsNullFalse =
+        new JAssumeEdge(
+            helperNotEqualsStatement.toString(),
+            FileLocation.DUMMY,
+            start,
+            nodeAfterStatement,
+            helperNotEqualsExpression,
+            false);
+
+    addToCFA(notEqualsNullFalse);
+
+    JAssumeEdge notEqualsNullTrue =
+        new JAssumeEdge(
+            helperNotEqualsStatement.toString(),
+            FileLocation.DUMMY,
+            start,
+            end,
+            helperNotEqualsExpression,
+            true);
+    addToCFA(notEqualsNullTrue);
   }
 }
