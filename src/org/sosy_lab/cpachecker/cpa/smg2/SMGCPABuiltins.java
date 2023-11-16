@@ -1013,6 +1013,11 @@ public class SMGCPABuiltins {
     // reuse MALLOC_PARAMETER since its just the first argument (and there is always just 1)
     for (ValueAndSMGState argumentAndState :
         getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge)) {
+      if (!argumentAndState.getValue().isNumericValue()) {
+        throw new UnsupportedOperationException(
+            "Alloca() with non-concrete paramters not supported: "
+                + options.getHandleUnknownFunctions());
+      }
       resultBuilder.addAll(
           evaluateAlloca(
               argumentAndState.getState(),
