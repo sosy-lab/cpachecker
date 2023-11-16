@@ -1629,6 +1629,7 @@ public class SymbolicProgramConfiguration {
               .append(value)
               .append("(")
               .append(smgValue)
+              .append("[" + valueEdge.getOffset() + "," + valueEdge.getSizeInBits() + ")")
               .append(pointerInfo)
               .append(")")
               .append("\n");
@@ -1671,6 +1672,7 @@ public class SymbolicProgramConfiguration {
               .append(value)
               .append("(")
               .append(smgValue)
+              .append("[" + valueEdge.getOffset() + "," + valueEdge.getSizeInBits() + ")")
               .append(pointerInfo)
               .append(")")
               .append(memoryString)
