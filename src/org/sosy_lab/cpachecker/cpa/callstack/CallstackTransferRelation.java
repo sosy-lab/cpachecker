@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,6 +31,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,6 +44,9 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
+
+  private static final ImmutableSet<Class<? extends CType>> PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST =
+      ImmutableSet.of(CSimpleType.class, CBitFieldType.class, CEnumType.class);
 
   /**
    * This flag might be set by external CPAs (e.g. BAM) to indicate a recursive context that might
@@ -279,6 +287,22 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   protected boolean hasVoidRecursion(
       final CallstackState element, final FunctionCallEdge pCallEdge) {
+
+    // Determine if any function parameters could contain pointers
+    // TODO: in principle, this could also be done for other front-ends like Java
+    if (!FluentIterable.from(pCallEdge.getFunctionCallExpression().getParameterExpressions())
+        .allMatch(
+            expr -> {
+              boolean isCType = expr.getExpressionType() instanceof CType;
+              boolean isPassByValue =
+                  PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST.stream()
+                      .anyMatch(cls -> cls.isInstance(expr.getExpressionType()));
+              return !isCType || isPassByValue;
+            })) {
+      // Treat this call as not being a void recursion, as there might still be side effects
+      return false;
+    }
+
     if (pCallEdge.getFunctionCall() instanceof AFunctionCallStatement) {
       return true;
     }
