@@ -763,6 +763,10 @@ public class ExpressionToFormulaVisitor
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
+      } else if (BuiltinFunctions.isSetjmpFunction(functionName)) {
+        // setjmp always returns 0 on the "regular" return, and we don't support longjmp
+        return mgr.makeNumber(conv.getFormulaTypeFromCType(returnType), 0);
+
       } else if (BuiltinFunctions.isPopcountFunction(functionName)) {
         return handlePopCount(functionName, returnType, parameters, e);
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
