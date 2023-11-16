@@ -475,7 +475,7 @@ public class SMGState
     return false;
   }
 
-  private boolean hasMemoryLeak() {
+  public boolean hasMemoryLeak() {
     for (SMGErrorInfo errorInf : errorInfo) {
       if (errorInf.hasMemoryLeak()) {
         return true;
@@ -4560,6 +4560,18 @@ public class SMGState
     }
     return Optional.of(
         new NumericValue(memoryModel.getNumericAssumptionForMemoryRegion(target).add(offset)));
+  }
+
+  public boolean isSMGObjectAStackVariable(SMGObject obj) {
+    if (memoryModel.isHeapObject(obj)) {
+      return false;
+    }
+    for (StackFrame frame : memoryModel.getStackFrames()) {
+      if (frame.getAllObjects().contains(obj)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /*
