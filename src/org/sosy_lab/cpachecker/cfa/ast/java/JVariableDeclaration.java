@@ -27,7 +27,7 @@ public sealed class JVariableDeclaration extends AVariableDeclaration implements
   private static final boolean IS_LOCAL = false;
   private final boolean isFinal;
 
-  public JVariableDeclaration(
+  protected JVariableDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
       JType pType,
