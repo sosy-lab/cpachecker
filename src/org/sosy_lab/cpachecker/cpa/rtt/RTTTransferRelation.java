@@ -667,6 +667,10 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       String value1 = pLeftOperand.accept(this);
       String value2 = "null";
 
+      if (value1 == null) {
+        value1 = "null";
+      }
+
       boolean result = pOperator == BinaryOperator.NOT_EQUALS ^ value1.equals(value2);
       return Boolean.toString(result);
     }
