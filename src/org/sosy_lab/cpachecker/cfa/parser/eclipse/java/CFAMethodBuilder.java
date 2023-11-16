@@ -768,9 +768,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     // When else is not in a block (else Statement)
     handleElseCondition(expressionStatement);
-    CFANode prevNode = null;
-
-    prevNode = locStack.pop();
+    CFANode prevNode = locStack.pop();
 
     JStatement statement = astCreator.convert(expressionStatement);
 
@@ -825,6 +823,7 @@ class CFAMethodBuilder extends ASTVisitor {
             booleanAssignmentExpression.getLeftHandSide(),
             nextNode,
             lastNode);
+        locStack.push(lastNode);
 
       } else {
         JStatementEdge edge =
@@ -834,6 +833,7 @@ class CFAMethodBuilder extends ASTVisitor {
         addToCFA(edge);
         locStack.push(lastNode);
       }
+
 
       if (!currentlyInFinally
           && !inCatchBlock
@@ -869,7 +869,6 @@ class CFAMethodBuilder extends ASTVisitor {
         locStack.push(nodeAfterStatement);
       }
     }
-
     return SKIP_CHILDREN;
   }
 
