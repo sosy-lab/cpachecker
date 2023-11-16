@@ -982,7 +982,8 @@ public class SMGTransferRelation
             "Calling " + functionName + " and not using the return value results in a memory leak.";
         logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
         List<ValueAndSMGState> uselessValuesAndNewStates =
-            builtins.evaluateConfigurableAllocationFunction(cFCExpression, pState, pCfaEdge);
+            builtins.evaluateConfigurableAllocationFunction(
+                cFCExpression, calledFunctionName, pState, pCfaEdge);
         for (ValueAndSMGState valueAndState : uselessValuesAndNewStates) {
           newStatesBuilder.add(
               valueAndState
