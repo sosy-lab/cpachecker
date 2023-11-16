@@ -361,7 +361,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + format(lassoTerminationTime.getMaxTime()));
     pOut.println();
 
-    int totoalTerminationArguments = terminationArguments.size();
+    int totalTerminationArguments = terminationArguments.size();
     int maxTerminationArgumentsPerLoop =
         terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
     String loopsWithMaxTerminationArguments =
@@ -372,11 +372,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             .collect(Collectors.joining(", "));
     pOut.println(
         "Total number of termination arguments:              "
-            + format(totoalTerminationArguments));
+            + format(totalTerminationArguments));
     if (loops > 0) {
       pOut.println(
           "  Avg termination arguments per loop:               "
-              + div(totoalTerminationArguments, loops));
+              + div(totalTerminationArguments, loops));
     }
     pOut.println(
         "  Max termination arguments per loop:               "
@@ -385,13 +385,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + loopsWithMaxTerminationArguments);
 
     pOut.println();
-    Map<String, Integer> terminationArguementTypes = new HashMap<>();
+    Map<String, Integer> terminationArgumentTypes = new HashMap<>();
     for (TerminationArgument terminationArgument : terminationArguments.values()) {
       String name = terminationArgument.getRankingFunction().getName();
-      terminationArguementTypes.merge(name, 1, Integer::sum);
+      terminationArgumentTypes.merge(name, 1, Integer::sum);
     }
 
-    for (Entry<String, Integer> terminationArgument : terminationArguementTypes.entrySet()) {
+    for (Entry<String, Integer> terminationArgument : terminationArgumentTypes.entrySet()) {
       String name = terminationArgument.getKey();
       String whiteSpaces = " ".repeat(49 - name.length());
       pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue()));

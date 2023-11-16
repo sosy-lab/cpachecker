@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.text.Normalizer.Form;
+import java.util.Collection;
 import java.util.HashSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -18,12 +19,15 @@ import java.util.HashMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationPrecisionAdjustment;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
@@ -40,11 +44,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 /** CPA for termination analysis of C programs.
  * Abstract states represent a memory, where we can store an already seen state.
  * Transition relation allows to non-deterministically store an already visiting state.*/
-public class TerminationToReachCPA extends AbstractCPA {
+public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private final PrecisionAdjustment precisionAdjustment;
   private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
+  private final TerminationToReachStatistics statistics;
 
   public TerminationToReachCPA(LogManager pLogger,
                                Configuration pConfiguration,
@@ -55,6 +60,7 @@ public class TerminationToReachCPA extends AbstractCPA {
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaEncodingWithPointerAliasingOptions options =
         new FormulaEncodingWithPointerAliasingOptions(pConfiguration);
+    statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     TypeHandlerWithPointerAliasing ctoFormulaTypeHandler = new TypeHandlerWithPointerAliasing(
@@ -75,7 +81,7 @@ public class TerminationToReachCPA extends AbstractCPA {
       FormulaManagerView predFmgr = SerializationInfoStorage
           .getInstance()
           .getPredicateFormulaManagerView();
-      precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, bfmgr,
+      precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, statistics, pCFA, bfmgr,
           fmgr, predFmgr, ctoFormulaConverter);
     } finally {
       SerializationInfoStorage.clear();
@@ -99,5 +105,10 @@ public class TerminationToReachCPA extends AbstractCPA {
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
   }
 }

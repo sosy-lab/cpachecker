@@ -12,6 +12,7 @@ import com.google.common.base.Function;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
@@ -41,12 +42,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final FormulaManagerView fmgr;
   private final FormulaManagerView predFmgr;
   private final CtoFormulaConverter ctoFormulaConverter;
+  private final TerminationToReachStatistics statistics;
+  private final CFA cfa;
   public TerminationToReachPrecisionAdjustment(Solver pSolver,
+                                               TerminationToReachStatistics pStatistics,
+                                               CFA pCFA,
                                                BooleanFormulaManagerView pBfmgr,
                                                FormulaManagerView pFmgr,
                                                FormulaManagerView pPredFmgr,
                                                CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
     solver = pSolver;
+    statistics = pStatistics;
+    cfa = pCFA;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
     predFmgr = pPredFmgr;
@@ -92,6 +99,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         if (isTargetStateReachable) {
           terminationState.makeTarget();
           result = result.withAbstractState(terminationState);
+          statistics.setNonterminatingLoop(cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
           return Optional.of(result.withAction(Action.BREAK));
         }
       }
