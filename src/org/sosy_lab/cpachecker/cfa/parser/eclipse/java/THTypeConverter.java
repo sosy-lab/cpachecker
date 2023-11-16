@@ -71,7 +71,12 @@ class THTypeConverter extends TypeConverter {
         }
       }
       if (cls != null && cls.getSuperclass() != null) {
-        superClassType = createJClassTypeFromClass(cls.getSuperclass());
+        JClassType superClassTypeTemp = checkIfClassTypeAlreadyAvailable(cls.getSuperclass());
+        if (superClassTypeTemp != null) {
+          superClassType = superClassTypeTemp;
+        } else {
+          superClassType = createJClassTypeFromClass(cls.getSuperclass());
+        }
       } else {
         superClassType = JClassType.createUnresolvableType();
       }
