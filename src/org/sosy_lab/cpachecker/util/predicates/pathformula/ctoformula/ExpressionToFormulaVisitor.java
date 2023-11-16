@@ -673,11 +673,6 @@ public class ExpressionToFormulaVisitor
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression) functionNameExpression).getName();
 
-      final String isUnsupported = conv.isUnsupportedFunction(functionName);
-      if (isUnsupported != null) {
-        throw new UnsupportedCodeException(isUnsupported, edge, e);
-      }
-
       if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
           || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
@@ -1257,6 +1252,12 @@ public class ExpressionToFormulaVisitor
               Level.INFO, "Assuming external function", functionName, "to be a pure function.");
         }
       }
+
+      final String isUnsupported = conv.isUnsupportedFunction(functionName);
+      if (isUnsupported != null) {
+        throw new UnsupportedCodeException(isUnsupported, edge, e);
+      }
+
     } else {
       conv.logfOnce(
           Level.WARNING,
