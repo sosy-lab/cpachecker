@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 public class BuiltinFunctions {
 
   private static final String FREE = "free";
+  private static final ImmutableSet<String> SETJMP =
+      ImmutableSet.of("_setjmp", "setjmp", "sigsetjmp");
   private static final String STRLEN = "strlen";
   private static final String POPCOUNT = "popcount";
   private static final String FSCANF = "fscanf";
@@ -86,6 +88,7 @@ public class BuiltinFunctions {
         || pFunctionName.equals(FREE)
         || matchesStrlen(pFunctionName)
         || matchesFscanf(pFunctionName)
+        || isSetjmpFunction(pFunctionName)
         || BuiltinFloatFunctions.isBuiltinFloatFunction(pFunctionName);
   }
 
@@ -132,6 +135,10 @@ public class BuiltinFunctions {
 
   public static ImmutableSet<String> getAllowedScanfFormatSpecifiers() {
     return supportedScanfFormatSpecifiers.keySet();
+  }
+
+  public static boolean isSetjmpFunction(String pFunctionName) {
+    return SETJMP.contains(pFunctionName);
   }
 
   public static boolean isPopcountFunction(String pFunctionName) {
