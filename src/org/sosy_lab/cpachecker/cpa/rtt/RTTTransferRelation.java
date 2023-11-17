@@ -671,10 +671,10 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         final JExpression pLeftOperand, final BinaryOperator pOperator)
         throws UnrecognizedCodeException {
       String value1 = pLeftOperand.accept(this);
-      String value2 = "null";
+      String value2 = RTTState.NULL_REFERENCE;
 
       if (value1 == null) {
-        value1 = "null";
+        value1 = RTTState.NULL_REFERENCE;
       }
 
       boolean result = pOperator == BinaryOperator.NOT_EQUALS ^ value1.equals(value2);
