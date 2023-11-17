@@ -85,6 +85,11 @@ public class TerminationToReachState
   }
 
   @Override
+  public int hashCode() {
+    return Objects.hash(storedValues, numberOfIterations, isTarget);
+  }
+
+  @Override
   public boolean isTarget() {
     return isTarget;
   }
@@ -100,6 +105,26 @@ public class TerminationToReachState
         + getReadableStoredValues()
         + "]"
         + '}';
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (!(pO instanceof TerminationToReachState)) {
+      return false;
+    }
+    TerminationToReachState that = (TerminationToReachState) pO;
+
+    for (LocationState loc : storedValues.keySet()) {
+      if (!that.getStoredValues().keySet().contains(loc) ||
+          storedValues.get(loc) != that.getStoredValues().get(loc)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private String getReadableStoredValues() {
