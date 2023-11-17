@@ -293,7 +293,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     // TODO: in principle, this could also be done for other front-ends like Java
     if (!FluentIterable.from(pCallEdge.getFunctionCallExpression().getParameterExpressions())
         .filter(CExpression.class)
-        .transform(expr -> expr.getExpressionType().getClass())
+        .transform(expr -> expr.getExpressionType().getCanonicalType().getClass())
         .allMatch(PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST::contains)) {
       // Treat this call as not being a void recursion, as there might still be side effects
       return false;
