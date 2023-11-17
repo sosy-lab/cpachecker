@@ -1058,6 +1058,9 @@ public class SMGCPAExpressionEvaluator {
       Collection<Constraint> newConstraints, String stackFrameFunctionName, SMGState currentState)
       throws SMGSolverException {
     // Iff SAT -> memory-safety is violated
+    // The constraints checked here should be lower and upper bound. They may not be checked at the
+    // same time!
+    // TODO: use both constraints in an OR
     for (Constraint constraint : newConstraints) {
       try {
         // If a constraint is trivial, its satisfiability is not influenced by other constraints.

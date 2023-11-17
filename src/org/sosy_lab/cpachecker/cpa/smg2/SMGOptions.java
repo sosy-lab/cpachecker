@@ -283,7 +283,7 @@ public class SMGOptions {
   @Option(
       secure = true,
       description = "Treat symbolic values as unknowns and assign new concrete values to them.")
-  private boolean assignSymbolicValues = true;
+  private boolean assignSymbolicValues = false;
 
   @Option(
       secure = true,
