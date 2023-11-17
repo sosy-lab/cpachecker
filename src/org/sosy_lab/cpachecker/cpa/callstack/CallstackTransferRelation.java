@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -293,8 +295,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     // TODO: in principle, this could also be done for other front-ends like Java
     if (!FluentIterable.from(pCallEdge.getFunctionCallExpression().getParameterExpressions())
         .filter(CExpression.class)
-        .transform(expr -> expr.getExpressionType().getCanonicalType().getClass())
-        .allMatch(PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST::contains)) {
+        .transform(CExpression::getExpressionType)
+        .allMatch(CallstackTransferRelation::isSafePassByValue)) {
       // Treat this call as not being a void recursion, as there might still be side effects
       return false;
     }
@@ -325,6 +327,23 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       e = e.getPreviousState();
     }
     throw new AssertionError();
+  }
+
+  private static boolean isSafePassByValue(CType type) {
+    type = type.getCanonicalType();
+    if (PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST.contains(type.getClass())) {
+      return true;
+
+    } else if (type instanceof CCompositeType composite) {
+      for (CCompositeTypeMemberDeclaration member : composite.getMembers()) {
+        if (!isSafePassByValue(member.getType())) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    return false;
   }
 
   protected boolean shouldGoByFunctionSummaryStatement(

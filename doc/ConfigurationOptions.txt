@@ -1607,8 +1607,9 @@ cpa.callstack.skipFunctionPointerRecursion = false
 # same as for functions without bodies)
 cpa.callstack.skipRecursion = false
 
-# Skip recursion if it happens only by going via a void function (this is
-# unsound).
+# Skip recursion if it happens only by going via a void function with no
+# pointers passed as parameters. This is unsound if the function modifies
+# global variables.
 cpa.callstack.skipVoidRecursion = false
 
 # analyse the CFA backwards
