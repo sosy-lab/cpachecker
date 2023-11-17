@@ -7,23 +7,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public class Main {
-    private static int i = 0;
-    private static Boolean entered = false;
+  private static int i = 0;
+  private static Boolean entered = false;
 
-    private static void g() {
-        EnterAnotherException e = new EnterAnotherException();
-        e.throwException();
-    }
+  private static void g() {
+    EnterAnotherException e = new EnterAnotherException();
+    e.throwException();
+  }
 
-    public static void main(String[] args) {
-        try {
-            while (i < 10) {
-                g();
-                i++;
-            }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            entered = true;
-        }
-        assert entered;     
+  public static void main(String[] args) {
+    try {
+      while (i < 10) {
+        g();
+        i++;
+      }
+    } catch (ArrayIndexOutOfBoundsException e) {
+      entered = true;
     }
+    assert entered;
+  }
 }

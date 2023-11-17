@@ -8,10 +8,9 @@
 
 public class EnterAnotherException {
 
-    public EnterAnotherException(){
-    }
+  public EnterAnotherException() {}
 
-    public void throwException() {
-        throw new ArrayIndexOutOfBoundsException(); 
-    }
+  public void throwException() {
+    throw new ArrayIndexOutOfBoundsException();
+  }
 }

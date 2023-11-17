@@ -7,37 +7,35 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public class Main {
-    private static int i = 0;
-    private static Boolean enteredF = false;
-    private static Boolean enteredG = false;
+  private static int i = 0;
+  private static Boolean enteredF = false;
+  private static Boolean enteredG = false;
 
-    private static void f() {
-        throw new RuntimeException(); 
-    }
-    
-        private static void g() {
-        throw new ArrayIndexOutOfBoundsException(); 
-    }
+  private static void f() {
+    throw new RuntimeException();
+  }
 
-    public static void main(String[] args) {
+  private static void g() {
+    throw new ArrayIndexOutOfBoundsException();
+  }
+
+  public static void main(String[] args) {
+    try {
+      while (i < 10) {
         try {
-            while (i < 10) {
-                try {
-                    g();
-                } catch(ArrayIndexOutOfBoundsException a){
-                    enteredG = true;
-                } finally {
-                    assert enteredG;
-                }
-                f();
-                i++;
-            }
-        } catch (RuntimeException e) {
-            enteredF = true;
+          g();
+        } catch (ArrayIndexOutOfBoundsException a) {
+          enteredG = true;
+        } finally {
+          assert enteredG;
         }
-        finally {
-               assert enteredF;    
-        }
- 
+        f();
+        i++;
+      }
+    } catch (RuntimeException e) {
+      enteredF = true;
+    } finally {
+      assert enteredF;
     }
+  }
 }

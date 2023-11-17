@@ -834,7 +834,6 @@ class CFAMethodBuilder extends ASTVisitor {
         locStack.push(lastNode);
       }
 
-
       if (!currentlyInFinally
           && !inCatchBlock
           && expressionStatement
@@ -2779,7 +2778,7 @@ class CFAMethodBuilder extends ASTVisitor {
     if (tryStatement.getFinally() != null) {
       handleFinallyBlock(tryStatement.getFinally(), tempInFinally, tempInCatch);
     }
-    isNested -=1;
+    isNested -= 1;
     inCatchBlock = tempInCatch;
     return SKIP_CHILDREN;
   }
@@ -3000,8 +2999,8 @@ class CFAMethodBuilder extends ASTVisitor {
     JExpression exceptionExpression =
         astCreator.convertExpressionWithoutSideEffects(throwStatement.getExpression());
 
-    CFANode nextNode = handleSideassignments(
-        prevNode, exceptionExpression.toASTString(), throwLocation);
+    CFANode nextNode =
+        handleSideassignments(prevNode, exceptionExpression.toASTString(), throwLocation);
     cfaNodes.add(nextNode);
 
     JExpressionAssignmentStatement currentHelperAssignment = null;

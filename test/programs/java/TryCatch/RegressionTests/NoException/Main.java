@@ -7,20 +7,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public class Main {
-    private static int i = 0;
-    private static Boolean entered = false;
+  private static int i = 0;
+  private static Boolean entered = false;
 
-    private static void f() {
-        i = i + 1;
+  private static void f() {
+    i = i + 1;
+  }
+
+  public static void main(String[] args) {
+    while (i < 10) {
+      f();
+      i++;
+      entered = true;
     }
 
-    public static void main(String[] args) {
-        while (i < 10) {
-            f();
-            i++;
-            entered = true;
-        }
-
-        assert entered;     
-    }
+    assert entered;
+  }
 }

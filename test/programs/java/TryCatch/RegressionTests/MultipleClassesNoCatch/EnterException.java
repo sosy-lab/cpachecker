@@ -8,10 +8,9 @@
 
 public class EnterException {
 
-    public EnterException(){
-    }
+  public EnterException() {}
 
-    public void throwException() {
-        throw new RuntimeException(); 
-    }
+  public void throwException() {
+    throw new RuntimeException();
+  }
 }

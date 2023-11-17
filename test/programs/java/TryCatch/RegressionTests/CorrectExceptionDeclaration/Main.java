@@ -7,20 +7,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public class Main {
-    private static int i = 0;
+  private static int i = 0;
 
-    private static void f() {
-        throw new RuntimeException(); 
-    }
+  private static void f() {
+    throw new RuntimeException();
+  }
 
-    public static void main(String[] args) {
-        try {
-            while (i < 10) {
-                f();
-                i++;
-            }
-        } catch (RuntimeException e) {
-            assert e instanceof RuntimeException;
-        }     
+  public static void main(String[] args) {
+    try {
+      while (i < 10) {
+        f();
+        i++;
+      }
+    } catch (RuntimeException e) {
+      assert e instanceof RuntimeException;
     }
+  }
 }
