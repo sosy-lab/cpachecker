@@ -64,11 +64,12 @@ public class AdditionalInfoExtractor {
         }
 
         isMemoryLeakError = false;
+        /*
         List<Object> toCheck =
             extractAdditionalInfoFromInvalidChain(
                 invalidChain, prevSMGState, visitedElems, smgState, edgeWithAdditionalInfo);
         invalidChain = toCheck;
-        prevSMGState = smgState;
+        prevSMGState = smgState;*/
         pathWithExtendedInfo.add(edgeWithAdditionalInfo);
       }
     }
