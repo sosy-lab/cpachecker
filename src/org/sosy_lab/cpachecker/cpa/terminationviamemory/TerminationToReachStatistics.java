@@ -76,7 +76,7 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
   public TerminationToReachStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCFA.getLoopStructure().orElseThrow().getCount(), pCFA);
+    super(pConfig, pLogger, pCFA);
   }
 
   @Override
