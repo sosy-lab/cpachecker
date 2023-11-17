@@ -8,17 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** Tracks already seen states at loop-head locations*/
 public class TerminationToReachState
@@ -80,11 +80,8 @@ public class TerminationToReachState
   public Set<BooleanFormula> getPathFormulas() {
     return pathFormulaForIteration;
   }
-  public void makeTarget() { isTarget = true; }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(storedValues, numberOfIterations, isTarget);
+  public void makeTarget() {
+    isTarget = true;
   }
 
   @Override
