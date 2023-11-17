@@ -246,7 +246,7 @@ def writeRSF(nodes, out, showChildDependencies=True, showParentDependencies=True
 
 
 def writeList(nodes):
-    for filename,_ in sorted(nodes.items()):
+    for filename, _ in sorted(nodes.items()):
         out.write(f"{filename}\n")
 
 
