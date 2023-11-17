@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -291,14 +292,9 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     // Determine if any function parameters could contain pointers
     // TODO: in principle, this could also be done for other front-ends like Java
     if (!FluentIterable.from(pCallEdge.getFunctionCallExpression().getParameterExpressions())
-        .allMatch(
-            expr -> {
-              boolean isCType = expr.getExpressionType() instanceof CType;
-              boolean isPassByValue =
-                  PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST.stream()
-                      .anyMatch(cls -> cls.isInstance(expr.getExpressionType()));
-              return !isCType || isPassByValue;
-            })) {
+        .filter(CExpression.class)
+        .transform(expr -> expr.getExpressionType().getClass())
+        .allMatch(PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST::contains)) {
       // Treat this call as not being a void recursion, as there might still be side effects
       return false;
     }
