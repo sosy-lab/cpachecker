@@ -2828,6 +2828,10 @@ public class SMGState
     } else if (!value.isUnknown()) {
       // Some symbolic value. Wrap in symbolic shift operations
       // TODO:
+      String msg =
+          "Partial read of symbolic value detected. Overapproximated due to missing"
+              + " implementation.";
+      logger.log(Level.INFO, msg);
       // throw new UnsupportedOperationException("Symbolic handling of partial reads are not
       // supported at the moment.");
     }
