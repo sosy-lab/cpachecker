@@ -72,13 +72,22 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             ctoFormulaTypeHandler,
             AnalysisDirection.FORWARD);
     try {
-      FormulaManagerView predFmgr = SerializationInfoStorage
-          .getInstance()
-          .getPredicateFormulaManagerView();
+      FormulaManagerView predFmgr;
+      if (SerializationInfoStorage.isSet()) {
+        predFmgr = SerializationInfoStorage
+            .getInstance()
+            .getPredicateFormulaManagerView();
+      } else {
+        // This should never be triggered because TerminationCPA can only run with predicateCPA
+        // and cpa.predicate.enableSharedInformation set to true.
+        predFmgr = fmgr;
+      }
       precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, statistics, pCFA, bfmgr,
           fmgr, predFmgr, ctoFormulaConverter);
     } finally {
-      SerializationInfoStorage.clear();
+      if (SerializationInfoStorage.isSet()) {
+        SerializationInfoStorage.clear();
+      }
     }
   }
 
