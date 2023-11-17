@@ -1107,6 +1107,9 @@ counterexample.export.exportWitness = true
 # export counterexample as witness/yaml file
 counterexample.export.exportYamlWitness = false
 
+# export the yaml Violation Witnesses directly from the Counterexample.
+counterexample.export.exportYamlWitnessesDirectlyFromCex = false
+
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1313,6 +1316,9 @@ cpa.arg.export.code.metadataOutput = no default value
 
 # when enabled also write invariant true to correctness-witness automata
 cpa.arg.exportTrueInvariants = false
+
+# export the yaml Violation Witnesses directly from the Counterexample.
+cpa.arg.exportYAMLViolationWitnessesDirectlyFromCounterexample = true
 
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"

@@ -127,6 +127,11 @@ public class ARGStatistics implements Statistics {
 
   @Option(
       secure = true,
+      description = "export the yaml Violation Witnesses directly from the Counterexample.")
+  private boolean exportYAMLViolationWitnessesDirectlyFromCounterexample = true;
+
+  @Option(
+      secure = true,
       description = "when enabled also write invariant true to correctness-witness automata")
   private boolean exportTrueInvariants = false;
 

@@ -51,9 +51,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
@@ -233,6 +238,62 @@ public final class InvariantWitnessWriter {
         new WitnessToYamlWitnessConverter(logger, writeLocationInvariants);
     Collection<InvariantWitness> invariantWitnesses = conv.convertProofWitness(witness);
     exportInvariantWitnesses(invariantWitnesses, outFile);
+  }
+
+  private LocationRecord createLocationRecord(FileLocation fLoc, String functionName) {
+    final String fileName = fLoc.getFileName().toString();
+    final int lineNumber = fLoc.getStartingLineInOrigin();
+    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
+    final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
+
+    LocationRecord location =
+        new LocationRecord(fileName, "file_hash", lineNumber, offsetInLine, functionName);
+    return location;
+  }
+
+  @SuppressWarnings("unused")
+  public void exportErrorWitnessAsYamlWitness(CounterexampleInfo pCex, Appendable pApp) {
+    CFAPathWithAssumptions cexPathWithAssignments = pCex.getCFAPathWithAssignments();
+    List<SegmentRecord> segments = new ArrayList<>();
+
+    for (CFAEdgeWithAssumptions edgeWithAssumptions : cexPathWithAssignments) {
+      CFAEdge edge = edgeWithAssumptions.getCFAEdge();
+      // See if the edge contains an assigment of a VerifierNondet call
+      if (CFAUtils.assignsNondetFunctionCall(edge)) {
+        List<WaypointRecord> waypoints = new ArrayList<>();
+        for (AExpressionStatement statement : edgeWithAssumptions.getExpStmts()) {
+          InformationRecord informationRecord =
+              new InformationRecord(statement.toString(), null, "C");
+          LocationRecord location =
+              createLocationRecord(edge.getFileLocation(), edge.getPredecessor().getFunctionName());
+          waypoints.add(
+              new WaypointRecord(
+                  WaypointRecord.WaypointType.ASSUMPTION,
+                  WaypointRecord.WaypointAction.FOLLOW,
+                  informationRecord,
+                  location));
+        }
+        segments.add(new SegmentRecord(waypoints));
+      }
+    }
+
+    // Add target
+    CFAEdge lastEdge = cexPathWithAssignments.get(cexPathWithAssignments.size() - 1).getCFAEdge();
+    segments.add(
+        SegmentRecord.ofOnlyElement(
+            new WaypointRecord(
+                WaypointRecord.WaypointType.TARGET,
+                WaypointRecord.WaypointAction.FOLLOW,
+                null,
+                createLocationRecord(
+                    lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
+
+    ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), segments);
+    try {
+      pApp.append(mapper.writeValueAsString(ImmutableList.of(entry)));
+    } catch (IOException e) {
+      logger.logException(WARNING, e, "Failed to write yaml witness to file");
+    }
   }
 
   public void exportErrorWitnessAsYamlWitness(Witness pWitness, Appendable pApp) {

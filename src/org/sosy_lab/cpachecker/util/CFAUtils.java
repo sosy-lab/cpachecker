@@ -78,6 +78,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -109,6 +111,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -714,6 +717,26 @@ public class CFAUtils {
   public static FluentIterable<CExpression> traverseRecursively(CExpression root) {
     return (FluentIterable<CExpression>)
         (FluentIterable<?>) FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
+  }
+
+  /**
+   * Checks weather the given edge has the form VAR = __VERIFIER_nondet_TYPE(); Where VAR is of type
+   * CIdExpression
+   */
+  public static boolean assignsNondetFunctionCall(CFAEdge pEdge) {
+    if (pEdge instanceof CStatementEdge statementEdge) {
+      if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement statement) {
+        if (statement.getLeftHandSide() instanceof CIdExpression) {
+          CFunctionCallExpression expression = statement.getRightHandSide();
+          if (expression.getFunctionNameExpression() instanceof CIdExpression functionName) {
+            if (functionName.getName().startsWith("__VERIFIER_nondet_")) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**
