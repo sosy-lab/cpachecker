@@ -144,8 +144,8 @@ class THTypeConverter extends TypeConverter {
     for (Map.Entry<String, JClassOrInterfaceType> entry : typeTable.getTypes().entrySet()) {
       JClassOrInterfaceType type = entry.getValue();
 
-      if(type.getName().equals(pSuperClass.getName())) {
-        return (JClassType)type;
+      if (type.getName().equals(pSuperClass.getName())) {
+        return (JClassType) type;
       } else {
         JClassOrInterfaceType temp = checkSubTypes(type.getAllSubTypesOfType(), pSuperClass);
         if (temp != null) {
@@ -156,13 +156,14 @@ class THTypeConverter extends TypeConverter {
     return null;
   }
 
-  private JClassOrInterfaceType checkSubTypes(Set<? extends JClassOrInterfaceType> pSet, Class<?> pSuperClass) {
-    for(JClassOrInterfaceType type: pSet) {
-      if(type.getName().equals(pSuperClass.getName())) {
+  private JClassOrInterfaceType checkSubTypes(
+      Set<? extends JClassOrInterfaceType> pSet, Class<?> pSuperClass) {
+    for (JClassOrInterfaceType type : pSet) {
+      if (type.getName().equals(pSuperClass.getName())) {
         return type;
       } else {
-        JClassOrInterfaceType temp = checkSubTypes(type.getAllSubTypesOfType(),pSuperClass);
-        if(temp != null) {
+        JClassOrInterfaceType temp = checkSubTypes(type.getAllSubTypesOfType(), pSuperClass);
+        if (temp != null) {
           return temp;
         }
       }
