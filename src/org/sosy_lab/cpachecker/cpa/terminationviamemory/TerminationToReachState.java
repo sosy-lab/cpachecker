@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -19,23 +18,21 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import scala.concurrent.impl.FutureConvertersImpl.P;
 
 /** Tracks already seen states at loop-head locations*/
 public class TerminationToReachState
     implements Graphable, AbstractQueryableState, Targetable {
-  /** We store values of variables that we have seen at the concrete loop-head location*/
   private boolean isTarget;
+  /** The constraints on values of the variables that has already been seen in a loop-head*/
   private Map<LocationState, List<BooleanFormula>> storedValues;
   /** We store number of times that we have iterated over a loop*/
   private Map<LocationState, Integer> numberOfIterations;
   /** Stores assumptions from path formula after i iterations of the loop*/
   private Set<BooleanFormula> pathFormulaForIteration;
   private BooleanFormulaManagerView bfmgr;
-  private static final String PROPERTY_TERMINATION = "termination";
+
   public TerminationToReachState(Map<LocationState, List<BooleanFormula>> pStoredValues,
                                  Map<LocationState, Integer> pNumberOfIterations,
                                  Set<BooleanFormula> pPathFormulaForIteration,

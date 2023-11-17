@@ -465,7 +465,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           return ExpressionTrees.getTrue();
         };
 
-    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX));
+    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX, nonterminatingLoop));
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
@@ -499,7 +499,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     }
   }
 
-  private Collection<ARGState> copyStem(
+  protected Collection<ARGState> copyStem(
       final ARGPath pStem,
       final ARGState newRoot,
       final ARGState loopStart,
@@ -529,14 +529,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     return newStates;
   }
 
-  private Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry) {
+  protected Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry, Loop pLoop) {
     CFANode loc = AbstractStates.extractLocation(pLoopEntry);
-    Preconditions.checkState(nonterminatingLoop.getLoopHeads().contains(loc));
+    Preconditions.checkState(pLoop.getLoopHeads().contains(loc));
 
     Collection<ARGState> relevantARGStates = new HashSet<>();
 
     Map<CFANode, ARGState> nodeToARGState =
-        Maps.newHashMapWithExpectedSize(nonterminatingLoop.getLoopNodes().size());
+        Maps.newHashMapWithExpectedSize(pLoop.getLoopNodes().size());
     nodeToARGState.put(loc, pLoopEntry);
     Deque<CFANode> waitlist = new ArrayDeque<>();
     waitlist.push(loc);
@@ -547,7 +547,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       assert pred != null;
 
       for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
-        if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
+        if (pLoop.getLoopNodes().contains(leave.getSuccessor())) {
           ARGState succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
             succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
