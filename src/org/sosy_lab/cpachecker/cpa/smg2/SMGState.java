@@ -2786,6 +2786,10 @@ public class SMGState
     if (machineModel.getEndianness().equals(ByteOrder.LITTLE_ENDIAN)) {
       // Little Endian = Least significant value is stored first
       shiftRight = readOffset.intValueExact() - readSMGHVValue.getOffset().intValueExact();
+      if (shiftRight < 0) {
+        // Read larger edge on smaller, not supported
+        return UnknownValue.getInstance();
+      }
       assert shiftRight >= 0;
       assert shiftRight <= readSMGHVValue.getSizeInBits().intValueExact();
     } else {
@@ -2821,14 +2825,14 @@ public class SMGState
         // TODO: can we handle this in Java?
 
       }
-    }
-    if (!value.isUnknown()) {
+    } else if (!value.isUnknown()) {
       // Some symbolic value. Wrap in symbolic shift operations
       // TODO:
-
+      // throw new UnsupportedOperationException("Symbolic handling of partial reads are not
+      // supported at the moment.");
     }
 
-    // Fallthrough that is caught
+    // Fallthrough. Unknown value -> unknown value
     return UnknownValue.getInstance();
   }
 
