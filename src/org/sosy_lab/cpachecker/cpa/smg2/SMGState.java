@@ -2832,8 +2832,16 @@ public class SMGState
           "Partial read of symbolic value detected. Overapproximated due to missing"
               + " implementation.";
       logger.log(Level.INFO, msg);
-      // throw new UnsupportedOperationException("Symbolic handling of partial reads are not
-      // supported at the moment.");
+      throw new UnsupportedOperationException(
+          "Symbolic handling of partial reads are not supported at the moment.");
+      // SymbolicValueFactory vF = SymbolicValueFactory.getInstance();
+      // asConstant needed?
+      /*
+      return vF.binaryAnd(vF.shiftRightUnsigned(value, new NumericValue(shiftRight), , ),
+              new NumericValue(getMask(readSizeInBits), , ));
+              */
+
+      // TODO: As we are interpreting this as BV, we could use extract()
     }
 
     // Fallthrough. Unknown value -> unknown value
