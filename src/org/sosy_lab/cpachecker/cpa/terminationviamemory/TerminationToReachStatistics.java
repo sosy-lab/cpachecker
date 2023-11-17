@@ -71,26 +71,12 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
       name = "compressWitness",
       description = "compress the produced violation-witness automata using GZIP compression.")
   private boolean compressWitness = true;
-
-  private final LogManager logger;
-
-  private final WitnessExporter witnessExporter;
-  private final LocationStateFactory locFac;
   private ImmutableSet<Loop> nonterminatingLoops = null;
 
   public TerminationToReachStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pCFA.getLoopStructure().orElseThrow().getCount(), pCFA);
-    logger = checkNotNull(pLogger);
-    witnessExporter =
-        new WitnessExporter(
-            pConfig,
-            pLogger,
-            Specification.alwaysSatisfied()
-                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-            pCFA);
-    locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
 
   @Override

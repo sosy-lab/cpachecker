@@ -48,8 +48,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     return Collections.singleton(new TerminationToReachState(
         new HashMap<>(terminationState.getStoredValues()),
         new HashMap<>(terminationState.getNumberOfIterationsMap()),
-        new HashSet<>(terminationState.getPathFormulas()),
-        bfmgr));
+        new HashSet<>(terminationState.getPathFormulas())));
   }
 
   @Override

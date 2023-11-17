@@ -153,9 +153,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final Multiset<Loop> safetyAnalysisRunsPerLoop = ConcurrentHashMultiset.create();
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private final WitnessExporter witnessExporter;
+  protected final WitnessExporter witnessExporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 

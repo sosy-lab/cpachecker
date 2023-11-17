@@ -31,18 +31,15 @@ public class TerminationToReachState
   private Map<LocationState, Integer> numberOfIterations;
   /** Stores assumptions from path formula after i iterations of the loop*/
   private Set<BooleanFormula> pathFormulaForIteration;
-  private BooleanFormulaManagerView bfmgr;
 
   public TerminationToReachState(Map<LocationState, List<BooleanFormula>> pStoredValues,
                                  Map<LocationState, Integer> pNumberOfIterations,
-                                 Set<BooleanFormula> pPathFormulaForIteration,
-                                 BooleanFormulaManagerView pBfmgr) {
+                                 Set<BooleanFormula> pPathFormulaForIteration) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     isTarget = false;
-    bfmgr = pBfmgr;
   }
   public void increaseNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
     if (numberOfIterations.containsKey(pLoopHead)) {
@@ -99,26 +96,6 @@ public class TerminationToReachState
   @Override
   public Set<TargetInformation> getTargetInformation() {
     return ImmutableSet.of();
-  }
-
-  @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
-      return true;
-    }
-    if (!(pO instanceof TerminationToReachState)) {
-      return false;
-    }
-    TerminationToReachState that = (TerminationToReachState) pO;
-
-    for (LocationState loc : storedValues.keySet()) {
-      if (!that.getStoredValues().keySet().contains(loc) ||
-          storedValues.get(loc) != that.getStoredValues().get(loc)) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   @Override
