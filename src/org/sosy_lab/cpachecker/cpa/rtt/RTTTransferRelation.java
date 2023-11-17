@@ -591,16 +591,22 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     private boolean isNullComparison(JBinaryExpression pExpression) {
       final BinaryOperator operator = pExpression.getOperator();
-      boolean isComparison =
-          operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS;
+
+      if (operator != BinaryOperator.EQUALS && operator != BinaryOperator.NOT_EQUALS) {
+        return false;
+      }
 
       final JExpression leftOperand = pExpression.getOperand1();
       final JExpression rightOperand = pExpression.getOperand2();
 
-      boolean leftIsObject = leftOperand.getExpressionType() instanceof JClassType;
-      boolean rightIsNull = rightOperand.getExpressionType() instanceof JNullType;
+      boolean leftIsNull =
+          leftOperand.getExpressionType() instanceof JNullType
+              && rightOperand.getExpressionType() instanceof JClassType;
+      boolean rightIsNull =
+          leftOperand.getExpressionType() instanceof JClassType
+              && rightOperand.getExpressionType() instanceof JNullType;
 
-      return isComparison && leftIsObject && rightIsNull;
+      return leftIsNull || rightIsNull;
     }
 
     private boolean isObjectComparison(JBinaryExpression pExpression) {
