@@ -774,7 +774,15 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     }
 
     private boolean handleInstanceOf(String runTimeType, JReferenceType typeDef) {
-      JClassType typeDefClass = (JClassType) typeDef;
+      if (typeDef instanceof JArrayType) {
+        // TODO this needs to be tested
+        JArrayType typeDefArray = (JArrayType) typeDef;
+        if (runTimeType.equals(typeDefArray.toString())) {
+          return true;
+        }
+      } else {
+
+      JClassOrInterfaceType typeDefClass = (JClassOrInterfaceType) typeDef;
       String name = typeDefClass.getName();
 
       if (runTimeType.equals(name)) {
@@ -782,9 +790,10 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       } else if (runTimeType.equals(JClassType.getTypeOfObject().getName())) {
         return false;
       } else {
-        for (JClassType type : typeDefClass.getDirectSubClasses()) {
+        for (JClassOrInterfaceType type : typeDefClass.getAllSubTypesOfType()) {
           return handleInstanceOf(runTimeType, type);
         }
+      }
       }
       return false;
     }
