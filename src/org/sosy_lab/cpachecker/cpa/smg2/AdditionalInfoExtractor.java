@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -31,27 +29,31 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 public class AdditionalInfoExtractor {
 
+  // Note: the old analysis had mutable states (somewhat), so some info is present before it
+  // happens.
+  // It was used to find invalid sources before they happen in the path. This is not possible with
+  // the fully immutable states of this analysis.
   public CFAPathWithAdditionalInfo createExtendedInfo(ARGPath pPath) {
     // inject additional info for extended witness
     PathIterator rIterator = pPath.reverseFullPathIterator();
     ARGState lastArgState = rIterator.getAbstractState();
     SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
-    List<Object> invalidChain = null;
+    // List<Object> invalidChain = null;
     List<SMGErrorInfo> errorInfos = state.getErrorInfo();
     boolean isMemoryLeakError = state.hasMemoryLeak();
-    SMGState prevSMGState = state;
-    Set<Object> visitedElems = new HashSet<>();
+    // SMGState prevSMGState = state;
+    // Set<Object> visitedElems = new HashSet<>();
     List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
 
     while (rIterator.hasNext()) {
       rIterator.advance();
       if (rIterator.isPositionWithState()) {
-        ARGState argState = rIterator.getAbstractState();
-        SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
+        // ARGState argState = rIterator.getAbstractState();
+        // SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
         CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo =
             CFAEdgeWithAdditionalInfo.of(rIterator.getOutgoingEdge());
         if (errorInfos != null && !errorInfos.isEmpty()) {
-          invalidChain = errorInfos.get(0).getInvalidChain();
+          // invalidChain = errorInfos.get(0).getInvalidChain();
         }
 
         // Move memory leak on return edge
