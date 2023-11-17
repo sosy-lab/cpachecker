@@ -2222,6 +2222,9 @@ cpa.predicate.enableBlockreducer = false
 # these functions will result in an error.
 cpa.predicate.enableMemoryAssignmentFunctions = false
 
+# Enable to share the information via serialization storage.
+cpa.predicate.enableSharedInformation = false
+
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance. If

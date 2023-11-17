@@ -124,6 +124,12 @@ public class PredicateCPA
               + "coverage checks or do only the fast abstract checks")
   private boolean symbolicCoverageCheck = false;
 
+  @Option(
+      secure = true,
+      name = "enableSharedInformation",
+      description = "Enable to share the information via serialization storage.")
+  private boolean enableSharedInformation = false;
+
   protected final Configuration config;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -242,8 +248,11 @@ public class PredicateCPA
             abstractionManager,
             abstractionStats,
             statistics);
+
     //TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to be fixed !
-    SerializationInfoStorage.storeSerializationInformation(this, cfa);
+    if (enableSharedInformation) {
+      SerializationInfoStorage.storeSerializationInformation(this, cfa);
+    }
   }
 
   @Override
