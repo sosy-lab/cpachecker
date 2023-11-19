@@ -406,43 +406,10 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
       shutdownNotifier.shutdownIfNecessary();
 
-      if (configFilesIterator.hasNext()) {
-        // Check if the next config file has a condition,
-        // and if it has a condition, check if it matches.
-        boolean foundConfig;
-        do {
-          foundConfig = true;
-          Optional<String> condition = configFilesIterator.peek().annotation();
-          if (condition.isPresent()) {
-            foundConfig =
-                switch (condition.orElseThrow()) {
-                  case "if-interrupted" -> lastAnalysisResult == LastAnalysisResult.INTERUPTED;
-                  case "if-failed" -> lastAnalysisResult == LastAnalysisResult.FAILED;
-                  case "if-terminated" -> lastAnalysisResult == LastAnalysisResult.TERMINATED;
-                  case "if-recursive" -> recursionFound;
-                  case "if-concurrent" -> concurrencyFound;
-                  case "use-reached" -> true;
-                  default -> {
-                    logger.logf(
-                        Level.WARNING,
-                        "Ignoring invalid restart condition '%s' for file %s.",
-                        condition.orElseThrow(),
-                        configFilesIterator.peek().value());
-                    yield true;
-                  }
-                };
-            if (!foundConfig) {
-              logger.logf(
-                  Level.INFO,
-                  "Ignoring restart configuration '%s' because condition %s did not match.",
-                  configFilesIterator.peek().value(),
-                  condition.orElseThrow());
-              configFilesIterator.next();
-              stats.noOfAlgorithmsUsed++;
-            }
-          }
-        } while (!foundConfig && configFilesIterator.hasNext());
-      }
+      // Check if the next config file has a condition,
+      // and if it has a condition, check if it matches.
+      skipNextAnalysesIfRequired(
+          configFilesIterator, lastAnalysisResult, recursionFound, concurrencyFound);
 
       if (configFilesIterator.hasNext()) {
         printIntermediateStatistics(currentReached);
@@ -466,6 +433,53 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
     return status;
+  }
+
+  /**
+   * Advance the given iterator by skipping over analyses where the usage condition does not match,
+   * such that the next entry in the iterator is the next analysis that should be used or the
+   * iterator is empty.
+   */
+  private void skipNextAnalysesIfRequired(
+      final PeekingIterator<AnnotatedValue<Path>> configFilesIterator,
+      final LastAnalysisResult lastAnalysisResult,
+      final boolean recursionFound,
+      final boolean concurrencyFound) {
+
+    while (configFilesIterator.hasNext()) {
+      Optional<String> condition = configFilesIterator.peek().annotation();
+      if (condition.isEmpty()) {
+        return; // next analysis used unconditionally
+      }
+      boolean foundConfig =
+          switch (condition.orElseThrow()) {
+            case "if-interrupted" -> lastAnalysisResult == LastAnalysisResult.INTERUPTED;
+            case "if-failed" -> lastAnalysisResult == LastAnalysisResult.FAILED;
+            case "if-terminated" -> lastAnalysisResult == LastAnalysisResult.TERMINATED;
+            case "if-recursive" -> recursionFound;
+            case "if-concurrent" -> concurrencyFound;
+            case "use-reached" -> true;
+            default -> {
+              logger.logf(
+                  Level.WARNING,
+                  "Ignoring invalid restart condition '%s' for file %s.",
+                  condition.orElseThrow(),
+                  configFilesIterator.peek().value());
+              yield true;
+            }
+          };
+      if (foundConfig) {
+        return;
+      } else {
+        logger.logf(
+            Level.INFO,
+            "Ignoring restart configuration '%s' because condition %s did not match.",
+            configFilesIterator.peek().value(),
+            condition.orElseThrow());
+        configFilesIterator.next();
+        stats.noOfAlgorithmsUsed++;
+      }
+    }
   }
 
   @SuppressFBWarnings(
