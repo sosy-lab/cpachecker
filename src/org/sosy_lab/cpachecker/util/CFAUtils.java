@@ -719,19 +719,14 @@ public class CFAUtils {
         (FluentIterable<?>) FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
   }
 
-  /**
-   * Checks weather the given edge has the form VAR = __VERIFIER_nondet_TYPE(); Where VAR is of type
-   * CIdExpression
-   */
+  /** Checks whether the given edge has the form VAR = __VERIFIER_nondet_TYPE() */
   public static boolean assignsNondetFunctionCall(CFAEdge pEdge) {
     if (pEdge instanceof CStatementEdge statementEdge) {
       if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement statement) {
-        if (statement.getLeftHandSide() instanceof CIdExpression) {
-          CFunctionCallExpression expression = statement.getRightHandSide();
-          if (expression.getFunctionNameExpression() instanceof CIdExpression functionName) {
-            if (functionName.getName().startsWith("__VERIFIER_nondet_")) {
-              return true;
-            }
+        CFunctionCallExpression expression = statement.getRightHandSide();
+        if (expression.getFunctionNameExpression() instanceof CIdExpression functionName) {
+          if (functionName.getName().startsWith("__VERIFIER_nondet_")) {
+            return true;
           }
         }
       }

@@ -244,7 +244,7 @@ public final class InvariantWitnessWriter {
     final String fileName = fLoc.getFileName().toString();
     final int lineNumber = fLoc.getStartingLineInOrigin();
     final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
-    final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
+    final int offsetInLine = fLoc.getNodeOffset() - lineOffset + 1;
 
     LocationRecord location =
         new LocationRecord(fileName, "file_hash", lineNumber, offsetInLine, functionName);
@@ -258,7 +258,7 @@ public final class InvariantWitnessWriter {
 
     for (CFAEdgeWithAssumptions edgeWithAssumptions : cexPathWithAssignments) {
       CFAEdge edge = edgeWithAssumptions.getCFAEdge();
-      // See if the edge contains an assigment of a VerifierNondet call
+      // See if the edge contains an assignment of a VerifierNondet call
       if (CFAUtils.assignsNondetFunctionCall(edge)) {
         List<WaypointRecord> waypoints = new ArrayList<>();
         for (AExpressionStatement statement : edgeWithAssumptions.getExpStmts()) {
@@ -273,7 +273,9 @@ public final class InvariantWitnessWriter {
                   informationRecord,
                   location));
         }
-        segments.add(new SegmentRecord(waypoints));
+        if (!waypoints.isEmpty()) {
+          segments.add(new SegmentRecord(waypoints));
+        }
       }
     }
 
