@@ -116,19 +116,14 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   }
 
   @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (!(pO instanceof TerminationToReachState)) {
-      return false;
-    }
-    TerminationToReachState that = (TerminationToReachState) pO;
-
-    // We have to check for equality of all the stored values between the states.
-    // They can be stored in different maps, that's why we have to cycle through them.
-    return this.storedValues.equals(that.getStoredValues());
+    return pOther instanceof TerminationToReachState
+        && this.storedValues.equals(((TerminationToReachState) pOther).getStoredValues());
   }
+
 
   private String getReadableStoredValues() {
     return getReadableStoredValues(this);
