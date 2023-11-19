@@ -3052,7 +3052,7 @@ cpa.smg2.arrayAllocationFunctions = {"calloc"}
 cpa.smg2.assignEqualityAssumptions = true
 
 # Treat symbolic values as unknowns and assign new concrete values to them.
-cpa.smg2.assignSymbolicValues = true
+cpa.smg2.assignSymbolicValues = false
 
 # Whether to perform caching of constraint satisfiability results
 cpa.smg2.cache = true
