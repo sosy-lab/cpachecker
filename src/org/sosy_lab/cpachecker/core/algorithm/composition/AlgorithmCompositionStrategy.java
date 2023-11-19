@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 public abstract class AlgorithmCompositionStrategy {
 
   protected LogManager logger;
+  protected boolean considerRecursiveContexts = false;
 
   protected AlgorithmCompositionStrategy(LogManager pLogger) {
     logger = pLogger;
@@ -63,5 +64,9 @@ public abstract class AlgorithmCompositionStrategy {
         CFA cfa,
         Specification specification)
         throws InvalidConfigurationException;
+  }
+
+  public void setRecursionFound() {
+    considerRecursiveContexts = true;
   }
 }

@@ -104,9 +104,17 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
       out.println("Number of algorithms provided:    " + algorithms.size());
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
-      out.println("Last algorithm used:        " + algorithms.get(noOfAlgorithmsUsed - 1));
+      out.println("Last algorithm used:        " + getLastAlgorithmUsed());
 
       printSubStatistics(out, result, reached);
+    }
+
+    private String getLastAlgorithmUsed() {
+      if (noOfAlgorithmsUsed > 0) {
+        return algorithms.get(noOfAlgorithmsUsed - 1);
+      } else {
+        return "none";
+      }
     }
 
     private void printSubStatistics(

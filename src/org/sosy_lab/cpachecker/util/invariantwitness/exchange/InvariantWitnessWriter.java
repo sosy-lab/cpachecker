@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -50,9 +51,15 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
@@ -149,8 +156,7 @@ public final class InvariantWitnessWriter {
       Configuration pConfig, CFA pCFA, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException, IOException {
     if (pSpecification.getProperties().size() != 1) {
-      throw new InvalidConfigurationException(
-          "Invariant export only supported for specific verificaiton task");
+      pLogger.log(WARNING, "Invariant export only supported for specific verification task");
     }
     return new InvariantWitnessWriter(
         pConfig,
@@ -172,7 +178,11 @@ public final class InvariantWitnessWriter {
     for (Path inputFile : inputFiles) {
       inputFileHashes.put(inputFile.toString(), AutomatonGraphmlCommon.computeHash(inputFile));
     }
-    String specification = pSpecification.getProperties().iterator().next().toString();
+
+    String specification =
+        pSpecification.getProperties().stream()
+            .map(Property::toString)
+            .collect(Collectors.joining(" && "));
 
     return new TaskRecord(
         inputFiles.stream().map(Path::toString).collect(ImmutableList.toImmutableList()),
@@ -228,6 +238,64 @@ public final class InvariantWitnessWriter {
         new WitnessToYamlWitnessConverter(logger, writeLocationInvariants);
     Collection<InvariantWitness> invariantWitnesses = conv.convertProofWitness(witness);
     exportInvariantWitnesses(invariantWitnesses, outFile);
+  }
+
+  private LocationRecord createLocationRecord(FileLocation fLoc, String functionName) {
+    final String fileName = fLoc.getFileName().toString();
+    final int lineNumber = fLoc.getStartingLineInOrigin();
+    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
+    final int offsetInLine = fLoc.getNodeOffset() - lineOffset + 1;
+
+    LocationRecord location =
+        new LocationRecord(fileName, "file_hash", lineNumber, offsetInLine, functionName);
+    return location;
+  }
+
+  @SuppressWarnings("unused")
+  public void exportErrorWitnessAsYamlWitness(CounterexampleInfo pCex, Appendable pApp) {
+    CFAPathWithAssumptions cexPathWithAssignments = pCex.getCFAPathWithAssignments();
+    List<SegmentRecord> segments = new ArrayList<>();
+
+    for (CFAEdgeWithAssumptions edgeWithAssumptions : cexPathWithAssignments) {
+      CFAEdge edge = edgeWithAssumptions.getCFAEdge();
+      // See if the edge contains an assignment of a VerifierNondet call
+      if (CFAUtils.assignsNondetFunctionCall(edge)) {
+        List<WaypointRecord> waypoints = new ArrayList<>();
+        for (AExpressionStatement statement : edgeWithAssumptions.getExpStmts()) {
+          InformationRecord informationRecord =
+              new InformationRecord(statement.toString(), null, "C");
+          LocationRecord location =
+              createLocationRecord(edge.getFileLocation(), edge.getPredecessor().getFunctionName());
+          waypoints.add(
+              new WaypointRecord(
+                  WaypointRecord.WaypointType.ASSUMPTION,
+                  WaypointRecord.WaypointAction.FOLLOW,
+                  informationRecord,
+                  location));
+        }
+        if (waypoints.size() > 0) {
+          segments.add(new SegmentRecord(waypoints));
+        }
+      }
+    }
+
+    // Add target
+    CFAEdge lastEdge = cexPathWithAssignments.get(cexPathWithAssignments.size() - 1).getCFAEdge();
+    segments.add(
+        SegmentRecord.ofOnlyElement(
+            new WaypointRecord(
+                WaypointRecord.WaypointType.TARGET,
+                WaypointRecord.WaypointAction.FOLLOW,
+                null,
+                createLocationRecord(
+                    lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
+
+    ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), segments);
+    try {
+      pApp.append(mapper.writeValueAsString(ImmutableList.of(entry)));
+    } catch (IOException e) {
+      logger.logException(WARNING, e, "Failed to write yaml witness to file");
+    }
   }
 
   public void exportErrorWitnessAsYamlWitness(Witness pWitness, Appendable pApp) {
@@ -498,6 +566,14 @@ public final class InvariantWitnessWriter {
           return intersection.iterator().next();
         }
       }
+
+      // We only reach this place if the target node does not have any successors
+      // If we are calling the reach error function, we want to export this as node
+      // since this will likely be the target node
+      if (cfaEdge.getRawStatement().equals("reach_error();")) {
+        return cfaEdge;
+      }
+
       return null;
     }
 

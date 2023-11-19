@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGHasValueEdgesAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
-import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
+import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -959,12 +959,14 @@ public class SymbolicProgramConfiguration {
           .getQualifiedName()
           .contentEquals(variableFunctionName)) {
         // Check 1 frame above, sometimes CPAchecker forces us to look there
-        currentFrame = stackVariableMapping.popAndCopy().peek();
-        Preconditions.checkArgument(
-            currentFrame
-                .getFunctionDefinition()
-                .getQualifiedName()
-                .contentEquals(variableFunctionName));
+        if (stackVariableMapping.size() > 1) {
+          currentFrame = stackVariableMapping.popAndCopy().peek();
+          Preconditions.checkArgument(
+              currentFrame
+                  .getFunctionDefinition()
+                  .getQualifiedName()
+                  .contentEquals(variableFunctionName));
+        }
       }
     }
     int sizeOfVariables = currentFrame.getVariables().size();
@@ -1061,13 +1063,17 @@ public class SymbolicProgramConfiguration {
    * @param pObject the {@link SMGObject} read.
    * @param pFieldOffset {@link BigInteger} offset.
    * @param pSizeofInBits {@link BigInteger} sizeInBits.
-   * @return {@link SMGValueAndSPC} tuple for the copy of the SPC with the value read and the {@link
-   *     SMGValue} read from it.
+   * @param preciseRead true for reads that cut SMGHasValueEdges down from existing concrete values.
+   *     False for default SMG behavior of creating new, smaller/larger symbolic values.
+   * @return {@link SMGHasValueEdgesAndSPC} tuple for the copy of the SPC with the value read and
+   *     the {@link SMGValue} read from it.
    */
-  public SMGValueAndSPC readValue(
-      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
-    SMGandValue newSMGAndValue = smg.readValue(pObject, pFieldOffset, pSizeofInBits);
-    return SMGValueAndSPC.of(newSMGAndValue.getValue(), copyAndReplaceSMG(newSMGAndValue.getSMG()));
+  public SMGHasValueEdgesAndSPC readValue(
+      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits, boolean preciseRead) {
+    SMGAndHasValueEdges newSMGAndValue =
+        smg.readValue(pObject, pFieldOffset, pSizeofInBits, preciseRead);
+    return SMGHasValueEdgesAndSPC.of(
+        newSMGAndValue.getHvEdges(), copyAndReplaceSMG(newSMGAndValue.getSMG()));
   }
 
   /**
@@ -1623,6 +1629,7 @@ public class SymbolicProgramConfiguration {
               .append(value)
               .append("(")
               .append(smgValue)
+              .append("[" + valueEdge.getOffset() + "," + valueEdge.getSizeInBits() + ")")
               .append(pointerInfo)
               .append(")")
               .append("\n");
@@ -1642,7 +1649,15 @@ public class SymbolicProgramConfiguration {
         } else {
           memoryString = memoryString + " invalid " + memory;
         }
-        for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
+        Set<SMGHasValueEdge> edges = smg.getEdges(memory);
+        if (edges.isEmpty()) {
+          builder
+              .append("  " + qualifiedName)
+              .append(": (empty)")
+              .append(memoryString)
+              .append("\n");
+        }
+        for (SMGHasValueEdge valueEdge : edges) {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
@@ -1657,6 +1672,7 @@ public class SymbolicProgramConfiguration {
               .append(value)
               .append("(")
               .append(smgValue)
+              .append("[" + valueEdge.getOffset() + "," + valueEdge.getSizeInBits() + ")")
               .append(pointerInfo)
               .append(")")
               .append(memoryString)
@@ -1666,7 +1682,7 @@ public class SymbolicProgramConfiguration {
       builder.append("\n");
     }
     builder.append("\n");
-    builder.append("Pointers and targets with values:");
+    builder.append("Pointers -> [pointer offset] targets[offset, size in bits) with values:");
     builder.append("\n");
 
     for (Entry<SMGValue, SMGPointsToEdge> entry : smg.getPTEdgeMapping().entrySet()) {
@@ -1677,7 +1693,6 @@ public class SymbolicProgramConfiguration {
       builder
           .append(entry.getKey())
           .append(" (" + entry.getKey().getNestingLevel() + ")")
-          .append(" -> ")
           .append(entry.getValue())
           .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true))
           .append(validity);

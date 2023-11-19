@@ -4,13 +4,12 @@
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
 #
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 import subprocess
 import sys
-import os
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
@@ -21,18 +20,16 @@ def determineRevision(dir_path):
     """
     # Check for SVN repository
     try:
-        svnProcess = subprocess.Popen(
+        svnProcess = subprocess.run(
             ["svnversion", "--committed", dir_path],
             env={"LANG": "C"},
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
+            text=True,
         )
-        (stdout, stderr) = svnProcess.communicate()
-        stdout = _decode_to_string(stdout).strip()
-        stdout = stdout.split(":")[-1]
+        stdout = svnProcess.stdout.strip().split(":")[-1]
         if not (
             svnProcess.returncode
-            or stderr
+            or svnProcess.stderr
             or (stdout == "exported")
             or (stdout == "Unversioned directory")
         ):
@@ -42,35 +39,32 @@ def determineRevision(dir_path):
 
     # Check for git-svn repository
     try:
-        with open(os.devnull, "wb") as DEVNULL:
-            # This will silently perform the migration from older git-svn directory layout.
-            # Otherwise, the migration may be performed by the next git svn invocation,
-            # producing nonempty stderr.
-            subprocess.call(["git", "svn", "migrate"], stderr=DEVNULL)
+        # This will silently perform the migration from older git-svn directory layout.
+        # Otherwise, the migration may be performed by the next git svn invocation,
+        # producing nonempty stderr.
+        subprocess.call(["git", "svn", "migrate"], stderr=subprocess.DEVNULL)
 
-        gitProcess = subprocess.Popen(
+        gitProcess = subprocess.run(
             ["git", "svn", "find-rev", "HEAD"],
             env={"LANG": "C"},
             cwd=dir_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
+            text=True,
         )
-        (stdout, stderr) = gitProcess.communicate()
-        stdout = _decode_to_string(stdout).strip()
-        if not (gitProcess.returncode or stderr) and stdout:
+        stdout = gitProcess.stdout.strip()
+        if not (gitProcess.returncode or gitProcess.stderr) and stdout:
             return stdout + ("M" if _isGitRepositoryDirty(dir_path) else "")
 
         # Check for git repository
-        gitProcess = subprocess.Popen(
+        gitProcess = subprocess.run(
             ["git", "log", "-1", "--pretty=format:%h", "--abbrev-commit"],
             env={"LANG": "C"},
             cwd=dir_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
+            text=True,
         )
-        (stdout, stderr) = gitProcess.communicate()
-        stdout = _decode_to_string(stdout).strip()
-        if not (gitProcess.returncode or stderr) and stdout:
+        stdout = gitProcess.stdout.strip()
+        if not (gitProcess.returncode or gitProcess.stderr) and stdout:
             return stdout + ("+" if _isGitRepositoryDirty(dir_path) else "")
     except OSError:
         pass
@@ -78,44 +72,25 @@ def determineRevision(dir_path):
 
 
 def _isGitRepositoryDirty(dir_path):
-    gitProcess = subprocess.Popen(
+    gitProcess = subprocess.run(
         ["git", "status", "--porcelain"],
         env={"LANG": "C"},
         cwd=dir_path,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
-    (stdout, stderr) = gitProcess.communicate()
-    if not (gitProcess.returncode or stderr):
-        return True if stdout else False  # True if stdout is non-empty
+    if not (gitProcess.returncode or gitProcess.stderr):
+        return bool(gitProcess.stdout)  # Dirty if stdout is non-empty
     return None
-
-
-def _decode_to_string(to_decode):
-    """
-    This function is needed for Python 3,
-    because a subprocess can return bytes instead of a string.
-    """
-    try:
-        return to_decode.decode("utf-8")
-    except AttributeError:  # bytesToDecode was of type string before
-        return to_decode
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:
         sys.exit("Unsupported command-line parameters.")
 
-    dir_path = "."
-    if len(sys.argv) > 1:
-        dir_path = sys.argv[1]
+    dir_path = sys.argv[1] if len(sys.argv) > 1 else "."
 
     revision = determineRevision(dir_path)
     if revision:
         print(revision)
     else:
-        sys.exit(
-            "Directory {0} is not a supported version control checkout.".format(
-                dir_path
-            )
-        )
+        sys.exit(f"Directory {dir_path} is not a supported version control checkout.")

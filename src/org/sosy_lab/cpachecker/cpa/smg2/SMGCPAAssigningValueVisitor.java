@@ -151,7 +151,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             currentState = newRightValueAndState.getState();
           }
           currentState =
-              currentState.writeValueTo(
+              currentState.writeValueWithChecks(
                   leftHandSideAssignment.getSMGObject(),
                   leftHandSideAssignment.getOffsetForObject(),
                   size,
@@ -183,7 +183,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             }
 
             currentState =
-                currentState.writeValueTo(
+                currentState.writeValueWithChecks(
                     rightHandSideAssignment.getSMGObject(),
                     rightHandSideAssignment.getOffsetForObject(),
                     size,
@@ -230,7 +230,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
           BigInteger size = evaluator.getBitSizeof(currentState, type);
           currentState =
-              currentState.writeValueTo(
+              currentState.writeValueWithChecks(
                   leftHandSideAssignment.getSMGObject(),
                   leftHandSideAssignment.getOffsetForObject(),
                   size,
@@ -260,7 +260,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
           BigInteger size = evaluator.getBitSizeof(currentState, type);
           currentState =
-              currentState.writeValueTo(
+              currentState.writeValueWithChecks(
                   rightHandSideAssignment.getSMGObject(),
                   rightHandSideAssignment.getOffsetForObject(),
                   size,

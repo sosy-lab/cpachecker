@@ -24,9 +24,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.logging.Level;
 import java.util.stream.Stream;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -603,19 +601,20 @@ class AssignmentHandler {
       CArrayType lhsArrayType,
       CType rhsType) {
 
-    final @Nullable CExpression lhsArrayLength = lhsArrayType.getLength();
-    if (lhsArrayLength == null) {
-      // we currently do not assign to flexible array members as it is complex to implement
+    if (lhsArrayType.getLength() == null) {
+      // This is either a function parameter or a flexible array member of a struct,
+      // but function parameters with array types are actually pointers and we let it decay before.
+      // Flexible array members effectively have length zero, so nothing to copy.
+      return;
+    }
+    if (!lhsArrayType.hasKnownConstantSize()) {
       conv.logger.logfOnce(
           Level.WARNING,
-          "%s: Ignoring assignment to flexible array member %s as they are not well-supported",
+          "%s: Ignoring assignment to array type %s with variable length",
           edge.getFileLocation(),
           lhsArrayType);
       return;
     }
-
-    final PartialSpan originalSpan = assignment.rhs().span();
-
     if (!lhsArrayType.equals(rhsType)) {
       // we currently do not assign to array types from different types as that would ideally
       // require spans to support quantification, which would be problematic
@@ -628,9 +627,10 @@ class AssignmentHandler {
           rhsType);
       return;
     }
+    final PartialSpan originalSpan = assignment.rhs().span();
     if (originalSpan.lhsBitOffset() != 0
         || originalSpan.rhsTargetBitOffset() != 0
-        || originalSpan.bitSize() != typeHandler.getApproximatedBitSizeof(lhsArrayType)) {
+        || originalSpan.bitSize() != typeHandler.getExactBitSizeof(lhsArrayType)) {
       // we currently do not assign for incomplete spans as it would not be trivial
       conv.logger.logfOnce(
           Level.WARNING,
@@ -649,7 +649,7 @@ class AssignmentHandler {
     // full span
     final CType elementType = typeHandler.simplifyType(lhsArrayType.getType());
     final PartialSpan elementSpan =
-        new PartialSpan(0, 0, typeHandler.getApproximatedBitSizeof(elementType));
+        new PartialSpan(0, 0, typeHandler.getExactBitSizeof(elementType));
     final PartialAssignmentRhs elementSpanRhs = new PartialAssignmentRhs(elementSpan, elementRhs);
 
     // target type is now element type

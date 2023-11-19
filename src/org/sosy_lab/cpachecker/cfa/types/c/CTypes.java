@@ -89,6 +89,18 @@ public final class CTypes {
   }
 
   /**
+   * Check whether a given type is a bool type. Also returns true for all qualified versions of bool
+   * types.
+   */
+  public static boolean isBoolType(CType type) {
+    type = type.getCanonicalType();
+    if (type instanceof CBitFieldType bitFieldType) {
+      type = bitFieldType.getType();
+    }
+    return type instanceof CSimpleType simpleType && simpleType.getType() == CBasicType.BOOL;
+  }
+
+  /**
    * Check whether a given type is a scalar type according to the C standard § 6.2.5 (21). Also
    * returns true for all qualified versions of aggregate types.
    */

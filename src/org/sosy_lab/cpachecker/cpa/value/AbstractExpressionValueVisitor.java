@@ -1562,6 +1562,15 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  /**
+   * Computes size of a type. Result can be an unknown value! Prefer this method over {@link
+   * MachineModel#getSizeof(CType)} because it works for variable-length arrays if the current
+   * visitor instance is able to evalue the length expression.
+   */
+  protected Value sizeof(CType pType) throws UnrecognizedCodeException {
+    return new SizeofVisitor().evaluateSizeof(pType);
+  }
+
   private final class SizeofVisitor extends BaseSizeofVisitor<UnrecognizedCodeException> {
 
     private boolean sizeKnown = true;
@@ -1614,7 +1623,7 @@ public abstract class AbstractExpressionValueVisitor
     final CExpression unaryOperand = unaryExpression.getOperand();
 
     if (unaryOperator == UnaryOperator.SIZEOF) {
-      return new SizeofVisitor().evaluateSizeof(unaryOperand.getExpressionType());
+      return sizeof(unaryOperand.getExpressionType());
     }
     if (unaryOperator == UnaryOperator.ALIGNOF) {
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));

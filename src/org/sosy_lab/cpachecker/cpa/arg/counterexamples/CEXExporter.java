@@ -85,6 +85,11 @@ public class CEXExporter {
 
   @Option(
       secure = true,
+      description = "export the yaml Violation Witnesses directly from the Counterexample.")
+  private boolean exportYamlWitnessesDirectlyFromCex = false;
+
+  @Option(
+      secure = true,
       name = "codeStyle",
       description = "exports either CMBC format or a concrete path program")
   private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
@@ -326,14 +331,25 @@ public class CEXExporter {
             compressWitness);
 
         if (invariantWitnessWriter != null) {
-          writeErrorPathFile(
-              options.getYamlWitnessFile(),
-              uniqueId,
-              (Appender)
-                  pApp -> {
-                    invariantWitnessWriter.exportErrorWitnessAsYamlWitness(witness, pApp);
-                  },
-              compressWitness);
+          if (exportYamlWitnessesDirectlyFromCex) {
+            writeErrorPathFile(
+                options.getYamlWitnessFile(),
+                uniqueId,
+                (Appender)
+                    pApp -> {
+                      invariantWitnessWriter.exportErrorWitnessAsYamlWitness(counterexample, pApp);
+                    },
+                compressWitness);
+          } else {
+            writeErrorPathFile(
+                options.getYamlWitnessFile(),
+                uniqueId,
+                (Appender)
+                    pApp -> {
+                      invariantWitnessWriter.exportErrorWitnessAsYamlWitness(witness, pApp);
+                    },
+                compressWitness);
+          }
         }
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
