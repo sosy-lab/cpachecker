@@ -115,8 +115,6 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return "TerminationState{storedValues=[" + getReadableStoredValues() + "]" + '}';
   }
 
-  // We have to check for equality of all the stored values between the states.
-  // They can be stored in different maps, that's why we have to cycle through them.
   @Override
   public boolean equals(Object pO) {
     if (this == pO) {
@@ -127,6 +125,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     }
     TerminationToReachState that = (TerminationToReachState) pO;
 
+    // We have to check for equality of all the stored values between the states.
+    // They can be stored in different maps, that's why we have to cycle through them.
     for (LocationState loc : storedValues.keySet()) {
       if (!that.getStoredValues().keySet().contains(loc)
           || storedValues.get(loc) != that.getStoredValues().get(loc)) {

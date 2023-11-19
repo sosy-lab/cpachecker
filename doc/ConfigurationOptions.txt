@@ -4817,13 +4817,13 @@ termination.violation.witness = "nontermination_witness.graphml"
 termination.violation.witness.dot = "nontermination_witness.dot"
 
 # compress the produced violation-witness automata using GZIP compression.
-terminationtoreach.compressWitness = true
+terminationtoreach.compressWitness = false
 
 # Export termination counterexample to file as GraphML automaton 
-terminationtoreach.violation.witness = "nontermination_witness.graphml"
+terminationtoreach.violation.witness = "witness.graphml"
 
 # Export termination counterexample to file as dot/graphviz automaton 
-terminationtoreach.violation.witness.dot = "nontermination_witness.dot"
+terminationtoreach.violation.witness.dot = "witness.dot"
 
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
