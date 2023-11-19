@@ -264,10 +264,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       ReachedSet currentReached;
       ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
 
-      LastAnalysisResult lastAnalysisResult;
-      boolean recursionFound = false;
-      boolean concurrencyFound = false;
-
       try {
         final AnnotatedValue<Path> singleConfig = configFilesIterator.next();
         final Path singleConfigFileName = singleConfig.value();
@@ -330,8 +326,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfAlgorithmsUsed);
           status = currentAlgorithm.run(currentReached);
 
-          lastAnalysisResult = LastAnalysisResult.TERMINATED;
           isLastReachedSetUsable = true;
+          skipNextAnalysesIfRequired(
+              configFilesIterator, LastAnalysisResult.TERMINATED, false, false);
 
           if (status.isPrecise() && currentReached.wasTargetReached()) {
 
@@ -366,13 +363,12 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
         } catch (CPAException e) {
           isLastReachedSetUsable = false;
-          lastAnalysisResult = LastAnalysisResult.FAILED;
-          if (e.getMessage().contains("recursion")) {
-            recursionFound = true;
-          }
-          if (e.getMessage().contains("pthread_create")) {
-            concurrencyFound = true;
-          }
+          skipNextAnalysesIfRequired(
+              configFilesIterator,
+              LastAnalysisResult.FAILED,
+              e.getMessage().contains("recursion"),
+              e.getMessage().contains("pthread_create"));
+
           if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException
               || e instanceof InfeasibleCounterexampleException) {
@@ -386,7 +382,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           }
         } catch (InterruptedException e) {
           isLastReachedSetUsable = false;
-          lastAnalysisResult = LastAnalysisResult.INTERUPTED;
+          skipNextAnalysesIfRequired(
+              configFilesIterator, LastAnalysisResult.INTERUPTED, false, false);
 
           if (configFilesIterator.hasNext()) {
             logger.logUserException(
@@ -405,11 +402,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       }
 
       shutdownNotifier.shutdownIfNecessary();
-
-      // Check if the next config file has a condition,
-      // and if it has a condition, check if it matches.
-      skipNextAnalysesIfRequired(
-          configFilesIterator, lastAnalysisResult, recursionFound, concurrencyFound);
 
       if (configFilesIterator.hasNext()) {
         printIntermediateStatistics(currentReached);
