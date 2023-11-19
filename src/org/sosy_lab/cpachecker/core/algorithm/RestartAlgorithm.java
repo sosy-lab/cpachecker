@@ -172,6 +172,15 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       description = "wether to start next algorithm independently from the previous result")
   private boolean alwaysRestart = false;
 
+  enum LastAnalysisResult {
+    /** Analysis terminated regularly. */
+    TERMINATED,
+    /** Analysis was interrupted with a shutdown signal. */
+    INTERUPTED,
+    /** Analysis produced a CPAException */
+    FAILED,
+  }
+
   private final ShutdownRequestListener logShutdownListener;
   private final RestartAlgorithmStatistics stats;
   private final CFA cfa;
@@ -256,9 +265,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       ReachedSet currentReached;
       ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
 
-      boolean lastAnalysisInterrupted = false;
-      boolean lastAnalysisFailed = false;
-      boolean lastAnalysisTerminated = false;
+      LastAnalysisResult lastAnalysisResult;
       boolean recursionFound = false;
       boolean concurrencyFound = false;
 
@@ -324,7 +331,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfAlgorithmsUsed);
           status = currentAlgorithm.run(currentReached);
 
-          lastAnalysisTerminated = true;
+          lastAnalysisResult = LastAnalysisResult.TERMINATED;
           isLastReachedSetUsable = true;
 
           if (status.isPrecise() && currentReached.wasTargetReached()) {
@@ -360,7 +367,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
         } catch (CPAException e) {
           isLastReachedSetUsable = false;
-          lastAnalysisFailed = true;
+          lastAnalysisResult = LastAnalysisResult.FAILED;
           if (e.getMessage().contains("recursion")) {
             recursionFound = true;
           }
@@ -380,7 +387,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           }
         } catch (InterruptedException e) {
           isLastReachedSetUsable = false;
-          lastAnalysisInterrupted = true;
+          lastAnalysisResult = LastAnalysisResult.INTERUPTED;
+
           if (configFilesIterator.hasNext()) {
             logger.logUserException(
                 Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped.");
@@ -409,9 +417,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           if (condition.isPresent()) {
             foundConfig =
                 switch (condition.orElseThrow()) {
-                  case "if-interrupted" -> lastAnalysisInterrupted;
-                  case "if-failed" -> lastAnalysisFailed;
-                  case "if-terminated" -> lastAnalysisTerminated;
+                  case "if-interrupted" -> lastAnalysisResult == LastAnalysisResult.INTERUPTED;
+                  case "if-failed" -> lastAnalysisResult == LastAnalysisResult.FAILED;
+                  case "if-terminated" -> lastAnalysisResult == LastAnalysisResult.TERMINATED;
                   case "if-recursive" -> recursionFound;
                   case "if-concurrent" -> concurrencyFound;
                   case "use-reached" -> {
