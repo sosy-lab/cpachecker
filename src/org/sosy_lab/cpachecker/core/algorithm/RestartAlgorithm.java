@@ -255,7 +255,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         Iterators.peekingIterator(configFiles.iterator());
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
-    boolean provideReachedForNextAlgorithm = false;
     boolean isLastReachedSetUsable = false;
     final List<ConfigurableProgramAnalysis> cpasToClose = new ArrayList<>();
 
@@ -270,7 +269,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       boolean concurrencyFound = false;
 
       try {
-        Path singleConfigFileName = configFilesIterator.next().value();
+        final AnnotatedValue<Path> singleConfig = configFilesIterator.next();
+        final Path singleConfigFileName = singleConfig.value();
         logger.logf(
             Level.INFO,
             "Loading analysis %d from file %s ...",
@@ -284,14 +284,13 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   initialNode,
                   cfa,
                   singleShutdownManager,
-                  provideReachedForNextAlgorithm,
+                  analysisWantsPreviousReachedSet(singleConfig),
                   // we can only use the reached set if the last analysis terminated without
                   // exception
                   isLastReachedSetUsable ? reached.getDelegate() : null);
           currentAlgorithm = currentAlg.algorithm();
           currentCpa = currentAlg.cpa();
           currentReached = currentAlg.reached();
-          provideReachedForNextAlgorithm = false; // has to be reseted
         } catch (InvalidConfigurationException e) {
           logger.logUserException(
               Level.WARNING,
@@ -422,10 +421,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   case "if-terminated" -> lastAnalysisResult == LastAnalysisResult.TERMINATED;
                   case "if-recursive" -> recursionFound;
                   case "if-concurrent" -> concurrencyFound;
-                  case "use-reached" -> {
-                    provideReachedForNextAlgorithm = true;
-                    yield true;
-                  }
+                  case "use-reached" -> true;
                   default -> {
                     logger.logf(
                         Level.WARNING,
@@ -452,7 +448,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         printIntermediateStatistics(currentReached);
         stats.resetSubStatistics();
 
-        if (currentCpa != null && !provideReachedForNextAlgorithm) {
+        if (currentCpa != null && !analysisWantsPreviousReachedSet(configFilesIterator.peek())) {
           CPAs.closeCpaIfPossible(currentCpa, logger);
         } else {
           cpasToClose.add(currentCpa);
@@ -513,6 +509,10 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         aggregateReached,
         Sets.newHashSet("restartAlgorithm.configFiles", "analysis.restartAfterUnknown"),
         stats.getSubStatistics());
+  }
+
+  private boolean analysisWantsPreviousReachedSet(AnnotatedValue<?> singleConfigEntry) {
+    return singleConfigEntry.annotation().equals(Optional.of("use-reached"));
   }
 
   @Override
