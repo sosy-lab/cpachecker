@@ -42,13 +42,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final CtoFormulaConverter ctoFormulaConverter;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
-  public TerminationToReachPrecisionAdjustment(Solver pSolver,
-                                               TerminationToReachStatistics pStatistics,
-                                               CFA pCFA,
-                                               BooleanFormulaManagerView pBfmgr,
-                                               FormulaManagerView pFmgr,
-                                               FormulaManagerView pPredFmgr,
-                                               CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
+
+  public TerminationToReachPrecisionAdjustment(
+      Solver pSolver,
+      TerminationToReachStatistics pStatistics,
+      CFA pCFA,
+      BooleanFormulaManagerView pBfmgr,
+      FormulaManagerView pFmgr,
+      FormulaManagerView pPredFmgr,
+      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
     solver = pSolver;
     statistics = pStatistics;
     cfa = pCFA;
@@ -67,37 +69,39 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       AbstractState fullState)
       throws CPAException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-    LocationState locationState = AbstractStates.extractStateByType(fullState,
-        LocationState.class);
+    LocationState locationState = AbstractStates.extractStateByType(fullState, LocationState.class);
     CFANode location = AbstractStates.extractLocation(locationState);
-    PredicateAbstractState predicateState = AbstractStates.extractStateByType(fullState,
-        PredicateAbstractState.class);
+    PredicateAbstractState predicateState =
+        AbstractStates.extractStateByType(fullState, PredicateAbstractState.class);
 
     SSAMap ssaMap = predicateState.getPathFormula().getSsa();
     PrecisionAdjustmentResult result =
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
 
     if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
-      terminationState.putNewPathFormula(fmgr.translateFrom(
-          predicateState.getPathFormula().getFormula(),
-          predFmgr));
+      terminationState.putNewPathFormula(
+          fmgr.translateFrom(predicateState.getPathFormula().getFormula(), predFmgr));
 
-      for (int i = 0; i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1; ++i) {
+      for (int i = 0;
+          i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1;
+          ++i) {
         boolean isTargetStateReachable = false;
-        BooleanFormula targetFormula = buildCycleFormula(buildFullPathFormula(
-            terminationState.getPathFormulas()),
-            terminationState.getStoredValues().get(locationState),
-            ssaMap,
-            i);
+        BooleanFormula targetFormula =
+            buildCycleFormula(
+                buildFullPathFormula(terminationState.getPathFormulas()),
+                terminationState.getStoredValues().get(locationState),
+                ssaMap,
+                i);
         try {
-            isTargetStateReachable = !solver.isUnsat(targetFormula);
+          isTargetStateReachable = !solver.isUnsat(targetFormula);
         } catch (SolverException e) {
-            continue;
+          continue;
         }
         if (isTargetStateReachable) {
           terminationState.makeTarget();
           result = result.withAbstractState(terminationState);
-          statistics.setNonterminatingLoop(cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
+          statistics.setNonterminatingLoop(
+              cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
           return Optional.of(result.withAction(Action.BREAK));
         }
       }
@@ -105,10 +109,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return Optional.of(result);
   }
 
-  private BooleanFormula buildCycleFormula(BooleanFormula pFullPathFormula,
-                                           List<BooleanFormula> storedValues,
-                                           SSAMap pSSAMap,
-                                           int pSSAIndex) {
+  private BooleanFormula buildCycleFormula(
+      BooleanFormula pFullPathFormula,
+      List<BooleanFormula> storedValues,
+      SSAMap pSSAMap,
+      int pSSAIndex) {
     BooleanFormula cycle = pFullPathFormula;
     BooleanFormula extendedFormula;
 

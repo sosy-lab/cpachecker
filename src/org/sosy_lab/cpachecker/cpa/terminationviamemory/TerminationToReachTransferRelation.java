@@ -31,9 +31,11 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
-  public TerminationToReachTransferRelation(BooleanFormulaManagerView pBfmgr,
-                                            FormulaManagerView pFmgr,
-                                            CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
+
+  public TerminationToReachTransferRelation(
+      BooleanFormulaManagerView pBfmgr,
+      FormulaManagerView pFmgr,
+      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
     fmgr = pFmgr;
     bfmgr = pBfmgr;
     ctoFormulaConverter = pCtoFormulaConverter;
@@ -41,14 +43,14 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state,
-      Precision precision,
-      CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-    return Collections.singleton(new TerminationToReachState(
-        new HashMap<>(terminationState.getStoredValues()),
-        new HashMap<>(terminationState.getNumberOfIterationsMap()),
-        new HashSet<>(terminationState.getPathFormulas())));
+    return Collections.singleton(
+        new TerminationToReachState(
+            new HashMap<>(terminationState.getStoredValues()),
+            new HashMap<>(terminationState.getNumberOfIterationsMap()),
+            new HashSet<>(terminationState.getPathFormulas())));
   }
 
   @Override
@@ -56,7 +58,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState pState,
       Iterable<AbstractState> pOtherStates,
       CFAEdge pCfaEdge,
-      Precision precision) throws CPATransferException, InterruptedException {
+      Precision precision)
+      throws CPATransferException, InterruptedException {
     LocationState locationState = getLocationState(pOtherStates);
     CFANode location = AbstractStates.extractLocation(locationState);
     PredicateAbstractState predicateState = getPredicateState(pOtherStates);
@@ -69,49 +72,49 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (location.isLoopStart()) {
       SSAMap currentValues = predicateState.getPathFormula().getSsa();
       if (terminationState.getStoredValues().containsKey(locationState)) {
-        newConstraintformula = constructConstraintFormula(
-            currentValues,
-            terminationState.getNumberOfIterationsAtLoopHead(locationState));
+        newConstraintformula =
+            constructConstraintFormula(
+                currentValues, terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.setNewStoredValues(
             locationState,
             newConstraintformula,
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
-        newConstraintformula = constructConstraintFormula(
-            currentValues,
-            0);
-        terminationState.setNewStoredValues(
-            locationState,
-            newConstraintformula,
-            0);
+        newConstraintformula = constructConstraintFormula(currentValues, 0);
+        terminationState.setNewStoredValues(locationState, newConstraintformula, 0);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       }
     }
     return Collections.singleton(pState);
   }
-  /** Stores new assumptions about value of variables seen.
-   * For instance, if there is x@2 in SSAmap then it will add a condition to the stored values:
-   * __Q__x0 = x@2
-   * Where the storing variables are of the form __Q__[name of variable][number of loop iterations].
-   * */
-  private BooleanFormula constructConstraintFormula(SSAMap pSSAMap,
-                              int pNumberOfIterationsAtLoopHead) {
+
+  /**
+   * Stores new assumptions about value of variables seen. For instance, if there is x@2 in SSAmap
+   * then it will add a condition to the stored values: __Q__x0 = x@2 Where the storing variables
+   * are of the form __Q__[name of variable][number of loop iterations].
+   */
+  private BooleanFormula constructConstraintFormula(
+      SSAMap pSSAMap, int pNumberOfIterationsAtLoopHead) {
     BooleanFormula extendedFormula = bfmgr.makeTrue();
     for (String variable : pSSAMap.allVariables()) {
       String newVariable = "__Q__" + variable;
-      extendedFormula = bfmgr.and(extendedFormula,
-          fmgr.assignment(fmgr.makeVariable(
-                            ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
-                            newVariable,
-                            pNumberOfIterationsAtLoopHead),
-                          fmgr.makeVariable(
-                              ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
-                              variable,
-                              pSSAMap.getIndex(variable))));
+      extendedFormula =
+          bfmgr.and(
+              extendedFormula,
+              fmgr.assignment(
+                  fmgr.makeVariable(
+                      ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                      newVariable,
+                      pNumberOfIterationsAtLoopHead),
+                  fmgr.makeVariable(
+                      ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                      variable,
+                      pSSAMap.getIndex(variable))));
     }
     return extendedFormula;
   }
+
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
       if (state instanceof LocationState) {

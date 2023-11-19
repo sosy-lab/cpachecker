@@ -20,26 +20,30 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/** Tracks already seen states at loop-head locations*/
-public class TerminationToReachState
-    implements Graphable, AbstractQueryableState, Targetable {
+/** Tracks already seen states at loop-head locations */
+public class TerminationToReachState implements Graphable, AbstractQueryableState, Targetable {
   private boolean isTarget;
-  /** The constraints on values of the variables that has already been seen in a loop-head*/
+
+  /** The constraints on values of the variables that has already been seen in a loop-head */
   private Map<LocationState, List<BooleanFormula>> storedValues;
-  /** We store number of times that we have iterated over a loop*/
+
+  /** We store number of times that we have iterated over a loop */
   private Map<LocationState, Integer> numberOfIterations;
-  /** Stores assumptions from path formula after i iterations of the loop*/
+
+  /** Stores assumptions from path formula after i iterations of the loop */
   private Set<BooleanFormula> pathFormulaForIteration;
 
-  public TerminationToReachState(Map<LocationState, List<BooleanFormula>> pStoredValues,
-                                 Map<LocationState, Integer> pNumberOfIterations,
-                                 Set<BooleanFormula> pPathFormulaForIteration) {
+  public TerminationToReachState(
+      Map<LocationState, List<BooleanFormula>> pStoredValues,
+      Map<LocationState, Integer> pNumberOfIterations,
+      Set<BooleanFormula> pPathFormulaForIteration) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     isTarget = false;
   }
+
   public void increaseNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
     if (numberOfIterations.containsKey(pLoopHead)) {
       numberOfIterations.put(pLoopHead, numberOfIterations.get(pLoopHead) + 1);
@@ -47,6 +51,7 @@ public class TerminationToReachState
       numberOfIterations.put(pLoopHead, 1);
     }
   }
+
   public int getNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
     if (numberOfIterations.containsKey(pLoopHead)) {
       return numberOfIterations.get(pLoopHead);
@@ -57,7 +62,9 @@ public class TerminationToReachState
   public Map<LocationState, Integer> getNumberOfIterationsMap() {
     return numberOfIterations;
   }
-  public void setNewStoredValues(LocationState pLoopHead, BooleanFormula pNewStoredValues, int index) {
+
+  public void setNewStoredValues(
+      LocationState pLoopHead, BooleanFormula pNewStoredValues, int index) {
     if (storedValues.containsKey(pLoopHead)) {
       List<BooleanFormula> assumptions = storedValues.get(pLoopHead);
       if (assumptions.size() <= index) {
@@ -71,15 +78,19 @@ public class TerminationToReachState
       storedValues.put(pLoopHead, newValues);
     }
   }
+
   public Map<LocationState, List<BooleanFormula>> getStoredValues() {
     return storedValues;
   }
+
   public void putNewPathFormula(BooleanFormula pPathFormula) {
     pathFormulaForIteration.add(pPathFormula);
   }
+
   public Set<BooleanFormula> getPathFormulas() {
     return pathFormulaForIteration;
   }
+
   public void makeTarget() {
     isTarget = true;
   }
@@ -101,12 +112,11 @@ public class TerminationToReachState
 
   @Override
   public String toString() {
-    return "TerminationState{storedValues=["
-        + getReadableStoredValues()
-        + "]"
-        + '}';
+    return "TerminationState{storedValues=[" + getReadableStoredValues() + "]" + '}';
   }
 
+  // We have to check for equality of all the stored values between the states.
+  // They can be stored in different maps, that's why we have to cycle through them.
   @Override
   public boolean equals(Object pO) {
     if (this == pO) {
@@ -118,12 +128,11 @@ public class TerminationToReachState
     TerminationToReachState that = (TerminationToReachState) pO;
 
     for (LocationState loc : storedValues.keySet()) {
-      if (!that.getStoredValues().keySet().contains(loc) ||
-          storedValues.get(loc) != that.getStoredValues().get(loc)) {
+      if (!that.getStoredValues().keySet().contains(loc)
+          || storedValues.get(loc) != that.getStoredValues().get(loc)) {
         return false;
       }
     }
-
     return true;
   }
 

@@ -35,9 +35,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-/** CPA for termination analysis of C programs.
- * Abstract states represent a memory, where we can store an already seen state.
- * Transition relation allows to non-deterministically store an already visiting state.*/
+/**
+ * CPA for termination analysis of C programs. Abstract states represent a memory, where we can
+ * store an already seen state. Transition relation allows to non-deterministically store an already
+ * visiting state.
+ */
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
@@ -45,11 +47,12 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
   private final TerminationToReachStatistics statistics;
 
-  public TerminationToReachCPA(LogManager pLogger,
-                               Configuration pConfiguration,
-                               ShutdownNotifier pShutdownNotifier,
-                               CFA pCFA)
-  throws InvalidConfigurationException {
+  public TerminationToReachCPA(
+      LogManager pLogger,
+      Configuration pConfiguration,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA)
+      throws InvalidConfigurationException {
     super("sep", "sep", null);
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaEncodingWithPointerAliasingOptions options =
@@ -57,10 +60,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    TypeHandlerWithPointerAliasing ctoFormulaTypeHandler = new TypeHandlerWithPointerAliasing(
-        pLogger,
-        pCFA.getMachineModel(),
-        options);
+    TypeHandlerWithPointerAliasing ctoFormulaTypeHandler =
+        new TypeHandlerWithPointerAliasing(pLogger, pCFA.getMachineModel(), options);
     ctoFormulaConverter =
         new CToFormulaConverterWithPointerAliasing(
             options,
@@ -74,16 +75,15 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     try {
       FormulaManagerView predFmgr;
       if (SerializationInfoStorage.isSet()) {
-        predFmgr = SerializationInfoStorage
-            .getInstance()
-            .getPredicateFormulaManagerView();
+        predFmgr = SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       } else {
         // This should never be triggered because TerminationCPA can only run with predicateCPA
         // and cpa.predicate.enableSharedInformation set to true.
         predFmgr = fmgr;
       }
-      precisionAdjustment = new TerminationToReachPrecisionAdjustment(solver, statistics, pCFA, bfmgr,
-          fmgr, predFmgr, ctoFormulaConverter);
+      precisionAdjustment =
+          new TerminationToReachPrecisionAdjustment(
+              solver, statistics, pCFA, bfmgr, fmgr, predFmgr, ctoFormulaConverter);
     } finally {
       if (SerializationInfoStorage.isSet()) {
         SerializationInfoStorage.clear();
@@ -105,6 +105,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       throws InterruptedException {
     return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new HashSet<>());
   }
+
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;

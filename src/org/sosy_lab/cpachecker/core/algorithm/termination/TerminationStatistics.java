@@ -159,8 +159,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
-  public TerminationStatistics(
-      Configuration pConfig, LogManager pLogger, CFA pCFA)
+  public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
 
@@ -387,8 +386,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             .map(l -> l.getLoopHeads().toString())
             .collect(Collectors.joining(", "));
     pOut.println(
-        "Total number of termination arguments:              "
-            + format(totalTerminationArguments));
+        "Total number of termination arguments:              " + format(totalTerminationArguments));
     if (loops > 0) {
       pOut.println(
           "  Avg termination arguments per loop:               "

@@ -249,7 +249,8 @@ public class PredicateCPA
             abstractionStats,
             statistics);
 
-    //TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to be fixed !
+    // TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to
+    // be fixed !
     if (enableSharedInformation) {
       SerializationInfoStorage.storeSerializationInformation(this, cfa);
     }

@@ -51,24 +51,24 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
       name = "violation.witness",
       description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
-  private Path violationWitness = Path.of("nontermination_witness.graphml");
+  private Path violationWitness = Path.of("witness.graphml");
 
   @Option(
       secure = true,
       name = "violation.witness.dot",
       description = "Export termination counterexample to file as dot/graphviz automaton ")
   @FileOption(Type.OUTPUT_FILE)
-  private Path violationWitnessDot = Path.of("nontermination_witness.dot");
+  private Path violationWitnessDot = Path.of("witness.dot");
 
   @Option(
       secure = true,
       name = "compressWitness",
       description = "compress the produced violation-witness automata using GZIP compression.")
-  private boolean compressWitness = true;
+  private boolean compressWitness = false;
+
   private ImmutableSet<Loop> nonterminatingLoops = null;
 
-  public TerminationToReachStatistics(
-      Configuration pConfig, LogManager pLogger, CFA pCFA)
+  public TerminationToReachStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pCFA);
   }
