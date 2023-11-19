@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -348,8 +347,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                     + " processed.",
                 stats.noOfAlgorithmsUsed);
 
-          } else if (!(from(currentReached).anyMatch(AbstractStates::isTargetState)
-              && !status.isPrecise())) {
+          } else if (!(currentReached.wasTargetReached() && !status.isPrecise())) {
 
             if (!(alwaysRestart && configFilesIterator.hasNext())) {
               // sound analysis and completely finished, terminate
