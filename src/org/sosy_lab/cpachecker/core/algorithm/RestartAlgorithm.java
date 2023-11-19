@@ -324,6 +324,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfAlgorithmsUsed);
           status = currentAlgorithm.run(currentReached);
 
+          lastAnalysisTerminated = true;
+          isLastReachedSetUsable = true;
+
           if (status.isPrecise() && currentReached.wasTargetReached()) {
 
             // If the algorithm is not _precise_, verdict "false" actually means "unknown".
@@ -354,12 +357,16 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               return status;
             }
           }
-          lastAnalysisTerminated = true;
-          isLastReachedSetUsable = true;
 
         } catch (CPAException e) {
           isLastReachedSetUsable = false;
           lastAnalysisFailed = true;
+          if (e.getMessage().contains("recursion")) {
+            recursionFound = true;
+          }
+          if (e.getMessage().contains("pthread_create")) {
+            concurrencyFound = true;
+          }
           if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException
               || e instanceof InfeasibleCounterexampleException) {
@@ -368,12 +375,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           if (configFilesIterator.hasNext()) {
             logger.logUserException(
                 Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " not completed.");
-            if (e.getMessage().contains("recursion")) {
-              recursionFound = true;
-            }
-            if (e.getMessage().contains("pthread_create")) {
-              concurrencyFound = true;
-            }
           } else {
             throw e;
           }
