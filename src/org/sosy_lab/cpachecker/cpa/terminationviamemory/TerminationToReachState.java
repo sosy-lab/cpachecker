@@ -129,11 +129,11 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   }
 
   private static String getReadableStoredValues(TerminationToReachState s) {
-    String rs = "";
+    StringBuilder sb = new StringBuilder();
     for (Map.Entry<LocationState, List<BooleanFormula>> entry : s.getStoredValues().entrySet()) {
-      rs += entry;
+      sb.append(entry);
     }
-    return rs;
+    return sb.toString();
   }
 
   @Override
