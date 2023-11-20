@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="4">
+
+    <option name="-noout"/>
+    <option name="-heap">2000M</option>
+
+    <rundefinition>
+        <option name="-terminationAnalysis"/>
+    </rundefinition>
+
+    <rundefinition>
+        <option name="-predicateAnalysis--termination"/>
+        <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
+    </rundefinition>
+
+    <rundefinition name="Combination">
+        <option name="-combinations-terminationCPA+lassoAnalysis"/>
+        <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
+    </rundefinition>
+
+    <rundefinition name="svcomp24">
+        <option name="-svcomp24--termination"/>
+        <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
+    </rundefinition>
+
+    <resultfiles>**.graphml*</resultfiles>
+
+    <tasks>
+        <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+        <!-- SV-Comp files assume that malloc always succeeds -->
+        <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+        <exclude>../programs/benchmarks/termination-restricted-15/Swingers.yml</exclude> <!-- flapping unknown/timeout -->
+    </tasks>
+    <tasks name="Termination-BitVectors">
+        <includesfile>../programs/benchmarks/Termination-BitVectors.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="Termination-MainHeap">
+        <includesfile>../programs/benchmarks/Termination-MainHeap.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="Termination-Other">
+        <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    </tasks>
+
+    <columns>
+        <column title="time for safety analysis">Total time for safety analysis</column>
+        <column title="time for lasso construction">Time for lassos construction</column>
+        <column title="time for non-termination analysis">Total time for non-termination analysis</column>
+        <column title="time for termination analysis">Total time for termination analysis</column>
+        <column title="lassos">Number of analysed lassos</column>
+    </columns>
+</benchmark>

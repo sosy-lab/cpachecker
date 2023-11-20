@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
@@ -122,6 +123,12 @@ public class PredicateCPA
           "whether to include the symbolic path formula in the "
               + "coverage checks or do only the fast abstract checks")
   private boolean symbolicCoverageCheck = false;
+
+  @Option(
+      secure = true,
+      name = "enableSharedInformation",
+      description = "Enable to share the information via serialization storage.")
+  private boolean enableSharedInformation = false;
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -241,6 +248,12 @@ public class PredicateCPA
             abstractionManager,
             abstractionStats,
             statistics);
+
+    // TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to
+    // be fixed !
+    if (enableSharedInformation) {
+      SerializationInfoStorage.storeSerializationInformation(this, cfa);
+    }
   }
 
   @Override
