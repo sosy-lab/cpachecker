@@ -28,6 +28,11 @@
         <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
+    <rundefinition name="svcomp24">
+        <option name="-svcomp24--termination"/>
+        <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
+    </rundefinition>
+
     <resultfiles>**.graphml*</resultfiles>
 
     <tasks>
