@@ -273,7 +273,7 @@ public final class InvariantWitnessWriter {
                   informationRecord,
                   location));
         }
-        if (waypoints.size() > 0) {
+        if (!waypoints.isEmpty()) {
           segments.add(new SegmentRecord(waypoints));
         }
       }
