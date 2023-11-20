@@ -961,6 +961,31 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
+        } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  return numericValue.floatValue() == Float.POSITIVE_INFINITY
+                      ? new NumericValue(1)
+                      : numericValue.floatValue() == Float.NEGATIVE_INFINITY
+                          ? new NumericValue(-1)
+                          : new NumericValue(0);
+                case DOUBLE:
+                  return numericValue.doubleValue() == Double.POSITIVE_INFINITY
+                      ? new NumericValue(1)
+                      : numericValue.doubleValue() == Double.NEGATIVE_INFINITY
+                          ? new NumericValue(-1)
+                          : new NumericValue(0);
+                default:
+                  break;
+              }
+            }
+          }
         } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
