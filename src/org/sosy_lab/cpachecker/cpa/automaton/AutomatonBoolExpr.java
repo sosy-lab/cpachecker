@@ -191,12 +191,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         return CONST_FALSE;
       }
 
-      if (edge.getFileLocation().getStartingLineInOrigin() == lineNumber
-          || edge.getFileLocation().getEndingLineInOrigin() == lineNumber) {
-        if (edge.getFileLocation().getNodeOffset() <= offsetToReach
-            && offsetToReach
-                <= edge.getFileLocation().getNodeOffset()
-                    + edge.getFileLocation().getNodeLength()) {
+      FileLocation edgeLocation = edge.getFileLocation();
+      int edgeNodeOffset = edgeLocation.getNodeOffset();
+
+      if (edgeLocation.getStartingLineInOrigin() == lineNumber
+          || edgeLocation.getEndingLineInOrigin() == lineNumber) {
+        if (edgeNodeOffset <= offsetToReach
+            && offsetToReach <= edgeNodeOffset + edgeLocation.getNodeLength()) {
           return CONST_TRUE;
         }
       }
@@ -246,12 +247,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         return CONST_FALSE;
       }
 
+      FileLocation edgeLocation = edge.getFileLocation();
+
       if (CFAUtils.leavingEdges(edge.getSuccessor())
               .transform(CFAEdge::getFileLocation)
-              .anyMatch(x -> x.getStartingLineInOrigin() == lineNumber)
-          || edge.getFileLocation().getEndingLineInOrigin() == lineNumber) {
-        if (edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength()
-            < offsetToReach) {
+              .anyMatch(e -> e.getStartingLineInOrigin() == lineNumber)
+          || edgeLocation.getEndingLineInOrigin() == lineNumber) {
+        if (edgeLocation.getNodeOffset() + edgeLocation.getNodeLength() < offsetToReach) {
           if (CFAUtils.leavingEdges(edge.getSuccessor())
               .anyMatch(
                   e ->
