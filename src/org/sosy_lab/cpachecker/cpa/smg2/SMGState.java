@@ -1954,6 +1954,12 @@ public class SMGState
     if (unreachableObjects.isEmpty()) {
       return this;
     }
+    for (SMGObject unreachable : unreachableObjects) {
+      if (unreachable instanceof SMGSinglyLinkedListSegment sll && sll.getMinLength() == 0) {
+        throw new UnsupportedOperationException(
+            "Error in tracking abstracted list memory for materialization.");
+      }
+    }
 
     return copyAndReplaceMemoryModel(newHeap).copyWithMemLeak(unreachableObjects, edge);
   }
