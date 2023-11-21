@@ -457,7 +457,7 @@ public final class InvariantWitnessWriter {
 
     final MetadataRecord metadata =
         new MetadataRecord(
-            "0.1",
+            "2.0",
             UUID.randomUUID().toString(),
             creationTime,
             producerDescription,
