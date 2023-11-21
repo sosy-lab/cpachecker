@@ -110,6 +110,9 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   @Override
   public Set<TargetInformation> getTargetInformation() {
+    if (!isTarget) {
+      throw new IllegalStateException();
+    }
     return TERMINATION_PROPERTY;
   }
 
