@@ -95,7 +95,8 @@ public class AutomatonYAMLParser {
       secure = true,
       name = "matchOffsetsWhenCreatingViolationAutomaton",
       description =
-          "If true the offsets will be matched when creating an automaton to validate Violation witnesses. If false only the lines will be matched.")
+          "If true the offsets will be matched when creating an automaton to validate Violation"
+              + " witnesses. If false only the lines will be matched.")
   private boolean matchOffsetsWhenCreatingViolationAutomaton = false;
 
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
