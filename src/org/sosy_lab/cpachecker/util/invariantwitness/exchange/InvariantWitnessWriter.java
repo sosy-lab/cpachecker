@@ -240,14 +240,15 @@ public final class InvariantWitnessWriter {
     exportInvariantWitnesses(invariantWitnesses, outFile);
   }
 
-  private LocationRecord createLocationRecord(FileLocation fLoc, String functionName) {
+  private LocationRecord createLocationRecordAfterLocation(FileLocation fLoc, String functionName) {
     final String fileName = fLoc.getFileName().toString();
     final int lineNumber = fLoc.getStartingLineInOrigin();
     final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
     final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
+    final int columnAfterStatement = offsetInLine + fLoc.getNodeLength() + 1;
 
     LocationRecord location =
-        new LocationRecord(fileName, "file_hash", lineNumber, offsetInLine, functionName);
+        new LocationRecord(fileName, "file_hash", lineNumber, columnAfterStatement, functionName);
     return location;
   }
 
@@ -304,7 +305,7 @@ public final class InvariantWitnessWriter {
                 WaypointRecord.WaypointType.TARGET,
                 WaypointRecord.WaypointAction.FOLLOW,
                 null,
-                createLocationRecord(
+                createLocationRecordAfterLocation(
                     lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
 
     ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), segments);
