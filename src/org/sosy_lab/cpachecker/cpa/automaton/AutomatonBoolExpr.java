@@ -190,7 +190,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (CFAUtils.leavingEdges(edge.getSuccessor())
           .anyMatch(
               e ->
-                  e.getFileLocation().getNodeOffset() <= offsetToReach
+                  edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength()
+                          < offsetToReach
                       && offsetToReach
                           <= e.getFileLocation().getNodeOffset()
                               + e.getFileLocation().getNodeLength())) {
