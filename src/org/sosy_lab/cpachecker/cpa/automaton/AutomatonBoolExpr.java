@@ -216,7 +216,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckReachesLine
+      return o instanceof CheckCoversOffsetAndLine
           && offsetToReach.equals(((CheckCoversOffsetAndLine) o).offsetToReach);
     }
   }
@@ -280,7 +280,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckReachesLine
+      return o instanceof CheckReachesOffsetAndLine
           && offsetToReach.equals(((CheckReachesOffsetAndLine) o).offsetToReach);
     }
   }
