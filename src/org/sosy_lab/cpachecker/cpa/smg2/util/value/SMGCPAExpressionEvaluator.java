@@ -481,7 +481,7 @@ public class SMGCPAExpressionEvaluator {
     return returnBuilder.build();
   }
 
-  private ValueAndSMGState searchOrCreatePointer(
+  public ValueAndSMGState searchOrCreatePointer(
       SMGObject targetObject, BigInteger offsetInBits, SMGState pState) {
     return pState.searchOrCreateAddress(targetObject, offsetInBits);
   }
