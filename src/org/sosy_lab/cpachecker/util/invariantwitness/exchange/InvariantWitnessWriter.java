@@ -267,30 +267,24 @@ public final class InvariantWitnessWriter {
         // waypoint location. The waypoint is passed if the given constraint evaluates to true."
         // To make our export compliant with the format we will point to exactly one sequence
         // point after the nondet call assignment
-
-        Set<FileLocation> fileLocationsOutgoingEdges =
-            CFAUtils.leavingEdges(edge.getSuccessor()).transform(CFAEdge::getFileLocation).toSet();
-
-        if (fileLocationsOutgoingEdges.size() != 1) {
-          continue;
-        }
-
-        FileLocation waypointFileLocation =
-            fileLocationsOutgoingEdges.stream().findFirst().orElseThrow();
-
         List<WaypointRecord> waypoints = new ArrayList<>();
-        for (AExpressionStatement statement : edgeWithAssumptions.getExpStmts()) {
-          InformationRecord informationRecord =
-              new InformationRecord(statement.toString(), null, "C");
-          LocationRecord location =
-              createLocationRecord(waypointFileLocation, edge.getPredecessor().getFunctionName());
+        String statement =
+            String.join(
+                " && ",
+                edgeWithAssumptions.getExpStmts().stream()
+                    .map(AExpressionStatement::toString)
+                    .map(x -> "(" + x.replace(";", "") + ")")
+                    .toList());
+        InformationRecord informationRecord = new InformationRecord(statement, null, "C");
+        LocationRecord location =
+            createLocationRecordAfterLocation(
+                edge.getFileLocation(), edge.getPredecessor().getFunctionName());
           waypoints.add(
               new WaypointRecord(
                   WaypointRecord.WaypointType.ASSUMPTION,
                   WaypointRecord.WaypointAction.FOLLOW,
                   informationRecord,
                   location));
-        }
         if (!waypoints.isEmpty()) {
           segments.add(new SegmentRecord(waypoints));
         }
