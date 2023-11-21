@@ -89,6 +89,13 @@ public class AutomatonYAMLParser {
   private InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
 
+  @Option(
+      secure = true,
+      name = "matchOffsetsWhenCreatingViolationAutomaton",
+      description =
+          "If true the offsets will be matched when creating an automaton to validate Violation witnesses. If false only the lines will be matched.")
+  private boolean matchOffsetsWhenCreatingViolationAutomaton = false;
+
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
@@ -394,6 +401,110 @@ public class AutomatonYAMLParser {
   }
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
+      throws InterruptedException, InvalidConfigurationException {
+    if (matchOffsetsWhenCreatingViolationAutomaton) {
+      return createViolationAutomatonFromEntriesMatchingOffsets(pEntries);
+    } else {
+      return createViolationAutomatonFromEntriesMatchingLines(pEntries);
+    }
+  }
+
+  private Automaton createViolationAutomatonFromEntriesMatchingLines(List<AbstractEntry> pEntries)
+      throws InterruptedException, InvalidConfigurationException {
+    Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
+    // this needs to be called exactly WitnessAutomaton for the option
+    // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
+    final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
+
+    Set<Integer> allowedLines = linesWithExactlyOneEdge();
+
+    int counter = 0;
+    final String initState = getStateName(counter++);
+
+    final List<AutomatonInternalState> automatonStates = new ArrayList<>();
+    String currentStateId = initState;
+    WaypointRecord follow = null;
+
+    int distance = segments.size();
+
+    for (Map.Entry<WaypointRecord, List<WaypointRecord>> entry : segments.entrySet()) {
+      List<AutomatonTransition> transitions = new ArrayList<>();
+      follow = entry.getKey();
+      List<WaypointRecord> avoids = entry.getValue();
+      if (!avoids.isEmpty()) {
+        logger.log(
+            Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
+      }
+      String nextStateId = getStateName(counter++);
+      if (follow.getType().equals(WaypointType.TARGET)) {
+        nextStateId = "X";
+      }
+      int line = follow.getLocation().getLine();
+      AutomatonBoolExpr expr = new CheckReachesLine(line);
+      AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
+      if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
+        handleAssumptionWaypoint(follow, line, builder);
+      }
+
+      ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
+      actionBuilder.add(
+          new AutomatonAction.Assignment(
+              AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+              new AutomatonIntExpr.Constant(distance)));
+      builder.withActions(actionBuilder.build());
+      transitions.add(builder.build());
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              transitions,
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+
+      distance--;
+      currentStateId = nextStateId;
+    }
+
+    // add last state and stutter in it:
+    if (follow != null && follow.getType().equals(WaypointType.TARGET)) {
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                  new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
+                          .withAssertion(createViolationAssertion()))),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    }
+
+    Automaton automaton;
+    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
+    AutomatonIntVariable distanceVariable =
+        (AutomatonIntVariable)
+            AutomatonVariable.createAutomatonVariable(
+                "int",
+                AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+                Integer.toString(segments.size() + 1));
+    automatonVariables.put(AutomatonGraphmlParser.DISTANCE_TO_VIOLATION, distanceVariable);
+
+    // new AutomatonInternalState(entryStateId, transitions, false, false, true)
+    try {
+      automaton = new Automaton(automatonName, automatonVariables, automatonStates, initState);
+    } catch (InvalidAutomatonException e) {
+      throw new WitnessParseException(
+          "The witness automaton generated from the provided YAML Witness is invalid!", e);
+    }
+
+    automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
+
+    dumpAutomatonIfRequested(automaton);
+
+    return automaton;
+  }
+
+  private Automaton createViolationAutomatonFromEntriesMatchingOffsets(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException {
     Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
