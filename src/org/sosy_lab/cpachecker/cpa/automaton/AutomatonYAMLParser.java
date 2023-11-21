@@ -97,7 +97,7 @@ public class AutomatonYAMLParser {
       description =
           "If true the offsets will be matched when creating an automaton to validate Violation"
               + " witnesses. If false only the lines will be matched.")
-  private boolean matchOffsetsWhenCreatingViolationAutomaton = false;
+  private boolean matchOffsetsWhenCreatingViolationAutomatonFromYAML = false;
 
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -412,7 +412,7 @@ public class AutomatonYAMLParser {
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException {
-    if (matchOffsetsWhenCreatingViolationAutomaton) {
+    if (matchOffsetsWhenCreatingViolationAutomatonFromYAML) {
       return createViolationAutomatonFromEntriesMatchingOffsets(pEntries);
     } else {
       return createViolationAutomatonFromEntriesMatchingLines(pEntries);
