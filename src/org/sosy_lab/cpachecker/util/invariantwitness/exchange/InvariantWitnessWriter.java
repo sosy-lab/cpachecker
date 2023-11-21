@@ -267,6 +267,11 @@ public final class InvariantWitnessWriter {
         // waypoint location. The waypoint is passed if the given constraint evaluates to true."
         // To make our export compliant with the format we will point to exactly one sequence
         // point after the nondet call assignment
+
+        if (edgeWithAssumptions.getExpStmts().isEmpty()) {
+          continue;
+        }
+
         List<WaypointRecord> waypoints = new ArrayList<>();
         String statement =
             String.join(
@@ -275,6 +280,7 @@ public final class InvariantWitnessWriter {
                     .map(AExpressionStatement::toString)
                     .map(x -> "(" + x.replace(";", "") + ")")
                     .toList());
+
         InformationRecord informationRecord = new InformationRecord(statement, null, "C");
         LocationRecord location =
             createLocationRecordAfterLocation(
