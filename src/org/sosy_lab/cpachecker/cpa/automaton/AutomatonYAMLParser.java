@@ -569,6 +569,9 @@ public class AutomatonYAMLParser {
 
       if (follow.getType().equals(WaypointType.ASSUMPTION)) {
         handleAssumptionWaypoint(follow, followLine, builder);
+      } else if (follow.getType().equals(WaypointType.TARGET)) {
+        // When we match the target state we want to enter the error location immediately
+        builder = builder.withAssertion(createViolationAssertion());
       }
       ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
       actionBuilder.add(
