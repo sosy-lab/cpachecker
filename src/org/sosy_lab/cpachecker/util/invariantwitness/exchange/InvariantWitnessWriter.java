@@ -297,12 +297,12 @@ public final class InvariantWitnessWriter {
         LocationRecord location =
             createLocationRecordAfterLocation(
                 edge.getFileLocation(), edge.getPredecessor().getFunctionName());
-          waypoints.add(
-              new WaypointRecord(
-                  WaypointRecord.WaypointType.ASSUMPTION,
-                  WaypointRecord.WaypointAction.FOLLOW,
-                  informationRecord,
-                  location));
+        waypoints.add(
+            new WaypointRecord(
+                WaypointRecord.WaypointType.ASSUMPTION,
+                WaypointRecord.WaypointAction.FOLLOW,
+                informationRecord,
+                location));
         if (!waypoints.isEmpty()) {
           segments.add(new SegmentRecord(waypoints));
         }
