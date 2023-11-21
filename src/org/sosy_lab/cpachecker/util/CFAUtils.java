@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -723,6 +724,11 @@ public class CFAUtils {
   public static boolean assignsNondetFunctionCall(CFAEdge pEdge) {
     if (pEdge instanceof CStatementEdge statementEdge) {
       if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement statement) {
+        CLeftHandSide leftHandSide = statement.getLeftHandSide();
+        // We do not want the cases where the variable is assigned to a TMP variable
+        if (leftHandSide.toString().contains("__CPAchecker_TMP")) {
+          return false;
+        }
         CFunctionCallExpression expression = statement.getRightHandSide();
         if (expression.getFunctionNameExpression() instanceof CIdExpression functionName) {
           if (functionName.getName().startsWith("__VERIFIER_nondet_")) {
