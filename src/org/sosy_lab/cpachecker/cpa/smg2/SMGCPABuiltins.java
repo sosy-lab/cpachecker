@@ -1408,7 +1408,7 @@ public class SMGCPABuiltins {
    * @param targetOffset target offset
    * @param sourceAddress {@link SMGObject} for object of the source of the copy operation.
    * @param sourceOffset offset of the source obj
-   * @param numOfBytesValue {@link Value} that should be a {@link NumericValue} holding the number
+   * @param numOfBytesToCopy {@link Value} that should be a {@link NumericValue} holding the number
    *     of bytes copied.
    * @return {@link ValueAndSMGState} with the pointer to target and the state with the copy.
    */
