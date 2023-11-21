@@ -169,11 +169,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  public static class CheckReachesOffset implements AutomatonBoolExpr {
+  public static class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
     private final Integer offsetToReach;
+    private final Integer lineNumber;
 
-    public CheckReachesOffset(Integer pOffset) {
+    public CheckCoversOffsetAndLine(Integer pOffset, Integer pLineNumber) {
       offsetToReach = pOffset;
+      lineNumber = pLineNumber;
     }
 
     @Override
@@ -184,18 +186,19 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       }
 
       CFAEdge edge = pArgs.getCfaEdge();
-      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+
+      if (!CoverageData.coversLine(edge)) {
         return CONST_FALSE;
       }
-      if (CFAUtils.leavingEdges(edge.getSuccessor())
-          .anyMatch(
-              e ->
-                  edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength()
-                          < offsetToReach
-                      && offsetToReach
-                          <= e.getFileLocation().getNodeOffset()
-                              + e.getFileLocation().getNodeLength())) {
-        return CONST_TRUE;
+
+      if (edge.getFileLocation().getStartingLineInOrigin() == lineNumber
+          || edge.getFileLocation().getEndingLineInOrigin() == lineNumber) {
+        if (edge.getFileLocation().getNodeOffset() <= offsetToReach
+            && offsetToReach
+                <= edge.getFileLocation().getNodeOffset()
+                    + edge.getFileLocation().getNodeLength()) {
+          return CONST_TRUE;
+        }
       }
       return CONST_FALSE;
     }
@@ -213,7 +216,70 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public boolean equals(Object o) {
       return o instanceof CheckReachesLine
-          && offsetToReach.equals(((CheckReachesOffset) o).offsetToReach);
+          && offsetToReach.equals(((CheckCoversOffsetAndLine) o).offsetToReach);
+    }
+  }
+
+  public static class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
+    private final Integer offsetToReach;
+    private final Integer lineNumber;
+
+    public CheckReachesOffsetAndLine(Integer pOffset, Integer pLineNumber) {
+      offsetToReach = pOffset;
+      lineNumber = pLineNumber;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>(
+            "No CPA elements available", "AutomatonBoolExpr.CheckReachesOffset");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+        return CONST_FALSE;
+      }
+
+      if (!CoverageData.coversLine(edge)) {
+        return CONST_FALSE;
+      }
+
+      if (CFAUtils.leavingEdges(edge.getSuccessor())
+              .transform(CFAEdge::getFileLocation)
+              .anyMatch(x -> x.getStartingLineInOrigin() == lineNumber)
+          || edge.getFileLocation().getEndingLineInOrigin() == lineNumber) {
+        if (edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength()
+            < offsetToReach) {
+          if (CFAUtils.leavingEdges(edge.getSuccessor())
+              .anyMatch(
+                  e ->
+                      offsetToReach
+                          <= e.getFileLocation().getNodeOffset()
+                              + e.getFileLocation().getNodeLength())) {
+
+            return CONST_TRUE;
+          }
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_OFFSET(" + offsetToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return offsetToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckReachesLine
+          && offsetToReach.equals(((CheckReachesOffsetAndLine) o).offsetToReach);
     }
   }
 
