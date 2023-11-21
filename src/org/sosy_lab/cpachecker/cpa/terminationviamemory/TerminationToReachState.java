@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,9 +112,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   @Override
   public Set<TargetInformation> getTargetInformation() {
-    if (!isTarget) {
-      throw new IllegalStateException();
-    }
+    checkState(isTarget);
     return TERMINATION_PROPERTY;
   }
 
