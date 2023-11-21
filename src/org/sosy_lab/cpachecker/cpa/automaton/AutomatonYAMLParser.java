@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesOffset;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
@@ -107,6 +107,8 @@ public class AutomatonYAMLParser {
   private final ParserTools parserTools;
   final CParser cparser;
 
+  ListMultimap<String, Integer> lineOffsetsByFile;
+
   private Scope scope;
 
   public AutomatonYAMLParser(
@@ -136,6 +138,11 @@ public class AutomatonYAMLParser {
             CParser.Factory.getOptions(config),
             cfa.getMachineModel(),
             shutdownNotifier);
+    try {
+      lineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames());
+    } catch (IOException e) {
+      throw new WitnessParseException(e);
+    }
   }
 
   public static List<AbstractEntry> parseYAML(InputStream pInputStream) throws IOException {
@@ -511,7 +518,7 @@ public class AutomatonYAMLParser {
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
-    Set<Integer> allowedLines = linesWithExactlyOneEdge();
+
 
     int counter = 0;
     final String initState = getStateName(counter++);
@@ -535,9 +542,19 @@ public class AutomatonYAMLParser {
         nextStateId = "X";
       }
       int line = follow.getLocation().getLine();
-      AutomatonBoolExpr expr = new CheckReachesLine(line);
+      // The semantics of the YAML witnesses imply that every assumption waypoint should be
+      // valid before the sequence statement it points to. Due to the semantics of the format:
+      // "An assumption waypoint is evaluated at the sequence point immediately before the
+      // waypoint location. The waypoint is passed if the given constraint evaluates to true."
+      // Therefore we need the Reaches Offset guard.
+      int followLine = follow.getLocation().getLine();
+      int followColumn = follow.getLocation().getColumn();
+      String followFilename = follow.getLocation().getFileName();
+      AutomatonBoolExpr expr =
+          new CheckReachesOffset(
+              lineOffsetsByFile.get(followFilename).get(followLine - 1) + followColumn);
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
-      if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
+      if (follow.getType().equals(WaypointType.ASSUMPTION)) {
         handleAssumptionWaypoint(follow, line, builder);
       }
 
@@ -599,6 +616,7 @@ public class AutomatonYAMLParser {
     return automaton;
   }
 
+  @SuppressWarnings("unused")
   private Set<Integer> linesWithExactlyOneEdge() {
     Map<Integer, Integer> lineFrequencies = new HashMap<>();
 
