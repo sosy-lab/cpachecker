@@ -244,7 +244,7 @@ public final class InvariantWitnessWriter {
     final String fileName = fLoc.getFileName().toString();
     final int lineNumber = fLoc.getStartingLineInOrigin();
     final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
-    final int offsetInLine = fLoc.getNodeOffset() - lineOffset + 1;
+    final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
 
     LocationRecord location =
         new LocationRecord(fileName, "file_hash", lineNumber, offsetInLine, functionName);
@@ -260,12 +260,29 @@ public final class InvariantWitnessWriter {
       CFAEdge edge = edgeWithAssumptions.getCFAEdge();
       // See if the edge contains an assignment of a VerifierNondet call
       if (CFAUtils.assignsNondetFunctionCall(edge)) {
+        // The semantics of the YAML witnesses imply that every assumption waypoint should be
+        // valid before the sequence statement it points to. Due to the semantics of the format:
+        // "An assumption waypoint is evaluated at the sequence point immediately before the
+        // waypoint location. The waypoint is passed if the given constraint evaluates to true."
+        // To make our export compliant with the format we will point to exactly one sequence
+        // point after the nondet call assignment
+
+        Set<FileLocation> fileLocationsOutgoingEdges =
+            CFAUtils.leavingEdges(edge.getSuccessor()).transform(CFAEdge::getFileLocation).toSet();
+
+        if (fileLocationsOutgoingEdges.size() != 1) {
+          continue;
+        }
+
+        FileLocation waypointFileLocation =
+            fileLocationsOutgoingEdges.stream().findFirst().orElseThrow();
+
         List<WaypointRecord> waypoints = new ArrayList<>();
         for (AExpressionStatement statement : edgeWithAssumptions.getExpStmts()) {
           InformationRecord informationRecord =
               new InformationRecord(statement.toString(), null, "C");
           LocationRecord location =
-              createLocationRecord(edge.getFileLocation(), edge.getPredecessor().getFunctionName());
+              createLocationRecord(waypointFileLocation, edge.getPredecessor().getFunctionName());
           waypoints.add(
               new WaypointRecord(
                   WaypointRecord.WaypointType.ASSUMPTION,
