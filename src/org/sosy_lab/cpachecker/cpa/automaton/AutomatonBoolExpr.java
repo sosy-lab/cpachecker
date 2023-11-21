@@ -169,6 +169,53 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  public static class CheckReachesOffset implements AutomatonBoolExpr {
+    private final Integer offsetToReach;
+
+    public CheckReachesOffset(Integer pOffset) {
+      offsetToReach = pOffset;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>(
+            "No CPA elements available", "AutomatonBoolExpr.CheckReachesOffset");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+        return CONST_FALSE;
+      }
+      if (CFAUtils.leavingEdges(edge.getSuccessor())
+          .anyMatch(
+              e ->
+                  e.getFileLocation().getNodeOffset() <= offsetToReach
+                      && offsetToReach
+                          <= e.getFileLocation().getNodeOffset()
+                              + e.getFileLocation().getNodeLength())) {
+        return CONST_TRUE;
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_OFFSET(" + offsetToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return offsetToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckReachesLine
+          && offsetToReach.equals(((CheckReachesOffset) o).offsetToReach);
+    }
+  }
+
   enum MatchProgramEntry implements AutomatonBoolExpr {
     INSTANCE;
 
