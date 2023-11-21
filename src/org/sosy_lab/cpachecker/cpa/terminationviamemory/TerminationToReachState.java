@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -22,6 +23,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** Tracks already seen states at loop-head locations */
 public class TerminationToReachState implements Graphable, AbstractQueryableState, Targetable {
+  private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
+      SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
 
   /** The constraints on values of the variables that has already been seen in a loop-head */
@@ -107,7 +110,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   @Override
   public Set<TargetInformation> getTargetInformation() {
-    return ImmutableSet.of();
+    return TERMINATION_PROPERTY;
   }
 
   @Override
