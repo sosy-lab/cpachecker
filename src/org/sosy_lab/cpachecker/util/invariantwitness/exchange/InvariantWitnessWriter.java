@@ -252,6 +252,18 @@ public final class InvariantWitnessWriter {
     return location;
   }
 
+  private LocationRecord createLocationRecord(FileLocation fLoc, String functionName) {
+    final String fileName = fLoc.getFileName().toString();
+    final int lineNumber = fLoc.getStartingLineInOrigin();
+    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
+    final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
+    final int columnAfterStatement = offsetInLine;
+
+    LocationRecord location =
+        new LocationRecord(fileName, "file_hash", lineNumber, columnAfterStatement, functionName);
+    return location;
+  }
+
   @SuppressWarnings("unused")
   public void exportErrorWitnessAsYamlWitness(CounterexampleInfo pCex, Appendable pApp) {
     CFAPathWithAssumptions cexPathWithAssignments = pCex.getCFAPathWithAssignments();
@@ -298,6 +310,9 @@ public final class InvariantWitnessWriter {
     }
 
     // Add target
+    // In contrast to the semantics of assumptions, targets are evaluated at the next possible
+    // segment point. Therefore instead of creating a location record the way as is for assumptions,
+    // this needs to be done using another function
     CFAEdge lastEdge = cexPathWithAssignments.get(cexPathWithAssignments.size() - 1).getCFAEdge();
     segments.add(
         SegmentRecord.ofOnlyElement(
@@ -305,7 +320,7 @@ public final class InvariantWitnessWriter {
                 WaypointRecord.WaypointType.TARGET,
                 WaypointRecord.WaypointAction.FOLLOW,
                 null,
-                createLocationRecordAfterLocation(
+                createLocationRecord(
                     lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
 
     ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), segments);
