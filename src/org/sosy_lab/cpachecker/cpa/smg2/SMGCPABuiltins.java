@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
@@ -1167,8 +1168,10 @@ public class SMGCPABuiltins {
       targetExpr = sourceCastExpr.getOperand();
     }
 
-    if (targetExpr instanceof CUnaryExpression unary
-        && unary.getOperator().equals(UnaryOperator.AMPER)) {
+    if ((targetExpr instanceof CUnaryExpression unary
+            && unary.getOperator().equals(UnaryOperator.AMPER))
+        || SMGCPAExpressionEvaluator.getCanonicalType(targetExpr.getExpressionType())
+            instanceof CPointerType) {
       // Address visitor will fail on this one
       // Retrieve via value visitor
       for (ValueAndSMGState targetAndState :
@@ -1276,8 +1279,10 @@ public class SMGCPABuiltins {
       sourceExpr = sourceCastExpr.getOperand();
     }
 
-    if (sourceExpr instanceof CUnaryExpression unary
-        && unary.getOperator().equals(UnaryOperator.AMPER)) {
+    if ((sourceExpr instanceof CUnaryExpression unary
+            && unary.getOperator().equals(UnaryOperator.AMPER))
+        || SMGCPAExpressionEvaluator.getCanonicalType(sourceExpr.getExpressionType())
+            instanceof CPointerType) {
       // Address visitor will fail on this one
       // Retrieve via value visitor
       for (ValueAndSMGState sourceAndState :
