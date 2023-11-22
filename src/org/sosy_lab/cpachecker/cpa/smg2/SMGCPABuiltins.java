@@ -483,6 +483,9 @@ public class SMGCPABuiltins {
       SMGState pState)
       throws CPATransferException {
     // This mostly returns unknown if it does not find a function to handle
+    if (calledFunctionName.contains("pthread")) {
+      throw new SMGException("Concurrency analysis not supported in this configuration.");
+    }
     switch (options.getHandleUnknownFunctions()) {
       case STRICT:
         if (!isSafeFunction(calledFunctionName)) {
