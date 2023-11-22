@@ -1557,6 +1557,7 @@ public class SMGCPABuiltins {
           getAllocateFunctionParameter(1, functionCall, argumentOneAndState.getState(), cfaEdge)) {
 
         // First arg is the ptr to the existing memory
+        // Second arg is new memory size in bytes
         if (!argumentTwoAndState.getValue().isNumericValue()) {
           String infoMsg =
               "Could not determine a concrete size for a memory allocation function: "
@@ -1603,6 +1604,16 @@ public class SMGCPABuiltins {
       CFunctionCallExpression functionCall)
       throws SMGException, SMGSolverException {
 
+    if (pPtrValue instanceof AddressExpression ptrAddrExpr) {
+      if (!ptrAddrExpr.getOffset().isNumericValue()
+          || !ptrAddrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        throw new SMGException(
+            "Realloc with pointers not pointing to their original offset not supported yet. "
+                + pCfaEdge);
+      }
+      pPtrValue = ptrAddrExpr.getMemoryAddress();
+    }
+
     if (!pState.getMemoryModel().isPointer(pPtrValue)) {
       // undefined beh
       return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
@@ -1636,10 +1647,23 @@ public class SMGCPABuiltins {
       ValueAndSMGState addressAndState =
           evaluator.createHeapMemoryAndPointer(currentState, sizeInBits);
       Value addressToNewRegion = addressAndState.getValue();
-      // New mem can not materialize, hence length 1
-      SMGObject newMemory =
-          currentState.dereferencePointer(addressToNewRegion).get(0).getSMGObject();
       currentState = addressAndState.getState();
+      // New mem can not materialize, and we know the offset is 0
+      SMGObject newMemory =
+          currentState
+              .dereferencePointerWithoutMaterilization(addressToNewRegion)
+              .orElseThrow()
+              .getSMGObject();
+      // The copy is always the lesser size of the 2
+      BigInteger oldSize =
+          oldObj
+              .getSMGObject()
+              .getSize()
+              .subtract(oldObj.getOffsetForObject().asNumericValue().bigIntegerValue());
+      BigInteger copySizeInBits = sizeInBits;
+      if (oldSize.compareTo(copySizeInBits) < 0) {
+        copySizeInBits = oldSize;
+      }
       // free old memory
       currentState =
           currentState.copySMGObjectContentToSMGObject(
@@ -1647,7 +1671,7 @@ public class SMGCPABuiltins {
               oldObj.getOffsetForObject(),
               newMemory,
               new NumericValue(BigInteger.ZERO),
-              new NumericValue(sizeInBits));
+              new NumericValue(copySizeInBits));
       for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
         resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, freedState));
       }
