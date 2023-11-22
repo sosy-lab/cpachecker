@@ -411,8 +411,10 @@ public class SMGCPAExpressionEvaluator {
       SMGObject target = objectAndOffsetOrState.getSMGObject();
       Value offset = objectAndOffsetOrState.getOffsetForObject();
       if (!offset.isNumericValue()) {
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(objectAndOffsetOrState.getSMGState()));
-        continue;
+        // TODO: support symbolic offsets in the SMG
+        throw new SMGException("Symbolic offsets can currently not be saved in the SMG");
+        // resultBuilder.add(ValueAndSMGState.ofUnknownValue(objectAndOffsetOrState.getSMGState()));
+        // continue;
       }
       // search for existing pointer first and return if found; else make a new one
       ValueAndSMGState addressAndState =
