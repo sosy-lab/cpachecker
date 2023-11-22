@@ -161,9 +161,6 @@ public final class InvariantWitnessWriter {
   public static InvariantWitnessWriter getWriter(
       Configuration pConfig, CFA pCFA, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException, IOException {
-    if (pSpecification.getProperties().size() != 1) {
-      pLogger.log(WARNING, "Invariant export only supported for specific verification task");
-    }
     return new InvariantWitnessWriter(
         pConfig,
         pLogger,
