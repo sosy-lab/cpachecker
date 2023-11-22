@@ -1439,6 +1439,13 @@ public class SMGCPABuiltins {
         BigInteger.valueOf(numOfBytes)
             .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
 
+    // There can be deref errors if the size is to large
+    if (sourceAddress.getSize().compareTo(sourceOffset.add(sizeToCopyInBits)) < 0) {
+      return ValueAndSMGState.ofUnknownValue(pState.withInvalidRead(sourceAddress));
+    } else if (targetAddress.getSize().compareTo(targetOffset.add(sizeToCopyInBits)) < 0) {
+      return ValueAndSMGState.ofUnknownValue(pState.withInvalidWrite(targetAddress));
+    }
+
     SMGState copyResultState =
         pState.copySMGObjectContentToSMGObject(
             sourceAddress, sourceOffset, targetAddress, targetOffset, sizeToCopyInBits);
