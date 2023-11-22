@@ -4836,6 +4836,9 @@ termination.violation.witness.dot = "nontermination_witness.dot"
 # compress the produced violation-witness automata using GZIP compression.
 terminationtoreach.compressWitness = false
 
+# do not produce witness for validation
+terminationtoreach.validation = false
+
 # Export termination counterexample to file as GraphML automaton 
 terminationtoreach.violation.witness = "witness.graphml"
 
