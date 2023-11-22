@@ -435,7 +435,9 @@ public class ConfigurationFileChecks {
       if (isSvcompConfig) {
         assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
       } else {
-        if (spec.contains("memorycleanup")) {
+        if (spec.contains("sv-comp-memorycleanup")) {
+          assertThat(spec).contains("specification/sv-comp-memorycleanup.spc");
+        } else if (spec.contains("memorycleanup")) {
           assertThat(spec).contains("specification/memorycleanup.spc");
         } else if (spec.contains("memorysafety")) {
           assertThat(spec).contains("specification/memorysafety.spc");
