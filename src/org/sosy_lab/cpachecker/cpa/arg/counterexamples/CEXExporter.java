@@ -342,7 +342,7 @@ public class CEXExporter {
                 compressWitness);
           } else if (exportYamlWitnessesDirectlyFromCex) {
             logger.log(
-                Level.SEVERE,
+                Level.WARNING,
                 "Could not expor the YAML violation witness directly from the ARG, since the"
                     + " counterexample is not precise. Therefore no YAML witness was produced.");
           } else {
