@@ -1020,6 +1020,8 @@ public class SMGTransferRelation
           for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
             CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
             BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, paramType);
+            // argc and argv are also allocated here if they are in the program
+            // argc is some nondet > 1 while argv is non-null array of unknown values size argc
             currentState =
                 currentState.copyAndAddLocalVariable(
                     paramSizeInBits, parameters.getQualifiedName(), paramType);

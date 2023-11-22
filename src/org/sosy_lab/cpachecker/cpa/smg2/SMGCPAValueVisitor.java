@@ -760,6 +760,11 @@ public class SMGCPAValueVisitor
     // in a AddressExpression for pointers
     // or SymbolicValue with a memory location and the name of the variable inside.
 
+    if (e.toString().contains("argv")) {
+      // TODO: handle argc/argv (variable sized memory depending on argc)
+      throw new SMGException("argv is currently not handled by this analysis. " + cfaEdge);
+    }
+
     CSimpleDeclaration varDecl = e.getDeclaration();
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     if (varDecl == null) {
@@ -994,6 +999,11 @@ public class SMGCPAValueVisitor
     // always evaluate to the address, but only
     // dereference and read it if it's not a struct/union as those will be dereferenced
     // by the field expression
+
+    if (e.toString().contains("argv")) {
+      // TODO: handle argc/argv (variable sized memory depending on argc)
+      throw new SMGException("argv is currently not handled by this analysis. " + cfaEdge);
+    }
 
     // Get the type of the target
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
