@@ -66,10 +66,7 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
       description = "compress the produced violation-witness automata using GZIP compression.")
   private boolean compressWitness = false;
 
-  @Option(
-      secure = true,
-      name = "validation",
-      description = "do not produce witness for validation")
+  @Option(secure = true, name = "validation", description = "do not produce witness for validation")
   private boolean validation = false;
 
   private ImmutableSet<Loop> nonterminatingLoops = null;
@@ -82,7 +79,9 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    if (!validation && pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
+    if (!validation
+        && pResult == Result.FALSE
+        && (violationWitness != null || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached.stream()
               .filter(AbstractStates::isTargetState)
