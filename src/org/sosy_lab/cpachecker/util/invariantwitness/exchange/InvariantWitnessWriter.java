@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -119,12 +120,15 @@ public final class InvariantWitnessWriter {
           "If enabled, this option will output the invariants in the now deprecated YAML format.")
   private boolean outputDeprecatedYAMLFormat = false;
 
+  @Nullable private ASTStructure astStructure;
+
   private InvariantWitnessWriter(
       Configuration pConfig,
       LogManager pLogger,
       ListMultimap<String, Integer> pLineOffsetsByFile,
       ProducerRecord pProducerDescription,
-      TaskRecord pTaskDescription)
+      TaskRecord pTaskDescription,
+      @Nullable ASTStructure pASTStructure)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -139,6 +143,7 @@ public final class InvariantWitnessWriter {
 
     producerDescription = pProducerDescription;
     taskDescription = pTaskDescription;
+    astStructure = pASTStructure;
   }
 
   /**
@@ -168,7 +173,8 @@ public final class InvariantWitnessWriter {
             CPAchecker.getApproachName(pConfig),
             null,
             null),
-        getTaskDescription(pCFA, pSpecification));
+        getTaskDescription(pCFA, pSpecification),
+        pCFA.getASTStructure().orElse(null));
   }
 
   private static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
@@ -241,6 +247,19 @@ public final class InvariantWitnessWriter {
   }
 
   private LocationRecord createLocationRecordAfterLocation(FileLocation fLoc, String functionName) {
+    // If the astStructure exists, we want to use it to precisely export the YAML counterexample.
+    // If it does not exist, we continue with the current heuristic, which will match the sequence
+    // point
+    // exactly, but will probably not point to the beginning of a statement
+    if (astStructure != null) {
+      FileLocation nextStatementFileLocation =
+          astStructure.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
+      if (nextStatementFileLocation != null) {
+        return createLocationRecord(
+            nextStatementFileLocation, fLoc.getFileName().toString(), functionName);
+      }
+    }
+
     final String fileName = fLoc.getFileName().toString();
     final int lineNumber = fLoc.getStartingLineInOrigin();
     final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
@@ -252,15 +271,28 @@ public final class InvariantWitnessWriter {
     return location;
   }
 
+  private LocationRecord createLocationRecord(
+      FileLocation fLoc, String fileName, String functionName) {
+    final int lineNumber = fLoc.getStartingLineInOrigin();
+    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
+    final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
+    final int columnFirstCharacterOfStatement = offsetInLine + 1;
+
+    LocationRecord location =
+        new LocationRecord(
+            fileName, "file_hash", lineNumber, columnFirstCharacterOfStatement, functionName);
+    return location;
+  }
+
   private LocationRecord createLocationRecord(FileLocation fLoc, String functionName) {
     final String fileName = fLoc.getFileName().toString();
     final int lineNumber = fLoc.getStartingLineInOrigin();
     final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
     final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
-    final int columnAfterStatement = offsetInLine;
+    final int columnBeforeStatement = offsetInLine;
 
     LocationRecord location =
-        new LocationRecord(fileName, "file_hash", lineNumber, columnAfterStatement, functionName);
+        new LocationRecord(fileName, "file_hash", lineNumber, columnBeforeStatement, functionName);
     return location;
   }
 
@@ -279,7 +311,6 @@ public final class InvariantWitnessWriter {
         // waypoint location. The waypoint is passed if the given constraint evaluates to true."
         // To make our export compliant with the format we will point to exactly one sequence
         // point after the nondet call assignment
-
         if (edgeWithAssumptions.getExpStmts().isEmpty()) {
           continue;
         }
