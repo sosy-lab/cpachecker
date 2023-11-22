@@ -194,9 +194,7 @@ public class ASTStructure {
 
   public boolean startsAtStatement(CFAEdge edge) {
     return classifier
-        .statementOffsetsToLocations
-        .keySet()
-        .contains(edge.getFileLocation().getNodeOffset());
+        .statementOffsetsToLocations.containsKey(edge.getFileLocation().getNodeOffset());
   }
 
   public FileLocation nextStartStatementLocation(Integer offset) {
