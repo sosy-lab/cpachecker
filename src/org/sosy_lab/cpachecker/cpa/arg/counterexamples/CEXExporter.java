@@ -331,7 +331,7 @@ public class CEXExporter {
             compressWitness);
 
         if (invariantWitnessWriter != null) {
-          if (exportYamlWitnessesDirectlyFromCex) {
+          if (exportYamlWitnessesDirectlyFromCex && counterexample.isPreciseCounterExample()) {
             writeErrorPathFile(
                 options.getYamlWitnessFile(),
                 uniqueId,
@@ -340,6 +340,11 @@ public class CEXExporter {
                       invariantWitnessWriter.exportErrorWitnessAsYamlWitness(counterexample, pApp);
                     },
                 compressWitness);
+          } else if (exportYamlWitnessesDirectlyFromCex) {
+            logger.log(
+                Level.SEVERE,
+                "Could not expor the YAML violation witness directly from the ARG, since the"
+                    + " counterexample is not precise. Therefore no YAML witness was produced.");
           } else {
             writeErrorPathFile(
                 options.getYamlWitnessFile(),
