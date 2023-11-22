@@ -1722,12 +1722,17 @@ public class SMGCPAExpressionEvaluator {
       throw new SMGException("Symbolic offset in copy of complete memory structure.");
     }
     BigInteger concreteLeftHandSideOffset = leftHandSideOffset.asNumericValue().bigIntegerValue();
+    BigInteger copySizeInBits = leftHandSideMemory.getSize().subtract(concreteLeftHandSideOffset);
+    BigInteger sourceCopySize = paramMemory.getSize().subtract(paramBaseOffset);
+    if (copySizeInBits.compareTo(sourceCopySize) > 0) {
+      copySizeInBits = sourceCopySize;
+    }
     return pState.copySMGObjectContentToSMGObject(
         paramMemory,
         new NumericValue(paramBaseOffset),
         leftHandSideMemory,
         leftHandSideOffset,
-        new NumericValue(leftHandSideMemory.getSize().subtract(concreteLeftHandSideOffset)));
+        new NumericValue(copySizeInBits));
   }
 
   /**
