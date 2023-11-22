@@ -2047,7 +2047,7 @@ public class SMGCPAExpressionEvaluator {
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
-      CType memberType = memberTypes.get(0).getType();
+      CType memberType = memberTypes.get(listCounter).getType();
       Value offset = null;
       if (initializer instanceof CDesignatedInitializer) {
         List<CDesignator> designators = ((CDesignatedInitializer) initializer).getDesignators();
