@@ -40,6 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -300,29 +301,49 @@ public final class InvariantWitnessWriter {
   public void exportErrorWitnessAsYamlWitness(CounterexampleInfo pCex, Appendable pApp) {
     CFAPathWithAssumptions cexPathWithAssignments = pCex.getCFAPathWithAssignments();
     List<SegmentRecord> segments = new ArrayList<>();
+    // The semantics of the YAML witnesses imply that every assumption waypoint should be
+    // valid before the sequence statement it points to. Due to the semantics of the format:
+    // "An assumption waypoint is evaluated at the sequence point immediately before the
+    // waypoint location. The waypoint is passed if the given constraint evaluates to true."
+    // To make our export compliant with the format we will point to exactly one sequence
+    // point after the nondet call assignment
+    // The syntax of the location of an assumption waypoint states that:
+    // 'Assumption
+    //  The location has to point to the beginning of a statement.'
+    // Therefore an assumption waypoint needs to point to the beginning of the statement before
+    // which it is valid
+
+    Map<CFAEdge, Long> cfaEdgesOccurences =
+        cexPathWithAssignments.stream()
+            .map(CFAEdgeWithAssumptions::getCFAEdge)
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
     for (CFAEdgeWithAssumptions edgeWithAssumptions : cexPathWithAssignments) {
       CFAEdge edge = edgeWithAssumptions.getCFAEdge();
       // See if the edge contains an assignment of a VerifierNondet call
       if (CFAUtils.assignsNondetFunctionCall(edge)) {
-        // The semantics of the YAML witnesses imply that every assumption waypoint should be
-        // valid before the sequence statement it points to. Due to the semantics of the format:
-        // "An assumption waypoint is evaluated at the sequence point immediately before the
-        // waypoint location. The waypoint is passed if the given constraint evaluates to true."
-        // To make our export compliant with the format we will point to exactly one sequence
-        // point after the nondet call assignment
-        if (edgeWithAssumptions.getExpStmts().isEmpty()) {
+        // Since waypoints are considered one after the other if an edge occurs more than once with
+        // possibly different assumptions in the counterexample path, if not all are exported then
+        // there may be a wrong matching
+        if (edgeWithAssumptions.getExpStmts().isEmpty() && cfaEdgesOccurences.get(edge) == 1) {
           continue;
         }
 
         List<WaypointRecord> waypoints = new ArrayList<>();
-        String statement =
-            String.join(
-                " && ",
-                edgeWithAssumptions.getExpStmts().stream()
-                    .map(AExpressionStatement::toString)
-                    .map(x -> "(" + x.replace(";", "") + ")")
-                    .toList());
+        String statement;
+        if (edgeWithAssumptions.getExpStmts().isEmpty()) {
+          // We need to export this waypoint in order to avoid errors caused by passing another
+          // waypoint at the same location either too early or too late.
+          statement = "1";
+        } else {
+          statement =
+              String.join(
+                  " && ",
+                  edgeWithAssumptions.getExpStmts().stream()
+                      .map(AExpressionStatement::toString)
+                      .map(x -> "(" + x.replace(";", "") + ")")
+                      .toList());
+        }
 
         InformationRecord informationRecord = new InformationRecord(statement, null, "C");
         LocationRecord location =
