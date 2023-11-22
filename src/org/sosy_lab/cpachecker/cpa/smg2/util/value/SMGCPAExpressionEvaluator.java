@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -1957,7 +1956,7 @@ public class SMGCPAExpressionEvaluator {
         return handleInitializerList(
             pNewState, pVarDecl, pEdge, variableName, pOffset, arrayType, pNewInitializer);
       } else if (realCType instanceof CCompositeType structType) {
-        return handleInitializerList(
+        return handleInitializerListForComposites(
             pNewState, pVarDecl, pEdge, variableName, pOffset, structType, pNewInitializer);
       }
 
@@ -2025,7 +2024,7 @@ public class SMGCPAExpressionEvaluator {
    * Handles and inits, to the variable given, the given CInitializerList initializers.
    * In this case composite types like structs and unions.
    */
-  private List<SMGState> handleInitializerList(
+  private List<SMGState> handleInitializerListForComposites(
       SMGState pState,
       CVariableDeclaration pVarDecl,
       CFAEdge pEdge,
@@ -2047,25 +2046,31 @@ public class SMGCPAExpressionEvaluator {
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
       CType memberType = memberTypes.get(0).getType();
+      Value offset = null;
       if (initializer instanceof CDesignatedInitializer) {
         List<CDesignator> designators = ((CDesignatedInitializer) initializer).getDesignators();
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
         Preconditions.checkArgument(designators.size() == 1);
+        String fieldName = ((CFieldDesignator) designators.get(0)).getFieldName();
 
-        for (CCompositeTypeMemberDeclaration memTypes : memberTypes) {
-          if (memTypes.getName().equals(((CFieldDesignator) designators.get(0)).getFieldName())) {
-            memberType = memTypes.getType();
+        for (Entry<CCompositeType.CCompositeTypeMemberDeclaration, BigInteger> fieldToOffset :
+            offsetAndPosition.entrySet()) {
+          if (fieldToOffset.getKey().getName().equals(fieldName)) {
+            offset = addOffsetValues(pOffset, new NumericValue(fieldToOffset.getValue()));
             break;
           }
         }
+        if (offset == null) {
+          throw new SMGException(
+              "Unknown field " + fieldName + " in struct expression in " + pEdge);
+        }
+
       } else {
         memberType = memberTypes.get(listCounter).getType();
+        offset =
+            addOffsetValues(
+                pOffset, new NumericValue(offsetAndPosition.get(memberTypes.get(listCounter))));
       }
-
-      // The offset is the base offset given + the current offset
-      Value offset =
-          addOffsetValues(
-              pOffset, new NumericValue(offsetAndPosition.get(memberTypes.get(listCounter))));
 
       List<SMGState> newStates =
           handleInitializer(
