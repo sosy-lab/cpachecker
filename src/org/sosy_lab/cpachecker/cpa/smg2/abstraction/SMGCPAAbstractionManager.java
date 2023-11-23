@@ -315,7 +315,7 @@ public class SMGCPAAbstractionManager {
    *
    * @return an unsorted list of candidates.
    */
-  ImmutableList<SMGCandidate> getRefinedLinkedCandidates() {
+  ImmutableList<SMGCandidate> getRefinedLinkedCandidates() throws SMGException {
     ImmutableList<SMGCandidate> sortedCandiList =
         ImmutableList.sortedCopyOf(
             Comparator.comparing(SMGCandidate::getSuspectedNfo),
@@ -396,7 +396,8 @@ public class SMGCPAAbstractionManager {
     return findBackPointerOffsetForListObject(nextObject, root, smg, nfo, 1);
   }
 
-  Set<SMGCandidate> refineCandidates(Set<SMGCandidate> candidates, SMGState pState) {
+  Set<SMGCandidate> refineCandidates(Set<SMGCandidate> candidates, SMGState pState)
+      throws SMGException {
     Set<SMGCandidate> finalCandidates = candidates;
     ImmutableList<SMGCandidate> sortedCandiList =
         ImmutableList.sortedCopyOf(Comparator.comparing(SMGCandidate::getSuspectedNfo), candidates);
@@ -420,7 +421,8 @@ public class SMGCPAAbstractionManager {
       BigInteger nfo,
       Set<SMGCandidate> candidates,
       SMGState pState,
-      Set<SMGObject> alreadyVisited) {
+      Set<SMGObject> alreadyVisited)
+      throws SMGException {
     if (alreadyVisited.contains(candidate)) {
       return candidates;
     }
@@ -439,7 +441,8 @@ public class SMGCPAAbstractionManager {
     }
   }
 
-  private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo, SMGState pState) {
+  private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo, SMGState pState)
+      throws SMGException {
     SMGValueAndSMGState valueAndState =
         pState.readSMGValue(root, nfo, pState.getMemoryModel().getSizeOfPointer());
     SMGValue value = valueAndState.getSMGValue();

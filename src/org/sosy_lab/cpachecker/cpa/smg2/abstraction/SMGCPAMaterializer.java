@@ -391,7 +391,8 @@ public class SMGCPAMaterializer {
 
   // Check that the pointers of a list are correct
   private boolean checkPointersOfMaterializedDLL(
-      SMGObject newConcreteRegion, BigInteger nfo, BigInteger pfo, SMGState state) {
+      SMGObject newConcreteRegion, BigInteger nfo, BigInteger pfo, SMGState state)
+      throws SMGException {
     BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
     SMGValueAndSMGState nextPointerAndState =
         state.readSMGValue(newConcreteRegion, nfo, pointerSize);
@@ -452,7 +453,7 @@ public class SMGCPAMaterializer {
   }
 
   private boolean checkPointersOfMaterializedSLL(
-      SMGObject newConcreteRegion, BigInteger nfo, SMGState state) {
+      SMGObject newConcreteRegion, BigInteger nfo, SMGState state) throws SMGException {
     BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
     SMGValueAndSMGState nextPointerAndState =
         state.readSMGValue(newConcreteRegion, nfo, pointerSize);
@@ -483,7 +484,8 @@ public class SMGCPAMaterializer {
 
   // Expects the list of expected objects in listOfObjects in the correct order for the offset
   private boolean checkList(
-      SMGObject start, BigInteger pointerOffset, List<SMGObject> listOfObjects, SMGState state) {
+      SMGObject start, BigInteger pointerOffset, List<SMGObject> listOfObjects, SMGState state)
+      throws SMGException {
     SMGObject currentObj = start;
     BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
 

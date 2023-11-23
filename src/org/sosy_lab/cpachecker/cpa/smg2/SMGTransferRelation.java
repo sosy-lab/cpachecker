@@ -135,6 +135,8 @@ public class SMGTransferRelation
 
   private final SMGConstraintsSolver solver;
 
+  private final CFA cfa;
+
   public SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
@@ -144,6 +146,7 @@ public class SMGTransferRelation
       SMGCPAStatistics pStats,
       SMGConstraintsSolver pSolver,
       SMGCPAExpressionEvaluator pEvaluator) {
+    cfa = pCfa;
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
@@ -204,6 +207,7 @@ public class SMGTransferRelation
             smtSolver, formulaManager, converter, new ConstraintsStatistics(), options);
 
     evaluator = pEvaluator;
+    cfa = null;
   }
 
   @Override
@@ -1014,17 +1018,24 @@ public class SMGTransferRelation
     // CEGAR checks inside the ifs! Else we check every typedef!
 
     if (cDecl instanceof CFunctionDeclaration cFuncDecl) {
-      if (cFuncDecl.getQualifiedName().equals("main")) {
+      if (cfa != null
+          && cFuncDecl.getQualifiedName().equals(cfa.getMainFunction().getFunctionName())) {
         if (cFuncDecl.getParameters() != null) {
           // Init main parameters if there are any
           for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
             CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
             BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, paramType);
-            // argc and argv are also allocated here if they are in the program
-            // argc is some nondet > 1 while argv is non-null array of unknown values size argc
-            currentState =
-                currentState.copyAndAddLocalVariable(
-                    paramSizeInBits, parameters.getQualifiedName(), paramType);
+            if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
+              currentState =
+                  currentState.copyAndAddLocalVariable(
+                      paramSizeInBits, parameters.getQualifiedName(), paramType, true);
+            } else {
+              // argc and argv are also allocated here if they are in the program
+              // argc is some nondet > 1 while argv is non-null array of unknown values size argc
+              currentState =
+                  currentState.copyAndAddLocalVariable(
+                      paramSizeInBits, parameters.getQualifiedName(), paramType);
+            }
           }
         }
       }

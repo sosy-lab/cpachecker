@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -98,6 +99,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           continue;
         }
         if (isTargetStateReachable) {
+          // This analysis may be imprecise if the program contains pointers.
+          // TODO: Implement pointers handling.
+          if (programContainsPointers(ssaMap)) {
+            return Optional.of(result.withAction(Action.BREAK));
+          }
           terminationState.makeTarget();
           result = result.withAbstractState(terminationState);
           statistics.setNonterminatingLoop(
@@ -107,6 +113,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
     }
     return Optional.of(result);
+  }
+
+  private boolean programContainsPointers(SSAMap pSSAMap) {
+    for (String variable : pSSAMap.allVariables()) {
+      if (pSSAMap.getType(variable) instanceof CPointerType) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private BooleanFormula buildCycleFormula(

@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -983,7 +983,7 @@ public class SMGCPAExpressionEvaluator {
    */
   private ValueAndSMGState readValueWithoutMaterialization(
       SMGState currentState, SMGObject object, Value offsetValueInBits, BigInteger sizeInBits)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     // TODO: this can be refacored with readValue, so that the checks are 1 method
 
     if (offsetValueInBits.isNumericValue()) {
@@ -1727,6 +1727,7 @@ public class SMGCPAExpressionEvaluator {
     if (copySizeInBits.compareTo(sourceCopySize) > 0) {
       copySizeInBits = sourceCopySize;
     }
+    // TODO: this is most likely incorrect for nested structs without pointers
     return pState.copySMGObjectContentToSMGObject(
         paramMemory,
         new NumericValue(paramBaseOffset),
@@ -2043,50 +2044,52 @@ public class SMGCPAExpressionEvaluator {
 
     int listCounter = 0;
 
-    List<CCompositeType.CCompositeTypeMemberDeclaration> memberTypes = pLValueType.getMembers();
-    // Member -> offset map
-    Map<CCompositeType.CCompositeTypeMemberDeclaration, BigInteger> offsetAndPosition =
-        machineModel.getAllFieldOffsetsInBits(pLValueType);
+    List<CCompositeType.CCompositeTypeMemberDeclaration> memberDecls = pLValueType.getMembers();
 
     SMGState currentState = pState;
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
-      CType memberType = memberTypes.get(listCounter).getType();
-      Value offset = null;
-      if (initializer instanceof CDesignatedInitializer) {
+      Value offset = pOffset;
+      CType fieldType = null;
+      if (initializer instanceof CDesignatedInitializer designatedInittializer) {
         List<CDesignator> designators = ((CDesignatedInitializer) initializer).getDesignators();
-        initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
+        initializer = designatedInittializer.getRightHandSide();
         Preconditions.checkArgument(designators.size() == 1);
         String fieldName = ((CFieldDesignator) designators.get(0)).getFieldName();
 
-        for (Entry<CCompositeType.CCompositeTypeMemberDeclaration, BigInteger> fieldToOffset :
-            offsetAndPosition.entrySet()) {
-          if (fieldToOffset.getKey().getName().equals(fieldName)) {
-            offset = addOffsetValues(pOffset, new NumericValue(fieldToOffset.getValue()));
+        listCounter = 0;
+        for (CCompositeType.CCompositeTypeMemberDeclaration memberNameAndType : memberDecls) {
+          if (memberNameAndType.getName().equals(fieldName)) {
+            fieldType = memberNameAndType.getType();
             break;
           }
+          listCounter++;
         }
-        if (offset == null) {
-          throw new SMGException(
-              "Unknown field " + fieldName + " in struct expression in " + pEdge);
-        }
+        Preconditions.checkNotNull(fieldType);
+
+        BigInteger fieldOffset = machineModel.getFieldOffsetInBits(pLValueType, fieldName);
+        Preconditions.checkNotNull(fieldOffset);
+        offset = addOffsetValues(offset, fieldOffset);
 
       } else {
-        memberType = memberTypes.get(listCounter).getType();
-        offset =
-            addOffsetValues(
-                pOffset, new NumericValue(offsetAndPosition.get(memberTypes.get(listCounter))));
+        CCompositeTypeMemberDeclaration fieldDecl = memberDecls.get(listCounter);
+
+        BigInteger fieldOffset =
+            machineModel.getFieldOffsetInBits(pLValueType, fieldDecl.getName());
+        Preconditions.checkNotNull(fieldOffset);
+        offset = addOffsetValues(offset, fieldOffset);
+
+        fieldType = fieldDecl.getType();
       }
 
       List<SMGState> newStates =
           handleInitializer(
-              currentState, pVarDecl, pEdge, variableName, offset, memberType, initializer);
+              currentState, pVarDecl, pEdge, variableName, offset, fieldType, initializer);
 
       // If this ever fails: branch into the new states and perform the rest of the loop on both!
       Preconditions.checkArgument(newStates.size() == 1);
       currentState = newStates.get(0);
-      // finalStates.addAll(newStates);
       listCounter++;
     }
     return ImmutableList.of(currentState);
@@ -2108,10 +2111,22 @@ public class SMGCPAExpressionEvaluator {
     CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(pLValueType.getType());
     BigInteger memberTypeSize = getBitSizeof(pState, memberType);
 
-    // ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
+    List<CInitializer> initList = pNewInitializer.getInitializers();
+    // The initilizerlist might exceed the memory allocated. In this case we cut off the rest of the
+    // initializer
+    // Also, the initializer might be smaller, in that case we pad 0
+    if (pVarDecl.getType().getCanonicalType().hasKnownConstantSize()) {
+      BigInteger typeSize = machineModel.getSizeof(pVarDecl.getType().getCanonicalType());
+      int initializerSize = pNewInitializer.getInitializers().size();
+      if (typeSize.intValueExact() < initializerSize) {
+        initList = initList.subList(0, typeSize.intValueExact());
+      }
+      // TODO: handle smaller initializer lists
+    }
+
     SMGState currentState = pState;
     Value offset = pOffset;
-    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+    for (CInitializer initializer : initList) {
       // TODO: this has to be checked with a test!!!!
       if (initializer instanceof CDesignatedInitializer) {
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
@@ -2143,16 +2158,6 @@ public class SMGCPAExpressionEvaluator {
   public String getCStringLiteralExpressionVairableName(
       CStringLiteralExpression pCStringLiteralExpression) {
     return "_" + pCStringLiteralExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
-    /*
-    WHY did i do this?!
-          // If the var exists we change the name and create a new one
-      // (Don't reuse an old variable! They might be different from the new one!)
-      int num = 0;
-      while (pState.isGlobalVariablePresent(stringVarName + num)) {
-        num++;
-      }
-      stringVarName += num;
-     */
   }
 
   /*

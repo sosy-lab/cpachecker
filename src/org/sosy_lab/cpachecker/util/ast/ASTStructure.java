@@ -44,12 +44,17 @@ public class ASTStructure {
 
   public ASTStructure(
       Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, CFA pCfa)
-      throws InvalidConfigurationException, CoreException, InterruptedException, IOException {
+      throws InvalidConfigurationException, InterruptedException, IOException {
     classifier = new ASTLocationClassifier();
     cdt = new EclipseCdtWrapper(CParser.Factory.getOptions(pConfig), pShutdownNotifier);
     logger = pLogger;
     cfa = pCfa;
-    analyzeCFA();
+    try {
+      analyzeCFA();
+    } catch (CoreException e) {
+      throw new InvalidConfigurationException(
+          "Exception during analysis of CFA for generating the AST structure", e);
+    }
   }
 
   private void analyzeCFA() throws CoreException, InterruptedException, IOException {
