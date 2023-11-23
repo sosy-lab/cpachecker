@@ -983,7 +983,7 @@ public class SMGCPAExpressionEvaluator {
    */
   private ValueAndSMGState readValueWithoutMaterialization(
       SMGState currentState, SMGObject object, Value offsetValueInBits, BigInteger sizeInBits)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     // TODO: this can be refacored with readValue, so that the checks are 1 method
 
     if (offsetValueInBits.isNumericValue()) {

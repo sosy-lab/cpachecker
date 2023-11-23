@@ -822,7 +822,7 @@ public class SMGState
    */
   @SuppressWarnings("unused")
   public boolean verifyVariableEqualityWithValueAt(
-      MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) {
+      MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) throws SMGException {
     Value expectedValue = valueAndSize.getValue();
     Value readValue = getValueToVerify(variableAndOffset, valueAndSize);
     // Note: asNumericValue() returns null for non numerics
@@ -830,7 +830,8 @@ public class SMGState
   }
 
   /* public for debugging purposes in interpolation only! */
-  public Value getValueToVerify(MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) {
+  public Value getValueToVerify(MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize)
+      throws SMGException {
     String variableName = variableAndOffset.getQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(variableAndOffset.getOffset());
     // Null for new interpolants, return unknown
@@ -1085,6 +1086,24 @@ public class SMGState
    */
   public SMGState copyAndAddLocalVariable(BigInteger pTypeSize, String pVarName, CType type)
       throws SMGException {
+    return copyAndAddLocalVariable(pTypeSize, pVarName, type, false);
+  }
+
+  /**
+   * Copy SMGState with a newly created object with the size given and put it into the current stack
+   * frame. If there is no stack frame this throws an exception!
+   *
+   * <p>Keeps consistency: yes
+   *
+   * @param pTypeSize Size of the type the new local variable in bits.
+   * @param pVarName Name of the local variable
+   * @param exceptionOnRead throws an exception if this object is ever read
+   * @return {@link SMGState} with the new variables searchable by the name given.
+   * @throws SMGException thrown if the stack frame is empty.
+   */
+  public SMGState copyAndAddLocalVariable(
+      BigInteger pTypeSize, String pVarName, CType type, boolean exceptionOnRead)
+      throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
       throw new SMGException(
           "Can't add a variable named "
@@ -1092,7 +1111,8 @@ public class SMGState
               + " to the memory model because there is no stack frame.");
     }
     SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
-    return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject, pVarName, type));
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddStackObject(newObject, pVarName, type, exceptionOnRead));
   }
 
   private SMGState copyAndAddLocalVariableToSpecificStackframe(
@@ -2740,7 +2760,8 @@ public class SMGState
       SMGObject pObject,
       BigInteger pFieldOffset,
       BigInteger pSizeofInBits,
-      @Nullable CType readType) {
+      @Nullable CType readType)
+      throws SMGException {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject));
     }
@@ -2880,7 +2901,7 @@ public class SMGState
    * Only to be used by abstraction and tests! This will not materialize anything!
    */
   public SMGValueAndSMGState readSMGValue(
-      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) throws SMGException {
     SMGHasValueEdgesAndSPC valueAndNewSPC =
         memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits, false);
     SMGState newState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
@@ -4294,7 +4315,7 @@ public class SMGState
         newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
 
-  private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo) {
+  private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo) throws SMGException {
     SMGState currentState = this;
     SMGValueAndSMGState valueAndState =
         currentState.readSMGValue(root, nfo, memoryModel.getSizeOfPointer());

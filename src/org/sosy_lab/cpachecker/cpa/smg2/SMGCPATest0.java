@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -132,7 +133,7 @@ public class SMGCPATest0 {
    * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
    */
   protected Value[] buildConcreteList(boolean dll, BigInteger sizeOfSegment, int listLength)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     Value[] pointerArray = new Value[listLength];
     SMGObject prevObject = null;
 
@@ -211,7 +212,7 @@ public class SMGCPATest0 {
   // Adds an EQUAL sublists depending on nfo, pfo and dll to each object that the pointer array
   // points to
   protected Value[][] addSubListsToList(int listLength, Value[] pointersOfTopList, boolean dll)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     Value[][] nestedPointers = new Value[listLength][];
     int i = 0;
     for (Value pointer : pointersOfTopList) {
@@ -240,7 +241,7 @@ public class SMGCPATest0 {
    *
    * @param pointers a array of pointers pointing to a list with the default data scheme.
    */
-  protected void checkListDataIntegrity(Value[] pointers, boolean dll) {
+  protected void checkListDataIntegrity(Value[] pointers, boolean dll) throws SMGException {
     int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();
     if (dll) {
       toCheckData =

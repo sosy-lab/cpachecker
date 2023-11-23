@@ -266,7 +266,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * @param lengthOfList length of the total list
    * @param isDll true if dll
    */
-  private void assertAbstractedList(Value[] pointers, int lengthOfList, boolean isDll) {
+  private void assertAbstractedList(Value[] pointers, int lengthOfList, boolean isDll)
+      throws SMGException {
     assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2);
     int numOfValidObjects = 0;
     for (SMGObject obj : currentState.getMemoryModel().getSmg().getObjects()) {
@@ -380,7 +381,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    *
    * @param lastConcreteListObject the last concrete segment who's nfo points to 0+.
    */
-  private void checkNextPointsToZeroPlus(SMGObject lastConcreteListObject, boolean isDll) {
+  private void checkNextPointsToZeroPlus(SMGObject lastConcreteListObject, boolean isDll)
+      throws SMGException {
     SMGValueAndSMGState readValueAndState =
         currentState.readSMGValue(lastConcreteListObject, nfo, pointerSizeInBits);
     currentState = readValueAndState.getSMGState();
