@@ -218,7 +218,7 @@ public final class InvariantWitnessWriter {
   public void exportInvariantWitnesses(
       Collection<InvariantWitness> invariantWitnesses, Path outFile) {
     logger.logf(
-        Level.INFO, "Exporting %d invariant witnesses to %s", invariantWitnesses.size(), outFile);
+        Level.FINER, "Exporting %d invariant witnesses to %s", invariantWitnesses.size(), outFile);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
       if (outputDeprecatedYAMLFormat) {
         for (InvariantWitness invariantWitness : invariantWitnesses) {
