@@ -529,6 +529,8 @@ public final class AutomatonGraphmlCommon {
     return handleAsEpsilonEdge(pEdge);
   }
 
+  private static final Map<CFAEdge, Boolean> cacheTreatAsEpsilon = new HashMap<>();
+
   /**
    * This method checks whether an edge qualifies as epsilon edge. Epsilon edges are irrelevant
    * edges that are not required in the witness.
@@ -537,7 +539,13 @@ public final class AutomatonGraphmlCommon {
    * <li>blank edges and function summary edges (not required for a path in the witness).
    */
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
-    return handleAsEpsilonEdge0(edge) && edge.getSuccessor().getNumLeavingEdges() > 0;
+    Boolean cachedResult = cacheTreatAsEpsilon.get(edge);
+    if (cachedResult != null) {
+      return cachedResult;
+    }
+    boolean result = edge.getSuccessor().getNumLeavingEdges() > 0 && handleAsEpsilonEdge0(edge);
+    cacheTreatAsEpsilon.put(edge, result);
+    return result;
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
