@@ -2115,7 +2115,7 @@ public class SMGCPAExpressionEvaluator {
     // The initilizerlist might exceed the memory allocated. In this case we cut off the rest of the
     // initializer
     // Also, the initializer might be smaller, in that case we pad 0
-    if (pVarDecl.getType().getCanonicalType().hasKnownConstantSize()) {
+    if (pVarDecl != null && pVarDecl.getType().getCanonicalType().hasKnownConstantSize()) {
       BigInteger typeSize = machineModel.getSizeof(pVarDecl.getType().getCanonicalType());
       int initializerSize = pNewInitializer.getInitializers().size();
       if (typeSize.intValueExact() < initializerSize) {
