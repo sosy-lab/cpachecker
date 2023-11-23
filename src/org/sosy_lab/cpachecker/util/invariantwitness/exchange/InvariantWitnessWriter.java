@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
-import org.sosy_lab.cpachecker.util.ast.FileLocationUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -333,7 +332,7 @@ public final class InvariantWitnessWriter {
 
       // We now conjunct all the overapproximations of the states and export them as loop invariants
       for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
-        if (!FileLocationUtils.isInOriginalProgram(edge.getFileLocation())) {
+        if (!edge.getFileLocation().isRealLocation()) {
           continue;
         }
 
