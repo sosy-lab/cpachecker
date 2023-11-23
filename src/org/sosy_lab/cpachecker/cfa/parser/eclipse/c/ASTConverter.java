@@ -2852,15 +2852,13 @@ class ASTConverter {
         return null;
       }
 
-      final CInitializerExpression result;
+      final FileLocation loc = getLocation(ic);
+      CExpression initializerExpression;
       if (initializer instanceof CAssignment) {
         sideAssignmentStack.addPreSideAssignment(initializer);
-        result =
-            new CInitializerExpression(
-                getLocation(e), ((CAssignment) initializer).getLeftHandSide());
+        initializerExpression = ((CAssignment) initializer).getLeftHandSide();
 
       } else if (initializer instanceof CFunctionCallExpression) {
-        FileLocation loc = getLocation(i);
 
         if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
           // This is a variable declaration like "int i = f();"
@@ -2879,11 +2877,11 @@ class ASTConverter {
           sideAssignmentStack.addPreSideAssignment(
               new CFunctionCallAssignmentStatement(
                   loc, var, (CFunctionCallExpression) initializer));
-          result = new CInitializerExpression(loc, var);
+          initializerExpression = var;
         }
 
       } else if (initializer instanceof CExpression) {
-        result = new CInitializerExpression(getLocation(ic), (CExpression) initializer);
+        initializerExpression = (CExpression) initializer;
 
       } else {
         throw parseContext.parseError(
@@ -2892,16 +2890,16 @@ class ASTConverter {
             e);
       }
 
-      if (!areInitializerAssignable(type, result.getExpression())) {
+      if (!areInitializerAssignable(type, initializerExpression)) {
         if (type.getCanonicalType() instanceof CPointerType
-            && CTypes.isIntegerType(result.getExpression().getExpressionType())) {
+            && CTypes.isIntegerType(initializerExpression.getExpressionType())) {
           if (declaration != null) {
             logger.logf(
                 Level.WARNING,
                 "%s: Initialization of pointer variable %s with integer expression %s.",
-                result.getFileLocation(),
+                initializerExpression.getFileLocation(),
                 type.toASTString(declaration.getName()),
-                result);
+                initializerExpression);
           }
         } else {
           throw parseContext.parseError(
@@ -2914,7 +2912,7 @@ class ASTConverter {
         }
       }
 
-      return result;
+      return new CInitializerExpression(loc, initializerExpression);
 
     } else if (ic instanceof IASTInitializerList) {
       return convert((IASTInitializerList) ic, type, declaration);
