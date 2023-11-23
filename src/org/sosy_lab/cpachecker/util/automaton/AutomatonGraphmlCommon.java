@@ -114,7 +114,7 @@ public final class AutomatonGraphmlCommon {
 
   private static final Map<CFAEdge, Boolean> cacheEdgeIsAssumeInSwitch = new HashMap<>();
   private static final Map<CFAEdge, Boolean> cacheTreatAsWhileTrue = new HashMap<>();
-  
+
   public enum AssumeCase {
     THEN("condition-true"),
     ELSE("condition-false");
