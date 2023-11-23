@@ -1805,12 +1805,9 @@ class WitnessFactory implements EdgeAppender {
 
     // Check if either the reference node or any of its direct predecessors via assume edges are in
     // loop proximity
-    return FluentIterable.concat(
-            Collections.singleton(referenceNode),
-            CFAUtils.enteringEdges(referenceNode)
-                .filter(AssumeEdge.class)
-                .transform(CFAEdge::getPredecessor))
-        .anyMatch(this::isInLoopProximity);
+    return isInLoopProximity(referenceNode)
+        || CFAUtils.enteringEdges(referenceNode)
+            .anyMatch(e -> e instanceof AssumeEdge && isInLoopProximity(e.getPredecessor()));
   }
 
   /**
