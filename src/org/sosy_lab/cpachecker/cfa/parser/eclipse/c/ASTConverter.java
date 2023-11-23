@@ -2830,14 +2830,14 @@ class ASTConverter {
         return null;
       }
 
-      final CInitializerExpression result;
+      final FileLocation loc = getLocation(ic);
+      CExpression initializerExpression;
       switch (initializer) {
         case CAssignment cAssignment -> {
           sideAssignmentStack.addPreSideAssignment(initializer);
-          result = new CInitializerExpression(getLocation(e), cAssignment.getLeftHandSide());
+          initializerExpression = cAssignment.getLeftHandSide();
         }
         case CFunctionCallExpression cFunctionCallExpression -> {
-          FileLocation loc = getLocation(i);
           if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
             // This is a variable declaration like "int i = f();"
             // We can replace this with "int i; i = f();"
@@ -2853,28 +2853,27 @@ class ASTConverter {
             CIdExpression var = createTemporaryVariableWithTypeOf(e);
             sideAssignmentStack.addPreSideAssignment(
                 new CFunctionCallAssignmentStatement(loc, var, cFunctionCallExpression));
-            result = new CInitializerExpression(loc, var);
+            initializerExpression = var;
           }
         }
-        case CExpression cExpression ->
-            result = new CInitializerExpression(getLocation(ic), cExpression);
+        case CExpression cExpression -> initializerExpression = cExpression;
         default ->
             throw parseContext.parseError(
-                "Initializer is not free of side effects, it is a "
+                "Initializer is not free of side-effects, it is a "
                     + initializer.getClass().getSimpleName(),
                 e);
       }
 
-      if (!areInitializerAssignable(type, result.getExpression())) {
+      if (!areInitializerAssignable(type, initializerExpression)) {
         if (type.getCanonicalType() instanceof CPointerType
-            && CTypes.isIntegerType(result.getExpression().getExpressionType())) {
+            && CTypes.isIntegerType(initializerExpression.getExpressionType())) {
           if (declaration != null) {
             logger.logf(
                 Level.WARNING,
                 "%s: Initialization of pointer variable %s with integer expression %s.",
-                result.getFileLocation(),
+                initializerExpression.getFileLocation(),
                 type.toASTString(declaration.getName()),
-                result);
+                initializerExpression);
           }
         } else {
           throw parseContext.parseError(
@@ -2887,7 +2886,7 @@ class ASTConverter {
         }
       }
 
-      return result;
+      return new CInitializerExpression(loc, initializerExpression);
 
     } else if (ic instanceof IASTInitializerList iASTInitializerList) {
       return convert(iASTInitializerList, type, declaration);
