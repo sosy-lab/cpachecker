@@ -2050,7 +2050,7 @@ public class SMGCPAExpressionEvaluator {
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
-      Value offset = null;
+      Value offset = pOffset;
       CType fieldType = null;
       if (initializer instanceof CDesignatedInitializer designatedInittializer) {
         List<CDesignator> designators = ((CDesignatedInitializer) initializer).getDesignators();
@@ -2070,7 +2070,7 @@ public class SMGCPAExpressionEvaluator {
 
         BigInteger fieldOffset = machineModel.getFieldOffsetInBits(pLValueType, fieldName);
         Preconditions.checkNotNull(fieldOffset);
-        offset = new NumericValue(fieldOffset);
+        offset = addOffsetValues(offset, fieldOffset);
 
       } else {
         CCompositeTypeMemberDeclaration fieldDecl = memberDecls.get(listCounter);
@@ -2078,7 +2078,7 @@ public class SMGCPAExpressionEvaluator {
         BigInteger fieldOffset =
             machineModel.getFieldOffsetInBits(pLValueType, fieldDecl.getName());
         Preconditions.checkNotNull(fieldOffset);
-        offset = new NumericValue(fieldOffset);
+        offset = addOffsetValues(offset, fieldOffset);
 
         fieldType = fieldDecl.getType();
       }
@@ -2111,10 +2111,22 @@ public class SMGCPAExpressionEvaluator {
     CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(pLValueType.getType());
     BigInteger memberTypeSize = getBitSizeof(pState, memberType);
 
-    // ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
+    List<CInitializer> initList = pNewInitializer.getInitializers();
+    // The initilizerlist might exceed the memory allocated. In this case we cut off the rest of the
+    // initializer
+    // Also, the initializer might be smaller, in that case we pad 0
+    if (pVarDecl.getType().getCanonicalType().hasKnownConstantSize()) {
+      BigInteger typeSize = machineModel.getSizeof(pVarDecl.getType().getCanonicalType());
+      int initializerSize = pNewInitializer.getInitializers().size();
+      if (typeSize.intValueExact() < initializerSize) {
+        initList = initList.subList(0, typeSize.intValueExact());
+      }
+      // TODO: handle smaller initializer lists
+    }
+
     SMGState currentState = pState;
     Value offset = pOffset;
-    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+    for (CInitializer initializer : initList) {
       // TODO: this has to be checked with a test!!!!
       if (initializer instanceof CDesignatedInitializer) {
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
