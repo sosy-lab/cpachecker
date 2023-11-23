@@ -2899,6 +2899,22 @@ class ASTConverter {
             e);
       }
 
+      if (type.getCanonicalType() instanceof CPointerType
+          && initializerExpression.getExpressionType().getCanonicalType()
+              instanceof CArrayType initializerType) {
+        // TODO This is part of #1035 but should probably be handled generally somewhere else and
+        // removed here.
+        CType elementType = initializerType.getType();
+        initializerExpression =
+            new CUnaryExpression(
+                loc,
+                new CPointerType(
+                    initializerType.isConst(), initializerType.isVolatile(), elementType),
+                new CArraySubscriptExpression(
+                    loc, elementType, initializerExpression, CIntegerLiteralExpression.ZERO),
+                CUnaryExpression.UnaryOperator.AMPER);
+      }
+
       if (!areInitializerAssignable(type, initializerExpression)) {
         if (type.getCanonicalType() instanceof CPointerType
             && CTypes.isIntegerType(initializerExpression.getExpressionType())) {
