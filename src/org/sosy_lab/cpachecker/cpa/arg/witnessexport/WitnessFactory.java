@@ -187,6 +187,7 @@ class WitnessFactory implements EdgeAppender {
   private final Map<CFAEdge, LoopEntryInfo> loopEntryInfoMemo = new HashMap<>();
   private final Map<CFANode, Boolean> loopProximityMemo = new HashMap<>();
 
+  private final Map<CFANode, Boolean> loopProximityCache = new HashMap<>();
   private final NumericIdProvider numericThreadIdProvider = NumericIdProvider.create();
 
   private boolean isFunctionScope = false;
@@ -1817,7 +1818,16 @@ class WitnessFactory implements EdgeAppender {
    * @return {@code true} if a loop head is found, {@code false} otherwise.
    */
   private boolean isInLoopProximity(CFANode pReferenceNode) {
+    Boolean cachedValue = loopProximityCache.get(pReferenceNode);
+    if (cachedValue != null) {
+      return cachedValue;
+    }
+    boolean computedValue = isInLoopProximity0(pReferenceNode);
+    loopProximityCache.put(pReferenceNode, computedValue);
+    return computedValue;
+  }
 
+  private boolean isInLoopProximity0(CFANode pReferenceNode) {
     Deque<List<CFANode>> waitlist = new ArrayDeque<>();
     Set<CFANode> visited = new HashSet<>();
     waitlist.push(ImmutableList.of(pReferenceNode));
