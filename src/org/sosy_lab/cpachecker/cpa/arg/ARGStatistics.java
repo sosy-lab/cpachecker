@@ -427,8 +427,9 @@ public class ARGStatistics implements Statistics {
               invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(
                   rootState, yamlProofWitness);
             } catch (YamlWitnessExportException e) {
-              logger.log(
+              logger.logUserException(
                   Level.WARNING,
+                  e,
                   "Could not export the YAML correctness witness directly from the ARG. Therefore"
                       + " no YAML witness will be exported.");
             }

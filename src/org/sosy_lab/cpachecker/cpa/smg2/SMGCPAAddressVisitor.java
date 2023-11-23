@@ -108,14 +108,30 @@ public class SMGCPAAddressVisitor
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CStringLiteralExpression e)
       throws CPATransferException {
     String globalVarName = evaluator.getCStringLiteralExpressionVairableName(e);
-    if (!state.isGlobalVariablePresent(globalVarName)) {
-      throw new SMGException("Could not find C String literal address.");
+    SMGState currentState = state;
+    if (!currentState.isGlobalVariablePresent(globalVarName)) {
+      BigInteger sizeOfString = evaluator.getBitSizeof(currentState, e.getExpressionType());
+      currentState =
+          currentState.copyAndAddGlobalVariable(sizeOfString, globalVarName, e.getExpressionType());
+      List<SMGState> statesWithString =
+          evaluator.handleStringInitializer(
+              currentState,
+              null,
+              cfaEdge,
+              globalVarName,
+              new NumericValue(BigInteger.ZERO),
+              e.getExpressionType(),
+              cfaEdge.getFileLocation(),
+              e);
+      Preconditions.checkArgument(statesWithString.size() == 1);
+      currentState = statesWithString.get(0);
+      // throw new SMGException("Could not find C String literal address.");
     }
     // TODO: assertion that the Strings are immutable
     ValueAndSMGState addressValueAndState =
-        evaluator.createAddressForLocalOrGlobalVariable(globalVarName, state);
+        evaluator.createAddressForLocalOrGlobalVariable(globalVarName, currentState);
     Value addressValue = addressValueAndState.getValue();
-    SMGState currentState = addressValueAndState.getState();
+    currentState = addressValueAndState.getState();
 
     return currentState.dereferencePointer(addressValue);
   }

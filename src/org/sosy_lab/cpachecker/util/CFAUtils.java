@@ -473,26 +473,6 @@ public class CFAUtils {
     return sinks;
   }
 
-  public static FunctionEntryNode getFunctionEntryNode(CFANode pNode) {
-    List<CFANode> waitlist = new ArrayList<>(ImmutableList.of(pNode));
-    Set<CFANode> reached = new HashSet<>(waitlist);
-
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.remove(0);
-      for (CFANode predecesor : CFAUtils.predecessorsOf(current)) {
-        if (predecesor instanceof FunctionEntryNode functionEntry) {
-          return functionEntry;
-        }
-        reached.add(predecesor);
-        if (!reached.contains(predecesor)) {
-          waitlist.add(predecesor);
-        }
-      }
-    }
-
-    return null;
-  }
-
   public static Map<Integer, CFANode> getMappingFromNodeIDsToCFANodes(CFA pCfa) {
     return Maps.uniqueIndex(pCfa.nodes(), CFANode::getNodeNumber);
   }

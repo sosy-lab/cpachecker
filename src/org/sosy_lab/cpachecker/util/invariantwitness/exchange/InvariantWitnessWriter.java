@@ -78,12 +78,12 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
-import org.sosy_lab.cpachecker.util.ast.FileLocationUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.WitnessToYamlWitnessConverter;
@@ -139,6 +139,7 @@ public final class InvariantWitnessWriter {
   @Nullable private ASTStructure astStructure;
 
   private InvariantWitnessFactory invariantWitnessFactory;
+  private CFA cfa;
 
   private InvariantWitnessWriter(
       Configuration pConfig,
@@ -147,7 +148,8 @@ public final class InvariantWitnessWriter {
       ProducerRecord pProducerDescription,
       TaskRecord pTaskDescription,
       @Nullable ASTStructure pASTStructure,
-      InvariantWitnessFactory pInvariantWitnessFactory)
+      InvariantWitnessFactory pInvariantWitnessFactory,
+      CFA pcfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -164,6 +166,7 @@ public final class InvariantWitnessWriter {
     taskDescription = pTaskDescription;
     astStructure = pASTStructure;
     invariantWitnessFactory = pInvariantWitnessFactory;
+    cfa = pcfa;
   }
 
   /**
@@ -192,7 +195,8 @@ public final class InvariantWitnessWriter {
             null),
         getTaskDescription(pCFA, pSpecification),
         pCFA.getASTStructure().orElse(null),
-        InvariantWitnessFactory.getFactory(pLogger, pCFA));
+        InvariantWitnessFactory.getFactory(pLogger, pCFA),
+        pCFA);
   }
 
   private static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
@@ -307,21 +311,18 @@ public final class InvariantWitnessWriter {
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
-      FunctionEntryNode entryNode = CFAUtils.getFunctionEntryNode(node);
+      FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
 
-      FluentIterable<AbstractState> reportingStates =
+      FluentIterable<ExpressionTreeReportingState> reportingStates =
           FluentIterable.from(argStates)
               .transformAndConcat(AbstractStates::asIterable)
-              .filter(x -> x instanceof ExpressionTreeReportingState);
+              .filter(ExpressionTreeReportingState.class);
       List<List<ExpressionTree<Object>>> expressionsPerClass = new ArrayList<>();
       for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
         List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
-        for (AbstractState state : reportingStates) {
+        for (ExpressionTreeReportingState state : reportingStates) {
           if (stateClass.isAssignableFrom(state.getClass())) {
-            if (state instanceof ExpressionTreeReportingState reportingState) {
-              expressionsMatchingClass.add(
-                  ((ExpressionTreeReportingState) state).getFormulaApproximation(entryNode, node));
-            }
+            expressionsMatchingClass.add(state.getFormulaApproximation(entryNode, node));
           }
         }
         expressionsPerClass.add(expressionsMatchingClass);
@@ -329,7 +330,7 @@ public final class InvariantWitnessWriter {
 
       // We now conjunct all the overapproximations of the states and export them as loop invariants
       for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
-        if (!FileLocationUtils.isInOriginalProgram(edge.getFileLocation())) {
+        if (!edge.getFileLocation().isRealLocation()) {
           continue;
         }
 
@@ -337,7 +338,7 @@ public final class InvariantWitnessWriter {
             invariantWitnessFactory.fromLocationAndInvariant(
                 edge.getFileLocation(),
                 node,
-                And.of(FluentIterable.from(expressionsPerClass).transform(And::of))));
+                And.of(FluentIterable.from(expressionsPerClass).transform(Or::of))));
       }
     }
 
