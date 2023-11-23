@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -110,6 +111,8 @@ public final class AutomatonGraphmlCommon {
 
   private static final String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
   public static final String SINK_NODE_ID = "sink";
+
+  private static final Map<CFAEdge, Boolean> cacheEdgeIsAssumeInSwitch = new HashMap<>();
 
   public enum AssumeCase {
     THEN("condition-true"),
@@ -733,9 +736,18 @@ public final class AutomatonGraphmlCommon {
   }
 
   public static boolean isPartOfSwitchStatement(AssumeEdge pAssumeEdge) {
+    Boolean cachedResult = cacheEdgeIsAssumeInSwitch.get(pAssumeEdge);
+    if (cachedResult != null) {
+      return cachedResult;
+    }
     SwitchDetector switchDetector = new SwitchDetector(pAssumeEdge);
     CFATraversal.dfs().backwards().traverseOnce(pAssumeEdge.getSuccessor(), switchDetector);
-    return switchDetector.switchDetected();
+    boolean assumeIsPartOfSwitchStatement = switchDetector.switchDetected();
+    cacheEdgeIsAssumeInSwitch.put(pAssumeEdge, assumeIsPartOfSwitchStatement);
+    for (CFAEdge e : switchDetector.partOfChain) {
+      cacheEdgeIsAssumeInSwitch.put(e, assumeIsPartOfSwitchStatement);
+    }
+    return assumeIsPartOfSwitchStatement;
   }
 
   public static boolean isDefaultCase(CFAEdge pEdge) {
@@ -763,7 +775,8 @@ public final class AutomatonGraphmlCommon {
 
     private final List<AssumeEdge> edgesBackwardToSwitchNode = new ArrayList<>();
 
-    private CFANode switchNode = null;
+    private boolean switchDetected = false;
+    private List<CFAEdge> partOfChain = new ArrayList<>();
 
     public SwitchDetector(AssumeEdge pAssumeEdge) {
       assumeExpression = pAssumeEdge.getExpression();
@@ -775,7 +788,7 @@ public final class AutomatonGraphmlCommon {
     }
 
     public boolean switchDetected() {
-      return switchNode != null;
+      return switchDetected;
     }
 
     public List<AssumeEdge> getEdgesBackwardToSwitchNode() {
@@ -785,9 +798,18 @@ public final class AutomatonGraphmlCommon {
 
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
+      Boolean cachedResult = cacheEdgeIsAssumeInSwitch.get(pEdge);
+      if (cachedResult != null) {
+        // we already know whether this edge is part of a switch-case cascade.
+        // the original edge the detector started at is part of the same cascade
+        // or not part of any cascade.
+        switchDetected = cachedResult;
+        return TraversalProcess.ABORT;
+      }
       if (switchOperand == assumeExpression) {
         return TraversalProcess.ABORT;
       }
+      partOfChain.add(pEdge);
       if (pEdge instanceof AssumeEdge edge) {
         AExpression expression = edge.getExpression();
         if (!(expression instanceof ABinaryExpression)) {
@@ -805,12 +827,14 @@ public final class AutomatonGraphmlCommon {
             && edge.getFileLocation().isRealLocation()
             && assumeExpression.getFileLocation().getNodeOffset()
                 == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
-          switchNode = edge.getSuccessor();
+          switchDetected = true;
           return TraversalProcess.ABORT;
         }
         return TraversalProcess.CONTINUE;
       }
-      return TraversalProcess.SKIP;
+      // Continue to collect edges that are not part of a switch-case.
+      // SKIP would not have any positive effect because visitNode only continues anyway.
+      return TraversalProcess.CONTINUE;
     }
 
     @Override
@@ -1058,12 +1082,19 @@ public final class AutomatonGraphmlCommon {
   }
 
   public static boolean treatAsWhileTrue(CFAEdge pEdge) {
+    Boolean cachedResult = cacheTreatAsWhileTrue.get(pEdge);
+    if (cachedResult != null) {
+      return cachedResult;
+    }
     CFANode pred = pEdge.getPredecessor();
-    return pEdge instanceof BlankEdge
-        && pred.getNumLeavingEdges() == 1
-        && CFAUtils.enteringEdges(pred)
-            .filter(BlankEdge.class)
-            .anyMatch(e -> e.getDescription().equals("while"));
+    boolean result =
+        pEdge instanceof BlankEdge
+            && pred.getNumLeavingEdges() == 1
+            && CFAUtils.enteringEdges(pred)
+                .filter(BlankEdge.class)
+                .anyMatch(e -> e.getDescription().equals("while"));
+    cacheTreatAsWhileTrue.put(pEdge, result);
+    return result;
   }
 
   private static boolean treatAsTrivialAssume(CFAEdge pEdge) {
