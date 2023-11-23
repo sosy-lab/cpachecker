@@ -1875,11 +1875,6 @@ class WitnessFactory implements EdgeAppender {
 
       @Override
       public TraversalProcess visitNode(CFANode pNode) {
-        LoopEntryInfo loopEntryInformation = loopEntryInfoMemo.get(pEdge);
-        if (loopEntryInformation != null) {
-          loopEntryInfo = loopEntryInformation;
-          return TraversalProcess.ABORT;
-        }
         if (pNode.isLoopStart()) {
           boolean gotoLoop = false;
           if (pNode instanceof CFALabelNode node) {
@@ -1891,40 +1886,46 @@ class WitnessFactory implements EdgeAppender {
             }
           }
           loopEntryInfo = new LoopEntryInfo(pNode, gotoLoop);
-          loopEntryInfoMemo.put(pEdge, loopEntryInfo);
-
           return TraversalProcess.ABORT;
         }
         if (pNode.getNumLeavingEdges() > 1) {
           return TraversalProcess.ABORT;
         }
-        previouslyChecked.add(pEdge);
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitEdge(CFAEdge pCfaEdge) {
+        LoopEntryInfo loopEntryInformation = loopEntryInfoMemo.get(pCfaEdge);
+        if (loopEntryInformation != null) {
+          loopEntryInfo = loopEntryInformation;
+          return TraversalProcess.ABORT;
+        }
+        previouslyChecked.add(pCfaEdge);
         return AutomatonGraphmlCommon.handleAsEpsilonEdge(pCfaEdge)
             ? TraversalProcess.CONTINUE
             : TraversalProcess.SKIP;
       }
     }
-    EnterLoopVisitor enterLoopVisitor = new EnterLoopVisitor();
-    CFATraversal.dfs()
-        .ignoreFunctionCalls()
-        .ignoreSummaryEdges()
-        .traverse(pEdge.getSuccessor(), enterLoopVisitor);
 
-    LoopEntryInfo loopEntryInfo = enterLoopVisitor.loopEntryInfo;
+    LoopEntryInfo loopEntryInfo = loopEntryInfoMemo.get(pEdge);
+    if (loopEntryInfo == null) {
+      EnterLoopVisitor enterLoopVisitor = new EnterLoopVisitor();
+      CFATraversal.dfs()
+          .ignoreFunctionCalls()
+          .ignoreSummaryEdges()
+          .traverse(pEdge.getSuccessor(), enterLoopVisitor);
 
-    for (CFAEdge e : enterLoopVisitor.previouslyChecked) {
-      loopEntryInfoMemo.put(e, loopEntryInfo);
+      loopEntryInfo = enterLoopVisitor.loopEntryInfo;
+      loopEntryInfoMemo.put(pEdge, loopEntryInfo);
+      for (CFAEdge e : enterLoopVisitor.previouslyChecked) {
+        loopEntryInfoMemo.put(e, loopEntryInfo);
+      }
     }
 
     if (!loopEntryInfo.entersLoop() || (loopEntryInfo.isGotoLoop() && !pAllowGoto)) {
       return Optional.empty();
     }
-
     return Optional.ofNullable(loopEntryInfo.loopHead);
   }
 
