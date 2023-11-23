@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.WitnessToYamlWitnessConverter;
@@ -340,7 +341,7 @@ public final class InvariantWitnessWriter {
             invariantWitnessFactory.fromLocationAndInvariant(
                 edge.getFileLocation(),
                 node,
-                And.of(FluentIterable.from(expressionsPerClass).transform(And::of))));
+                And.of(FluentIterable.from(expressionsPerClass).transform(Or::of))));
       }
     }
 
