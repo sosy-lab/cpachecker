@@ -50,11 +50,10 @@ public class ASTStructure {
     logger = pLogger;
     cfa = pCfa;
     try {
-    analyzeCFA();
+      analyzeCFA();
     } catch (CoreException e) {
       throw new InvalidConfigurationException(
-          "Exception during analysis of CFA for generating the AST structure",
-          e);
+          "Exception during analysis of CFA for generating the AST structure", e);
     }
   }
 
