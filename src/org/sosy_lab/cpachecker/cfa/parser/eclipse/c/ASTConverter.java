@@ -1045,9 +1045,19 @@ class ASTConverter {
     final FileLocation loc = getLocation(e);
 
     CType ownerType = owner.getExpressionType().getCanonicalType();
-    if (e.isPointerDereference()) {
+    boolean isPointerDereference = e.isPointerDereference();
+    if (isPointerDereference) {
       if (ownerType instanceof CPointerType) {
         ownerType = ((CPointerType) ownerType).getType();
+
+      } else if (ownerType instanceof CArrayType arrayType) {
+        // Implicit use of the address of the array. "s->f" is the same as "(&(s[0])->f" but also
+        // the same as "s[0].f". We prefer the latter.
+        isPointerDereference = false;
+        ownerType = arrayType.getType();
+        owner =
+            new CArraySubscriptExpression(loc, ownerType, owner, CIntegerLiteralExpression.ZERO);
+
       } else if (!(ownerType instanceof CProblemType)) {
         throw parseContext.parseError("Pointer dereference of non-pointer type " + ownerType, e);
       }
@@ -1076,13 +1086,12 @@ class ASTConverter {
               typeConverter.convert(e.getExpressionType()),
               fieldName,
               owner,
-              e.isPointerDereference());
+              isPointerDereference);
     } else if (ownerType instanceof CCompositeType) {
       wayToInnerField =
           getWayToInnerField((CCompositeType) ownerType, fieldName, loc, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
         CExpression current = owner;
-        boolean isPointerDereference = e.isPointerDereference();
         for (Pair<String, CType> field : wayToInnerField) {
           current =
               new CFieldReference(
@@ -1126,7 +1135,7 @@ class ASTConverter {
         if (fields.isEmpty()) {
 
           // in case there is only one field access we have to check here on a pointer dereference
-          if (isFirstVisit && e.isPointerDereference()) {
+          if (isFirstVisit && isPointerDereference) {
             CPointerExpression exp = new CPointerExpression(loc, owner.getExpressionType(), owner);
             CExpression tmpOwner =
                 new CFieldReference(loc, actField.getFirst(), actField.getSecond(), exp, false);
@@ -1140,7 +1149,7 @@ class ASTConverter {
           // here could be a pointer dereference, in this case we create a temporary variable
           // otherwise there is nothing special to be done
           if (isFirstVisit) {
-            if (e.isPointerDereference()) {
+            if (isPointerDereference) {
               CPointerExpression exp =
                   new CPointerExpression(loc, owner.getExpressionType(), owner);
               CExpression tmpOwner =
