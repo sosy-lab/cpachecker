@@ -139,6 +139,7 @@ public final class InvariantWitnessWriter {
   @Nullable private ASTStructure astStructure;
 
   private InvariantWitnessFactory invariantWitnessFactory;
+  private CFA cfa;
 
   private InvariantWitnessWriter(
       Configuration pConfig,
@@ -147,7 +148,8 @@ public final class InvariantWitnessWriter {
       ProducerRecord pProducerDescription,
       TaskRecord pTaskDescription,
       @Nullable ASTStructure pASTStructure,
-      InvariantWitnessFactory pInvariantWitnessFactory)
+      InvariantWitnessFactory pInvariantWitnessFactory,
+      CFA pcfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -164,6 +166,7 @@ public final class InvariantWitnessWriter {
     taskDescription = pTaskDescription;
     astStructure = pASTStructure;
     invariantWitnessFactory = pInvariantWitnessFactory;
+    cfa = pcfa;
   }
 
   /**
@@ -192,7 +195,8 @@ public final class InvariantWitnessWriter {
             null),
         getTaskDescription(pCFA, pSpecification),
         pCFA.getASTStructure().orElse(null),
-        InvariantWitnessFactory.getFactory(pLogger, pCFA));
+        InvariantWitnessFactory.getFactory(pLogger, pCFA),
+        pCFA);
   }
 
   private static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
@@ -307,7 +311,7 @@ public final class InvariantWitnessWriter {
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
-      FunctionEntryNode entryNode = CFAUtils.getFunctionEntryNode(node);
+      FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
 
       FluentIterable<AbstractState> reportingStates =
           FluentIterable.from(argStates)
