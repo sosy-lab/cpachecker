@@ -247,12 +247,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         return CONST_FALSE;
       }
 
+      // When returning from a function the covering method does not provide the intended behavior,
+      // since this would represent only the next statement
+      if (edge instanceof AReturnStatementEdge) {
+        return CONST_FALSE;
+      }
+
       FileLocation edgeLocation = edge.getFileLocation();
 
-      if (CFAUtils.leavingEdges(edge.getSuccessor())
+      // When there are multiple empty lines between two edges, the line numbers and offsets would
+      // not match. Therefore we need the range comparison instead of a equality comparison.
+      if (lineNumber >= edgeLocation.getEndingLineInOrigin()
+          && CFAUtils.leavingEdges(edge.getSuccessor())
               .transform(CFAEdge::getFileLocation)
-              .anyMatch(e -> e.getStartingLineInOrigin() == lineNumber)
-          || edgeLocation.getEndingLineInOrigin() == lineNumber) {
+              .anyMatch(e -> e.getStartingLineInOrigin() >= lineNumber)) {
         if (edgeLocation.getNodeOffset() + edgeLocation.getNodeLength() < offsetToReach) {
           if (CFAUtils.leavingEdges(edge.getSuccessor())
               .anyMatch(
