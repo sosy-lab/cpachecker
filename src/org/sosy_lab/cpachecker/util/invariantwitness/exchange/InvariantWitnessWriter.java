@@ -20,10 +20,13 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -55,22 +58,34 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.FileLocationUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
+import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.WitnessToYamlWitnessConverter;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
@@ -123,13 +138,16 @@ public final class InvariantWitnessWriter {
 
   @Nullable private ASTStructure astStructure;
 
+  private InvariantWitnessFactory invariantWitnessFactory;
+
   private InvariantWitnessWriter(
       Configuration pConfig,
       LogManager pLogger,
       ListMultimap<String, Integer> pLineOffsetsByFile,
       ProducerRecord pProducerDescription,
       TaskRecord pTaskDescription,
-      @Nullable ASTStructure pASTStructure)
+      @Nullable ASTStructure pASTStructure,
+      InvariantWitnessFactory pInvariantWitnessFactory)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -145,6 +163,7 @@ public final class InvariantWitnessWriter {
     producerDescription = pProducerDescription;
     taskDescription = pTaskDescription;
     astStructure = pASTStructure;
+    invariantWitnessFactory = pInvariantWitnessFactory;
   }
 
   /**
@@ -172,7 +191,8 @@ public final class InvariantWitnessWriter {
             null,
             null),
         getTaskDescription(pCFA, pSpecification),
-        pCFA.getASTStructure().orElse(null));
+        pCFA.getASTStructure().orElse(null),
+        InvariantWitnessFactory.getFactory(pLogger, pCFA));
   }
 
   private static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
@@ -235,6 +255,93 @@ public final class InvariantWitnessWriter {
     } catch (IOException e) {
       logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
     }
+  }
+
+  private static class CollectRelevantARGStates
+      extends GraphTraverser<ARGState, YamlWitnessExportException> {
+
+    protected Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
+    protected Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
+
+    protected CollectRelevantARGStates(ARGState startNode) {
+      super(startNode);
+    }
+
+    @Override
+    protected ARGState visit(ARGState pSuccessor) throws YamlWitnessExportException {
+      for (LocationState state :
+          AbstractStates.asIterable(pSuccessor).filter(LocationState.class)) {
+        CFANode node = state.getLocationNode();
+        FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(node);
+        if (node.isLoopStart()) {
+          loopInvariants.put(node, pSuccessor);
+        } else if (leavingEdges.size() == 1
+            && leavingEdges.anyMatch(e -> e instanceof FunctionCallEdge)) {
+          functionCallInvariants.put(node, pSuccessor);
+        }
+      }
+
+      return pSuccessor;
+    }
+
+    @Override
+    protected Iterable<ARGState> getSuccessors(ARGState pCurrent)
+        throws YamlWitnessExportException {
+      return pCurrent.getChildren();
+    }
+  }
+
+  public void exportProofWitnessAsInvariantWitnesses(ARGState pRootState, Path outFile)
+      throws YamlWitnessExportException, InterruptedException {
+    // Collect the information about the states which contain the information about the invariants
+    CollectRelevantARGStates statesCollector = new CollectRelevantARGStates(pRootState);
+    statesCollector.traverse();
+
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
+    @SuppressWarnings("unused")
+    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
+
+    // Use the collected states to generate invariants
+    Collection<InvariantWitness> invariantWitnesses = new ArrayList<>();
+
+    // First handle the loop invariants
+    for (CFANode node : loopInvariants.keySet()) {
+      Collection<ARGState> argStates = loopInvariants.get(node);
+      FunctionEntryNode entryNode = CFAUtils.getFunctionEntryNode(node);
+
+      FluentIterable<AbstractState> reportingStates =
+          FluentIterable.from(argStates)
+              .transformAndConcat(AbstractStates::asIterable)
+              .filter(x -> x instanceof ExpressionTreeReportingState);
+      List<List<ExpressionTree<Object>>> expressionsPerClass = new ArrayList<>();
+      for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
+        List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
+        for (AbstractState state : reportingStates) {
+          if (stateClass.isAssignableFrom(state.getClass())) {
+            if (state instanceof ExpressionTreeReportingState reportingState) {
+              expressionsMatchingClass.add(
+                  ((ExpressionTreeReportingState) state).getFormulaApproximation(entryNode, node));
+            }
+          }
+        }
+        expressionsPerClass.add(expressionsMatchingClass);
+      }
+
+      // We now conjunct all the overapproximations of the states and export them as loop invariants
+      for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
+        if (!FileLocationUtils.isInOriginalProgram(edge.getFileLocation())) {
+          continue;
+        }
+
+        invariantWitnesses.add(
+            invariantWitnessFactory.fromLocationAndInvariant(
+                edge.getFileLocation(),
+                node,
+                And.of(FluentIterable.from(expressionsPerClass).transform(And::of))));
+      }
+    }
+
+    exportInvariantWitnesses(invariantWitnesses, outFile);
   }
 
   public void exportProofWitnessAsInvariantWitnesses(Witness witness, Path outFile) {

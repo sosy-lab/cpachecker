@@ -37,4 +37,12 @@ public class FileLocationUtils {
     int endLine = Math.max(a.getEndingLineNumber(), b.getEndingLineNumber());
     return new FileLocation(a.getFileName(), startOffset, length, startLine, endLine);
   }
+
+  public static boolean isInOriginalProgram(FileLocation pLocation) {
+    if (pLocation.getNiceFileName().equals("#none#")) {
+      return false;
+    }
+
+    return true;
+  }
 }
