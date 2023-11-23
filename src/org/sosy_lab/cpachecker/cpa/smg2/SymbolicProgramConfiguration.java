@@ -1560,6 +1560,7 @@ public class SymbolicProgramConfiguration {
 
     builder.append("Global variables:\n");
     for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {
+      // Global vars:
       String qualifiedName = globalEntry.getKey();
       SMGObject memory = globalEntry.getValue();
       String memoryString = " in ";
@@ -1575,7 +1576,7 @@ public class SymbolicProgramConfiguration {
         Preconditions.checkNotNull(value);
         String pointerInfo = "";
         if (smg.isPointer(smgValue)) {
-          pointerInfo = " -> " + smg.getPTEdge(smgValue);
+          pointerInfo = " -> " + smg.getPTEdge(smgValue).orElseThrow();
         }
         builder
             .append(qualifiedName)
@@ -1583,6 +1584,7 @@ public class SymbolicProgramConfiguration {
             .append(value)
             .append("(")
             .append(smgValue)
+            .append("[" + valueEdge.getOffset() + "," + valueEdge.getSizeInBits() + ")")
             .append(pointerInfo)
             .append(")")
             .append(memoryString)
@@ -1590,6 +1592,7 @@ public class SymbolicProgramConfiguration {
         builder.append("\n");
       }
     }
+    // Local vars:
     builder.append("\n");
     builder.append("Local Variables per StackFrame:");
     builder.append("\n");
