@@ -322,8 +322,7 @@ public final class InvariantWitnessWriter {
         List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
         for (ExpressionTreeReportingState state : reportingStates) {
           if (stateClass.isAssignableFrom(state.getClass())) {
-            expressionsMatchingClass.add(
-                state.getFormulaApproximation(entryNode, node));
+            expressionsMatchingClass.add(state.getFormulaApproximation(entryNode, node));
           }
         }
         expressionsPerClass.add(expressionsMatchingClass);
