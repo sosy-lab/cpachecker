@@ -436,7 +436,7 @@ public final class InvariantWitnessWriter {
         }
 
         // Currently it is unclear what to do with assumptions where the next statement is after a
-        // function return or entry. Since the variables for the assumptions may not be in scope.
+        // function return. Since the variables for the assumptions may not be in scope.
         if (!CFAUtils.leavingEdges(edge.getSuccessor())
             .transform(CFAEdge::getSuccessor)
             .filter(FunctionExitNode.class)
