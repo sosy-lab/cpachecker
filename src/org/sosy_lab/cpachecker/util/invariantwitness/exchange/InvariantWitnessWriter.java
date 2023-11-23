@@ -313,19 +313,17 @@ public final class InvariantWitnessWriter {
       Collection<ARGState> argStates = loopInvariants.get(node);
       FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
 
-      FluentIterable<AbstractState> reportingStates =
+      FluentIterable<ExpressionTreeReportingState> reportingStates =
           FluentIterable.from(argStates)
               .transformAndConcat(AbstractStates::asIterable)
-              .filter(x -> x instanceof ExpressionTreeReportingState);
+              .filter(ExpressionTreeReportingState.class);
       List<List<ExpressionTree<Object>>> expressionsPerClass = new ArrayList<>();
       for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
         List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
         for (AbstractState state : reportingStates) {
           if (stateClass.isAssignableFrom(state.getClass())) {
-            if (state instanceof ExpressionTreeReportingState reportingState) {
-              expressionsMatchingClass.add(
-                  ((ExpressionTreeReportingState) state).getFormulaApproximation(entryNode, node));
-            }
+            expressionsMatchingClass.add(
+                ((ExpressionTreeReportingState) state).getFormulaApproximation(entryNode, node));
           }
         }
         expressionsPerClass.add(expressionsMatchingClass);
