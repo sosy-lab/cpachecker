@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -431,6 +432,15 @@ public final class InvariantWitnessWriter {
         // possibly different assumptions in the counterexample path, if not all are exported then
         // there may be a wrong matching
         if (edgeWithAssumptions.getExpStmts().isEmpty() && cfaEdgesOccurences.get(edge) == 1) {
+          continue;
+        }
+
+        // Currently it is unclear what to do with assumptions where the next statement is after a
+        // function return or entry. Since the variables for the assumptions may not be in scope.
+        if (!CFAUtils.leavingEdges(edge.getSuccessor())
+            .transform(CFAEdge::getSuccessor)
+            .filter(FunctionExitNode.class)
+            .isEmpty()) {
           continue;
         }
 
