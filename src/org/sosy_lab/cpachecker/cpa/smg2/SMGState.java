@@ -4309,7 +4309,7 @@ public class SMGState
 
     // Remove the 2 old objects and continue
     if (!nextObj.isSLL()) {
-      currentState = currentState.prunePointerValueTargets(nextObj, ImmutableSet.of(nfo));
+      // currentState = currentState.prunePointerValueTargets(nextObj, ImmutableSet.of(nfo));
     }
     currentState =
         currentState.copyAndReplaceMemoryModel(
@@ -4317,7 +4317,7 @@ public class SMGState
 
     // Also prune all objects and pointers in root that are not nfo offset and are unreachable now
     // (Will be recreated later by materialize)
-    currentState = currentState.prunePointerValueTargets(root, ImmutableSet.of(nfo));
+    // currentState = currentState.prunePointerValueTargets(root, ImmutableSet.of(nfo));
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
