@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -108,7 +109,9 @@ public class SMGCPAMaterializer {
         currentState.writeValueWithoutChecks(prevObj, nfo, pointerSize, nextPointerValue);
     // We can assume that a 0+ does not have other valid pointers to it!
     // Remove all other pointers/subgraphs associated with the 0+ object
+    currentState = currentState.prunePointerValueTargets(pListSeg, ImmutableSet.of(nfo));
     // Also remove the object
+    // TODO: merge prunePointerValueTargets into copyAndRemoveObjectAndAssociatedSubSMG
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
@@ -133,6 +136,7 @@ public class SMGCPAMaterializer {
     BigInteger nfo = pListSeg.getNextOffset();
     BigInteger pfo = pListSeg.getPrevOffset();
     BigInteger pointerSize = currentState.getMemoryModel().getSizeOfPointer();
+
 
     SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
     currentState = nextPointerAndState.getSMGState();
@@ -159,7 +163,9 @@ public class SMGCPAMaterializer {
         currentState.writeValueWithoutChecks(prevObj, nfo, pointerSize, nextPointerValue);
     // We can assume that a 0+ does not have other valid pointers to it!
     // Remove all other pointers/subgraphs associated with the 0+ object
+    currentState = currentState.prunePointerValueTargets(pListSeg, ImmutableSet.of(nfo));
     // Also remove the object
+    // TODO: merge prunePointerValueTargets into copyAndRemoveObjectAndAssociatedSubSMG
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
@@ -196,6 +202,14 @@ public class SMGCPAMaterializer {
 
     // Add all values. next pointer is wrong here!
     currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newConcreteRegion);
+    // Check all not nfo values if they are pointers, if they are, we need to copy their targets and
+    // insert a new pointer to the copy
+    // -2 in the nesting lvl as we have not decremented the sll yet
+    currentState =
+        currentState.copyMemoryNotOriginatingFrom(
+            newConcreteRegion,
+            ImmutableSet.of(nfo),
+            Integer.max(pListSeg.getMinLength() - 2, MINIMUM_LIST_LENGTH));
 
     // Create the now smaller abstracted list
     SMGSinglyLinkedListSegment newAbsListSeg =
@@ -286,6 +300,12 @@ public class SMGCPAMaterializer {
 
     // Add all values. next pointer is wrong here!
     currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newConcreteRegion);
+    // Check all not nfo values if they are pointers, if they are, we need to copy their targets and
+    // insert a new pointer to the copy
+
+    // TODO: Then we need to check for pointers towards the old target and switch pointers with the
+    // correct nesting level to this new pointer
+
     // Replace the pointer behind the value pointing to the abstract region with a pointer to the
     // new object
     // We don't change the nesting level of the pointers! We switch only those with new nesting

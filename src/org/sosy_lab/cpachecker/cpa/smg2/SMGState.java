@@ -4140,6 +4140,8 @@ public class SMGState
               newMinLength);
     }
     SMGState currentState = copyAndAddObjectToHeap(newDLL);
+    // TODO: check that the other values are not pointers, if they are we want to merge the pointers
+    // and increment the pointer level
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newDLL);
     // Write prev from root into the current prev
     SMGValueAndSMGState prevPointer =
@@ -4288,6 +4290,8 @@ public class SMGState
               newMinLength);
     }
     SMGState currentState = copyAndAddObjectToHeap(newSLL);
+    // TODO: check that the other values are not pointers, if they are we want to merge the pointers
+    // and increment the pointer level
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newSLL);
 
     // Replace ALL pointers that previously pointed to the root or the next object to the SLL
@@ -4304,15 +4308,59 @@ public class SMGState
                 root, newSLL, incrementAmount));
 
     // Remove the 2 old objects and continue
+    if (!nextObj.isSLL()) {
+      currentState = currentState.prunePointerValueTargets(nextObj, ImmutableSet.of(nfo));
+    }
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(nextObj));
+
+    // Also prune all objects and pointers in root that are not nfo offset and are unreachable now
+    // (Will be recreated later by materialize)
+    currentState = currentState.prunePointerValueTargets(root, ImmutableSet.of(nfo));
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
 
     return currentState.abstractIntoSLL(
         newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
+  }
+
+  public SMGState prunePointerValueTargets(SMGObject pRoot, Set<BigInteger> excludedOffsets) {
+    SMGState currentState = this;
+    Set<SMGValue> allValues =
+        currentState.getMemoryModel().getSmg().getEdges(pRoot).stream()
+            .filter(e -> !excludedOffsets.contains(e.getOffset()))
+            .map(e -> e.hasValue())
+            .collect(ImmutableSet.toImmutableSet());
+    for (SMGValue rootValue : allValues) {
+      Optional<Value> maybeValue = currentState.memoryModel.getValueFromSMGValue(rootValue);
+      if (!rootValue.isZero()
+          && maybeValue.isPresent()
+          && currentState.memoryModel.isPointer(maybeValue.orElseThrow())) {
+        // Check that this is the only pointer towards the target, if it is, invalidate the target
+        // if no other pointers exist, else repeat and then invalidate
+        SMGStateAndOptionalSMGObjectAndOffset targetAndOffset =
+            currentState
+                .dereferencePointerWithoutMaterilization(maybeValue.orElseThrow())
+                .orElseThrow();
+        SMGObject target = targetAndOffset.getSMGObject();
+        if (!currentState.memoryModel.isObjectValid(target)) {
+          continue;
+        }
+        // Offset does not matter, only if others have the same target
+        Set<SMGObject> pointerOccurences =
+            currentState.memoryModel.getAllSourcesForPointersPointingTowards(target);
+        if (pointerOccurences.size() == 1 && pointerOccurences.contains(pRoot)) {
+          // TODO: Selfpointer is also possible from target to target
+          currentState = currentState.prunePointerValueTargets(target, ImmutableSet.of());
+          currentState =
+              currentState.copyAndReplaceMemoryModel(
+                  currentState.memoryModel.invalidateSMGObject(target));
+        }
+      }
+    }
+    return currentState;
   }
 
   private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo) throws SMGException {
@@ -4622,6 +4670,76 @@ public class SMGState
    */
   public String getStackFrameTopFunctionName() {
     return memoryModel.getStackFrames().peek().getFunctionDefinition().getQualifiedName();
+  }
+
+  /*
+   * Searches source for pointers (except for at the given exceptions) and copies the memory precisely and replaces the old pointers with new ones towards the new copied memory.
+   * Then the old memory is checked for external pointers towards it, and if there are any with the correct nesting level, they are replaced by the pointers towards the new copied memory.
+   * This is part of list materialization.
+   */
+  @SuppressWarnings("unused")
+  public SMGState copyMemoryNotOriginatingFrom(
+      SMGObject source, Set<BigInteger> offsetExceptions, int nestingLevel) throws SMGException {
+    FluentIterable<SMGHasValueEdge> allHveWOExceptions =
+        memoryModel
+            .getSmg()
+            .getHasValueEdgesByPredicate(
+                source, hve -> !offsetExceptions.contains(hve.getOffset()));
+    SMGState currentState = this;
+    for (SMGHasValueEdge hve : allHveWOExceptions) {
+      Optional<Value> maybeValue = currentState.memoryModel.getValueFromSMGValue(hve.hasValue());
+      // 0 is a pointer, but can freely be used, no need to copy
+      if (maybeValue.isPresent()
+          && currentState.memoryModel.isPointer(maybeValue.orElseThrow())
+          && !hve.hasValue().isZero()) {
+        // The target of this needs to be copied
+        Value ptrToTarget = maybeValue.orElseThrow();
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> target =
+            currentState.dereferencePointerWithoutMaterilization(ptrToTarget);
+        if (target.isEmpty() || !target.orElseThrow().hasSMGObjectAndOffset()) {
+          continue;
+        }
+        SMGObject targetObj = target.orElseThrow().getSMGObject();
+        Set<SMGHasValueEdge> targetValues = currentState.memoryModel.getSmg().getEdges(targetObj);
+        SMGObject copyOfTarget = SMGObject.of(targetObj);
+        // TODO: this might be a stack object!
+        currentState = currentState.copyAndAddObjectToHeap(copyOfTarget);
+        // For now only a shallow copy (no nested pointers)
+        for (SMGHasValueEdge targetHVE : targetValues) {
+          Optional<Value> maybeTargetValue =
+              currentState.memoryModel.getValueFromSMGValue(targetHVE.hasValue());
+          if (maybeTargetValue.isPresent()
+              && currentState.memoryModel.isPointer(maybeTargetValue.orElseThrow())) {
+            throw new SMGException(
+                "Nested list abstraction with non-trivial objects not yet supported.");
+          }
+          currentState =
+              currentState.writeValueWithoutChecks(
+                  copyOfTarget,
+                  targetHVE.getOffset(),
+                  targetHVE.getSizeInBits(),
+                  targetHVE.hasValue());
+        }
+        SMGPointsToEdge ptEdgeToTarget =
+            currentState.memoryModel.getSmg().getPTEdge(hve.hasValue()).orElseThrow();
+        // Create new valid pointer and replace the old one in the source
+        Value ptrToCopiedTarget = SymbolicValueFactory.getInstance().newIdentifier(null);
+        currentState =
+            currentState.createAndAddPointer(
+                ptrToCopiedTarget, copyOfTarget, ptEdgeToTarget.getOffset());
+        currentState =
+            currentState.writeValueWithoutChecks(
+                source,
+                hve.getOffset(),
+                hve.getSizeInBits(),
+                currentState.memoryModel.getSMGValueFromValue(ptrToCopiedTarget).orElseThrow());
+      }
+    }
+    // TODO: Then we need to check for pointers towards the old target and switch pointers with the
+    // correct nesting level to this new pointer
+    // Careful when there is the same pointer twice in this obj
+
+    return currentState;
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find
