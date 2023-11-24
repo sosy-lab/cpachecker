@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -569,30 +570,34 @@ public final class InterpolationManager {
       BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
 
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      final boolean isSat;
+    try {
+      try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        final boolean isSat;
 
-      satCheckTimer.start();
-      try {
-        for (BooleanFormula block : f.getFormulas()) {
-          prover.push(block);
-        }
-        isSat = !prover.isUnsat();
-      } finally {
-        satCheckTimer.stop();
-      }
-
-      if (isSat) {
+        satCheckTimer.start();
         try {
-          return getErrorPath(f, prover, imprecisePath);
-        } catch (SolverException modelException) {
-          logger.logUserException(
-              Level.WARNING, modelException, "Could not create model for error path!");
-          return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
+          for (BooleanFormula block : f.getFormulas()) {
+            prover.push(block);
+          }
+          isSat = !prover.isUnsat();
+        } finally {
+          satCheckTimer.stop();
         }
-      } else {
-        return CounterexampleTraceInfo.infeasibleNoItp();
+
+        if (isSat) {
+          try {
+            return getErrorPath(f, prover, imprecisePath);
+          } catch (SolverException modelException) {
+            logger.logUserException(
+                Level.WARNING, modelException, "Could not create model for error path!");
+            return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
+          }
+        } else {
+          return CounterexampleTraceInfo.infeasibleNoItp();
+        }
       }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -662,9 +667,13 @@ public final class InterpolationManager {
           }
         }
         // 2. if needed is inconsistent, then return it
-        if (thmProver.isUnsat()) {
-          f = Arrays.asList(needed);
-          break;
+        try {
+          if (thmProver.isUnsat()) {
+            f = Arrays.asList(needed);
+            break;
+          }
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
         // 3. otherwise, assert one block at a time, until we get an
         // inconsistency
@@ -672,49 +681,57 @@ public final class InterpolationManager {
           int s = 0;
           int e = f.size() - 1;
           boolean fromStart = false;
-          while (true) {
-            int i = fromStart ? s++ : e--;
-            fromStart = !fromStart;
+          try {
+            while (true) {
+              int i = fromStart ? s++ : e--;
+              fromStart = !fromStart;
 
-            BooleanFormula t = f.get(i);
-            thmProver.push(t);
-            ++toPop;
-            if (thmProver.isUnsat()) {
-              // add this block to the needed ones, and repeat
-              needed[i] = t;
-              logger.log(Level.ALL, "DEBUG_1", "Found needed block: ", i, ", term: ", t);
-              // pop all
-              while (toPop > 0) {
-                --toPop;
-                thmProver.pop();
+              BooleanFormula t = f.get(i);
+              thmProver.push(t);
+              ++toPop;
+              if (thmProver.isUnsat()) {
+                // add this block to the needed ones, and repeat
+                needed[i] = t;
+                logger.log(Level.ALL, "DEBUG_1", "Found needed block: ", i, ", term: ", t);
+                // pop all
+                while (toPop > 0) {
+                  --toPop;
+                  thmProver.pop();
+                }
+                // and go to the next iteration of the while loop
+                consistent = false;
+                break;
               }
-              // and go to the next iteration of the while loop
-              consistent = false;
-              break;
-            }
 
-            if (e < s) {
-              break;
+              if (e < s) {
+                break;
+              }
             }
+          } catch (IOException ex) {
+            throw new RuntimeException(ex);
           }
         } else {
-          for (int i = start; backwards ? i >= 0 : i < f.size(); i += increment) {
-            BooleanFormula t = f.get(i);
-            thmProver.push(t);
-            ++toPop;
-            if (thmProver.isUnsat()) {
-              // add this block to the needed ones, and repeat
-              needed[i] = t;
-              logger.log(Level.ALL, "DEBUG_1", "Found needed block: ", i, ", term: ", t);
-              // pop all
-              while (toPop > 0) {
-                --toPop;
-                thmProver.pop();
+          try {
+            for (int i = start; backwards ? i >= 0 : i < f.size(); i += increment) {
+              BooleanFormula t = f.get(i);
+              thmProver.push(t);
+              ++toPop;
+              if (thmProver.isUnsat()) {
+                // add this block to the needed ones, and repeat
+                needed[i] = t;
+                logger.log(Level.ALL, "DEBUG_1", "Found needed block: ", i, ", term: ", t);
+                // pop all
+                while (toPop > 0) {
+                  --toPop;
+                  thmProver.pop();
+                }
+                // and go to the next iteration of the while loop
+                consistent = false;
+                break;
               }
-              // and go to the next iteration of the while loop
-              consistent = false;
-              break;
             }
+          } catch (IOException e) {
+            throw new RuntimeException(e);
           }
         }
         if (consistent) {
@@ -916,7 +933,11 @@ public final class InterpolationManager {
       // But if this is only used after a failed interpolation, an automatic isUnsat call is fine
       // The result here should not differ from before, but it needs to be done for the internal
       // solver state
-      Preconditions.checkArgument(itpProver.isUnsat());
+      try {
+        Preconditions.checkArgument(itpProver.isUnsat());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     /**
@@ -1094,7 +1115,11 @@ public final class InterpolationManager {
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible
       // and formulas get pushed afterwards)
-      return itpProver.isUnsat();
+      try {
+        return itpProver.isUnsat();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     /**
@@ -1191,30 +1216,34 @@ public final class InterpolationManager {
         final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
         throws SolverException, InterruptedException {
       boolean isStillFeasible = true;
+      try {
 
-      // we do only need this unsat call here if we are using the incremental
-      // checking option, otherwise it is anyway done later on
-      if (incrementalCheck && !currentlyAssertedFormulas.isEmpty()) {
-        isStillFeasible = !itpProver.isUnsat();
-      }
-
-      // add remaining formulas to the solver stack
-      while (todoIterator.hasNext()) {
-        int index = todoIterator.next();
-        BooleanFormula f = traceFormulas.get(index);
-        AbstractState state = traceStates.get(index);
-
-        assert formulasWithStatesAndGroupdIds.get(index) == null;
-        logger.logf(Level.ALL, "Pushing formula for block %s:\n  %s", index, f);
-        T itpGroupId = itpProver.push(f);
-        formulasWithStatesAndGroupdIds.set(index, new InterpolationGroup<>(f, state, itpGroupId));
-        currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));
-
-        // We need to iterate through the full loop
-        // to add all formulas, but this prevents us from doing further sat checks.
-        if (incrementalCheck && isStillFeasible && !bfmgr.isTrue(f)) {
+        // we do only need this unsat call here if we are using the incremental
+        // checking option, otherwise it is anyway done later on
+        if (incrementalCheck && !currentlyAssertedFormulas.isEmpty()) {
           isStillFeasible = !itpProver.isUnsat();
         }
+
+        // add remaining formulas to the solver stack
+        while (todoIterator.hasNext()) {
+          int index = todoIterator.next();
+          BooleanFormula f = traceFormulas.get(index);
+          AbstractState state = traceStates.get(index);
+
+          assert formulasWithStatesAndGroupdIds.get(index) == null;
+          logger.logf(Level.ALL, "Pushing formula for block %s:\n  %s", index, f);
+          T itpGroupId = itpProver.push(f);
+          formulasWithStatesAndGroupdIds.set(index, new InterpolationGroup<>(f, state, itpGroupId));
+          currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));
+
+          // We need to iterate through the full loop
+          // to add all formulas, but this prevents us from doing further sat checks.
+          if (incrementalCheck && isStillFeasible && !bfmgr.isTrue(f)) {
+            isStillFeasible = !itpProver.isUnsat();
+          }
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     }
 

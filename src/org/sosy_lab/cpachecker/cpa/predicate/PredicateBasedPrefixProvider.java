@@ -12,6 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.filterAbstractionStates;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -198,6 +199,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           }
         } catch (SolverException e) {
           throw new CPAException("Error during computation of prefixes: " + e.getMessage(), e);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
 
         currentBlockIndex++;

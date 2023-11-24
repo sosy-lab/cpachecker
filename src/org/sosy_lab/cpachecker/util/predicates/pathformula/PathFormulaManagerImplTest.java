@@ -13,6 +13,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -338,7 +339,11 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   private void assertEquals(PathFormula expected, PathFormula result)
       throws SolverException, InterruptedException {
-    assertThatFormula(result.getFormula()).isEquivalentTo(expected.getFormula());
+    try {
+      assertThatFormula(result.getFormula()).isEquivalentTo(expected.getFormula());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
     assertThat(result.getLength()).isEqualTo(expected.getLength());
     assertThat(result.getSsa()).isEqualTo(result.getSsa());
     assertThat(result.getPointerTargetSet()).isEqualTo(expected.getPointerTargetSet());

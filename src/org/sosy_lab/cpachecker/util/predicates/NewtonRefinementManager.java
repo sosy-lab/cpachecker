@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -293,17 +294,21 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // Abstract the formula based on unsatCore iff present
         List<BooleanFormula> requiredPart = new ArrayList<>();
-        if (pUnsatCore.isPresent()) {
-          Set<BooleanFormula> pathFormulaElements =
-              bfmgr.toConjunctionArgs(pathFormula.getFormula(), true);
-          for (BooleanFormula pathFormulaElement : pathFormulaElements) {
-            if (pUnsatCore.orElseThrow().contains(pathFormulaElement)) {
-              requiredPart.add(pathFormulaElement);
-              break;
+        try {
+          if (pUnsatCore.isPresent()) {
+            Set<BooleanFormula> pathFormulaElements =
+                bfmgr.toConjunctionArgs(pathFormula.getFormula(), true);
+            for (BooleanFormula pathFormulaElement : pathFormulaElements) {
+              if (pUnsatCore.orElseThrow().contains(pathFormulaElement)) {
+                requiredPart.add(pathFormulaElement);
+                break;
+              }
             }
+          } else {
+            requiredPart.add(pathFormula.getFormula());
           }
-        } else {
-          requiredPart.add(pathFormula.getFormula());
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
 
         // Apply abstraction to postCondition and eliminate quantifiers if possible
@@ -448,6 +453,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
     } catch (SolverException e) {
       // Prover failed while proving unsatisfiability
       throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     logger.log(Level.FINEST, isFeasible ? "The trace is feasible." : "The trace is infeasible");
     return isFeasible;

@@ -14,6 +14,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -187,100 +188,124 @@ public class RCNFManager implements StatisticsProvider {
   }
 
   private BooleanFormula factorize(BooleanFormula input) {
-    return bfmgr.transformRecursively(
-        input,
-        new BooleanFormulaTransformationVisitor(fmgr) {
+    try {
+      return bfmgr.transformRecursively(
+          input,
+          new BooleanFormulaTransformationVisitor(fmgr) {
 
-          /** Flatten AND-. */
-          @Override
-          public BooleanFormula visitAnd(List<BooleanFormula> processed) {
-            return bfmgr.and(bfmgr.toConjunctionArgs(bfmgr.and(processed), false));
-          }
-
-          /** Factorize OR-. */
-          @Override
-          public BooleanFormula visitOr(List<BooleanFormula> processed) {
-
-            Set<BooleanFormula> intersection = null;
-            List<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
-            for (BooleanFormula op : processed) {
-              Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, false);
-
-              argsAsConjunctions.add(args);
-
-              // Factor out the common term.
-              if (intersection == null) {
-                intersection = args;
-              } else {
-                intersection = Sets.intersection(intersection, args);
+            /** Flatten AND-. */
+            @Override
+            public BooleanFormula visitAnd(List<BooleanFormula> processed) {
+              try {
+                return bfmgr.and(bfmgr.toConjunctionArgs(bfmgr.and(processed), false));
+              } catch (IOException e) {
+                throw new RuntimeException(e);
               }
             }
 
-            assert intersection != null : "Should not be null for a non-zero number of operands.";
-            Set<BooleanFormula> commonTerms = intersection;
+            /** Factorize OR-. */
+            @Override
+            public BooleanFormula visitOr(List<BooleanFormula> processed) {
 
-            BooleanFormula common = bfmgr.and(commonTerms);
-            BooleanFormula branches =
-                argsAsConjunctions.stream()
-                    .map(args -> bfmgr.and(Sets.difference(args, commonTerms)))
-                    .collect(bfmgr.toDisjunction());
+              Set<BooleanFormula> intersection = null;
+              List<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
+              try {
+                for (BooleanFormula op : processed) {
+                  Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, false);
 
-            return bfmgr.and(common, branches);
-          }
-        });
+                  argsAsConjunctions.add(args);
+
+                  // Factor out the common term.
+                  if (intersection == null) {
+                    intersection = args;
+                  } else {
+                    intersection = Sets.intersection(intersection, args);
+                  }
+                }
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+
+              assert intersection != null : "Should not be null for a non-zero number of operands.";
+              Set<BooleanFormula> commonTerms = intersection;
+
+              BooleanFormula common = bfmgr.and(commonTerms);
+              BooleanFormula branches =
+                  argsAsConjunctions.stream()
+                      .map(args -> bfmgr.and(Sets.difference(args, commonTerms)))
+                      .collect(bfmgr.toDisjunction());
+
+              return bfmgr.and(common, branches);
+            }
+          });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private Iterable<BooleanFormula> expandClause(final BooleanFormula input) {
-    return bfmgr.visit(
-        input,
-        new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
-          @Override
-          protected Iterable<BooleanFormula> visitDefault() {
-            return ImmutableList.of(input);
-          }
+    try {
+      return bfmgr.visit(
+          input,
+          new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
+            @Override
+            protected Iterable<BooleanFormula> visitDefault() {
+              return ImmutableList.of(input);
+            }
 
-          @Override
-          public Iterable<BooleanFormula> visitOr(List<BooleanFormula> operands) {
-            long sizeAfterExpansion = 1;
+            @Override
+            public Iterable<BooleanFormula> visitOr(List<BooleanFormula> operands) {
+              long sizeAfterExpansion = 1;
 
-            List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
-            for (BooleanFormula op : operands) {
-              Set<BooleanFormula> out = bfmgr.toConjunctionArgs(op, true);
+              List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
               try {
-                sizeAfterExpansion = Math.multiplyExact(sizeAfterExpansion, out.size());
-              } catch (ArithmeticException ex) {
-                sizeAfterExpansion = expansionResultSizeLimit + 1L;
-                break;
+                for (BooleanFormula op : operands) {
+                  Set<BooleanFormula> out = bfmgr.toConjunctionArgs(op, true);
+                  try {
+                    sizeAfterExpansion = Math.multiplyExact(sizeAfterExpansion, out.size());
+                  } catch (ArithmeticException ex) {
+                    sizeAfterExpansion = expansionResultSizeLimit + 1L;
+                    break;
+                  }
+                  asConjunctions.add(out);
+                }
+              } catch (IOException e) {
+                throw new RuntimeException(e);
               }
-              asConjunctions.add(out);
-            }
 
-            if (sizeAfterExpansion <= expansionResultSizeLimit) {
-              // Perform recursive expansion.
-              Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
-              return from(product).transform(bfmgr::or);
-            } else {
-              return ImmutableList.of(bfmgr.or(operands));
+              if (sizeAfterExpansion <= expansionResultSizeLimit) {
+                // Perform recursive expansion.
+                Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
+                return from(product).transform(bfmgr::or);
+              } else {
+                return ImmutableList.of(bfmgr.or(operands));
+              }
             }
-          }
-        });
+          });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private ImmutableSet<BooleanFormula> convert(BooleanFormula input) {
     BooleanFormula factorized = factorize(input);
-    Set<BooleanFormula> factorizedLemmas = bfmgr.toConjunctionArgs(factorized, true);
-    ImmutableSet.Builder<BooleanFormula> out = ImmutableSet.builder();
-    for (BooleanFormula lemma : factorizedLemmas) {
-      Iterable<BooleanFormula> expandedLemmas = expandClause(lemma);
-      for (BooleanFormula l : expandedLemmas) {
-        if (expandEquality) {
-          out.addAll(bfmgr.toConjunctionArgs(transformEquality(l), false));
-        } else {
-          out.add(l);
+    try {
+      Set<BooleanFormula> factorizedLemmas = bfmgr.toConjunctionArgs(factorized, true);
+      ImmutableSet.Builder<BooleanFormula> out = ImmutableSet.builder();
+      for (BooleanFormula lemma : factorizedLemmas) {
+        Iterable<BooleanFormula> expandedLemmas = expandClause(lemma);
+        for (BooleanFormula l : expandedLemmas) {
+          if (expandEquality) {
+            out.addAll(bfmgr.toConjunctionArgs(transformEquality(l), false));
+          } else {
+            out.add(l);
+          }
         }
       }
+      return out.build();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return out.build();
   }
 
   /** Transform {@code a = b} to {@code a >= b /\ a <= b}. */

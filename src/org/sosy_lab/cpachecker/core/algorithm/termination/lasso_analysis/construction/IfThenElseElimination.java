@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.
 import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.ITE;
 
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -92,18 +93,22 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
         Formula pCondition, Formula pThen, Formula pElse, FormulaType<?> pFormulaType) {
 
       BooleanFormula condition = (BooleanFormula) pCondition;
-      Formula auxVar =
-          fmgr.makeVariable(
-              pFormulaType,
-              TERMINATION_AUX_VARS_PREFIX + "IF_THEN_ELSE_AUX_VAR_" + ID_GENERATOR.getFreshId());
+      try {
+        Formula auxVar =
+            fmgr.makeVariable(
+                pFormulaType,
+                TERMINATION_AUX_VARS_PREFIX + "IF_THEN_ELSE_AUX_VAR_" + ID_GENERATOR.getFreshId());
 
-      // (auxVar == pThen AND condition) OR (auxVar == pThen AND (NOT(condition)))
-      additionalAxioms.add(
-          fmgrView.makeOr(
-              fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pThen), condition),
-              fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pElse), fmgrView.makeNot(condition))));
+        // (auxVar == pThen AND condition) OR (auxVar == pThen AND (NOT(condition)))
+        additionalAxioms.add(
+            fmgrView.makeOr(
+                fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pThen), condition),
+                fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pElse), fmgrView.makeNot(condition))));
 
-      return auxVar;
+        return auxVar;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

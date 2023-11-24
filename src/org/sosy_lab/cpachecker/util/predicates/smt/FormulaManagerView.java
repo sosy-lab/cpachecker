@@ -1501,7 +1501,11 @@ public class FormulaManagerView {
    * @return A Map of the variable names to their corresponding formulas.
    */
   public Map<String, Formula> extractVariables(Formula pFormula) {
-    return manager.extractVariables(pFormula);
+    try {
+      return manager.extractVariables(pFormula);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -1511,7 +1515,11 @@ public class FormulaManagerView {
    * @return Set of variable names (might be instantiated)
    */
   public Set<String> extractVariableNames(Formula f) {
-    return manager.extractVariables(unwrap(f)).keySet();
+    try {
+      return manager.extractVariables(unwrap(f)).keySet();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -1521,7 +1529,11 @@ public class FormulaManagerView {
    * @return Set of variable names (might be instantiated)
    */
   public Set<String> extractFunctionNames(Formula f) {
-    return manager.extractVariablesAndUFs(unwrap(f)).keySet();
+    try {
+      return manager.extractVariablesAndUFs(unwrap(f)).keySet();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public Appender dumpFormula(BooleanFormula pT) {
@@ -1690,7 +1702,11 @@ public class FormulaManagerView {
     for (Entry<? extends Formula, ? extends Formula> e : replacements.entrySet()) {
       m.put(unwrap(e.getKey()), unwrap(e.getValue()));
     }
-    return manager.substitute(f, m);
+    try {
+      return manager.substitute(f, m);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /** Return true iff the variable name is non-final with respect to the given SSA map. */
@@ -1727,23 +1743,27 @@ public class FormulaManagerView {
       BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUF) {
     Map<String, Formula> result = new HashMap<>();
 
-    Map<String, Formula> vars;
-    if (extractUF) {
-      vars = manager.extractVariablesAndUFs(pFormula);
-    } else {
-      vars = manager.extractVariables(pFormula);
-    }
-
-    for (Entry<String, Formula> entry : vars.entrySet()) {
-
-      String name = entry.getKey();
-      Formula varFormula = entry.getValue();
-      if (pIsDesired.apply(name)) {
-        result.put(name, varFormula);
+    try {
+      Map<String, Formula> vars;
+      if (extractUF) {
+        vars = manager.extractVariablesAndUFs(pFormula);
+      } else {
+        vars = manager.extractVariables(pFormula);
       }
-    }
 
-    return result;
+      for (Entry<String, Formula> entry : vars.entrySet()) {
+
+        String name = entry.getKey();
+        Formula varFormula = entry.getValue();
+        if (pIsDesired.apply(name)) {
+          result.put(name, varFormula);
+        }
+      }
+
+      return result;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -1838,13 +1858,21 @@ public class FormulaManagerView {
   /** See {@link FormulaManager#applyTactic(BooleanFormula, Tactic)} for documentation. */
   public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic)
       throws InterruptedException {
-    return manager.applyTactic(input, tactic);
+    try {
+      return manager.applyTactic(input, tactic);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /** Visit the formula with a given visitor. */
   @CanIgnoreReturnValue
   public <R> R visit(Formula f, FormulaVisitor<R> rFormulaVisitor) {
-    return manager.visit(unwrap(f), rFormulaVisitor);
+    try {
+      return manager.visit(unwrap(f), rFormulaVisitor);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -1857,7 +1885,11 @@ public class FormulaManagerView {
    * only once. Thus it can be used to traverse DAG-like formulas efficiently.
    */
   public void visitRecursively(Formula f, FormulaVisitor<TraversalProcess> rFormulaVisitor) {
-    manager.visitRecursively(unwrap(f), rFormulaVisitor);
+    try {
+      manager.visitRecursively(unwrap(f), rFormulaVisitor);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -1873,12 +1905,16 @@ public class FormulaManagerView {
    */
   public <T extends Formula> T transformRecursively(
       T f, FormulaTransformationVisitor pFormulaVisitor) {
-    @SuppressWarnings("unchecked")
-    T out =
-        (T)
-            manager.transformRecursively(
-                unwrap(f), new UnwrappingFormulaTransformationVisitor(pFormulaVisitor));
-    return out;
+    try {
+      @SuppressWarnings("unchecked")
+      T out =
+          (T)
+              manager.transformRecursively(
+                  unwrap(f), new UnwrappingFormulaTransformationVisitor(pFormulaVisitor));
+      return out;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -1945,7 +1981,11 @@ public class FormulaManagerView {
 
     @Override
     public Formula visitFreeVariable(Formula pF, String pName) {
-      return unwrap(delegate.visitFreeVariable(pF, pName));
+      try {
+        return unwrap(delegate.visitFreeVariable(pF, pName));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     @Override
@@ -2030,48 +2070,52 @@ public class FormulaManagerView {
       final BooleanFormula formula,
       final Map<BooleanFormula, BooleanFormula> cache,
       final BooleanFormulaManager bmgr) {
-    final Set<BooleanFormula> disjunctionSet = bmgr.toDisjunctionArgs(formula, true);
+    try {
+      final Set<BooleanFormula> disjunctionSet = bmgr.toDisjunctionArgs(formula, true);
 
-    if (disjunctionSet.size() <= 1) {
-      // a single atom can not be simplified
-      return formula;
-    }
-
-    final List<Set<BooleanFormula>> listOfOperands = new ArrayList<>();
-    for (final BooleanFormula subformula : disjunctionSet) {
-      // split each subformula to a set containing all subformulas of conjunction
-      Set<BooleanFormula> conjunctionSet = bmgr.toConjunctionArgs(subformula, true);
-      // this set contains all operands of current subformula
-      Set<BooleanFormula> operandsOfSubformula = new LinkedHashSet<>();
-      listOfOperands.add(operandsOfSubformula);
-      // iterate through all subformulas of a current conjunction
-      for (BooleanFormula formulaInConjunctionSet : conjunctionSet) {
-        // formulaInConjunctionSet contains disjunction that should be also transformed
-        BooleanFormula transformedFormula = cache.get(formulaInConjunctionSet);
-        if (transformedFormula == null) {
-          transformedFormula = simplifyBooleanFormula0(formulaInConjunctionSet, cache, bmgr);
-          cache.put(formulaInConjunctionSet, transformedFormula);
-        }
-        operandsOfSubformula.addAll(bmgr.toConjunctionArgs(transformedFormula, true));
+      if (disjunctionSet.size() <= 1) {
+        // a single atom can not be simplified
+        return formula;
       }
-    }
 
-    // set of mutual operands that are contained in all subformulas
-    final Set<BooleanFormula> mutualOperandsSet = new LinkedHashSet<>(listOfOperands.get(0));
-    for (Set<BooleanFormula> operands : listOfOperands) {
-      mutualOperandsSet.retainAll(operands);
-    }
+      final List<Set<BooleanFormula>> listOfOperands = new ArrayList<>();
+      for (final BooleanFormula subformula : disjunctionSet) {
+        // split each subformula to a set containing all subformulas of conjunction
+        Set<BooleanFormula> conjunctionSet = bmgr.toConjunctionArgs(subformula, true);
+        // this set contains all operands of current subformula
+        Set<BooleanFormula> operandsOfSubformula = new LinkedHashSet<>();
+        listOfOperands.add(operandsOfSubformula);
+        // iterate through all subformulas of a current conjunction
+        for (BooleanFormula formulaInConjunctionSet : conjunctionSet) {
+          // formulaInConjunctionSet contains disjunction that should be also transformed
+          BooleanFormula transformedFormula = cache.get(formulaInConjunctionSet);
+          if (transformedFormula == null) {
+            transformedFormula = simplifyBooleanFormula0(formulaInConjunctionSet, cache, bmgr);
+            cache.put(formulaInConjunctionSet, transformedFormula);
+          }
+          operandsOfSubformula.addAll(bmgr.toConjunctionArgs(transformedFormula, true));
+        }
+      }
 
-    // remove all mutual operands from each subformula
-    final List<BooleanFormula> transformedSubformulas = new ArrayList<>();
-    for (Set<BooleanFormula> operands : listOfOperands) {
-      operands.removeAll(mutualOperandsSet);
-      transformedSubformulas.add(bmgr.and(operands));
-    }
+      // set of mutual operands that are contained in all subformulas
+      final Set<BooleanFormula> mutualOperandsSet = new LinkedHashSet<>(listOfOperands.get(0));
+      for (Set<BooleanFormula> operands : listOfOperands) {
+        mutualOperandsSet.retainAll(operands);
+      }
 
-    // simplified BooleanFormula consists of
-    // ((conjunction of mutual operands) AND (disjunction of transformed subformulas))
-    return bmgr.and(bmgr.and(mutualOperandsSet), bmgr.or(transformedSubformulas));
+      // remove all mutual operands from each subformula
+      final List<BooleanFormula> transformedSubformulas = new ArrayList<>();
+      for (Set<BooleanFormula> operands : listOfOperands) {
+        operands.removeAll(mutualOperandsSet);
+        transformedSubformulas.add(bmgr.and(operands));
+      }
+
+      // simplified BooleanFormula consists of
+      // ((conjunction of mutual operands) AND (disjunction of transformed subformulas))
+      return bmgr.and(bmgr.and(mutualOperandsSet), bmgr.or(transformedSubformulas));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**

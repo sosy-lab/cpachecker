@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -67,10 +68,16 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
   @Override
   public BooleanFormula visitAnd(List<BooleanFormula> pProcessedOperands) {
     ImmutableList<BooleanFormula> clauses = ImmutableList.of(fmgr.makeTrue());
-
     ImmutableList<Set<BooleanFormula>> operands =
         pProcessedOperands.stream()
-            .map(f -> fmgr.toDisjunctionArgs(f, false))
+            .map(
+                f -> {
+                  try {
+                    return fmgr.toDisjunctionArgs(f, false);
+                  } catch (IOException pE) {
+                    throw new RuntimeException(pE);
+                  }
+                })
             .sorted(Comparator.comparingInt(Set::size))
             .collect(ImmutableList.toImmutableList());
 
@@ -114,7 +121,11 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
     try {
       pProverEnvironment.push(pFormula);
-      return !pProverEnvironment.isUnsat();
+      try {
+        return !pProverEnvironment.isUnsat();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     } finally {
       pProverEnvironment.pop();
     }

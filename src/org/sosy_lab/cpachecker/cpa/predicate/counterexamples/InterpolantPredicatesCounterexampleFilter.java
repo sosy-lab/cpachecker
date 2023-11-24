@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -77,13 +78,15 @@ public class InterpolantPredicatesCounterexampleFilter
       for (BooleanFormula f : formulas) {
         itpGroupIds.add(itpProver.push(f));
       }
-
-      if (!itpProver.isUnsat()) {
-        // Negated path is not infeasible, cannot produce interpolants.
-        // No filtering possible.
-        return Optional.empty();
+      try {
+        if (!itpProver.isUnsat()) {
+          // Negated path is not infeasible, cannot produce interpolants.
+          // No filtering possible.
+          return Optional.empty();
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
-
       Set<AbstractionPredicate> predicates = new HashSet<>();
       for (int i = 1; i < itpGroupIds.size(); i++) {
         BooleanFormula itp = itpProver.getInterpolant(itpGroupIds.subList(0, i));

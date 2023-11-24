@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.abe;
 
 import com.google.common.base.Preconditions;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
@@ -219,6 +220,8 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
       return solver.isUnsat(bfmgr.toConjunctionArgs(constraint, true), pIState.getNode());
     } catch (SolverException e) {
       throw new CPATransferException("Failed solving", e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

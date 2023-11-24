@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
@@ -116,10 +117,14 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     requireSingleByteArrayHeap();
     BooleanFormula wroteArrayFormula = storeBitVector(bvmgr.makeBitvector(8, 0b00100101L));
     final BooleanFormula readResultFormula = readBitVector(3);
-    BooleanFormula atom =
-        mgrv.assignment(
-            bvmgr.makeVariable(3, TEST_VAR_NAME_PRE + 3), bvmgr.makeBitvector(3, 0b101L));
-    assertThatFormula(bmgr.and(wroteArrayFormula, readResultFormula)).isEquisatisfiableTo(atom);
+    try {
+      BooleanFormula atom =
+          mgrv.assignment(
+              bvmgr.makeVariable(3, TEST_VAR_NAME_PRE + 3), bvmgr.makeBitvector(3, 0b101L));
+      assertThatFormula(bmgr.and(wroteArrayFormula, readResultFormula)).isEquisatisfiableTo(atom);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
@@ -133,8 +138,12 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     BooleanFormula atom =
         mgrv.assignment(
             bvmgr.makeVariable(8, TEST_VAR_NAME_PRE + 8), bvmgr.makeBitvector(8, 0b10100110L));
-    assertThatFormula(bmgr.and(wroteArrayFormula, wroteArrayFormula2, readResultFormula))
-        .isEquisatisfiableTo(atom);
+    try {
+      assertThatFormula(bmgr.and(wroteArrayFormula, wroteArrayFormula2, readResultFormula))
+          .isEquisatisfiableTo(atom);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -151,8 +160,12 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
         mgrv.assignment(bvmgr.makeVariable(length, TEST_VAR_NAME_PRE + length), value);
     BooleanFormula wroteArrayFormula = storeBitVector(value);
     final BooleanFormula readResultFormula = readBitVector(length);
-    assertThatFormula(bmgr.and(wroteArrayFormula, readResultFormula))
-        .isEquisatisfiableTo(atom); // =and(result, not(atom)).isUnsatisfiable()
+    try {
+      assertThatFormula(bmgr.and(wroteArrayFormula, readResultFormula))
+          .isEquisatisfiableTo(atom); // =and(result, not(atom)).isUnsatisfiable()
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private BooleanFormula storeBitVector(BitvectorFormula value) {

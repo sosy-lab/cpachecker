@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -148,6 +149,8 @@ public class ProverEnvironmentWithFallback
           solverException.addSuppressed(solverException2);
           throw solverException;
         }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     }
     try {
@@ -170,6 +173,8 @@ public class ProverEnvironmentWithFallback
         solverException.addSuppressed(solverException2);
         throw solverException;
       }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -177,19 +182,27 @@ public class ProverEnvironmentWithFallback
   public boolean isUnsatWithAssumptions(Collection<BooleanFormula> pArg0)
       throws SolverException, InterruptedException {
     ensureInitialized();
-    if (supportsInterpolation()) {
-      return interpolatingProverEnvironment.isUnsatWithAssumptions(pArg0);
+    try {
+      if (supportsInterpolation()) {
+        return interpolatingProverEnvironment.isUnsatWithAssumptions(pArg0);
+      }
+      return proverEnvironment.isUnsatWithAssumptions(pArg0);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return proverEnvironment.isUnsatWithAssumptions(pArg0);
   }
 
   @Override
   public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(Collection<BooleanFormula> pArg0)
       throws SolverException, InterruptedException {
-    if (supportsInterpolation()) {
-      return interpolatingProverEnvironment.unsatCoreOverAssumptions(pArg0);
+    try {
+      if (supportsInterpolation()) {
+        return interpolatingProverEnvironment.unsatCoreOverAssumptions(pArg0);
+      }
+      return proverEnvironment.unsatCoreOverAssumptions(pArg0);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return proverEnvironment.unsatCoreOverAssumptions(pArg0);
   }
 
   @Override
@@ -292,10 +305,14 @@ public class ProverEnvironmentWithFallback
   public <R> R allSat(AllSatCallback<R> pArg0, List<BooleanFormula> pArg1)
       throws InterruptedException, SolverException {
     ensureInitialized();
-    if (supportsInterpolation()) {
-      return interpolatingProverEnvironment.allSat(pArg0, pArg1);
+    try {
+      if (supportsInterpolation()) {
+        return interpolatingProverEnvironment.allSat(pArg0, pArg1);
+      }
+      return proverEnvironment.allSat(pArg0, pArg1);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return proverEnvironment.allSat(pArg0, pArg1);
   }
 
   public boolean isEmpty() {

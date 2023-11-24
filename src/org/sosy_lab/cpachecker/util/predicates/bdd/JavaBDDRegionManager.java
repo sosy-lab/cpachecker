@@ -17,6 +17,7 @@ import com.google.common.base.Ascii;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.ImmutableIntArray;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
@@ -656,9 +657,13 @@ class JavaBDDRegionManager implements RegionManager {
 
     private BDD convert(BooleanFormula pOperand) {
       BDD operand = cache.get(pOperand);
-      if (operand == null) {
-        operand = bfmgr.visit(pOperand, this);
-        cache.put(pOperand, operand);
+      try {
+        if (operand == null) {
+          operand = bfmgr.visit(pOperand, this);
+          cache.put(pOperand, operand);
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
       return operand.id(); // copy BDD so the one in the cache won't be consumed
     }

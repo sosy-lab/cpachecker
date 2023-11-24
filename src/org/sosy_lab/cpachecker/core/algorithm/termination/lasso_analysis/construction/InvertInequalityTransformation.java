@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
+import java.io.IOException;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -54,7 +55,11 @@ class InvertInequalityTransformation extends DefaultFormulaVisitor<BooleanFormul
       return fmgr.makeGreaterOrEqual(pNewArgs.get(0), pNewArgs.get(1), true);
 
     } else {
-      return super.visitFunction(pF, pNewArgs, pFunctionDeclaration);
+      try {
+        return super.visitFunction(pF, pNewArgs, pFunctionDeclaration);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

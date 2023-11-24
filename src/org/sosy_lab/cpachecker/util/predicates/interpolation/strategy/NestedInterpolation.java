@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -88,105 +89,108 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
       final int positionOfA,
       final BooleanFormula lastItp)
       throws InterruptedException, SolverException {
+    try {
+      final AbstractState abstractionState =
+          checkNotNull(formulasWithStatesAndGroupdIds.get(positionOfA).state());
+      final CFANode node = AbstractStates.extractLocation(abstractionState);
 
-    final AbstractState abstractionState =
-        checkNotNull(formulasWithStatesAndGroupdIds.get(positionOfA).state());
-    final CFANode node = AbstractStates.extractLocation(abstractionState);
-
-    // If we have entered or exited a function, update the stack of entry points
-    if (node instanceof FunctionEntryNode
-        && callHasReturn(formulasWithStatesAndGroupdIds, positionOfA)) {
-      // && (positionOfA > 0)) {
-      // case 2 from paper
-      final BooleanFormula call = formulasWithStatesAndGroupdIds.get(positionOfA).formula();
-      callstack.addLast(Pair.of(lastItp, call));
-      final BooleanFormula itpTrue = bfmgr.makeTrue();
-      interpolants.add(itpTrue);
-      return itpTrue; // PSIminus = True --> PSI = True, for the 3rd rule ITP is True
-    }
-
-    final BooleanFormula itp;
-    // use a new prover, because we use several distinct queries
-    try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
-      final List<T> A = new ArrayList<>();
-      final List<T> B = new ArrayList<>();
-
-      A.add(itpProver.push(lastItp));
-      A.add(itpProver.push(formulasWithStatesAndGroupdIds.get(positionOfA).formula()));
-
-      // add all remaining PHI_j
-      for (InterpolationGroup<T> t :
-          Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-        B.add(itpProver.push(t.formula()));
+      // If we have entered or exited a function, update the stack of entry points
+      if (node instanceof FunctionEntryNode
+          && callHasReturn(formulasWithStatesAndGroupdIds, positionOfA)) {
+        // && (positionOfA > 0)) {
+        // case 2 from paper
+        final BooleanFormula call = formulasWithStatesAndGroupdIds.get(positionOfA).formula();
+        callstack.addLast(Pair.of(lastItp, call));
+        final BooleanFormula itpTrue = bfmgr.makeTrue();
+        interpolants.add(itpTrue);
+        return itpTrue; // PSIminus = True --> PSI = True, for the 3rd rule ITP is True
       }
 
-      // add all previous function calls
-      for (Pair<BooleanFormula, BooleanFormula> t : callstack) {
-        B.add(itpProver.push(t.getFirst())); // add PSI_k
-        B.add(itpProver.push(t.getSecond())); // ... and PHI_k
-      }
+      final BooleanFormula itp;
+      // use a new prover, because we use several distinct queries
+      try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
+        final List<T> A = new ArrayList<>();
+        final List<T> B = new ArrayList<>();
 
-      // update prover with new formulas.
-      // this is the expensive step, that is distinct from other strategies.
-      // TODO improve! example: reverse ordering of formulas for re-usage of the solver-stack
-      boolean unsat = itpProver.isUnsat();
-      assert unsat : "formulas were unsat before, they have to be unsat now.";
-
-      // get interpolant of A and B, for B we use the complementary set of A
-      assert !A.isEmpty() && !B.isEmpty();
-      itp = itpProver.getInterpolant(A);
-    }
-
-    if (!callstack.isEmpty() && node instanceof FunctionExitNode) {
-      // case 4, we are returning from a function, rule 4
-      Pair<BooleanFormula, BooleanFormula> scopingItp = callstack.removeLast();
-
-      try (InterpolatingProverEnvironment<T> itpProver2 = interpolator.newEnvironment()) {
-        final List<T> A2 = new ArrayList<>();
-        final List<T> B2 = new ArrayList<>();
-
-        A2.add(itpProver2.push(itp));
-        // A2.add(itpProver2.push(orderedFormulas.get(positionOfA).getFirst()));
-
-        A2.add(itpProver2.push(scopingItp.getFirst()));
-        A2.add(itpProver2.push(scopingItp.getSecond()));
+        A.add(itpProver.push(lastItp));
+        A.add(itpProver.push(formulasWithStatesAndGroupdIds.get(positionOfA).formula()));
 
         // add all remaining PHI_j
         for (InterpolationGroup<T> t :
             Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-          B2.add(itpProver2.push(t.formula()));
+          B.add(itpProver.push(t.formula()));
         }
 
         // add all previous function calls
         for (Pair<BooleanFormula, BooleanFormula> t : callstack) {
-          B2.add(itpProver2.push(t.getFirst())); // add PSI_k
-          B2.add(itpProver2.push(t.getSecond())); // ... and PHI_k
+          B.add(itpProver.push(t.getFirst())); // add PSI_k
+          B.add(itpProver.push(t.getSecond())); // ... and PHI_k
         }
 
-        boolean unsat2 = itpProver2.isUnsat();
-        assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
+        // update prover with new formulas.
+        // this is the expensive step, that is distinct from other strategies.
+        // TODO improve! example: reverse ordering of formulas for re-usage of the solver-stack
+        boolean unsat = itpProver.isUnsat();
+        assert unsat : "formulas were unsat before, they have to be unsat now.";
 
-        // get interpolant of A2 and B2, for B2 we use the complementary set of A2
-        assert !A2.isEmpty() && !B2.isEmpty();
-        BooleanFormula itp2 = itpProver2.getInterpolant(A2);
-
-        BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
-        BooleanFormula scope = scopingItp.getFirst();
-
-        // filter out FALSE, because it might be simplified, and we need the atoms of the formula.
-        // We ignore the case when the rebuildItp is FALSE, because the analysis will first
-        // compute the nested abstraction, which (in theory) uses the rebuildItp's atoms.
-        if (!bfmgr.isFalse(scope)) {
-          rebuildItp = bfmgr.and(rebuildItp, scope);
-        }
-
-        interpolants.add(rebuildItp);
-        return itp2;
+        // get interpolant of A and B, for B we use the complementary set of A
+        assert !A.isEmpty() && !B.isEmpty();
+        itp = itpProver.getInterpolant(A);
       }
 
-    } else {
-      interpolants.add(itp);
-      return itp;
+      if (!callstack.isEmpty() && node instanceof FunctionExitNode) {
+        // case 4, we are returning from a function, rule 4
+        Pair<BooleanFormula, BooleanFormula> scopingItp = callstack.removeLast();
+
+        try (InterpolatingProverEnvironment<T> itpProver2 = interpolator.newEnvironment()) {
+          final List<T> A2 = new ArrayList<>();
+          final List<T> B2 = new ArrayList<>();
+
+          A2.add(itpProver2.push(itp));
+          // A2.add(itpProver2.push(orderedFormulas.get(positionOfA).getFirst()));
+
+          A2.add(itpProver2.push(scopingItp.getFirst()));
+          A2.add(itpProver2.push(scopingItp.getSecond()));
+
+          // add all remaining PHI_j
+          for (InterpolationGroup<T> t :
+              Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
+            B2.add(itpProver2.push(t.formula()));
+          }
+
+          // add all previous function calls
+          for (Pair<BooleanFormula, BooleanFormula> t : callstack) {
+            B2.add(itpProver2.push(t.getFirst())); // add PSI_k
+            B2.add(itpProver2.push(t.getSecond())); // ... and PHI_k
+          }
+
+          boolean unsat2 = itpProver2.isUnsat();
+          assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
+
+          // get interpolant of A2 and B2, for B2 we use the complementary set of A2
+          assert !A2.isEmpty() && !B2.isEmpty();
+          BooleanFormula itp2 = itpProver2.getInterpolant(A2);
+
+          BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
+          BooleanFormula scope = scopingItp.getFirst();
+
+          // filter out FALSE, because it might be simplified, and we need the atoms of the formula.
+          // We ignore the case when the rebuildItp is FALSE, because the analysis will first
+          // compute the nested abstraction, which (in theory) uses the rebuildItp's atoms.
+          if (!bfmgr.isFalse(scope)) {
+            rebuildItp = bfmgr.and(rebuildItp, scope);
+          }
+
+          interpolants.add(rebuildItp);
+          return itp2;
+        }
+
+      } else {
+        interpolants.add(itp);
+        return itp;
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

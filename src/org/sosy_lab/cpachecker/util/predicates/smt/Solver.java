@@ -17,6 +17,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
@@ -463,16 +464,20 @@ public final class Solver implements AutoCloseable {
       for (BooleanFormula lemma : lemmas) {
         pe.addConstraint(lemma);
       }
-      if (pe.isUnsat()) {
-        if (cacheUnsatCores) {
-          stored.put(ImmutableSet.copyOf(pe.getUnsatCore()), true);
+      try {
+        if (pe.isUnsat()) {
+          if (cacheUnsatCores) {
+            stored.put(ImmutableSet.copyOf(pe.getUnsatCore()), true);
+          } else {
+            stored.put(ImmutableSet.copyOf(lemmas), true);
+          }
+          return true;
         } else {
-          stored.put(ImmutableSet.copyOf(lemmas), true);
+          stored.put(ImmutableSet.copyOf(lemmas), false);
+          return false;
         }
-        return true;
-      } else {
-        stored.put(ImmutableSet.copyOf(lemmas), false);
-        return false;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     } finally {
       groupedUnsatCache.put(cacheKey, ImmutableMap.copyOf(stored));
@@ -493,20 +498,27 @@ public final class Solver implements AutoCloseable {
 
   public List<BooleanFormula> unsatCore(Set<BooleanFormula> constraints)
       throws SolverException, InterruptedException {
-
-    try (ProverEnvironment prover = newProverEnvironment(GENERATE_UNSAT_CORE)) {
-      for (BooleanFormula constraint : constraints) {
-        prover.addConstraint(constraint);
+    try {
+      try (ProverEnvironment prover = newProverEnvironment(GENERATE_UNSAT_CORE)) {
+        for (BooleanFormula constraint : constraints) {
+          prover.addConstraint(constraint);
+        }
+        Verify.verify(prover.isUnsat());
+        return prover.getUnsatCore();
       }
-      Verify.verify(prover.isUnsat());
-      return prover.getUnsatCore();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
   private boolean isUnsatUncached(BooleanFormula f) throws SolverException, InterruptedException {
-    try (ProverEnvironment prover = newProverEnvironment()) {
-      prover.push(f);
-      return prover.isUnsat();
+    try {
+      try (ProverEnvironment prover = newProverEnvironment()) {
+        prover.push(f);
+        return prover.isUnsat();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

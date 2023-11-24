@@ -14,6 +14,7 @@ import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.UF;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -143,84 +144,89 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
     private Formula transformNonLinearMultiplication(
         Formula a, Formula b, FormulaType<?> formulaType) {
       BooleanFormulaManagerView bfmgr = fmgrView.getBooleanFormulaManager();
+      try {
+        Formula multAux =
+            fmgr.makeVariable(
+                formulaType,
+                TERMINATION_AUX_VARS_PREFIX + "MULT_AUX_VAR_" + ID_GENERATOR.getFreshId());
 
-      Formula multAux =
-          fmgr.makeVariable(
-              formulaType,
-              TERMINATION_AUX_VARS_PREFIX + "MULT_AUX_VAR_" + ID_GENERATOR.getFreshId());
+        List<BooleanFormula> cases = new ArrayList<>();
+        Formula one = fmgrView.makeNumber(formulaType, 1);
+        Formula minusOne = fmgrView.makeNumber(formulaType, -1);
+        Formula zero = fmgrView.makeNumber(formulaType, 0);
 
-      List<BooleanFormula> cases = new ArrayList<>();
-      Formula one = fmgrView.makeNumber(formulaType, 1);
-      Formula minusOne = fmgrView.makeNumber(formulaType, -1);
-      Formula zero = fmgrView.makeNumber(formulaType, 0);
+        // a * 0 = 0, 0 * b = 0
+        BooleanFormula aIsZero = fmgrView.makeEqual(a, zero);
+        BooleanFormula bIsZero = fmgrView.makeEqual(b, zero);
+        BooleanFormula factorIsZero = fmgrView.makeOr(aIsZero, bIsZero);
+        cases.add(fmgrView.makeAnd(factorIsZero, fmgrView.makeEqual(multAux, zero)));
 
-      // a * 0 = 0, 0 * b = 0
-      BooleanFormula aIsZero = fmgrView.makeEqual(a, zero);
-      BooleanFormula bIsZero = fmgrView.makeEqual(b, zero);
-      BooleanFormula factorIsZero = fmgrView.makeOr(aIsZero, bIsZero);
-      cases.add(fmgrView.makeAnd(factorIsZero, fmgrView.makeEqual(multAux, zero)));
+        // a * 1 = a, 1 * b = b
+        BooleanFormula aIsOne = fmgrView.makeEqual(a, minusOne);
+        BooleanFormula bIsOne = fmgrView.makeEqual(b, minusOne);
+        cases.add(fmgrView.makeAnd(bIsOne, fmgrView.makeEqual(multAux, a)));
+        cases.add(fmgrView.makeAnd(aIsOne, fmgrView.makeEqual(multAux, b)));
 
-      // a * 1 = a, 1 * b = b
-      BooleanFormula aIsOne = fmgrView.makeEqual(a, minusOne);
-      BooleanFormula bIsOne = fmgrView.makeEqual(b, minusOne);
-      cases.add(fmgrView.makeAnd(bIsOne, fmgrView.makeEqual(multAux, a)));
-      cases.add(fmgrView.makeAnd(aIsOne, fmgrView.makeEqual(multAux, b)));
+        // a * (-1) = -a, (-1) * b = -b
+        BooleanFormula aIsminusOne = fmgrView.makeEqual(a, one);
+        BooleanFormula bIsminusOne = fmgrView.makeEqual(b, one);
+        Formula minusA = fmgrView.makeNegate(a);
+        Formula minusB = fmgrView.makeNegate(b);
+        cases.add(fmgrView.makeAnd(aIsminusOne, fmgrView.makeEqual(multAux, minusA)));
+        cases.add(fmgrView.makeAnd(bIsminusOne, fmgrView.makeEqual(multAux, minusB)));
 
-      // a * (-1) = -a, (-1) * b = -b
-      BooleanFormula aIsminusOne = fmgrView.makeEqual(a, one);
-      BooleanFormula bIsminusOne = fmgrView.makeEqual(b, one);
-      Formula minusA = fmgrView.makeNegate(a);
-      Formula minusB = fmgrView.makeNegate(b);
-      cases.add(fmgrView.makeAnd(aIsminusOne, fmgrView.makeEqual(multAux, minusA)));
-      cases.add(fmgrView.makeAnd(bIsminusOne, fmgrView.makeEqual(multAux, minusB)));
+        // 0 < a < 1,  0 < b < 1, -1 < a < 0, -1 < b < 0, a > 1, ...
+        BooleanFormula zeroLessALessOne =
+            bfmgr.and(fmgrView.makeLessThan(zero, a, true), fmgrView.makeLessThan(a, one, true));
+        BooleanFormula zeroLessBLessOne =
+            bfmgr.and(fmgrView.makeLessThan(zero, b, true), fmgrView.makeLessThan(b, one, true));
+        BooleanFormula minusOneLessALessZero =
+            bfmgr.and(
+                fmgrView.makeLessThan(minusOne, a, true), fmgrView.makeLessThan(a, zero, true));
+        BooleanFormula minusOneLessBLessZero =
+            bfmgr.and(
+                fmgrView.makeLessThan(minusOne, b, true), fmgrView.makeLessThan(b, zero, true));
+        BooleanFormula aGreaterOne = bfmgr.and(fmgrView.makeGreaterThan(a, one, true));
+        BooleanFormula bGreaterOne = bfmgr.and(fmgrView.makeGreaterThan(b, one, true));
+        BooleanFormula aLessMinuseOne = bfmgr.and(fmgrView.makeLessThan(a, one, true));
+        BooleanFormula bLessMinuseOne = bfmgr.and(fmgrView.makeLessThan(b, one, true));
 
-      // 0 < a < 1,  0 < b < 1, -1 < a < 0, -1 < b < 0, a > 1, ...
-      BooleanFormula zeroLessALessOne =
-          bfmgr.and(fmgrView.makeLessThan(zero, a, true), fmgrView.makeLessThan(a, one, true));
-      BooleanFormula zeroLessBLessOne =
-          bfmgr.and(fmgrView.makeLessThan(zero, b, true), fmgrView.makeLessThan(b, one, true));
-      BooleanFormula minusOneLessALessZero =
-          bfmgr.and(fmgrView.makeLessThan(minusOne, a, true), fmgrView.makeLessThan(a, zero, true));
-      BooleanFormula minusOneLessBLessZero =
-          bfmgr.and(fmgrView.makeLessThan(minusOne, b, true), fmgrView.makeLessThan(b, zero, true));
-      BooleanFormula aGreaterOne = bfmgr.and(fmgrView.makeGreaterThan(a, one, true));
-      BooleanFormula bGreaterOne = bfmgr.and(fmgrView.makeGreaterThan(b, one, true));
-      BooleanFormula aLessMinuseOne = bfmgr.and(fmgrView.makeLessThan(a, one, true));
-      BooleanFormula bLessMinuseOne = bfmgr.and(fmgrView.makeLessThan(b, one, true));
+        // 0 < multAux < 1, -1 < multAux < 0, multAux > 1, ...
+        BooleanFormula zeroLessResultLessOne =
+            bfmgr.and(
+                fmgrView.makeLessThan(zero, multAux, true),
+                fmgrView.makeLessThan(multAux, one, true));
+        BooleanFormula minusOneLessResultLessZero =
+            bfmgr.and(
+                fmgrView.makeLessThan(minusOne, multAux, true),
+                fmgrView.makeLessThan(multAux, zero, true));
+        BooleanFormula resultGreaterOne = bfmgr.and(fmgrView.makeGreaterThan(multAux, one, true));
+        BooleanFormula resultLessMinuseOne = bfmgr.and(fmgrView.makeLessThan(multAux, one, true));
+        BooleanFormula positiveResult = fmgrView.makeGreaterThan(multAux, zero, true);
+        BooleanFormula negativeResult = fmgrView.makeLessThan(multAux, zero, true);
 
-      // 0 < multAux < 1, -1 < multAux < 0, multAux > 1, ...
-      BooleanFormula zeroLessResultLessOne =
-          bfmgr.and(
-              fmgrView.makeLessThan(zero, multAux, true),
-              fmgrView.makeLessThan(multAux, one, true));
-      BooleanFormula minusOneLessResultLessZero =
-          bfmgr.and(
-              fmgrView.makeLessThan(minusOne, multAux, true),
-              fmgrView.makeLessThan(multAux, zero, true));
-      BooleanFormula resultGreaterOne = bfmgr.and(fmgrView.makeGreaterThan(multAux, one, true));
-      BooleanFormula resultLessMinuseOne = bfmgr.and(fmgrView.makeLessThan(multAux, one, true));
-      BooleanFormula positiveResult = fmgrView.makeGreaterThan(multAux, zero, true);
-      BooleanFormula negativeResult = fmgrView.makeLessThan(multAux, zero, true);
+        cases.add(bfmgr.and(zeroLessALessOne, zeroLessBLessOne, zeroLessResultLessOne));
+        cases.add(bfmgr.and(zeroLessALessOne, minusOneLessBLessZero, minusOneLessResultLessZero));
+        cases.add(bfmgr.and(zeroLessALessOne, bGreaterOne, positiveResult));
+        cases.add(bfmgr.and(zeroLessALessOne, bLessMinuseOne, negativeResult));
+        cases.add(bfmgr.and(minusOneLessALessZero, zeroLessBLessOne, minusOneLessResultLessZero));
+        cases.add(bfmgr.and(minusOneLessALessZero, minusOneLessBLessZero, zeroLessResultLessOne));
+        cases.add(bfmgr.and(minusOneLessALessZero, bGreaterOne, negativeResult));
+        cases.add(bfmgr.and(minusOneLessALessZero, bLessMinuseOne, positiveResult));
+        cases.add(bfmgr.and(aGreaterOne, zeroLessBLessOne, positiveResult));
+        cases.add(bfmgr.and(aGreaterOne, minusOneLessBLessZero, negativeResult));
+        cases.add(bfmgr.and(aGreaterOne, bGreaterOne, resultGreaterOne));
+        cases.add(bfmgr.and(aGreaterOne, bLessMinuseOne, resultLessMinuseOne));
+        cases.add(bfmgr.and(aLessMinuseOne, zeroLessBLessOne, negativeResult));
+        cases.add(bfmgr.and(aLessMinuseOne, minusOneLessBLessZero, positiveResult));
+        cases.add(bfmgr.and(aLessMinuseOne, bGreaterOne, resultLessMinuseOne));
+        cases.add(bfmgr.and(aLessMinuseOne, bLessMinuseOne, resultGreaterOne));
 
-      cases.add(bfmgr.and(zeroLessALessOne, zeroLessBLessOne, zeroLessResultLessOne));
-      cases.add(bfmgr.and(zeroLessALessOne, minusOneLessBLessZero, minusOneLessResultLessZero));
-      cases.add(bfmgr.and(zeroLessALessOne, bGreaterOne, positiveResult));
-      cases.add(bfmgr.and(zeroLessALessOne, bLessMinuseOne, negativeResult));
-      cases.add(bfmgr.and(minusOneLessALessZero, zeroLessBLessOne, minusOneLessResultLessZero));
-      cases.add(bfmgr.and(minusOneLessALessZero, minusOneLessBLessZero, zeroLessResultLessOne));
-      cases.add(bfmgr.and(minusOneLessALessZero, bGreaterOne, negativeResult));
-      cases.add(bfmgr.and(minusOneLessALessZero, bLessMinuseOne, positiveResult));
-      cases.add(bfmgr.and(aGreaterOne, zeroLessBLessOne, positiveResult));
-      cases.add(bfmgr.and(aGreaterOne, minusOneLessBLessZero, negativeResult));
-      cases.add(bfmgr.and(aGreaterOne, bGreaterOne, resultGreaterOne));
-      cases.add(bfmgr.and(aGreaterOne, bLessMinuseOne, resultLessMinuseOne));
-      cases.add(bfmgr.and(aLessMinuseOne, zeroLessBLessOne, negativeResult));
-      cases.add(bfmgr.and(aLessMinuseOne, minusOneLessBLessZero, positiveResult));
-      cases.add(bfmgr.and(aLessMinuseOne, bGreaterOne, resultLessMinuseOne));
-      cases.add(bfmgr.and(aLessMinuseOne, bLessMinuseOne, resultGreaterOne));
-
-      additionalAxioms.add(bfmgr.or(cases));
-      return multAux;
+        additionalAxioms.add(bfmgr.or(cases));
+        return multAux;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

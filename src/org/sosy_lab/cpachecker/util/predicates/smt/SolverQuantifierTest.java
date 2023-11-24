@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,21 +75,33 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
 
     // (exists x in [10..20] . b[x] = 1) AND (forall x . b[x] = 0) is UNSAT
     f = bmgr.and(_exists_10_20_bx_1, _forall_x_bx_0);
-    assertThatFormula(f).isUnsatisfiable();
+    try {
+      assertThatFormula(f).isUnsatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (exists x in [10..20] . b[x] = 1) AND (b[10] = 0) is SAT
     f =
         bmgr.and(
             _exists_10_20_bx_1,
             imgr.equal(amgr.select(_b, imgr.makeNumber(10)), imgr.makeNumber(0)));
-    assertThatFormula(f).isSatisfiable();
+    try {
+      assertThatFormula(f).isSatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (exists x in [10..20] . b[x] = 1) AND (b[1000] = 0) is SAT
     f =
         bmgr.and(
             _exists_10_20_bx_1,
             imgr.equal(amgr.select(_b, imgr.makeNumber(1000)), imgr.makeNumber(0)));
-    assertThatFormula(f).isSatisfiable();
+    try {
+      assertThatFormula(f).isSatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
@@ -114,11 +127,19 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
 
     // (exists x in [10..20] . b[x] = 0) AND (forall x . b[x] = 0) is SAT
     f = bmgr.and(_exists_10_20_bx_0, _forall_x_bx_0);
-    assertThatFormula(f).isSatisfiable();
+    try {
+      assertThatFormula(f).isSatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (exists x in [10..20] . b[x] = 1) AND (forall x . b[x] = 1) is SAT
     f = bmgr.and(_exists_10_20_bx_1, _forall_x_bx_1);
-    assertThatFormula(f).isSatisfiable();
+    try {
+      assertThatFormula(f).isSatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
@@ -133,21 +154,33 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
         bmgr.and(
             _forall_10_20_bx_1,
             qfm.exists(_x, imgr.makeNumber(15), imgr.makeNumber(17), _b_at_x_eq_0));
-    assertThatFormula(f).isUnsatisfiable();
+    try {
+      assertThatFormula(f).isUnsatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (forall x in [10..20] . b[x] = 1) AND b[10] = 0 is UNSAT
     f =
         bmgr.and(
             _forall_10_20_bx_1,
             imgr.equal(amgr.select(_b, imgr.makeNumber(10)), imgr.makeNumber(0)));
-    assertThatFormula(f).isUnsatisfiable();
+    try {
+      assertThatFormula(f).isUnsatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (forall x in [10..20] . b[x] = 1) AND b[20] = 0 is UNSAT
     f =
         bmgr.and(
             _forall_10_20_bx_1,
             imgr.equal(amgr.select(_b, imgr.makeNumber(20)), imgr.makeNumber(0)));
-    assertThatFormula(f).isUnsatisfiable();
+    try {
+      assertThatFormula(f).isUnsatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
@@ -170,34 +203,54 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
 
     // (forall x in [10..20] . b[x] = 0) AND (forall x . b[x] = 0) is SAT
     f = bmgr.and(_forall_10_20_bx_0, qfm.forall(_x, _b_at_x_eq_0));
-    assertThatFormula(f).isSatisfiable();
+    try {
+      assertThatFormula(f).isSatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (forall x in [10..20] . b[x] = 1) AND b[9] = 0 is SAT
     f =
         bmgr.and(
             _forall_10_20_bx_1,
             imgr.equal(amgr.select(_b, imgr.makeNumber(9)), imgr.makeNumber(0)));
-    assertThatFormula(f).isSatisfiable();
+    try {
+      assertThatFormula(f).isSatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (forall x in [10..20] . b[x] = 1) AND b[21] = 0 is SAT
     f =
         bmgr.and(
             _forall_10_20_bx_1,
             imgr.equal(amgr.select(_b, imgr.makeNumber(21)), imgr.makeNumber(0)));
-    assertThatFormula(f).isSatisfiable();
+    try {
+      assertThatFormula(f).isSatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (forall x in [10..20] . b[x] = 1) AND (forall x in [0..20] . b[x] = 0) is UNSAT
     f =
         bmgr.and(
             _forall_10_20_bx_1,
             qfm.forall(_x, imgr.makeNumber(0), imgr.makeNumber(20), _b_at_x_eq_0));
-    assertThatFormula(f).isUnsatisfiable();
+    try {
+      assertThatFormula(f).isUnsatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // (forall x in [10..20] . b[x] = 1) AND (forall x in [0..9] . b[x] = 0) is SAT
     f =
         bmgr.and(
             _forall_10_20_bx_1,
             qfm.forall(_x, imgr.makeNumber(0), imgr.makeNumber(9), _b_at_x_eq_0));
-    assertThatFormula(f).isSatisfiable();
+    try {
+      assertThatFormula(f).isSatisfiable();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

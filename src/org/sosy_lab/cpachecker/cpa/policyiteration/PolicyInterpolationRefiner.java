@@ -15,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -153,8 +154,11 @@ public class PolicyInterpolationRefiner implements Refiner {
       handles.add(ImmutableSet.of(handle));
       pushed++;
     }
-
-    Preconditions.checkState(itp.isUnsat());
+    try {
+      Preconditions.checkState(itp.isUnsat());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     List<BooleanFormula> interpolants = itp.getSeqInterpolants(handles);
 
@@ -216,12 +220,15 @@ public class PolicyInterpolationRefiner implements Refiner {
       assert handle != null;
       handles.add(ImmutableSet.of(handle));
     }
+    try {
+      if (itp.isUnsat()) {
+        return Optional.of(itp.getSeqInterpolants(handles));
 
-    if (itp.isUnsat()) {
-      return Optional.of(itp.getSeqInterpolants(handles));
-
-    } else {
-      return Optional.empty();
+      } else {
+        return Optional.empty();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -237,16 +244,20 @@ public class PolicyInterpolationRefiner implements Refiner {
   /** Weaken {@code input}, such that it no longer contains any variables in {@code varsToDrop}. */
   private BooleanFormula weaken(BooleanFormula input, Set<String> varsToDrop)
       throws InterruptedException {
-    if (varsToDrop.isEmpty()) {
-      return input;
+    try {
+      if (varsToDrop.isEmpty()) {
+        return input;
+      }
+      if (Sets.intersection(extractVariableNames(input), varsToDrop).isEmpty()) {
+        return input;
+      }
+      input = fmgr.simplify(input);
+      input = fmgr.applyTactic(input, Tactic.NNF);
+      input = bfmgr.transformRecursively(input, new FormulaWeakeningManager(fmgr, varsToDrop));
+      return fmgr.simplify(input);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    if (Sets.intersection(extractVariableNames(input), varsToDrop).isEmpty()) {
-      return input;
-    }
-    input = fmgr.simplify(input);
-    input = fmgr.applyTactic(input, Tactic.NNF);
-    input = bfmgr.transformRecursively(input, new FormulaWeakeningManager(fmgr, varsToDrop));
-    return fmgr.simplify(input);
   }
 
   /** Drop all literals which have variables given in the constructor. */

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -58,7 +59,11 @@ public class BasicProverEnvironmentView<E> implements BasicProverEnvironment<E> 
 
   @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
-    return delegate.isUnsat();
+    try {
+      return delegate.isUnsat();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -88,7 +93,11 @@ public class BasicProverEnvironmentView<E> implements BasicProverEnvironment<E> 
   @Override
   public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
       throws SolverException, InterruptedException {
-    return delegate.isUnsatWithAssumptions(assumptions);
+    try {
+      return delegate.isUnsatWithAssumptions(assumptions);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -99,7 +108,11 @@ public class BasicProverEnvironmentView<E> implements BasicProverEnvironment<E> 
   @Override
   public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
       Collection<BooleanFormula> pAssumptions) throws SolverException, InterruptedException {
-    return delegate.unsatCoreOverAssumptions(pAssumptions);
+    try {
+      return delegate.unsatCoreOverAssumptions(pAssumptions);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -107,7 +120,11 @@ public class BasicProverEnvironmentView<E> implements BasicProverEnvironment<E> 
       org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback<R> pCallback,
       List<BooleanFormula> pImportant)
       throws InterruptedException, SolverException {
-    return delegate.allSat(pCallback, pImportant);
+    try {
+      return delegate.allSat(pCallback, pImportant);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

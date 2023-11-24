@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.ImmutableIntArray;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -90,17 +91,20 @@ public class TreeInterpolation extends AbstractTreeInterpolation {
       for (int i = positionOfA + 1; i < formulas.size(); i++) {
         B.add(itpProver.push(formulas.get(i).formula()));
       }
+      try {
+        final boolean check = itpProver.isUnsat();
+        assert check : "asserted formulas should be UNSAT";
 
-      final boolean check = itpProver.isUnsat();
-      assert check : "asserted formulas should be UNSAT";
+        // get interpolant via Craig interpolation
+        assert !A.isEmpty() && !B.isEmpty();
+        final BooleanFormula interpolant = itpProver.getInterpolant(A);
 
-      // get interpolant via Craig interpolation
-      assert !A.isEmpty() && !B.isEmpty();
-      final BooleanFormula interpolant = itpProver.getInterpolant(A);
-
-      // update the stack for further computation
-      itpStack.addLast(Pair.of(interpolant, currentSubtree));
-      return interpolant;
+        // update the stack for further computation
+        itpStack.addLast(Pair.of(interpolant, currentSubtree));
+        return interpolant;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

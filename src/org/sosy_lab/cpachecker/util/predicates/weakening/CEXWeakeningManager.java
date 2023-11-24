@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -89,30 +90,33 @@ public class CEXWeakeningManager {
     BooleanFormula query = bfmgr.and(fromState, transition.getFormula(), bfmgr.not(toState));
 
     int noIterations = 1;
-    try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      env.push(query);
+    try {
+      try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        env.push(query);
+        while (!env.isUnsatWithAssumptions(selectorConstraints)) {
+          noIterations++;
+          shutdownNotifier.shutdownIfNecessary();
+          try (Model m = env.getModel()) {
 
-      while (!env.isUnsatWithAssumptions(selectorConstraints)) {
-        noIterations++;
-        shutdownNotifier.shutdownIfNecessary();
-        try (Model m = env.getModel()) {
+            toAbstract.addAll(
+                getSelectorsToAbstract(ImmutableSet.copyOf(toAbstract), m, selectors, toState, 0));
+          }
 
-          toAbstract.addAll(
-              getSelectorsToAbstract(ImmutableSet.copyOf(toAbstract), m, selectors, toState, 0));
-        }
-
-        selectorConstraints.clear();
-        for (BooleanFormula selector : selectors) {
-          if (toAbstract.contains(selector)) {
-            selectorConstraints.add(selector);
-          } else {
-            selectorConstraints.add(bfmgr.not(selector));
+          selectorConstraints.clear();
+          for (BooleanFormula selector : selectors) {
+            if (toAbstract.contains(selector)) {
+              selectorConstraints.add(selector);
+            } else {
+              selectorConstraints.add(bfmgr.not(selector));
+            }
           }
         }
       }
+      statistics.iterationsNo.add(noIterations);
+      return toAbstract;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    statistics.iterationsNo.add(noIterations);
-    return toAbstract;
   }
 
   private List<BooleanFormula> getSelectorsToAbstract(
@@ -122,105 +126,108 @@ public class CEXWeakeningManager {
       final BooleanFormula primed,
       final int depth) {
     final List<BooleanFormula> newToAbstract = new ArrayList<>();
+    try {
+      // Perform the required abstraction.
+      bfmgr.visitRecursively(
+          primed,
+          new DefaultBooleanFormulaVisitor<TraversalProcess>() {
 
-    // Perform the required abstraction.
-    bfmgr.visitRecursively(
-        primed,
-        new DefaultBooleanFormulaVisitor<TraversalProcess>() {
-
-          @Override
-          protected TraversalProcess visitDefault() {
-            return TraversalProcess.CONTINUE;
-          }
-
-          @Override
-          public TraversalProcess visitAnd(List<BooleanFormula> operands) {
-            // Under negation, AND becomes OR.
-            // Abstracting away all children which evaluate to _true_ is sufficient.
-            Set<BooleanFormula> filtered = new HashSet<>();
-            for (BooleanFormula op : operands) {
-              if (shouldAbstract(op)) {
-                filtered.add(op);
-              }
+            @Override
+            protected TraversalProcess visitDefault() {
+              return TraversalProcess.CONTINUE;
             }
-            return TraversalProcess.custom(filtered);
-          }
 
-          @Override
-          public TraversalProcess visitOr(List<BooleanFormula> operands) {
-            // Under negation, OR becomes AND.
-            // ALL children of this node evaluate to true iff the node
-            // evaluates to true.
-            // Abstracting away any child is sufficient to break the satisfiability.
-            Optional<BooleanFormula> selector = findSelector(operands);
-
-            if (selector.isPresent()) {
-              if (shouldAbstract(bfmgr.or(operands))) {
-                handleAnnotatedLiteral(selector.orElseThrow());
-              }
-              return TraversalProcess.SKIP;
-            } else {
-
-              // N.B.: This branch is *never* hit if we use
-              // conjunction-annotation mode.
-
-              // OR- implies a difficult choice, unless a selector is present.
-              return selectChildren(operands);
-            }
-          }
-
-          private void handleAnnotatedLiteral(BooleanFormula selector) {
-            // Don't-care or evaluates-to-false.
-            if (!toAbstract.contains(selector)) {
-              newToAbstract.add(selector);
-            }
-          }
-
-          private boolean shouldAbstract(BooleanFormula f) {
-            Boolean out = m.evaluate(bfmgr.not(f));
-            return out != null && out;
-          }
-
-          private Optional<BooleanFormula> findSelector(List<BooleanFormula> orOperands) {
-            for (BooleanFormula operand : orOperands) {
-              if (selectors.contains(operand)) {
-                return Optional.of(operand);
-              }
-            }
-            return Optional.empty();
-          }
-
-          private TraversalProcess selectChildren(List<BooleanFormula> operands) {
-            switch (options.getRemovalSelectionStrategy()) {
-              case ALL:
-                return TraversalProcess.CONTINUE;
-              case FIRST:
-                BooleanFormula selected = operands.iterator().next();
-                return TraversalProcess.custom(selected);
-              case RANDOM:
-                int rand = r.nextInt(operands.size());
-                return TraversalProcess.custom(operands.get(rand));
-              case LEAST_REMOVALS:
-                if (depth >= options.getLeastRemovalsDepthLimit()) {
-                  return TraversalProcess.custom(operands.iterator().next());
+            @Override
+            public TraversalProcess visitAnd(List<BooleanFormula> operands) {
+              // Under negation, AND becomes OR.
+              // Abstracting away all children which evaluate to _true_ is sufficient.
+              Set<BooleanFormula> filtered = new HashSet<>();
+              for (BooleanFormula op : operands) {
+                if (shouldAbstract(op)) {
+                  filtered.add(op);
                 }
-                BooleanFormula out =
-                    Collections.min(
-                        operands, Comparator.comparingInt(f -> recursivelyCallSelf(f).size()));
-                return TraversalProcess.custom(out);
-              default:
-                throw new UnsupportedOperationException("Unexpected strategy");
+              }
+              return TraversalProcess.custom(filtered);
             }
-          }
 
-          private List<BooleanFormula> recursivelyCallSelf(BooleanFormula f) {
+            @Override
+            public TraversalProcess visitOr(List<BooleanFormula> operands) {
+              // Under negation, OR becomes AND.
+              // ALL children of this node evaluate to true iff the node
+              // evaluates to true.
+              // Abstracting away any child is sufficient to break the satisfiability.
+              Optional<BooleanFormula> selector = findSelector(operands);
 
-            // Doing recursion while doing recursion :P
-            // Use NullLogManager to avoid log pollution.
-            return getSelectorsToAbstract(toAbstract, m, selectors, f, depth + 1);
-          }
-        });
+              if (selector.isPresent()) {
+                if (shouldAbstract(bfmgr.or(operands))) {
+                  handleAnnotatedLiteral(selector.orElseThrow());
+                }
+                return TraversalProcess.SKIP;
+              } else {
 
-    return newToAbstract;
+                // N.B.: This branch is *never* hit if we use
+                // conjunction-annotation mode.
+
+                // OR- implies a difficult choice, unless a selector is present.
+                return selectChildren(operands);
+              }
+            }
+
+            private void handleAnnotatedLiteral(BooleanFormula selector) {
+              // Don't-care or evaluates-to-false.
+              if (!toAbstract.contains(selector)) {
+                newToAbstract.add(selector);
+              }
+            }
+
+            private boolean shouldAbstract(BooleanFormula f) {
+              Boolean out = m.evaluate(bfmgr.not(f));
+              return out != null && out;
+            }
+
+            private Optional<BooleanFormula> findSelector(List<BooleanFormula> orOperands) {
+              for (BooleanFormula operand : orOperands) {
+                if (selectors.contains(operand)) {
+                  return Optional.of(operand);
+                }
+              }
+              return Optional.empty();
+            }
+
+            private TraversalProcess selectChildren(List<BooleanFormula> operands) {
+              switch (options.getRemovalSelectionStrategy()) {
+                case ALL:
+                  return TraversalProcess.CONTINUE;
+                case FIRST:
+                  BooleanFormula selected = operands.iterator().next();
+                  return TraversalProcess.custom(selected);
+                case RANDOM:
+                  int rand = r.nextInt(operands.size());
+                  return TraversalProcess.custom(operands.get(rand));
+                case LEAST_REMOVALS:
+                  if (depth >= options.getLeastRemovalsDepthLimit()) {
+                    return TraversalProcess.custom(operands.iterator().next());
+                  }
+                  BooleanFormula out =
+                      Collections.min(
+                          operands, Comparator.comparingInt(f -> recursivelyCallSelf(f).size()));
+                  return TraversalProcess.custom(out);
+                default:
+                  throw new UnsupportedOperationException("Unexpected strategy");
+              }
+            }
+
+            private List<BooleanFormula> recursivelyCallSelf(BooleanFormula f) {
+
+              // Doing recursion while doing recursion :P
+              // Use NullLogManager to avoid log pollution.
+              return getSelectorsToAbstract(toAbstract, m, selectors, f, depth + 1);
+            }
+          });
+
+      return newToAbstract;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

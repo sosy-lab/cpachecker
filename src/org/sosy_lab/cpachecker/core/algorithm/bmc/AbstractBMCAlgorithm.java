@@ -709,6 +709,9 @@ abstract class AbstractBMCAlgorithm
     try {
       pProver.push(program);
       safe = pProver.isUnsat();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+
     } finally {
       stats.satCheck.stop();
     }
@@ -969,34 +972,42 @@ abstract class AbstractBMCAlgorithm
       boolean sound = true;
 
       if (!boundingAssertionsSlicing) {
-        // create one formula for unwinding assertions
-        BooleanFormula assertions = BMCHelper.createFormulaFor(stopStates, bfmgr);
-        stats.assertionsCheck.start();
         try {
-          prover.push(assertions);
-          sound = prover.isUnsat();
-          prover.pop();
-        } finally {
-          stats.assertionsCheck.stop();
-        }
-      } else {
-        List<AbstractState> toRemove = new ArrayList<>();
-        for (AbstractState s : stopStates) {
-          // create individual formula for unwinding assertions
-          BooleanFormula assertions = BMCHelper.createFormulaFor(ImmutableList.of(s), bfmgr);
+          // create one formula for unwinding assertions
+          BooleanFormula assertions = BMCHelper.createFormulaFor(stopStates, bfmgr);
           stats.assertionsCheck.start();
-          final boolean result;
           try {
             prover.push(assertions);
-            result = prover.isUnsat();
+            sound = prover.isUnsat();
             prover.pop();
           } finally {
             stats.assertionsCheck.stop();
           }
-          sound &= result;
-          if (result) {
-            toRemove.add(s);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      } else {
+        List<AbstractState> toRemove = new ArrayList<>();
+        try {
+          for (AbstractState s : stopStates) {
+            // create individual formula for unwinding assertions
+            BooleanFormula assertions = BMCHelper.createFormulaFor(ImmutableList.of(s), bfmgr);
+            stats.assertionsCheck.start();
+            final boolean result;
+            try {
+              prover.push(assertions);
+              result = prover.isUnsat();
+              prover.pop();
+            } finally {
+              stats.assertionsCheck.stop();
+            }
+            sound &= result;
+            if (result) {
+              toRemove.add(s);
+            }
           }
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
         for (AbstractState s : toRemove) {
           pReachedSet.remove(s);

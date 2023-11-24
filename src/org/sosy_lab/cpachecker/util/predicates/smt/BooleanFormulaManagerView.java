@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collector;
@@ -86,31 +87,51 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public <R> R visit(
       BooleanFormula formula, org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor<R> visitor) {
-    return manager.visit(formula, visitor);
+    try {
+      return manager.visit(formula, visitor);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public void visitRecursively(
       BooleanFormula f,
       org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor) {
-    manager.visitRecursively(f, rFormulaVisitor);
+    try {
+      manager.visitRecursively(f, rFormulaVisitor);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public BooleanFormula transformRecursively(
       BooleanFormula f,
       org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor pVisitor) {
-    return manager.transformRecursively(f, pVisitor);
+    try {
+      return manager.transformRecursively(f, pVisitor);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public Set<BooleanFormula> toConjunctionArgs(BooleanFormula f, boolean flatten) {
-    return manager.toConjunctionArgs(f, flatten);
+    try {
+      return manager.toConjunctionArgs(f, flatten);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public Set<BooleanFormula> toDisjunctionArgs(BooleanFormula f, boolean flatten) {
-    return manager.toDisjunctionArgs(f, flatten);
+    try {
+      return manager.toDisjunctionArgs(f, flatten);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

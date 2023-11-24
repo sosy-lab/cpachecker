@@ -20,6 +20,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -707,6 +708,8 @@ public class PolicyIterationManager {
       return out;
     } catch (SolverException e) {
       throw new CPATransferException("Failed solving", e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     } finally {
       statistics.checkSATTimer.stop();
     }
@@ -763,15 +766,19 @@ public class PolicyIterationManager {
   }
 
   private Set<BooleanFormula> toLemmas(BooleanFormula formula) throws InterruptedException {
-    switch (toLemmasAlgorithm) {
-      case "CNF":
-        return bfmgr.toConjunctionArgs(fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
-      case "RCNF":
-        return rcnfManager.toLemmas(formula, fmgr);
-      case "NONE":
-        return ImmutableSet.of(formula);
-      default:
-        throw new UnsupportedOperationException("Unexpected state");
+    try {
+      switch (toLemmasAlgorithm) {
+        case "CNF":
+          return bfmgr.toConjunctionArgs(fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
+        case "RCNF":
+          return rcnfManager.toLemmas(formula, fmgr);
+        case "NONE":
+          return ImmutableSet.of(formula);
+        default:
+          throw new UnsupportedOperationException("Unexpected state");
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

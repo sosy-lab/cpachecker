@@ -570,21 +570,25 @@ public class PredicateAbstractionManager {
 
         abstractionReuseImplicationTimer.start();
         reuseEnv.push(bfmgr.not(instantiatedReuseFormula));
-        boolean implication = reuseEnv.isUnsat();
-        reuseEnv.pop();
-        abstractionReuseImplicationTimer.stop();
+        try {
+          boolean implication = reuseEnv.isUnsat();
+          reuseEnv.pop();
+          abstractionReuseImplicationTimer.stop();
 
-        if (implication) {
-          stats.numAbstractionReuses.incrementAndGet();
+          if (implication) {
+            stats.numAbstractionReuses.incrementAndGet();
 
-          Region reuseFormulaRegion = amgr.convertFormulaToRegion(reuseFormula);
-          return new AbstractionFormula(
-              fmgr,
-              reuseFormulaRegion,
-              reuseFormula,
-              instantiatedReuseFormula,
-              pathFormula,
-              reuseIds);
+            Region reuseFormulaRegion = amgr.convertFormulaToRegion(reuseFormula);
+            return new AbstractionFormula(
+                fmgr,
+                reuseFormulaRegion,
+                reuseFormula,
+                instantiatedReuseFormula,
+                pathFormula,
+                reuseIds);
+          }
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
       }
     } finally {
@@ -743,60 +747,63 @@ public class PredicateAbstractionManager {
       final Function<BooleanFormula, BooleanFormula> instantiator)
       throws SolverException, InterruptedException {
     Region abs = rmgr.makeTrue();
+    try {
+      try (ProverEnvironment thmProver =
+          solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
+        thmProver.push(f);
 
-    try (ProverEnvironment thmProver =
-        solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
-      thmProver.push(f);
+        if (remainingPredicates.isEmpty()) {
+          stats.numSatCheckAbstractions.incrementAndGet();
 
-      if (remainingPredicates.isEmpty()) {
-        stats.numSatCheckAbstractions.incrementAndGet();
-
-        abstractionSolveTimer.start();
-        boolean feasibility;
-        try {
-          feasibility = !thmProver.isUnsat();
-        } finally {
-          abstractionSolveTimer.stop();
-        }
-
-        if (!feasibility) {
-          abs = rmgr.makeFalse();
-        }
-
-      } else {
-        if (options.getAbstractionType() != AbstractionType.BOOLEAN) {
-          // First do cartesian abstraction if desired
-          cartesianAbstractionTimer.start();
+          abstractionSolveTimer.start();
+          boolean feasibility;
           try {
-            abs =
-                rmgr.makeAnd(
-                    abs,
-                    computeCartesianAbstraction(f, thmProver, remainingPredicates, instantiator));
+            feasibility = !thmProver.isUnsat();
           } finally {
-            cartesianAbstractionTimer.stop();
-          }
-        }
-
-        if (options.getAbstractionType() != AbstractionType.CARTESIAN
-            && !remainingPredicates.isEmpty()) {
-          // Last do boolean abstraction if desired and necessary
-          stats.numBooleanAbsPredicates.addAndGet(remainingPredicates.size());
-          booleanAbstractionTimer.start();
-          try {
-            abs =
-                rmgr.makeAnd(
-                    abs, computeBooleanAbstraction(thmProver, remainingPredicates, instantiator));
-          } finally {
-            booleanAbstractionTimer.stop();
+            abstractionSolveTimer.stop();
           }
 
-          // Warning:
-          // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
-          // remainingPredicates is now empty.
+          if (!feasibility) {
+            abs = rmgr.makeFalse();
+          }
+
+        } else {
+          if (options.getAbstractionType() != AbstractionType.BOOLEAN) {
+            // First do cartesian abstraction if desired
+            cartesianAbstractionTimer.start();
+            try {
+              abs =
+                  rmgr.makeAnd(
+                      abs,
+                      computeCartesianAbstraction(f, thmProver, remainingPredicates, instantiator));
+            } finally {
+              cartesianAbstractionTimer.stop();
+            }
+          }
+
+          if (options.getAbstractionType() != AbstractionType.CARTESIAN
+              && !remainingPredicates.isEmpty()) {
+            // Last do boolean abstraction if desired and necessary
+            stats.numBooleanAbsPredicates.addAndGet(remainingPredicates.size());
+            booleanAbstractionTimer.start();
+            try {
+              abs =
+                  rmgr.makeAnd(
+                      abs, computeBooleanAbstraction(thmProver, remainingPredicates, instantiator));
+            } finally {
+              booleanAbstractionTimer.stop();
+            }
+
+            // Warning:
+            // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
+            // remainingPredicates is now empty.
+          }
         }
       }
+      return abs;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return abs;
   }
 
   /**
@@ -817,105 +824,110 @@ public class PredicateAbstractionManager {
       final Function<BooleanFormula, BooleanFormula> instantiator)
       throws SolverException, InterruptedException {
 
-    abstractionSolveTimer.start();
-    boolean feasibility = !thmProver.isUnsat();
-    abstractionSolveTimer.stop();
-
-    if (!feasibility) {
-      // abstract post leads to false, we can return immediately
-      return rmgr.makeFalse();
-    }
-
-    if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
-      logger.log(
-          Level.WARNING,
-          "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
-              + "This might lead to failing refinements.");
-      warnedOfCartesianAbstraction = true;
-    }
-
-    abstractionModelEnumTimer.start();
     try {
-      Region absbdd = rmgr.makeTrue();
+      abstractionSolveTimer.start();
+      boolean feasibility = !thmProver.isUnsat();
+      abstractionSolveTimer.stop();
 
-      // check whether each of the predicate is implied in the next state...
+      if (!feasibility) {
+        // abstract post leads to false, we can return immediately
+        return rmgr.makeFalse();
+      }
 
-      final Iterator<AbstractionPredicate> predicateIt = pPredicates.iterator();
-      while (predicateIt.hasNext()) {
-        final AbstractionPredicate p = predicateIt.next();
-        Pair<BooleanFormula, AbstractionPredicate> cacheKey = Pair.of(f, p);
-        if (options.isUseCache() && cartesianAbstractionCache.containsKey(cacheKey)) {
-          byte predVal = cartesianAbstractionCache.get(cacheKey);
-          stats.numCartesianAbsPredicatesCached.incrementAndGet();
+      if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
+        logger.log(
+            Level.WARNING,
+            "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
+                + "This might lead to failing refinements.");
+        warnedOfCartesianAbstraction = true;
+      }
 
-          abstractionBddConstructionTimer.start();
-          Region v = p.getAbstractVariable();
-          if (predVal == -1) { // pred is false
-            stats.numCartesianAbsPredicates.incrementAndGet();
-            v = rmgr.makeNot(v);
-            absbdd = rmgr.makeAnd(absbdd, v);
-          } else if (predVal == 1) { // pred is true
-            stats.numCartesianAbsPredicates.incrementAndGet();
-            absbdd = rmgr.makeAnd(absbdd, v);
-          } else {
-            assert predVal == 0 : "predicate value is neither false, true, nor unknown";
-          }
-          abstractionBddConstructionTimer.stop();
+      abstractionModelEnumTimer.start();
+      try {
+        Region absbdd = rmgr.makeTrue();
 
-        } else {
-          logger.log(Level.ALL, "DEBUG_1", "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
+        // check whether each of the predicate is implied in the next state...
 
-          // instantiate the definition of the predicate
-          BooleanFormula predTrue = instantiator.apply(p.getSymbolicAtom());
-          BooleanFormula predFalse = bfmgr.not(predTrue);
+        final Iterator<AbstractionPredicate> predicateIt = pPredicates.iterator();
+        while (predicateIt.hasNext()) {
+          final AbstractionPredicate p = predicateIt.next();
+          Pair<BooleanFormula, AbstractionPredicate> cacheKey = Pair.of(f, p);
+          if (options.isUseCache() && cartesianAbstractionCache.containsKey(cacheKey)) {
+            byte predVal = cartesianAbstractionCache.get(cacheKey);
+            stats.numCartesianAbsPredicatesCached.incrementAndGet();
 
-          // check whether this predicate has a truth value in the next
-          // state
-          byte predVal = 0; // pred is neither true nor false
-
-          thmProver.push(predFalse);
-          boolean isTrue = thmProver.isUnsat();
-          thmProver.pop();
-
-          if (isTrue) {
-            stats.numCartesianAbsPredicates.incrementAndGet();
             abstractionBddConstructionTimer.start();
             Region v = p.getAbstractVariable();
-            absbdd = rmgr.makeAnd(absbdd, v);
-            predicateIt.remove(); // mark predicate as handled
+            if (predVal == -1) { // pred is false
+              stats.numCartesianAbsPredicates.incrementAndGet();
+              v = rmgr.makeNot(v);
+              absbdd = rmgr.makeAnd(absbdd, v);
+            } else if (predVal == 1) { // pred is true
+              stats.numCartesianAbsPredicates.incrementAndGet();
+              absbdd = rmgr.makeAnd(absbdd, v);
+            } else {
+              assert predVal == 0 : "predicate value is neither false, true, nor unknown";
+            }
             abstractionBddConstructionTimer.stop();
 
-            predVal = 1;
           } else {
-            // check whether it's false...
-            thmProver.push(predTrue);
-            boolean isFalse = thmProver.isUnsat();
+            logger.log(Level.ALL, "DEBUG_1", "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
+
+            // instantiate the definition of the predicate
+            BooleanFormula predTrue = instantiator.apply(p.getSymbolicAtom());
+            BooleanFormula predFalse = bfmgr.not(predTrue);
+
+            // check whether this predicate has a truth value in the next
+            // state
+            byte predVal = 0; // pred is neither true nor false
+
+            thmProver.push(predFalse);
+            boolean isTrue = thmProver.isUnsat();
             thmProver.pop();
 
-            if (isFalse) {
+            if (isTrue) {
               stats.numCartesianAbsPredicates.incrementAndGet();
               abstractionBddConstructionTimer.start();
               Region v = p.getAbstractVariable();
-              v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
               predicateIt.remove(); // mark predicate as handled
               abstractionBddConstructionTimer.stop();
 
-              predVal = -1;
+              predVal = 1;
+            } else {
+              // check whether it's false...
+              thmProver.push(predTrue);
+
+              boolean isFalse = thmProver.isUnsat();
+              thmProver.pop();
+
+              if (isFalse) {
+                stats.numCartesianAbsPredicates.incrementAndGet();
+                abstractionBddConstructionTimer.start();
+                Region v = p.getAbstractVariable();
+                v = rmgr.makeNot(v);
+                absbdd = rmgr.makeAnd(absbdd, v);
+                predicateIt.remove(); // mark predicate as handled
+                abstractionBddConstructionTimer.stop();
+
+                predVal = -1;
+              }
+            }
+
+            if (options.isUseCache()) {
+              cartesianAbstractionCache.put(cacheKey, predVal);
             }
           }
-
-          if (options.isUseCache()) {
-            cartesianAbstractionCache.put(cacheKey, predVal);
-          }
         }
+
+        return absbdd;
+
+      } finally {
+        abstractionModelEnumTimer.stop();
+        abstractionBddConstructionTimer.stopIfRunning();
       }
-
-      return absbdd;
-
-    } finally {
-      abstractionModelEnumTimer.stop();
-      abstractionBddConstructionTimer.stopIfRunning();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -928,7 +940,11 @@ public class PredicateAbstractionManager {
     boolean feasibility;
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
       thmProver.push(f);
-      feasibility = !thmProver.isUnsat();
+      try {
+        feasibility = !thmProver.isUnsat();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     } finally {
       abstractionSolveTimer.stop();
     }
@@ -1009,22 +1025,26 @@ public class PredicateAbstractionManager {
     // the formula is (abstractionFormula & pathFormula & predDef)
     thmProver.push(predDef);
     AllSatCallbackImpl callback = new AllSatCallbackImpl();
-    Region result = thmProver.allSat(callback, predVars);
+    try {
+      Region result = thmProver.allSat(callback, predVars);
 
-    // pop() is actually costly sometimes, and we delete the environment anyway
-    // thmProver.pop();
+      // pop() is actually costly sometimes, and we delete the environment anyway
+      // thmProver.pop();
 
-    // update statistics
-    int numModels = callback.getCount();
-    if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
+      // update statistics
+      int numModels = callback.getCount();
+      if (numModels < Integer.MAX_VALUE) {
+        stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+        stats.allSatCount += numModels;
+      }
+
+      // Not strictly necessary, but mark all predicates as handled
+      predicates.clear();
+
+      return result;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-
-    // Not strictly necessary, but mark all predicates as handled
-    predicates.clear();
-
-    return result;
   }
 
   private class AllSatCallbackImpl implements AllSatCallback<Region> {

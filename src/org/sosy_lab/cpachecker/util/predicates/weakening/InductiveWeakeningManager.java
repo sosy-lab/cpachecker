@@ -16,6 +16,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -285,6 +286,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
           });
     } catch (TemporaryException e) {
       throw e.unwrap();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

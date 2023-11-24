@@ -30,6 +30,7 @@ import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -287,7 +288,11 @@ public class LassoBuilder {
   private boolean isUnsat(BooleanFormula formula) throws SolverException, InterruptedException {
     try (ProverEnvironment proverEnvironment = proverEnvironmentSupplier.get()) {
       proverEnvironment.push(formula);
-      return proverEnvironment.isUnsat();
+      try {
+        return proverEnvironment.isUnsat();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -299,19 +304,23 @@ public class LassoBuilder {
 
   private List<List<LinearInequality>> extractPolyhedra(BooleanFormula pathInDnf)
       throws TermException {
-    Set<BooleanFormula> clauses = bfmrView.toDisjunctionArgs(pathInDnf, true);
+    try {
+      Set<BooleanFormula> clauses = bfmrView.toDisjunctionArgs(pathInDnf, true);
 
-    List<List<LinearInequality>> polyhedra = new ArrayList<>(clauses.size());
-    for (BooleanFormula clause : clauses) {
+      List<List<LinearInequality>> polyhedra = new ArrayList<>(clauses.size());
+      for (BooleanFormula clause : clauses) {
 
-      // Free variables ('ApplicationTerm' with zero parameters) are replaced by bound variables
-      // ('FreeVariable'), because LassoRanker requires this
-      Formula converted = fmgr.transformRecursively(clause, formulaVisitor);
+        // Free variables ('ApplicationTerm' with zero parameters) are replaced by bound variables
+        // ('FreeVariable'), because LassoRanker requires this
+        Formula converted = fmgr.transformRecursively(clause, formulaVisitor);
 
-      Term term = fmgr.extractInfo(converted);
-      polyhedra.add(InequalityConverter.convert(term, NlaHandling.EXCEPTION));
+        Term term = fmgr.extractInfo(converted);
+        polyhedra.add(InequalityConverter.convert(term, NlaHandling.EXCEPTION));
+      }
+      return polyhedra;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return polyhedra;
   }
 
   public Dnf toDnf(BooleanFormula pFormula) throws InterruptedException, SolverException {
@@ -327,28 +336,31 @@ public class LassoBuilder {
     } else {
       simplified = pFormula;
     }
+    try {
+      BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, simplified);
+      BooleanFormula withoutNonLinearMult =
+          transformRecursively(nonLinearMultiplicationElimination, withoutDivAndMod);
+      Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMult, eliminatedUfs);
+      BooleanFormula withoutUfs =
+          bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.getConstraints());
+      Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
+      logger.logf(FINER, "Substitution of Ufs in lasso formula: %s", ufSubstitution);
 
-    BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, simplified);
-    BooleanFormula withoutNonLinearMult =
-        transformRecursively(nonLinearMultiplicationElimination, withoutDivAndMod);
-    Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMult, eliminatedUfs);
-    BooleanFormula withoutUfs =
-        bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.getConstraints());
-    Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
-    logger.logf(FINER, "Substitution of Ufs in lasso formula: %s", ufSubstitution);
+      BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, withoutUfs);
+      BooleanFormula nnf = fmgrView.applyTactic(withoutIfThenElse, Tactic.NNF);
+      BooleanFormula notEqualEliminated =
+          transformRecursively(notEqualAndNotInequalityElimination, nnf);
+      BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
+      BooleanFormula dnf =
+          DnfTransformation.transformToDnf(
+              equalEliminated, fmgrView, shutdownNotifier, proverEnvironmentSupplier);
+      ImmutableSet<BooleanFormula> clauses =
+          ImmutableSet.copyOf(bfmrView.toDisjunctionArgs(dnf, true));
 
-    BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, withoutUfs);
-    BooleanFormula nnf = fmgrView.applyTactic(withoutIfThenElse, Tactic.NNF);
-    BooleanFormula notEqualEliminated =
-        transformRecursively(notEqualAndNotInequalityElimination, nnf);
-    BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
-    BooleanFormula dnf =
-        DnfTransformation.transformToDnf(
-            equalEliminated, fmgrView, shutdownNotifier, proverEnvironmentSupplier);
-    ImmutableSet<BooleanFormula> clauses =
-        ImmutableSet.copyOf(bfmrView.toDisjunctionArgs(dnf, true));
-
-    return new Dnf(clauses, ufEliminationResult);
+      return new Dnf(clauses, ufEliminationResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private BooleanFormula transformRecursively(

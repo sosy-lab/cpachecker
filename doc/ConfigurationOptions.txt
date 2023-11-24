@@ -77,6 +77,9 @@ solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
   enum:     [NEAREST_TIES_TO_EVEN, NEAREST_TIES_AWAY, TOWARD_POSITIVE, TOWARD_NEGATIVE,
              TOWARD_ZERO]
 
+# test.
+solver.generateSMTLIB2 = no default value
+
 # Export solver queries in SmtLib format into a file.
 solver.logAllQueries = false
 solver.logfile = no default value
@@ -125,7 +128,8 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, PRINCESS_BINARY, BOOLECTOR, CVC4,
+             CVC5, YICES2]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -4697,11 +4701,13 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, PRINCESS_BINARY, BOOLECTOR, CVC4,
+             CVC5, YICES2]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, PRINCESS_BINARY, BOOLECTOR, CVC4,
+             CVC5, YICES2]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP

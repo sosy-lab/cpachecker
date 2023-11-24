@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -227,63 +228,71 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
   private static Iterable<BooleanFormula> getConjunctionOperands(
       FormulaManagerView pFMGR, BooleanFormula pFormula) {
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    return bfmgr.visit(
-        pFormula,
-        new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
+    try {
+      return bfmgr.visit(
+          pFormula,
+          new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
 
-          @Override
-          protected Iterable<BooleanFormula> visitDefault() {
-            return pFMGR.splitNumeralEqualityIfPossible(pFormula);
-          }
-
-          @Override
-          public Iterable<BooleanFormula> visitAnd(List<BooleanFormula> pArg0) {
-            return FluentIterable.from(pArg0)
-                .transformAndConcat(operand -> getConjunctionOperands(pFMGR, operand));
-          }
-
-          @Override
-          public Iterable<BooleanFormula> visitNot(BooleanFormula pArg0) {
-            FluentIterable<BooleanFormula> disjunctionOperands =
-                FluentIterable.from(getDisjunctionOperands(pFMGR, pArg0));
-            if (disjunctionOperands.skip(1).isEmpty()) {
-              return Collections.singleton(bfmgr.not(disjunctionOperands.iterator().next()));
+            @Override
+            protected Iterable<BooleanFormula> visitDefault() {
+              return pFMGR.splitNumeralEqualityIfPossible(pFormula);
             }
-            return disjunctionOperands.transformAndConcat(
-                innerOp -> getConjunctionOperands(pFMGR, bfmgr.not(innerOp)));
-          }
-        });
+
+            @Override
+            public Iterable<BooleanFormula> visitAnd(List<BooleanFormula> pArg0) {
+              return FluentIterable.from(pArg0)
+                  .transformAndConcat(operand -> getConjunctionOperands(pFMGR, operand));
+            }
+
+            @Override
+            public Iterable<BooleanFormula> visitNot(BooleanFormula pArg0) {
+              FluentIterable<BooleanFormula> disjunctionOperands =
+                  FluentIterable.from(getDisjunctionOperands(pFMGR, pArg0));
+              if (disjunctionOperands.skip(1).isEmpty()) {
+                return Collections.singleton(bfmgr.not(disjunctionOperands.iterator().next()));
+              }
+              return disjunctionOperands.transformAndConcat(
+                  innerOp -> getConjunctionOperands(pFMGR, bfmgr.not(innerOp)));
+            }
+          });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static Iterable<BooleanFormula> getDisjunctionOperands(
       FormulaManagerView pFMGR, BooleanFormula pFormula) {
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    return bfmgr.visit(
-        pFormula,
-        new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
+    try {
+      return bfmgr.visit(
+          pFormula,
+          new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
 
-          @Override
-          protected Iterable<BooleanFormula> visitDefault() {
-            return Collections.singleton(pFormula);
-          }
-
-          @Override
-          public Iterable<BooleanFormula> visitOr(List<BooleanFormula> pArg0) {
-            return FluentIterable.from(pArg0)
-                .transformAndConcat(operand -> getDisjunctionOperands(pFMGR, operand));
-          }
-
-          @Override
-          public Iterable<BooleanFormula> visitNot(BooleanFormula pArg0) {
-            FluentIterable<BooleanFormula> conjunctionOperands =
-                FluentIterable.from(getConjunctionOperands(pFMGR, pArg0));
-            if (conjunctionOperands.skip(1).isEmpty()) {
-              return Collections.singleton(bfmgr.not(conjunctionOperands.iterator().next()));
+            @Override
+            protected Iterable<BooleanFormula> visitDefault() {
+              return Collections.singleton(pFormula);
             }
-            return conjunctionOperands.transformAndConcat(
-                innerOp -> getDisjunctionOperands(pFMGR, bfmgr.not(innerOp)));
-          }
-        });
+
+            @Override
+            public Iterable<BooleanFormula> visitOr(List<BooleanFormula> pArg0) {
+              return FluentIterable.from(pArg0)
+                  .transformAndConcat(operand -> getDisjunctionOperands(pFMGR, operand));
+            }
+
+            @Override
+            public Iterable<BooleanFormula> visitNot(BooleanFormula pArg0) {
+              FluentIterable<BooleanFormula> conjunctionOperands =
+                  FluentIterable.from(getConjunctionOperands(pFMGR, pArg0));
+              if (conjunctionOperands.skip(1).isEmpty()) {
+                return Collections.singleton(bfmgr.not(conjunctionOperands.iterator().next()));
+              }
+              return conjunctionOperands.transformAndConcat(
+                  innerOp -> getDisjunctionOperands(pFMGR, bfmgr.not(innerOp)));
+            }
+          });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static class BlockedCounterexampleToInductivity extends SymbolicCandiateInvariant {

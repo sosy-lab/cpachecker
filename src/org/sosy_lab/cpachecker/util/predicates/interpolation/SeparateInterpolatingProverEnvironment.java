@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -71,13 +72,21 @@ public class SeparateInterpolatingProverEnvironment<T>
 
   @Override
   public boolean isUnsat() throws InterruptedException, SolverException {
-    return itpEnv.isUnsat();
+    try {
+      return itpEnv.isUnsat();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
       throws SolverException, InterruptedException {
-    return itpEnv.isUnsatWithAssumptions(Collections2.transform(assumptions, this::convertToItp));
+    try {
+      return itpEnv.isUnsatWithAssumptions(Collections2.transform(assumptions, this::convertToItp));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -134,18 +143,26 @@ public class SeparateInterpolatingProverEnvironment<T>
   @Override
   public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
       Collection<BooleanFormula> pAssumptions) throws SolverException, InterruptedException {
-    Optional<List<BooleanFormula>> opt =
-        itpEnv.unsatCoreOverAssumptions(Collections2.transform(pAssumptions, this::convertToItp));
-    if (opt.isPresent()) {
-      return Optional.of(Lists.transform(opt.orElseThrow(), this::convertToMain));
-    } else {
-      return opt;
+    try {
+      Optional<List<BooleanFormula>> opt =
+          itpEnv.unsatCoreOverAssumptions(Collections2.transform(pAssumptions, this::convertToItp));
+      if (opt.isPresent()) {
+        return Optional.of(Lists.transform(opt.orElseThrow(), this::convertToMain));
+      } else {
+        return opt;
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
   @Override
   public <R> R allSat(AllSatCallback<R> pCallback, List<BooleanFormula> pImportant)
       throws InterruptedException, SolverException {
-    return itpEnv.allSat(pCallback, Lists.transform(pImportant, this::convertToItp));
+    try {
+      return itpEnv.allSat(pCallback, Lists.transform(pImportant, this::convertToItp));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

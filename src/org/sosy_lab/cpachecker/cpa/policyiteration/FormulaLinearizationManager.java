@@ -12,6 +12,7 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,34 +55,42 @@ public class FormulaLinearizationManager {
    * <p>x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return bfmgr.transformRecursively(
-        input,
-        new BooleanFormulaTransformationVisitor(fmgr) {
-          @Override
-          public BooleanFormula visitNot(BooleanFormula pOperand) {
-            List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
+    try {
+      return bfmgr.transformRecursively(
+          input,
+          new BooleanFormulaTransformationVisitor(fmgr) {
+            @Override
+            public BooleanFormula visitNot(BooleanFormula pOperand) {
+              List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
 
-            // Pattern matching on (NOT (= A B)).
-            if (split.size() == 2) {
-              return bfmgr.or(bfmgr.not(split.get(0)), bfmgr.not(split.get(1)));
+              // Pattern matching on (NOT (= A B)).
+              if (split.size() == 2) {
+                return bfmgr.or(bfmgr.not(split.get(0)), bfmgr.not(split.get(1)));
+              }
+              return super.visitNot(pOperand);
             }
-            return super.visitNot(pOperand);
-          }
-        });
+          });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /** Annotate disjunctions with choice variables. */
   public BooleanFormula annotateDisjunctions(BooleanFormula input) throws InterruptedException {
     input = fmgr.applyTactic(input, Tactic.NNF);
-    return bfmgr.transformRecursively(
-        input,
-        new BooleanFormulaTransformationVisitor(fmgr) {
+    try {
+      return bfmgr.transformRecursively(
+          input,
+          new BooleanFormulaTransformationVisitor(fmgr) {
 
-          @Override
-          public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
-            return annotateDisjunction(processedOperands);
-          }
-        });
+            @Override
+            public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
+              return annotateDisjunction(processedOperands);
+            }
+          });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private BooleanFormula annotateDisjunction(List<BooleanFormula> args) {

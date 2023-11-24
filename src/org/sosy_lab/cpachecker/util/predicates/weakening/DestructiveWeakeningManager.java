@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import static org.sosy_lab.java_smt.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -97,36 +98,13 @@ public class DestructiveWeakeningManager {
     Set<BooleanFormula> walked = new HashSet<>();
     Set<BooleanFormula> toWalk;
     Set<BooleanFormula> toAbstract;
-
-    try (ProverEnvironment pe = solver.newProverEnvironment(GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS)) {
-      pe.push();
-      pe.addConstraint(query);
-
-      Optional<List<BooleanFormula>> core = pe.unsatCoreOverAssumptions(selectionVars);
-
-      if (core.isPresent()) {
-
-        List<BooleanFormula> unsatCore = core.orElseThrow();
-        toWalk = new HashSet<>(unsatCore);
-        toAbstract = new HashSet<>(unsatCore);
-      } else {
-        throw new IllegalStateException("Unexpected state");
-      }
-
-      int noIterations = 1;
-
-      while (!walked.containsAll(toWalk)) {
-        BooleanFormula toTest = toWalk.iterator().next();
-        toAbstract.remove(toTest);
-        walked.add(toTest);
-
+    try {
+      try (ProverEnvironment pe =
+          solver.newProverEnvironment(GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS)) {
         pe.push();
+        pe.addConstraint(query);
 
-        // Force all selectors not in {@code toAbstract} to be {@code false}.
-        pe.addConstraint(generateNegations(selectors, toAbstract));
-
-        core = pe.unsatCoreOverAssumptions(toAbstract);
-        noIterations++;
+        Optional<List<BooleanFormula>> core = pe.unsatCoreOverAssumptions(selectionVars);
 
         if (core.isPresent()) {
 
@@ -134,15 +112,42 @@ public class DestructiveWeakeningManager {
           toWalk = new HashSet<>(unsatCore);
           toAbstract = new HashSet<>(unsatCore);
         } else {
-          toAbstract.add(toTest);
-          toWalk.remove(toTest);
+          throw new IllegalStateException("Unexpected state");
         }
 
-        pe.pop();
-      }
-      statistics.iterationsNo.add(noIterations);
-    }
+        int noIterations = 1;
 
-    return toAbstract;
+        while (!walked.containsAll(toWalk)) {
+          BooleanFormula toTest = toWalk.iterator().next();
+          toAbstract.remove(toTest);
+          walked.add(toTest);
+
+          pe.push();
+
+          // Force all selectors not in {@code toAbstract} to be {@code false}.
+          pe.addConstraint(generateNegations(selectors, toAbstract));
+
+          core = pe.unsatCoreOverAssumptions(toAbstract);
+          noIterations++;
+
+          if (core.isPresent()) {
+
+            List<BooleanFormula> unsatCore = core.orElseThrow();
+            toWalk = new HashSet<>(unsatCore);
+            toAbstract = new HashSet<>(unsatCore);
+          } else {
+            toAbstract.add(toTest);
+            toWalk.remove(toTest);
+          }
+
+          pe.pop();
+        }
+        statistics.iterationsNo.add(noIterations);
+      }
+
+      return toAbstract;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

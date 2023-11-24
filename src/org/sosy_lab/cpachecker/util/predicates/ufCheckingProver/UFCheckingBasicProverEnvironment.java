@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -127,53 +128,57 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
 
   @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
-    boolean unsat = delegate.isUnsat();
-    int additionalConstraints = 0;
-    while (!unsat) {
+    try {
+      boolean unsat = delegate.isUnsat();
+      int additionalConstraints = 0;
+      while (!unsat) {
 
-      final List<BooleanFormula> constraints = new ArrayList<>();
+        final List<BooleanFormula> constraints = new ArrayList<>();
 
-      // next line only succeeds if the solver supports the generation of a model.
-      // TODO enable by default for MathSat?
+        // next line only succeeds if the solver supports the generation of a model.
+        // TODO enable by default for MathSat?
 
-      try (final Model model = getModel()) {
-        for (ValueAssignment entry : model) {
+        try (final Model model = getModel()) {
+          for (ValueAssignment entry : model) {
 
-          if (!entry.isFunction()) {
+            if (!entry.isFunction()) {
 
-            // We are only interested in UFs.
-            continue;
-          }
+              // We are only interested in UFs.
+              continue;
+            }
 
-          final Object value = entry.getValue();
-          final BooleanFormula newAssignment = faMgr.evaluate(entry, value);
+            final Object value = entry.getValue();
+            final BooleanFormula newAssignment = faMgr.evaluate(entry, value);
 
-          if (!bfmgr.isTrue(newAssignment)) {
-            constraints.add(newAssignment);
+            if (!bfmgr.isTrue(newAssignment)) {
+              constraints.add(newAssignment);
+            }
           }
         }
-      }
-      if (constraints.isEmpty()) {
-        logger.log(Level.FINE, "no UFs to improve");
-        break;
+        if (constraints.isEmpty()) {
+          logger.log(Level.FINE, "no UFs to improve");
+          break;
+        }
+
+        if (additionalConstraints > options.maxIterationNum) {
+          logger.log(Level.INFO, "aborting further sat-checks with UF-checking");
+          break;
+        }
+
+        // push the new constraints and re-check for satisfiability
+
+        additionalConstraints++;
+        push(bfmgr.and(constraints));
+        unsat = delegate.isUnsat();
       }
 
-      if (additionalConstraints > options.maxIterationNum) {
-        logger.log(Level.INFO, "aborting further sat-checks with UF-checking");
-        break;
-      }
+      // update level-counter
+      pushedConstraints.addLast(pushedConstraints.removeLast() + additionalConstraints);
 
-      // push the new constraints and re-check for satisfiability
-
-      additionalConstraints++;
-      push(bfmgr.and(constraints));
-      unsat = delegate.isUnsat();
+      return unsat;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-
-    // update level-counter
-    pushedConstraints.addLast(pushedConstraints.removeLast() + additionalConstraints);
-
-    return unsat;
   }
 
   @Override
@@ -194,7 +199,11 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   @Override
   public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
       throws SolverException, InterruptedException {
-    return delegate.isUnsatWithAssumptions(assumptions);
+    try {
+      return delegate.isUnsatWithAssumptions(assumptions);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -205,12 +214,21 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   @Override
   public <R> R allSat(AllSatCallback<R> callback, List<BooleanFormula> important)
       throws InterruptedException, SolverException {
-    return delegate.allSat(callback, important);
+    try {
+
+      return delegate.allSat(callback, important);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
       Collection<BooleanFormula> assumptions) throws SolverException, InterruptedException {
-    return delegate.unsatCoreOverAssumptions(assumptions);
+    try {
+      return delegate.unsatCoreOverAssumptions(assumptions);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

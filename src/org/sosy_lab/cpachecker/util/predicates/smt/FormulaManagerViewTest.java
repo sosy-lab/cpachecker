@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,7 +94,11 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
     atoms = Sets.difference(atoms, expected);
     BooleanFormula remainingAtom = Iterables.getOnlyElement(atoms);
-    assertThatFormula(remainingAtom).isEquivalentTo(stripNot(atom1ineq));
+    try {
+      assertThatFormula(remainingAtom).isEquivalentTo(stripNot(atom1ineq));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private <T extends NumeralFormula> void testExtractAtoms_SplitEqualities_numeral(
@@ -288,11 +293,15 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
       BooleanFormula pInstantiated, BooleanFormula pUninstantiated, SSAMapBuilder pSsaBuilder)
       throws SolverException, InterruptedException {
     BooleanFormula r1 = mgrv.instantiate(pUninstantiated, pSsaBuilder.build());
-    assertThatFormula(r1).isEquivalentTo(pInstantiated);
-    assertThat(r1.toString()).isEqualTo(pInstantiated.toString());
+    try {
+      assertThatFormula(r1).isEquivalentTo(pInstantiated);
+      assertThat(r1.toString()).isEqualTo(pInstantiated.toString());
 
-    BooleanFormula r2 = mgrv.uninstantiate(pInstantiated);
-    assertThatFormula(r2).isEquivalentTo(pUninstantiated);
-    assertThat(r2.toString()).isEqualTo(pUninstantiated.toString());
+      BooleanFormula r2 = mgrv.uninstantiate(pInstantiated);
+      assertThatFormula(r2).isEquivalentTo(pUninstantiated);
+      assertThat(r2.toString()).isEqualTo(pUninstantiated.toString());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -166,6 +167,9 @@ public class ConstraintsSolver {
         try {
           stats.timeForSatCheck.start();
           unsat = prover.isUnsat();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+
         } finally {
           stats.timeForSatCheck.stop();
         }
@@ -189,10 +193,13 @@ public class ConstraintsSolver {
                   + pConstraints.getDefiniteAssignment();
 
         } else {
-          assert prover.isUnsat()
-              : "Unsat with definite assignment, but not without. Definite assignment: "
-                  + pConstraints.getDefiniteAssignment();
-
+          try {
+            assert prover.isUnsat()
+                : "Unsat with definite assignment, but not without. Definite assignment: "
+                    + pConstraints.getDefiniteAssignment();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
           cache.addUnsat(constraintsAsFormulas);
         }
       }
@@ -305,11 +312,15 @@ public class ConstraintsSolver {
 
     prohibitAssignment = createLiteralLabel(literalForSingleAssignment, prohibitAssignment);
     prover.push(prohibitAssignment);
-    boolean isUnsat =
-        prover.isUnsatWithAssumptions(Collections.singleton(literalForSingleAssignment));
-    prover.pop();
+    try {
+      boolean isUnsat =
+          prover.isUnsatWithAssumptions(Collections.singleton(literalForSingleAssignment));
+      prover.pop();
 
-    return isUnsat;
+      return isUnsat;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private FormulaCreator getFormulaCreator(String pFunctionName) {

@@ -15,6 +15,7 @@ import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -236,14 +237,18 @@ public class Trace extends ForwardingList<TraceAtom> {
                 cfaEdge));
       } else {
         PathFormula currentPathFormula = manager.makeAnd(previousPathFormula, cfaEdge);
-        Set<BooleanFormula> parts =
-            new HashSet<>(bmgr.toConjunctionArgs(currentPathFormula.getFormula(), false));
-        parts.remove(previousPathFormula.getFormula());
-        BooleanFormula currentBooleanFormula = Iterables.getOnlyElement(parts);
-        atoms.add(
-            new TraceAtom(
-                index, selector, currentBooleanFormula, currentPathFormula.getSsa(), cfaEdge));
-        previousPathFormula = currentPathFormula;
+        try {
+          Set<BooleanFormula> parts =
+              new HashSet<>(bmgr.toConjunctionArgs(currentPathFormula.getFormula(), false));
+          parts.remove(previousPathFormula.getFormula());
+          BooleanFormula currentBooleanFormula = Iterables.getOnlyElement(parts);
+          atoms.add(
+              new TraceAtom(
+                  index, selector, currentBooleanFormula, currentPathFormula.getSsa(), cfaEdge));
+          previousPathFormula = currentPathFormula;
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       }
       index++;
     }

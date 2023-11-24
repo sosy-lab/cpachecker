@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.slab;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.buildPathFormula;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -194,29 +195,35 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
       }
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     return infeasible;
   }
 
   private void removeInfeasibleStates(ReachedSet pReached)
       throws InterruptedException, CPAException {
-    List<SLARGState> toRemove = new ArrayList<>();
-    for (AbstractState state : pReached) {
-      SLARGState slabState = AbstractStates.extractStateByType(state, SLARGState.class);
-      BooleanFormula stateFormula =
-          PredicateAbstractState.getPredicateState(slabState).getAbstractionFormula().asFormula();
-      try (ProverEnvironment thmProver =
-          solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        thmProver.push(stateFormula);
-        if (thmProver.isUnsat()) {
-          slabState.removeFromARG();
-          toRemove.add(slabState);
+    try {
+      List<SLARGState> toRemove = new ArrayList<>();
+      for (AbstractState state : pReached) {
+        SLARGState slabState = AbstractStates.extractStateByType(state, SLARGState.class);
+        BooleanFormula stateFormula =
+            PredicateAbstractState.getPredicateState(slabState).getAbstractionFormula().asFormula();
+        try (ProverEnvironment thmProver =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          thmProver.push(stateFormula);
+          if (thmProver.isUnsat()) {
+            slabState.removeFromARG();
+            toRemove.add(slabState);
+          }
+        } catch (SolverException e) {
+          throw new CPAException("Solver Failure", e);
         }
-      } catch (SolverException e) {
-        throw new CPAException("Solver Failure", e);
       }
+      pReached.removeAll(toRemove);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    pReached.removeAll(toRemove);
   }
 
   @Override

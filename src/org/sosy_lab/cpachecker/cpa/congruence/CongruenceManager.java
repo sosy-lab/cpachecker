@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.congruence;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -190,6 +191,8 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
       }
     } catch (SolverException ex) {
       throw new CPATransferException("Solver exception: ", ex);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     } finally {
       statistics.congruenceTimer.stop();
     }

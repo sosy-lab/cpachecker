@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -691,22 +692,27 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return false;
     }
     final boolean isTargetStateReachable;
-    try (ProverEnvironment bmcProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      BooleanFormula targetFormula =
-          InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
-      stats.satCheck.start();
-      try {
-        bmcProver.push(targetFormula);
-        isTargetStateReachable = !bmcProver.isUnsat();
-      } finally {
-        stats.satCheck.stop();
+    try {
+      try (ProverEnvironment bmcProver =
+          solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        BooleanFormula targetFormula =
+            InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+        stats.satCheck.start();
+        try {
+          bmcProver.push(targetFormula);
+          isTargetStateReachable = !bmcProver.isUnsat();
+        } finally {
+          stats.satCheck.stop();
+        }
+        if (isTargetStateReachable) {
+          logger.log(Level.FINE, "A target state is reached by BMC");
+          analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+        }
       }
-      if (isTargetStateReachable) {
-        logger.log(Level.FINE, "A target state is reached by BMC");
-        analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
-      }
+      return isTargetStateReachable;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return isTargetStateReachable;
   }
 
   /** Check forward conditions, i.e. if the program can be further unrolled */
@@ -730,26 +736,30 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean isPropertyInductive(ReachedSet pReachedSet, PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
     boolean isInductive;
-    try (ProverEnvironment inductionProver = solver.newProverEnvironment()) {
-      stats.satCheck.start();
-      BooleanFormula query =
-          bfmgr.and(bfmgr.and(formulas.getLoopFormulas()), formulas.getAssertionFormula());
-      try {
-        inductionProver.push(query);
-        isInductive = inductionProver.isUnsat();
-      } finally {
-        stats.satCheck.stop();
+    try {
+      try (ProverEnvironment inductionProver = solver.newProverEnvironment()) {
+        stats.satCheck.start();
+        BooleanFormula query =
+            bfmgr.and(bfmgr.and(formulas.getLoopFormulas()), formulas.getAssertionFormula());
+        try {
+          inductionProver.push(query);
+          isInductive = inductionProver.isUnsat();
+        } finally {
+          stats.satCheck.stop();
+        }
       }
+      if (isInductive) {
+        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+        logger.log(Level.FINE, "The safety property is inductive");
+        // unlike IMC/ISMC, we cannot obtain a more precise fixed point here
+        finalFixedPoint = bfmgr.makeTrue();
+        InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+            pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
+      }
+      return isInductive;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    if (isInductive) {
-      InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-      logger.log(Level.FINE, "The safety property is inductive");
-      // unlike IMC/ISMC, we cannot obtain a more precise fixed point here
-      finalFixedPoint = bfmgr.makeTrue();
-      InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-          pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
-    }
-    return isInductive;
   }
 
   private boolean reachFixedPoint(

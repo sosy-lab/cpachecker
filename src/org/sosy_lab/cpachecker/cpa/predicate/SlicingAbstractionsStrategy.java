@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.bui
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -581,6 +582,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(formula);
       stats.increaseSolverCallCounter();
+
       if (thmProver.isUnsat()) {
         infeasible = true;
       } else {
@@ -588,6 +590,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       }
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     return infeasible;
   }

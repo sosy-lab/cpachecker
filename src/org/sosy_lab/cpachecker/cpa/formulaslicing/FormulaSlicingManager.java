@@ -14,6 +14,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -331,24 +332,28 @@ public class FormulaSlicingManager implements StatisticsProvider {
     BooleanFormula reachabilityQuery =
         bfmgr.and(iState.getPathFormula().getFormula(), instantiatedParent);
 
-    Set<BooleanFormula> constraints =
-        ImmutableSet.copyOf(bfmgr.toConjunctionArgs(reachabilityQuery, true));
-    CFANode node = iState.getNode();
-    statistics.satChecksLocations.add(node);
-
     try {
-      return solver.isUnsat(constraints, node);
-    } catch (SolverException e) {
-      logger.log(
-          Level.FINE,
-          "Got solver exception while obtaining unsat core;"
-              + "Re-trying without unsat core extraction",
-          e);
+      Set<BooleanFormula> constraints =
+          ImmutableSet.copyOf(bfmgr.toConjunctionArgs(reachabilityQuery, true));
+      CFANode node = iState.getNode();
+      statistics.satChecksLocations.add(node);
+
       try {
-        return solver.isUnsat(reachabilityQuery);
-      } catch (SolverException e2) {
-        throw new CPAException("Solver error occurred", e2);
+        return solver.isUnsat(constraints, node);
+      } catch (SolverException e) {
+        logger.log(
+            Level.FINE,
+            "Got solver exception while obtaining unsat core;"
+                + "Re-trying without unsat core extraction",
+            e);
+        try {
+          return solver.isUnsat(reachabilityQuery);
+        } catch (SolverException e2) {
+          throw new CPAException("Solver error occurred", e2);
+        }
       }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

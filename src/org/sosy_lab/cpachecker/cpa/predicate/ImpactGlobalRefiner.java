@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -313,6 +314,8 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
           // In this case, we do not need to do anything further in this part.
           break;
         }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       } finally {
         itpStack.remove(itpStack.size() - 1);
         itpProver.pop();

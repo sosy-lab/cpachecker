@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
+import java.io.IOException;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -76,7 +77,11 @@ class NotEqualAndNotInequalityElimination extends BooleanFormulaTransformationVi
         return fmgr.makeLessThan(pNewArgs.get(0), pNewArgs.get(1), true);
 
       } else {
-        return super.visitFunction(pF, pNewArgs, pFunctionDeclaration);
+        try {
+          return super.visitFunction(pF, pNewArgs, pFunctionDeclaration);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       }
     }
   }

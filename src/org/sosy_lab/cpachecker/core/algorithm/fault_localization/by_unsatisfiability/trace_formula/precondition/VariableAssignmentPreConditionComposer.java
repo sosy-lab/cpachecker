@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -149,9 +150,13 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
     ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
     try (ProverEnvironment prover = context.getProver()) {
       prover.push(context.getManager().makeFormulaForPath(pCounterexample).getFormula());
-      if (prover.isUnsat()) {
-        throw new InvalidCounterexampleException(
-            "Precondition cannot be computed since counterexample is not feasible.");
+      try {
+        if (prover.isUnsat()) {
+          throw new InvalidCounterexampleException(
+              "Precondition cannot be computed since counterexample is not feasible.");
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);

@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.unwrap;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.wrap;
 
 import com.google.common.primitives.ImmutableIntArray;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -391,9 +392,13 @@ public class PJBDDRegionManager implements RegionManager {
     // and return a result that is also put in the cache.
     private DD convert(BooleanFormula pOperand) {
       DD operand = cache.get(pOperand);
-      if (operand == null) {
-        operand = bfmgr.visit(pOperand, this);
-        cache.put(pOperand, operand);
+      try {
+        if (operand == null) {
+          operand = bfmgr.visit(pOperand, this);
+          cache.put(pOperand, operand);
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
       return operand;
     }

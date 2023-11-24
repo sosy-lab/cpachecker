@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -119,48 +120,51 @@ public class SMGConstraintsSolver {
   // Used for trivial unsat checks that do not change the state/set a model in the state
   public boolean isUnsat(Constraint pConstraint, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-
     try {
-      stats.timeForSolving.start();
+      try {
+        stats.timeForSolving.start();
 
-      Boolean unsat = null; // assign null to fail fast if assignment is missed
-      Set<Constraint> relevantConstraints = ImmutableSet.of(pConstraint);
+        Boolean unsat = null; // assign null to fail fast if assignment is missed
+        Set<Constraint> relevantConstraints = ImmutableSet.of(pConstraint);
 
-      Collection<BooleanFormula> constraintsAsFormulas =
-          getFullFormula(relevantConstraints, pFunctionName);
-      SMGConstraintsSolver.CacheResult res = cache.getCachedResult(constraintsAsFormulas);
+        Collection<BooleanFormula> constraintsAsFormulas =
+            getFullFormula(relevantConstraints, pFunctionName);
+        SMGConstraintsSolver.CacheResult res = cache.getCachedResult(constraintsAsFormulas);
 
-      if (res.isUnsat()) {
-        unsat = true;
+        if (res.isUnsat()) {
+          unsat = true;
 
-      } else if (res.isSat()) {
-        unsat = false;
+        } else if (res.isSat()) {
+          unsat = false;
 
-      } else {
-        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-        BooleanFormula singleConstraintFormula = booleanFormulaManager.and(constraintsAsFormulas);
-        prover.push(singleConstraintFormula);
-
-        try {
-          stats.timeForSatCheck.start();
-          unsat = prover.isUnsat();
-        } finally {
-          stats.timeForSatCheck.stop();
-        }
-
-        if (!unsat) {
-          ImmutableList<ValueAssignment> newModelAsAssignment = prover.getModelAssignments();
-          cache.addSat(constraintsAsFormulas, newModelAsAssignment);
         } else {
-          cache.addUnsat(constraintsAsFormulas);
+          prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+          BooleanFormula singleConstraintFormula = booleanFormulaManager.and(constraintsAsFormulas);
+          prover.push(singleConstraintFormula);
+
+          try {
+            stats.timeForSatCheck.start();
+            unsat = prover.isUnsat();
+          } finally {
+            stats.timeForSatCheck.stop();
+          }
+
+          if (!unsat) {
+            ImmutableList<ValueAssignment> newModelAsAssignment = prover.getModelAssignments();
+            cache.addSat(constraintsAsFormulas, newModelAsAssignment);
+          } else {
+            cache.addUnsat(constraintsAsFormulas);
+          }
         }
+
+        return unsat;
+
+      } finally {
+        closeProver();
+        stats.timeForSolving.stop();
       }
-
-      return unsat;
-
-    } finally {
-      closeProver();
-      stats.timeForSolving.stop();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -176,71 +180,78 @@ public class SMGConstraintsSolver {
     if (pConstraints.isEmptyConstraints()) {
       return BooleanAndSMGState.of(false, pConstraints);
     }
-
     try {
-      stats.timeForSolving.start();
+      try {
+        stats.timeForSolving.start();
 
-      Boolean unsat = null; // assign null to fail fast if assignment is missed
-      Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
+        Boolean unsat = null; // assign null to fail fast if assignment is missed
+        Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
 
-      Collection<BooleanFormula> constraintsAsFormulas =
-          getFullFormula(relevantConstraints, pFunctionName);
-      SMGConstraintsSolver.CacheResult res = cache.getCachedResult(constraintsAsFormulas);
+        Collection<BooleanFormula> constraintsAsFormulas =
+            getFullFormula(relevantConstraints, pFunctionName);
+        SMGConstraintsSolver.CacheResult res = cache.getCachedResult(constraintsAsFormulas);
 
-      SMGState updatedState = pConstraints;
-      if (res.isUnsat()) {
-        unsat = true;
+        SMGState updatedState = pConstraints;
+        if (res.isUnsat()) {
+          unsat = true;
 
-      } else if (res.isSat()) {
-        unsat = false;
-        updatedState = updatedState.copyAndSetModel(res.getModelAssignment());
-
-      } else {
-        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-        BooleanFormula definitesAndConstraints =
-            combineWithDefinites(constraintsAsFormulas, updatedState);
-        prover.push(definitesAndConstraints);
-
-        try {
-          stats.timeForSatCheck.start();
-          unsat = prover.isUnsat();
-        } finally {
-          stats.timeForSatCheck.stop();
-        }
-
-        if (!unsat) {
-          ImmutableList<ValueAssignment> newModelAsAssignment = prover.getModelAssignments();
-          updatedState = updatedState.copyAndSetModel(newModelAsAssignment);
-          cache.addSat(constraintsAsFormulas, newModelAsAssignment);
-          // doing this while the complete formula is still on the prover environment stack is
-          // cheaper than performing another complete SAT check when the assignment is really
-          // requested
-          if (options.isResolveDefinites()) {
-            updatedState =
-                updatedState.copyAndSetDefiniteAssignment(
-                    resolveDefiniteAssignments(updatedState, newModelAsAssignment));
-          }
-
-          assert updatedState.getModel().containsAll(updatedState.getDefiniteAssignment())
-              : "Model does not imply definites: "
-                  + updatedState.getModel()
-                  + " !=> "
-                  + updatedState.getDefiniteAssignment();
+        } else if (res.isSat()) {
+          unsat = false;
+          updatedState = updatedState.copyAndSetModel(res.getModelAssignment());
 
         } else {
-          assert prover.isUnsat()
-              : "Unsat with definite assignment, but not without. Definite assignment: "
-                  + updatedState.getDefiniteAssignment();
+          prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+          BooleanFormula definitesAndConstraints =
+              combineWithDefinites(constraintsAsFormulas, updatedState);
+          prover.push(definitesAndConstraints);
 
-          cache.addUnsat(constraintsAsFormulas);
+          try {
+            stats.timeForSatCheck.start();
+            unsat = prover.isUnsat();
+          } finally {
+            stats.timeForSatCheck.stop();
+          }
+
+          if (!unsat) {
+            ImmutableList<ValueAssignment> newModelAsAssignment = prover.getModelAssignments();
+            updatedState = updatedState.copyAndSetModel(newModelAsAssignment);
+            cache.addSat(constraintsAsFormulas, newModelAsAssignment);
+            // doing this while the complete formula is still on the prover environment stack is
+            // cheaper than performing another complete SAT check when the assignment is really
+            // requested
+            if (options.isResolveDefinites()) {
+              updatedState =
+                  updatedState.copyAndSetDefiniteAssignment(
+                      resolveDefiniteAssignments(updatedState, newModelAsAssignment));
+            }
+
+            assert updatedState.getModel().containsAll(updatedState.getDefiniteAssignment())
+                : "Model does not imply definites: "
+                    + updatedState.getModel()
+                    + " !=> "
+                    + updatedState.getDefiniteAssignment();
+
+          } else {
+            try {
+              assert prover.isUnsat()
+                  : "Unsat with definite assignment, but not without. Definite assignment: "
+                      + updatedState.getDefiniteAssignment();
+
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+            cache.addUnsat(constraintsAsFormulas);
+          }
         }
+
+        return BooleanAndSMGState.of(unsat, updatedState);
+
+      } finally {
+        closeProver();
+        stats.timeForSolving.stop();
       }
-
-      return BooleanAndSMGState.of(unsat, updatedState);
-
-    } finally {
-      closeProver();
-      stats.timeForSolving.stop();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -344,11 +355,15 @@ public class SMGConstraintsSolver {
 
     prohibitAssignment = createLiteralLabel(literalForSingleAssignment, prohibitAssignment);
     prover.push(prohibitAssignment);
-    boolean isUnsat =
-        prover.isUnsatWithAssumptions(Collections.singleton(literalForSingleAssignment));
-    prover.pop();
+    try {
+      boolean isUnsat =
+          prover.isUnsatWithAssumptions(Collections.singleton(literalForSingleAssignment));
+      prover.pop();
 
-    return isUnsat;
+      return isUnsat;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private FormulaCreator getFormulaCreator(String pFunctionName) {

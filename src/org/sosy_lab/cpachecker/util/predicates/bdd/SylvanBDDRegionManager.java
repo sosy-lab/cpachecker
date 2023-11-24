@@ -20,6 +20,7 @@ import com.google.common.base.Predicates;
 import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Longs;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
@@ -478,12 +479,16 @@ class SylvanBDDRegionManager implements RegionManager {
     // Convert one BooleanFormula (recursively)
     // and return a ref'ed result that is also put in the cache.
     private long convert(BooleanFormula pOperand) {
-      Long operand = cache.get(pOperand);
-      if (operand == null) {
-        operand = ref(bfmgr.visit(pOperand, this));
-        cache.put(pOperand, operand);
+      try {
+        Long operand = cache.get(pOperand);
+        if (operand == null) {
+          operand = ref(bfmgr.visit(pOperand, this));
+          cache.put(pOperand, operand);
+        }
+        return operand;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
-      return operand;
     }
 
     @Override

@@ -216,12 +216,15 @@ public class PathChecker {
       BooleanFormula pathFormula = replayedPath.getFirstNotNull().getFormula();
 
       prover.push(pathFormula);
-
-      if (prover.isUnsat()) {
-        logger.log(
-            Level.WARNING,
-            "Inconsistent replayed error path! No variable values will be available.");
-        return createImpreciseCounterexample(precisePath, pInfo);
+      try {
+        if (prover.isUnsat()) {
+          logger.log(
+              Level.WARNING,
+              "Inconsistent replayed error path! No variable values will be available.");
+          return createImpreciseCounterexample(precisePath, pInfo);
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
 
       ImmutableList<ValueAssignment> model = getModel(prover);

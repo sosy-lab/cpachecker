@@ -13,6 +13,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -214,6 +215,10 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
     BooleanFormula f =
         mgr.parse(defs + "\n" + convertedFormula.getSecond() + "\n(assert " + termName + ")");
     BooleanFormula expected = mgr.parse(defs + "\n(assert " + expectedFormula + ")");
-    assertThatFormula(f).isEquivalentTo(expected);
+    try {
+      assertThatFormula(f).isEquivalentTo(expected);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

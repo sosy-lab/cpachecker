@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -61,11 +62,14 @@ public class UnsatCoreCounterexampleFilter
       for (BooleanFormula f : formulas) {
         thmProver.push(f);
       }
-
-      if (!thmProver.isUnsat()) {
-        // Negated path is not infeasible, cannot produce unsat core.
-        // No filtering possible.
-        return Optional.empty();
+      try {
+        if (!thmProver.isUnsat()) {
+          // Negated path is not infeasible, cannot produce unsat core.
+          // No filtering possible.
+          return Optional.empty();
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
 
       return Optional.of(ImmutableList.copyOf(thmProver.getUnsatCore()));

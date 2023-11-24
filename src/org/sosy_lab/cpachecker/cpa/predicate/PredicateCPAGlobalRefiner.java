@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -279,6 +280,8 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
           }
         }
 
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       } finally {
         itpStack.remove(itpStack.size() - 1);
         itpProver.pop();
