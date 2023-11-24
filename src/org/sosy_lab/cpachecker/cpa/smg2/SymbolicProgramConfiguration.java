@@ -1626,6 +1626,10 @@ public class SymbolicProgramConfiguration {
         mallocZeroMemory.removeAndCopy(memory));
   }
 
+  public Set<SMGObject> getAllSourcesForPointersPointingTowards(SMGObject target) {
+    return smg.getAllSourcesForPointersPointingTowards(target);
+  }
+
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
