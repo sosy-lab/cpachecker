@@ -412,7 +412,7 @@ public final class CTypes {
    * @param pType the {@link CType} to copy without qualifiers
    * @return a copy of <code>pType</code> without qualifiers
    */
-  public static CType copyDequalified(CType pType) {
+  public static <T extends CType> T copyDequalified(T pType) {
     pType = withoutConst(pType);
     pType = withoutVolatile(pType);
     return pType;

@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -1413,8 +1411,8 @@ class ASTConverter {
 
   private boolean areCompatibleTypes(CType a, CType b) {
     // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftypes_005fcompatible_005fp-3613
-    a = withoutConst(withoutVolatile(a.getCanonicalType()));
-    b = withoutConst(withoutVolatile(b.getCanonicalType()));
+    a = CTypes.copyDequalified(a.getCanonicalType());
+    b = CTypes.copyDequalified(b.getCanonicalType());
     if (a.equals(b)) {
       return true;
     }
