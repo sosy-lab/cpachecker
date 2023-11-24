@@ -1309,6 +1309,22 @@ public class SMG {
     return new SMGObjectsAndValues(visitedObjects, visitedValues);
   }
 
+  public Set<SMGObject> getAllSourcesForPointersPointingTowards(SMGObject pTarget) {
+    ImmutableSet.Builder<SMGObject> results = ImmutableSet.builder();
+    if (!isValid(pTarget)) {
+      return ImmutableSet.of();
+    }
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objHVEs : hasValueEdges.entrySet()) {
+      for (SMGHasValueEdge hve : objHVEs.getValue()) {
+        SMGPointsToEdge pte = pointsToEdges.get(hve.hasValue());
+        if (pte != null && pte.pointsTo().equals(pTarget)) {
+          results.add(objHVEs.getKey());
+        }
+      }
+    }
+    return results.build();
+  }
+
   /**
    * Used to identify a object <-> value relationship. Can be used to map out the current memory.
    *
