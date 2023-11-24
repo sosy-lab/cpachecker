@@ -1545,7 +1545,10 @@ public class AssumptionToEdgeAllocator {
       if (valueAsBigInt.abs().compareTo(machineModel.getMaximalIntegerValue(pType)) > 0
           && valueAsBigInt.compareTo(BigInteger.ZERO) < 0
           && pType.getType().isIntegerType()) {
-        pType = nextLargerIntegerTypeIfPossible(pType);
+        while (valueAsBigInt.abs().compareTo(machineModel.getMaximalIntegerValue(pType)) > 0
+            && !(nextLargerIntegerTypeIfPossible(pType).equals(pType))) {
+          pType = nextLargerIntegerTypeIfPossible(pType);
+        }
       }
       return pType;
     }
