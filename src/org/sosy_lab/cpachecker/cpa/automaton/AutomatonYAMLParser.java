@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -421,7 +420,7 @@ public class AutomatonYAMLParser {
 
   private Automaton createViolationAutomatonFromEntriesMatchingLines(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException {
-    Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
+    List<Pair<WaypointRecord, List<WaypointRecord>>> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
@@ -437,10 +436,10 @@ public class AutomatonYAMLParser {
 
     int distance = segments.size();
 
-    for (Map.Entry<WaypointRecord, List<WaypointRecord>> entry : segments.entrySet()) {
+    for (Pair<WaypointRecord, List<WaypointRecord>> entry : segments) {
       List<AutomatonTransition> transitions = new ArrayList<>();
-      follow = entry.getKey();
-      List<WaypointRecord> avoids = entry.getValue();
+      follow = entry.getFirst();
+      List<WaypointRecord> avoids = entry.getSecond();
       if (!avoids.isEmpty()) {
         logger.log(
             Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
@@ -516,7 +515,7 @@ public class AutomatonYAMLParser {
 
   private Automaton createViolationAutomatonFromEntriesMatchingOffsets(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException {
-    Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
+    List<Pair<WaypointRecord, List<WaypointRecord>>> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
@@ -530,10 +529,10 @@ public class AutomatonYAMLParser {
 
     int distance = segments.size();
 
-    for (Map.Entry<WaypointRecord, List<WaypointRecord>> entry : segments.entrySet()) {
+    for (Pair<WaypointRecord, List<WaypointRecord>> entry : segments) {
       List<AutomatonTransition> transitions = new ArrayList<>();
-      follow = entry.getKey();
-      List<WaypointRecord> avoids = entry.getValue();
+      follow = entry.getFirst();
+      List<WaypointRecord> avoids = entry.getSecond();
       if (!avoids.isEmpty()) {
         logger.log(
             Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
@@ -670,9 +669,9 @@ public class AutomatonYAMLParser {
     }
   }
 
-  private Map<WaypointRecord, List<WaypointRecord>> segmentize(List<AbstractEntry> pEntries)
+  private List<Pair<WaypointRecord, List<WaypointRecord>>> segmentize(List<AbstractEntry> pEntries)
       throws InvalidConfigurationException {
-    Map<WaypointRecord, List<WaypointRecord>> segments = new LinkedHashMap<>();
+    List<Pair<WaypointRecord, List<WaypointRecord>>> segments = new ArrayList<>();
     WaypointRecord latest = null;
     int numTargetWaypoints = 0;
     for (AbstractEntry entry : pEntries) {
@@ -687,7 +686,7 @@ public class AutomatonYAMLParser {
               avoids.add(waypoint);
               continue;
             } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-              segments.put(waypoint, avoids);
+              segments.add(Pair.of(waypoint, avoids));
               avoids = new ArrayList<>();
               continue;
             }
