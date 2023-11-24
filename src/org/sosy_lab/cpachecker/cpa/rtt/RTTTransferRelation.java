@@ -599,14 +599,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       final JExpression leftOperand = pExpression.getOperand1();
       final JExpression rightOperand = pExpression.getOperand2();
 
-      boolean leftIsNull =
-          leftOperand.getExpressionType() instanceof JNullType
-              && rightOperand.getExpressionType() instanceof JClassType;
-      boolean rightIsNull =
-          leftOperand.getExpressionType() instanceof JClassType
-              && rightOperand.getExpressionType() instanceof JNullType;
-
-      return leftIsNull || rightIsNull;
+      return leftOperand.getExpressionType() instanceof JNullType
+          || rightOperand.getExpressionType() instanceof JNullType;
     }
 
     private boolean isObjectComparison(JBinaryExpression pExpression) {
