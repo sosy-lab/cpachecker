@@ -226,6 +226,23 @@ public class CFAUtils {
   }
 
   /**
+   * Returns all edges which are reachable in the forward direction without any branchings from the
+   * current edge.
+   *
+   * @param edge The edge where to start the reachability analysis from
+   * @return All the edges which can be reached from the current edge in the forward direction
+   */
+  public static Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
+    CFAEdge current = edge;
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+    while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
+      current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
+      builder.add(current);
+    }
+    return builder.build();
+  }
+
+  /**
    * Return an {@link Iterable} that contains the leaving edges of a given CFANode, excluding the
    * summary edge.
    */
