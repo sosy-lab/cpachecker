@@ -57,6 +57,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -460,6 +461,16 @@ public final class InvariantWitnessWriter {
                       .toList());
         }
 
+        // Blank edges are usually a sign that we are returning to a loop head. Since the AST
+        // location following the end of the loop is simply the next statement, we need to export
+        // this assumption at the next possible edge location where the variable is in scope.
+        // Since currently there is no straightforward way to do this, we simply do not export these
+        // waypoints currently
+        // TODO: Add a method to export these assumptions
+        if (!CFAUtils.leavingEdges(edge.getSuccessor()).filter(BlankEdge.class).isEmpty()) {
+          continue;
+        }
+
         InformationRecord informationRecord = new InformationRecord(statement, null, "C");
         LocationRecord location =
             createLocationRecordAfterLocation(
@@ -752,7 +763,7 @@ public final class InvariantWitnessWriter {
         return null;
       }
       CFAEdge cfaEdge = cfaEdges.get(0);
-      Set<CFAEdge> linearReach = forwardLinearReach(cfaEdge);
+      Set<CFAEdge> linearReach = CFAUtils.forwardLinearReach(cfaEdge);
       String target = edge.getTarget();
       for (Edge e : witness.getLeavingEdges().get(target)) {
         String successor = e.getTarget();
@@ -775,16 +786,6 @@ public final class InvariantWitnessWriter {
       }
 
       return null;
-    }
-
-    private Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
-      CFAEdge current = edge;
-      ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
-      while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
-        current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
-        builder.add(current);
-      }
-      return builder.build();
     }
 
     private String getProgramHash() {
