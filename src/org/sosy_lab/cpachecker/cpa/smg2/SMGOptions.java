@@ -278,12 +278,13 @@ public class SMGOptions {
       description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
   private boolean assignEqualityAssumptions = true;
 
-  // assignSymbolicValues is needed to get the same options as the valueAnalysis as SMGs always save
+  // treatSymbolicValuesAsUnknown is needed to get the same options as the valueAnalysis as SMGs
+  // always save
   // symbolics. We could however simply retranslate every symbolic to an unknown after reads.
   @Option(
       secure = true,
       description = "Treat symbolic values as unknowns and assign new concrete values to them.")
-  private boolean assignSymbolicValues = false;
+  private boolean treatSymbolicValuesAsUnknown = false;
 
   @Option(
       secure = true,
@@ -503,8 +504,8 @@ public class SMGOptions {
     return assignEqualityAssumptions;
   }
 
-  boolean isAssignSymbolicValues() {
-    return assignSymbolicValues;
+  boolean isTreatSymbolicValuesAsUnknown() {
+    return treatSymbolicValuesAsUnknown;
   }
 
   public boolean isSatCheckStrategyAtAssume() {

@@ -3054,9 +3054,6 @@ cpa.smg2.arrayAllocationFunctions = {"calloc"}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.smg2.assignEqualityAssumptions = true
 
-# Treat symbolic values as unknowns and assign new concrete values to them.
-cpa.smg2.assignSymbolicValues = false
-
 # Whether to perform caching of constraint satisfiability results
 cpa.smg2.cache = true
 
@@ -3230,6 +3227,9 @@ cpa.smg2.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
 cpa.smg2.trackPredicates = false
+
+# Treat symbolic values as unknowns and assign new concrete values to them.
+cpa.smg2.treatSymbolicValuesAsUnknown = false
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg2.unknownOnUndefined = true

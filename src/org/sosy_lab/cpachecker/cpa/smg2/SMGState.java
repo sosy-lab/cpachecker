@@ -1440,7 +1440,7 @@ public class SMGState
         && ((SymbolicExpression) thisValue)
             .getType()
             .equals(((SymbolicExpression) otherValue).getType())) {
-      if (options.isAssignSymbolicValues()) {
+      if (options.isTreatSymbolicValuesAsUnknown()) {
         return true;
       } else {
         return thisValue.equals(otherValue);
