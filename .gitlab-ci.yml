@@ -203,7 +203,7 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":2.2"
+    IMAGE: ":2.3"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
