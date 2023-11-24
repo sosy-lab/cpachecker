@@ -67,6 +67,16 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   /**
+   * Copies the object, but the new object has a new id. So size etc. will match, but never the ID!
+   *
+   * @param objectToCopy obj to copy.
+   * @return a new object with the same size etc. as the old.
+   */
+  public static SMGObject of(SMGObject objectToCopy) {
+    return new SMGObject(objectToCopy.nestingLevel, objectToCopy.size, objectToCopy.offset);
+  }
+
+  /**
    * True for Strings allocated by the binary ("some string" in the code) that does not count
    * towards memleaks. False else.
    *
