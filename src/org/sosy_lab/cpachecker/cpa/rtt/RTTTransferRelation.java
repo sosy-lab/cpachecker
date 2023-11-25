@@ -583,7 +583,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         }
       }
       if (isNullComparison(binaryExpression)) {
-        return handleNullComparison(leftOperand, binaryExpression.getOperator());
+        return handleNullComparison(leftOperand, rightOperand, binaryExpression.getOperator());
       }
 
       return null;
@@ -591,16 +591,16 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     private boolean isNullComparison(JBinaryExpression pExpression) {
       final BinaryOperator operator = pExpression.getOperator();
-      boolean isComparison =
-          operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS;
+
+      if (operator != BinaryOperator.EQUALS && operator != BinaryOperator.NOT_EQUALS) {
+        return false;
+      }
 
       final JExpression leftOperand = pExpression.getOperand1();
       final JExpression rightOperand = pExpression.getOperand2();
 
-      boolean leftIsObject = leftOperand.getExpressionType() instanceof JClassType;
-      boolean rightIsNull = rightOperand.getExpressionType() instanceof JNullType;
-
-      return isComparison && leftIsObject && rightIsNull;
+      return leftOperand.getExpressionType() instanceof JNullType
+          || rightOperand.getExpressionType() instanceof JNullType;
     }
 
     private boolean isObjectComparison(JBinaryExpression pExpression) {
@@ -662,12 +662,20 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     }
 
     private String handleNullComparison(
-        final JExpression pLeftOperand, final BinaryOperator pOperator)
+        final JExpression pLeftOperand,
+        final JExpression pRightOperand,
+        final BinaryOperator pOperator)
         throws UnrecognizedCodeException {
       String value1 = pLeftOperand.accept(this);
-      String value2 = "null";
+      String value2 = pRightOperand.accept(this);
 
-      boolean result = pOperator == BinaryOperator.NOT_EQUALS ^ value1.equals(value2);
+      value1 = (value1 == null) ? RTTState.NULL_REFERENCE : value1;
+      value2 = (value2 == null) ? RTTState.NULL_REFERENCE : value2;
+
+      boolean result =
+          pOperator == BinaryOperator.NOT_EQUALS
+              ^ (value1.equals(value2) && value2.equals(RTTState.NULL_REFERENCE));
+
       return Boolean.toString(result);
     }
 
