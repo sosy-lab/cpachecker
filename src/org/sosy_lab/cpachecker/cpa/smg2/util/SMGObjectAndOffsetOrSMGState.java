@@ -12,6 +12,8 @@ import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 public class SMGObjectAndOffsetOrSMGState {
@@ -19,12 +21,12 @@ public class SMGObjectAndOffsetOrSMGState {
   // Either the state is null or object and offset, never all 3!
   private final @Nullable SMGObject object;
 
-  private final @Nullable BigInteger offset;
+  private final @Nullable Value offset;
 
   private final @Nullable SMGState state;
   private final boolean newErrorState;
 
-  private SMGObjectAndOffsetOrSMGState(SMGObject pObject, BigInteger pOffset) {
+  private SMGObjectAndOffsetOrSMGState(SMGObject pObject, Value pOffset) {
     object = pObject;
     offset = pOffset;
     state = null;
@@ -45,10 +47,16 @@ public class SMGObjectAndOffsetOrSMGState {
     newErrorState = pNewErrorState;
   }
 
-  public static SMGObjectAndOffsetOrSMGState of(SMGObject pObject, BigInteger pOffset) {
+  public static SMGObjectAndOffsetOrSMGState of(SMGObject pObject, Value pOffset) {
     Preconditions.checkNotNull(pObject);
     Preconditions.checkNotNull(pOffset);
     return new SMGObjectAndOffsetOrSMGState(pObject, pOffset);
+  }
+
+  public static SMGObjectAndOffsetOrSMGState of(SMGObject pObject, BigInteger pOffset) {
+    Preconditions.checkNotNull(pObject);
+    Preconditions.checkNotNull(pOffset);
+    return new SMGObjectAndOffsetOrSMGState(pObject, new NumericValue(pOffset));
   }
 
   public static SMGObjectAndOffsetOrSMGState of(SMGObjectAndOffset objAndOffset) {
@@ -69,7 +77,7 @@ public class SMGObjectAndOffsetOrSMGState {
 
   public static SMGObjectAndOffsetOrSMGState withZeroOffset(SMGObject pObject) {
     Preconditions.checkNotNull(pObject);
-    return new SMGObjectAndOffsetOrSMGState(pObject, BigInteger.ZERO);
+    return new SMGObjectAndOffsetOrSMGState(pObject, new NumericValue(BigInteger.ZERO));
   }
 
   public SMGObject getSMGObject() {
@@ -79,7 +87,7 @@ public class SMGObjectAndOffsetOrSMGState {
     return object;
   }
 
-  public BigInteger getOffsetForObject() {
+  public Value getOffsetForObject() {
     Preconditions.checkArgument(state == null);
     Preconditions.checkArgument(object != null);
     Preconditions.checkArgument(offset != null);

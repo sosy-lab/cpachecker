@@ -89,6 +89,18 @@ public final class CTypes {
   }
 
   /**
+   * Check whether a given type is a bool type. Also returns true for all qualified versions of bool
+   * types.
+   */
+  public static boolean isBoolType(CType type) {
+    type = type.getCanonicalType();
+    if (type instanceof CBitFieldType bitFieldType) {
+      type = bitFieldType.getType();
+    }
+    return type instanceof CSimpleType simpleType && simpleType.getType() == CBasicType.BOOL;
+  }
+
+  /**
    * Check whether a given type is a scalar type according to the C standard § 6.2.5 (21). Also
    * returns true for all qualified versions of aggregate types.
    */
@@ -150,16 +162,7 @@ public final class CTypes {
    * change a non-const pointer to a const int.
    */
   public static <T extends CType> T withoutConst(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (!type.isConst()) {
-      return type;
-    }
-    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(ForceConstVisitor.FALSE);
-    return result;
+    return withConstSetTo(type, false);
   }
 
   /**
@@ -170,15 +173,27 @@ public final class CTypes {
    * change a const pointer to a non-const int.
    */
   public static <T extends CType> T withConst(T type) {
+    return withConstSetTo(type, true);
+  }
+
+  /**
+   * Return a copy of a given type that has the "const" flag set to the given value.
+   *
+   * <p>This method only changes the outer-most const flag.
+   *
+   * <p>If you want to set the const flag to a constant, prefer {@link #withoutConst(CType)} and
+   * {@link #withConst(CType)}.
+   */
+  public static <T extends CType> T withConstSetTo(T type, boolean newConstValue) {
     if (type instanceof CProblemType) {
       return type;
     }
 
-    if (type.isConst()) {
+    if (type.isConst() == newConstValue) {
       return type;
     }
     @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(ForceConstVisitor.TRUE);
+    T result = (T) type.accept(newConstValue ? ForceConstVisitor.TRUE : ForceConstVisitor.FALSE);
     return result;
   }
 
@@ -190,16 +205,7 @@ public final class CTypes {
    * not change a non-volatile pointer to a volatile int.
    */
   public static <T extends CType> T withoutVolatile(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (!type.isVolatile()) {
-      return type;
-    }
-    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(ForceVolatileVisitor.FALSE);
-    return result;
+    return withVolatileSetTo(type, false);
   }
 
   /**
@@ -210,15 +216,28 @@ public final class CTypes {
    * change a volatile pointer to a non-volatile int.
    */
   public static <T extends CType> T withVolatile(T type) {
+    return withVolatileSetTo(type, true);
+  }
+
+  /**
+   * Return a copy of a given type that has the "volatile" flag set to the given value.
+   *
+   * <p>This method only changes the outer-most volatile flag.
+   *
+   * <p>If you want to set the volatile flag to a constant, prefer {@link #withoutVolatile(CType)}
+   * and {@link #withVolatile(CType)}.
+   */
+  public static <T extends CType> T withVolatileSetTo(T type, boolean newVolatileValue) {
     if (type instanceof CProblemType) {
       return type;
     }
 
-    if (type.isVolatile()) {
+    if (type.isVolatile() == newVolatileValue) {
       return type;
     }
     @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(ForceVolatileVisitor.TRUE);
+    T result =
+        (T) type.accept(newVolatileValue ? ForceVolatileVisitor.TRUE : ForceVolatileVisitor.FALSE);
     return result;
   }
 
@@ -400,7 +419,7 @@ public final class CTypes {
    * @param pType the {@link CType} to copy without qualifiers
    * @return a copy of <code>pType</code> without qualifiers
    */
-  public static CType copyDequalified(CType pType) {
+  public static <T extends CType> T copyDequalified(T pType) {
     pType = withoutConst(pType);
     pType = withoutVolatile(pType);
     return pType;

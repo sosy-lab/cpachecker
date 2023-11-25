@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,6 +32,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,6 +47,9 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
+
+  private static final ImmutableSet<Class<? extends CType>> PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST =
+      ImmutableSet.of(CSimpleType.class, CBitFieldType.class, CEnumType.class);
 
   /**
    * This flag might be set by external CPAs (e.g. BAM) to indicate a recursive context that might
@@ -279,6 +290,17 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   protected boolean hasVoidRecursion(
       final CallstackState element, final FunctionCallEdge pCallEdge) {
+
+    // Determine if any function parameters could contain pointers
+    // TODO: in principle, this could also be done for other front-ends like Java
+    if (!FluentIterable.from(pCallEdge.getFunctionCallExpression().getParameterExpressions())
+        .filter(CExpression.class)
+        .transform(CExpression::getExpressionType)
+        .allMatch(CallstackTransferRelation::isSafePassByValue)) {
+      // Treat this call as not being a void recursion, as there might still be side effects
+      return false;
+    }
+
     if (pCallEdge.getFunctionCall() instanceof AFunctionCallStatement) {
       return true;
     }
@@ -305,6 +327,23 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       e = e.getPreviousState();
     }
     throw new AssertionError();
+  }
+
+  private static boolean isSafePassByValue(CType type) {
+    type = type.getCanonicalType();
+    if (PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST.contains(type.getClass())) {
+      return true;
+
+    } else if (type instanceof CCompositeType composite) {
+      for (CCompositeTypeMemberDeclaration member : composite.getMembers()) {
+        if (!isSafePassByValue(member.getType())) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    return false;
   }
 
   protected boolean shouldGoByFunctionSummaryStatement(

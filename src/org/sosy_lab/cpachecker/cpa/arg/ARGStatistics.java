@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 
 @Options(prefix = "cpa.arg")
@@ -124,6 +125,11 @@ public class ARGStatistics implements Statistics {
 
   @Option(secure = true, description = "enable witness generation in the new yaml format.")
   private boolean enableYamlWitnesses = false;
+
+  @Option(
+      secure = true,
+      description = "export the yaml Correctness Witnesses directly from the ARG.")
+  private boolean exportYAMLCorrectnessWitnessesDirectlyFromARG = false;
 
   @Option(
       secure = true,
@@ -415,8 +421,24 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
-        if (witness != null && yamlProofWitness != null && invariantWitnessWriter != null) {
-          invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(witness, yamlProofWitness);
+        if (exportYAMLCorrectnessWitnessesDirectlyFromARG) {
+          if (yamlProofWitness != null && invariantWitnessWriter != null) {
+            try {
+              invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(
+                  rootState, yamlProofWitness);
+            } catch (YamlWitnessExportException e) {
+              logger.logUserException(
+                  Level.WARNING,
+                  e,
+                  "Could not export the YAML correctness witness directly from the ARG. Therefore"
+                      + " no YAML witness will be exported.");
+            }
+          }
+        } else {
+          if (witness != null && yamlProofWitness != null && invariantWitnessWriter != null) {
+            invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(
+                witness, yamlProofWitness);
+          }
         }
 
         if (proofWitness != null) {

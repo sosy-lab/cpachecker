@@ -39,7 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -144,7 +145,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
     smgCpa.injectRefinablePrecision();
 
-    final LogManager logger = smgCpa.getLogger();
+    final LogManagerWithoutDuplicates logger = smgCpa.getLogger();
     final Configuration config = smgCpa.getConfiguration();
     final CFA cfa = smgCpa.getCFA();
 
@@ -152,7 +153,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         new SMGStrongestPostOperator(smgCpa.getSolver(), logger, config, cfa);
 
     final SMGFeasibilityChecker checker =
-        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config);
+        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config, smgCpa.getEvaluator());
 
     final GenericPrefixProvider<SMGState> prefixProvider =
         new SMGPrefixProvider(
@@ -166,7 +167,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         config,
         logger,
         smgCpa.getShutdownNotifier(),
-        cfa);
+        cfa,
+        smgCpa.getEvaluator());
   }
 
   SMGRefiner(
@@ -175,9 +177,10 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final PathExtractor pPathExtractor,
       final GenericPrefixProvider<SMGState> pPrefixProvider,
       final Configuration pConfig,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa)
+      final CFA pCfa,
+      SMGCPAExpressionEvaluator pEvaluator)
       throws InvalidConfigurationException {
 
     super(
@@ -189,13 +192,15 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pConfig,
             pLogger,
             pShutdownNotifier,
-            pCfa),
+            pCfa,
+            pEvaluator),
         SMGInterpolantManager.getInstance(
             new SMGOptions(pConfig),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
-            pFeasibilityChecker.isRefineMemorySafety()),
+            pFeasibilityChecker.isRefineMemorySafety(),
+            pEvaluator),
         pPathExtractor,
         pConfig,
         pLogger);

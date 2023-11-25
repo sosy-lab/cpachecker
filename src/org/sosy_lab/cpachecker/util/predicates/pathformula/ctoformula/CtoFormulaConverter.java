@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -239,7 +240,7 @@ public class CtoFormulaConverter {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = CTypes.withoutVolatile(CTypes.withoutConst(pCompositeType));
+    CCompositeType compositeType = CTypes.copyDequalified(pCompositeType);
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -920,9 +921,7 @@ public class CtoFormulaConverter {
       int fromSize = ((FormulaType.BitvectorType) fromType).getSize();
 
       // Cf. C-Standard 6.3.1.2 (1)
-      if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
-          || (pToCType instanceof CBitFieldType
-              && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
+      if (CTypes.isBoolType(pToCType)) {
         Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0L);
         Formula zeroToSize = efmgr.makeBitvector(toSize, 0L);
         Formula oneToSize = efmgr.makeBitvector(toSize, 1L);
@@ -1856,7 +1855,8 @@ public class CtoFormulaConverter {
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints);
+    return new ExpressionToFormulaVisitor(
+        this, fmgr, pEdge, pFunction, ssa, pts, constraints, errorConditions);
   }
 
   /** Creates a Formula which accesses the given bits. */
@@ -1979,6 +1979,9 @@ public class CtoFormulaConverter {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       result = "atomic operations";
+    } else if (StandardFunctions.C11_MATH_H_FUNCTIONS.contains(functionName)) {
+      // Some of these functions are actually supported, but handled before this check here.
+      result = "arithmetic function";
     }
 
     if (result != null && options.isAllowedUnsupportedFunction(functionName)) {

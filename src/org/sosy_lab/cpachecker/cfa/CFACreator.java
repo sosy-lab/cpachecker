@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -998,10 +997,11 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private void addASTStructure(MutableCFA cfa, Configuration pConfig, LogManager pLogger) {
+  private void addASTStructure(MutableCFA cfa, Configuration pConfig, LogManager pLogger)
+      throws InterruptedException {
     try {
       cfa.setASTStructure(new ASTStructure(pConfig, shutdownNotifier, pLogger, cfa));
-    } catch (CoreException | InterruptedException | IOException | InvalidConfigurationException e) {
+    } catch (IOException | InvalidConfigurationException e) {
       logger.logUserException(Level.WARNING, e, "Could not analyze AST structure of program.");
     }
   }
