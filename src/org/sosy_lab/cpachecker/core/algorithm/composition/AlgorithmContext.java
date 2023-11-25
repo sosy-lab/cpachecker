@@ -45,6 +45,7 @@ public class AlgorithmContext {
   private int timeLimit;
   private final REPETITIONMODE mode;
   private final Timer timer;
+  private final boolean ifRecursive;
 
   private @Nullable ConfigurableProgramAnalysis cpa;
   private @Nullable Configuration config;
@@ -56,6 +57,15 @@ public class AlgorithmContext {
     timer = new Timer();
     timeLimit = extractLimitFromAnnotation(pConfigFile.annotation());
     mode = extractModeFromAnnotation(pConfigFile.annotation());
+    ifRecursive = extractApplicationContext(pConfigFile.annotation());
+  }
+
+  private boolean extractApplicationContext(final Optional<String> annotation) {
+    if (annotation.isPresent()) {
+      String str = annotation.orElseThrow();
+      return str.endsWith("_if-recursive");
+    }
+    return false;
   }
 
   private int extractLimitFromAnnotation(final Optional<String> annotation) {
@@ -148,6 +158,10 @@ public class AlgorithmContext {
 
   public double getProgress() {
     return progress;
+  }
+
+  public boolean isRecursiveOnlyConfiguration() {
+    return ifRecursive;
   }
 
   public @Nullable Configuration getConfig() {

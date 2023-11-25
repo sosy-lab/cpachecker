@@ -279,6 +279,10 @@ def create_compile_cmd(
 
 
 def _create_cpachecker_args(args, harness_output_dir):
+    # It's important that we work with a copy of sys.argv here,
+    # because we may modify cpachecker_args later,
+    # but do not want to have sys.argv modified.
+    # Slicing creates a copy in python, so no explicit copy necessary.
     cpachecker_args = sys.argv[1:]
 
     for compile_arg in ["-gcc-args"] + args.compile_args:
@@ -286,7 +290,16 @@ def _create_cpachecker_args(args, harness_output_dir):
             cpachecker_args.remove(compile_arg)
 
     cpachecker_args.append("-witness2test")
-    cpachecker_args += ["-outputpath", harness_output_dir]
+    index_of_outputpath_param = cpachecker_args.index("-outputpath")
+    if index_of_outputpath_param >= 0:
+        assert (index_of_outputpath_param + 1) < len(cpachecker_args), (
+            "Parameter -outputpath is missing an argument: " + cpachecker_args
+        )
+        # Replace existing argument of outputpath with harness_output_dir,
+        # so that the harness is written there for compilation.
+        cpachecker_args[index_of_outputpath_param + 1] = harness_output_dir
+    else:
+        cpachecker_args += ["-outputpath", harness_output_dir]
 
     return cpachecker_args
 

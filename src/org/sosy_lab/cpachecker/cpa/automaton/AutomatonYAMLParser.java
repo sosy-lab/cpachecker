@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,7 +52,9 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversOffsetAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesOffsetAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
@@ -89,6 +90,14 @@ public class AutomatonYAMLParser {
   private InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
 
+  @Option(
+      secure = true,
+      name = "matchOffsetsWhenCreatingViolationAutomaton",
+      description =
+          "If true the offsets will be matched when creating an automaton to validate Violation"
+              + " witnesses. If false only the lines will be matched.")
+  private boolean matchOffsetsWhenCreatingViolationAutomatonFromYAML = false;
+
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
@@ -99,6 +108,8 @@ public class AutomatonYAMLParser {
   private final CFA cfa;
   private final ParserTools parserTools;
   final CParser cparser;
+
+  ListMultimap<String, Integer> lineOffsetsByFile;
 
   private Scope scope;
 
@@ -129,6 +140,11 @@ public class AutomatonYAMLParser {
             CParser.Factory.getOptions(config),
             cfa.getMachineModel(),
             shutdownNotifier);
+    try {
+      lineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames());
+    } catch (IOException e) {
+      throw new WitnessParseException(e);
+    }
   }
 
   public static List<AbstractEntry> parseYAML(InputStream pInputStream) throws IOException {
@@ -395,7 +411,16 @@ public class AutomatonYAMLParser {
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException {
-    Map<WaypointRecord, List<WaypointRecord>> segments = segmentize(pEntries);
+    if (matchOffsetsWhenCreatingViolationAutomatonFromYAML) {
+      return createViolationAutomatonFromEntriesMatchingOffsets(pEntries);
+    } else {
+      return createViolationAutomatonFromEntriesMatchingLines(pEntries);
+    }
+  }
+
+  private Automaton createViolationAutomatonFromEntriesMatchingLines(List<AbstractEntry> pEntries)
+      throws InterruptedException, InvalidConfigurationException {
+    List<Pair<WaypointRecord, List<WaypointRecord>>> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
@@ -411,10 +436,10 @@ public class AutomatonYAMLParser {
 
     int distance = segments.size();
 
-    for (Map.Entry<WaypointRecord, List<WaypointRecord>> entry : segments.entrySet()) {
+    for (Pair<WaypointRecord, List<WaypointRecord>> entry : segments) {
       List<AutomatonTransition> transitions = new ArrayList<>();
-      follow = entry.getKey();
-      List<WaypointRecord> avoids = entry.getValue();
+      follow = entry.getFirst();
+      List<WaypointRecord> avoids = entry.getSecond();
       if (!avoids.isEmpty()) {
         logger.log(
             Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
@@ -488,6 +513,125 @@ public class AutomatonYAMLParser {
     return automaton;
   }
 
+  private Automaton createViolationAutomatonFromEntriesMatchingOffsets(List<AbstractEntry> pEntries)
+      throws InterruptedException, InvalidConfigurationException {
+    List<Pair<WaypointRecord, List<WaypointRecord>>> segments = segmentize(pEntries);
+    // this needs to be called exactly WitnessAutomaton for the option
+    // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
+    final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
+
+    int counter = 0;
+    final String initState = getStateName(counter++);
+
+    final List<AutomatonInternalState> automatonStates = new ArrayList<>();
+    String currentStateId = initState;
+    WaypointRecord follow = null;
+
+    int distance = segments.size();
+
+    for (Pair<WaypointRecord, List<WaypointRecord>> entry : segments) {
+      List<AutomatonTransition> transitions = new ArrayList<>();
+      follow = entry.getFirst();
+      List<WaypointRecord> avoids = entry.getSecond();
+      if (!avoids.isEmpty()) {
+        logger.log(
+            Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
+      }
+      String nextStateId = getStateName(counter++);
+      int followLine = follow.getLocation().getLine();
+      int followColumn = follow.getLocation().getColumn();
+      String followFilename = follow.getLocation().getFileName();
+
+      AutomatonBoolExpr expr;
+      if (follow.getType().equals(WaypointType.TARGET)) {
+        nextStateId = "X";
+        // For target nodes it sometimes does not make sense to evaluate them at the last possible
+        // sequence point as with assumptions. For example, a reach_error call will usually not have
+        // any successors in the ARG, since the verification stops there. Therefore handling targets
+        // the same way as with assumptions would not work. As an overapproximation we use the
+        // covers to present the desired functionality.
+        expr =
+            new CheckCoversOffsetAndLine(
+                lineOffsetsByFile.get(followFilename).get(followLine - 1) + followColumn,
+                followLine);
+      } else {
+        // The semantics of the YAML witnesses imply that every assumption waypoint should be
+        // valid before the sequence statement it points to. Due to the semantics of the format:
+        // "An assumption waypoint is evaluated at the sequence point immediately before the
+        // waypoint location. The waypoint is passed if the given constraint evaluates to true."
+        // Therefore we need the Reaches Offset guard.
+        expr =
+            new CheckReachesOffsetAndLine(
+                lineOffsetsByFile.get(followFilename).get(followLine - 1) + followColumn,
+                followLine);
+      }
+      AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
+
+      if (follow.getType().equals(WaypointType.ASSUMPTION)) {
+        handleAssumptionWaypoint(follow, followLine, builder);
+      } else if (follow.getType().equals(WaypointType.TARGET)) {
+        // When we match the target state we want to enter the error location immediately
+        builder = builder.withAssertion(createViolationAssertion());
+      }
+      ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
+      actionBuilder.add(
+          new AutomatonAction.Assignment(
+              AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+              new AutomatonIntExpr.Constant(distance)));
+      builder.withActions(actionBuilder.build());
+      transitions.add(builder.build());
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              transitions,
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+
+      distance--;
+      currentStateId = nextStateId;
+    }
+
+    // add last state and stutter in it:
+    if (follow != null && follow.getType().equals(WaypointType.TARGET)) {
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                  new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
+                          .withAssertion(createViolationAssertion()))),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    }
+
+    Automaton automaton;
+    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
+    AutomatonIntVariable distanceVariable =
+        (AutomatonIntVariable)
+            AutomatonVariable.createAutomatonVariable(
+                "int",
+                AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+                Integer.toString(segments.size() + 1));
+    automatonVariables.put(AutomatonGraphmlParser.DISTANCE_TO_VIOLATION, distanceVariable);
+
+    // new AutomatonInternalState(entryStateId, transitions, false, false, true)
+    try {
+      automaton = new Automaton(automatonName, automatonVariables, automatonStates, initState);
+    } catch (InvalidAutomatonException e) {
+      throw new WitnessParseException(
+          "The witness automaton generated from the provided YAML Witness is invalid!", e);
+    }
+
+    automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
+
+    dumpAutomatonIfRequested(automaton);
+
+    return automaton;
+  }
+
+  @SuppressWarnings("unused")
   private Set<Integer> linesWithExactlyOneEdge() {
     Map<Integer, Integer> lineFrequencies = new HashMap<>();
 
@@ -525,9 +669,9 @@ public class AutomatonYAMLParser {
     }
   }
 
-  private Map<WaypointRecord, List<WaypointRecord>> segmentize(List<AbstractEntry> pEntries)
+  private List<Pair<WaypointRecord, List<WaypointRecord>>> segmentize(List<AbstractEntry> pEntries)
       throws InvalidConfigurationException {
-    Map<WaypointRecord, List<WaypointRecord>> segments = new LinkedHashMap<>();
+    List<Pair<WaypointRecord, List<WaypointRecord>>> segments = new ArrayList<>();
     WaypointRecord latest = null;
     int numTargetWaypoints = 0;
     for (AbstractEntry entry : pEntries) {
@@ -542,7 +686,7 @@ public class AutomatonYAMLParser {
               avoids.add(waypoint);
               continue;
             } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-              segments.put(waypoint, avoids);
+              segments.add(Pair.of(waypoint, avoids));
               avoids = new ArrayList<>();
               continue;
             }

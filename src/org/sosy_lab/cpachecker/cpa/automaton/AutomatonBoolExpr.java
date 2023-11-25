@@ -169,6 +169,130 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  public static class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
+    private final Integer offsetToReach;
+    private final Integer lineNumber;
+
+    public CheckCoversOffsetAndLine(Integer pOffset, Integer pLineNumber) {
+      offsetToReach = pOffset;
+      lineNumber = pLineNumber;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>(
+            "No CPA elements available", "AutomatonBoolExpr.CheckReachesOffset");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      if (!CoverageData.coversLine(edge)) {
+        return CONST_FALSE;
+      }
+
+      FileLocation edgeLocation = edge.getFileLocation();
+      int edgeNodeOffset = edgeLocation.getNodeOffset();
+
+      if (edgeLocation.getStartingLineInOrigin() == lineNumber
+          || edgeLocation.getEndingLineInOrigin() == lineNumber) {
+        if (edgeNodeOffset <= offsetToReach
+            && offsetToReach <= edgeNodeOffset + edgeLocation.getNodeLength()) {
+          return CONST_TRUE;
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_OFFSET(" + offsetToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return offsetToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckCoversOffsetAndLine
+          && offsetToReach.equals(((CheckCoversOffsetAndLine) o).offsetToReach);
+    }
+  }
+
+  public static class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
+    private final Integer offsetToReach;
+    private final Integer lineNumber;
+
+    public CheckReachesOffsetAndLine(Integer pOffset, Integer pLineNumber) {
+      offsetToReach = pOffset;
+      lineNumber = pLineNumber;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>(
+            "No CPA elements available", "AutomatonBoolExpr.CheckReachesOffset");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+        return CONST_FALSE;
+      }
+
+      if (!CoverageData.coversLine(edge)) {
+        return CONST_FALSE;
+      }
+
+      // When returning from a function the covering method does not provide the intended behavior,
+      // since this would represent only the next statement
+      if (edge instanceof AReturnStatementEdge) {
+        return CONST_FALSE;
+      }
+
+      FileLocation edgeLocation = edge.getFileLocation();
+
+      // When there are multiple empty lines between two edges, the line numbers and offsets would
+      // not match. Therefore we need the range comparison instead of a equality comparison.
+      if (lineNumber >= edgeLocation.getEndingLineInOrigin()
+          && CFAUtils.leavingEdges(edge.getSuccessor())
+              .transform(CFAEdge::getFileLocation)
+              .anyMatch(e -> e.getStartingLineInOrigin() >= lineNumber)) {
+        if (edgeLocation.getNodeOffset() + edgeLocation.getNodeLength() < offsetToReach) {
+          if (CFAUtils.leavingEdges(edge.getSuccessor())
+              .anyMatch(
+                  e ->
+                      offsetToReach
+                          <= e.getFileLocation().getNodeOffset()
+                              + e.getFileLocation().getNodeLength())) {
+
+            return CONST_TRUE;
+          }
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_OFFSET(" + offsetToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return offsetToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckReachesOffsetAndLine
+          && offsetToReach.equals(((CheckReachesOffsetAndLine) o).offsetToReach);
+    }
+  }
+
   enum MatchProgramEntry implements AutomatonBoolExpr {
     INSTANCE;
 

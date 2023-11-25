@@ -508,6 +508,10 @@ public final class StandardFunctions {
    */
   public static final ImmutableSet<String> GNUC_ALL_FUNCTIONS = GNUC_ALLOCA_H_FUNCTIONS;
 
+  /** POSIX setjmp.h from http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/setjmp.h.html */
+  public static final ImmutableSet<String> POSIX_SETJMP_H_FUNCTIONS =
+      ImmutableSet.of("_longjmp", "longjmp", "siglongjmp", "_setjmp", "setjmp", "sigsetjmp");
+
   /** POSIX unistd.h from http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/unistd.h.html */
   public static final ImmutableSet<String> POSIX_UNISTD_H_FUNCTIONS =
       ImmutableSet.of(

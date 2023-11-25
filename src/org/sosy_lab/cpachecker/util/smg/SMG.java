@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.smg;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -20,6 +21,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -39,7 +41,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
-import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
+import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 
 /**
  * Class to represent a immutable bipartite symbolic memory graph. Manipulating methods return a
@@ -768,7 +770,7 @@ public class SMG {
    * Read a value of an object in the field specified by offset and size. This returns a read
    * re-interpretation of the field, which means it returns either the symbolic value that is
    * present, 0 if the field is covered with nullified blocks or an unknown value. This is not
-   * guaranteed to be completely accurate!
+   * guaranteed to be completely accurate! TODO: add description for new features
    *
    * @param object The object from which is to be read.
    * @param offset The offset from which on the field in the object is to be read.
@@ -776,7 +778,8 @@ public class SMG {
    * @return A updated SMG and the SMTValue that is a read re-interpretation of the field in the
    *     object. May be 0, a symbolic value or a new unknown symbolic value.
    */
-  public SMGandValue readValue(SMGObject object, BigInteger offset, BigInteger sizeInBits) {
+  public SMGAndHasValueEdges readValue(
+      SMGObject object, BigInteger offset, BigInteger sizeInBits, boolean preciseRead) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
     Preconditions.checkArgument(offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
 
@@ -787,14 +790,75 @@ public class SMG {
     // TODO: We only check for the exact matches to offset + size, what if one reads
     // a field that is completely covered by a value field? I guess this is meant this way, but we
     // should discuss it nevertheless.
-    Predicate<SMGHasValueEdge> filterByOffsetAndSize =
-        o -> o.getOffset().compareTo(offset) == 0 && o.getSizeInBits().compareTo(sizeInBits) == 0;
-    Optional<SMGHasValueEdge> maybeValue =
-        getHasValueEdgeByPredicate(object, filterByOffsetAndSize);
+    BigInteger searchOffsetPlusSize = offset.add(sizeInBits);
+    ImmutableList.Builder<SMGHasValueEdge> returnEdgeBuilder = ImmutableList.builder();
+    PersistentSet<SMGHasValueEdge> edgesForObject = hasValueEdges.get(object);
+    if (edgesForObject != null) {
+      for (SMGHasValueEdge hve : edgesForObject) {
+        if (hve.getOffset().equals(offset) && hve.getSizeInBits().equals(sizeInBits)) {
+          // if v != undefined then return (smg, v)
+          return SMGAndHasValueEdges.of(this, hve);
+        }
+        if (preciseRead) {
+          BigInteger hveOffset = hve.getOffset();
+          BigInteger hveOffsetPlusSize = hve.getSizeInBits().add(hveOffset);
+          // Iff we can't find an exact match, we can try to partially read by reading the larger
+          // value and extract the value we need from it
+          if (hveOffset.compareTo(offset) <= 0 && offset.compareTo(hveOffsetPlusSize) < 0) {
+            // The value we search for begins in this edge
+            returnEdgeBuilder.add(hve);
+            if (hveOffsetPlusSize.compareTo(searchOffsetPlusSize) > 0) {
+              // It also ends here
+              break;
+            }
+          } else if (hveOffset.compareTo(searchOffsetPlusSize) < 0
+              && searchOffsetPlusSize.compareTo(hveOffsetPlusSize) <= 0) {
+            // The value we search for ends in this edge
+            returnEdgeBuilder.add(hve);
+          } else if (offset.compareTo(hveOffset) < 0
+              && hveOffsetPlusSize.compareTo(searchOffsetPlusSize) < 0) {
+            // The value we search for covers this edge completely
+            returnEdgeBuilder.add(hve);
+          }
+        }
+      }
+    }
 
-    // if v != undefined then return (smg, v)
-    if (maybeValue.isPresent()) {
-      return new SMGandValue(this, maybeValue.orElseThrow().hasValue());
+    List<SMGHasValueEdge> foundReturnEdges = returnEdgeBuilder.build();
+    if (!foundReturnEdges.isEmpty()) {
+      if (foundReturnEdges.size() > 1) {
+        // Sort by offset and merge zero edges
+        foundReturnEdges =
+            foundReturnEdges.stream()
+                .sorted(Comparator.comparingInt(x -> x.getOffset().intValueExact()))
+                .collect(ImmutableList.toImmutableList());
+        returnEdgeBuilder = ImmutableList.builder();
+        SMGHasValueEdge zeroEdgeBuffer = null;
+        for (SMGHasValueEdge hve : foundReturnEdges) {
+          if (hve.hasValue().isZero()) {
+            if (zeroEdgeBuffer != null) {
+              zeroEdgeBuffer =
+                  new SMGHasValueEdge(
+                      hve.hasValue(),
+                      zeroEdgeBuffer.getOffset(),
+                      zeroEdgeBuffer.getSizeInBits().add(hve.getSizeInBits()));
+            } else {
+              zeroEdgeBuffer = hve;
+            }
+          } else {
+            if (zeroEdgeBuffer != null) {
+              returnEdgeBuilder.add(zeroEdgeBuffer);
+              zeroEdgeBuffer = null;
+            }
+            returnEdgeBuilder.add(hve);
+          }
+        }
+        if (zeroEdgeBuffer != null) {
+          returnEdgeBuilder.add(zeroEdgeBuffer);
+        }
+        foundReturnEdges = returnEdgeBuilder.build();
+      }
+      return SMGAndHasValueEdges.of(this, foundReturnEdges);
     }
 
     // if the field to be read is covered by nullified blocks, i.e. if
@@ -802,7 +866,8 @@ public class SMG {
     // let v := 0. Otherwise extend V by a fresh value node v.
     Optional<SMGValue> isCoveredBy = isCoveredByNullifiedBlocks(object, offset, sizeInBits);
     if (isCoveredBy.isPresent()) {
-      return new SMGandValue(this, isCoveredBy.orElseThrow());
+      return SMGAndHasValueEdges.of(
+          this, new SMGHasValueEdge(SMGValue.zeroValue(), offset, sizeInBits));
     }
     int nestingLevel = object.getNestingLevel();
     SMGValue newValue = SMGValue.of(nestingLevel);
@@ -811,7 +876,7 @@ public class SMG {
     // the newly obtained SMG.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
-    return new SMGandValue(newSMG, newValue);
+    return SMGAndHasValueEdges.of(newSMG, newHVEdge);
   }
 
   /**
@@ -1242,6 +1307,22 @@ public class SMG {
     }
 
     return new SMGObjectsAndValues(visitedObjects, visitedValues);
+  }
+
+  public Set<SMGObject> getAllSourcesForPointersPointingTowards(SMGObject pTarget) {
+    ImmutableSet.Builder<SMGObject> results = ImmutableSet.builder();
+    if (!isValid(pTarget)) {
+      return ImmutableSet.of();
+    }
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objHVEs : hasValueEdges.entrySet()) {
+      for (SMGHasValueEdge hve : objHVEs.getValue()) {
+        SMGPointsToEdge pte = pointsToEdges.get(hve.hasValue());
+        if (pte != null && pte.pointsTo().equals(pTarget)) {
+          results.add(objHVEs.getKey());
+        }
+      }
+    }
+    return results.build();
   }
 
   /**

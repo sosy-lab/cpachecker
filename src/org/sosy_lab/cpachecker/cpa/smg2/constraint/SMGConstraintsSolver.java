@@ -94,6 +94,28 @@ public class SMGConstraintsSolver {
     }
   }
 
+  /**
+   * Check pConstraintToCheck with all constraints in the given state, but does not add the
+   * pConstraintToCheck to the state. Will add a model in SAT cases.
+   *
+   * @param stateForConstraints {@link SMGState}
+   * @param pConstraintToCheck {@link Constraint} i.e. memory access bounds to check
+   * @param pFunctionName {@link String} current stackframe function
+   * @return true to UNSAT and unchanged state, false for SAT with model in the state, but not the
+   *     constraint.
+   * @throws UnrecognizedCodeException in case of unrecognized code in the constraints
+   * @throws InterruptedException solver error on termination signal
+   * @throws SolverException solver error
+   */
+  public BooleanAndSMGState isUnsat(
+      SMGState stateForConstraints, Constraint pConstraintToCheck, String pFunctionName)
+      throws UnrecognizedCodeException, InterruptedException, SolverException {
+    BooleanAndSMGState result =
+        isUnsat(stateForConstraints.addConstraint(pConstraintToCheck), pFunctionName);
+    return BooleanAndSMGState.of(
+        result.getBoolean(), result.getState().removeLastAddedConstraint());
+  }
+
   // Used for trivial unsat checks that do not change the state/set a model in the state
   public boolean isUnsat(Constraint pConstraint, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
@@ -252,7 +274,7 @@ public class SMGConstraintsSolver {
         // not be automatically included in the iteration over dependent sets below.
         relevantConstraints.add(lastConstraint);
 
-        Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints.getConstraint());
+        Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints.getConstraints());
         Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
         Set<SymbolicIdentifier> relevantIdentifiers;
         do {
@@ -274,7 +296,7 @@ public class SMGConstraintsSolver {
       }
 
     } else {
-      relevantConstraints = new HashSet<>(pConstraints.getConstraint());
+      relevantConstraints = new HashSet<>(pConstraints.getConstraints());
     }
 
     return relevantConstraints;

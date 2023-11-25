@@ -962,6 +962,31 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
+        } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  return numericValue.floatValue() == Float.POSITIVE_INFINITY
+                      ? new NumericValue(1)
+                      : numericValue.floatValue() == Float.NEGATIVE_INFINITY
+                          ? new NumericValue(-1)
+                          : new NumericValue(0);
+                case DOUBLE:
+                  return numericValue.doubleValue() == Double.POSITIVE_INFINITY
+                      ? new NumericValue(1)
+                      : numericValue.doubleValue() == Double.NEGATIVE_INFINITY
+                          ? new NumericValue(-1)
+                          : new NumericValue(0);
+                default:
+                  break;
+              }
+            }
+          }
         } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
           if (parameterValues.size() == 1) {
             Value value = parameterValues.get(0);
@@ -1563,6 +1588,15 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  /**
+   * Computes size of a type. Result can be an unknown value! Prefer this method over {@link
+   * MachineModel#getSizeof(CType)} because it works for variable-length arrays if the current
+   * visitor instance is able to evalue the length expression.
+   */
+  protected Value sizeof(CType pType) throws UnrecognizedCodeException {
+    return new SizeofVisitor().evaluateSizeof(pType);
+  }
+
   private final class SizeofVisitor extends BaseSizeofVisitor<UnrecognizedCodeException> {
 
     private boolean sizeKnown = true;
@@ -1615,7 +1649,7 @@ public abstract class AbstractExpressionValueVisitor
     final CExpression unaryOperand = unaryExpression.getOperand();
 
     if (unaryOperator == UnaryOperator.SIZEOF) {
-      return new SizeofVisitor().evaluateSizeof(unaryOperand.getExpressionType());
+      return sizeof(unaryOperand.getExpressionType());
     }
     if (unaryOperator == UnaryOperator.ALIGNOF) {
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));

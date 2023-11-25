@@ -25,7 +25,7 @@ class LabeledValue extends SMGValue {
 
   @Override
   public String toString() {
-    return "LabeledValue { " + label + " }";
+    return "SMGvalue: " + label;
   }
 
   @Override

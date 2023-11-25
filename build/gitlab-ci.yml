@@ -60,9 +60,9 @@ build:jdk-17:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-build:jdk-20:
+build:jdk-21:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
 
 # For checks that need the binaries
@@ -92,9 +92,9 @@ build-project-ecj:jdk-17:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-build-project-ecj:jdk-20:
+build-project-ecj:jdk-21:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
 
 check-format:
@@ -172,15 +172,15 @@ unit-tests:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-unit-tests:jdk-20:
+unit-tests:jdk-21:
   <<: *unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-20
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-20
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
+    - build:jdk-21
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
 
 refaster:
@@ -271,8 +271,8 @@ build-docker:test:jdk-17:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-17
     IMAGE: /test:jdk-17
 
-build-docker:test:jdk-20:
+build-docker:test:jdk-21:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-20
-    IMAGE: /test:jdk-20
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-21
+    IMAGE: /test:jdk-21
