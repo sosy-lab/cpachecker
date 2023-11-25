@@ -772,9 +772,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     // When else is not in a block (else Statement)
     handleElseCondition(expressionStatement);
-    CFANode prevNode = null;
-
-    prevNode = locStack.pop();
+    CFANode prevNode = locStack.pop();
 
     JStatement statement = astCreator.convert(expressionStatement);
 
@@ -829,6 +827,7 @@ class CFAMethodBuilder extends ASTVisitor {
             booleanAssignmentExpression.getLeftHandSide(),
             nextNode,
             lastNode);
+        locStack.push(lastNode);
 
       } else {
         JStatementEdge edge =
@@ -852,23 +851,6 @@ class CFAMethodBuilder extends ASTVisitor {
         afterStatement.push(nodeAfterStatement);
         cfaNodes.add(nodeAfterStatement);
 
-        JStatement helperNotEqualsStatement = null;
-        JExpression helperNotEqualsExpression = null;
-
-        if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
-          helperNotEqualsStatement =
-              HelperVariable.getInstance(
-                      scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
-                  .helperNotEqualsStatement();
-          helperNotEqualsExpression =
-              HelperVariable.getInstance(
-                      scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
-                  .helperNotEqualsExpression();
-        } else {
-          helperNotEqualsStatement = HelperVariable.getInstance().helperNotEqualsStatement();
-          helperNotEqualsExpression = HelperVariable.getInstance().helperNotEqualsExpression();
-        }
-
         if (nestedFinallyIncorrect != null) {
           BlankEdge tempCurrent =
               new BlankEdge("", FileLocation.DUMMY, nestedFinallyIncorrect, current, "");
@@ -876,41 +858,13 @@ class CFAMethodBuilder extends ASTVisitor {
           nestedFinallyIncorrect = null;
         }
 
-        CFANode end = null;
-        if (helperNotNull.isEmpty()) {
-          end = new CFANode(cfa.getFunction());
-          cfaNodes.add(end);
-          endOfCatch.add(end);
-        } else {
-          end = helperNotNull.peek();
-        }
-
-        JAssumeEdge notEqualsNullFalse =
-            new JAssumeEdge(
-                helperNotEqualsStatement.toString(),
-                FileLocation.DUMMY,
-                current,
-                nodeAfterStatement,
-                helperNotEqualsExpression,
-                false);
-
-        addToCFA(notEqualsNullFalse);
+        addExceptionCheck(current, nodeAfterStatement);
 
         locStack.push(nodeAfterStatement);
 
         if (!finallyExists.isEmpty() && finallyExists.peek()) {
           setFinallyVariableValue();
         }
-
-        JAssumeEdge notEqualsNullTrue =
-            new JAssumeEdge(
-                helperNotEqualsStatement.toString(),
-                FileLocation.DUMMY,
-                current,
-                end,
-                helperNotEqualsExpression,
-                true);
-        addToCFA(notEqualsNullTrue);
       }
     }
 
@@ -2792,8 +2746,6 @@ class CFAMethodBuilder extends ASTVisitor {
     inCatchBlock = false;
     isNested += 1;
 
-
-
     CFANode helperNotNullNode = new CFANode(cfa.getFunction());
     helperNotNull.push(helperNotNullNode);
     cfaNodes.add(helperNotNullNode);
@@ -2828,7 +2780,7 @@ class CFAMethodBuilder extends ASTVisitor {
     if (tryStatement.getFinally() != null) {
       handleFinallyBlock(tryStatement.getFinally(), tempInFinally, tempInCatch);
     }
-    isNested -=1;
+    isNested -= 1;
     inCatchBlock = tempInCatch;
     currentFinallyBooleanVariable = tempFinallyBooleanVariable;
     return SKIP_CHILDREN;
@@ -2958,8 +2910,16 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JClassType exceptionClassType = (JClassType) astCreator.convert(cc.getException()).getType();
 
-    JExpression catchException =
-        HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
+    JExpression catchException = null;
+
+    if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
+      catchException =
+          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .getRunTimeTypeEqualsExpression(exceptionClassType);
+    } else {
+      catchException =
+          HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
+    }
 
     JStatement exception = HelperVariable.getInstance().getInstanceOfStatement(exceptionClassType);
 
@@ -3159,8 +3119,9 @@ class CFAMethodBuilder extends ASTVisitor {
     JExpression exceptionExpression =
         astCreator.convertExpressionWithoutSideEffects(throwStatement.getExpression());
 
-    CFANode nextNode = handleSideassignments(
-        prevNode, exceptionExpression.toASTString(), throwLocation);
+    CFANode nextNode =
+        handleSideassignments(prevNode, exceptionExpression.toASTString(), throwLocation);
+
     cfaNodes.add(nextNode);
 
     JExpressionAssignmentStatement currentHelperAssignment = null;
@@ -3183,8 +3144,69 @@ class CFAMethodBuilder extends ASTVisitor {
             throwNode);
 
     addToCFA(edge);
+
+    if (!inTryBlock.isEmpty() && inTryBlock.peek()) {
+      CFANode current = locStack.pop();
+      CFANode nodeAfterStatement = new CFANode(cfa.getFunction());
+      afterStatement.push(nodeAfterStatement);
+      cfaNodes.add(nodeAfterStatement);
+
+      addExceptionCheck(current, nodeAfterStatement);
+
+      locStack.push(nodeAfterStatement);
+
+      if (!finallyExists.isEmpty() && finallyExists.peek()) {
+        setFinallyVariableValue();
+      }
+    }
+
     return SKIP_CHILDREN;
   }
+
+  private void addExceptionCheck(CFANode start, CFANode nodeAfterStatement) {
+    CFANode end = null;
+    if (helperNotNull.isEmpty()) {
+      end = new CFANode(cfa.getFunction());
+      cfaNodes.add(end);
+      endOfCatch.add(end);
+    } else {
+      end = helperNotNull.peek();
+    }
+
+    JStatement helperNotEqualsStatement = null;
+    JExpression helperNotEqualsExpression = null;
+
+    if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
+      helperNotEqualsStatement =
+          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .helperNotEqualsStatement();
+      helperNotEqualsExpression =
+          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .helperNotEqualsExpression();
+    } else {
+      helperNotEqualsStatement = HelperVariable.getInstance().helperNotEqualsStatement();
+      helperNotEqualsExpression = HelperVariable.getInstance().helperNotEqualsExpression();
+    }
+
+    JAssumeEdge notEqualsNullFalse =
+        new JAssumeEdge(
+            helperNotEqualsStatement.toString(),
+            FileLocation.DUMMY,
+            start,
+            nodeAfterStatement,
+            helperNotEqualsExpression,
+            false);
+
+    addToCFA(notEqualsNullFalse);
+
+    JAssumeEdge notEqualsNullTrue =
+        new JAssumeEdge(
+            helperNotEqualsStatement.toString(),
+            FileLocation.DUMMY,
+            start,
+            end,
+            helperNotEqualsExpression,
+            true);
+    addToCFA(notEqualsNullTrue);
+  }
 }
-
-

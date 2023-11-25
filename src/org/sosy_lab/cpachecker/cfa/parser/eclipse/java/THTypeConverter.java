@@ -71,7 +71,12 @@ class THTypeConverter extends TypeConverter {
         }
       }
       if (cls != null && cls.getSuperclass() != null) {
-        superClassType = createJClassTypeFromClass(cls.getSuperclass());
+        JClassType superClassTypeTemp = checkIfClassTypeAlreadyAvailable(cls.getSuperclass());
+        if (superClassTypeTemp != null) {
+          superClassType = superClassTypeTemp;
+        } else {
+          superClassType = createJClassTypeFromClass(cls.getSuperclass());
+        }
       } else {
         superClassType = JClassType.createUnresolvableType();
       }
@@ -151,17 +156,18 @@ class THTypeConverter extends TypeConverter {
     return null;
   }
 
-  private JClassOrInterfaceType checkSubTypes(Set<? extends JClassOrInterfaceType> pSet, Class<?> pSuperClass) {
-    for(JClassOrInterfaceType type: pSet) {
-      if(type.getName().equals(pSuperClass.getName())) {
+
+
+  private JClassOrInterfaceType checkSubTypes(
+      Set<? extends JClassOrInterfaceType> pSet, Class<?> pSuperClass) {
+    for (JClassOrInterfaceType type : pSet) {
+      if (type.getName().equals(pSuperClass.getName())) {
         return type;
       } else {
-        JClassOrInterfaceType temp = checkSubTypes(type.getAllSubTypesOfType(),pSuperClass);
-        if(temp != null) {
+        JClassOrInterfaceType temp = checkSubTypes(type.getAllSubTypesOfType(), pSuperClass);
           return temp;
         }
       }
-    }
     return null;
   }
 
