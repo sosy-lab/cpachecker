@@ -583,7 +583,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         }
       }
       if (isNullComparison(binaryExpression)) {
-        return handleNullComparison(leftOperand, binaryExpression.getOperator());
+        return handleNullComparison(leftOperand, rightOperand, binaryExpression.getOperator());
       }
 
       return null;
@@ -662,16 +662,20 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     }
 
     private String handleNullComparison(
-        final JExpression pLeftOperand, final BinaryOperator pOperator)
+        final JExpression pLeftOperand,
+        final JExpression pRightOperand,
+        final BinaryOperator pOperator)
         throws UnrecognizedCodeException {
       String value1 = pLeftOperand.accept(this);
-      String value2 = RTTState.NULL_REFERENCE;
+      String value2 = pRightOperand.accept(this);
 
-      if (value1 == null) {
-        value1 = RTTState.NULL_REFERENCE;
-      }
+      value1 = (value1 == null) ? RTTState.NULL_REFERENCE : value1;
+      value2 = (value2 == null) ? RTTState.NULL_REFERENCE : value2;
 
-      boolean result = pOperator == BinaryOperator.NOT_EQUALS ^ value1.equals(value2);
+      boolean result =
+          pOperator == BinaryOperator.NOT_EQUALS
+              ^ (value1.equals(value2) && value2.equals(RTTState.NULL_REFERENCE));
+
       return Boolean.toString(result);
     }
 
@@ -776,18 +780,18 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         }
       } else {
 
-      JClassOrInterfaceType typeDefClass = (JClassOrInterfaceType) typeDef;
-      String name = typeDefClass.getName();
+        JClassOrInterfaceType typeDefClass = (JClassOrInterfaceType) typeDef;
+        String name = typeDefClass.getName();
 
-      if (runTimeType.equals(name)) {
-        return true;
-      } else if (runTimeType.equals(JClassType.getTypeOfObject().getName())) {
-        return false;
-      } else {
-        for (JClassOrInterfaceType type : typeDefClass.getAllSubTypesOfType()) {
-          return handleInstanceOf(runTimeType, type);
+        if (runTimeType.equals(name)) {
+          return true;
+        } else if (runTimeType.equals(JClassType.getTypeOfObject().getName())) {
+          return false;
+        } else {
+          for (JClassOrInterfaceType type : typeDefClass.getAllSubTypesOfType()) {
+            return handleInstanceOf(runTimeType, type);
+          }
         }
-      }
       }
       return false;
     }
