@@ -2827,14 +2827,6 @@ class CFAMethodBuilder extends ASTVisitor {
 
     createConditionEdges(isTrue, FileLocation.DUMMY, current, afterTrue, afterFalse);
 
-    /*JAssumeEdge variableFalse =
-        new JAssumeEdge(isTrue.toString(), FileLocation.DUMMY, current, afterFalse, isTrue, false);
-    addToCFA(variableFalse);
-
-    JAssumeEdge variableTrue =
-        new JAssumeEdge(isTrue.toString(), FileLocation.DUMMY, current, afterTrue, isTrue, true);
-    addToCFA(variableTrue);*/
-
     if (isNested > 1 && !nestedInFinally && !nestedInCatch) {
       nestedFinallyIncorrect = afterFalse;
     } else {

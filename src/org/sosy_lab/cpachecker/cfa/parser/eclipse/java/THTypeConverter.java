@@ -156,8 +156,6 @@ class THTypeConverter extends TypeConverter {
     return null;
   }
 
-
-
   private JClassOrInterfaceType checkSubTypes(
       Set<? extends JClassOrInterfaceType> pSet, Class<?> pSuperClass) {
     for (JClassOrInterfaceType type : pSet) {
@@ -165,9 +163,11 @@ class THTypeConverter extends TypeConverter {
         return type;
       } else {
         JClassOrInterfaceType temp = checkSubTypes(type.getAllSubTypesOfType(), pSuperClass);
+        if (temp != null) {
           return temp;
         }
       }
+    }
     return null;
   }
 
