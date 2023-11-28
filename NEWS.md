@@ -10,7 +10,7 @@ SPDX-License-Identifier: Apache-2.0
 
 Changes from CPAchecker 2.2 to CPAchecker 2.3
 ---------------------------------------------
-* Java 11 or later is required now.
+* Java 17 or later is required now.
 * More precise heap encoding in predicate analysis.  
   The predicate analysis now optionally supports sound modeling
   of aliasing with char pointers as well as functions like memset/memcmp.
