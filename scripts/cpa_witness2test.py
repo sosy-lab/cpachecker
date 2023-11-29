@@ -37,7 +37,7 @@ COMPILE_ARGS_FIXED = ["-D__alias__(x)="]
 """List of compiler arguments that are always passed to the compiler."""
 
 # Strings used to match expected error messages
-EXPECTED_ERRMSG_REACH = "cpa_witness2test: violation"
+EXPECTED_ERRMSG_REACH = "CPAchecker test harness: property violation reached"
 EXPECTED_ERRMSG_OVERFLOW = "runtime error:"
 EXPECTED_ERRMSG_MEM_FREE = "ERROR: AddressSanitizer: attempting free"
 EXPECTED_ERRMSG_MEM_DEREF = "ERROR: AddressSanitizer:"
