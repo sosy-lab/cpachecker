@@ -187,7 +187,10 @@ public class HarnessExporter {
         codeAppender.appendln("  exit(107);");
         codeAppender.appendln("}");
       } else {
-        logger.log(Level.WARNING, "Could not find a call to an error function.");
+        codeAppender.appendln("// Could not find a call to an error function.");
+        codeAppender.appendln(
+            "// CPAchecker can not guarantee that this harness exposes the found property"
+                + " violation.");
       }
 
       if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
@@ -206,7 +209,8 @@ public class HarnessExporter {
       codeAppender.append(vector);
     } else {
       logger.log(
-          Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
+          Level.FINE, "Could not export a test harness, some test-vector values are missing.");
+      pTarget.appendln("// Could not export a test harness.");
     }
   }
 
