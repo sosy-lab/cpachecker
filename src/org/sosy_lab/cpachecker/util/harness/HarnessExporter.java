@@ -222,7 +222,7 @@ public class HarnessExporter {
     } else {
       logger.log(
           Level.FINE, "Could not export a test harness, some test-vector values are missing.");
-      pTarget.appendln("// Could not export a test harness.");
+      pTarget.append("// Could not export a test harness.\n");
     }
   }
 
