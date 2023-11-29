@@ -128,7 +128,7 @@ public class HarnessExporter {
 
   private static final String TMP_VAR = "__tmp_var";
 
-  private static final String ERR_MSG = "cpa_witness2test: violation";
+  private static final String ERR_MSG = "CPAchecker test harness: property violation reached";
 
   private final CFA cfa;
 
