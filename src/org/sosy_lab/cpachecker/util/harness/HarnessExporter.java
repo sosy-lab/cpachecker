@@ -152,6 +152,18 @@ public class HarnessExporter {
     pConfig.inject(this);
   }
 
+  /**
+   * Write a new test harness from the given counterexample info to the target appendable.
+   *
+   * @param pTarget appendable that test-harness code is written to.
+   * @param pRootState root state of the ARG.
+   * @param pIsRelevantState predicate that filters relevant states. Should be a predicate that only
+   *     includes states on a single target path.
+   * @param pIsRelevantEdge predicate that filters relevant edges. Should be a predicate that only
+   *     includes edges on a single target path.
+   * @param pCounterexampleInfo the counterexample to extract test vectors from
+   * @throws IOException if append to target appendable fails with an IOException
+   */
   public void writeHarness(
       Appendable pTarget,
       final ARGState pRootState,
