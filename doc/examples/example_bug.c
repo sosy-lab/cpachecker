@@ -5,32 +5,36 @@
 // SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
+//
+extern void __assert_fail (const char *__assertion, const char *__file,
+      unsigned int __line, const char *__function);
 
+extern int __VERIFIER_nondet_int(void);
 int main() {
-  int i = 0;
-  int a = 0;
+  int x = __VERIFIER_nondet_int();
+  int y = __VERIFIER_nondet_int();
 
   while (1) {
-    if (i == 20) {
-       goto LOOPEND;
+    if (x > 1000) {
+      x--;
+    } else if (x < 100) {
+      x++;
     } else {
-       i++;
-       a++;
+      break;
     }
-
-    if (i != a) {
-      goto ERROR;
+  }
+  while (1) {
+    if (y < 0) {
+      y++;
+    } else if (y > 200) {
+      y--;
+    } else {
+      break;
     }
   }
 
-  LOOPEND:
-
-  if (a != 19) {
-     goto ERROR;
+  if (x * y == 39203) {
+    __assert_fail("x * y != 39203", "example_bug.c", 37, "main");
   }
-
-  return (0);
-  ERROR:
-  return (-1);
 }
 

@@ -17,29 +17,49 @@ We consider this example program:
 
 ```c
 extern void __assert_fail (const char *__assertion, const char *__file,
-      unsigned int __line, const char *__function)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
+      unsigned int __line, const char *__function);
 
 extern int __VERIFIER_nondet_int(void);
-int main(void) {
+int main() {
   int x = __VERIFIER_nondet_int();
   int y = __VERIFIER_nondet_int();
-  if (x > 100 && x < 1000 && y > 0 && y < 200 && x * y == 39203) {
-    __assert_fail("x * y != 39203", "example_bug_with_nondet.c", 10, __extension__ __PRETTY_FUNCTION__);
+
+  while (1) {
+    if (x > 1000) {
+      x--;
+    } else if (x < 100) {
+      x++;
+    } else {
+      break;
+    }
+  }
+  while (1) {
+    if (y < 0) {
+      y++;
+    } else if (y > 200) {
+      y--;
+    } else {
+      break;
+    }
+  }
+
+  if (x * y == 39203) {
+    __assert_fail("x * y != 39203", "example_bug.c", 37, "main");
   }
 }
+
 ```
 
 Method `__VERIFIER_nondet_int` is a special method that tells CPAchecker
 that on every call, a new, arbitrary int value is returned.  
 The program receives two arbitrary int values x and y.
-It then checks whether the constraints 100 < x < 1000, 0 < y < 200,
-and x * y == 39203 are true.
-If they are, the program has a failing assertion.
+In the two loops, it ensures that 100 < x < 1000 and 0 < y < 200.
+It then checks whether x * y == 39203 is true.
+If it is, the program has a failing assertion.
 
 1. Run CPAchecker on this program, with its default analysis:
     ```
-    scripts/cpa.sh -default doc/examples/example_bug_with_nondet.c
+    scripts/cpa.sh -default doc/examples/example_bug.c
     ```
     Expected output:
     ```
@@ -51,7 +71,7 @@ If they are, the program has a failing assertion.
     [.. snip output ..]
     Stopping analysis ... (CPAchecker.runAlgorithm, INFO)
     
-    Verification result: FALSE. Property violation (assertion in line 10: Condition "x * y != 39203" failed in "example_bug_with_nondet.c", line 10) found by chosen configuration.
+    Verification result: FALSE. Property violation (assertion in line 37: Condition "x * y != 39203" failed in "example_bug.c", line 37) found by chosen configuration.
     More details about the verification run can be found in the directory "./output".
     Graphical representation included in the file "./output/Counterexample.1.html".
     ```
@@ -91,7 +111,7 @@ If they are, the program has a failing assertion.
 
 2. Compile the test harness against the example program:
     ```
-    gcc output/Counterexample.1.harness.c doc/examples/example_bug_with_nondet.c -o ./testviolation
+    gcc output/Counterexample.1.harness.c doc/examples/example_bug.c -o ./testviolation
     ```
     This produces executable `./testviolation`.
 
