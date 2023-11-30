@@ -155,22 +155,19 @@ public class HarnessExporter {
   /**
    * Write a new test harness from the given counterexample info to the target appendable.
    *
-   * @param pTarget appendable that test-harness code is written to.
    * @param pRootState root state of the ARG.
    * @param pIsRelevantState predicate that filters relevant states. Should be a predicate that only
    *     includes states on a single target path.
    * @param pIsRelevantEdge predicate that filters relevant edges. Should be a predicate that only
    *     includes edges on a single target path.
    * @param pCounterexampleInfo the counterexample to extract test vectors from
-   * @throws IOException if append to target appendable fails with an IOException
+   * @return the harness code. Returns <code>empty</code> if no harness could be generated.
    */
-  public void writeHarness(
-      Appendable pTarget,
+  public Optional<String> writeHarness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      CounterexampleInfo pCounterexampleInfo)
-      throws IOException {
+      CounterexampleInfo pCounterexampleInfo) {
 
     // Find a path with sufficient test vector info
     Optional<TargetTestVector> testVector =
@@ -180,37 +177,8 @@ public class HarnessExporter {
 
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
 
-      CodeAppender codeAppender = new CodeAppender(pTarget);
-
-      codeAppender.appendln("struct _IO_FILE;");
-      codeAppender.appendln("typedef struct _IO_FILE FILE;");
-      codeAppender.appendln("extern struct _IO_FILE *stderr;");
-      codeAppender.appendln(
-          "extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
-      codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
-
-      // implement error-function
       CFAEdge edgeToTarget = testVector.orElseThrow().getEdgeToTarget();
       Optional<AFunctionDeclaration> errorFunction = getErrorFunction(edgeToTarget);
-      if (errorFunction.isPresent()) {
-        codeAppender.append(errorFunction.orElseThrow());
-        codeAppender.appendln(" {");
-        codeAppender.appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
-        codeAppender.appendln("  exit(107);");
-        codeAppender.appendln("}");
-      } else {
-        codeAppender.appendln("// Could not find a call to an error function.");
-        codeAppender.appendln(
-            "// CPAchecker can not guarantee that this harness exposes the found property"
-                + " violation.");
-      }
-
-      if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
-        // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
-        codeAppender.appendln("void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
-      }
-
-      // implement actual harness
       TestVector vector =
           completeExternalFunctions(
               testVector.orElseThrow().getVector(),
@@ -218,11 +186,47 @@ public class HarnessExporter {
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.orElseThrow())))
                   : externalFunctions);
-      codeAppender.append(vector);
+
+      // write harness content
+      StringBuilder delegateAppender = new StringBuilder();
+      CodeAppender codeAppender = new CodeAppender(delegateAppender);
+      try {
+        codeAppender.appendln("struct _IO_FILE;");
+        codeAppender.appendln("typedef struct _IO_FILE FILE;");
+        codeAppender.appendln("extern struct _IO_FILE *stderr;");
+        codeAppender.appendln(
+            "extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
+        codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
+
+        // implement error-function
+        if (errorFunction.isPresent()) {
+          codeAppender.append(errorFunction.orElseThrow());
+          codeAppender.appendln(" {");
+          codeAppender.appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
+          codeAppender.appendln("  exit(107);");
+          codeAppender.appendln("}");
+        } else {
+          codeAppender.appendln("// Could not find a call to an error function.");
+          codeAppender.appendln(
+              "// CPAchecker can not guarantee that this harness exposes the found property"
+                  + " violation.");
+        }
+
+        if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
+          // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
+          codeAppender.appendln("void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
+        }
+        codeAppender.append(vector);
+        return Optional.of(codeAppender.toString());
+      } catch (IOException e) {
+        // Only StringBuilder is used in background, so
+        // IOException from codeAppender should not be possible.
+        throw new IllegalStateException("Exception should not be possible", e);
+      }
     } else {
       logger.log(
           Level.FINE, "Could not export a test harness, some test-vector values are missing.");
-      pTarget.append("// Could not export a test harness.\n");
+      return Optional.empty();
     }
   }
 
