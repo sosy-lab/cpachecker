@@ -8,7 +8,7 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# CPAchecker Test Harness
+# Use of the CPAchecker Test Harness
 
 When CPAchecker finds a property violation, it tries to generate a test harness
 that can reproduce the found violation through test execution.
