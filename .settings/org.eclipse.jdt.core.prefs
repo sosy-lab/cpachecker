@@ -1,11 +1,3 @@
-# This file is part of CPAchecker,
-# a tool for configurable software verification:
-# https://cpachecker.sosy-lab.org
-#
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-#
-# SPDX-License-Identifier: Apache-2.0
-
 eclipse.preferences.version=1
 org.eclipse.jdt.core.builder.annotationPath.allLocations=disabled
 org.eclipse.jdt.core.codeComplete.argumentPrefixes=p
@@ -20,11 +12,11 @@ org.eclipse.jdt.core.codeComplete.staticFinalFieldPrefixes=
 org.eclipse.jdt.core.codeComplete.staticFinalFieldSuffixes=
 org.eclipse.jdt.core.compiler.annotation.inheritNullAnnotations=disabled
 org.eclipse.jdt.core.compiler.annotation.missingNonNullByDefaultAnnotation=ignore
-org.eclipse.jdt.core.compiler.annotation.nonnull=javax.annotation.Nonnull
+org.eclipse.jdt.core.compiler.annotation.nonnull=org.eclipse.jdt.annotation.NonNull
 org.eclipse.jdt.core.compiler.annotation.nonnull.secondary=
 org.eclipse.jdt.core.compiler.annotation.nonnullbydefault=org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 org.eclipse.jdt.core.compiler.annotation.nonnullbydefault.secondary=
-org.eclipse.jdt.core.compiler.annotation.nullable=javax.annotation.Nullable
+org.eclipse.jdt.core.compiler.annotation.nullable=org.eclipse.jdt.annotation.Nullable
 org.eclipse.jdt.core.compiler.annotation.nullable.secondary=
 org.eclipse.jdt.core.compiler.annotation.nullanalysis=disabled
 org.eclipse.jdt.core.compiler.codegen.inlineJsrBytecode=enabled
@@ -98,7 +90,7 @@ org.eclipse.jdt.core.compiler.problem.overridingPackageDefaultMethod=warning
 org.eclipse.jdt.core.compiler.problem.parameterAssignment=ignore
 org.eclipse.jdt.core.compiler.problem.pessimisticNullAnalysisForFreeTypeVariables=warning
 org.eclipse.jdt.core.compiler.problem.possibleAccidentalBooleanAssignment=warning
-org.eclipse.jdt.core.compiler.problem.potentialNullReference=warning
+org.eclipse.jdt.core.compiler.problem.potentialNullReference=ignore
 org.eclipse.jdt.core.compiler.problem.potentiallyUnclosedCloseable=info
 org.eclipse.jdt.core.compiler.problem.rawTypeReference=warning
 org.eclipse.jdt.core.compiler.problem.redundantNullAnnotation=warning
