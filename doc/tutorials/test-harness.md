@@ -20,42 +20,52 @@ extern void __assert_fail (const char *__assertion, const char *__file,
       unsigned int __line, const char *__function);
 
 extern int __VERIFIER_nondet_int(void);
+
+// Checks whether there are 5 or more non-prime numbers between 2 and 100.
 int main() {
-  int x = __VERIFIER_nondet_int();
-  int y = __VERIFIER_nondet_int();
-
+  int nonprimesCount = 0;
+  int lastN = 2;
   while (1) {
-    if (x > 1000) {
-      x--;
-    } else if (x < 100) {
-      x++;
-    } else {
+    // Choose a number n, greater than the last number and <= 100.
+    int choiceN = __VERIFIER_nondet_int();
+    if (choiceN <= lastN || choiceN > 100) {
       break;
     }
-  }
-  while (1) {
-    if (y < 0) {
-      y++;
-    } else if (y > 200) {
-      y--;
-    } else {
+    lastN = choiceN;
+    // Choose a number div, >= 2 and smaller than the choiceN.
+    int choiceDiv = __VERIFIER_nondet_int();
+    if (choiceDiv < 2 || choiceDiv >= choiceN) {
       break;
+    }
+    // If 'n' is divisible by 'div', it is not a prime.
+    // Then increase the non-prime counter by one.
+    if (choiceN % choiceDiv == 0) {
+      nonprimesCount++;
     }
   }
 
-  if (x * y == 39203) {
-    __assert_fail("x * y != 39203", "example_bug.c", 37, "main");
+  // If we found at least 5 non-primes, fail with an assertion.
+  if (nonprimesCount >= 5) {
+    __assert_fail("There are 5 or more non-prime numbers between 2 and 100", "example_bug.c", 39, "main");
   }
 }
-
 ```
 
 Method `__VERIFIER_nondet_int` is a special method that tells CPAchecker
 that on every call, a new, arbitrary int value is returned.  
-The program receives two arbitrary int values x and y.
-In the two loops, it ensures that 100 < x < 1000 and 0 < y < 200.
-It then checks whether x * y == 39203 is true.
-If it is, the program has a failing assertion.
+The program checks whether there are at least 5 non-prime numbers between
+2 and 100.
+It does so with a non-deterministic procedure:
+First, the program gets an arbitrary value 'choiceN'.
+This value has to be between the last choiceN (initially: 2)
+and 100. Otherwise, the procedure immediately goes to the check
+whether 5 or more non-prime numbers have been found.
+Then, the program gets an arbitrary value 'choiceDiv'.
+This value has to be between 2 and 'choiceN'.
+If 'choiceN' is divisable by 'choiceDiv',
+the program has found a non-prime number (choiceN).
+In the end, the program checks whether 5 or more non-prime numbers were found.
+If this is true, the program has a failing assertion.
 
 1. Run CPAchecker on this program, with its default analysis:
     ```
@@ -71,15 +81,15 @@ If it is, the program has a failing assertion.
     [.. snip output ..]
     Stopping analysis ... (CPAchecker.runAlgorithm, INFO)
     
-    Verification result: FALSE. Property violation (assertion in line 37: Condition "x * y != 39203" failed in "example_bug.c", line 37) found by chosen configuration.
+    Verification result: FALSE. Property violation (assertion in line 39: Condition "There are 5 or more non-prime numbers between 2 and 100" failed in "example_bug.c", line 39) found by chosen configuration.
     More details about the verification run can be found in the directory "./output".
     Graphical representation included in the file "./output/Counterexample.1.html".
     ```
     By default, CPAchecker checks for failing assertions.
     Line "Verification result: FALSE" tells us that CPAchecker figured out that
-    the failing assertion in line 10 is reachable.
+    the failing assertion in line 39 is reachable.
     It also produces a test harness `output/Counterexample.1.harness.c`
-    (the number '1' may differ for other programs):
+    (the number '1' in the file name may differ for other programs):
     ```
     struct _IO_FILE;
     typedef struct _IO_FILE FILE;
@@ -94,8 +104,17 @@ If it is, the program has a failing assertion.
       static unsigned int test_vector_index = 0;
       int retval;
       switch (test_vector_index) {
-        case 0: retval = 197; break;
-        case 1: retval = 199; break;
+        case 0: retval = 6; break;
+        case 1: retval = 3; break;
+        case 2: retval = 9; break;
+        case 3: retval = 3; break;
+        case 4: retval = 10; break;
+        case 5: retval = 2; break;
+        case 6: retval = 14; break;
+        case 7: retval = 7; break;
+        case 8: retval = 15; break;
+        case 9: retval = 3; break;
+        case 10: retval = 0; break;
       }
       ++test_vector_index;
       return retval;
@@ -105,9 +124,10 @@ If it is, the program has a failing assertion.
     1. A definition for the failing method `void __assert_fail(..)`, and
     2. A definition for the __VERIFIER_nondet_int method.
         This defines return values for __VERIFIER_nondet_int
-        that reach the failing assertion:
-        On the first call, __VERIFIER_nondet_int should return 197,
-        and on the second call, it should return 199.
+        that reach the failing assertion.
+        In our case, this is alternating numbers for 'choiceN' (6, 9, 10, 14, 15, 0)
+        and for 'choiceDiv' (3, 3, 2, 7, 3).
+        The last 'choiceN', 0, makes the program break the while-loop.
 
 2. Compile the test harness against the example program:
     ```

@@ -10,31 +10,33 @@ extern void __assert_fail (const char *__assertion, const char *__file,
       unsigned int __line, const char *__function);
 
 extern int __VERIFIER_nondet_int(void);
+
+// Checks whether there are 5 or more non-prime numbers between 2 and 100.
 int main() {
-  int x = __VERIFIER_nondet_int();
-  int y = __VERIFIER_nondet_int();
-
+  int nonprimesCount = 0;
+  int lastN = 2;
   while (1) {
-    if (x > 1000) {
-      x--;
-    } else if (x < 100) {
-      x++;
-    } else {
+    // Choose a number n, greater than the last number and <= 100.
+    int choiceN = __VERIFIER_nondet_int();
+    if (choiceN <= lastN || choiceN > 100) {
       break;
     }
-  }
-  while (1) {
-    if (y < 0) {
-      y++;
-    } else if (y > 200) {
-      y--;
-    } else {
+    lastN = choiceN;
+    // Choose a number div, >= 2 and smaller than the choiceN.
+    int choiceDiv = __VERIFIER_nondet_int();
+    if (choiceDiv < 2 || choiceDiv >= choiceN) {
       break;
+    }
+    // If 'n' is divisible by 'div', it is not a prime.
+    // Then increase the non-prime counter by one.
+    if (choiceN % choiceDiv == 0) {
+      nonprimesCount++;
     }
   }
 
-  if (x * y == 39203) {
-    __assert_fail("x * y != 39203", "example_bug.c", 37, "main");
+  // If we found at least 5 non-primes, fail with an assertion.
+  if (nonprimesCount >= 5) {
+    __assert_fail("There are 5 or more non-prime numbers between 2 and 100", "example_bug.c", 39, "main");
   }
 }
 
