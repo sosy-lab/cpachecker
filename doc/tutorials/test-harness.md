@@ -121,7 +121,10 @@ If this is true, the program has a failing assertion.
     }
     ```
     The test harness consists of two parts:
-    1. A definition for the failing method `void __assert_fail(..)`, and
+    1. A definition for the failing method `void __assert_fail(..)`.
+       If the property violation is not because a certain error-method like __assert_fail was reached,
+       there will be no such definition. In this case, the property violation must be observed by the user's own means.
+       Examples for this are labels `ERROR:` or certain return values.
     2. A definition for the __VERIFIER_nondet_int method.
         This defines return values for __VERIFIER_nondet_int
         that reach the failing assertion.
