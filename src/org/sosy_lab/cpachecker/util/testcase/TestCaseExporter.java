@@ -260,7 +260,7 @@ public class TestCaseExporter {
                       harnessExporter.writeHarness(
                           rootState, relevantStates, relevantEdges, pCexInfo);
                   if (harness.isPresent()) {
-                    writer.write(harness.get());
+                    writer.write(harness.orElseThrow());
                   }
                   break;
                 default:
