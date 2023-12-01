@@ -874,6 +874,9 @@ public class HarnessExporter {
     if (canonicalType instanceof CElaboratedType) {
       return ((CElaboratedType) canonicalType).getKind() == ComplexTypeKind.ENUM;
     }
+    if (canonicalType instanceof CFunctionType) {
+      return false;
+    }
     return true;
   }
 
