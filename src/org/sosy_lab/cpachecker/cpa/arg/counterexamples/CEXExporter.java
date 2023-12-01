@@ -377,17 +377,11 @@ public class CEXExporter {
       }
     }
 
-    writeErrorPathFile(
-        options.getTestHarnessFile(),
-        uniqueId,
-        (Appender)
-            pAppendable ->
-                harnessExporter.writeHarness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample));
+    Optional<String> harness =
+        harnessExporter.writeHarness(
+            rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+    harness.ifPresent(
+        content -> writeErrorPathFile(options.getTestHarnessFile(), uniqueId, content));
 
     if (options.exportToTest() && testExporter != null) {
       testExporter.writeTestCaseFiles(counterexample, Optional.empty());
