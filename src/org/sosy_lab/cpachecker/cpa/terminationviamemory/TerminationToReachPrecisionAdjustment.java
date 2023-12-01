@@ -99,7 +99,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           continue;
         }
         if (isTargetStateReachable) {
-          // This analysis may be imprecise if the program contains pointers. We return UNKNOWN instead.
+          // This analysis may be imprecise if the program contains pointers. We return UNKNOWN
+          // instead.
           // TODO: Implement pointers handling.
           if (programContainsPointers(ssaMap)) {
             return Optional.of(result.withAction(Action.BREAK));
