@@ -167,7 +167,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   public TerminationStatistics(
       Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
 
