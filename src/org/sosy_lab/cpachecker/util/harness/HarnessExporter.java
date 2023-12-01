@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -333,21 +334,33 @@ public class HarnessExporter {
         return Optional.of(new TargetTestVector(lastEdge, previous.testVector));
       }
       ARGState parent = previous.argState;
-      Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
       for (ARGState child : parent.getChildren()) {
         if (pIsRelevantState.apply(child) && pIsRelevantEdge.test(parent, child)) {
-          Iterable<CFANode> childLocs = AbstractStates.extractLocations(child);
-          for (CFANode parentLoc : parentLocs) {
-            for (CFANode childLoc : childLocs) {
-              if (parentLoc.hasEdgeTo(childLoc)) {
-                CFAEdge edge = parentLoc.getEdgeTo(childLoc);
-                Optional<State> nextState = computeNextState(previous, child, edge, pValueMap);
-                if (nextState.isPresent() && visited.add(nextState.orElseThrow())) {
-                  stack.push(nextState.orElseThrow());
-                  lastEdgeStack.push(edge);
-                }
-              }
+          // if parent and child are relevant,
+          // try to match the assumptions in pValueMap and any control automaton
+          // with nondet function calls on the CFA edges between parent and child.
+          // Any match is a new element for the test vector.
+          List<CFAEdge> edges = parent.getEdgesToChild(child);
+          State lastSuccInSequence = previous;
+          boolean sequenceHandledSuccessfully = true;
+          for (CFAEdge edge : edges) {
+            // 'computeNextState' currently always returns a state with the child ARG state,
+            // so we have to build our own state with the parent ARG state (for matching
+            // assumptions)
+            // but the current test vector (to not lose information)
+            Optional<State> nextState =
+                computeNextState(
+                    new State(parent, lastSuccInSequence.testVector), child, edge, pValueMap);
+            if (nextState.isEmpty()) {
+              sequenceHandledSuccessfully = false;
+              break;
             }
+            lastSuccInSequence = nextState.orElseThrow();
+          }
+          if (sequenceHandledSuccessfully && visited.add(lastSuccInSequence)) {
+            stack.push(lastSuccInSequence);
+            CFAEdge lastEdgeInSequence = edges.get(edges.size() - 1);
+            lastEdgeStack.push(lastEdgeInSequence);
           }
         }
       }
