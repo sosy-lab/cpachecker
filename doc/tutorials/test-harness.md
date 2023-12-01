@@ -134,7 +134,7 @@ If this is true, the program has a failing assertion.
 
 2. Compile the test harness against the example program:
     ```
-    gcc output/Counterexample.1.harness.c doc/examples/example_bug.c -o ./testviolation
+    gcc -include doc/examples/example_bug.c output/Counterexample.1.harness.c -o ./testviolation
     ```
     This produces executable `./testviolation`.
 
