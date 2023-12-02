@@ -129,25 +129,30 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try & catch blocks
-  private Deque<Boolean> inTryBlock = new ArrayDeque<>();
-  private boolean inCatchBlock = false;
-  private Deque<Integer> numberCatchesNested = new ArrayDeque<>();
-  private int numberCatches = 0;
+  private boolean checkForExceptionHandling = true;
+  private boolean inFinally = false;
 
-  private Deque<CFANode> helperNotNull = new ArrayDeque<>();
-  private Deque<CFANode> afterStatement = new ArrayDeque<>();
-  private Deque<CFANode> endOfCatch = new ArrayDeque<>();
+  private List<CFANode> helperNotNullNodeList = new ArrayList<>();
+  private Deque<CFANode> exceptionIsNotInstance = new ArrayDeque<>();
+  private Deque<CFANode> exceptionEndOfFinally = new ArrayDeque<>();
 
-  private Deque<CFANode> nextCatchBlockOrError = new ArrayDeque<>();
-  private Deque<Boolean> firstCatchBlock = new ArrayDeque<>();
-
-  private Deque<Boolean> finallyExists = new ArrayDeque<>();
-  private boolean currentlyInFinally = false;
-  private CFANode nestedFinallyIncorrect = null;
-  private int isNested = 0;
+  /**
+   * private Deque<Integer> numberCatchesNested = new ArrayDeque<>(); private int numberCatches = 0;
+   *
+   * <p>private Deque<CFANode> helperNotNull = new ArrayDeque<>(); private Deque<CFANode>
+   * afterStatement = new ArrayDeque<>(); private Deque<CFANode> endOfCatch = new ArrayDeque<>();
+   *
+   * <p>private Deque<CFANode> nextCatchBlockOrError = new ArrayDeque<>(); private Deque<Boolean>
+   * firstCatchBlock = new ArrayDeque<>();
+   *
+   * <p>private Deque<Boolean> finallyExists = new ArrayDeque<>(); private boolean
+   * currentlyInFinally = false; private CFANode nestedFinallyIncorrect = null; private int isNested
+   * = 0;
+   */
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
+
   private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues =
       new HashMap<>();
 
@@ -346,13 +351,19 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode lastNode = locStack.pop();
 
-    if (!endOfCatch.isEmpty()) {
-      for (int i = 0; i < endOfCatch.size(); i++) {
-        CFANode temp = (CFANode) endOfCatch.toArray()[i];
-        BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, temp, lastNode, "");
+    if (!exceptionIsNotInstance.isEmpty() || !exceptionEndOfFinally.isEmpty()) {
+      for (CFANode excNotInstance : exceptionIsNotInstance) {
+        CFANode start = excNotInstance;
+        BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, start, lastNode, "");
         addToCFA(bEdge);
       }
-      endOfCatch.clear();
+      exceptionIsNotInstance.clear();
+      for (CFANode excNotInstance : exceptionEndOfFinally) {
+        CFANode start = excNotInstance;
+        BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, start, lastNode, "");
+        addToCFA(bEdge);
+      }
+      exceptionEndOfFinally.clear();
     }
 
     // During method CFA construction, every function entry node must have a function exit node
@@ -834,8 +845,7 @@ class CFAMethodBuilder extends ASTVisitor {
         locStack.push(lastNode);
       }
 
-      if (!currentlyInFinally
-          && !inCatchBlock
+      if (checkForExceptionHandling
           && expressionStatement
               .getExpression()
               .getClass()
@@ -844,24 +854,7 @@ class CFAMethodBuilder extends ASTVisitor {
         CFANode current = locStack.pop();
 
         CFANode nodeAfterStatement = new CFANode(cfa.getFunction());
-        afterStatement.push(nodeAfterStatement);
         cfaNodes.add(nodeAfterStatement);
-
-        if (nestedFinallyIncorrect != null) {
-          BlankEdge tempCurrent =
-              new BlankEdge("", FileLocation.DUMMY, nestedFinallyIncorrect, current, "");
-          addToCFA(tempCurrent);
-          nestedFinallyIncorrect = null;
-        }
-
-        /*CFANode end = null;
-        if (helperNotNull.isEmpty()) {
-          end = new CFANode(cfa.getFunction());
-          cfaNodes.add(end);
-          endOfCatch.add(end);
-        } else {
-          end = helperNotNull.peek();
-        }*/
 
         addExceptionCheck(current, nodeAfterStatement);
 
@@ -2730,270 +2723,14 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(TryStatement tryStatement) {
-
-    boolean tempInFinally = currentlyInFinally;
-    boolean tempInCatch = inCatchBlock;
-    currentlyInFinally = false;
-    inCatchBlock = false;
-    isNested += 1;
-
-    CFANode helperNotNullNode = new CFANode(cfa.getFunction());
-    helperNotNull.push(helperNotNullNode);
-    cfaNodes.add(helperNotNullNode);
-
-    inTryBlock.push(true);
-    tryStatement.getBody().accept(this);
-    inTryBlock.pop();
-
-    if (!numberCatchesNested.isEmpty()) {
-      numberCatchesNested.pop();
-      numberCatchesNested.push(numberCatches);
-    }
-
-    numberCatchesNested.push(tryStatement.catchClauses().size());
-
-    numberCatches = numberCatchesNested.peek();
-
-    for (int i = 0; i < tryStatement.catchClauses().size(); i++) {
-      if (i == (tryStatement.catchClauses().size() - 1)) {
-        firstCatchBlock.addFirst(true);
-      } else {
-        firstCatchBlock.addFirst(false);
-      }
-    }
-
-    if (tryStatement.getFinally() != null) {
-      finallyExists.addFirst(true);
-    } else {
-      finallyExists.addFirst(false);
-    }
-
-    for (Object cc : tryStatement.catchClauses()) {
-      ((CatchClause) cc).accept(this);
-    }
-
-    currentlyInFinally = tempInFinally;
-
-    if (tryStatement.getFinally() != null) {
-      handleFinallyBlock(tryStatement.getFinally(), tempInFinally, tempInCatch);
-    }
-    isNested -= 1;
-    inCatchBlock = tempInCatch;
-    return SKIP_CHILDREN;
-  }
-
-  @Override
-  public void endVisit(TryStatement tryStatement) {
-    helperNotNull.pop();
-  }
-
-  private void handleFinallyBlock(
-      Block finallyBlock, boolean nestedInFinally, boolean nestedInCatch) {
-    boolean oldCurrentlyInFinally = currentlyInFinally;
-    currentlyInFinally = true;
-    finallyBlock.accept(this);
-    CFANode currentAfterCorrect = locStack.pop();
-
-    CFANode beforeIncorrect = nextCatchBlockOrError.pop();
-    locStack.push(beforeIncorrect);
-    finallyBlock.accept(this);
-    CFANode currentAfterIncorrect = locStack.pop();
-
-    if (isNested > 1 && !nestedInFinally && !nestedInCatch) {
-      nestedFinallyIncorrect = currentAfterIncorrect;
-    } else {
-      nextCatchBlockOrError.addLast(currentAfterIncorrect);
-    }
-
-    locStack.push(currentAfterCorrect);
-
-    handleEndOfCatch();
-
-    if (isNested == 1) {
-      currentlyInFinally = false;
-    } else {
-      currentlyInFinally = oldCurrentlyInFinally;
-    }
-  }
-
-  @Override
-  public boolean visit(CatchClause cc) {
-
-    inCatchBlock = true;
-
-    JClassType exceptionClassType = (JClassType) astCreator.convert(cc.getException()).getType();
-
-    JExpression catchException = null;
-
-    if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
-      catchException =
-          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
-              .getRunTimeTypeEqualsExpression(exceptionClassType);
-    } else {
-      catchException =
-          HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
-    }
-
-    JStatement exception = HelperVariable.getInstance().getInstanceOfStatement(exceptionClassType);
-
-    CFANode dummyExceptionEquals = new CFANode(cfa.getFunction());
-    cfaNodes.add(dummyExceptionEquals);
-
-    CFANode afterCurrentCatch = new CFANode(cfa.getFunction());
-    nextCatchBlockOrError.addFirst(afterCurrentCatch);
-    cfaNodes.add(afterCurrentCatch);
-
-    CFANode start = null;
-
-    if (firstCatchBlock.pop()) {
-      start = helperNotNull.peek();
-    } else {
-      start = locStack.pop();
-    }
-
-    JAssumeEdge exceptionIsNotInstance =
-        new JAssumeEdge(
-            exception.toString(),
-            FileLocation.DUMMY,
-            start,
-            nextCatchBlockOrError.peek(),
-            catchException,
-            false);
-    addToCFA(exceptionIsNotInstance);
-
-    JAssumeEdge exceptionIsInstance =
-        new JAssumeEdge(
-            exception.toString(),
-            FileLocation.DUMMY,
-            start,
-            dummyExceptionEquals,
-            catchException,
-            true);
-    addToCFA(exceptionIsInstance);
-
-    locStack.push(dummyExceptionEquals);
-
-    JDeclaration declaration = astCreator.convert(cc.getException());
-    JClassType type = (JClassType) astCreator.convert(cc.getException().getType());
-    FileLocation fileLoc = astCreator.getFileLocation(cc.getException());
-
-    CFANode prevNode = locStack.pop();
-
-    CFANode nextNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(nextNode);
-
-    final JDeclarationEdge edge =
-        new JDeclarationEdge(
-            cc.getException().toString(), fileLoc, prevNode, nextNode, declaration);
-    addToCFA(edge);
-
-    scope.registerDeclarationOfThisClass(declaration);
-
-    locStack.push(nextNode);
-
-    CFANode afterDeclaration = new CFANode(cfa.getFunction());
-    cfaNodes.add(afterDeclaration);
-
-    JExpressionAssignmentStatement exceptionDeclaration =
-        setVariableRightSideExpression(
-            fileLoc,
-            type,
-            cc.getException().getName().toString(),
-            declaration,
-            HelperVariable.getInstance().getCurrentHelperIdExpression());
-
-    JStatementEdge assignmentEdge =
-        new JStatementEdge(
-            exceptionDeclaration.toString(),
-            exceptionDeclaration,
-            FileLocation.DUMMY,
-            locStack.pop(),
-            afterDeclaration);
-    addToCFA(assignmentEdge);
-
-    locStack.push(afterDeclaration);
-
-    CFANode afterHelperNull = new CFANode(cfa.getFunction());
-    cfaNodes.add(afterHelperNull);
-    setHelperNull(afterHelperNull);
-    locStack.push(afterHelperNull);
-
-    cc.getBody().accept(this);
-    return SKIP_CHILDREN;
-  }
-
-  private void setHelperNull(CFANode next) {
-    CFANode current = locStack.pop();
-
-    JExpressionAssignmentStatement helperNullAssignment =
-        HelperVariable.getInstance().getHelperIsNull();
-
-    JStatementEdge edge =
-        new JStatementEdge(
-            helperNullAssignment.toString(),
-            helperNullAssignment,
-            FileLocation.DUMMY,
-            current,
-            next);
-
-    addToCFA(edge);
-  }
-
-  private JExpressionAssignmentStatement setVariableRightSideExpression(
-      FileLocation fileL, JType type, String name, JSimpleDeclaration dec, JExpression expression) {
-    JLeftHandSide helperLeft = new JIdExpression(fileL, type, name, dec);
-
-    JExpressionAssignmentStatement helperExpression =
-        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
-
-    return helperExpression;
-  }
-
-  @Override
-  public void endVisit(CatchClause cc) {
-    inCatchBlock = false;
-    numberCatches = numberCatches - 1;
-
-    CFANode current = locStack.pop();
-
-    if (!finallyExists.peek()) {
-      BlankEdge temp = new BlankEdge("", FileLocation.DUMMY, current, locStack.peek(), "");
-      addToCFA(temp);
-      handleEndOfCatch();
-    } else { // TODO look at else case because it can probably be handled better than that
-      BlankEdge tempCurrent = new BlankEdge("", FileLocation.DUMMY, current, locStack.peek(), "");
-      addToCFA(tempCurrent);
-    }
-  }
-
-  private void handleEndOfCatch() {
-    if (numberCatches != 0) {
-      locStack.push(nextCatchBlockOrError.pop());
-    } else {
-      numberCatchesNested.pop();
-      if (!numberCatchesNested.isEmpty()) {
-        numberCatches = numberCatchesNested.peek();
-      }
-      if (!nextCatchBlockOrError.isEmpty() && isNested == 1) {
-        endOfCatch.addAll(nextCatchBlockOrError);
-        nextCatchBlockOrError.clear();
-      }
-    }
-  }
-
-  @Override
   public boolean visit(ThrowStatement throwStatement) {
 
     TypeHierarchy th = scope.getTypeHierarchy();
-
     FileLocation throwLocation = astCreator.getFileLocation(throwStatement);
 
     CFANode prevNode = locStack.pop();
     CFANode throwNode = new CFANode(cfa.getFunction());
-
     cfaNodes.add(throwNode);
-
     locStack.push(throwNode);
 
     JExpression exceptionExpression =
@@ -3024,13 +2761,20 @@ class CFAMethodBuilder extends ASTVisitor {
 
     addToCFA(edge);
 
-    if (!inTryBlock.isEmpty() && inTryBlock.peek()) {
+    if (checkForExceptionHandling) {
       CFANode current = locStack.pop();
       CFANode nodeAfterStatement = new CFANode(cfa.getFunction());
-      afterStatement.push(nodeAfterStatement);
       cfaNodes.add(nodeAfterStatement);
 
       addExceptionCheck(current, nodeAfterStatement);
+
+      /*
+       * CFANode erronousPath = new CFANode(cfa.getFunction());
+       * cfaNodes.add(erronousPath);
+       * exceptionIsNotInstance.push(erronousPath);
+       */
+
+      // exceptionEndOfFinally.push(exceptionIsNotInstance.pop());
 
       locStack.push(nodeAfterStatement);
     }
@@ -3038,14 +2782,259 @@ class CFAMethodBuilder extends ASTVisitor {
     return SKIP_CHILDREN;
   }
 
+  @Override
+  public boolean visit(TryStatement tryStatement) {
+
+    boolean tempInFinally = inFinally;
+    inFinally = false;
+    boolean tempCheckForExceptionHandling = checkForExceptionHandling;
+
+    CFANode helperNotNullNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(helperNotNullNode);
+    helperNotNullNodeList.add(helperNotNullNode);
+
+    CFANode erronousExceptionPath = new CFANode(cfa.getFunction());
+    cfaNodes.add(erronousExceptionPath);
+    exceptionIsNotInstance.push(erronousExceptionPath);
+
+    checkForExceptionHandling = true;
+
+    tryStatement.getBody().accept(this);
+
+    checkForExceptionHandling = false;
+
+    if (exceptionIsNotInstance.size() > 1) {
+      for (Object cc : tryStatement.catchClauses()) {
+        ((CatchClause) cc).accept(this);
+    }
+
+      helperNotNullNodeList.remove(helperNotNullNodeList.size() - 1);
+
+      if (tryStatement.getFinally() != null) {
+        handleFinallyBlock(tryStatement.getFinally());
+        if (tempInFinally) {
+          exceptionIsNotInstance.addLast(exceptionEndOfFinally.pop());
+        }
+      }
+
+      if (tempCheckForExceptionHandling && helperNotNullNodeList.size() > 0) {
+        CFANode start = null;
+        if (exceptionEndOfFinally.size() > 0) {
+          start = exceptionEndOfFinally.pop();
+      } else {
+          start = exceptionIsNotInstance.pop();
+      }
+        CFANode end = helperNotNullNodeList.get(helperNotNullNodeList.size() - 1);
+        BlankEdge edge = new BlankEdge("", FileLocation.DUMMY, start, end, "");
+        addToCFA(edge);
+    }
+    } else {
+      helperNotNullNodeList.remove(helperNotNullNodeList.size() - 1);
+      exceptionIsNotInstance.pop();
+    }
+
+    checkForExceptionHandling = tempCheckForExceptionHandling;
+
+    return SKIP_CHILDREN;
+  }
+
+  @Override
+  public boolean visit(CatchClause cc) {
+
+    addExceptionInstanceOfEdges(cc);
+
+    declareExceptionVariable(cc);
+
+    setHelperVariableToNull();
+
+    cc.getBody().accept(this);
+
+    return SKIP_CHILDREN;
+  }
+
+  @Override
+  public void endVisit(CatchClause cc) {
+
+    CFANode current = locStack.pop();
+    CFANode nodeAfterCatchBlock = locStack.peek();
+
+    BlankEdge temp = new BlankEdge("", FileLocation.DUMMY, current, nodeAfterCatchBlock, "");
+    addToCFA(temp);
+  }
+
+  private void handleFinallyBlock(Block finallyBlock) {
+
+    inFinally = true;
+
+    // add finally block to the exceptionIsInstance path
+    finallyBlock.accept(this);
+    CFANode currentAfterCorrect = locStack.pop();
+
+    // add finally block to the exceptionIsNotInstance path
+    CFANode incorrectBranchStartNode = exceptionIsNotInstance.pop();
+
+    if (exceptionEndOfFinally.size() > 0) {
+      CFANode outerIncorrectBranchStartNode = exceptionEndOfFinally.pop();
+      BlankEdge temp =
+          new BlankEdge(
+              "", FileLocation.DUMMY, outerIncorrectBranchStartNode, incorrectBranchStartNode, "");
+      addToCFA(temp);
+    }
+
+    locStack.push(incorrectBranchStartNode);
+    finallyBlock.accept(this);
+    CFANode incorrectBranchEndNode = locStack.pop();
+    exceptionEndOfFinally.push(incorrectBranchEndNode);
+
+    // continue after exceptionIsInstance finally block
+    locStack.push(currentAfterCorrect);
+
+    inFinally = false;
+  }
+
+  private void setHelperVariableToNull() {
+    CFANode afterHelperNull = new CFANode(cfa.getFunction());
+    cfaNodes.add(afterHelperNull);
+    setHelperNull(afterHelperNull);
+    locStack.push(afterHelperNull);
+  }
+
+  private void addExceptionInstanceOfEdges(CatchClause cc) {
+    JClassType exceptionClassType = (JClassType) astCreator.convert(cc.getException()).getType();
+
+    JExpression catchException = getExceptionInformation(exceptionClassType);
+
+    JStatement exception = HelperVariable.getInstance().getInstanceOfStatement(exceptionClassType);
+
+    CFANode start = exceptionIsNotInstance.pop();
+
+    CFANode exceptionEqualsNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(exceptionEqualsNode);
+
+    CFANode afterCurrentCatch = null;
+    if (!exceptionIsNotInstance.isEmpty()) {
+      afterCurrentCatch = exceptionIsNotInstance.peek();
+    } else {
+      CFANode node = new CFANode(cfa.getFunction());
+      cfaNodes.add(node);
+      afterCurrentCatch = node;
+      exceptionIsNotInstance.add(node);
+    }
+
+    JAssumeEdge exceptionIsNotInstanceEdge =
+        new JAssumeEdge(
+            exception.toString(),
+            FileLocation.DUMMY,
+            start,
+            afterCurrentCatch,
+            catchException,
+            false);
+    addToCFA(exceptionIsNotInstanceEdge);
+
+    JAssumeEdge exceptionIsInstanceEdge =
+        new JAssumeEdge(
+            exception.toString(),
+            FileLocation.DUMMY,
+            start,
+            exceptionEqualsNode,
+            catchException,
+            true);
+    addToCFA(exceptionIsInstanceEdge);
+
+    locStack.push(exceptionEqualsNode);
+  }
+
+  private void declareExceptionVariable(CatchClause cc) {
+    JDeclaration declaration = astCreator.convert(cc.getException());
+    JClassType type = (JClassType) astCreator.convert(cc.getException().getType());
+    FileLocation fileLoc = astCreator.getFileLocation(cc.getException());
+
+    CFANode prevNode = locStack.pop();
+
+    CFANode nextNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(nextNode);
+
+    final JDeclarationEdge edge =
+        new JDeclarationEdge(
+            cc.getException().toString(), fileLoc, prevNode, nextNode, declaration);
+    addToCFA(edge);
+
+    scope.registerDeclarationOfThisClass(declaration);
+
+    CFANode afterDeclaration = new CFANode(cfa.getFunction());
+    cfaNodes.add(afterDeclaration);
+
+    JExpressionAssignmentStatement exceptionDeclaration =
+        setVariableRightSideExpression(
+            fileLoc,
+            type,
+            cc.getException().getName().toString(),
+            declaration,
+            HelperVariable.getInstance().getCurrentHelperIdExpression());
+
+    JStatementEdge assignmentEdge =
+        new JStatementEdge(
+            exceptionDeclaration.toString(),
+            exceptionDeclaration,
+            FileLocation.DUMMY,
+            nextNode,
+            afterDeclaration);
+    addToCFA(assignmentEdge);
+
+    locStack.push(afterDeclaration);
+  }
+
+  private JExpression getExceptionInformation(JClassType exceptionClassType) {
+    JExpression catchException = null;
+
+    if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
+      catchException =
+          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .getRunTimeTypeEqualsExpression(exceptionClassType);
+    } else {
+      catchException =
+          HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
+    }
+
+    return catchException;
+  }
+
+  private void setHelperNull(CFANode next) {
+    CFANode current = locStack.pop();
+
+    JExpressionAssignmentStatement helperNullAssignment =
+        HelperVariable.getInstance().getHelperIsNull();
+
+    JStatementEdge edge =
+        new JStatementEdge(
+            helperNullAssignment.toString(),
+            helperNullAssignment,
+            FileLocation.DUMMY,
+            current,
+            next);
+
+    addToCFA(edge);
+  }
+
+  private JExpressionAssignmentStatement setVariableRightSideExpression(
+      FileLocation fileL, JType type, String name, JSimpleDeclaration dec, JExpression expression) {
+    JLeftHandSide helperLeft = new JIdExpression(fileL, type, name, dec);
+
+    JExpressionAssignmentStatement helperExpression =
+        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
+
+    return helperExpression;
+  }
+
   private void addExceptionCheck(CFANode start, CFANode nodeAfterStatement) {
+
     CFANode end = null;
-    if (helperNotNull.isEmpty()) {
+
+    if (helperNotNullNodeList.isEmpty()) {
       end = new CFANode(cfa.getFunction());
       cfaNodes.add(end);
-      endOfCatch.add(end);
     } else {
-      end = helperNotNull.peek();
+      end = helperNotNullNodeList.get(helperNotNullNodeList.size() - 1);
     }
 
     JStatement helperNotEqualsStatement = null;
@@ -3083,5 +3072,9 @@ class CFAMethodBuilder extends ASTVisitor {
             helperNotEqualsExpression,
             true);
     addToCFA(notEqualsNullTrue);
+
+    if (!exceptionIsNotInstance.contains(end)) {
+      exceptionIsNotInstance.push(end);
+    }
   }
 }
