@@ -136,20 +136,6 @@ class CFAMethodBuilder extends ASTVisitor {
   private Deque<CFANode> exceptionIsNotInstance = new ArrayDeque<>();
   private Deque<CFANode> exceptionEndOfFinally = new ArrayDeque<>();
 
-  /**
-   * private Deque<Integer> numberCatchesNested = new ArrayDeque<>(); private int numberCatches = 0;
-   *
-   * <p>private Deque<CFANode> helperNotNull = new ArrayDeque<>(); private Deque<CFANode>
-   * afterStatement = new ArrayDeque<>(); private Deque<CFANode> endOfCatch = new ArrayDeque<>();
-   *
-   * <p>private Deque<CFANode> nextCatchBlockOrError = new ArrayDeque<>(); private Deque<Boolean>
-   * firstCatchBlock = new ArrayDeque<>();
-   *
-   * <p>private Deque<Boolean> finallyExists = new ArrayDeque<>(); private boolean
-   * currentlyInFinally = false; private CFANode nestedFinallyIncorrect = null; private int isNested
-   * = 0;
-   */
-
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
 
