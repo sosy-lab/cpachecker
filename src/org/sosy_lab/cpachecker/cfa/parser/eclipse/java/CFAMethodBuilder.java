@@ -2791,7 +2791,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
       if (tempCheckForExceptionHandling && helperNotNullNodeList.size() > 0) {
         CFANode start = null;
-        if (exceptionEndOfFinallyNodes.size() > 0) {
+        if (!exceptionEndOfFinallyNodes.isEmpty()) {
           start = exceptionEndOfFinallyNodes.pop();
         } else {
           start = exceptionIsThrownButNotInstanceNodes.pop();
@@ -2850,7 +2850,7 @@ class CFAMethodBuilder extends ASTVisitor {
     // add finally block to the exceptionIsNotInstance path
     CFANode incorrectBranchStartNode = exceptionIsThrownButNotInstanceNodes.pop();
 
-    if (exceptionEndOfFinallyNodes.size() > 0) {
+    if (!exceptionEndOfFinallyNodes.isEmpty()) {
       CFANode outerIncorrectBranchStartNode = exceptionEndOfFinallyNodes.pop();
       BlankEdge temp =
           new BlankEdge(
