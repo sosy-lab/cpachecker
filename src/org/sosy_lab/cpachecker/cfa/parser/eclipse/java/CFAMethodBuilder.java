@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.java.HelperVariable;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExceptionHelperVariableSupport;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -2730,11 +2730,11 @@ class CFAMethodBuilder extends ASTVisitor {
     if (th.containsClassType("java.lang.Throwable")) {
 
       currentHelperAssignment =
-          HelperVariable.getInstance(th.getClassType("java.lang.Throwable"))
+          JExceptionHelperVariableSupport.getInstance(th.getClassType("java.lang.Throwable"))
               .setHelperRightSideExpression(exceptionExpression);
     } else {
       currentHelperAssignment =
-          HelperVariable.getInstance().setHelperRightSideExpression(exceptionExpression);
+          JExceptionHelperVariableSupport.getInstance().setHelperRightSideExpression(exceptionExpression);
     }
 
     JStatementEdge edge =
@@ -2890,7 +2890,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JExpression catchException = getExceptionInformation(exceptionClassType);
 
-    JStatement exception = HelperVariable.getInstance().getInstanceOfStatement(exceptionClassType);
+    JStatement exception = JExceptionHelperVariableSupport.getInstance().getInstanceOfStatement(exceptionClassType);
 
     CFANode start = exceptionIsNotInstance.pop();
 
@@ -2956,7 +2956,7 @@ class CFAMethodBuilder extends ASTVisitor {
             type,
             cc.getException().getName().toString(),
             declaration,
-            HelperVariable.getInstance().getCurrentHelperIdExpression());
+            JExceptionHelperVariableSupport.getInstance().getCurrentHelperIdExpression());
 
     JStatementEdge assignmentEdge =
         new JStatementEdge(
@@ -2975,11 +2975,11 @@ class CFAMethodBuilder extends ASTVisitor {
 
     if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
       catchException =
-          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
-              .getRunTimeTypeEqualsExpression(exceptionClassType);
+          JExceptionHelperVariableSupport.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .getHelperRunTimeTypeEqualsExpression(exceptionClassType);
     } else {
       catchException =
-          HelperVariable.getInstance().getRunTimeTypeEqualsExpression(exceptionClassType);
+          JExceptionHelperVariableSupport.getInstance().getHelperRunTimeTypeEqualsExpression(exceptionClassType);
     }
 
     return catchException;
@@ -2989,7 +2989,7 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode current = locStack.pop();
 
     JExpressionAssignmentStatement helperNullAssignment =
-        HelperVariable.getInstance().getHelperIsNull();
+        JExceptionHelperVariableSupport.getInstance().getHelperIsNull();
 
     JStatementEdge edge =
         new JStatementEdge(
@@ -3028,14 +3028,14 @@ class CFAMethodBuilder extends ASTVisitor {
 
     if (scope.getTypeHierarchy().containsClassType("java.lang.Throwable")) {
       helperNotEqualsStatement =
-          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
-              .helperNotEqualsStatement();
+          JExceptionHelperVariableSupport.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+              .helperNotEqualsNullStatement();
       helperNotEqualsExpression =
-          HelperVariable.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
+          JExceptionHelperVariableSupport.getInstance(scope.getTypeHierarchy().getClassType("java.lang.Throwable"))
               .helperNotEqualsExpression();
     } else {
-      helperNotEqualsStatement = HelperVariable.getInstance().helperNotEqualsStatement();
-      helperNotEqualsExpression = HelperVariable.getInstance().helperNotEqualsExpression();
+      helperNotEqualsStatement = JExceptionHelperVariableSupport.getInstance().helperNotEqualsNullStatement();
+      helperNotEqualsExpression = JExceptionHelperVariableSupport.getInstance().helperNotEqualsExpression();
     }
 
     JAssumeEdge notEqualsNullFalse =

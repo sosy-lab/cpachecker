@@ -16,15 +16,18 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
-// TODO better variable names and check variable visibility
-public class HelperVariable {
+/**
+ * Adds methods to support the exception variable, including setting the variable to zero or
+ * assigning a value to the variable.
+ */
+public class JExceptionHelperVariableSupport {
 
-  private static HelperVariable instance = null;
+  private static JExceptionHelperVariableSupport instance = null;
   private JClassType currentType = JClassType.createUnresolvableType();
   private JFieldDeclaration helperFieldDeclaration;
   private JClassType throwableInstance = null;
 
-  private HelperVariable() {
+  private JExceptionHelperVariableSupport() {
     helperFieldDeclaration =
         new JFieldDeclaration(
             FileLocation.DUMMY,
@@ -38,7 +41,7 @@ public class HelperVariable {
             VisibilityModifier.PUBLIC);
   }
 
-  private HelperVariable(JClassType jct) {
+  private JExceptionHelperVariableSupport(JClassType jct) {
     helperFieldDeclaration =
         new JFieldDeclaration(
             FileLocation.DUMMY,
@@ -54,16 +57,16 @@ public class HelperVariable {
     throwableInstance = jct;
   }
 
-  public static HelperVariable getInstance() {
+  public static JExceptionHelperVariableSupport getInstance() {
     if (instance == null) {
-      instance = new HelperVariable();
+      instance = new JExceptionHelperVariableSupport();
     }
     return instance;
   }
 
-  public static HelperVariable getInstance(JClassType throwable) {
+  public static JExceptionHelperVariableSupport getInstance(JClassType throwable) {
     if (instance == null) {
-      instance = new HelperVariable(throwable);
+      instance = new JExceptionHelperVariableSupport(throwable);
     }
     return instance;
   }
@@ -97,6 +100,11 @@ public class HelperVariable {
     return throwableInstance;
   }
 
+  /**
+   * Returns a JBinaryExpression for the null check
+   *
+   * @return JBinaryExpression that compares the helper field to a null value
+   */
   public JExpression helperNotEqualsExpression() {
 
     JIdExpression helperIdExpression =
@@ -125,7 +133,12 @@ public class HelperVariable {
     return helperNotEqualsExpression;
   }
 
-  public JStatement helperNotEqualsStatement() {
+  /**
+   * Statement that contains a check if the helper variable is null
+   *
+   * @return JStatement with check if helper variable is null
+   */
+  public JStatement helperNotEqualsNullStatement() {
 
     JExpression helperNotEqualsExpression = helperNotEqualsExpression();
 
@@ -135,6 +148,11 @@ public class HelperVariable {
     return helperNotEqualsTemp;
   }
 
+  /**
+   * Get current JIdExpression of helper variable
+   *
+   * @return JIdExpression of helper variable with current type
+   */
   public JIdExpression getCurrentHelperIdExpression() {
     JIdExpression helperIdExpression =
         new JIdExpression(
@@ -146,7 +164,13 @@ public class HelperVariable {
     return helperIdExpression;
   }
 
-  public JInstanceOfType getRunTimeTypeEqualsExpression(JClassType exception) {
+  /**
+   * Check if runtime type of exception is an instance of the classtype of another exception
+   *
+   * @param exception classtype of exception that is compared to the helper variable
+   * @return JInstanceOfType that includes check if runtime types are equal
+   */
+  public JInstanceOfType getHelperRunTimeTypeEqualsExpression(JClassType exception) {
     JIdExpression helperIdExpression = getCurrentHelperIdExpression();
 
     JRunTimeTypeExpression helperRunTimeType =
@@ -155,12 +179,26 @@ public class HelperVariable {
     return new JInstanceOfType(FileLocation.DUMMY, helperRunTimeType, exception);
   }
 
+  /**
+   * Produce JStatement that includes the expression that checks if helper is an instance of the
+   * JClassType of an exception
+   *
+   * @param exception exception classtype that gets compare to helper
+   * @return JStatement with a JInstanceOfType that includes the helper and the classtype of another
+   *     exception
+   */
   public JStatement getInstanceOfStatement(JClassType exception) {
 
-    JInstanceOfType runTimeTypeEquals = getRunTimeTypeEqualsExpression(exception);
+    JInstanceOfType runTimeTypeEquals = getHelperRunTimeTypeEqualsExpression(exception);
     return new JExpressionStatement(FileLocation.DUMMY, runTimeTypeEquals);
   }
 
+  /**
+   * Set helper to null
+   *
+   * @return JExpressionAssignmentStatement that represent the assignment of the null value to the
+   *     helper variable
+   */
   public JExpressionAssignmentStatement getHelperIsNull() {
     JNullLiteralExpression nullExpression = new JNullLiteralExpression(FileLocation.DUMMY);
 
@@ -177,6 +215,12 @@ public class HelperVariable {
     return helperNull;
   }
 
+  /**
+   * Assign value to helper variable
+   *
+   * @param expression expression of throw statement
+   * @return JExpressionAssignmentStatement with helpervariable after value got assigned to it
+   */
   public JExpressionAssignmentStatement setHelperRightSideExpression(JExpression expression) {
     JLeftHandSide helperLeft = getCurrentHelperIdExpression();
 
