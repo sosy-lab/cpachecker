@@ -2789,7 +2789,7 @@ class CFAMethodBuilder extends ASTVisitor {
         }
       }
 
-      if (tempCheckForExceptionHandling && helperNotNullNodeList.size() > 0) {
+      if (tempCheckForExceptionHandling && !helperNotNullNodeList.isEmpty()) {
         CFANode start = null;
         if (!exceptionEndOfFinallyNodes.isEmpty()) {
           start = exceptionEndOfFinallyNodes.pop();
