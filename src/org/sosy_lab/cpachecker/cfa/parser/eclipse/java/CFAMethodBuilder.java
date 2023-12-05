@@ -2714,7 +2714,6 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(ThrowStatement throwStatement) {
 
-    TypeHierarchy th = scope.getTypeHierarchy();
     FileLocation throwLocation = astCreator.getFileLocation(throwStatement);
 
     CFANode prevNode = locStack.pop();
