@@ -25,7 +25,7 @@ public class JExceptionHelperVariableSupport {
   private static JExceptionHelperVariableSupport instance = null;
   private JClassType currentType = JClassType.createUnresolvableType();
   private final JFieldDeclaration helperFieldDeclaration;
-  private JClassType throwableClassType;
+  private final JClassType throwableClassType;
 
   private JExceptionHelperVariableSupport() {
     throwableClassType = getThrowable();
