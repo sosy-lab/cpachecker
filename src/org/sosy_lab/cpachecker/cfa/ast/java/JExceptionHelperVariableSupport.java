@@ -168,7 +168,7 @@ public class JExceptionHelperVariableSupport {
    * @return JExpressionAssignmentStatement that represent the assignment of the null value to the
    *     helper variable
    */
-  public JExpressionAssignmentStatement getHelperIsNull() {
+  public JExpressionAssignmentStatement setExceptionHelperVariableToNull() {
     JNullLiteralExpression nullExpression = new JNullLiteralExpression(FileLocation.DUMMY);
 
     JLeftHandSide helperLeft =
