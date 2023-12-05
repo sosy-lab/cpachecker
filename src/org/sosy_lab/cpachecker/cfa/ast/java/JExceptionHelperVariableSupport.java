@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.HashSet;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
@@ -50,18 +50,11 @@ public class JExceptionHelperVariableSupport {
   }
 
   private JClassType getThrowable() {
-      Set<JInterfaceType> extendsSerializable = new HashSet<>();
+    JInterfaceType serializable =
+        JInterfaceType.valueOf(
+            "java.io.Serializable", "Serializable", VisibilityModifier.PUBLIC, ImmutableSet.of());
 
-      JInterfaceType serializable =
-          JInterfaceType.valueOf(
-              "java.io.Serializable",
-              "Serializable",
-              VisibilityModifier.PUBLIC,
-              extendsSerializable);
-
-      Set<JInterfaceType> throwableInterfaces = new HashSet<>();
-
-      throwableInterfaces.add(serializable);
+    Set<JInterfaceType> throwableInterfaces = ImmutableSet.of(serializable);
 
     JClassType throwableTemp =
         JClassType.valueOf(
