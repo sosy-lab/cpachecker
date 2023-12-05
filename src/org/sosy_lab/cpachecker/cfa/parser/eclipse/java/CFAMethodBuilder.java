@@ -2779,7 +2779,7 @@ class CFAMethodBuilder extends ASTVisitor {
     if (exceptionIsThrownButNotInstanceNodes.size() > 1) {
       for (Object cc : tryStatement.catchClauses()) {
         ((CatchClause) cc).accept(this);
-    }
+      }
 
       helperNotNullNodeList.remove(helperNotNullNodeList.size() - 1);
 
@@ -2794,13 +2794,13 @@ class CFAMethodBuilder extends ASTVisitor {
         CFANode start = null;
         if (exceptionEndOfFinallyNodes.size() > 0) {
           start = exceptionEndOfFinallyNodes.pop();
-      } else {
+        } else {
           start = exceptionIsThrownButNotInstanceNodes.pop();
-      }
+        }
         CFANode end = helperNotNullNodeList.get(helperNotNullNodeList.size() - 1);
         BlankEdge edge = new BlankEdge("", FileLocation.DUMMY, start, end, "");
         addToCFA(edge);
-    }
+      }
     } else {
       helperNotNullNodeList.remove(helperNotNullNodeList.size() - 1);
       exceptionIsThrownButNotInstanceNodes.pop();
@@ -2983,7 +2983,8 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode current = locStack.pop();
 
-    JExpressionAssignmentStatement helperNullAssignment = exceptionHelperVariable.setExceptionHelperVariableToNull();
+    JExpressionAssignmentStatement helperNullAssignment =
+        exceptionHelperVariable.setExceptionHelperVariableToNull();
 
     JStatementEdge edge =
         new JStatementEdge(
