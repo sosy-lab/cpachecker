@@ -25,13 +25,14 @@ public class JExceptionHelperVariableSupport {
   private static JExceptionHelperVariableSupport instance = null;
   private JClassType currentType = JClassType.createUnresolvableType();
   private JFieldDeclaration helperFieldDeclaration;
-  private JClassType throwableInstance = null;
+  private JClassType throwableClassType;
 
   private JExceptionHelperVariableSupport() {
+    throwableClassType = getThrowable();
     helperFieldDeclaration =
         new JFieldDeclaration(
             FileLocation.DUMMY,
-            getThrowableInstance(),
+            throwableClassType,
             "CPAchecker_Exception_helper",
             "exception_helper",
             false,
@@ -39,22 +40,6 @@ public class JExceptionHelperVariableSupport {
             false,
             false,
             VisibilityModifier.PUBLIC);
-  }
-
-  private JExceptionHelperVariableSupport(JClassType jct) {
-    helperFieldDeclaration =
-        new JFieldDeclaration(
-            FileLocation.DUMMY,
-            jct,
-            "CPAchecker_Exception_helper",
-            "exception_helper",
-            false,
-            true,
-            false,
-            false,
-            VisibilityModifier.PUBLIC);
-
-    throwableInstance = jct;
   }
 
   public static JExceptionHelperVariableSupport getInstance() {
@@ -64,15 +49,7 @@ public class JExceptionHelperVariableSupport {
     return instance;
   }
 
-  public static JExceptionHelperVariableSupport getInstance(JClassType throwable) {
-    if (instance == null) {
-      instance = new JExceptionHelperVariableSupport(throwable);
-    }
-    return instance;
-  }
-
-  private JClassType getThrowableInstance() {
-    if (throwableInstance == null) {
+  private JClassType getThrowable() {
       Set<JInterfaceType> extendsSerializable = new HashSet<>();
 
       JInterfaceType serializable =
@@ -86,18 +63,17 @@ public class JExceptionHelperVariableSupport {
 
       throwableInterfaces.add(serializable);
 
-      throwableInstance =
-          JClassType.valueOf(
-              "java.lang.Throwable",
-              "Throwable",
-              VisibilityModifier.PUBLIC,
-              false,
-              false,
-              false,
-              JClassType.getTypeOfObject(),
-              throwableInterfaces);
-    }
-    return throwableInstance;
+    JClassType throwableTemp =
+        JClassType.valueOf(
+            "java.lang.Throwable",
+            "Throwable",
+            VisibilityModifier.PUBLIC,
+            false,
+            false,
+            false,
+            JClassType.getTypeOfObject(),
+            throwableInterfaces);
+    return throwableTemp;
   }
 
   /**
@@ -205,7 +181,7 @@ public class JExceptionHelperVariableSupport {
     JLeftHandSide helperLeft =
         new JIdExpression(
             FileLocation.DUMMY,
-            getThrowableInstance(),
+            throwableClassType,
             helperFieldDeclaration.getName(),
             helperFieldDeclaration);
 
@@ -236,10 +212,6 @@ public class JExceptionHelperVariableSupport {
 
   public void setCurrentJClassType(JClassType type) {
     currentType = type;
-  }
-
-  public void setThrowableInstance(JClassType type) {
-    throwableInstance = type;
   }
 
   public JClassType getCurrentClassType() {
