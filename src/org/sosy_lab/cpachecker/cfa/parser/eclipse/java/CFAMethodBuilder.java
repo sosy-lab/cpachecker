@@ -2784,7 +2784,7 @@ class CFAMethodBuilder extends ASTVisitor {
       helperNotNullNodeList.remove(helperNotNullNodeList.size() - 1);
 
       if (tryStatement.getFinally() != null) {
-        handleFinallyBlock(tryStatement.getFinally());
+        addFinallyBlockContentToCFA(tryStatement.getFinally());
         if (tempInFinally) {
           exceptionIsThrownButNotInstanceNodes.addLast(exceptionEndOfFinallyNodes.pop());
         }
@@ -2814,9 +2814,9 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(CatchClause cc) {
 
-    addExceptionInstanceOfEdges(cc);
+    addExceptionInstanceOfEdgesToCFA(cc);
 
-    declareExceptionVariable(cc);
+    declareCatchFormalParameter(cc);
 
     setExceptionHelperNullInCFA();
 
@@ -2835,7 +2835,12 @@ class CFAMethodBuilder extends ASTVisitor {
     addToCFA(temp);
   }
 
-  private void handleFinallyBlock(Block finallyBlock) {
+  /**
+   * Adds content of finally block to CFA
+   *
+   * @param finallyBlock Code that has to be added to CFA
+   */
+  private void addFinallyBlockContentToCFA(Block finallyBlock) {
 
     inFinallyBlock = true;
 
@@ -2865,10 +2870,15 @@ class CFAMethodBuilder extends ASTVisitor {
     inFinallyBlock = false;
   }
 
-  private void addExceptionInstanceOfEdges(CatchClause cc) {
+  /**
+   * Add conditional statements of the instanceof type to the CFA
+   *
+   * @param cc CatchClause that has informations used for instanceof edge
+   */
+  private void addExceptionInstanceOfEdgesToCFA(CatchClause cc) {
     JClassType exceptionClassType = (JClassType) astCreator.convert(cc.getException()).getType();
 
-    JExpression catchException = getExceptionInformation(exceptionClassType);
+    JExpression catchException = getExceptionInstanceOfExpression(exceptionClassType);
 
     JStatement exception = exceptionHelperVariable.getInstanceOfStatement(exceptionClassType);
 
@@ -2910,7 +2920,13 @@ class CFAMethodBuilder extends ASTVisitor {
     locStack.push(exceptionEqualsNode);
   }
 
-  private void declareExceptionVariable(CatchClause cc) {
+  /**
+   * Declare variable that represents CatchFormalParameter and assign exception helper variable to
+   * the new variable
+   *
+   * @param cc CatchClause that includes CatchFormalParameter
+   */
+  private void declareCatchFormalParameter(CatchClause cc) {
     JDeclaration declaration = astCreator.convert(cc.getException());
     JClassType type = (JClassType) astCreator.convert(cc.getException().getType());
     FileLocation fileLoc = astCreator.getFileLocation(cc.getException());
@@ -2950,7 +2966,13 @@ class CFAMethodBuilder extends ASTVisitor {
     locStack.push(afterDeclaration);
   }
 
-  private JExpression getExceptionInformation(JClassType exceptionClassType) {
+  /**
+   * Get expression that represents instanceof between exception helper variable and a classtype
+   *
+   * @param exceptionClassType Right side in instanceof operation
+   * @return JInstanceOfType including the helperVariable and exceptionClassType
+   */
+  private JExpression getExceptionInstanceOfExpression(JClassType exceptionClassType) {
     return exceptionHelperVariable.getHelperRunTimeTypeEqualsExpression(exceptionClassType);
   }
 
@@ -2986,6 +3008,12 @@ class CFAMethodBuilder extends ASTVisitor {
     return helperExpression;
   }
 
+  /**
+   * Adds check conditional statements that check if exception occurred
+   *
+   * @param start Node where check starts
+   * @param nodeAfterStatement Next node in normal execution flow
+   */
   private void addExceptionCheck(CFANode start, CFANode nodeAfterStatement) {
 
     CFANode end = null;
