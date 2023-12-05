@@ -92,7 +92,7 @@ public class AutomatonYAMLParser {
 
   @Option(
       secure = true,
-      name = "matchOffsetsWhenCreatingViolationAutomaton",
+      name = "matchOffsetsWhenCreatingViolationAutomatonFromYAML",
       description =
           "If true the offsets will be matched when creating an automaton to validate Violation"
               + " witnesses. If false only the lines will be matched.")

@@ -37,7 +37,7 @@ COMPILE_ARGS_FIXED = ["-D__alias__(x)="]
 """List of compiler arguments that are always passed to the compiler."""
 
 # Strings used to match expected error messages
-EXPECTED_ERRMSG_REACH = "cpa_witness2test: violation"
+EXPECTED_ERRMSG_REACH = "CPAchecker test harness: property violation reached"
 EXPECTED_ERRMSG_OVERFLOW = "runtime error:"
 EXPECTED_ERRMSG_MEM_FREE = "ERROR: AddressSanitizer: attempting free"
 EXPECTED_ERRMSG_MEM_DEREF = "ERROR: AddressSanitizer:"
@@ -290,16 +290,17 @@ def _create_cpachecker_args(args, harness_output_dir):
             cpachecker_args.remove(compile_arg)
 
     cpachecker_args.append("-witness2test")
-    index_of_outputpath_param = cpachecker_args.index("-outputpath")
-    if index_of_outputpath_param >= 0:
+    try:
+        index_of_outputpath_param = cpachecker_args.index("-outputpath")
+    except ValueError:
+        cpachecker_args += ["-outputpath", harness_output_dir]
+    else:
         assert (index_of_outputpath_param + 1) < len(cpachecker_args), (
             "Parameter -outputpath is missing an argument: " + cpachecker_args
         )
         # Replace existing argument of outputpath with harness_output_dir,
         # so that the harness is written there for compilation.
         cpachecker_args[index_of_outputpath_param + 1] = harness_output_dir
-    else:
-        cpachecker_args += ["-outputpath", harness_output_dir]
 
     return cpachecker_args
 

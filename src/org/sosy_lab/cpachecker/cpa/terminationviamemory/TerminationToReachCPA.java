@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * visiting state.
  */
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
-  private FormulaManagerView fmgr;
-  private BooleanFormulaManagerView bfmgr;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
   private final PrecisionAdjustment precisionAdjustment;
   private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
   private final TerminationToReachStatistics statistics;

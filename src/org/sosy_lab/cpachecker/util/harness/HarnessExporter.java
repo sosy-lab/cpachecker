@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Objects;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
@@ -126,9 +126,11 @@ import org.sosy_lab.cpachecker.util.testcase.TestVector.TargetTestVector;
 @Options(prefix = "testHarnessExport")
 public class HarnessExporter {
 
+  private record State(ARGState argState, TestVector testVector) {}
+
   private static final String TMP_VAR = "__tmp_var";
 
-  private static final String ERR_MSG = "cpa_witness2test: violation";
+  private static final String ERR_MSG = "CPAchecker test harness: property violation reached";
 
   private final CFA cfa;
 
@@ -152,13 +154,22 @@ public class HarnessExporter {
     pConfig.inject(this);
   }
 
-  public void writeHarness(
-      Appendable pTarget,
+  /**
+   * Write a new test harness from the given counterexample info to the target appendable.
+   *
+   * @param pRootState root state of the ARG.
+   * @param pIsRelevantState predicate that filters relevant states. Should be a predicate that only
+   *     includes states on a single target path.
+   * @param pIsRelevantEdge predicate that filters relevant edges. Should be a predicate that only
+   *     includes edges on a single target path.
+   * @param pCounterexampleInfo the counterexample to extract test vectors from
+   * @return the harness code. Returns <code>empty</code> if no harness could be generated.
+   */
+  public Optional<String> writeHarness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      CounterexampleInfo pCounterexampleInfo)
-      throws IOException {
+      CounterexampleInfo pCounterexampleInfo) {
 
     // Find a path with sufficient test vector info
     Optional<TargetTestVector> testVector =
@@ -168,34 +179,8 @@ public class HarnessExporter {
 
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
 
-      CodeAppender codeAppender = new CodeAppender(pTarget);
-
-      codeAppender.appendln("struct _IO_FILE;");
-      codeAppender.appendln("typedef struct _IO_FILE FILE;");
-      codeAppender.appendln("extern struct _IO_FILE *stderr;");
-      codeAppender.appendln(
-          "extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
-      codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
-
-      // implement error-function
       CFAEdge edgeToTarget = testVector.orElseThrow().getEdgeToTarget();
       Optional<AFunctionDeclaration> errorFunction = getErrorFunction(edgeToTarget);
-      if (errorFunction.isPresent()) {
-        codeAppender.append(errorFunction.orElseThrow());
-        codeAppender.appendln(" {");
-        codeAppender.appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
-        codeAppender.appendln("  exit(107);");
-        codeAppender.appendln("}");
-      } else {
-        logger.log(Level.WARNING, "Could not find a call to an error function.");
-      }
-
-      if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
-        // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
-        codeAppender.appendln("void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
-      }
-
-      // implement actual harness
       TestVector vector =
           completeExternalFunctions(
               testVector.orElseThrow().getVector(),
@@ -203,10 +188,47 @@ public class HarnessExporter {
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.orElseThrow())))
                   : externalFunctions);
-      codeAppender.append(vector);
+
+      // write harness content
+      StringBuilder delegateAppender = new StringBuilder();
+      CodeAppender codeAppender = new CodeAppender(delegateAppender);
+      try {
+        codeAppender.appendln("struct _IO_FILE;");
+        codeAppender.appendln("typedef struct _IO_FILE FILE;");
+        codeAppender.appendln("extern struct _IO_FILE *stderr;");
+        codeAppender.appendln(
+            "extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
+        codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
+
+        // implement error-function
+        if (errorFunction.isPresent()) {
+          codeAppender.append(errorFunction.orElseThrow());
+          codeAppender.appendln(" {");
+          codeAppender.appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
+          codeAppender.appendln("  exit(107);");
+          codeAppender.appendln("}");
+        } else {
+          codeAppender.appendln("// Could not find a call to an error function.");
+          codeAppender.appendln(
+              "// CPAchecker can not guarantee that this harness exposes the found property"
+                  + " violation.");
+        }
+
+        if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
+          // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
+          codeAppender.appendln("void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
+        }
+        codeAppender.append(vector);
+        return Optional.of(codeAppender.toString());
+      } catch (IOException e) {
+        // Only StringBuilder is used in background, so
+        // IOException from codeAppender should not be possible.
+        throw new IllegalStateException("Exception should not be possible", e);
+      }
     } else {
       logger.log(
-          Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
+          Level.FINE, "Could not export a test harness, some test-vector values are missing.");
+      return Optional.empty();
     }
   }
 
@@ -296,38 +318,49 @@ public class HarnessExporter {
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-    Set<State> visited = new HashSet<>();
     Deque<State> stack = new ArrayDeque<>();
     Deque<CFAEdge> lastEdgeStack = new ArrayDeque<>();
-    stack.push(State.of(pRootState, TestVector.newTestVector()));
-    visited.addAll(stack);
+    stack.push(new State(pRootState, TestVector.newTestVector()));
+    Set<State> visited = new HashSet<>(stack);
     while (!stack.isEmpty()) {
       State previous = stack.pop();
       CFAEdge lastEdge = null;
       if (!lastEdgeStack.isEmpty()) {
         lastEdge = lastEdgeStack.pop();
       }
-      if (AbstractStates.isTargetState(previous.argState)) {
+      if (AbstractStates.isTargetState(previous.argState())) {
         assert lastEdge != null
             : "Expected target state to be different from root state, but was not";
-        return Optional.of(new TargetTestVector(lastEdge, previous.testVector));
+        return Optional.of(new TargetTestVector(lastEdge, previous.testVector()));
       }
-      ARGState parent = previous.argState;
-      Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
+      ARGState parent = previous.argState();
       for (ARGState child : parent.getChildren()) {
         if (pIsRelevantState.apply(child) && pIsRelevantEdge.test(parent, child)) {
-          Iterable<CFANode> childLocs = AbstractStates.extractLocations(child);
-          for (CFANode parentLoc : parentLocs) {
-            for (CFANode childLoc : childLocs) {
-              if (parentLoc.hasEdgeTo(childLoc)) {
-                CFAEdge edge = parentLoc.getEdgeTo(childLoc);
-                Optional<State> nextState = computeNextState(previous, child, edge, pValueMap);
-                if (nextState.isPresent() && visited.add(nextState.orElseThrow())) {
-                  stack.push(nextState.orElseThrow());
-                  lastEdgeStack.push(edge);
-                }
-              }
+          // if parent and child are relevant,
+          // try to match the assumptions in pValueMap and any control automaton
+          // with nondet function calls on the CFA edges between parent and child.
+          // Any match is a new element for the test vector.
+          List<CFAEdge> edges = parent.getEdgesToChild(child);
+          State lastSuccInSequence = previous;
+          boolean sequenceHandledSuccessfully = true;
+          for (CFAEdge edge : edges) {
+            // 'computeNextState' currently always returns a state with the child ARG state,
+            // so we have to build our own state with the parent ARG state (for matching
+            // assumptions)
+            // but the current test vector (to not lose information)
+            Optional<State> nextState =
+                computeNextState(
+                    new State(parent, lastSuccInSequence.testVector()), child, edge, pValueMap);
+            if (nextState.isEmpty()) {
+              sequenceHandledSuccessfully = false;
+              break;
             }
+            lastSuccInSequence = nextState.orElseThrow();
+          }
+          if (sequenceHandledSuccessfully && visited.add(lastSuccInSequence)) {
+            stack.push(lastSuccInSequence);
+            CFAEdge lastEdgeInSequence = edges.get(edges.size() - 1);
+            lastEdgeStack.push(lastEdgeInSequence);
           }
         }
       }
@@ -345,7 +378,7 @@ public class HarnessExporter {
     } else if (pEdge instanceof ADeclarationEdge declarationEdge) {
       return handleDeclarationEdge(pPrevious, pChild, declarationEdge, pValueMap);
     }
-    return Optional.of(State.of(pChild, pPrevious.testVector));
+    return Optional.of(new State(pChild, pPrevious.testVector));
   }
 
   private Optional<State> handleStatementEdge(
@@ -411,7 +444,7 @@ public class HarnessExporter {
         }
       }
     }
-    return Optional.of(State.of(pChild, pPrevious.testVector));
+    return Optional.of(new State(pChild, pPrevious.testVector()));
   }
 
   private Optional<State> handleDeclarationEdge(
@@ -432,24 +465,27 @@ public class HarnessExporter {
       Type canonicalType = getCanonicalType(type);
       if (canonicalType instanceof CPointerType) {
         return Optional.of(
-            State.of(pChild, handlePointerDeclaration(pPrevious.testVector, variableDeclaration)));
+            new State(
+                pChild, handlePointerDeclaration(pPrevious.testVector(), variableDeclaration)));
       }
       if (canonicalType instanceof CCompositeType) {
         return Optional.of(
-            State.of(
-                pChild, handleCompositeDeclaration(pPrevious.testVector, variableDeclaration)));
+            new State(
+                pChild, handleCompositeDeclaration(pPrevious.testVector(), variableDeclaration)));
       }
       if (canonicalType instanceof CArrayType) {
         return Optional.of(
-            State.of(pChild, handleArrayDeclaration(pPrevious.testVector, variableDeclaration)));
+            new State(pChild, handleArrayDeclaration(pPrevious.testVector(), variableDeclaration)));
       }
       return Optional.of(
-          State.of(
+          new State(
               pChild,
-              pPrevious.testVector.addInputValue(
-                  variableDeclaration, getDummyInitializer(variableDeclaration.getType()))));
+              pPrevious
+                  .testVector()
+                  .addInputValue(
+                      variableDeclaration, getDummyInitializer(variableDeclaration.getType()))));
     }
-    return Optional.of(State.of(pChild, pPrevious.testVector));
+    return Optional.of(new State(pChild, pPrevious.testVector()));
   }
 
   private static boolean isSupported(@Nullable AFunctionDeclaration pDeclaration) {
@@ -546,7 +582,7 @@ public class HarnessExporter {
           Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
             AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.orElseThrow());
-            return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
+            return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector())));
           }
         }
       }
@@ -568,15 +604,15 @@ public class HarnessExporter {
   private Optional<State> handlePlainFunctionCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression functionCallExpression) {
     TestVector newTestVector =
-        addDummyValue(pPrevious.testVector, functionCallExpression.getDeclaration());
-    return Optional.of(State.of(pChild, newTestVector));
+        addDummyValue(pPrevious.testVector(), functionCallExpression.getDeclaration());
+    return Optional.of(new State(pChild, newTestVector));
   }
 
   private Optional<State> handlePointerCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression pFunctionCallExpression) {
     TestVector newTestVector =
-        handlePointerCall(pPrevious.testVector, pFunctionCallExpression.getDeclaration());
-    return Optional.of(State.of(pChild, newTestVector));
+        handlePointerCall(pPrevious.testVector(), pFunctionCallExpression.getDeclaration());
+    return Optional.of(new State(pChild, newTestVector));
   }
 
   private TestVector handlePointerCall(TestVector pTestVector, AFunctionDeclaration pDeclaration) {
@@ -642,8 +678,8 @@ public class HarnessExporter {
   private Optional<State> handleCompositeCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression pFunctionCallExpression) {
     AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
-    TestVector newTestVector = handleCompositeCall(pPrevious.testVector, declaration);
-    return Optional.of(State.of(pChild, newTestVector));
+    TestVector newTestVector = handleCompositeCall(pPrevious.testVector(), declaration);
+    return Optional.of(new State(pChild, newTestVector));
   }
 
   private TestVector handleCompositeCall(
@@ -838,6 +874,9 @@ public class HarnessExporter {
     if (canonicalType instanceof CElaboratedType) {
       return ((CElaboratedType) canonicalType).getKind() == ComplexTypeKind.ENUM;
     }
+    if (canonicalType instanceof CFunctionType) {
+      return false;
+    }
     return true;
   }
 
@@ -904,41 +943,5 @@ public class HarnessExporter {
       return Optional.of(binOp.getOperand1());
     }
     return Optional.empty();
-  }
-
-  private static class State {
-
-    private final ARGState argState;
-
-    private final TestVector testVector;
-
-    private State(ARGState pARGState, TestVector pTestVector) {
-      argState = Objects.requireNonNull(pARGState);
-      testVector = Objects.requireNonNull(pTestVector);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(argState, testVector);
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (this == pObj) {
-        return true;
-      }
-      return pObj instanceof State other
-          && argState.equals(other.argState)
-          && testVector.equals(other.testVector);
-    }
-
-    @Override
-    public String toString() {
-      return "(" + argState + ", " + testVector + ")";
-    }
-
-    public static State of(ARGState pARGState, TestVector pTestVector) {
-      return new State(pARGState, pTestVector);
-    }
   }
 }
