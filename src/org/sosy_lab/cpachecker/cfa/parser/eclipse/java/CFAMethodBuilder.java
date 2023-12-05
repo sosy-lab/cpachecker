@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExceptionHelperVariableSupport;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -66,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExceptionHelperVariableSupport;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
@@ -2753,14 +2753,6 @@ class CFAMethodBuilder extends ASTVisitor {
       cfaNodes.add(nodeAfterStatement);
 
       addExceptionCheck(current, nodeAfterStatement);
-
-      /*
-       * CFANode erronousPath = new CFANode(cfa.getFunction());
-       * cfaNodes.add(erronousPath);
-       * exceptionIsNotInstance.push(erronousPath);
-       */
-
-      // exceptionEndOfFinally.push(exceptionIsNotInstance.pop());
 
       locStack.push(nodeAfterStatement);
     }
