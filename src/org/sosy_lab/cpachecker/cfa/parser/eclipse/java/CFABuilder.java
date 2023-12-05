@@ -28,8 +28,8 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExceptionHelperVariableSupport;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExceptionHelperVariableSupport;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -96,8 +96,12 @@ class CFABuilder extends ASTVisitor {
       result.add(Pair.of(declaration, entry.getKey()));
     }
 
+    // Add global static exception helper variable to CFA
     result.add(
-        Pair.of((ADeclaration) JExceptionHelperVariableSupport.getInstance().getHelperFieldDeclaration(), "helper"));
+        Pair.of(
+            (ADeclaration)
+                JExceptionHelperVariableSupport.getInstance().getHelperFieldDeclaration(),
+            "helper"));
 
     return result;
   }
