@@ -23,6 +23,7 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -655,20 +656,45 @@ public class HarnessExporter {
       CPointerType pType, CExpression pTargetSize, boolean pIsGlobal) {
     if (pIsGlobal) {
       String varName = TMP_VAR + "_" + idGenerator.getFreshId();
-      CVariableDeclaration tmpDeclaration =
-          new CVariableDeclaration(
-              FileLocation.DUMMY,
-              true,
-              CStorageClass.AUTO,
-              pType.getType(),
-              varName,
-              varName,
-              varName,
-              (CInitializer) getDummyInitializer(pType.getType()));
-      CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
-      return ExpressionTestValue.of(
-          Collections.singletonList(tmpDeclaration),
-          new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
+      if (pType.getType() instanceof CFunctionType innerType) {
+        List<CType> parameterTypes = innerType.getParameters();
+        List<CParameterDeclaration> parameters = new ArrayList<>(parameterTypes.size());
+        for (int i = 0; i < parameterTypes.size(); i++) {
+          // If the innerType is a CFunctionTypeWithNames,
+          // the parameters names we provide here may not be used.
+          // Instead, the original parameter names of innerType will be used.
+          // We ignore this here, because (a) we do not care about concrete names,
+          // and (b) because we should not use CFunctionTypeWithNames explicitly,
+          // outside the cfa package.
+          CType parameterType = parameterTypes.get(i);
+          String parameterName = "p" + i;
+          CParameterDeclaration parameterDeclaration =
+              new CParameterDeclaration(FileLocation.DUMMY, parameterType, parameterName);
+          parameters.add(parameterDeclaration);
+        }
+        CFunctionDeclaration tmpDeclaration =
+            new CFunctionDeclaration(
+                FileLocation.DUMMY, innerType, varName, parameters, ImmutableSet.of());
+        CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
+        return ExpressionTestValue.of(
+            Collections.singletonList(tmpDeclaration),
+            new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
+      } else {
+        CVariableDeclaration tmpDeclaration =
+            new CVariableDeclaration(
+                FileLocation.DUMMY,
+                true,
+                CStorageClass.AUTO,
+                pType.getType(),
+                varName,
+                varName,
+                varName,
+                (CInitializer) getDummyInitializer(pType.getType()));
+        CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
+        return ExpressionTestValue.of(
+            Collections.singletonList(tmpDeclaration),
+            new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
+      }
     }
     ExpressionTestValue pointerValue =
         assignMallocToTmpVariable(pTargetSize, pType.getType(), false);
