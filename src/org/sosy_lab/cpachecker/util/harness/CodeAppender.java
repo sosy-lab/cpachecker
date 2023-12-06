@@ -23,6 +23,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -199,7 +201,24 @@ class CodeAppender implements Appendable {
       Type returnType = inputFunction.getType().getReturnType();
       append(inputFunction);
       appendln(" {");
-      if (!returnType.equals(CVoidType.VOID)) {
+      if (inputFunction instanceof CFunctionDeclaration cDeclaration
+          && cDeclaration.getAttributes().contains(FunctionAttribute.NO_RETURN)) {
+        // if the function has attribute __noreturn__, make sure
+        // that our added definition does not return. There are two major ways to do this:
+        // 1. Run into a loop that never terminates.
+        // 2. exit/abort.
+        // We exit so that we get fast feedback from our test when a noreturn method is called.
+        String functionName = inputFunction.getName();
+        appendln(
+            "  fprintf(stderr, \"Called method "
+                + functionName
+                + " that has attribute noreturn.\\n\");");
+        // The 1 has no special meaning; it's just as good as 2 or 100, because we do not know
+        // what other status codes are used in the program.
+        // We do not use 0 to avoid confusion with the 'normal' return value that signals
+        // that everything is fine.
+        appendln("  exit(1);");
+      } else if (!returnType.equals(CVoidType.VOID)) {
         String inputFunctionVectorIndexName = "test_vector_index";
         if (inputValues.size() > 1) {
           appendVectorIndexDeclaration(inputFunctionVectorIndexName);
