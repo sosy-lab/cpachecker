@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.testcase.ExpressionTestValue;
 import org.sosy_lab.cpachecker.util.testcase.InitializerTestValue;
 import org.sosy_lab.cpachecker.util.testcase.TestValue;
+import org.sosy_lab.cpachecker.util.testcase.TestValue.AuxiliaryStatement;
 import org.sosy_lab.cpachecker.util.testcase.TestVector;
 
 class CodeAppender implements Appendable {
@@ -98,8 +98,8 @@ class CodeAppender implements Appendable {
       if (pEnclose) {
         appendable.append("{ ");
       }
-      for (AAstNode auxiliaryStatement : pValue.getAuxiliaryStatements()) {
-        appendable.append(auxiliaryStatement.toASTString());
+      for (AuxiliaryStatement auxiliaryStatement : pValue.getAuxiliaryStatements()) {
+        appendable.append(auxiliaryStatement.code());
         if (pEnclose) {
           appendable.append(" ");
         } else {
@@ -155,12 +155,12 @@ class CodeAppender implements Appendable {
   public CodeAppender append(TestVector pVector) throws IOException {
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
-      List<AAstNode> auxiliaryStatmenets = inputValue.getAuxiliaryStatements();
+      List<AuxiliaryStatement> auxiliaryStatements = inputValue.getAuxiliaryStatements();
       Type type = PredefinedTypes.getCanonicalType(inputVariable.getType());
       boolean requiresInitialization = HarnessExporter.canInitialize(type);
-      if (requiresInitialization && !auxiliaryStatmenets.isEmpty()) {
-        for (AAstNode statement : inputValue.getAuxiliaryStatements()) {
-          appendln(statement.toASTString());
+      if (requiresInitialization && !auxiliaryStatements.isEmpty()) {
+        for (AuxiliaryStatement statement : auxiliaryStatements) {
+          appendln(statement.code());
         }
       }
       final AInitializer initializer;

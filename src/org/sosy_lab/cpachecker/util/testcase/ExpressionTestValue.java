@@ -10,14 +10,14 @@ package org.sosy_lab.cpachecker.util.testcase;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 public class ExpressionTestValue extends TestValue {
 
   private final AExpression value;
 
-  private ExpressionTestValue(ImmutableList<AAstNode> pAuxiliaryStatements, AExpression pValue) {
+  private ExpressionTestValue(
+      ImmutableList<AuxiliaryStatement> pAuxiliaryStatements, AExpression pValue) {
     super(pAuxiliaryStatements, pValue);
     value = pValue;
   }
@@ -31,7 +31,12 @@ public class ExpressionTestValue extends TestValue {
     return of(ImmutableList.of(), pValue);
   }
 
-  public static ExpressionTestValue of(List<AAstNode> pAuxiliaryStatments, AExpression pValue) {
+  public static ExpressionTestValue of(
+      List<AuxiliaryStatement> pAuxiliaryStatments, AExpression pValue) {
     return new ExpressionTestValue(ImmutableList.copyOf(pAuxiliaryStatments), pValue);
+  }
+
+  public static ExpressionTestValue of(AuxiliaryStatement pAuxiliaryStatments, AExpression pValue) {
+    return new ExpressionTestValue(ImmutableList.of(pAuxiliaryStatments), pValue);
   }
 }

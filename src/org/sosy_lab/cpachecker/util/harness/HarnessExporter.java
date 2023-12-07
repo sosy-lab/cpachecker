@@ -121,6 +121,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.testcase.ExpressionTestValue;
 import org.sosy_lab.cpachecker.util.testcase.InitializerTestValue;
 import org.sosy_lab.cpachecker.util.testcase.TestValue;
+import org.sosy_lab.cpachecker.util.testcase.TestValue.AuxiliaryStatement;
 import org.sosy_lab.cpachecker.util.testcase.TestVector;
 import org.sosy_lab.cpachecker.util.testcase.TestVector.TargetTestVector;
 
@@ -676,8 +677,9 @@ public class HarnessExporter {
             new CFunctionDeclaration(
                 FileLocation.DUMMY, innerType, varName, parameters, ImmutableSet.of());
         CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
+        String functionDefinition = getDummyFunctionDefinition(tmpDeclaration);
         return ExpressionTestValue.of(
-            Collections.singletonList(tmpDeclaration),
+            new AuxiliaryStatement(functionDefinition),
             new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
       } else {
         CVariableDeclaration tmpDeclaration =
@@ -692,13 +694,37 @@ public class HarnessExporter {
                 (CInitializer) getDummyInitializer(pType.getType()));
         CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
         return ExpressionTestValue.of(
-            Collections.singletonList(tmpDeclaration),
+            new AuxiliaryStatement(tmpDeclaration.toASTString()),
             new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
       }
     }
     ExpressionTestValue pointerValue =
         assignMallocToTmpVariable(pTargetSize, pType.getType(), false);
     return ExpressionTestValue.of(pointerValue.getAuxiliaryStatements(), pointerValue.getValue());
+  }
+
+  private String getDummyFunctionDefinition(CFunctionDeclaration pDeclaration) {
+    String functionSignature = getFunctionSignature(pDeclaration);
+    return functionSignature
+        + " { "
+        + getReturnForDummyFunction(pDeclaration.getType().getReturnType())
+        + " }";
+  }
+
+  private String getFunctionSignature(CFunctionDeclaration pDeclaration) {
+    // To not have to build the function signature ourselves, we take a shortcut here:
+    // Generate the function declaration, and then strip the trailing ';' from the string.
+    String functionDeclaration = pDeclaration.toASTString();
+    assert functionDeclaration.endsWith(";");
+    return functionDeclaration.substring(0, functionDeclaration.length() - 1);
+  }
+
+  private String getReturnForDummyFunction(CType returnType) {
+    if (returnType.equals(CVoidType.VOID)) {
+      return "return;";
+    } else {
+      return "return " + getDummyValue(returnType).toASTString() + ";";
+    }
   }
 
   private Optional<State> handleCompositeCall(
@@ -769,7 +795,11 @@ public class HarnessExporter {
     CLeftHandSide variable = new CIdExpression(FileLocation.DUMMY, tmpVarDeclaration);
     CAssignment assignment =
         new CFunctionCallAssignmentStatement(FileLocation.DUMMY, variable, pointerToValue);
-    return ExpressionTestValue.of(ImmutableList.of(tmpVarDeclaration, assignment), variable);
+    return ExpressionTestValue.of(
+        ImmutableList.of(
+            new AuxiliaryStatement(tmpVarDeclaration.toASTString()),
+            new AuxiliaryStatement(assignment.toASTString())),
+        variable);
   }
 
   private CExpression getSizeOf(CType pExpectedTargetType) {
