@@ -69,7 +69,7 @@ public enum MachineModel {
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
       // numeric types
-      2, // short
+      2, // short int
       4, // int
       8, // long int
       8, // long long int
@@ -83,7 +83,7 @@ public enum MachineModel {
       8, // pointer
 
       //  alignof numeric types
-      2, // short
+      2, // short int
       4, // int
       8, // long int
       8, // long long int
@@ -103,7 +103,7 @@ public enum MachineModel {
   /** Machine model representing an ARM machine with alignment: */
   ARM(
       // numeric types
-      2, // short
+      2, // short int
       4, // int
       4, // long int
       8, // long long int
@@ -117,7 +117,7 @@ public enum MachineModel {
       4, // pointer
 
       //  alignof numeric types
-      2, // short
+      2, // short int
       4, // int
       4, // long int
       8, // long long int
@@ -137,7 +137,7 @@ public enum MachineModel {
   /** Machine model representing an ARM64 machine with alignment: */
   ARM64(
       // numeric types
-      2, // short
+      2, // short int
       4, // int
       8, // long int
       8, // long long int
@@ -151,7 +151,7 @@ public enum MachineModel {
       8, // pointer
 
       //  alignof numeric types
-      2, // short
+      2, // short int
       4, // int
       8, // long int
       8, // long long int
@@ -169,7 +169,7 @@ public enum MachineModel {
       );
 
   // numeric types
-  private final int sizeofShort;
+  private final int sizeofShortInt;
   private final int sizeofInt;
   private final int sizeofLongInt;
   private final int sizeofLongLongInt;
@@ -185,7 +185,7 @@ public enum MachineModel {
   private final transient ByteOrder endianness;
 
   // alignof numeric types
-  private final int alignofShort;
+  private final int alignofShortInt;
   private final int alignofInt;
   private final int alignofLongInt;
   private final int alignofLongLongInt;
@@ -233,7 +233,7 @@ public enum MachineModel {
       int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
-    sizeofShort = pSizeofShort;
+    sizeofShortInt = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
     sizeofLongLongInt = pSizeofLongLongInt;
@@ -244,7 +244,7 @@ public enum MachineModel {
     sizeofBool = pSizeofBool;
     sizeofPtr = pSizeOfPtr;
 
-    alignofShort = pAlignofShort;
+    alignofShortInt = pAlignofShort;
     alignofInt = pAlignofInt;
     alignofLongInt = pAlignofLongInt;
     alignofLongLongInt = pAlignofLongLongInt;
@@ -267,7 +267,7 @@ public enum MachineModel {
     } else if (sizeofPtr == sizeofLongLongInt) {
       intptr_t = CNumericTypes.LONG_LONG_INT;
       uintptr_t = CNumericTypes.UNSIGNED_LONG_LONG_INT;
-    } else if (sizeofPtr == sizeofShort) {
+    } else if (sizeofPtr == sizeofShortInt) {
       intptr_t = CNumericTypes.SHORT_INT;
       uintptr_t = CNumericTypes.UNSIGNED_SHORT_INT;
     } else {
@@ -404,8 +404,8 @@ public enum MachineModel {
     return mSizeofCharInBits;
   }
 
-  public int getSizeofShort() {
-    return sizeofShort;
+  public int getSizeofShortInt() {
+    return sizeofShortInt;
   }
 
   public int getSizeofInt() {
@@ -471,7 +471,7 @@ public enum MachineModel {
         } else if (type.hasLongSpecifier()) {
           return getSizeofLongInt();
         } else if (type.hasShortSpecifier()) {
-          return getSizeofShort();
+          return getSizeofShortInt();
         } else {
           return getSizeofInt();
         }
@@ -498,8 +498,8 @@ public enum MachineModel {
     return getSizeof(type) * getSizeofCharInBits();
   }
 
-  public int getAlignofShort() {
-    return alignofShort;
+  public int getAlignofShortInt() {
+    return alignofShortInt;
   }
 
   public int getAlignofInt() {
