@@ -163,37 +163,8 @@ class CodeAppender implements Appendable {
           appendln(statement.code());
         }
       }
-      final AInitializer initializer;
-      if (!requiresInitialization) {
-        initializer = null;
-      } else {
-        initializer = inputValue.getValue();
-      }
-      final AVariableDeclaration internalDeclaration;
-      if (inputVariable instanceof CVariableDeclaration) {
-        internalDeclaration =
-            new CVariableDeclaration(
-                FileLocation.DUMMY,
-                inputVariable.isGlobal(),
-                CStorageClass.AUTO,
-                (CType) inputVariable.getType(),
-                inputVariable.getName(),
-                inputVariable.getOrigName(),
-                inputVariable.getQualifiedName(),
-                (CInitializer) initializer);
-      } else if (inputVariable instanceof JVariableDeclaration) {
-        internalDeclaration =
-            new JVariableDeclaration(
-                FileLocation.DUMMY,
-                (JType) inputVariable.getType(),
-                inputVariable.getName(),
-                inputVariable.getOrigName(),
-                inputVariable.getQualifiedName(),
-                initializer,
-                ((JVariableDeclaration) inputVariable).isFinal());
-      } else {
-        throw new AssertionError("Unsupported declaration type: " + inputVariable);
-      }
+      final AVariableDeclaration internalDeclaration =
+          getVariableDeclaration(inputVariable, requiresInitialization, inputValue);
       appendln(internalDeclaration.toASTString());
     }
     for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
@@ -254,6 +225,40 @@ class CodeAppender implements Appendable {
       appendln("}");
     }
     return this;
+  }
+
+  private AVariableDeclaration getVariableDeclaration(
+      AVariableDeclaration inputVariable,
+      boolean requiresInitialization,
+      InitializerTestValue inputValue) {
+    final AInitializer initializer;
+    if (!requiresInitialization) {
+      initializer = null;
+    } else {
+      initializer = inputValue.getValue();
+    }
+    if (inputVariable instanceof CVariableDeclaration) {
+      return new CVariableDeclaration(
+          FileLocation.DUMMY,
+          inputVariable.isGlobal(),
+          CStorageClass.AUTO,
+          (CType) inputVariable.getType(),
+          inputVariable.getName(),
+          inputVariable.getOrigName(),
+          inputVariable.getQualifiedName(),
+          (CInitializer) initializer);
+    } else if (inputVariable instanceof JVariableDeclaration) {
+      return new JVariableDeclaration(
+          FileLocation.DUMMY,
+          (JType) inputVariable.getType(),
+          inputVariable.getName(),
+          inputVariable.getOrigName(),
+          inputVariable.getQualifiedName(),
+          initializer,
+          ((JVariableDeclaration) inputVariable).isFinal());
+    } else {
+      throw new AssertionError("Unsupported declaration type: " + inputVariable);
+    }
   }
 
   @CanIgnoreReturnValue
