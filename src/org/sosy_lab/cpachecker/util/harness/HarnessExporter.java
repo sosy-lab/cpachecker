@@ -148,6 +148,14 @@ public class HarnessExporter {
   @Option(secure = true, description = "Only genenerate for __VERIFIER_nondet calls")
   private boolean onlyVerifierNondet = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Provide dummy values for external variable declarations."
+              + " This is useful when definitions are not implemented yet or missing."
+              + " But it may introduce conflicts with values from standard libraries.")
+  private boolean provideDummyValues = false;
+
   public HarnessExporter(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     cfa = pCFA;
@@ -454,6 +462,10 @@ public class HarnessExporter {
       ARGState pChild,
       ADeclarationEdge pDeclarationEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+    if (!provideDummyValues) {
+      return Optional.of(new State(pChild, pPrevious.testVector()));
+    }
+
     ADeclaration declaration = pDeclarationEdge.getDeclaration();
     if ((declaration instanceof CVariableDeclaration variableDeclaration)
         && (variableDeclaration.getCStorageClass() == CStorageClass.EXTERN)) {

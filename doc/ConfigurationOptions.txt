@@ -4848,6 +4848,11 @@ terminationtoreach.violation.witness.dot = "witness.dot"
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
 
+# Provide dummy values for external variable declarations. This is useful
+# when definitions are not implemented yet or missing. But it may introduce
+# conflicts with values from standard libraries.
+testHarnessExport.provideDummyValues = false
+
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 
