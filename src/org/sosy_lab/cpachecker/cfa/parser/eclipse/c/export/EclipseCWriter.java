@@ -28,9 +28,7 @@ class EclipseCWriter implements CWriter {
   private final ParserOptions parserOptions;
   private final ShutdownNotifier shutdownNotifier;
 
-  public EclipseCWriter(
-      final ParserOptions pOptions,
-      final ShutdownNotifier pShutdownNotifier) {
+  public EclipseCWriter(final ParserOptions pOptions, final ShutdownNotifier pShutdownNotifier) {
     parserOptions = pOptions;
     shutdownNotifier = pShutdownNotifier;
   }
