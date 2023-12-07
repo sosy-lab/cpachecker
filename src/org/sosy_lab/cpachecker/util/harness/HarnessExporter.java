@@ -121,7 +121,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.testcase.ExpressionTestValue;
 import org.sosy_lab.cpachecker.util.testcase.InitializerTestValue;
 import org.sosy_lab.cpachecker.util.testcase.TestValue;
-import org.sosy_lab.cpachecker.util.testcase.TestValue.AuxiliaryStatement;
+import org.sosy_lab.cpachecker.util.testcase.TestValue.AuxiliaryCode;
 import org.sosy_lab.cpachecker.util.testcase.TestVector;
 import org.sosy_lab.cpachecker.util.testcase.TestVector.TargetTestVector;
 
@@ -635,7 +635,7 @@ public class HarnessExporter {
     AExpression value = pointerValue.getValue();
     final AInitializer initializer = toInitializer(value);
     InitializerTestValue initializerTestValue =
-        InitializerTestValue.of(pointerValue.getAuxiliaryStatements(), initializer);
+        InitializerTestValue.of(pointerValue.getAuxiliaryCode(), initializer);
     return pTestVector.addInputValue(pVariableDeclaration, initializerTestValue);
   }
 
@@ -679,7 +679,7 @@ public class HarnessExporter {
         CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
         String functionDefinition = getDummyFunctionDefinition(tmpDeclaration);
         return ExpressionTestValue.of(
-            new AuxiliaryStatement(functionDefinition),
+            new AuxiliaryCode(functionDefinition),
             new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
       } else {
         CVariableDeclaration tmpDeclaration =
@@ -694,13 +694,13 @@ public class HarnessExporter {
                 (CInitializer) getDummyInitializer(pType.getType()));
         CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
         return ExpressionTestValue.of(
-            new AuxiliaryStatement(tmpDeclaration.toASTString()),
+            new AuxiliaryCode(tmpDeclaration.toASTString()),
             new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
       }
     }
     ExpressionTestValue pointerValue =
         assignMallocToTmpVariable(pTargetSize, pType.getType(), false);
-    return ExpressionTestValue.of(pointerValue.getAuxiliaryStatements(), pointerValue.getValue());
+    return ExpressionTestValue.of(pointerValue.getAuxiliaryCode(), pointerValue.getValue());
   }
 
   private String getDummyFunctionDefinition(CFunctionDeclaration pDeclaration) {
@@ -766,7 +766,7 @@ public class HarnessExporter {
             (CExpression) castIfNecessary(pointerType, pointerExpression));
     value = castIfNecessary(pType, value);
 
-    return ExpressionTestValue.of(pointerValue.getAuxiliaryStatements(), value);
+    return ExpressionTestValue.of(pointerValue.getAuxiliaryCode(), value);
   }
 
   private TestVector handleArrayDeclaration(
@@ -797,8 +797,8 @@ public class HarnessExporter {
         new CFunctionCallAssignmentStatement(FileLocation.DUMMY, variable, pointerToValue);
     return ExpressionTestValue.of(
         ImmutableList.of(
-            new AuxiliaryStatement(tmpVarDeclaration.toASTString()),
-            new AuxiliaryStatement(assignment.toASTString())),
+            new AuxiliaryCode(tmpVarDeclaration.toASTString()),
+            new AuxiliaryCode(assignment.toASTString())),
         variable);
   }
 

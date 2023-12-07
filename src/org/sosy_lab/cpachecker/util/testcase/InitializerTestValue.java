@@ -17,8 +17,8 @@ public class InitializerTestValue extends TestValue {
   private final AInitializer value;
 
   private InitializerTestValue(
-      ImmutableList<AuxiliaryStatement> pAuxiliaryStatements, AInitializer pValue) {
-    super(pAuxiliaryStatements, pValue);
+      ImmutableList<AuxiliaryCode> pAuxiliaryCodes, AInitializer pValue) {
+    super(pAuxiliaryCodes, pValue);
     value = pValue;
   }
 
@@ -32,7 +32,7 @@ public class InitializerTestValue extends TestValue {
   }
 
   public static InitializerTestValue of(
-      List<AuxiliaryStatement> pAuxiliaryStatments, AInitializer pValue) {
-    return new InitializerTestValue(ImmutableList.copyOf(pAuxiliaryStatments), pValue);
+      List<AuxiliaryCode> pAuxiliaryCode, AInitializer pValue) {
+    return new InitializerTestValue(ImmutableList.copyOf(pAuxiliaryCode), pValue);
   }
 }

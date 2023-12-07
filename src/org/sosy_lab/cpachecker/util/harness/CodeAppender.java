@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.testcase.ExpressionTestValue;
 import org.sosy_lab.cpachecker.util.testcase.InitializerTestValue;
 import org.sosy_lab.cpachecker.util.testcase.TestValue;
-import org.sosy_lab.cpachecker.util.testcase.TestValue.AuxiliaryStatement;
+import org.sosy_lab.cpachecker.util.testcase.TestValue.AuxiliaryCode;
 import org.sosy_lab.cpachecker.util.testcase.TestVector;
 
 class CodeAppender implements Appendable {
@@ -93,13 +93,13 @@ class CodeAppender implements Appendable {
   @CanIgnoreReturnValue
   private CodeAppender appendAssignment(String pRetvalName, TestValue pValue, boolean pEnclose)
       throws IOException {
-    boolean hasAuxiliaryStatmenets = !pValue.getAuxiliaryStatements().isEmpty();
-    if (hasAuxiliaryStatmenets) {
+    boolean hasAuxiliaryCode = !pValue.getAuxiliaryCode().isEmpty();
+    if (hasAuxiliaryCode) {
       if (pEnclose) {
         appendable.append("{ ");
       }
-      for (AuxiliaryStatement auxiliaryStatement : pValue.getAuxiliaryStatements()) {
-        appendable.append(auxiliaryStatement.code());
+      for (AuxiliaryCode auxiliaryCode : pValue.getAuxiliaryCode()) {
+        appendable.append(auxiliaryCode.code());
         if (pEnclose) {
           appendable.append(" ");
         } else {
@@ -111,7 +111,7 @@ class CodeAppender implements Appendable {
     appendable.append(" = ");
     appendable.append(pValue.getValue().toASTString());
     appendable.append(";");
-    if (hasAuxiliaryStatmenets && pEnclose) {
+    if (hasAuxiliaryCode && pEnclose) {
       appendable.append(" }");
     }
     return this;
@@ -155,11 +155,11 @@ class CodeAppender implements Appendable {
   public CodeAppender append(TestVector pVector) throws IOException {
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
-      List<AuxiliaryStatement> auxiliaryStatements = inputValue.getAuxiliaryStatements();
+      List<AuxiliaryCode> auxiliaryCode = inputValue.getAuxiliaryCode();
       Type type = PredefinedTypes.getCanonicalType(inputVariable.getType());
       boolean requiresInitialization = HarnessExporter.canInitialize(type);
-      if (requiresInitialization && !auxiliaryStatements.isEmpty()) {
-        for (AuxiliaryStatement statement : auxiliaryStatements) {
+      if (requiresInitialization && !auxiliaryCode.isEmpty()) {
+        for (AuxiliaryCode statement : auxiliaryCode) {
           appendln(statement.code());
         }
       }
