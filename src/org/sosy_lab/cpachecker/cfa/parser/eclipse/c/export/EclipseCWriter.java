@@ -25,10 +25,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /** Writer based on Eclipse CDT. */
 class EclipseCWriter implements CWriter {
 
-  private final EclipseCdtWrapper eclipseCdt;
+  private final ParserOptions parserOptions;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public EclipseCWriter(final ParserOptions pOptions, final ShutdownNotifier pShutdownNotifier) {
-    eclipseCdt = new EclipseCdtWrapper(pOptions, pShutdownNotifier);
+  public EclipseCWriter(
+      final ParserOptions pOptions,
+      final ShutdownNotifier pShutdownNotifier) {
+    parserOptions = pOptions;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -40,6 +44,9 @@ class EclipseCWriter implements CWriter {
     checkArgument(
         pCfa.getFileNames().size() == 1,
         "CFA can only be exported for a single input program, at the moment.");
+
+    EclipseCdtWrapper eclipseCdt =
+        new EclipseCdtWrapper(parserOptions, pCfa.getMachineModel(), shutdownNotifier);
 
     try {
       final IASTTranslationUnit astUnit =

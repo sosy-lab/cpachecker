@@ -46,7 +46,9 @@ public class ASTStructure {
       Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException, InterruptedException, IOException {
     classifier = new ASTLocationClassifier();
-    cdt = new EclipseCdtWrapper(CParser.Factory.getOptions(pConfig), pShutdownNotifier);
+    cdt =
+        new EclipseCdtWrapper(
+            CParser.Factory.getOptions(pConfig), pCfa.getMachineModel(), pShutdownNotifier);
     logger = pLogger;
     cfa = pCfa;
     try {
