@@ -16,8 +16,7 @@ public class ExpressionTestValue extends TestValue {
 
   private final AExpression value;
 
-  private ExpressionTestValue(
-      ImmutableList<AuxiliaryCode> pAuxiliaryCodes, AExpression pValue) {
+  private ExpressionTestValue(ImmutableList<AuxiliaryCode> pAuxiliaryCodes, AExpression pValue) {
     super(pAuxiliaryCodes, pValue);
     value = pValue;
   }
@@ -31,8 +30,7 @@ public class ExpressionTestValue extends TestValue {
     return of(ImmutableList.of(), pValue);
   }
 
-  public static ExpressionTestValue of(
-      List<AuxiliaryCode> pAuxiliaryCode, AExpression pValue) {
+  public static ExpressionTestValue of(List<AuxiliaryCode> pAuxiliaryCode, AExpression pValue) {
     return new ExpressionTestValue(ImmutableList.copyOf(pAuxiliaryCode), pValue);
   }
 
