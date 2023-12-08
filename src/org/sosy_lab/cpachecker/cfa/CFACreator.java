@@ -97,6 +97,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -171,6 +172,12 @@ public class CFACreator {
       name = "analysis.useGlobalVars",
       description = "add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
+
+  @Option(
+      secure = true,
+      name = "analysis.useASTStructure",
+      description = "add AST structure information to CFA.")
+  private boolean useASTStructure = false;
 
   @Option(
       secure = true,
@@ -336,6 +343,8 @@ public class CFACreator {
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
     private final Timer exportTime = new Timer();
+    private final Timer loopStructureTime = new Timer();
+    private final Timer astStructureTime = new Timer();
     private final List<Statistics> statisticsCollection;
     private final LogManager logger;
 
@@ -357,6 +366,8 @@ public class CFACreator {
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
+      out.println("    Time for loop structure:  " + loopStructureTime);
+      out.println("    Time for AST structure:   " + astStructureTime);
 
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -611,10 +622,17 @@ public class CFACreator {
     // Annotate CFA nodes with reverse postorder information for later use.
     cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
+    if (useASTStructure) {
+      stats.astStructureTime.start();
+      addASTStructure(cfa, config, logger);
+      stats.astStructureTime.stop();
+    }
     // get loop information
     // (needs post-order information)
     if (useLoopStructure) {
+      stats.loopStructureTime.start();
       addLoopStructure(cfa);
+      stats.loopStructureTime.stop();
     }
 
     // FOURTH, insert call and return edges and build the supergraph
@@ -977,6 +995,15 @@ public class CFACreator {
       throw new InvalidConfigurationException("No entry function found, please specify one.");
     }
     return mainFunction;
+  }
+
+  private void addASTStructure(MutableCFA cfa, Configuration pConfig, LogManager pLogger)
+      throws InterruptedException {
+    try {
+      cfa.setASTStructure(new ASTStructure(pConfig, shutdownNotifier, pLogger, cfa));
+    } catch (IOException | InvalidConfigurationException e) {
+      logger.logUserException(Level.WARNING, e, "Could not analyze AST structure of program.");
+    }
   }
 
   private void addLoopStructure(MutableCFA cfa) {

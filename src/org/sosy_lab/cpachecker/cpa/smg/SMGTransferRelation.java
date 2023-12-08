@@ -473,7 +473,7 @@ public class SMGTransferRelation
       List<CParameterDeclaration> paramDecl,
       List<Pair<SMGRegion, SMGValue>> values,
       SMGState newState)
-      throws SMGInconsistentException, UnrecognizedCodeException {
+      throws CPATransferException {
 
     newState.addStackFrame(callEdge.getSuccessor().getFunctionDefinition());
 

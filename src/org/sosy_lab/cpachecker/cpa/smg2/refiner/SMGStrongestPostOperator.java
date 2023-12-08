@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -41,7 +43,10 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
   private final SMGTransferRelation transfer;
 
   public SMGStrongestPostOperator(
-      final LogManager pLogger, final Configuration pConfig, final CFA pCfa)
+      final SMGConstraintsSolver pSolver,
+      final LogManagerWithoutDuplicates pLogger,
+      final Configuration pConfig,
+      final CFA pCfa)
       throws InvalidConfigurationException {
 
     SMGOptions options = new SMGOptions(pConfig);
@@ -54,7 +59,10 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
             exportOptions,
             pCfa,
             new ConstraintsStrengthenOperator(pConfig, pLogger),
-            null);
+            null,
+            pSolver,
+            new SMGCPAExpressionEvaluator(
+                pCfa.getMachineModel(), pLogger, exportOptions, options, null));
   }
 
   @Override

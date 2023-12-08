@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Representation of ampersand expression in C. Example: <code>int a; int b = &a</code> */
@@ -27,9 +28,19 @@ public final class AddressOfExpression extends UnarySymbolicExpression {
     super(pOperand, pType, pRepresentedLocation);
   }
 
+  AddressOfExpression(
+      final SymbolicExpression pOperand, final Type pType, final AbstractState pAbstractState) {
+    super(pOperand, pType, pAbstractState);
+  }
+
   @Override
   public AddressOfExpression copyForLocation(MemoryLocation pRepresentedLocation) {
     return new AddressOfExpression(getOperand(), getType(), pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new AddressOfExpression(getOperand(), getType(), pCurrentState);
   }
 
   @Override

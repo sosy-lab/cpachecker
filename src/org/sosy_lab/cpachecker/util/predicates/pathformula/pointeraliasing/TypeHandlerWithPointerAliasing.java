@@ -64,7 +64,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * @return The size of a given type.
    */
   @Override
-  public long getSizeof(CType cType) {
+  public long getApproximatedSizeof(CType cType) {
     // Callers from inside this package should have simplified the type,
     // but callers from ctoformula package might have not.
     cType = simplifyType(cType);

@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -233,35 +234,13 @@ public class CtoFormulaConverter {
     }
   }
 
-  /**
-   * Returns the size in bits of the given type. Always use this method instead of
-   * machineModel.getSizeOf, because this method can handle dereference-types.
-   *
-   * @param pType the type to calculate the size of.
-   * @return the size in bits of the given type.
-   */
-  protected long getBitSizeof(CType pType) {
-    return typeHandler.getBitSizeof(pType);
-  }
-
-  /**
-   * Returns the size in bytes of the given type. Always use this method instead of
-   * machineModel.getSizeOf, because this method can handle dereference-types.
-   *
-   * @param pType the type to calculate the size of.
-   * @return the size in bytes of the given type.
-   */
-  protected long getSizeof(CType pType) {
-    return typeHandler.getSizeof(pType);
-  }
-
   protected boolean isRelevantField(final CCompositeType pCompositeType, final String fieldName) {
     if (!variableClassification.isPresent()
         || !options.ignoreIrrelevantVariables()
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = CTypes.withoutVolatile(CTypes.withoutConst(pCompositeType));
+    CCompositeType compositeType = CTypes.copyDequalified(pCompositeType);
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -331,7 +310,7 @@ public class CtoFormulaConverter {
         case FLOAT:
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
-          if (simpleType.isLong()) {
+          if (simpleType.hasLongSpecifier()) {
             if (machineModel.getSizeofLongDouble() == machineModel.getSizeofDouble()) {
               // architecture without extended precision format
               return FormulaType.getDoublePrecisionFloatingPointType();
@@ -357,7 +336,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    int bitSize = Ints.checkedCast(typeHandler.getBitSizeof(type));
+    int bitSize = Ints.checkedCast(typeHandler.getExactBitSizeof(type));
 
     return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
@@ -846,7 +825,7 @@ public class CtoFormulaConverter {
       return makeSimpleCast(fromType, toType, formula);
     }
 
-    if (getBitSizeof(fromType) == getBitSizeof(toType)) {
+    if (typeHandler.getExactBitSizeof(fromType) == typeHandler.getExactBitSizeof(toType)) {
       // We can most likely just ignore this cast
       logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
@@ -942,9 +921,7 @@ public class CtoFormulaConverter {
       int fromSize = ((FormulaType.BitvectorType) fromType).getSize();
 
       // Cf. C-Standard 6.3.1.2 (1)
-      if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
-          || (pToCType instanceof CBitFieldType
-              && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
+      if (CTypes.isBoolType(pToCType)) {
         Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0L);
         Formula zeroToSize = efmgr.makeBitvector(toSize, 0L);
         Formula oneToSize = efmgr.makeBitvector(toSize, 1L);
@@ -1878,7 +1855,8 @@ public class CtoFormulaConverter {
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints);
+    return new ExpressionToFormulaVisitor(
+        this, fmgr, pEdge, pFunction, ssa, pts, constraints, errorConditions);
   }
 
   /** Creates a Formula which accesses the given bits. */
@@ -1955,12 +1933,12 @@ public class CtoFormulaConverter {
 
     long offset = typeHandler.getBitOffset(structType, fExp.getFieldName());
     CType type = fExp.getExpressionType();
-    long fieldSize = getBitSizeof(type);
+    long fieldSize = typeHandler.getExactBitSizeof(type);
 
     // Crude hack for unions with zero-sized array fields produced by LDV
     // (ldv-consumption/32_7a_cilled_true_linux-3.8-rc1-32_7a-fs--ceph--ceph.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c)
     if (fieldSize == 0 && structType.getKind() == ComplexTypeKind.UNION) {
-      fieldSize = getBitSizeof(fieldRef.getExpressionType());
+      fieldSize = typeHandler.getExactBitSizeof(fieldRef.getExpressionType());
     }
 
     long lsb = offset;
@@ -2001,6 +1979,9 @@ public class CtoFormulaConverter {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       result = "atomic operations";
+    } else if (StandardFunctions.C11_MATH_H_FUNCTIONS.contains(functionName)) {
+      // Some of these functions are actually supported, but handled before this check here.
+      result = "arithmetic function";
     }
 
     if (result != null && options.isAllowedUnsupportedFunction(functionName)) {

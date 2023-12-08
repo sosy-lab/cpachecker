@@ -496,6 +496,9 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# add AST structure information to CFA.
+analysis.useASTStructure = false
+
 # Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
@@ -1089,7 +1092,7 @@ counterexample.export.exportExtendedWitness = false
 counterexample.export.exportFaults = true
 
 # export test harness
-counterexample.export.exportHarness = false
+counterexample.export.exportHarness = true
 
 # export error paths to files immediately after they were found
 counterexample.export.exportImmediately = false
@@ -1103,6 +1106,9 @@ counterexample.export.exportWitness = true
 
 # export counterexample as witness/yaml file
 counterexample.export.exportYamlWitness = false
+
+# export the yaml Violation Witnesses directly from the Counterexample.
+counterexample.export.exportYamlWitnessesDirectlyFromCex = false
 
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
@@ -1310,6 +1316,9 @@ cpa.arg.export.code.metadataOutput = no default value
 
 # when enabled also write invariant true to correctness-witness automata
 cpa.arg.exportTrueInvariants = false
+
+# export the yaml Correctness Witnesses directly from the ARG.
+cpa.arg.exportYAMLCorrectnessWitnessesDirectlyFromARG = false
 
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
@@ -1598,8 +1607,9 @@ cpa.callstack.skipFunctionPointerRecursion = false
 # same as for functions without bodies)
 cpa.callstack.skipRecursion = false
 
-# Skip recursion if it happens only by going via a void function (this is
-# unsound).
+# Skip recursion if it happens only by going via a void function with no
+# pointers passed as parameters. This is unsound if the function modifies
+# global variables.
 cpa.callstack.skipVoidRecursion = false
 
 # analyse the CFA backwards
@@ -1609,6 +1619,7 @@ cpa.callstack.traverseBackwards = false
 cpa.callstack.unsupportedFunctions = {
           "pthread_create",
           "pthread_key_create",
+          "_longjmp",
           "longjmp",
           "siglongjmp",
           "__builtin_va_arg",
@@ -2219,6 +2230,9 @@ cpa.predicate.enableBlockreducer = false
 # these functions will result in an error.
 cpa.predicate.enableMemoryAssignmentFunctions = false
 
+# Enable to share the information via serialization storage.
+cpa.predicate.enableSharedInformation = false
+
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance. If
@@ -2405,7 +2419,7 @@ cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 # need them. Mentioning a function in this list has only an effect, if it is
 # an 'external function', i.e., no source is given in the code for this
 # function.
-cpa.predicate.nondetFunctions = {"sscanf", "rand", "random"}
+cpa.predicate.nondetFunctions = {"sscanf", "rand", "random", "rand_r", "srand", "time"}
 
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
@@ -2985,6 +2999,10 @@ cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg2.GCCZeroLengthArray = false
 
+# aborts the analysis for a non-concrete (this includes symbolic values)
+# memory allocation of any kind.
+cpa.smg2.abortOnNonConcreteMemorySize = true
+
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
 
@@ -3036,8 +3054,14 @@ cpa.smg2.arrayAllocationFunctions = {"calloc"}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.smg2.assignEqualityAssumptions = true
 
-# Treat symbolic values as unknowns and assign new concrete values to them.
-cpa.smg2.assignSymbolicValues = true
+# Whether to perform caching of constraint satisfiability results
+cpa.smg2.cache = true
+
+# Whether to use subset caching
+cpa.smg2.cacheSubsets = false
+
+# Whether to use superset caching
+cpa.smg2.cacheSupersets = false
 
 # with this option enabled, memory addresses (pointers) are transformed into
 # a numeric assumption upon casting the pointer to a number. This assumption
@@ -3051,8 +3075,8 @@ cpa.smg2.castMemoryAddressesToNumeric = false
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
 
-# Crash on unknown array dereferences
-cpa.smg2.crashOnUnknown = false
+# Crash on unknown value when creating constraints of any form.
+cpa.smg2.crashOnUnknownInConstraint = false
 
 # Deallocation functions
 cpa.smg2.deallocationFunctions = {"free"}
@@ -3101,7 +3125,7 @@ cpa.smg2.handleUnknownFunctions = STRICT
 # If this option is enabled, a memory allocation (e.g. malloc or array
 # declaration) for unknown memory sizes does not abort, but also does not
 # create any memory.
-cpa.smg2.handleUnknownMemoryAllocation = IGNORE
+cpa.smg2.handleUnknownMemoryAllocation = STOP_ANALYSIS
   enum:     [IGNORE, MEMORY_ERROR, STOP_ANALYSIS]
 
 # if there is an assumption like (x!=0), this option sets unknown
@@ -3116,7 +3140,7 @@ cpa.smg2.initialPredicatePrecisionFile = no default value
 
 # Perform merge SMGStates by SMGJoin on ends of code block. Works with
 # 'merge=JOIN'
-cpa.smg2.joinOnBlockEnd = true
+cpa.smg2.joinOnBlockEnd = false
 
 # If this option is enabled, a call to malloc with value zero results in a
 # return value that is equal to zero. If this option is disabled, a non-zero
@@ -3142,9 +3166,17 @@ cpa.smg2.memoryErrors = true
 cpa.smg2.merge = "SEP"
   allowed values: [SEP]
 
+# Whether to perform SAT checks only for the last added constraint
+cpa.smg2.minimalSatCheck = true
+
 # Assume that variables used only in a boolean context are either zero or
 # one.
 cpa.smg2.optimizeBooleanVariables = true
+
+# with this option enabled, we try to gather information on memory reads from
+# values that are overlapping but not exactly fitting to the read parameters.
+# Example: int value = 1111; char a = (char)((char[])&value)[1];
+cpa.smg2.preciseSMGRead = true
 
 # target file to hold the exported precision
 cpa.smg2.precisionFile = no default value
@@ -3171,6 +3203,9 @@ cpa.smg2.refinement.performEdgeBasedInterpolation = true
 cpa.smg2.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
 
+# Resolve definite assignments
+cpa.smg2.resolveDefinites = true
+
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.smg2.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
@@ -3178,6 +3213,10 @@ cpa.smg2.runtimeCheck = NONE
 # Which unknown function are always considered as safe functions, i.e., free
 # of memory-related side-effects?
 cpa.smg2.safeUnknownFunctions = {"abort"}
+
+# When to check the satisfiability of constraints
+cpa.smg2.satCheckStrategy = AT_ASSUME
+  enum:     [AT_ASSUME, AT_TARGET]
 
 # which stop operator to use for the SMGCPA
 cpa.smg2.stop = "SEP"
@@ -3188,6 +3227,9 @@ cpa.smg2.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
 cpa.smg2.trackPredicates = false
+
+# Treat symbolic values as unknowns and assign new concrete values to them.
+cpa.smg2.treatSymbolicValuesAsUnknown = false
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg2.unknownOnUndefined = true
@@ -3999,6 +4041,10 @@ invariantGeneration.kInduction.terminateOnCounterexample = false
 # The directory where the invariants are stored.
 invariantStore.export.outDir = "invariantWitnesses"
 
+# If enabled, this option will output the invariants in the now deprecated
+# YAML format.
+invariantStore.export.outputDeprecatedYAMLFormat = false
+
 # If enabled, this option will not just output loop invariants,but also
 # general location invariants at other locations.
 invariantStore.export.writeLocationInvariants = false
@@ -4409,7 +4455,7 @@ pixelgraphic.export.scaling = 2
 # Highlight not only corresponding graph nodes, but background of
 # corresponding line, too. This may give an better overview, but also
 # introduces more clutter
-pixelgraphic.export.strongHighlight = true
+pixelgraphic.export.strongHighlight = false
 
 # Width of the bitmap in pixels. If set to -1, width is computed in relation
 # to the height. If both are set to -1, the optimal bitmap size to represent
@@ -4787,8 +4833,25 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
 
+# compress the produced violation-witness automata using GZIP compression.
+terminationtoreach.compressWitness = false
+
+# do not produce witness for validation
+terminationtoreach.validation = false
+
+# Export termination counterexample to file as GraphML automaton 
+terminationtoreach.violation.witness = "witness.graphml"
+
+# Export termination counterexample to file as dot/graphviz automaton 
+terminationtoreach.violation.witness.dot = "witness.dot"
+
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
+
+# Provide dummy values for external variable declarations. This is useful
+# when definitions are not implemented yet or missing. But it may introduce
+# conflicts with values from standard libraries.
+testHarnessExport.provideDummyValues = false
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
@@ -4986,6 +5049,10 @@ witness.matchAssumeCase = true
 
 # Match the character offset within the file.
 witness.matchOffset = true
+
+# If true the offsets will be matched when creating an automaton to validate
+# Violation witnesses. If false only the lines will be matched.
+witness.matchOffsetsWhenCreatingViolationAutomatonFromYAML = false
 
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).

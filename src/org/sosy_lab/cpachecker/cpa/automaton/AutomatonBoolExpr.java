@@ -28,9 +28,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -126,6 +124,172 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public boolean equals(Object o) {
       return o instanceof CheckCoversLines
           && linesToCover.equals(((CheckCoversLines) o).linesToCover);
+    }
+  }
+
+  public static class CheckReachesLine implements AutomatonBoolExpr {
+    private final Integer lineToReach;
+
+    public CheckReachesLine(Integer pLine) {
+      lineToReach = pLine;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.CheckCoversLines");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+        return CONST_FALSE;
+      }
+      if (CFAUtils.leavingEdges(edge.getSuccessor())
+          .transform(e -> e.getFileLocation().getStartingLineInOrigin())
+          .contains(lineToReach)) {
+        return CONST_TRUE;
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_LINE(" + lineToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return lineToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckReachesLine
+          && lineToReach.equals(((CheckReachesLine) o).lineToReach);
+    }
+  }
+
+  public static class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
+    private final Integer offsetToReach;
+    private final Integer lineNumber;
+
+    public CheckCoversOffsetAndLine(Integer pOffset, Integer pLineNumber) {
+      offsetToReach = pOffset;
+      lineNumber = pLineNumber;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>(
+            "No CPA elements available", "AutomatonBoolExpr.CheckReachesOffset");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      if (!CoverageData.coversLine(edge)) {
+        return CONST_FALSE;
+      }
+
+      FileLocation edgeLocation = edge.getFileLocation();
+      int edgeNodeOffset = edgeLocation.getNodeOffset();
+
+      if (edgeLocation.getStartingLineInOrigin() == lineNumber
+          || edgeLocation.getEndingLineInOrigin() == lineNumber) {
+        if (edgeNodeOffset <= offsetToReach
+            && offsetToReach <= edgeNodeOffset + edgeLocation.getNodeLength()) {
+          return CONST_TRUE;
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_OFFSET(" + offsetToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return offsetToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckCoversOffsetAndLine
+          && offsetToReach.equals(((CheckCoversOffsetAndLine) o).offsetToReach);
+    }
+  }
+
+  public static class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
+    private final Integer offsetToReach;
+    private final Integer lineNumber;
+
+    public CheckReachesOffsetAndLine(Integer pOffset, Integer pLineNumber) {
+      offsetToReach = pOffset;
+      lineNumber = pLineNumber;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>(
+            "No CPA elements available", "AutomatonBoolExpr.CheckReachesOffset");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
+        return CONST_FALSE;
+      }
+
+      if (!CoverageData.coversLine(edge)) {
+        return CONST_FALSE;
+      }
+
+      // When returning from a function the covering method does not provide the intended behavior,
+      // since this would represent only the next statement
+      if (edge instanceof AReturnStatementEdge) {
+        return CONST_FALSE;
+      }
+
+      FileLocation edgeLocation = edge.getFileLocation();
+
+      // When there are multiple empty lines between two edges, the line numbers and offsets would
+      // not match. Therefore we need the range comparison instead of a equality comparison.
+      if (lineNumber >= edgeLocation.getEndingLineInOrigin()
+          && CFAUtils.leavingEdges(edge.getSuccessor())
+              .transform(CFAEdge::getFileLocation)
+              .anyMatch(e -> e.getStartingLineInOrigin() >= lineNumber)) {
+        if (edgeLocation.getNodeOffset() + edgeLocation.getNodeLength() < offsetToReach) {
+          if (CFAUtils.leavingEdges(edge.getSuccessor())
+              .anyMatch(
+                  e ->
+                      offsetToReach
+                          <= e.getFileLocation().getNodeOffset()
+                              + e.getFileLocation().getNodeLength())) {
+
+            return CONST_TRUE;
+          }
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_OFFSET(" + offsetToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return offsetToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckReachesOffsetAndLine
+          && offsetToReach.equals(((CheckReachesOffsetAndLine) o).offsetToReach);
     }
   }
 
@@ -342,17 +506,16 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (edge instanceof AStatementEdge) {
-        AStatement statement = ((AStatementEdge) edge).getStatement();
-        if (statement instanceof AFunctionCall functionCall) {
-          AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-          if (functionCallExpression.getFunctionNameExpression() instanceof AIdExpression) {
-            AIdExpression idExpression =
-                (AIdExpression) functionCallExpression.getFunctionNameExpression();
-            if (idExpression.getDeclaration().getOrigName().equals(functionName)) {
-              return CONST_TRUE;
-            }
-          }
+      if (edge instanceof AStatementEdge stmtEdge
+          && stmtEdge.getStatement() instanceof AFunctionCall functionCall
+          && functionCall.getFunctionCallExpression().getFunctionNameExpression()
+              instanceof AIdExpression idExpression) {
+        String calledFunction =
+            idExpression.getDeclaration() != null
+                ? idExpression.getDeclaration().getOrigName()
+                : idExpression.getName(); // for builtin functions without declaration
+        if (calledFunction.equals(functionName)) {
+          return CONST_TRUE;
         }
       }
       return CONST_FALSE;

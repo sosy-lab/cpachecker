@@ -92,7 +92,8 @@ public abstract class GraphToPixelsWriter<Node> {
         description =
             "Highlight not only corresponding graph nodes, but background of corresponding line,"
                 + " too. This may give an better overview, but also introduces more clutter")
-    private boolean strongHighlight = true;
+    // Set to false by default because the additional colors may be confusing
+    private boolean strongHighlight = false;
 
     public PixelsWriterOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);

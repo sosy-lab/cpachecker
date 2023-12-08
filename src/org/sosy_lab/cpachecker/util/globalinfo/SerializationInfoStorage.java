@@ -91,6 +91,10 @@ public class SerializationInfoStorage {
     serializationInformationThreadLocal.set(null);
   }
 
+  public static synchronized boolean isSet() {
+    return serializationInformationThreadLocal.get() != null;
+  }
+
   public AutomatonInfo getAutomatonInfo() {
     return automatonInfo;
   }

@@ -224,7 +224,7 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
     return new HashSet<>(
         FluentIterable.from(pNodes)
             .filter(CFAEdgeNode::isLeave)
-            .transform(node -> node.getRepresentedEdge())
+            .transform(CFAEdgeNode::getRepresentedEdge)
             .toSet());
   }
 }

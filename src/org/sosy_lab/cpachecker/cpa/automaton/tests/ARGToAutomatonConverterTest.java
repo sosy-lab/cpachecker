@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton.tests;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -105,7 +106,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
 
     // generate joint automaton
     Automaton aut = converter.getAutomaton(root, true);
-    Files.write(automatonPath, aut.toString().getBytes("utf-8"));
+    Files.write(automatonPath, aut.toString().getBytes(UTF_8));
 
     for (String analysis :
         ImmutableList.of("predicateAnalysis.properties", "valueAnalysis.properties")) {
@@ -138,7 +139,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
       for (Automaton a : res) {
         resetCFANodeCounter();
         Path newAutomatonPath = newTempFile();
-        Files.write(newAutomatonPath, a.toString().getBytes("utf-8"));
+        Files.write(newAutomatonPath, a.toString().getBytes(UTF_8));
         reConfig =
             TestDataTools.configurationForTest()
                 .loadFromResource(ARGToAutomatonConverterTest.class, analysis)

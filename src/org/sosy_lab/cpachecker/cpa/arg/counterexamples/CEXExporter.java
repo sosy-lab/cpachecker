@@ -85,6 +85,11 @@ public class CEXExporter {
 
   @Option(
       secure = true,
+      description = "export the yaml Violation Witnesses directly from the Counterexample.")
+  private boolean exportYamlWitnessesDirectlyFromCex = false;
+
+  @Option(
+      secure = true,
       name = "codeStyle",
       description = "exports either CMBC format or a concrete path program")
   private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
@@ -326,14 +331,30 @@ public class CEXExporter {
             compressWitness);
 
         if (invariantWitnessWriter != null) {
-          writeErrorPathFile(
-              options.getYamlWitnessFile(),
-              uniqueId,
-              (Appender)
-                  pApp -> {
-                    invariantWitnessWriter.exportErrorWitnessAsYamlWitness(witness, pApp);
-                  },
-              compressWitness);
+          if (exportYamlWitnessesDirectlyFromCex && counterexample.isPreciseCounterExample()) {
+            writeErrorPathFile(
+                options.getYamlWitnessFile(),
+                uniqueId,
+                (Appender)
+                    pApp -> {
+                      invariantWitnessWriter.exportErrorWitnessAsYamlWitness(counterexample, pApp);
+                    },
+                compressWitness);
+          } else if (exportYamlWitnessesDirectlyFromCex) {
+            logger.log(
+                Level.WARNING,
+                "Could not expor the YAML violation witness directly from the ARG, since the"
+                    + " counterexample is not precise. Therefore no YAML witness was produced.");
+          } else {
+            writeErrorPathFile(
+                options.getYamlWitnessFile(),
+                uniqueId,
+                (Appender)
+                    pApp -> {
+                      invariantWitnessWriter.exportErrorWitnessAsYamlWitness(witness, pApp);
+                    },
+                compressWitness);
+          }
         }
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
@@ -356,17 +377,13 @@ public class CEXExporter {
       }
     }
 
-    writeErrorPathFile(
-        options.getTestHarnessFile(),
-        uniqueId,
-        (Appender)
-            pAppendable ->
-                harnessExporter.writeHarness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample));
+    if (options.getTestHarnessFile() != null) {
+      Optional<String> harness =
+          harnessExporter.writeHarness(
+              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+      harness.ifPresent(
+          content -> writeErrorPathFile(options.getTestHarnessFile(), uniqueId, content));
+    }
 
     if (options.exportToTest() && testExporter != null) {
       testExporter.writeTestCaseFiles(counterexample, Optional.empty());

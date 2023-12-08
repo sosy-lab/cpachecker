@@ -26,11 +26,14 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   // ID needed for comparable implementation.
   private final int id;
 
+  private final boolean isConstBinaryString;
+
   protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
     id = U_ID_GENERATOR.getFreshId();
+    isConstBinaryString = false;
   }
 
   protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset, int pId) {
@@ -38,6 +41,20 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     size = pSize;
     offset = pOffset;
     id = pId;
+    isConstBinaryString = false;
+  }
+
+  protected SMGObject(
+      int pNestingLevel,
+      BigInteger pSize,
+      BigInteger pOffset,
+      int pId,
+      boolean pIsConstBinaryString) {
+    nestingLevel = pNestingLevel;
+    size = pSize;
+    offset = pOffset;
+    id = pId;
+    isConstBinaryString = pIsConstBinaryString;
   }
 
   /** Returns the static 0 {@link SMGObject} instance. */
@@ -47,6 +64,27 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   public static SMGObject of(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
     return new SMGObject(pNestingLevel, pSize, pOffset);
+  }
+
+  /**
+   * Copies the object, but the new object has a new id. So size etc. will match, but never the ID!
+   *
+   * @param objectToCopy obj to copy.
+   * @return a new object with the same size etc. as the old.
+   */
+  public static SMGObject of(SMGObject objectToCopy) {
+    return new SMGObject(objectToCopy.nestingLevel, objectToCopy.size, objectToCopy.offset);
+  }
+
+  /**
+   * True for Strings allocated by the binary ("some string" in the code) that does not count
+   * towards memleaks. False else.
+   *
+   * @return True for Strings allocated by the binary ("some string" in the code) that does not
+   *     count towards memleaks.
+   */
+  public boolean isConstStringMemory() {
+    return isConstBinaryString;
   }
 
   public BigInteger getSize() {
@@ -79,7 +117,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   @Override
   public String toString() {
-    return "SMGObject" + id;
+    return "SMGObject" + id + "[" + offset + ", " + size + ")";
   }
 
   /** Returns true if the checked {@link SMGObject} is the null instance. */
@@ -90,6 +128,10 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   public SMGObject copyWithNewLevel(int pNewLevel) {
     Preconditions.checkArgument(pNewLevel >= 0);
     return of(pNewLevel, size, offset);
+  }
+
+  public SMGObject copyAsConstStringInBinary() {
+    return new SMGObject(nestingLevel, size, offset, id, true);
   }
 
   public SMGObject freshCopy() {

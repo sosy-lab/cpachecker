@@ -1600,7 +1600,10 @@ public class AutomatonGraphmlParser {
           properties.add(getProperty(prop));
         } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
           logger.logf(
-              Level.WARNING, "Cannot map specification %s to property type. Will ignore it.", prop);
+              Level.WARNING,
+              "Cannot map specification %s to property type. Will ignore it (would only be"
+                  + " problematic if this were the termination property).",
+              prop);
         }
       }
       return properties.build();
@@ -1959,9 +1962,9 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
+  public static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
+    public TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
       super(pBuilder);
     }
 

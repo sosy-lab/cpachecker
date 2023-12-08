@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -63,6 +64,20 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
       MemoryLocation pRepresentedLocation) {
 
     super(pRepresentedLocation);
+    operand1 = pOperand1;
+    operand2 = pOperand2;
+    expressionType = pExpressionType;
+    calculationType = pCalculationType;
+  }
+
+  BinarySymbolicExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType,
+      AbstractState pAbstractState) {
+
+    super(pAbstractState);
     operand1 = pOperand1;
     operand2 = pOperand2;
     expressionType = pExpressionType;

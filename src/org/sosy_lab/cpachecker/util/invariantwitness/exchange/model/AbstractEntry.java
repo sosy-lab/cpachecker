@@ -19,6 +19,7 @@ import java.util.Objects;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = LoopInvariantEntry.class, name = "loop_invariant"),
   @JsonSubTypes.Type(value = LocationInvariantEntry.class, name = "location_invariant"),
+  @JsonSubTypes.Type(value = InvariantSetEntry.class, name = "invariant_set"),
   @JsonSubTypes.Type(
       value = LoopInvariantCertificateEntry.class,
       name = "loop_invariant_certificate"),

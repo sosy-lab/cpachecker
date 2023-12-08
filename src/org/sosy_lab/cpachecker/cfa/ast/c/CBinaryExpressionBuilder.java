@@ -492,10 +492,10 @@ public class CBinaryExpressionBuilder {
      * the other operand is converted, without change of type domain,
      * to a type whose corresponding real type is long double. */
 
-    if (t1.getType() == DOUBLE && t1.isLong()) {
+    if (t1.getType() == DOUBLE && t1.hasLongSpecifier()) {
       return t1;
     }
-    if (t2.getType() == DOUBLE && t2.isLong()) {
+    if (t2.getType() == DOUBLE && t2.hasLongSpecifier()) {
       return t2;
     }
 
@@ -535,12 +535,14 @@ public class CBinaryExpressionBuilder {
 
   private CSimpleType getLongestIntegerPromotion(CSimpleType t1, CSimpleType t2) {
 
-    assert (t1.getType() != INT || (t1.isUnsigned() ^ t1.isSigned()))
+    assert (t1.getType() != INT || (t1.hasUnsignedSpecifier() ^ t1.hasSignedSpecifier()))
         : "INT must be signed xor unsigned: " + t1;
-    assert (t2.getType() != INT || (t2.isUnsigned() ^ t2.isSigned()))
+    assert (t2.getType() != INT || (t2.hasUnsignedSpecifier() ^ t2.hasSignedSpecifier()))
         : "INT must be signed xor unsigned: " + t2;
-    assert !(t1.isLong() && t1.isLongLong()) : "type cannot be long and longlong: " + t1;
-    assert !(t2.isLong() && t2.isLongLong()) : "type cannot be long and longlong: " + t2;
+    assert !(t1.hasLongSpecifier() && t1.hasLongLongSpecifier())
+        : "type cannot be long and longlong: " + t1;
+    assert !(t2.hasLongSpecifier() && t2.hasLongLongSpecifier())
+        : "type cannot be long and longlong: " + t2;
 
     /* see also:
      * https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
@@ -570,8 +572,8 @@ public class CBinaryExpressionBuilder {
      * unsigned integer types, the operand with the type of lesser integer
      * conversion rank is converted to the type of the operand with greater rank. */
 
-    if (t1.isUnsigned() == t2.isUnsigned()) {
-      assert t1.isSigned() == t2.isSigned();
+    if (t1.hasUnsignedSpecifier() == t2.hasUnsignedSpecifier()) {
+      assert t1.hasSignedSpecifier() == t2.hasSignedSpecifier();
       return (rank1 > rank2) ? t1 : t2;
     }
 
@@ -583,10 +585,10 @@ public class CBinaryExpressionBuilder {
      * then the operand with signed integer type is converted to the
      * type of the operand with unsigned integer type. */
 
-    if (t1.isUnsigned() && rank1 >= rank2) {
+    if (t1.hasUnsignedSpecifier() && rank1 >= rank2) {
       return t1;
     }
-    if (t2.isUnsigned() && rank2 >= rank1) {
+    if (t2.hasUnsignedSpecifier() && rank2 >= rank1) {
       return t2;
     }
 
@@ -596,24 +598,42 @@ public class CBinaryExpressionBuilder {
      * is converted to the type of the operand with signed integer type. */
 
     // a full representation of 'unsigned' as 'signed' needs a bigger bitsize
-    if (t1.isSigned() && size1 > size2) {
+    if (t1.hasSignedSpecifier() && size1 > size2) {
       return t1;
     }
-    if (t2.isSigned() && size2 > size1) {
+    if (t2.hasSignedSpecifier() && size2 > size1) {
       return t2;
     }
 
     /* Otherwise, both operands are converted to the unsigned integer type
      * corresponding to the type of the operand with signed integer type. */
 
-    if (t1.isSigned()) {
+    if (t1.hasSignedSpecifier()) {
       return new CSimpleType(
-          false, false, INT, t1.isLong(), false, false, true, false, false, t1.isLongLong());
+          false,
+          false,
+          INT,
+          t1.hasLongSpecifier(),
+          false,
+          false,
+          true,
+          false,
+          false,
+          t1.hasLongLongSpecifier());
     }
 
-    if (t2.isSigned()) {
+    if (t2.hasSignedSpecifier()) {
       return new CSimpleType(
-          false, false, INT, t2.isLong(), false, false, true, false, false, t2.isLongLong());
+          false,
+          false,
+          INT,
+          t2.hasLongSpecifier(),
+          false,
+          false,
+          true,
+          false,
+          false,
+          t2.hasLongLongSpecifier());
     }
 
     throw new AssertionError("unhandled type: " + t1 + " or " + t2);
@@ -641,13 +661,13 @@ public class CBinaryExpressionBuilder {
          * which shall be greater than the rank of short int,
          * which shall be greater than the rank of signed char.
          */
-        if (t.isShort()) {
+        if (t.hasShortSpecifier()) {
           return 30;
         }
-        if (t.isLong()) {
+        if (t.hasLongSpecifier()) {
           return 50;
         }
-        if (t.isLongLong()) {
+        if (t.hasLongLongSpecifier()) {
           return 60;
         }
         return 40;

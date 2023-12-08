@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -26,9 +27,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -54,14 +57,22 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
-import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGConcreteErrorPathAllocator;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.smg2")
@@ -100,7 +111,7 @@ public class SMGCPA
   private final MachineModel machineModel;
   private final BlockOperator blockOperator;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final Configuration config;
   private final CFA cfa;
   private final SMGOptions options;
@@ -118,6 +129,13 @@ public class SMGCPA
 
   private final SMGCPAStatistics statistics;
 
+  private final SMGConstraintsSolver constraintsSolver;
+  private final Solver solver;
+
+  private final ConstraintsStatistics contraintsStats = new ConstraintsStatistics();
+
+  private final SMGCPAExpressionEvaluator evaluator;
+
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
@@ -127,7 +145,7 @@ public class SMGCPA
     config = pConfig;
     cfa = pCfa;
     machineModel = cfa.getMachineModel();
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     precision = initializePrecision(config, cfa);
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
@@ -143,6 +161,17 @@ public class SMGCPA
 
     exportOptions =
         new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
+
+    solver = Solver.create(pConfig, logger, pShutdownNotifier);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
+    CtoFormulaConverter converter =
+        initializeCToFormulaConverter(
+            formulaManager, logger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
+    constraintsSolver =
+        new SMGConstraintsSolver(solver, formulaManager, converter, contraintsStats, options);
+    evaluator =
+        new SMGCPAExpressionEvaluator(
+            machineModel, logger, exportOptions, options, constraintsSolver);
   }
 
   public static CPAFactory factory() {
@@ -182,7 +211,18 @@ public class SMGCPA
   @Override
   public TransferRelation getTransferRelation() {
     return new SMGTransferRelation(
-        logger, options, exportOptions, cfa, constraintsStrengthenOperator, statistics);
+        logger,
+        options,
+        exportOptions,
+        cfa,
+        constraintsStrengthenOperator,
+        statistics,
+        constraintsSolver,
+        evaluator);
+  }
+
+  public SMGConstraintsSolver getSolver() {
+    return constraintsSolver;
   }
 
   @Override
@@ -213,7 +253,7 @@ public class SMGCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    SMGState initState = SMGState.of(machineModel, logger, options, cfa);
+    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator);
     return initState;
   }
 
@@ -228,7 +268,7 @@ public class SMGCPA
         statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
   }
 
-  public LogManager getLogger() {
+  public LogManagerWithoutDuplicates getLogger() {
     return logger;
   }
 
@@ -321,5 +361,34 @@ public class SMGCPA
 
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
+  }
+
+  // Can only be called after machineModel and formulaManager are set
+  protected CtoFormulaConverter initializeCToFormulaConverter(
+      FormulaManagerView pFormulaManager,
+      LogManager pLogger,
+      Configuration pConfig,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+
+    FormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new FormulaEncodingWithPointerAliasingOptions(pConfig);
+    TypeHandlerWithPointerAliasing typeHandler =
+        new TypeHandlerWithPointerAliasing(logger, pMachineModel, formulaOptions);
+
+    return new CToFormulaConverterWithPointerAliasing(
+        formulaOptions,
+        pFormulaManager,
+        pMachineModel,
+        Optional.empty(),
+        pLogger,
+        pShutdownNotifier,
+        typeHandler,
+        AnalysisDirection.FORWARD);
+  }
+
+  public SMGCPAExpressionEvaluator getEvaluator() {
+    return evaluator;
   }
 }

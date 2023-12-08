@@ -8,13 +8,20 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -40,16 +47,28 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
@@ -73,6 +92,8 @@ public class ExpressionToFormulaVisitor
   private final Constraints constraints;
   protected final FormulaManagerView mgr;
   protected final SSAMapBuilder ssa;
+  private final PointerTargetSetBuilder pts;
+  private final ErrorConditions errorConditions;
 
   public ExpressionToFormulaVisitor(
       CtoFormulaConverter pCtoFormulaConverter,
@@ -80,7 +101,9 @@ public class ExpressionToFormulaVisitor
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
-      Constraints pConstraints) {
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions) {
 
     conv = pCtoFormulaConverter;
     edge = pEdge;
@@ -88,6 +111,8 @@ public class ExpressionToFormulaVisitor
     ssa = pSsa;
     constraints = pConstraints;
     mgr = pFmgr;
+    pts = pPts;
+    errorConditions = pErrorConditions;
   }
 
   @Override
@@ -106,12 +131,6 @@ public class ExpressionToFormulaVisitor
     final CType t = e.getExpressionType();
     Formula f = toFormula(e);
     return conv.makeCast(t, calculationType, f, constraints, edge);
-  }
-
-  private Formula getPointerTargetSizeLiteral(
-      final CPointerType pointerType, final CType implicitType) {
-    final long pointerTargetSize = conv.getSizeof(pointerType.getType());
-    return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
   private CType getPromotedTypeForArithmetic(CExpression exp) {
@@ -185,17 +204,13 @@ public class ExpressionToFormulaVisitor
           // pointer target
           ret =
               mgr.makePlus(
-                  f1,
-                  mgr.makeMultiply(
-                      f2, getPointerTargetSizeLiteral((CPointerType) promT1, calculationType)));
+                  f1, mgr.makeMultiply(f2, getSizeExpression(((CPointerType) promT1).getType())));
         } else if (!(promT1 instanceof CPointerType)) {
           // operand2 is a pointer => we should multiply the first summand by the size of the
           // pointer target
           ret =
               mgr.makePlus(
-                  f2,
-                  mgr.makeMultiply(
-                      f1, getPointerTargetSizeLiteral((CPointerType) promT2, calculationType)));
+                  f2, mgr.makeMultiply(f1, getSizeExpression(((CPointerType) promT2).getType())));
         } else {
           throw new UnrecognizedCodeException("Can't add pointers", edge, exp);
         }
@@ -209,16 +224,14 @@ public class ExpressionToFormulaVisitor
           // target
           ret =
               mgr.makeMinus(
-                  f1,
-                  mgr.makeMultiply(
-                      f2, getPointerTargetSizeLiteral((CPointerType) promT1, calculationType)));
+                  f1, mgr.makeMultiply(f2, getSizeExpression(((CPointerType) promT1).getType())));
         } else if (promT1 instanceof CPointerType) {
           // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
           if (promT1.equals(promT2)) {
             ret =
                 mgr.makeDivide(
                     mgr.makeMinus(f1, f2),
-                    getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
+                    getSizeExpression(((CPointerType) promT1).getType()),
                     true);
           } else {
             throw new UnrecognizedCodeException(
@@ -503,7 +516,7 @@ public class ExpressionToFormulaVisitor
 
       case SIZEOF:
         CType lCType = exp.getOperand().getExpressionType();
-        return handleSizeof(exp, lCType);
+        return getSizeExpression(lCType);
 
       case ALIGNOF:
         return handleAlignOf(exp, exp.getOperand().getExpressionType());
@@ -519,7 +532,7 @@ public class ExpressionToFormulaVisitor
 
     switch (tIdExp.getOperator()) {
       case SIZEOF:
-        return handleSizeof(tIdExp, lCType);
+        return getSizeExpression(lCType);
       case ALIGNOF:
         return handleAlignOf(tIdExp, lCType);
       default:
@@ -527,9 +540,120 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  private Formula handleSizeof(CExpression pExp, CType pCType) {
-    return mgr.makeNumber(
-        conv.getFormulaTypeFromCType(pExp.getExpressionType()), conv.getSizeof(pCType));
+  /**
+   * This is a SizeofVisitor that always returns 0 for types that do not have a statically known
+   * size.
+   */
+  private static class StaticSizeofVisitor extends BaseSizeofVisitor<NoException> {
+
+    /**
+     * Compute the size of the given composite type excluding all members that do not have a
+     * statically known size.
+     */
+    BigInteger computeStaticSizeof(CCompositeType pType) {
+      // Note that this.visit(pType) would return 0 because pType has !hasKnownConstantSize(),
+      // so we need to call super.visit() here such that only the struct members get handled by
+      // this.visit()
+      return super.visit(pType);
+    }
+
+    private StaticSizeofVisitor(MachineModel pModel) {
+      super(pModel);
+    }
+
+    @Override
+    public BigInteger visit(CArrayType pArrayType) {
+      if (pArrayType.hasKnownConstantSize()) {
+        return super.visit(pArrayType);
+      }
+      return BigInteger.ZERO;
+    }
+
+    @Override
+    public BigInteger visit(CCompositeType pCompositeType) {
+      if (pCompositeType.hasKnownConstantSize()) {
+        return super.visit(pCompositeType);
+      }
+      return BigInteger.ZERO;
+    }
+  }
+
+  public Formula getSizeExpression(CType type) throws UnrecognizedCodeException {
+    type = type.getCanonicalType();
+    if (type.hasKnownConstantSize()) {
+      return mgr.makeNumber(
+          conv.typeHandler.getPointerType(), conv.typeHandler.getExactSizeof(type));
+
+    } else if (type instanceof CArrayType arrayType) {
+      Formula elementSize = getSizeExpression(arrayType.getType());
+
+      Formula elementCount = arrayType.getLength().accept(this);
+      elementCount =
+          conv.makeCast(
+              arrayType.getLength().getExpressionType(),
+              CPointerType.POINTER_TO_VOID,
+              elementCount,
+              constraints,
+              edge);
+
+      return mgr.makeMultiply(elementSize, elementCount);
+
+    } else if (type instanceof CCompositeType compositeType) {
+      Deque<Formula> memberSizes = new ArrayDeque<>();
+
+      // It is not enough to just compute the sum/maximum over all member sizes because of padding.
+      // But we also do not want to reimplement the complex padding and bitfield computations here.
+      // So we help us with a trick: The next line computes the size of the whole struct/union as if
+      // the variable-length parts would have length 0. But this includes all other fields and all
+      // paddings (even those for variable-length arrays, because padding is always known).
+      // Then we just have to create expressions for the sizes of the variable-length parts and
+      // compute the final sum/maximum.
+      BigInteger staticallyKnownSize =
+          new StaticSizeofVisitor(conv.machineModel).computeStaticSizeof(compositeType);
+
+      for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
+        if (!member.getType().hasKnownConstantSize() && !member.isFlexibleArrayMember()) {
+          // Size is not statically known (exceptions are flexible array members with size 0).
+          memberSizes.add(getSizeExpression(member.getType()));
+        }
+        // else the size is already part of staticallyKnownSize
+      }
+
+      verify(!memberSizes.isEmpty());
+      memberSizes.add(mgr.makeNumber(conv.typeHandler.getPointerType(), staticallyKnownSize));
+
+      // Now compute sum/maximum of memberSizes. Especially for the maximum (with if-then-else)
+      // a balanced tree of nested maximums seems to be likely better for the solver.
+      switch (compositeType.getKind()) {
+        case STRUCT:
+          return balancedDestructiveReduce(memberSizes, mgr::makePlus);
+
+        case UNION:
+          return balancedDestructiveReduce(
+              memberSizes,
+              (a, b) -> conv.bfmgr.ifThenElse(mgr.makeGreaterOrEqual(a, b, false), a, b));
+
+        default:
+          throw new AssertionError();
+      }
+
+    } else {
+      throw new AssertionError("unexpected type without known constant size: " + type);
+    }
+  }
+
+  /**
+   * Reduce the elements of a given deque in a balanced manner, e.g. for [1,2,3,4] and "+" it will
+   * produce (1+2)+(3+4). The deque will be drained.
+   */
+  private static <T> T balancedDestructiveReduce(
+      Deque<T> deque, BiFunction<? super T, ? super T, ? extends T> reducer) {
+    while (deque.size() > 1) {
+      T a = deque.pollFirst();
+      T b = deque.pollFirst();
+      deque.addLast(reducer.apply(a, b));
+    }
+    return deque.getFirst();
   }
 
   private Formula handleAlignOf(CExpression pExp, CType pCType) {
@@ -549,11 +673,6 @@ public class ExpressionToFormulaVisitor
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression) functionNameExpression).getName();
 
-      final String isUnsupported = conv.isUnsupportedFunction(functionName);
-      if (isUnsupported != null) {
-        throw new UnsupportedCodeException(isUnsupported, edge, e);
-      }
-
       if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
           || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
@@ -562,11 +681,86 @@ public class ExpressionToFormulaVisitor
         // Ignore parameters and just create a fresh variable for it.
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
+      } else if (BuiltinFunctions.matchesFscanf(functionName)) {
+
+        ValidatedFScanFParameter receivingParameter = validateFscanfParameters(parameters, e);
+
+        if (receivingParameter.receiver() instanceof CUnaryExpression unaryParameter) {
+          UnaryOperator operator = unaryParameter.getOperator();
+          CExpression operand = unaryParameter.getOperand();
+          if (operator.equals(UnaryOperator.AMPER)
+              && operand instanceof CIdExpression idExpression) {
+            // For simplicity, we start with the case where only parameters of the form "&id" occur
+            CType variableType = idExpression.getExpressionType();
+
+            if (!isCompatibleWithScanfFormatString(receivingParameter.format(), variableType)) {
+              throw new UnsupportedCodeException(
+                  "fscanf with receiving type <-> format specifier mismatch is not supported.",
+                  edge,
+                  e);
+            }
+
+            CFunctionDeclaration nondetFun =
+                new CFunctionDeclaration(
+                    edge.getFileLocation(),
+                    CFunctionType.functionTypeWithReturnType(variableType),
+                    INTERNAL_NONDET_FUNCTION_NAME,
+                    ImmutableList.of(),
+                    ImmutableSet.of());
+            CIdExpression nondetFunctionName =
+                new CIdExpression(
+                    edge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
+
+            CFunctionCallExpression rhs =
+                new CFunctionCallExpression(
+                    edge.getFileLocation(),
+                    variableType,
+                    nondetFunctionName,
+                    ImmutableList.of(),
+                    nondetFun);
+            try {
+              BooleanFormula assignment =
+                  conv.makeAssignment(
+                      idExpression,
+                      idExpression,
+                      rhs,
+                      edge,
+                      function,
+                      ssa,
+                      pts,
+                      constraints,
+                      errorConditions);
+              constraints.addConstraint(assignment);
+            } catch (InterruptedException interruptedException) {
+              CtoFormulaConverter.propagateInterruptedException(interruptedException);
+            }
+          } else {
+            throw new UnsupportedCodeException(
+                "Currently, only fscanf with a single parameter of the form &id is supported.",
+                edge,
+                e);
+          }
+        } else {
+          throw new UnsupportedCodeException(
+              "Currently, only fscanf with a single parameter of the form &id is supported.",
+              edge,
+              e);
+        }
+
+        // fscanf(FILE *stream, const char *format, ...) returns the number of assigned items
+        // or EOF if no item has been assigned before the end of the file occurred.
+        // We can over-approximate the value with nondet.
+        return conv.makeNondet(functionName, returnType, ssa, constraints);
+
       } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv, conv.bfmgr, conv.fmgr);
         BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
+
+      } else if (BuiltinFunctions.isSetjmpFunction(functionName)) {
+        // setjmp always returns 0 on the "regular" return, and we don't support longjmp
+        return mgr.makeNumber(conv.getFormulaTypeFromCType(returnType), 0);
 
       } else if (BuiltinFunctions.isPopcountFunction(functionName)) {
         return handlePopCount(functionName, returnType, parameters, e);
@@ -688,6 +882,31 @@ public class ExpressionToFormulaVisitor
                 zero);
           }
         }
+
+      } else if (BuiltinFloatFunctions.matchesIsInfinitySign(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param =
+                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula fp_zero =
+                fpfmgr.makeNumber(0, (FormulaType.FloatingPointType) formulaType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            Formula zero = mgr.makeNumber(resultType, 0);
+            Formula one = mgr.makeNumber(resultType, 1);
+            Formula minus_one = mgr.makeNumber(resultType, -1);
+
+            return conv.bfmgr.ifThenElse(
+                fpfmgr.isInfinity(param),
+                conv.bfmgr.ifThenElse(fpfmgr.lessThan(param, fp_zero), minus_one, one),
+                zero);
+          }
+        }
+
       } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
 
         if (parameters.size() == 1) {
@@ -1058,6 +1277,12 @@ public class ExpressionToFormulaVisitor
               Level.INFO, "Assuming external function", functionName, "to be a pure function.");
         }
       }
+
+      final String isUnsupported = conv.isUnsupportedFunction(functionName);
+      if (isUnsupported != null) {
+        throw new UnsupportedCodeException(isUnsupported, edge, e);
+      }
+
     } else {
       conv.logfOnce(
           Level.WARNING,
@@ -1125,6 +1350,90 @@ public class ExpressionToFormulaVisitor
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
+  }
+
+  private record ValidatedFScanFParameter(String format, CExpression receiver) {}
+
+  /**
+   * Checks whether the format specifier in the second argument of fscanf agrees with the type of
+   * the parameter it writes to. Paragraph § 7.21.6.2 (10) of the C Standard says, that input item
+   * read form the stream is converted to the `appropriate` type according to the conversion
+   * specifier, e.g., %d. Further § 7.21.6.2 (11-12) tells us the expected argument (receiver) type
+   * for each argument, corresponding to a conversion specifier and length modifier .The exact
+   * mapping brought forward by the standard is reflected in {@link
+   * BuiltinFunctions#getTypeFromScanfFormatSpecifier(String)}.
+   *
+   * @param formatString the scanf format string
+   * @param pVariableType the type of the receiving variable
+   * @return true if the scanf-format-specifier agrees with the type it writes to
+   * @throws UnsupportedCodeException if the format specifier is not supported
+   */
+  private boolean isCompatibleWithScanfFormatString(String formatString, CType pVariableType)
+      throws UnsupportedCodeException {
+    CType expectedType =
+        BuiltinFunctions.getTypeFromScanfFormatSpecifier(formatString)
+            .orElseThrow(
+                () ->
+                    new UnsupportedCodeException(
+                        "format specifier " + formatString + " not supported.", edge));
+
+    return pVariableType.getCanonicalType().equals(expectedType.getCanonicalType());
+  }
+
+  private ValidatedFScanFParameter validateFscanfParameters(
+      List<CExpression> pParameters, CFunctionCallExpression e) throws UnrecognizedCodeException {
+    if (pParameters.size() < 2) {
+      throw new UnrecognizedCodeException("fscanf() needs at least 2 parameters", edge, e);
+    }
+
+    if (pParameters.size() > 3) {
+      throw new UnsupportedCodeException(
+          "fscanf() with more than 3 parameters is not supported", edge, e);
+    }
+
+    CExpression file = pParameters.get(0);
+
+    if (file instanceof CIdExpression idExpression) {
+      if (!isFilePointer(idExpression.getExpressionType())) {
+        throw new UnrecognizedCodeException("First parameter of fscanf() must be a FILE*", edge, e);
+      }
+    }
+
+    CExpression format = pParameters.get(1);
+    String formatString =
+        checkFscanfFormatString(format)
+            .orElseThrow(
+                () ->
+                    new UnsupportedCodeException(
+                        "Format string of fscanf is not supported", edge, e));
+
+    return new ValidatedFScanFParameter(formatString, pParameters.get(2));
+  }
+
+  private boolean isFilePointer(CType pType) {
+    if (pType instanceof CPointerType pointerType) {
+      if (pointerType.getType() instanceof CTypedefType typedefType) {
+        CType realType = typedefType.getRealType();
+        if (realType instanceof CElaboratedType elaboratedType) {
+          return elaboratedType.getKind() == ComplexTypeKind.STRUCT
+              && elaboratedType.getName().equals("_IO_FILE");
+        }
+      }
+    }
+    return false;
+  }
+
+  private Optional<String> checkFscanfFormatString(CExpression pFormat) {
+    ImmutableSet<String> allowlistedFormatStrings =
+        BuiltinFunctions.getAllowedScanfFormatSpecifiers();
+    if (pFormat instanceof CStringLiteralExpression stringLiteral) {
+      String content = stringLiteral.getContentWithoutNullTerminator();
+      if (allowlistedFormatStrings.contains(content)) {
+        return Optional.of(content);
+      }
+    }
+
+    return Optional.empty();
   }
 
   private @Nullable Formula roundNearestTiesAway(
