@@ -17,7 +17,6 @@ import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -324,21 +323,21 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private MemoryLocation toLocation(Type pType, String name) {
     Type type = pType;
-    if (type instanceof CType) {
-      type = ((CType) type).getCanonicalType();
+    if (type instanceof CType cType) {
+      type = cType.getCanonicalType();
     }
     if (isStructOrUnion(type)) {
-      return MemoryLocation.parseExtendedQualifiedName(
-          type.toString()); // TODO find a better way to handle this
+      // TODO find a better way to handle this
+      return MemoryLocation.parseExtendedQualifiedName(type.toString());
     }
     return MemoryLocation.parseExtendedQualifiedName(name);
   }
 
   private static boolean isStructOrUnion(Type pType) {
-    Type type = pType instanceof CType ? ((CType) pType).getCanonicalType() : pType;
-    return type instanceof CComplexType
-        && EnumSet.of(ComplexTypeKind.STRUCT, ComplexTypeKind.UNION)
-            .contains(((CComplexType) type).getKind());
+    return pType instanceof CType cType
+        && cType.getCanonicalType() instanceof CComplexType complexType
+        && (complexType.getKind() == ComplexTypeKind.STRUCT
+            || complexType.getKind() == ComplexTypeKind.UNION);
   }
 
   private PointerState handleStatementEdge(PointerState pState, CStatementEdge pCfaEdge)
@@ -368,12 +367,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private boolean isNondetPointerReturn(CExpression pFunctionNameExpression) {
-    if (pFunctionNameExpression instanceof CIdExpression) {
-      String functionName = ((CIdExpression) pFunctionNameExpression).getName();
-      return functionName.equals("__VERIFIER_nondet_pointer");
-    } else {
-      return false;
-    }
+    return pFunctionNameExpression instanceof CIdExpression idExpression
+        && idExpression.getName().equals("__VERIFIER_nondet_pointer");
   }
 
   private PointerState handleAssignment(
@@ -501,7 +496,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private static MemoryLocation fieldReferenceToMemoryLocation(
       CType pFieldOwnerType, boolean pIsPointerDeref, String pFieldName) {
     CType type = pFieldOwnerType.getCanonicalType();
-    final String prefix;
     if (pIsPointerDeref) {
       if (!(type instanceof CPointerType)) {
         throw new AssertionError();
@@ -510,10 +504,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       if (innerType instanceof CPointerType) {
         throw new AssertionError();
       }
-      prefix = innerType.toString();
-    } else {
-      prefix = type.toString();
+      type = innerType;
     }
+    String prefix = type.toString();
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
@@ -574,9 +567,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
             Type type = pIastIdExpression.getExpressionType();
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
-              location =
-                  MemoryLocation.parseExtendedQualifiedName(
-                      type.toString()); // TODO find a better way to handle this
+              // TODO find a better way to handle this
+              location = MemoryLocation.parseExtendedQualifiedName(type.toString());
             } else {
               CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
               if (declaration != null) {
