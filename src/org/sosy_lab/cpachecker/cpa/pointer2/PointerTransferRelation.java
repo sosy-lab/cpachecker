@@ -328,7 +328,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     }
     if (isStructOrUnion(type)) {
       // TODO find a better way to handle this
-      return MemoryLocation.parseExtendedQualifiedName(type.toString());
+      return MemoryLocation.forIdentifier(type.toString());
     }
     return MemoryLocation.parseExtendedQualifiedName(name);
   }
@@ -510,7 +510,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
-    return MemoryLocation.parseExtendedQualifiedName(prefix + infix + suffix);
+    return MemoryLocation.forIdentifier(prefix + infix + suffix);
   }
 
   private static LocationSet asLocations(
@@ -568,7 +568,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
               // TODO find a better way to handle this
-              location = MemoryLocation.parseExtendedQualifiedName(type.toString());
+              location = MemoryLocation.forIdentifier(type.toString());
             } else {
               CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
               if (declaration != null) {
