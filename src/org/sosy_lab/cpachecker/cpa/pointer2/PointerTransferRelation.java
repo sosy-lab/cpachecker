@@ -559,7 +559,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           public LocationSet visit(final CFieldReference pIastFieldReference)
               throws UnrecognizedCodeException {
             MemoryLocation memoryLocation = fieldReferenceToMemoryLocation(pIastFieldReference);
-            return toLocationSet(Collections.singleton(memoryLocation));
+            return visit(memoryLocation);
           }
 
           @Override
