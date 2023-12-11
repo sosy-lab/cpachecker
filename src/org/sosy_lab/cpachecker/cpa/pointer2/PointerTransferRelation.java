@@ -565,10 +565,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           @Override
           public LocationSet visit(CIdExpression pIastIdExpression)
               throws UnrecognizedCodeException {
-            Type type = pIastIdExpression.getExpressionType();
-            if (type instanceof CType cType) {
-              type = CTypes.copyDequalified(cType.getCanonicalType());
-            }
+            CType type = CTypes.copyDequalified(pIastIdExpression.getExpressionType());
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
               // TODO find a better way to handle this
