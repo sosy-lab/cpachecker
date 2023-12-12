@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ICCOperatorFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.IICOperatorFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ISCOperatorFactory;
 
@@ -1047,7 +1046,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       boolean pAllowSignedWrapAround,
       final OverflowEventHandler pOverflowEventHandler) {
     return applyOperationToAllAndUnite(
-        ICCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pState);
+        IICOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pState);
   }
 
   /**
@@ -1106,7 +1105,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       return multiply(pState.intervals[0], pAllowSignedWrapAround, pOverflowEventHandler);
     }
     return applyOperationToAllAndUnite(
-        ICCOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler),
+        IICOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler),
         pState);
   }
 
