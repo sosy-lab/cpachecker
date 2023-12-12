@@ -294,8 +294,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
 
     InvariantsState newElement = pElement;
-    List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
-    List<CParameterDeclaration> declarations = pEdge.getSuccessor().getFunctionParameters();
+    List<CParameterDeclaration> formalParams = pEdge.getSuccessor().getFunctionParameters();
     List<CExpression> actualParams = pEdge.getArguments();
     int limit = Math.min(formalParams.size(), actualParams.size());
 
@@ -320,10 +319,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();
     actualParams = FluentIterable.from(actualParams).limit(limit).toList();
 
-    Iterator<CParameterDeclaration> declarationIterator = declarations.iterator();
-    for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
+    for (var param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
-      CParameterDeclaration declaration = declarationIterator.next();
+      CParameterDeclaration declaration = param.getFirst();
 
       // Ignore unsupported types
       if (!TypeInfo.isSupported(declaration.getType())) {
@@ -338,7 +336,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         value = toConstant(value, pElement.getEnvironment());
       }
       MemoryLocation formalParam =
-          MemoryLocationExtractor.scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
+          MemoryLocationExtractor.scope(
+              declaration.getName(), pEdge.getSuccessor().getFunctionName());
 
       value = handlePotentialOverflow(pElement, value, declaration.getType());
       newElement = newElement.assign(formalParam, value);
