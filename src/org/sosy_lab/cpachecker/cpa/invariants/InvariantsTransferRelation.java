@@ -268,11 +268,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       return pElement;
     }
 
-    MemoryLocation varName = MemoryLocation.parseExtendedQualifiedName(decl.getName());
-    if (!decl.isGlobal()) {
-      varName =
-          MemoryLocationExtractor.scope(decl.getName(), pEdge.getSuccessor().getFunctionName());
-    }
+    MemoryLocation varName = MemoryLocation.forDeclaration(decl);
 
     NumeralFormula<CompoundInterval> value;
     if (decl.getInitializer() instanceof CInitializerExpression) {
@@ -335,9 +331,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
       }
-      MemoryLocation formalParam =
-          MemoryLocationExtractor.scope(
-              declaration.getName(), pEdge.getSuccessor().getFunctionName());
+      MemoryLocation formalParam = MemoryLocation.forDeclaration(declaration);
 
       value = handlePotentialOverflow(pElement, value, declaration.getType());
       newElement = newElement.assign(formalParam, value);

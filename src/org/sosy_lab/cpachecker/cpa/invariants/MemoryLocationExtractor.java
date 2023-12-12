@@ -13,18 +13,13 @@ import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
@@ -107,17 +102,6 @@ public class MemoryLocationExtractor {
     environment = pEnvironment;
   }
 
-  public MemoryLocation getMemoryLocation(AParameterDeclaration pParameterDeclaration) {
-    String varName = pParameterDeclaration.getName();
-    if (pParameterDeclaration instanceof CSimpleDeclaration decl) {
-      if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
-          || decl instanceof CEnumerator)) {
-        return scope(varName);
-      }
-    }
-    return MemoryLocation.parseExtendedQualifiedName(varName);
-  }
-
   public MemoryLocation getMemoryLocation(AExpression pLhs) throws UnrecognizedCodeException {
     if (pLhs instanceof AIdExpression) {
       return getMemoryLocation((AIdExpression) pLhs);
@@ -144,7 +128,7 @@ public class MemoryLocationExtractor {
             String.format("*(%s)", getMemoryLocation(pe.getOperand())));
       }
       // TODO
-      return scope(pLhs.toString());
+      return MemoryLocation.forLocalVariable(functionName, pLhs.toString());
     } else if (pLhs instanceof CCastExpression cast) {
       return getMemoryLocation(cast.getOperand());
     } else if (pLhs instanceof JCastExpression cast) {
@@ -158,24 +142,15 @@ public class MemoryLocationExtractor {
       // TODO
       // This actually seems wrong but is currently the only way to deal with some cases of pointer
       // arithmetics
-      return scope(pLhs.toString());
+      return MemoryLocation.forLocalVariable(functionName, pLhs.toString());
     }
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
-    CIdExpression var = (CIdExpression) pIdExpression;
-    String varName = var.getName();
-    if (var.getDeclaration() != null) {
-      CSimpleDeclaration decl = var.getDeclaration();
-
-      if (decl instanceof CEnumerator) {
-        return MemoryLocation.forDeclaration(decl);
-      }
-      if (!(decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())) {
-        return scope(varName);
-      }
+    if (pIdExpression.getDeclaration() != null) {
+      return MemoryLocation.forDeclaration(pIdExpression.getDeclaration());
     }
-    return MemoryLocation.parseExtendedQualifiedName(varName);
+    return MemoryLocation.forIdentifier(pIdExpression.getName());
   }
 
   private MemoryLocation getFieldReferenceMemoryLocation(
@@ -223,14 +198,6 @@ public class MemoryLocationExtractor {
     return pFormula.accept(
         new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory, false),
         environment);
-  }
-
-  private MemoryLocation scope(String pVar) {
-    return scope(pVar, functionName);
-  }
-
-  public static MemoryLocation scope(String pVar, String pFunction) {
-    return MemoryLocation.forLocalVariable(pFunction, pVar);
   }
 
   public boolean isFunctionScoped(String pScopedVariableName) {
