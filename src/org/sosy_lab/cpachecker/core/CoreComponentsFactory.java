@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.NoOverflowAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
@@ -90,6 +91,13 @@ import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
 @Options(prefix = "analysis")
 public class CoreComponentsFactory {
+
+  // changed
+  @Option(
+      secure = true,
+      name = "noOverflowAnalysis",
+      description = "no overflow analysis")
+  private boolean noOverflowAnalysis = false;
 
   @Option(
       secure = true,
@@ -634,6 +642,12 @@ public class CoreComponentsFactory {
                 aggregatedReachedSetManager,
                 algorithm,
                 cpa);
+      }
+
+      // changed
+      if (noOverflowAnalysis) {
+        logger.log(Level.INFO, "start no overflow analysis");
+        algorithm = new NoOverflowAlgorithm(logger, cfa);
       }
 
       if (checkCounterexamples) {

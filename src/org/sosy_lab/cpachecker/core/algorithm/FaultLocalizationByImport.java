@@ -197,7 +197,7 @@ public class FaultLocalizationByImport implements Algorithm {
     } catch (IOException e) {
       throw new CPAException("Could not deserialize faults", e);
     }
-    logger.logf(Level.INFO, "Finished parsing %d faults.", faults.size());
+    logger.log(Level.INFO, "Finished parsing %d faults.", faults.size());
     AlgorithmStatus status;
     if (algorithmActivated) {
       logger.log(Level.INFO, "Run configured analysis...");
