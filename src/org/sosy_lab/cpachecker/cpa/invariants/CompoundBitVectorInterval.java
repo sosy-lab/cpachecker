@@ -1154,7 +1154,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       boolean pAllowSignedWrapAround,
       final OverflowEventHandler pOverflowEventHandler) {
     return applyOperationToAllAndUnite(
-        ICCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler),
+        IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler),
         pState);
   }
 
@@ -1202,7 +1202,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       boolean pAllowSignedWrapAround,
       final OverflowEventHandler pOverflowEventHandler) {
     return applyOperationToAllAndUnite(
-        ICCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler),
+        IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler),
         pState);
   }
 
@@ -1250,7 +1250,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       boolean pAllowSignedWrapAround,
       final OverflowEventHandler pOverflowEventHandler) {
     return applyOperationToAllAndUnite(
-        ICCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler),
+        IICOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler),
         pState);
   }
 
@@ -1298,7 +1298,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       boolean pAllowSignedWrapAround,
       final OverflowEventHandler pOverflowEventHandler) {
     return applyOperationToAllAndUnite(
-        ICCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler),
+        IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler),
         pState);
   }
 
@@ -1856,6 +1856,33 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   public static CompoundBitVectorInterval logicalNot(CompoundBitVectorInterval pState) {
     return pState.logicalNot();
+  }
+
+  /**
+   * Applies the given operator to every combination of intervals in this compound interval and the
+   * operand, and unites the results.
+   *
+   * @param pOperator the interval operator to apply to the intervals.
+   * @param pOperand the intervals for the second operand of each operator application.
+   * @return the compound interval resulting from applying the given operator to every combination
+   *     of intervals in this compound interval and the operand, and uniting the results.
+   */
+  private CompoundBitVectorInterval applyOperationToAllAndUnite(
+      final Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval> pOperator,
+      final CompoundBitVectorInterval pOperand) {
+    CompoundBitVectorInterval result = bottom(info);
+    for (BitVectorInterval thisInterval : intervals) {
+      for (BitVectorInterval operandInterval : pOperand.intervals) {
+        CompoundBitVectorInterval current = pOperator.apply(thisInterval, operandInterval);
+        if (current != null) {
+          result = result.unionWith(current);
+          if (result.containsAllPossibleValues()) {
+            return result;
+          }
+        }
+      }
+    }
+    return result;
   }
 
   /**
