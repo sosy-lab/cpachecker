@@ -273,8 +273,7 @@ class EdgeAnalyzer {
       AParameterDeclaration pParameter) {
     if (pParameter.getType() instanceof CType) {
       return ImmutableMap.of(
-          MemoryLocation.forDeclaration(pParameter),
-          (CType) pParameter.getType());
+          MemoryLocation.forDeclaration(pParameter), (CType) pParameter.getType());
     }
     return ImmutableMap.of();
   }
