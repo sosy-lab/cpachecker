@@ -168,8 +168,10 @@ public class MemoryLocationExtractor {
     if (var.getDeclaration() != null) {
       CSimpleDeclaration decl = var.getDeclaration();
 
-      if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
-          || decl instanceof CEnumerator)) {
+      if (decl instanceof CEnumerator) {
+        return MemoryLocation.forDeclaration(decl);
+      }
+      if (!(decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())) {
         return scope(varName);
       }
     }
