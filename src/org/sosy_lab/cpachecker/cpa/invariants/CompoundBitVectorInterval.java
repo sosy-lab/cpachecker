@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.math.IntMath;
@@ -15,7 +16,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -128,7 +128,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   @Override
   public List<SimpleInterval> getIntervals() {
     return Lists.transform(
-        getBitVectorIntervals(),
+        Arrays.asList(intervals),
         pBitVectorInterval ->
             SimpleInterval.of(
                 pBitVectorInterval.getLowerBound(), pBitVectorInterval.getUpperBound()));
@@ -242,8 +242,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
         resultIntervals.add(pOther);
       }
     }
-    BitVectorInterval[] resultArray = new BitVectorInterval[resultIntervals.size()];
-    return getInternal(info, resultIntervals.toArray(resultArray));
+    return getInternal(info, resultIntervals.toArray(new BitVectorInterval[0]));
   }
 
   /**
@@ -502,14 +501,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     StringBuilder sb = new StringBuilder();
     sb.append('{');
-    if (!isBottom()) {
-      Iterator<BitVectorInterval> intervalIterator = Arrays.asList(intervals).iterator();
-      sb.append(intervalIterator.next());
-      while (intervalIterator.hasNext()) {
-        sb.append(", ");
-        sb.append(intervalIterator.next());
-      }
-    }
+    Joiner.on(", ").appendTo(sb, intervals);
     sb.append('}');
     return sb.toString();
   }
@@ -618,13 +610,13 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     // If the value fits in, the cast is easy
     if (pBitVectorInfo.getRange().contains(info.getRange())) {
-      BitVectorInterval[] castedIntervals = new BitVectorInterval[intervals.length];
-      Lists.transform(
-              getBitVectorIntervals(),
-              pInterval ->
-                  BitVectorInterval.of(
-                      pBitVectorInfo, pInterval.getLowerBound(), pInterval.getUpperBound()))
-          .toArray(castedIntervals);
+      BitVectorInterval[] castedIntervals =
+          Lists.transform(
+                  Arrays.asList(intervals),
+                  pInterval ->
+                      BitVectorInterval.of(
+                          pBitVectorInfo, pInterval.getLowerBound(), pInterval.getUpperBound()))
+              .toArray(new BitVectorInterval[0]);
       return new CompoundBitVectorInterval(pBitVectorInfo, castedIntervals);
     }
     CompoundBitVectorInterval result = bottom(pBitVectorInfo);
