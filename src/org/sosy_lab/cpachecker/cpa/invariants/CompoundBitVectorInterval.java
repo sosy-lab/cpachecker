@@ -92,7 +92,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   private static CompoundBitVectorInterval getInternal(
       BitVectorInfo pInfo, ImmutableList<BitVectorInterval> pIntervals) {
-    if (pIntervals.size() == 0) {
+    if (pIntervals.isEmpty()) {
       return bottom(pInfo);
     }
     return new CompoundBitVectorInterval(pInfo, pIntervals);
@@ -482,7 +482,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public boolean isBottom() {
-    return intervals.size() == 0;
+    return intervals.isEmpty();
   }
 
   /**
