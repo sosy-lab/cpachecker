@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationByImport;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.LocateLoopAndLiveVariableAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -390,6 +391,12 @@ public class CoreComponentsFactory {
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.locateLoopAndLiveVariable",
+      description = "Export location of loops and variables inside the loops.")
+  private boolean useLocateLoopAndLiveVariableAlgorithm = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -501,6 +508,9 @@ public class CoreComponentsFactory {
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
+
+    } else if (useLocateLoopAndLiveVariableAlgorithm) {
+      algorithm = new LocateLoopAndLiveVariableAlgorithm(cfa, logger);
 
     } else if (useParallelAlgorithm) {
       algorithm =
