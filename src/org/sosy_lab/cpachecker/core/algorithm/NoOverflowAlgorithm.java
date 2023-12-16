@@ -8,7 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -75,10 +80,17 @@ public class NoOverflowAlgorithm implements Algorithm{
       }
     }
 
-    for (StatementInformation s : information) {
-      logger.log(Level.INFO, s.listToString());
+    String path = "./output/CProgramInformation.txt";
+    try (BufferedWriter writer = Files.newBufferedWriter(Path.of(path), StandardCharsets.UTF_8)) {
+      for (StatementInformation s : information) {
+        writer.write(s.listToString());
+        logger.log(Level.INFO, s.listToString());
+      }
+      writer.write('\n');
+      writer.write("END");
+    } catch (IOException pE) {
+      throw new RuntimeException(pE);
     }
-
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
