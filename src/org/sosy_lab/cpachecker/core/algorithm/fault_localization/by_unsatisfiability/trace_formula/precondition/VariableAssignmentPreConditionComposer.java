@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -61,7 +62,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
           InterruptedException,
           CPATransferException,
           InvalidCounterexampleException {
-    PreCondition nondets = createNondetPrecondition(pCounterexample);
+    PreCondition nondets = createNondetPrecondition(pCounterexample, ImmutableList.of());
     if (!includeInitialAssignment) {
       return nondets;
     }
@@ -139,7 +140,9 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
         nondets.getNondetVariables());
   }
 
-  private PreCondition createNondetPrecondition(List<CFAEdge> pCounterexample)
+  // Change methode signature giving a list of already found precondition variables
+  public PreCondition createNondetPrecondition(
+      List<CFAEdge> pCounterexample, @NonNull ImmutableList<PreCondition> previousPreconditions)
       throws SolverException,
           InterruptedException,
           CPATransferException,
@@ -148,7 +151,13 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
     BooleanFormula precond = bmgr.makeTrue();
     ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
     try (ProverEnvironment prover = context.getProver()) {
+
+      for (int i = 0; i < previousPreconditions.size(); i++) {
+        prover.push(bmgr.not(previousPreconditions.get(i).getPrecondition()));
+      }
+
       prover.push(context.getManager().makeFormulaForPath(pCounterexample).getFormula());
+
       if (prover.isUnsat()) {
         throw new InvalidCounterexampleException(
             "Precondition cannot be computed since counterexample is not feasible.");

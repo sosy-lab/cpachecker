@@ -3900,7 +3900,7 @@ faultLocalization.by_traceformula.stopAfterFirstFault = false
 
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
-  enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
+  enum:     [UNSAT, MINUNSAT, MAXORG, ERRINV]
 
 # Whether to zip the resulting JSON file.
 faultLocalization.export.compressed = false

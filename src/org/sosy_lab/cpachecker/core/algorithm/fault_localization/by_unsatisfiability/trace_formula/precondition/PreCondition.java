@@ -40,7 +40,7 @@ public class PreCondition {
    *     precondition (see {@link CounterexampleInfo#getCFAPathWithAssignments()})
    * @param pPrecondition the actual precondition as {@link BooleanFormula}
    */
-  PreCondition(
+  public PreCondition(
       List<CFAEdge> pEdges,
       List<CFAEdge> pRemainingCounterexample,
       BooleanFormula pPrecondition,

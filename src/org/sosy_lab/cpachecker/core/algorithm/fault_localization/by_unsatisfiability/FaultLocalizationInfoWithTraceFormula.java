@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -30,7 +30,7 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfoWithTraceFormula(
-      Set<Fault> pFaults,
+      Collection<Fault> pFaults,
       FaultScoring pScoring,
       TraceFormula pTraceFormula,
       CounterexampleInfo pParent,
@@ -40,11 +40,12 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
   }
 
   private static List<Fault> correctlySortFaults(
-      Set<Fault> pFaults, FaultScoring pScoring, boolean pSortIntended) {
+      Collection<Fault> pFaults, FaultScoring pScoring, boolean pSortIntended) {
     List<Fault> ranked = FaultRankingUtils.rank(pScoring, pFaults);
     if (pSortIntended) {
       return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), pFaults);
     }
+
     return ranked;
   }
 

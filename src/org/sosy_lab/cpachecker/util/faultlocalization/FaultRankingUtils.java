@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MultiplePreConditionScoring;
 
 /** Provides a variety of methods that are useful for ranking and assigning scores. */
 public class FaultRankingUtils {
@@ -62,7 +63,12 @@ public class FaultRankingUtils {
       }
       rankedList.add(fault);
     }
-    return ImmutableList.sortedCopyOf(rankedList);
+    ImmutableList<Fault> sortedList = ImmutableList.sortedCopyOf(rankedList);
+    if (!(scoring instanceof MultiplePreConditionScoring)) {
+      return sortedList;
+    } else {
+      return sortedList.subList(0, Math.min(sortedList.size(), 20));
+    }
   }
 
   /**

@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
@@ -51,6 +50,8 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.VariableAssignmentPreConditionComposer;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OptimizedMaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OptimizedMaxSatDiffPreconditions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.SingleUnsatCoreAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.explanation.InformationPro
 import org.sosy_lab.cpachecker.util.faultlocalization.explanation.NoContextExplanation;
 import org.sosy_lab.cpachecker.util.faultlocalization.explanation.SuspiciousCalculationExplanation;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceScoring;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MultiplePreConditionScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.VariableCountScoring;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -86,8 +88,10 @@ public class FaultLocalizationWithTraceFormula
     implements Algorithm, StatisticsProvider, Statistics {
 
   public enum AlgorithmType {
+    DIFFMAXSAT,
+    MAXOPT,
     UNSAT,
-    MAXSAT,
+    MINUNSAT,
     MAXORG,
     ERRINV
   }
@@ -193,8 +197,10 @@ public class FaultLocalizationWithTraceFormula
 
     faultAlgorithm =
         switch (algorithmType) {
+          case DIFFMAXSAT -> new OptimizedMaxSatDiffPreconditions(stopAfterFirstFault);
+          case MAXOPT -> new OptimizedMaxSatAlgorithm(stopAfterFirstFault);
           case MAXORG -> new OriginalMaxSatAlgorithm(stopAfterFirstFault);
-          case MAXSAT -> new ModifiedMaxSatAlgorithm(stopAfterFirstFault);
+          case MINUNSAT -> new ModifiedMaxSatAlgorithm(stopAfterFirstFault);
           case ERRINV -> new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
           case UNSAT -> new SingleUnsatCoreAlgorithm();
         };
@@ -204,7 +210,7 @@ public class FaultLocalizationWithTraceFormula
     if (stopAfterFirstFault
         && (algorithmType == AlgorithmType.ERRINV || algorithmType == AlgorithmType.UNSAT)) {
       throw new InvalidConfigurationException(
-          "The option 'stopAfterFirstFault' requires MAXORG or MAXSAT as algorithmType");
+          "The option 'stopAfterFirstFault' requires MAXORG or MINUNSAT as algorithmType");
     }
     if (!algorithmType.equals(AlgorithmType.ERRINV) && options.makeFlowSensitive()) {
       throw new InvalidConfigurationException(
@@ -216,7 +222,7 @@ public class FaultLocalizationWithTraceFormula
           "The option 'ban' cannot be used together with the error invariants algorithm. Use"
               + " MAX-SAT instead.");
     }
-    if (!algorithmType.equals(AlgorithmType.MAXSAT) && options.isReduceSelectors()) {
+    if (!algorithmType.equals(AlgorithmType.MINUNSAT) && options.isReduceSelectors()) {
       throw new InvalidConfigurationException(
           "The option 'reduceselectors' requires the MAX-SAT algorithm");
     }
@@ -313,11 +319,12 @@ public class FaultLocalizationWithTraceFormula
   private FaultScoring getScoring(TraceFormula pTraceFormula) {
     return switch (algorithmType) {
         // fall-through
-      case MAXORG, MAXSAT -> FaultRankingUtils.concatHeuristics(
+      case MAXORG, MINUNSAT, MAXOPT -> FaultRankingUtils.concatHeuristics(
           new VariableCountScoring(),
           new SetSizeScoring(),
           new MinimalLineDistanceScoring(
               pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
+      case DIFFMAXSAT -> new MultiplePreConditionScoring();
         // fall-through
       case ERRINV, UNSAT -> FaultRankingUtils.concatHeuristics(
           new EdgeTypeScoring(), new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
@@ -352,7 +359,7 @@ public class FaultLocalizationWithTraceFormula
         return;
       }
 
-      Set<Fault> faults = pAlgorithm.run(context, tf);
+      Collection<Fault> faults = pAlgorithm.run(context, tf);
 
       // ban specified variables from result set
       ImmutableSet.Builder<Fault> remainingFaults = ImmutableSet.builder();

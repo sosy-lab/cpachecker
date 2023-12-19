@@ -774,9 +774,8 @@ public class CPAMain {
 
       // print result
       if (!options.printStatistics) {
-        stream =
-            makePrintStream(
-                mergeStreams(System.out, file)); // ensure that result is printed to System.out
+        stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed
+        // to System.out
       }
       mResult.printResult(stream);
 

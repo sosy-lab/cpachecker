@@ -43,7 +43,7 @@ public class TraceFormulaTest {
   private final Level logLevel = Level.FINEST;
 
   private enum FLAlgorithm {
-    MAXSAT,
+    MINUNSAT,
     ERRINV
   }
 
@@ -133,7 +133,7 @@ public class TraceFormulaTest {
           }
           break;
 
-        case MAXSAT:
+        case MINUNSAT:
           for (FaultContribution contribution : fault) {
             TraceAtom traceElement = (TraceAtom) contribution;
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
@@ -240,12 +240,12 @@ public class TraceFormulaTest {
   }
 
   @Test
-  public void testMaxSatSelectorTrace() throws Exception {
+  public void testMinUnSatSelectorTrace() throws Exception {
     // Lines that are presumably part of a fault
     List<Integer> faultyLines = ImmutableList.of(17);
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
-        FLAlgorithm.MAXSAT,
+        FLAlgorithm.MINUNSAT,
         ImmutableMap.of(),
         ImmutableMap.of(LogKeys.TFRESULT, faultyLines));
   }

@@ -21,7 +21,6 @@ public class FormulaContext {
 
   private final Solver solver;
   private final PathFormulaManagerImpl manager;
-  private final ProverEnvironment prover;
   private final CFA cfa;
   private final LogManager logger;
   private final Configuration configuration;
@@ -46,7 +45,7 @@ public class FormulaContext {
       ShutdownNotifier pShutdownNotifier) {
     solver = pSolver;
     manager = pManager;
-    prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+
     cfa = pMutableCFA;
     logger = pLogManager;
     configuration = pConfiguration;
@@ -62,7 +61,7 @@ public class FormulaContext {
   }
 
   public ProverEnvironment getProver() {
-    return prover;
+    return solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
   }
 
   public LogManager getLogger() {
