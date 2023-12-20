@@ -200,12 +200,12 @@ public enum MachineModel {
   private final int alignofMalloc;
 
   // according to ANSI C, sizeof(char) is always 1
-  private final int mSizeofChar = 1;
-  private final int mAlignofChar = 1;
+  private static final int mSizeofChar = 1;
+  private static final int mAlignofChar = 1;
   private final boolean defaultCharSigned;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
-  private final int mSizeofCharInBits = 8;
+  private static final int mSizeofCharInBits = 8;
   private final CSimpleType intptr_t;
   private final CSimpleType uintptr_t;
 

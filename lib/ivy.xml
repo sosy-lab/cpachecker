@@ -152,9 +152,9 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.19.1" conf="format-source->default"/>
 
         <!-- SpotBugs -->
-        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.7.3" conf="spotbugs->default"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.8.3" conf="spotbugs->default"/>
         <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
-        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.7.3" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.8.3" conf="runtime->default; contrib->sources"/>
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
