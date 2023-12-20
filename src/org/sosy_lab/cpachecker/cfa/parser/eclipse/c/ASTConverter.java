@@ -2599,8 +2599,8 @@ class ASTConverter {
         switch (d.getKey()) {
           case IASTCompositeTypeSpecifier.k_struct -> ComplexTypeKind.STRUCT;
           case IASTCompositeTypeSpecifier.k_union -> ComplexTypeKind.UNION;
-          default -> throw parseContext.parseError(
-              "Unknown key " + d.getKey() + " for composite type", d);
+          default ->
+              throw parseContext.parseError("Unknown key " + d.getKey() + " for composite type", d);
         };
     String name = convert(d.getName());
     String origName = name;

@@ -1464,8 +1464,8 @@ public class ValueAnalysisTransferRelation
                 final BigDecimal integralPartValue =
                     switch (paramType.getType()) {
                       case FLOAT -> BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
-                      case DOUBLE -> BigDecimal.valueOf(
-                          (double) ((long) numericValue.doubleValue()));
+                      case DOUBLE ->
+                          BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
                       default -> throw new AssertionError("Unsupported float type: " + paramType);
                     };
                 CFloatLiteralExpression integralPart =

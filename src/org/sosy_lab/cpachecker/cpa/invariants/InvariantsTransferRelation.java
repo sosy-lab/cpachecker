@@ -140,8 +140,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     if (compoundIntervalManagerFactory
         instanceof
-        CompoundBitVectorIntervalManagerFactory
-        compoundBitVectorIntervalManagerFactory) {
+        CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory) {
       compoundBitVectorIntervalManagerFactory.addOverflowEventHandler(overflowEventHandler);
     }
 
@@ -149,8 +148,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     if (compoundIntervalManagerFactory
         instanceof
-        CompoundBitVectorIntervalManagerFactory
-        compoundBitVectorIntervalManagerFactory) {
+        CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory) {
       compoundBitVectorIntervalManagerFactory.removeOverflowEventHandler(overflowEventHandler);
     }
 

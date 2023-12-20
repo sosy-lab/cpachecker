@@ -271,9 +271,10 @@ public class TestCaseExporter {
         } else {
           Object content =
               switch (type) {
-                case HARNESS -> harnessExporter
-                    .writeHarness(rootState, relevantStates, relevantEdges, pCexInfo)
-                    .orElse(null);
+                case HARNESS ->
+                    harnessExporter
+                        .writeHarness(rootState, relevantStates, relevantEdges, pCexInfo)
+                        .orElse(null);
                 default -> throw new AssertionError("Unknown test case format.");
               };
 
@@ -359,10 +360,11 @@ public class TestCaseExporter {
                       inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
                   yield (Appender) appendable -> appendable.append(plainOutput);
                 }
-                case METADATA -> (Appender)
-                    appendable ->
-                        XMLTestCaseExport.writeXMLMetadata(
-                            appendable, cfa, pSpec.orElse(null), producerString);
+                case METADATA ->
+                    (Appender)
+                        appendable ->
+                            XMLTestCaseExport.writeXMLMetadata(
+                                appendable, cfa, pSpec.orElse(null), producerString);
                 case XML -> {
                   String xmlOutput =
                       inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);

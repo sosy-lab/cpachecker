@@ -239,8 +239,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       List<Precision> precisions = new ArrayList<>(2);
       VariableTrackingPrecision basePrecision =
           switch (basisStrategy) {
-            case ALL -> mergeValuePrecisionsForSubgraph(
-                (ARGState) reached.getFirstState(), reached);
+            case ALL ->
+                mergeValuePrecisionsForSubgraph((ARGState) reached.getFirstState(), reached);
             case SUBGRAPH -> mergeValuePrecisionsForSubgraph(root, reached);
             case TARGET -> extractValuePrecision(reached.getPrecision(reached.getLastState()));
             case CUTPOINT -> extractValuePrecision(reached.getPrecision(root));

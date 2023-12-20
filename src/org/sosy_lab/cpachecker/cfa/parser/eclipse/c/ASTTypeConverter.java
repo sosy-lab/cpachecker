@@ -134,8 +134,9 @@ class ASTTypeConverter {
           switch (ct.getKey()) {
             case ICompositeType.k_struct -> ComplexTypeKind.STRUCT;
             case ICompositeType.k_union -> ComplexTypeKind.UNION;
-            default -> throw new CFAGenerationRuntimeException(
-                "Unknown key " + ct.getKey() + " for composite type " + t);
+            default ->
+                throw new CFAGenerationRuntimeException(
+                    "Unknown key " + ct.getKey() + " for composite type " + t);
           };
       String name = ct.getName();
       String qualifiedName = kind.toASTString() + " " + name;

@@ -1064,10 +1064,10 @@ public class CFACreator {
 
       final CFAEdge newEdge =
           switch (cfa.getLanguage()) {
-            case C -> new CDeclarationEdge(
-                rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
-            case JAVA -> new JDeclarationEdge(
-                rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+            case C ->
+                new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
+            case JAVA ->
+                new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
             default -> throw new AssertionError("unknown language");
           };
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);

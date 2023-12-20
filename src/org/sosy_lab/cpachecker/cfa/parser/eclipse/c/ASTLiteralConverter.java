@@ -288,8 +288,9 @@ class ASTLiteralConverter {
             case OCTAL -> new BigInteger(s, 8);
             case DECIMAL -> new BigInteger(s, 10);
             case HEXADECIMAL -> new BigInteger(s.substring(2), 16); // remove "0x" from the string
-            default -> throw parseContext.parseError(
-                String.format("invalid constant type: %s", type.name()), e);
+            default ->
+                throw parseContext.parseError(
+                    String.format("invalid constant type: %s", type.name()), e);
           };
     } catch (NumberFormatException exception) {
       throw parseContext.parseError("invalid number", e);

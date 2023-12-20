@@ -218,8 +218,9 @@ final class AddressHandler {
             conv.makeDereference(
                 type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
       }
-      case UNALIASED_LOCATION -> Optional.of(
-          conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
+      case UNALIASED_LOCATION ->
+          Optional.of(
+              conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
       case DET_VALUE -> Optional.of(expression.asValue().getValue());
       case NONDET -> Optional.empty();
     };

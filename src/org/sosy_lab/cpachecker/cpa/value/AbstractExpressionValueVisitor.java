@@ -2096,10 +2096,11 @@ public abstract class AbstractExpressionValueVisitor
                 case GREATER_EQUAL -> (lVal >= rVal);
                 case LESS_THAN -> (lVal < rVal);
                 case LESS_EQUAL -> (lVal <= rVal);
-                default -> throw new AssertionError(
-                    "Unsupported binary operation "
-                        + pBinaryOperator
-                        + " on floating point values");
+                default ->
+                    throw new AssertionError(
+                        "Unsupported binary operation "
+                            + pBinaryOperator
+                            + " on floating point values");
               };
           // return 1 if expression holds, 0 otherwise
           return BooleanValue.valueOf(result);

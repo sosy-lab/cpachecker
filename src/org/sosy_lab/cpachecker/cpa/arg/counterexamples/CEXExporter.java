@@ -246,8 +246,9 @@ public class CEXExporter {
       if (options.getSourceFile() != null) {
         pathProgram =
             switch (codeStyle) {
-              case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
-                  targetPath, counterexample.getCFAPathWithAssignments());
+              case CONCRETE_EXECUTION ->
+                  PathToConcreteProgramTranslator.translateSinglePath(
+                      targetPath, counterexample.getCFAPathWithAssignments());
               case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
             };
       }
