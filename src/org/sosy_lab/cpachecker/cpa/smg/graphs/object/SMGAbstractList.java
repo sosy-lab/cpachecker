@@ -47,18 +47,14 @@ public abstract class SMGAbstractList<S> extends SMGObject implements SMGAbstrac
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
 
-    switch (pOther.getKind()) {
-      case REG:
-        return minimumLength < 2;
-      case OPTIONAL:
-        return minimumLength == 0;
-      case DLL:
-      case SLL:
-        return matchSpecificShape((SMGAbstractObject) pOther)
-            && minimumLength < ((SMGAbstractList<?>) pOther).minimumLength;
-      default:
-        return false;
-    }
+    return switch (pOther.getKind()) {
+      case REG -> minimumLength < 2;
+      case OPTIONAL -> minimumLength == 0;
+      case DLL, SLL ->
+          matchSpecificShape((SMGAbstractObject) pOther)
+              && minimumLength < ((SMGAbstractList<?>) pOther).minimumLength;
+      default -> false;
+    };
   }
 
   @Override

@@ -384,20 +384,15 @@ public enum MachineModel {
       return false;
     }
 
-    switch (t.getType()) {
-      case CHAR:
-        return isDefaultCharSigned();
-      case FLOAT:
-      case DOUBLE:
-        return true;
-      case INT:
-        throw new AssertionError("Canonical type of INT should always have sign modifier");
-      case UNSPECIFIED:
-        throw new AssertionError("Canonical type should never be UNSPECIFIED");
-      default:
-        // bool, void
-        return false;
-    }
+    return switch (t.getType()) {
+      case CHAR -> isDefaultCharSigned();
+      case FLOAT, DOUBLE -> true;
+      case INT ->
+          throw new AssertionError("Canonical type of INT should always have sign modifier");
+      case UNSPECIFIED -> throw new AssertionError("Canonical type should never be UNSPECIFIED");
+      default -> // bool, void
+          false;
+    };
   }
 
   public int getSizeofCharInBits() {

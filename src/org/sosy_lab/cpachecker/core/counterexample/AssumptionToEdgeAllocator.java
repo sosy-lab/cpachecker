@@ -195,16 +195,13 @@ public class AssumptionToEdgeAllocator {
   }
 
   private String createComment(CFAEdge pCfaEdge, ConcreteState pConcreteState) {
-    switch (pCfaEdge.getEdgeType()) {
-      case AssumeEdge:
-        return handleAssumeComment((AssumeEdge) pCfaEdge, pConcreteState);
-      case DeclarationEdge:
-        return handleDclComment((ADeclarationEdge) pCfaEdge, pConcreteState);
-      case ReturnStatementEdge:
-        return handleReturnStatementComment((AReturnStatementEdge) pCfaEdge, pConcreteState);
-      default:
-        return "";
-    }
+    return switch (pCfaEdge.getEdgeType()) {
+      case AssumeEdge -> handleAssumeComment((AssumeEdge) pCfaEdge, pConcreteState);
+      case DeclarationEdge -> handleDclComment((ADeclarationEdge) pCfaEdge, pConcreteState);
+      case ReturnStatementEdge ->
+          handleReturnStatementComment((AReturnStatementEdge) pCfaEdge, pConcreteState);
+      default -> "";
+    };
   }
 
   private String handleReturnStatementComment(

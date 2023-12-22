@@ -217,21 +217,18 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       SSAMap fromSSA,
       Set<BooleanFormula> pFromStateLemmas)
       throws SolverException, InterruptedException {
-    switch (options.getWeakeningStrategy()) {
-      case SYNTACTIC:
-        return syntacticWeakeningManager.performWeakening(
-            fromSSA, selectionVarsInfo, transition.getSsa(), pFromStateLemmas);
-
-      case DESTRUCTIVE:
-        return destructiveWeakeningManager.performWeakening(
-            selectionVarsInfo, fromState, transition, toState, fromSSA, pFromStateLemmas);
-
-      case CEX:
-        return cexWeakeningManager.performWeakening(
-            selectionVarsInfo.keySet(), fromState, transition, toState);
-      default:
-        throw new UnsupportedOperationException("Unexpected enum value");
-    }
+    return switch (options.getWeakeningStrategy()) {
+      case SYNTACTIC ->
+          syntacticWeakeningManager.performWeakening(
+              fromSSA, selectionVarsInfo, transition.getSsa(), pFromStateLemmas);
+      case DESTRUCTIVE ->
+          destructiveWeakeningManager.performWeakening(
+              selectionVarsInfo, fromState, transition, toState, fromSSA, pFromStateLemmas);
+      case CEX ->
+          cexWeakeningManager.performWeakening(
+              selectionVarsInfo.keySet(), fromState, transition, toState);
+      default -> throw new UnsupportedOperationException("Unexpected enum value");
+    };
   }
 
   private static final class TemporaryException extends RuntimeException {

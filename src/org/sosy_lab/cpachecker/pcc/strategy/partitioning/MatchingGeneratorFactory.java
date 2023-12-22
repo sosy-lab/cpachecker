@@ -22,11 +22,9 @@ public class MatchingGeneratorFactory {
 
   public static MatchingGenerator createMatchingGenerator(
       final LogManager pLogger, MatchingGenerators generator) {
-    switch (generator) {
-      case HEAVY_EDGE:
-        return new HeavyEdgeMatchingGenerator(pLogger);
-      default:
-        return new RandomMatchingGenerator(pLogger);
-    }
+    return switch (generator) {
+      case HEAVY_EDGE -> new HeavyEdgeMatchingGenerator(pLogger);
+      default -> new RandomMatchingGenerator(pLogger);
+    };
   }
 }

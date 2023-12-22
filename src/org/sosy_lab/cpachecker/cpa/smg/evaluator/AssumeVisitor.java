@@ -175,22 +175,15 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       long offset1 = pV1.getOffset().getAsLong();
       long offset2 = pV2.getOffset().getAsLong();
 
-      switch (pOp) {
-        case GREATER_EQUAL:
-          return offset1 >= offset2;
-        case GREATER_THAN:
-          return offset1 > offset2;
-        case LESS_EQUAL:
-          return offset1 <= offset2;
-        case LESS_THAN:
-          return offset1 < offset2;
-        case EQUALS:
-          return offset1 == offset2;
-        case NOT_EQUALS:
-          return offset1 != offset2;
-        default:
-          throw new AssertionError("Impossible case thrown");
-      }
+      return switch (pOp) {
+        case GREATER_EQUAL -> offset1 >= offset2;
+        case GREATER_THAN -> offset1 > offset2;
+        case LESS_EQUAL -> offset1 <= offset2;
+        case LESS_THAN -> offset1 < offset2;
+        case EQUALS -> offset1 == offset2;
+        case NOT_EQUALS -> offset1 != offset2;
+        default -> throw new AssertionError("Impossible case thrown");
+      };
     } else if (pOp == BinaryOperator.NOT_EQUALS
         && (getInitialSmgState().getHeap().isObjectValid(object1)
             || SMGNullObject.INSTANCE.equals(object1))

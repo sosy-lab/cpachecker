@@ -95,24 +95,16 @@ public class AlgorithmContext {
       val = val.toLowerCase(Locale.ROOT);
     }
 
-    switch (val) {
-      case "continue":
-        return REPETITIONMODE.CONTINUE;
-      case "reuse-own-precision":
-        return REPETITIONMODE.REUSEOWNPRECISION;
-      case "reuse-pred-precision":
-        return REPETITIONMODE.REUSEPREDPRECISION;
-      case "reuse-precisions":
-        return REPETITIONMODE.REUSEOWNANDPREDPRECISION;
-      case "reuse-cpa-own-precision":
-        return REPETITIONMODE.REUSECPA_OWNPRECISION;
-      case "reuse-cpa-pred-precision":
-        return REPETITIONMODE.REUSECPA_PREDPRECISION;
-      case "reuse-cpa-precisions":
-        return REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
-      default:
-        return REPETITIONMODE.NOREUSE;
-    }
+    return switch (val) {
+      case "continue" -> REPETITIONMODE.CONTINUE;
+      case "reuse-own-precision" -> REPETITIONMODE.REUSEOWNPRECISION;
+      case "reuse-pred-precision" -> REPETITIONMODE.REUSEPREDPRECISION;
+      case "reuse-precisions" -> REPETITIONMODE.REUSEOWNANDPREDPRECISION;
+      case "reuse-cpa-own-precision" -> REPETITIONMODE.REUSECPA_OWNPRECISION;
+      case "reuse-cpa-pred-precision" -> REPETITIONMODE.REUSECPA_PREDPRECISION;
+      case "reuse-cpa-precisions" -> REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
+      default -> REPETITIONMODE.NOREUSE;
+    };
   }
 
   public boolean reuseCPA() {

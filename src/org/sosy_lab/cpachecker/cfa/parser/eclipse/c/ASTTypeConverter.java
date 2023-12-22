@@ -463,24 +463,16 @@ class ASTTypeConverter {
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
-    switch (d.getStorageClass()) {
-      case IASTDeclSpecifier.sc_unspecified:
-      case IASTDeclSpecifier.sc_auto:
-      case IASTDeclSpecifier.sc_register:
-        return CStorageClass.AUTO;
-
-      case IASTDeclSpecifier.sc_static:
-        return CStorageClass.STATIC;
-
-      case IASTDeclSpecifier.sc_extern:
-        return CStorageClass.EXTERN;
-
-      case IASTDeclSpecifier.sc_typedef:
-        return CStorageClass.TYPEDEF;
-
-      default:
-        throw parseContext.parseError("Unsupported storage class", d);
-    }
+    return switch (d.getStorageClass()) {
+      case IASTDeclSpecifier.sc_unspecified,
+              IASTDeclSpecifier.sc_auto,
+              IASTDeclSpecifier.sc_register ->
+          CStorageClass.AUTO;
+      case IASTDeclSpecifier.sc_static -> CStorageClass.STATIC;
+      case IASTDeclSpecifier.sc_extern -> CStorageClass.EXTERN;
+      case IASTDeclSpecifier.sc_typedef -> CStorageClass.TYPEDEF;
+      default -> throw parseContext.parseError("Unsupported storage class", d);
+    };
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {

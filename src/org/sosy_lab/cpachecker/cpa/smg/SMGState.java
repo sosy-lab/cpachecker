@@ -1525,15 +1525,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
-      case "toString":
-        return toString();
-      case "heapObjects":
-        return heap.getHeapObjects();
-      default:
-        // try boolean properties
-        return checkProperty(pProperty);
-    }
+    return switch (pProperty) {
+      case "toString" -> toString();
+      case "heapObjects" -> heap.getHeapObjects();
+      default -> // try boolean properties
+          checkProperty(pProperty);
+    };
   }
 
   @Override

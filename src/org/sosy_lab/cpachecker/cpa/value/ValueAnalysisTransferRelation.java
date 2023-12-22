@@ -786,22 +786,12 @@ public class ValueAnalysisTransferRelation
       } else if (declarationType instanceof JSimpleType) {
         JBasicType basicType = ((JSimpleType) declarationType).getType();
 
-        switch (basicType) {
-          case BOOLEAN:
-            return BooleanValue.valueOf(defaultBooleanValue);
-          case BYTE:
-          case CHAR:
-          case SHORT:
-          case INT:
-          case LONG:
-          case FLOAT:
-          case DOUBLE:
-            return new NumericValue(defaultNumericValue);
-          case UNSPECIFIED:
-            return UnknownValue.getInstance();
-          default:
-            throw new AssertionError("Impossible type for declaration: " + basicType);
-        }
+        return switch (basicType) {
+          case BOOLEAN -> BooleanValue.valueOf(defaultBooleanValue);
+          case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(defaultNumericValue);
+          case UNSPECIFIED -> UnknownValue.getInstance();
+          default -> throw new AssertionError("Impossible type for declaration: " + basicType);
+        };
       }
     }
 

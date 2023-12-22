@@ -156,31 +156,25 @@ public class ARGToAutomatonConverter {
    * @param targetsOnly Export all possible paths or only paths leading to target states.
    */
   public Automaton getAutomaton(ARGState root, boolean targetsOnly) {
-    switch (dataStrategy) {
-      case LOCATION:
-        return getLocationAutomatonForStates(root, Predicates.alwaysFalse(), targetsOnly);
-      case CALLSTACK:
-        return getCallstackAutomatonForStates(root, getLeaves(root, targetsOnly), targetsOnly);
-      default:
-        throw new AssertionError("unexpected strategy");
-    }
+    return switch (dataStrategy) {
+      case LOCATION -> getLocationAutomatonForStates(root, Predicates.alwaysFalse(), targetsOnly);
+      case CALLSTACK ->
+          getCallstackAutomatonForStates(root, getLeaves(root, targetsOnly), targetsOnly);
+      default -> throw new AssertionError("unexpected strategy");
+    };
   }
 
   /** get several automata according to the splitter strategy. */
   public Iterable<Automaton> getAutomata(ARGState root) {
-    switch (splitStrategy) {
-      case NONE:
-        return Collections.singleton(
-            getLocationAutomatonForStates(root, Predicates.alwaysFalse(), false));
-      case GLOBAL_CONDITIONS:
-        return getGlobalConditionSplitAutomata(root, selectionStrategy);
-      case LEAVES:
-        return getLeaves(root, false).transform(l -> getAutomatonForLeaf(root, l));
-      case TARGETS:
-        return getLeaves(root, true).transform(l -> getAutomatonForLeaf(root, l));
-      default:
-        throw new AssertionError("unexpected strategy");
-    }
+    return switch (splitStrategy) {
+      case NONE ->
+          Collections.singleton(
+              getLocationAutomatonForStates(root, Predicates.alwaysFalse(), false));
+      case GLOBAL_CONDITIONS -> getGlobalConditionSplitAutomata(root, selectionStrategy);
+      case LEAVES -> getLeaves(root, false).transform(l -> getAutomatonForLeaf(root, l));
+      case TARGETS -> getLeaves(root, true).transform(l -> getAutomatonForLeaf(root, l));
+      default -> throw new AssertionError("unexpected strategy");
+    };
   }
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
@@ -320,34 +314,26 @@ public class ARGToAutomatonConverter {
   private Iterable<Automaton> collectAutomata(
       ARGState root, Map<ARGState, BranchingInfo> pDependencies, BranchExportStrategy export) {
 
-    switch (export) {
-      case NONE:
-        return ImmutableList.of();
-
-      case ALL: // export all nodes, mainly for debugging.
-        return from(pDependencies.entrySet())
-            .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(
-                ignores -> getLocationAutomatonForStates(root, s -> ignores.contains(s), false));
-
-      case LEAVES: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
-        // no redundant paths expected, if leafs are reached via different paths.
-        return from(pDependencies.entrySet())
-            // end-states do not have outgoing edges, and thus no next states.
-            .filter(entry -> entry.getValue().getNextStates().isEmpty())
-            .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(
-                ignores -> getLocationAutomatonForStates(root, s -> ignores.contains(s), false));
-
-      case WEIGHTED: // export all nodes, where children are heavier than a given limit
-        return getWeightedAutomata(root, pDependencies);
-
-      case FIRST_BFS:
-        return getFirstBFSAutomata(root, pDependencies);
-
-      default:
-        throw new AssertionError("unexpected export strategy");
-    }
+    return switch (export) {
+      case NONE -> ImmutableList.of();
+      case ALL -> // export all nodes, mainly for debugging.
+          from(pDependencies.entrySet())
+              .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
+              .transform(
+                  ignores -> getLocationAutomatonForStates(root, s -> ignores.contains(s), false));
+      case LEAVES -> // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
+          // no redundant paths expected, if leafs are reached via different paths.
+          from(pDependencies.entrySet())
+              // end-states do not have outgoing edges, and thus no next states.
+              .filter(entry -> entry.getValue().getNextStates().isEmpty())
+              .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
+              .transform(
+                  ignores -> getLocationAutomatonForStates(root, s -> ignores.contains(s), false));
+      case WEIGHTED -> // export all nodes, where children are heavier than a given limit
+          getWeightedAutomata(root, pDependencies);
+      case FIRST_BFS -> getFirstBFSAutomata(root, pDependencies);
+      default -> throw new AssertionError("unexpected export strategy");
+    };
   }
 
   private Iterable<Automaton> getFirstBFSAutomata(

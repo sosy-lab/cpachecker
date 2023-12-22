@@ -830,12 +830,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       if (value == null) {
         return null;
       }
-      switch (unExp.getOperator()) {
-        case MINUS:
-          return value.negate();
-        default:
-          return null;
-      }
+      return switch (unExp.getOperator()) {
+        case MINUS -> value.negate();
+        default -> null;
+      };
 
     } else if (exp instanceof CCastExpression) {
       return getNumber(((CCastExpression) exp).getOperand());
