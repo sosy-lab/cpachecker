@@ -63,25 +63,21 @@ public abstract class SMGAbstractList<S> extends SMGObject implements SMGAbstrac
 
   @Override
   public SMGObject join(SMGObject pOther, int pDestLevel) {
-
-    switch (pOther.getKind()) {
-      case DLL:
-      case SLL:
+    return switch (pOther.getKind()) {
+      case DLL, SLL -> {
         SMGAbstractList<?> otherLinkedList = (SMGAbstractList<?>) pOther;
         assert matchSpecificShape(otherLinkedList);
         int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
-        return copy(minlength, pDestLevel);
-
-      case REG:
-      case OPTIONAL:
+        yield copy(minlength, pDestLevel);
+      }
+      case REG, OPTIONAL -> {
         assert getSize() == pOther.getSize();
         int otherLength = pOther.getKind() == SMGObjectKind.REG ? 1 : 0;
-        minlength = Math.min(getMinimumLength(), otherLength);
-        return copy(minlength, pDestLevel);
-
-      default:
-        throw new IllegalArgumentException("join called on unjoinable Objects");
-    }
+        int minlength = Math.min(getMinimumLength(), otherLength);
+        yield copy(minlength, pDestLevel);
+      }
+      default -> throw new IllegalArgumentException("join called on unjoinable Objects");
+    };
   }
 
   @Override
