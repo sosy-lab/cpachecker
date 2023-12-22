@@ -66,7 +66,7 @@ public final class MultipleProperties {
           }
           break;
         default:
-          assert false;
+          throw new AssertionError();
       }
     }
     properties = propertyBuilder.build();
