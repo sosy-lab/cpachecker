@@ -1,5 +1,10 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +32,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private final CFA cfa;
+  private final LogManager logger;
   private final CProgramScope cProgramScope;
 
   public LocateLoopAndLiveVariableAlgorithm(CFA pCfa, LogManager pLogger) {
@@ -36,6 +42,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       throw new IllegalArgumentException("Program must have loop!");
     }
     cfa = pCfa;
+    logger = pLogger;
     cProgramScope = new CProgramScope(pCfa, pLogger);
   }
 
