@@ -1,6 +1,9 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
@@ -14,10 +17,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private final CFA cfa;
@@ -37,6 +43,45 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("Unimplemented method 'run'");
+  }
+
+  private List<LoopInfo> getAllLoopInfos() {
+    List<LoopInfo> allLoopInfos = new ArrayList<>();
+
+    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      int loopLocation =
+          loop.getIncomingEdges().stream()
+              .mapToInt(e -> e.getFileLocation().getStartingLineInOrigin())
+              .max()
+              .orElseThrow();
+
+      Set<String> liveVariables = new HashSet<>();
+      Set<String> variablesDeclaredInsideLoop = new HashSet<>();
+      Map<String, String> liveVariablesAndTypes = new HashMap<>();
+      for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
+        if (cfaEdge.getRawAST().isPresent()) {
+          AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
+          if (aAstNode instanceof CSimpleDeclaration) {
+            variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
+          } else {
+            liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
+          }
+        }
+      }
+      liveVariables.removeAll(variablesDeclaredInsideLoop);
+      liveVariables.removeIf(e -> e.contains("::") && e.split("::")[1].startsWith("__CPAchecker_TMP_"));
+
+      for (String variable : liveVariables) {
+        String type = cProgramScope.lookupVariable(variable).getType().toString();
+        liveVariablesAndTypes.put(
+            variable.contains("::") ? variable.split("::")[1] : variable,
+            type.startsWith("(") ? type.substring(1, type.length() - 2) + "*" : type);
+      }
+
+      allLoopInfos.add(new LoopInfo(loopLocation, liveVariablesAndTypes));
+    }
+
+    return allLoopInfos;
   }
 
   private Set<String> getVariablesFromAAstNode(AAstNode aAstNode) {
