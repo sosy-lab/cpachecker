@@ -27,11 +27,11 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("Unimplemented method 'run'");
   }
+}
 
-  record LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
-    LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
-      this.loopLocation = loopLocation;
-      this.liveVariablesAndTypes = liveVariablesAndTypes;
-    }
+record LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
+  LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
+    this.loopLocation = loopLocation;
+    this.liveVariablesAndTypes = liveVariablesAndTypes;
   }
 }
