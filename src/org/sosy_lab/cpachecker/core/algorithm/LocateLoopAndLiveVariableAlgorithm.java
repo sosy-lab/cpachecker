@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.util.Map;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -25,5 +26,12 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("Unimplemented method 'run'");
+  }
+
+  record LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
+    LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
+      this.loopLocation = loopLocation;
+      this.liveVariablesAndTypes = liveVariablesAndTypes;
+    }
   }
 }
