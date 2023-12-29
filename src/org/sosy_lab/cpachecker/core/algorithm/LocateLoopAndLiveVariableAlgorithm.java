@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -48,8 +50,20 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'run'");
+    try (BufferedWriter writer =
+        Files.newBufferedWriter(Paths.get("output/AllLoopInfos.txt"), StandardCharsets.UTF_8)) {
+      StringBuilder allLoopInfos = new StringBuilder();
+      for (LoopInfo loopInfo : getAllLoopInfos()) {
+        allLoopInfos.append(
+            String.format(
+                "%-4d    %s%n", loopInfo.loopLocation(), loopInfo.liveVariablesAndTypes()));
+      }
+
+      writer.append(allLoopInfos.toString());
+    } catch (IOException e) {
+      logger.logException(Level.SEVERE, e, "The creation of file AllLoopInfos.txt failed!");
+    }
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   private List<LoopInfo> getAllLoopInfos() {
