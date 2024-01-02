@@ -471,7 +471,8 @@ public final class InvariantWitnessWriter {
           continue;
         }
 
-        InformationRecord informationRecord = new InformationRecord(statement, null, "C");
+        InformationRecord informationRecord =
+            new InformationRecord(statement, null, "c_expression");
         LocationRecord location =
             createLocationRecordAfterLocation(
                 edge.getFileLocation(), edge.getPredecessor().getFunctionName());

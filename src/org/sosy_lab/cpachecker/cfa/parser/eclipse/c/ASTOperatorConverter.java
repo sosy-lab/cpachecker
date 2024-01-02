@@ -31,24 +31,18 @@ class ASTOperatorConverter {
 
   /** converts and returns the operator of an unaryExpression (PLUS, MINUS, NOT, STAR,...) */
   UnaryOperator convertUnaryOperator(final IASTUnaryExpression e) {
-    switch (e.getOperator()) {
-      case IASTUnaryExpression.op_amper:
-        return UnaryOperator.AMPER;
-      case IASTUnaryExpression.op_minus:
-        return UnaryOperator.MINUS;
-      case IASTUnaryExpression.op_sizeof:
-        return UnaryOperator.SIZEOF;
-      case IASTUnaryExpression.op_star:
-        throw new IllegalArgumentException(
-            "For the star operator, CPointerExpression should be used instead of CUnaryExpression"
-                + " with a star operator.");
-      case IASTUnaryExpression.op_tilde:
-        return UnaryOperator.TILDE;
-      case IASTUnaryExpression.op_alignOf:
-        return UnaryOperator.ALIGNOF;
-      default:
-        throw parseContext.parseError("Unknown unary operator", e);
-    }
+    return switch (e.getOperator()) {
+      case IASTUnaryExpression.op_amper -> UnaryOperator.AMPER;
+      case IASTUnaryExpression.op_minus -> UnaryOperator.MINUS;
+      case IASTUnaryExpression.op_sizeof -> UnaryOperator.SIZEOF;
+      case IASTUnaryExpression.op_star ->
+          throw new IllegalArgumentException(
+              "For the star operator, CPointerExpression should be used instead of CUnaryExpression"
+                  + " with a star operator.");
+      case IASTUnaryExpression.op_tilde -> UnaryOperator.TILDE;
+      case IASTUnaryExpression.op_alignOf -> UnaryOperator.ALIGNOF;
+      default -> throw parseContext.parseError("Unknown unary operator", e);
+    };
   }
 
   /**
@@ -161,16 +155,12 @@ class ASTOperatorConverter {
 
   /** converts and returns the operator of an idExpression (alignOf, sizeOf,...) */
   TypeIdOperator convertTypeIdOperator(IASTTypeIdExpression e) {
-    switch (e.getOperator()) {
-      case IASTTypeIdExpression.op_alignof:
-        return TypeIdOperator.ALIGNOF;
-      case IASTTypeIdExpression.op_sizeof:
-        return TypeIdOperator.SIZEOF;
-      case IASTTypeIdExpression.op_typeof:
-        return TypeIdOperator.TYPEOF;
-      default:
-        throw parseContext.parseError("Unknown type id operator", e);
-    }
+    return switch (e.getOperator()) {
+      case IASTTypeIdExpression.op_alignof -> TypeIdOperator.ALIGNOF;
+      case IASTTypeIdExpression.op_sizeof -> TypeIdOperator.SIZEOF;
+      case IASTTypeIdExpression.op_typeof -> TypeIdOperator.TYPEOF;
+      default -> throw parseContext.parseError("Unknown type id operator", e);
+    };
   }
 
   private static final ImmutableSet<BinaryOperator> BOOLEAN_BINARY_OPERATORS =

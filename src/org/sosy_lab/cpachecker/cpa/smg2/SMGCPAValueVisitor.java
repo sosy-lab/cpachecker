@@ -1141,14 +1141,11 @@ public class SMGCPAValueVisitor
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
-    switch (pUnaryOperator) {
-      case MINUS:
-        return factory.negate(operand, pExpressionType);
-      case TILDE:
-        return factory.binaryNot(operand, pExpressionType);
-      default:
-        throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
-    }
+    return switch (pUnaryOperator) {
+      case MINUS -> factory.negate(operand, pExpressionType);
+      case TILDE -> factory.binaryNot(operand, pExpressionType);
+      default -> throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
+    };
   }
 
   // ++++++++++++++++++++ Below this point casting helper methods
@@ -2357,60 +2354,47 @@ public class SMGCPAValueVisitor
     leftOperand = factory.asConstant(pLeftValue, pLeftType);
     rightOperand = factory.asConstant(pRightValue, pRightType);
 
-    switch (pOperator) {
-      case PLUS:
-        return factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS:
-        return factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY:
-        return factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE:
-        return factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO:
-        return factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT:
-        return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT:
-        return factory.shiftRightSigned(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND:
-        return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR:
-        return factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR:
-        return factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS:
-        return factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS:
-        return factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN:
-        return factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL:
-        return factory.lessThanOrEqual(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN:
-        return factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default:
-        throw new AssertionError("Unhandled binary operation " + pOperator);
-    }
+    return switch (pOperator) {
+      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MULTIPLY ->
+          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_LEFT ->
+          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT ->
+          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_AND ->
+          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_OR ->
+          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_XOR ->
+          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case NOT_EQUALS ->
+          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_THAN ->
+          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_EQUAL ->
+          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_THAN ->
+          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_EQUAL ->
+          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
+    };
   }
 
   private NumericValue calculateOperationWithFunctionValue(
       BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
-    switch (binaryOperator) {
-      case EQUALS:
-        return new NumericValue(val1.equals(val2) ? 1 : 0);
-
-      case NOT_EQUALS:
-        return new NumericValue(val1.equals(val2) ? 0 : 1);
-
-      default:
-        throw new AssertionError(
-            "Operation " + binaryOperator + " is not supported for function values");
-    }
+    return switch (binaryOperator) {
+      case EQUALS -> new NumericValue(val1.equals(val2) ? 1 : 0);
+      case NOT_EQUALS -> new NumericValue(val1.equals(val2) ? 0 : 1);
+      default ->
+          throw new AssertionError(
+              "Operation " + binaryOperator + " is not supported for function values");
+    };
   }
 
   /**
@@ -2599,26 +2583,16 @@ public class SMGCPAValueVisitor
             && !((CSimpleType) calculationType.getCanonicalType()).hasLongSpecifier(),
         "Value analysis can't compute long double values in a precise manner");
 
-    switch (op) {
-      case PLUS:
-        return l + r;
-      case MINUS:
-        return l - r;
-      case DIVIDE:
-        return l / r;
-      case MODULO:
-        return l % r;
-      case MULTIPLY:
-        return l * r;
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        throw new AssertionError("Trying to perform " + op + " on floating point operands");
-      default:
-        throw new AssertionError("Unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case PLUS -> l + r;
+      case MINUS -> l - r;
+      case DIVIDE -> l / r;
+      case MODULO -> l % r;
+      case MULTIPLY -> l * r;
+      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+          throw new AssertionError("Trying to perform " + op + " on floating point operands");
+      default -> throw new AssertionError("Unknown binary operation: " + op);
+    };
   }
 
   /**
@@ -2687,26 +2661,16 @@ public class SMGCPAValueVisitor
    */
   private float arithmeticOperation(final float l, final float r, final BinaryOperator op) {
 
-    switch (op) {
-      case PLUS:
-        return l + r;
-      case MINUS:
-        return l - r;
-      case DIVIDE:
-        return l / r;
-      case MODULO:
-        return l % r;
-      case MULTIPLY:
-        return l * r;
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        throw new AssertionError("Trying to perform " + op + " on floating point operands");
-      default:
-        throw new AssertionError("Unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case PLUS -> l + r;
+      case MINUS -> l - r;
+      case DIVIDE -> l / r;
+      case MODULO -> l % r;
+      case MULTIPLY -> l * r;
+      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+          throw new AssertionError("Trying to perform " + op + " on floating point operands");
+      default -> throw new AssertionError("Unknown binary operation: " + op);
+    };
   }
 
   private Value booleanOperation(
@@ -2843,22 +2807,15 @@ public class SMGCPAValueVisitor
 
   /** returns True, iff cmp fulfills the boolean operation. */
   private boolean matchBooleanOperation(final BinaryOperator op, final int cmp) {
-    switch (op) {
-      case GREATER_THAN:
-        return cmp > 0;
-      case GREATER_EQUAL:
-        return cmp >= 0;
-      case LESS_THAN:
-        return cmp < 0;
-      case LESS_EQUAL:
-        return cmp <= 0;
-      case EQUALS:
-        return cmp == 0;
-      case NOT_EQUALS:
-        return cmp != 0;
-      default:
-        throw new AssertionError("Unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case GREATER_THAN -> cmp > 0;
+      case GREATER_EQUAL -> cmp >= 0;
+      case LESS_THAN -> cmp < 0;
+      case LESS_EQUAL -> cmp <= 0;
+      case EQUALS -> cmp == 0;
+      case NOT_EQUALS -> cmp != 0;
+      default -> throw new AssertionError("Unknown binary operation: " + op);
+    };
   }
 
   /**
@@ -2881,35 +2838,27 @@ public class SMGCPAValueVisitor
   }
 
   private boolean isArithmeticOperation(BinaryOperator binaryOperator) {
-    switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case MODULO:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        return true;
-      default:
-        return false;
-    }
+    return switch (binaryOperator) {
+      case PLUS,
+              MINUS,
+              DIVIDE,
+              MODULO,
+              MULTIPLY,
+              SHIFT_LEFT,
+              SHIFT_RIGHT,
+              BINARY_AND,
+              BINARY_OR,
+              BINARY_XOR ->
+          true;
+      default -> false;
+    };
   }
 
   private boolean isComparison(BinaryOperator binaryOperator) {
-    switch (binaryOperator) {
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-        return true;
-      default:
-        return false;
-    }
+    return switch (binaryOperator) {
+      case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> true;
+      default -> false;
+    };
   }
 
   /**

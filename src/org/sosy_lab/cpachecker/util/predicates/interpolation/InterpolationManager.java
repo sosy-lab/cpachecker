@@ -289,8 +289,8 @@ public final class InterpolationManager {
 
     itpStrategy =
         switch (strategy) {
-          case SEQ_CPACHECKER -> new SequentialInterpolation(
-              pLogger, pShutdownNotifier, fmgr, config);
+          case SEQ_CPACHECKER ->
+              new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, config);
           case SEQ -> new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
           case TREE_WELLSCOPED -> new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
           case TREE_NESTED -> new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);

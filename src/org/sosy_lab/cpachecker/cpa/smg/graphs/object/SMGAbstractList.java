@@ -47,41 +47,33 @@ public abstract class SMGAbstractList<S> extends SMGObject implements SMGAbstrac
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
 
-    switch (pOther.getKind()) {
-      case REG:
-        return minimumLength < 2;
-      case OPTIONAL:
-        return minimumLength == 0;
-      case DLL:
-      case SLL:
-        return matchSpecificShape((SMGAbstractObject) pOther)
-            && minimumLength < ((SMGAbstractList<?>) pOther).minimumLength;
-      default:
-        return false;
-    }
+    return switch (pOther.getKind()) {
+      case REG -> minimumLength < 2;
+      case OPTIONAL -> minimumLength == 0;
+      case DLL, SLL ->
+          matchSpecificShape((SMGAbstractObject) pOther)
+              && minimumLength < ((SMGAbstractList<?>) pOther).minimumLength;
+      default -> false;
+    };
   }
 
   @Override
   public SMGObject join(SMGObject pOther, int pDestLevel) {
-
-    switch (pOther.getKind()) {
-      case DLL:
-      case SLL:
+    return switch (pOther.getKind()) {
+      case DLL, SLL -> {
         SMGAbstractList<?> otherLinkedList = (SMGAbstractList<?>) pOther;
         assert matchSpecificShape(otherLinkedList);
         int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
-        return copy(minlength, pDestLevel);
-
-      case REG:
-      case OPTIONAL:
+        yield copy(minlength, pDestLevel);
+      }
+      case REG, OPTIONAL -> {
         assert getSize() == pOther.getSize();
         int otherLength = pOther.getKind() == SMGObjectKind.REG ? 1 : 0;
-        minlength = Math.min(getMinimumLength(), otherLength);
-        return copy(minlength, pDestLevel);
-
-      default:
-        throw new IllegalArgumentException("join called on unjoinable Objects");
-    }
+        int minlength = Math.min(getMinimumLength(), otherLength);
+        yield copy(minlength, pDestLevel);
+      }
+      default -> throw new IllegalArgumentException("join called on unjoinable Objects");
+    };
   }
 
   @Override

@@ -227,27 +227,20 @@ public class SMGCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "JOIN":
-        return new MergeJoinOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unknown mergetype for SMGCPA");
-    }
+    return switch (mergeType) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "JOIN" -> new MergeJoinOperator(getAbstractDomain());
+      default -> throw new AssertionError("unknown mergetype for SMGCPA");
+    };
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopType) {
-        // TODO END_BLOCK
-      case "NEVER":
-        return StopNeverOperator.getInstance();
-      case "SEP":
-        return new StopSepOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unknown stoptype for SMGCPA");
-    }
+    return switch (stopType) {
+      case "NEVER" -> StopNeverOperator.getInstance();
+      case "SEP" -> new StopSepOperator(getAbstractDomain());
+      default -> throw new AssertionError("unknown stoptype for SMGCPA");
+    };
   }
 
   @Override

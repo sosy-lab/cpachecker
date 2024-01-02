@@ -192,17 +192,14 @@ public class BuiltinFloatFunctions {
       if (pFunctionName.startsWith(p)) {
         String suffix = pFunctionName.substring(p.length());
 
-        switch (suffix) {
-          case "":
-            return CNumericTypes.DOUBLE;
-          case "f":
-            return CNumericTypes.FLOAT;
-          case "l":
-            return CNumericTypes.LONG_DOUBLE;
-          default:
-            throw new IllegalArgumentException(
-                "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
-        }
+        return switch (suffix) {
+          case "" -> CNumericTypes.DOUBLE;
+          case "f" -> CNumericTypes.FLOAT;
+          case "l" -> CNumericTypes.LONG_DOUBLE;
+          default ->
+              throw new IllegalArgumentException(
+                  "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
+        };
       }
     }
 

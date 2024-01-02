@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.refinement;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -17,7 +15,6 @@ import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -105,7 +102,7 @@ public class PathExtractor implements Statistics {
     } else {
       AbstractState lastState = pReached.asReachedSet().getLastState();
       assert AbstractStates.isTargetState(lastState) : "Last state is not a target state";
-      return from(Collections.singleton(lastState));
+      return FluentIterable.of(lastState);
     }
   }
 

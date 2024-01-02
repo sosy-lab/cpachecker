@@ -1418,8 +1418,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     SMG newSMG = readReinterpretation.getSMG();
 
     assertThat(readReinterpretation.getHvEdges()).hasSize(1);
-    assertThat(readReinterpretation.getHvEdges().toArray(new SMGHasValueEdge[0])[0].hasValue())
-        .isEqualTo(expectedValue);
+    assertThat(readReinterpretation.getHvEdges().get(0).hasValue()).isEqualTo(expectedValue);
     // Check that no new values are introduced by the read
     assertThat(newSMG.getValues()).isEqualTo(allValuesBeforeRead);
     return newSMG;
@@ -1452,15 +1451,13 @@ public class SMGWriteReadTest extends SMGTest0 {
     SMGValue newValue =
         Sets.difference(newSMG.getValues(), allValuesBeforeRead).stream().findFirst().orElseThrow();
     assertThat(readReinterpretation.getHvEdges()).hasSize(1);
-    assertThat(readReinterpretation.getHvEdges().toArray(new SMGHasValueEdge[0])[0].hasValue())
-        .isEqualTo(newValue);
+    assertThat(readReinterpretation.getHvEdges().get(0).hasValue()).isEqualTo(newValue);
     // Assert that there is now a new SMGHasValueEdge for the field with the new value.
     // Since its sets, it doesn't matter if this is read repeatedly.
     assertThat(newSMG.getEdges(testObject))
         .isEqualTo(oldEdgesForObject.addAndCopy(new SMGHasValueEdge(newValue, offset, size)));
     assertThat(readReinterpretation.getHvEdges()).hasSize(1);
-    return new SMGandValue(
-        newSMG, readReinterpretation.getHvEdges().toArray(new SMGHasValueEdge[0])[0].hasValue());
+    return new SMGandValue(newSMG, readReinterpretation.getHvEdges().get(0).hasValue());
   }
 
   private SMG checkReadPreciseValuesInOrder(

@@ -381,8 +381,8 @@ public class SMGState
       case "toString" -> toString();
       case "heapObjects" -> memoryModel.getHeapObjects();
       default ->
-      // try boolean properties
-      checkProperty(pProperty);
+          // try boolean properties
+          checkProperty(pProperty);
     };
   }
 

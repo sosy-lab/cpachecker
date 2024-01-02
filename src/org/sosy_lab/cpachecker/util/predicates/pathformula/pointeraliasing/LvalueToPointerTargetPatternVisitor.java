@@ -146,17 +146,12 @@ class LvalueToPointerTargetPatternVisitor
     public PointerTargetPatternBuilder visit(final CUnaryExpression e)
         throws UnrecognizedCodeException {
       final CExpression operand = e.getOperand();
-      switch (e.getOperator()) {
-        case AMPER:
-          return operand.accept(LvalueToPointerTargetPatternVisitor.this);
-        case MINUS:
-        case TILDE:
-          return null;
-        case SIZEOF:
-          throw new UnrecognizedCodeException("Illegal unary operator", cfaEdge, e);
-        default:
-          throw new UnrecognizedCodeException("Unrecognized unary operator", cfaEdge, e);
-      }
+      return switch (e.getOperator()) {
+        case AMPER -> operand.accept(LvalueToPointerTargetPatternVisitor.this);
+        case MINUS, TILDE -> null;
+        case SIZEOF -> throw new UnrecognizedCodeException("Illegal unary operator", cfaEdge, e);
+        default -> throw new UnrecognizedCodeException("Unrecognized unary operator", cfaEdge, e);
+      };
     }
 
     @Override

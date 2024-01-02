@@ -521,8 +521,8 @@ class AssignmentFormulaHandler {
             .orElseThrow();
     return switch (conversionType) {
       case CAST ->
-      // cast rhs from rhs type to lhs type
-      Value.ofValue(conv.makeCast(fromType, toType, rhsFormula, constraints, edge));
+          // cast rhs from rhs type to lhs type
+          Value.ofValue(conv.makeCast(fromType, toType, rhsFormula, constraints, edge));
       case REINTERPRET -> {
         // reinterpret rhs from rhs type to lhs type
         final @Nullable Formula reinterpretedFormula =

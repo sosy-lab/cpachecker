@@ -74,7 +74,7 @@ public interface TypeInfo {
       }
       if (cType instanceof CSimpleType simpleType) {
         return switch (simpleType.getType()) {
-          case CHAR, INT, BOOL, INT128, FLOAT, DOUBLE, FLOAT128 -> true;
+          case CHAR, INT, BOOL, INT128, FLOAT, DOUBLE -> true;
           default -> false;
         };
       } else {

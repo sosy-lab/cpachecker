@@ -19,8 +19,6 @@ import com.google.common.collect.Iterables;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -197,16 +195,13 @@ public class AssumptionToEdgeAllocator {
   }
 
   private String createComment(CFAEdge pCfaEdge, ConcreteState pConcreteState) {
-    switch (pCfaEdge.getEdgeType()) {
-      case AssumeEdge:
-        return handleAssumeComment((AssumeEdge) pCfaEdge, pConcreteState);
-      case DeclarationEdge:
-        return handleDclComment((ADeclarationEdge) pCfaEdge, pConcreteState);
-      case ReturnStatementEdge:
-        return handleReturnStatementComment((AReturnStatementEdge) pCfaEdge, pConcreteState);
-      default:
-        return "";
-    }
+    return switch (pCfaEdge.getEdgeType()) {
+      case AssumeEdge -> handleAssumeComment((AssumeEdge) pCfaEdge, pConcreteState);
+      case DeclarationEdge -> handleDclComment((ADeclarationEdge) pCfaEdge, pConcreteState);
+      case ReturnStatementEdge ->
+          handleReturnStatementComment((AReturnStatementEdge) pCfaEdge, pConcreteState);
+      default -> "";
+    };
   }
 
   private String handleReturnStatementComment(
@@ -566,8 +561,8 @@ public class AssumptionToEdgeAllocator {
     boolean equalTypes = leftType.equals(rightType);
 
     FluentIterable<Class<? extends CType>> acceptedTypes =
-        FluentIterable.from(Collections.singleton(CSimpleType.class));
-    acceptedTypes = acceptedTypes.append(Arrays.asList(CArrayType.class, CPointerType.class));
+        FluentIterable.from(
+            ImmutableList.of(CSimpleType.class, CArrayType.class, CPointerType.class));
 
     boolean leftIsAccepted =
         equalTypes

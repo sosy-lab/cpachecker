@@ -46,8 +46,7 @@ public class FormulaCompoundStateEvaluationVisitor
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
     if (compoundIntervalManagerFactory
         instanceof
-        CompoundBitVectorIntervalManagerFactory
-        compoundBitVectorIntervalManagerFactory) {
+        CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory) {
       return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(
           pTypeInfo, withOverflowEventHandlers);
     }

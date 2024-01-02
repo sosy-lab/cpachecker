@@ -8,9 +8,15 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 2.3
+----------------------------
+* Now by default, CPAchecker tries to generate a test harness when a property violation is found.
+  The test harness can reproduce the found violation through test execution.
+  See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
+
 Changes from CPAchecker 2.2 to CPAchecker 2.3
 ---------------------------------------------
-* Java 11 or later is required now.
+* Java 17 or later is required now.
 * More precise heap encoding in predicate analysis.  
   The predicate analysis now optionally supports sound modeling
   of aliasing with char pointers as well as functions like memset/memcmp.

@@ -763,16 +763,12 @@ public class PolicyIterationManager {
   }
 
   private Set<BooleanFormula> toLemmas(BooleanFormula formula) throws InterruptedException {
-    switch (toLemmasAlgorithm) {
-      case "CNF":
-        return bfmgr.toConjunctionArgs(fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
-      case "RCNF":
-        return rcnfManager.toLemmas(formula, fmgr);
-      case "NONE":
-        return ImmutableSet.of(formula);
-      default:
-        throw new UnsupportedOperationException("Unexpected state");
-    }
+    return switch (toLemmasAlgorithm) {
+      case "CNF" -> bfmgr.toConjunctionArgs(fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
+      case "RCNF" -> rcnfManager.toLemmas(formula, fmgr);
+      case "NONE" -> ImmutableSet.of(formula);
+      default -> throw new UnsupportedOperationException("Unexpected state");
+    };
   }
 
   private final Map<Formula, Set<String>> functionNamesCache = new HashMap<>();

@@ -40,13 +40,11 @@ class BlockCPAFactory extends AbstractCPAFactory {
   @Override
   public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
-    switch (analysisDirection) {
-      case FORWARD:
-        return BlockCPA.create();
-      case BACKWARD:
-        return BlockCPABackward.create();
-      default:
-        throw new AssertionError("AnalysisDirection " + analysisDirection + "does not exist");
-    }
+    return switch (analysisDirection) {
+      case FORWARD -> BlockCPA.create();
+      case BACKWARD -> BlockCPABackward.create();
+      default ->
+          throw new AssertionError("AnalysisDirection " + analysisDirection + "does not exist");
+    };
   }
 }

@@ -298,18 +298,13 @@ class THDotBuilder {
   }
 
   private String getVisibilityLabel(VisibilityModifier visibility) {
-    switch (visibility) {
-      case PUBLIC:
-        return "+";
-      case PROTECTED:
-        return "#";
-      case NONE:
-        return "";
-      case PRIVATE:
-        return "-";
-      default:
-        throw new AssertionError();
-    }
+    return switch (visibility) {
+      case PUBLIC -> "+";
+      case PROTECTED -> "#";
+      case NONE -> "";
+      case PRIVATE -> "-";
+      default -> throw new AssertionError();
+    };
   }
 
   private void appendNameRowToLabel(StringBuilder pLabel, JClassOrInterfaceType pType) {

@@ -168,22 +168,15 @@ public abstract class ConditionFolder {
     FolderOptions opt = new FolderOptions();
     pConfig.inject(opt);
 
-    switch (opt.folderType) {
-      case CFA:
-        return new CFAFolder();
-      case FOLD_EXCEPT_LOOPS:
-        return new ExceptLoopFolder(pCfa);
-      case LOOP_ALWAYS:
-        return new LoopAlwaysFolder(pCfa);
-      case LOOP_BOUND:
-        return new BoundUnrollingLoopFolder(pCfa, pConfig);
-      case LOOP_BOUND_SAME_CONTEXT:
-        return new BoundUnrollingContextLoopFolder(pCfa, pConfig);
-      case LOOP_SAME_CONTEXT:
-        return new ContextLoopFolder(pCfa);
-      default:
-        throw new AssertionError("Unknown condition folder.");
-    }
+    return switch (opt.folderType) {
+      case CFA -> new CFAFolder();
+      case FOLD_EXCEPT_LOOPS -> new ExceptLoopFolder(pCfa);
+      case LOOP_ALWAYS -> new LoopAlwaysFolder(pCfa);
+      case LOOP_BOUND -> new BoundUnrollingLoopFolder(pCfa, pConfig);
+      case LOOP_BOUND_SAME_CONTEXT -> new BoundUnrollingContextLoopFolder(pCfa, pConfig);
+      case LOOP_SAME_CONTEXT -> new ContextLoopFolder(pCfa);
+      default -> throw new AssertionError("Unknown condition folder.");
+    };
   }
 
   private final FOLDER_TYPE type;

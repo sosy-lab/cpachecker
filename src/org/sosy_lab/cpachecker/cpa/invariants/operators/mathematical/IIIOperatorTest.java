@@ -31,6 +31,7 @@ public class IIIOperatorTest {
   public void testModulo() {
     BigInteger scalarFour = BigInteger.valueOf(4);
     BigInteger scalarFive = BigInteger.valueOf(5);
+    SimpleInterval zero = SimpleInterval.singleton(BigInteger.ZERO);
     SimpleInterval five = SimpleInterval.singleton(scalarFive);
     SimpleInterval negFourToFour = SimpleInterval.of(scalarFour.negate(), scalarFour);
     SimpleInterval zeroToFour = SimpleInterval.of(BigInteger.ZERO, scalarFour);
@@ -40,6 +41,7 @@ public class IIIOperatorTest {
     SimpleInterval zeroToTwo = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(2));
     SimpleInterval eightToTen = SimpleInterval.of(BigInteger.valueOf(8), BigInteger.TEN);
 
+    assertThat(IIIOperator.MODULO.apply(zero, tenToEleven)).isEqualTo(zero);
     assertThat(IIIOperator.MODULO.apply(SimpleInterval.infinite(), five)).isEqualTo(negFourToFour);
     assertThat(IIIOperator.MODULO.apply(zeroToInf, five)).isEqualTo(zeroToFour);
     assertThat(IIIOperator.MODULO.apply(zeroToInf, five.negate())).isEqualTo(zeroToFour);

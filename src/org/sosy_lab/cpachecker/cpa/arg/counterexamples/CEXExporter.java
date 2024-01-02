@@ -246,8 +246,9 @@ public class CEXExporter {
       if (options.getSourceFile() != null) {
         pathProgram =
             switch (codeStyle) {
-              case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
-                  targetPath, counterexample.getCFAPathWithAssignments());
+              case CONCRETE_EXECUTION ->
+                  PathToConcreteProgramTranslator.translateSinglePath(
+                      targetPath, counterexample.getCFAPathWithAssignments());
               case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
             };
       }
@@ -377,17 +378,13 @@ public class CEXExporter {
       }
     }
 
-    writeErrorPathFile(
-        options.getTestHarnessFile(),
-        uniqueId,
-        (Appender)
-            pAppendable ->
-                harnessExporter.writeHarness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample));
+    if (options.getTestHarnessFile() != null) {
+      Optional<String> harness =
+          harnessExporter.writeHarness(
+              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+      harness.ifPresent(
+          content -> writeErrorPathFile(options.getTestHarnessFile(), uniqueId, content));
+    }
 
     if (options.exportToTest() && testExporter != null) {
       testExporter.writeTestCaseFiles(counterexample, Optional.empty());

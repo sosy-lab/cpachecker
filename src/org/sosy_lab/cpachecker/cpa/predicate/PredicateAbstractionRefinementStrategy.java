@@ -531,12 +531,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
             yield newPrecision.addLocalPredicates(
                 mergePredicatesPerLocation(localPredicates.entries()));
           }
-          case FUNCTION -> basePrecision.addFunctionPredicates(
-              mergePredicatesPerFunction(newPredicates.entries()));
-          case LOCATION -> basePrecision.addLocalPredicates(
-              mergePredicatesPerLocation(newPredicates.entries()));
-          case LOCATION_INSTANCE -> basePrecision.addLocationInstancePredicates(
-              newPredicates.entries());
+          case FUNCTION ->
+              basePrecision.addFunctionPredicates(
+                  mergePredicatesPerFunction(newPredicates.entries()));
+          case LOCATION ->
+              basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates.entries()));
+          case LOCATION_INSTANCE ->
+              basePrecision.addLocationInstancePredicates(newPredicates.entries());
         };
     return newPrecision;
   }

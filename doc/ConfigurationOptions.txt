@@ -1092,7 +1092,7 @@ counterexample.export.exportExtendedWitness = false
 counterexample.export.exportFaults = true
 
 # export test harness
-counterexample.export.exportHarness = false
+counterexample.export.exportHarness = true
 
 # export error paths to files immediately after they were found
 counterexample.export.exportImmediately = false
@@ -4848,6 +4848,11 @@ terminationtoreach.violation.witness.dot = "witness.dot"
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
 
+# Provide dummy values for external variable declarations. This is useful
+# when definitions are not implemented yet or missing. But it may introduce
+# conflicts with values from standard libraries.
+testHarnessExport.provideDummyValues = false
+
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 
@@ -5047,7 +5052,7 @@ witness.matchOffset = true
 
 # If true the offsets will be matched when creating an automaton to validate
 # Violation witnesses. If false only the lines will be matched.
-witness.matchOffsetsWhenCreatingViolationAutomaton = false
+witness.matchOffsetsWhenCreatingViolationAutomatonFromYAML = false
 
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
