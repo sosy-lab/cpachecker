@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.common.log.LogManager;
@@ -71,22 +73,25 @@ public class NoOverflowAlgorithm implements Algorithm{
             }
             lineNumberList.add(lineNumber);
 
+            // subexpression
             List<List<String>> expressionList = new ArrayList<>();
-            getInformation((CBinaryExpression)rightHandSide, expressionList);
-            information.add(new StatementInformation(lineNumber, expressionList));
+            // data type
+            List<List<String>> typeList = new ArrayList<>();
+            getInformation((CBinaryExpression)rightHandSide, expressionList, typeList);
+            information.add(new StatementInformation(lineNumber, expressionList, typeList));
 
           }
         }
       }
     }
 
-    String path = "./output/CProgramInformation.txt";
+    String path = "./output/AllOverflowInfos.txt";
     try (BufferedWriter writer = Files.newBufferedWriter(Path.of(path), StandardCharsets.UTF_8)) {
       for (StatementInformation s : information) {
+        writer.write("start new statement:\n");
         writer.write(s.listToString());
         logger.log(Level.INFO, s.listToString());
       }
-      writer.write('\n');
       writer.write("END");
     } catch (IOException pE) {
       throw new RuntimeException(pE);
@@ -94,7 +99,7 @@ public class NoOverflowAlgorithm implements Algorithm{
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  public void getInformation(CBinaryExpression operand, List<List<String>> expressionList) {
+  public void getInformation(CBinaryExpression operand, List<List<String>> expressionList, List<List<String>> typeList) {
     List<String> binaryExpression = new ArrayList<>();
 
     CExpression left = operand.getOperand1();
@@ -106,30 +111,50 @@ public class NoOverflowAlgorithm implements Algorithm{
     expressionList.add(binaryExpression);
 
     if (left instanceof CBinaryExpression) {
-      getInformation((CBinaryExpression) left, expressionList);
+      getInformation((CBinaryExpression) left, expressionList, typeList);
+    } else {
+      CType type = left.getExpressionType();
+      typeList.add(Collections.singletonList(left.toASTString() + " " + type.toString()));
     }
     if (right instanceof CBinaryExpression) {
-      getInformation((CBinaryExpression) right, expressionList);
+      getInformation((CBinaryExpression) right, expressionList, typeList);
+    } else {
+      CType type = right.getExpressionType();
+      typeList.add(Collections.singletonList(right.toASTString() + " " + type.toString()));
     }
   }
 
   public static class StatementInformation implements Serializable {
-    private int codeLineNumber;
-    private int numOfOperator;
-    private List<List<String>> expressionList;
+    final private int codeLineNumber;
+    final private int numOfOperator;
+    final private List<List<String>> expressionList;
+    final private List<List<String>> typeList;
 
-    public StatementInformation(int pCodeLineNumber, List<List<String>> pExpressionList) {
+    public StatementInformation(int pCodeLineNumber, List<List<String>> pExpressionList, List<List<String>> pTypeList) {
       codeLineNumber = pCodeLineNumber;
       numOfOperator = pExpressionList.size();
       expressionList = pExpressionList;
+      typeList = pTypeList;
     }
 
     public String listToString(){
       StringBuilder resultBuilder = new StringBuilder();
+      resultBuilder.append("code line number:\n");
       resultBuilder.append(codeLineNumber);
       resultBuilder.append("\n");
+      resultBuilder.append("number of variables:\n");
+      resultBuilder.append(typeList.size());
+      resultBuilder.append("\n");
+      resultBuilder.append("data type:\n");
+      for (List<String> innerList : typeList) {
+        for (String element : innerList) {
+          resultBuilder.append(element).append("\n");
+        }
+      }
+      resultBuilder.append("number of operators:\n");
       resultBuilder.append(numOfOperator);
       resultBuilder.append("\n");
+      resultBuilder.append("expressions:\n");
       for (List<String> innerList : expressionList) {
         for (String element : innerList) {
           resultBuilder.append(element).append(" ");
