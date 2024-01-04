@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with â€™,â€™ to seperate options. Optionname and value can
+# "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -158,7 +158,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 UniversitÃ© Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit? Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -3931,6 +3931,9 @@ heuristicSelection.addressedRatio = 0
 # Configuration for programs containing arrays.
 heuristicSelection.arrayConfig = no default value
 
+# Configuration for programs to use bmc for test case generation.
+heuristicSelection.bmcTestConfig = no default value
+
 # Configuration for programs with loops and complex datastructures.
 heuristicSelection.complexLoopConfig = no default value
 
@@ -3951,6 +3954,10 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
+
+# Configuration for programs to use symbolic execution for test case
+# generation.
+heuristicSelection.seTestConfig = no default value
 
 # Configuration for programs with a single loop.
 heuristicSelection.singleLoopConfig = no default value

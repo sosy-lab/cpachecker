@@ -249,6 +249,16 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path arrayConfig;
 
+  @Option(secure = true, description = "Configuration for programs to use symbolic execution"
+      + " for test case generation.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path seTestConfig;
+
+  @Option(secure = true, description = "Configuration for programs to use bmc"
+      + " for test case generation.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path bmcTestConfig;
+
   @Option(
       secure = true,
       description =
@@ -405,6 +415,22 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         loopStructure.isPresent() && loopStructure.orElseThrow().getAllLoops().size() == 1;
   }
 
+  /** check the boolean combination required for symbolic execution. */
+  private boolean isRequiredSE() {
+    return  (!stats.requiresLoopHandling && !stats.requiresFloatHandling
+        && !stats.requiresArrayHandling && !stats.requiresCompositeTypeHandling)
+        || (stats.requiresLoopHandling && stats.requiresFloatHandling
+        && stats.requiresCompositeTypeHandling);
+  }
+
+  /** check the boolean combination required for bounded model checking. */
+  private boolean isRequiredBMC() {
+    return (!stats.requiresLoopHandling || stats.requiresFloatHandling)
+        && (stats.requiresFloatHandling || stats.requiresArrayHandling)
+        && (stats.requiresLoopHandling || !stats.requiresFloatHandling
+        || !stats.requiresArrayHandling)  && !stats.requiresCompositeTypeHandling;
+  }
+
   /** use statistical data and choose a configuration for further analysis. */
   private Path chooseConfig() {
     final Path chosenConfig;
@@ -413,7 +439,13 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     String info = "Performing heuristic ...";
     logger.log(Level.INFO, info);
 
-    if (stats.requiresRecursionHandling && recursionConfig != null) {
+    if (isRequiredSE() && seTestConfig != null) {
+      // Run symbolic execution test config
+      chosenConfig = seTestConfig;
+    } else if (isRequiredBMC() && bmcTestConfig != null) {
+      // Run bounded model checking test config
+      chosenConfig = bmcTestConfig;
+    } else if (stats.requiresRecursionHandling && recursionConfig != null) {
       // Run recursion config
       chosenConfig = recursionConfig;
     } else if (!stats.requiresLoopHandling && loopFreeConfig != null) {
