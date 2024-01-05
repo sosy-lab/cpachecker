@@ -40,8 +40,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   public LocateLoopAndLiveVariableAlgorithm(CFA pCfa, LogManager pLogger) {
     if (!LoopStructure.getRecursions(pCfa).isEmpty()) {
       throw new IllegalArgumentException("Program should not have recursion!");
-    } else if (pCfa.getLoopStructure().orElseThrow().getAllLoops().isEmpty()) {
-      throw new IllegalArgumentException("Program must have loop!");
     }
     cfa = pCfa;
     logger = pLogger;
