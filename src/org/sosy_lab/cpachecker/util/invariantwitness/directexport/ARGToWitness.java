@@ -48,11 +48,13 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWr
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.SetEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.EnsuresRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ExportableRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.RequiresRecord;
 
 public class ARGToWitness extends DirectWitnessExporter {
 
@@ -67,8 +69,9 @@ public class ARGToWitness extends DirectWitnessExporter {
 
     protected Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
     protected Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
-    protected Multimap<CFANode, ARGState> functionContractRequires = HashMultimap.create();
-    protected Multimap<CFANode, ARGState> functionContractEnsures = HashMultimap.create();
+    protected Multimap<FunctionEntryNode, ARGState> functionContractRequires =
+        HashMultimap.create();
+    protected Multimap<FunctionExitNode, ARGState> functionContractEnsures = HashMultimap.create();
 
     protected CollectRelevantARGStates(ARGState startNode) {
       super(startNode);
@@ -85,10 +88,10 @@ public class ARGToWitness extends DirectWitnessExporter {
         } else if (leavingEdges.size() == 1
             && leavingEdges.anyMatch(e -> e instanceof FunctionCallEdge)) {
           functionCallInvariants.put(node, pSuccessor);
-        } else if (node instanceof FunctionEntryNode) {
-          functionContractRequires.put(node, pSuccessor);
-        } else if (node instanceof FunctionExitNode) {
-          functionContractEnsures.put(node, pSuccessor);
+        } else if (node instanceof FunctionEntryNode functionEntryNode) {
+          functionContractRequires.put(functionEntryNode, pSuccessor);
+        } else if (node instanceof FunctionExitNode functionExitNode) {
+          functionContractEnsures.put(functionExitNode, pSuccessor);
         }
       }
 
@@ -154,17 +157,32 @@ public class ARGToWitness extends DirectWitnessExporter {
   }
 
   private List<FunctionContractRecord> handleFunctionContract(
-      Multimap<CFANode, ARGState> functionContractRequires,
-      Multimap<CFANode, ARGState> functionContractEnsures,
-      ListMultimap<String, Integer> lineOffsetByLine)
-      throws InterruptedException {
+      Multimap<FunctionEntryNode, ARGState> functionContractRequires,
+      Multimap<FunctionExitNode, ARGState> functionContractEnsures)
+      throws InterruptedException, IOException {
     List<FunctionContractRecord> functionContractRecords = new ArrayList<>();
-    for (CFANode node : functionContractRequires.keySet()) {
-      Collection<ARGState> argStates = functionContractRequires.get(node);
+    for (FunctionEntryNode node : functionContractRequires.keySet()) {
+      Collection<ARGState> requiresArgStates = functionContractRequires.get(node);
 
-      String assumesClause = getOverapproximationOfStates(argStates, null, node).toString();
-      functionContractRecords.add(new FunctionContractRecord(argStates, node, lineOffsetByLine));
+      FileLocation location = node.getFileLocation();
+      String requiresClause = getOverapproximationOfStates(requiresArgStates, node).toString();
+      String ensuresClause = "1";
+      if (node.getExitNode().isPresent()
+          && functionContractEnsures.containsKey(node.getExitNode().orElseThrow())) {
+        Collection<ARGState> ensuresArgStates =
+            functionContractEnsures.get(node.getExitNode().orElseThrow());
+        ensuresClause = getOverapproximationOfStates(ensuresArgStates, node).toString();
+      }
+      functionContractRecords.add(
+          new FunctionContractRecord(
+              new EnsuresRecord(ImmutableList.of(ensuresClause)),
+              new RequiresRecord(ImmutableList.of(requiresClause)),
+              ExpressionType.C,
+              Utils.createLocationRecordAtStart(
+                  location, getlineOffsetsByFile(), node.getFunctionName())));
     }
+
+    return functionContractRecords;
   }
 
   public void export(ARGState pRootState, Path outFile)
@@ -189,9 +207,7 @@ public class ARGToWitness extends DirectWitnessExporter {
     // If we are exporting to witness version 3.0 then we want to include function contracts
     entries.addAll(
         handleFunctionContract(
-            statesCollector.functionContractRequires,
-            statesCollector.functionContractEnsures,
-            lineOffsetByLine));
+            statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
 
     exportEntries(new SetEntry(getMetadata(), entries), outFile);
   }
