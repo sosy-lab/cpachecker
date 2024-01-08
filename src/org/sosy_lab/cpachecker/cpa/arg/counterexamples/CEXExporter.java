@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -60,7 +61,9 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.invariantwitness.directexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
@@ -111,6 +114,7 @@ public class CEXExporter {
   private final CEXExportOptions options;
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
+  private final CounterexampleToWitness cexToWitness;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final InvariantWitnessWriter invariantWitnessWriter;
   private final HarnessExporter harnessExporter;
@@ -121,6 +125,7 @@ public class CEXExporter {
       Configuration config,
       CEXExportOptions pOptions,
       LogManager pLogger,
+      Specification pSpecification,
       CFA cfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
@@ -146,6 +151,8 @@ public class CEXExporter {
       testExporter = null;
       faultExporter = null;
     }
+
+    cexToWitness = new CounterexampleToWitness(config, cfa, pSpecification, pLogger);
   }
 
   /** See {@link #exportCounterexample(ARGState, CounterexampleInfo)}. */
@@ -338,7 +345,12 @@ public class CEXExporter {
                 uniqueId,
                 (Appender)
                     pApp -> {
-                      invariantWitnessWriter.exportErrorWitnessAsYamlWitness(counterexample, pApp);
+                      try {
+                        cexToWitness.export(counterexample, pApp);
+                      } catch (YamlWitnessExportException e) {
+                        logger.logUserException(
+                            Level.WARNING, e, "Could not generate YAML violation witness.");
+                      }
                     },
                 compressWitness);
           } else if (exportYamlWitnessesDirectlyFromCex) {

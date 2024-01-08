@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
+import org.sosy_lab.cpachecker.util.invariantwitness.directexport.ARGToWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
@@ -210,6 +211,7 @@ public class ARGStatistics implements Statistics {
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
   private final InvariantWitnessWriter invariantWitnessWriter;
+  private final ARGToWitness argToWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
@@ -252,6 +254,8 @@ public class ARGStatistics implements Statistics {
       throw new InvalidConfigurationException("InvariantWitnessWriter could not be created", e);
     }
 
+    argToWitnessWriter = new ARGToWitness(config, cfa, pSpecification, pLogger);
+
     if (counterexampleOptions.disabledCompletely()) {
       cexExporter = null;
     } else {
@@ -262,6 +266,7 @@ public class ARGStatistics implements Statistics {
               config,
               counterexampleOptions,
               logger,
+              pSpecification,
               cfa,
               cpa,
               argWitnessExporter,
@@ -424,14 +429,13 @@ public class ARGStatistics implements Statistics {
         if (exportYAMLCorrectnessWitnessesDirectlyFromARG) {
           if (yamlProofWitness != null && invariantWitnessWriter != null) {
             try {
-              invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(
-                  rootState, yamlProofWitness);
-            } catch (YamlWitnessExportException e) {
+              argToWitnessWriter.export(rootState, yamlProofWitness);
+            } catch (YamlWitnessExportException | IOException e) {
               logger.logUserException(
                   Level.WARNING,
                   e,
-                  "Could not export the YAML correctness witness directly from the ARG. Therefore"
-                      + " no YAML witness will be exported.");
+                  "Could not export the YAML correctness witness directly from the ARG. "
+                      + "Therefore no YAML witness will be exported.");
             }
           }
         } else {

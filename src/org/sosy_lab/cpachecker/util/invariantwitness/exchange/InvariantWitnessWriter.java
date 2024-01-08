@@ -20,13 +20,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -43,7 +40,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -55,41 +51,19 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
-import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
-import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.WitnessToYamlWitnessConverter;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
@@ -140,20 +114,12 @@ public final class InvariantWitnessWriter {
           "If enabled, this option will output the invariants in the now deprecated YAML format.")
   private boolean outputDeprecatedYAMLFormat = false;
 
-  @Nullable private ASTStructure astStructure;
-
-  private InvariantWitnessFactory invariantWitnessFactory;
-  private CFA cfa;
-
   private InvariantWitnessWriter(
       Configuration pConfig,
       LogManager pLogger,
       ListMultimap<String, Integer> pLineOffsetsByFile,
       ProducerRecord pProducerDescription,
-      TaskRecord pTaskDescription,
-      @Nullable ASTStructure pASTStructure,
-      InvariantWitnessFactory pInvariantWitnessFactory,
-      CFA pcfa)
+      TaskRecord pTaskDescription)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -168,9 +134,6 @@ public final class InvariantWitnessWriter {
 
     producerDescription = pProducerDescription;
     taskDescription = pTaskDescription;
-    astStructure = pASTStructure;
-    invariantWitnessFactory = pInvariantWitnessFactory;
-    cfa = pcfa;
   }
 
   /**
@@ -197,10 +160,7 @@ public final class InvariantWitnessWriter {
             CPAchecker.getApproachName(pConfig),
             null,
             null),
-        getTaskDescription(pCFA, pSpecification),
-        pCFA.getASTStructure().orElse(null),
-        InvariantWitnessFactory.getFactory(pLogger, pCFA),
-        pCFA);
+        getTaskDescription(pCFA, pSpecification));
   }
 
   private static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
@@ -265,279 +225,11 @@ public final class InvariantWitnessWriter {
     }
   }
 
-  private static class CollectRelevantARGStates
-      extends GraphTraverser<ARGState, YamlWitnessExportException> {
-
-    protected Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
-    protected Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
-
-    protected CollectRelevantARGStates(ARGState startNode) {
-      super(startNode);
-    }
-
-    @Override
-    protected ARGState visit(ARGState pSuccessor) throws YamlWitnessExportException {
-      for (LocationState state :
-          AbstractStates.asIterable(pSuccessor).filter(LocationState.class)) {
-        CFANode node = state.getLocationNode();
-        FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(node);
-        if (node.isLoopStart()) {
-          loopInvariants.put(node, pSuccessor);
-        } else if (leavingEdges.size() == 1
-            && leavingEdges.anyMatch(e -> e instanceof FunctionCallEdge)) {
-          functionCallInvariants.put(node, pSuccessor);
-        }
-      }
-
-      return pSuccessor;
-    }
-
-    @Override
-    protected Iterable<ARGState> getSuccessors(ARGState pCurrent)
-        throws YamlWitnessExportException {
-      return pCurrent.getChildren();
-    }
-  }
-
-  public void exportProofWitnessAsInvariantWitnesses(ARGState pRootState, Path outFile)
-      throws YamlWitnessExportException, InterruptedException {
-    // Collect the information about the states which contain the information about the invariants
-    CollectRelevantARGStates statesCollector = new CollectRelevantARGStates(pRootState);
-    statesCollector.traverse();
-
-    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
-    @SuppressWarnings("unused")
-    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
-
-    // Use the collected states to generate invariants
-    Collection<InvariantWitness> invariantWitnesses = new ArrayList<>();
-
-    // First handle the loop invariants
-    for (CFANode node : loopInvariants.keySet()) {
-      Collection<ARGState> argStates = loopInvariants.get(node);
-      FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
-
-      FluentIterable<ExpressionTreeReportingState> reportingStates =
-          FluentIterable.from(argStates)
-              .transformAndConcat(AbstractStates::asIterable)
-              .filter(ExpressionTreeReportingState.class);
-      List<List<ExpressionTree<Object>>> expressionsPerClass = new ArrayList<>();
-      for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
-        List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
-        for (ExpressionTreeReportingState state : reportingStates) {
-          if (stateClass.isAssignableFrom(state.getClass())) {
-            expressionsMatchingClass.add(state.getFormulaApproximation(entryNode, node));
-          }
-        }
-        expressionsPerClass.add(expressionsMatchingClass);
-      }
-
-      // We now conjunct all the overapproximations of the states and export them as loop invariants
-      for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
-        if (!edge.getFileLocation().isRealLocation()) {
-          continue;
-        }
-
-        invariantWitnesses.add(
-            invariantWitnessFactory.fromLocationAndInvariant(
-                edge.getFileLocation(),
-                node,
-                And.of(FluentIterable.from(expressionsPerClass).transform(Or::of))));
-      }
-    }
-
-    exportInvariantWitnesses(invariantWitnesses, outFile);
-  }
-
   public void exportProofWitnessAsInvariantWitnesses(Witness witness, Path outFile) {
     WitnessToYamlWitnessConverter conv =
         new WitnessToYamlWitnessConverter(logger, writeLocationInvariants);
     Collection<InvariantWitness> invariantWitnesses = conv.convertProofWitness(witness);
     exportInvariantWitnesses(invariantWitnesses, outFile);
-  }
-
-  private LocationRecord createLocationRecordAfterLocation(FileLocation fLoc, String functionName) {
-    // If the astStructure exists, we want to use it to precisely export the YAML counterexample.
-    // If it does not exist, we continue with the current heuristic, which will match the sequence
-    // point
-    // exactly, but will probably not point to the beginning of a statement
-
-    final String fileName = fLoc.getFileName().toString();
-    if (astStructure != null) {
-      FileLocation nextStatementFileLocation =
-          astStructure.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
-      if (nextStatementFileLocation != null) {
-        return createLocationRecord(nextStatementFileLocation, fileName, functionName);
-      }
-    }
-
-    return createLocationRecord(fLoc, fileName, functionName);
-  }
-
-  private LocationRecord createLocationRecord(
-      FileLocation fLoc, String fileName, String functionName) {
-    final int lineNumber = fLoc.getStartingLineInOrigin();
-    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
-    final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
-    final int columnFirstCharacterOfStatement = offsetInLine + 1;
-
-    LocationRecord location =
-        new LocationRecord(
-            fileName, "file_hash", lineNumber, columnFirstCharacterOfStatement, functionName);
-    return location;
-  }
-
-  private LocationRecord createLocationRecord(FileLocation fLoc, String functionName) {
-    final String fileName = fLoc.getFileName().toString();
-    final int lineNumber = fLoc.getStartingLineInOrigin();
-    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
-    final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
-    final int columnBeforeStatement = offsetInLine;
-
-    LocationRecord location =
-        new LocationRecord(fileName, "file_hash", lineNumber, columnBeforeStatement, functionName);
-    return location;
-  }
-
-  @SuppressWarnings("unused")
-  public void exportErrorWitnessAsYamlWitness(CounterexampleInfo pCex, Appendable pApp) {
-    CFAPathWithAssumptions cexPathWithAssignments = pCex.getCFAPathWithAssignments();
-    List<SegmentRecord> segments = new ArrayList<>();
-    // The semantics of the YAML witnesses imply that every assumption waypoint should be
-    // valid before the sequence statement it points to. Due to the semantics of the format:
-    // "An assumption waypoint is evaluated at the sequence point immediately before the
-    // waypoint location. The waypoint is passed if the given constraint evaluates to true."
-    // To make our export compliant with the format we will point to exactly one sequence
-    // point after the nondet call assignment
-    // The syntax of the location of an assumption waypoint states that:
-    // 'Assumption
-    //  The location has to point to the beginning of a statement.'
-    // Therefore an assumption waypoint needs to point to the beginning of the statement before
-    // which it is valid
-
-    Map<CFAEdge, Long> cfaEdgesOccurences =
-        cexPathWithAssignments.stream()
-            .map(CFAEdgeWithAssumptions::getCFAEdge)
-            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-
-    for (CFAEdgeWithAssumptions edgeWithAssumptions : cexPathWithAssignments) {
-      CFAEdge edge = edgeWithAssumptions.getCFAEdge();
-      // See if the edge contains an assignment of a VerifierNondet call
-      List<WaypointRecord> waypoints = new ArrayList<>();
-
-      if (CFAUtils.assignsNondetFunctionCall(edge)) {
-        // Since waypoints are considered one after the other if an edge occurs more than once with
-        // possibly different assumptions in the counterexample path, if not all are exported then
-        // there may be a wrong matching
-        if (edgeWithAssumptions.getExpStmts().isEmpty() && cfaEdgesOccurences.get(edge) == 1) {
-          continue;
-        }
-
-        // Currently it is unclear what to do with assumptions where the next statement is after a
-        // function return. Since the variables for the assumptions may not be in scope.
-        if (!CFAUtils.leavingEdges(edge.getSuccessor())
-            .transform(CFAEdge::getSuccessor)
-            .filter(FunctionExitNode.class)
-            .isEmpty()) {
-          continue;
-        }
-
-        String statement;
-        if (edgeWithAssumptions.getExpStmts().isEmpty()) {
-          // We need to export this waypoint in order to avoid errors caused by passing another
-          // waypoint at the same location either too early or too late.
-          statement = "1";
-        } else {
-          statement =
-              String.join(
-                  " && ",
-                  edgeWithAssumptions.getExpStmts().stream()
-                      .map(AExpressionStatement::toString)
-                      .map(x -> "(" + x.replace(";", "") + ")")
-                      .toList());
-        }
-
-        // Blank edges are usually a sign that we are returning to a loop head. Since the AST
-        // location following the end of the loop is simply the next statement, we need to export
-        // this assumption at the next possible edge location where the variable is in scope.
-        // Since currently there is no straightforward way to do this, we simply do not export these
-        // waypoints currently
-        // TODO: Add a method to export these assumptions
-        if (!CFAUtils.leavingEdges(edge.getSuccessor()).filter(BlankEdge.class).isEmpty()) {
-          continue;
-        }
-
-        InformationRecord informationRecord =
-            new InformationRecord(statement, null, "c_expression");
-        LocationRecord location =
-            createLocationRecordAfterLocation(
-                edge.getFileLocation(), edge.getPredecessor().getFunctionName());
-        waypoints.add(
-            new WaypointRecord(
-                WaypointRecord.WaypointType.ASSUMPTION,
-                WaypointRecord.WaypointAction.FOLLOW,
-                informationRecord,
-                location));
-      } else if (edge instanceof AssumeEdge assumeEdge && astStructure != null) {
-        // Without the AST structure we cannot guarantee that we are exporting at the beginning of
-        // an iteration or if statement
-        // To export the branching waypoint, we first find the IfStructure or IterationStructure
-        // containing it. Then we look for the FileLocation of the structure
-        // Currently we only export IfStructures, since there is no nice way to say how often a loop
-        // should be traversed and exporting this information will quickly make the witness
-        // difficult to read
-        IfStructure ifStructure = astStructure.getIfStructureForConditionEdge(edge);
-        if (ifStructure == null) {
-          continue;
-        }
-
-        Set<CFAEdge> edgesCondition = ifStructure.getConditionElement().edges();
-
-        // If this is not the last edge in the condition of the IfStructure we do nothing. Since
-        // only the last edge knows wether we should leave or remain in the loop
-        if (edgesCondition.contains(edge)
-            && CFAUtils.leavingEdges(edge.getSuccessor()).anyMatch(edgesCondition::contains)) {
-          continue;
-        }
-
-        String branchToFollow = String.valueOf(assumeEdge.getTruthAssumption());
-
-        waypoints.add(
-            new WaypointRecord(
-                WaypointRecord.WaypointType.BRANCHING,
-                WaypointRecord.WaypointAction.FOLLOW,
-                new InformationRecord(branchToFollow, null, null),
-                createLocationRecord(
-                    ifStructure.getCompleteElement().location(),
-                    edge.getFileLocation().getFileName().toString(),
-                    edge.getPredecessor().getFunctionName())));
-      }
-
-      if (!waypoints.isEmpty()) {
-        segments.add(new SegmentRecord(waypoints));
-      }
-    }
-
-    // Add target
-    // In contrast to the semantics of assumptions, targets are evaluated at the next possible
-    // segment point. Therefore instead of creating a location record the way as is for assumptions,
-    // this needs to be done using another function
-    CFAEdge lastEdge = cexPathWithAssignments.get(cexPathWithAssignments.size() - 1).getCFAEdge();
-    segments.add(
-        SegmentRecord.ofOnlyElement(
-            new WaypointRecord(
-                WaypointRecord.WaypointType.TARGET,
-                WaypointRecord.WaypointAction.FOLLOW,
-                null,
-                createLocationRecord(
-                    lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
-
-    ViolationSequenceEntry entry = new ViolationSequenceEntry(createMetadataRecord(), segments);
-    try {
-      pApp.append(mapper.writeValueAsString(ImmutableList.of(entry)));
-    } catch (IOException e) {
-      logger.logException(WARNING, e, "Failed to write yaml witness to file");
-    }
   }
 
   public void exportErrorWitnessAsYamlWitness(Witness pWitness, Appendable pApp) {
@@ -839,7 +531,7 @@ public final class InvariantWitnessWriter {
     }
   }
 
-  abstract static class GraphTraverser<NodeType, E extends Throwable> {
+  public abstract static class GraphTraverser<NodeType, E extends Throwable> {
 
     private List<NodeType> waitlist;
     private Set<NodeType> reached;

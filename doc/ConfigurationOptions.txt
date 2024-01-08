@@ -5039,6 +5039,10 @@ witness.considerAssumptions = true
 # the witness, so this options can be used to debug those cases.
 witness.debug.checkForMissedInvariants = false
 
+# The version for which to export the witness.
+witness.directexport.witnessVersion = V2
+  enum:     [V2, V3]
+
 # Validate correctness witness by specifying an invariants specification
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
