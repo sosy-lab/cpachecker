@@ -14,8 +14,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -41,6 +43,7 @@ public class ASTStructure {
 
   final Set<IfStructure> ifStructures = new HashSet<>();
   final Set<IterationStructure> iterationStructures = new HashSet<>();
+  private Map<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
 
   public ASTStructure(
       Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, CFA pCfa)
@@ -213,6 +216,25 @@ public class ASTStructure {
       }
     }
     return null;
+  }
+
+  private void initializeMapFromConditionEdgesToIfStructures() {
+    if (conditionEdgesToIfStructure != null) {
+      return;
+    }
+    conditionEdgesToIfStructure = new HashMap<>();
+    for (IfStructure structure : getIfStructures()) {
+      for (CFAEdge edge : structure.getConditionElement().edges()) {
+        conditionEdgesToIfStructure.put(edge, structure);
+      }
+    }
+  }
+
+  public IfStructure getIfStructureForConditionEdge(CFAEdge pEdge) {
+    if (conditionEdgesToIfStructure == null) {
+      initializeMapFromConditionEdgesToIfStructures();
+    }
+    return conditionEdgesToIfStructure.getOrDefault(pEdge, null);
   }
 
   public boolean startsAtDeclaration(CFAEdge edge) {

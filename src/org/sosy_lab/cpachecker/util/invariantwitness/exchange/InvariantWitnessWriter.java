@@ -57,6 +57,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -80,6 +81,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -359,24 +361,17 @@ public final class InvariantWitnessWriter {
     // If it does not exist, we continue with the current heuristic, which will match the sequence
     // point
     // exactly, but will probably not point to the beginning of a statement
+
+    final String fileName = fLoc.getFileName().toString();
     if (astStructure != null) {
       FileLocation nextStatementFileLocation =
           astStructure.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
       if (nextStatementFileLocation != null) {
-        return createLocationRecord(
-            nextStatementFileLocation, fLoc.getFileName().toString(), functionName);
+        return createLocationRecord(nextStatementFileLocation, fileName, functionName);
       }
     }
 
-    final String fileName = fLoc.getFileName().toString();
-    final int lineNumber = fLoc.getStartingLineInOrigin();
-    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
-    final int offsetInLine = fLoc.getNodeOffset() - lineOffset;
-    final int columnAfterStatement = offsetInLine + fLoc.getNodeLength() + 1;
-
-    LocationRecord location =
-        new LocationRecord(fileName, "file_hash", lineNumber, columnAfterStatement, functionName);
-    return location;
+    return createLocationRecord(fLoc, fileName, functionName);
   }
 
   private LocationRecord createLocationRecord(
@@ -428,6 +423,8 @@ public final class InvariantWitnessWriter {
     for (CFAEdgeWithAssumptions edgeWithAssumptions : cexPathWithAssignments) {
       CFAEdge edge = edgeWithAssumptions.getCFAEdge();
       // See if the edge contains an assignment of a VerifierNondet call
+      List<WaypointRecord> waypoints = new ArrayList<>();
+
       if (CFAUtils.assignsNondetFunctionCall(edge)) {
         // Since waypoints are considered one after the other if an edge occurs more than once with
         // possibly different assumptions in the counterexample path, if not all are exported then
@@ -445,7 +442,6 @@ public final class InvariantWitnessWriter {
           continue;
         }
 
-        List<WaypointRecord> waypoints = new ArrayList<>();
         String statement;
         if (edgeWithAssumptions.getExpStmts().isEmpty()) {
           // We need to export this waypoint in order to avoid errors caused by passing another
@@ -482,9 +478,43 @@ public final class InvariantWitnessWriter {
                 WaypointRecord.WaypointAction.FOLLOW,
                 informationRecord,
                 location));
-        if (!waypoints.isEmpty()) {
-          segments.add(new SegmentRecord(waypoints));
+      } else if (edge instanceof AssumeEdge assumeEdge && astStructure != null) {
+        // Without the AST structure we cannot guarantee that we are exporting at the beginning of
+        // an iteration or if statement
+        // To export the branching waypoint, we first find the IfStructure or IterationStructure
+        // containing it. Then we look for the FileLocation of the structure
+        // Currently we only export IfStructures, since there is no nice way to say how often a loop
+        // should be traversed and exporting this information will quickly make the witness
+        // difficult to read
+        IfStructure ifStructure = astStructure.getIfStructureForConditionEdge(edge);
+        if (ifStructure == null) {
+          continue;
         }
+
+        Set<CFAEdge> edgesCondition = ifStructure.getConditionElement().edges();
+
+        // If this is not the last edge in the condition of the IfStructure we do nothing. Since
+        // only the last edge knows wether we should leave or remain in the loop
+        if (edgesCondition.contains(edge)
+            && CFAUtils.leavingEdges(edge.getSuccessor()).anyMatch(edgesCondition::contains)) {
+          continue;
+        }
+
+        String branchToFollow = String.valueOf(assumeEdge.getTruthAssumption());
+
+        waypoints.add(
+            new WaypointRecord(
+                WaypointRecord.WaypointType.BRANCHING,
+                WaypointRecord.WaypointAction.FOLLOW,
+                new InformationRecord(branchToFollow, null, null),
+                createLocationRecord(
+                    ifStructure.getCompleteElement().location(),
+                    edge.getFileLocation().getFileName().toString(),
+                    edge.getPredecessor().getFunctionName())));
+      }
+
+      if (!waypoints.isEmpty()) {
+        segments.add(new SegmentRecord(waypoints));
       }
     }
 
