@@ -8,17 +8,21 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
 public class RequiresRecord {
 
-  @JsonProperty("clauses")
   private final ImmutableList<String> clauses;
 
-  public RequiresRecord(@JsonProperty("clauses") ImmutableList<String> pClauses) {
+  public RequiresRecord(ImmutableList<String> pClauses) {
     clauses = pClauses;
+  }
+
+  @JsonValue
+  public ImmutableList<String> getClauses() {
+    return clauses;
   }
 }

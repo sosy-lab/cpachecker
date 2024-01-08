@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public class DataTypes {
 
   public enum WitnessVersion {
@@ -28,10 +31,20 @@ public class DataTypes {
     ACSL;
 
     @Override
+    @JsonValue
     public String toString() {
       return switch (this) {
         case C -> "c_expression";
         case ACSL -> "ACSL";
+      };
+    }
+
+    @JsonCreator
+    public static ExpressionType fromKeyword(String keyword) {
+      return switch (keyword) {
+        case "c_expression" -> C;
+        case "ACSL" -> ACSL;
+        default -> throw new IllegalArgumentException("Unknown keyword: " + keyword);
       };
     }
   }
