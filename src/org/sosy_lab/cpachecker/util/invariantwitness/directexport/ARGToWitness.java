@@ -123,7 +123,7 @@ public class ARGToWitness extends DirectWitnessExporter {
     return And.of(FluentIterable.from(expressionsPerClass).transform(Or::of));
   }
 
-  private InvariantRecord createLoopInvariant(Collection<ARGState> argStates, CFANode node)
+  private InvariantRecord createInvariant(Collection<ARGState> argStates, CFANode node, String type)
       throws InterruptedException, IOException, YamlWitnessExportException {
     ListMultimap<String, Integer> lineOffsetByLine = getlineOffsetsByFile();
 
@@ -145,10 +145,7 @@ public class ARGToWitness extends DirectWitnessExporter {
 
     InvariantRecord invariantRecord =
         new InvariantRecord(
-            invariant.toString(),
-            InvariantRecordType.LOOP_INVARIANT.getKeyword(),
-            ExpressionType.C.toString(),
-            locationRecord);
+            invariant.toString(), type, ExpressionType.C.toString(), locationRecord);
 
     return invariantRecord;
   }
@@ -198,7 +195,8 @@ public class ARGToWitness extends DirectWitnessExporter {
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
-      InvariantRecord loopInvariant = createLoopInvariant(argStates, node);
+      InvariantRecord loopInvariant =
+          createInvariant(argStates, node, InvariantRecordType.LOOP_INVARIANT.getKeyword());
       if (loopInvariant != null) {
         entries.add(loopInvariant);
       }
@@ -220,7 +218,6 @@ public class ARGToWitness extends DirectWitnessExporter {
     statesCollector.traverse();
 
     Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
-    @SuppressWarnings("unused")
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
@@ -229,9 +226,20 @@ public class ARGToWitness extends DirectWitnessExporter {
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
-      InvariantRecord loopInvariant = createLoopInvariant(argStates, node);
+      InvariantRecord loopInvariant =
+          createInvariant(argStates, node, InvariantRecordType.LOOP_INVARIANT.getKeyword());
       if (loopInvariant != null) {
         entries.add(loopInvariant);
+      }
+    }
+
+    // Handle the location invariants
+    for (CFANode node : functionCallInvariants.keySet()) {
+      Collection<ARGState> argStates = functionCallInvariants.get(node);
+      InvariantRecord locationInvariant =
+          createInvariant(argStates, node, InvariantRecordType.LOCATION_INVARIANT.getKeyword());
+      if (locationInvariant != null) {
+        entries.add(locationInvariant);
       }
     }
 
