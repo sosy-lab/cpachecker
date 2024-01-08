@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.Or;
@@ -127,15 +129,24 @@ public class ARGToWitness extends DirectWitnessExporter {
   }
 
   private InvariantRecord createLoopInvariant(Collection<ARGState> argStates, CFANode node)
-      throws InterruptedException, IOException {
+      throws InterruptedException, IOException, YamlWitnessExportException {
     ListMultimap<String, Integer> lineOffsetByLine = getlineOffsetsByFile();
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
-    // TODO: Determine location from the ASTStructure
-    FileLocation fileLocation = null;
+    Optional<IterationStructure> iterationStructure =
+        getASTStructure().getTightestIterationStructureForNode(node);
+    if (iterationStructure.isEmpty()) {
+      return null;
+    }
+
+    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
     ExpressionTree<Object> invariant = getOverapproximationOfStates(argStates, node);
     LocationRecord locationRecord =
-        Utils.createLocationRecordAtStart(fileLocation, lineOffsetByLine, node.getFunctionName());
+        Utils.createLocationRecordAtStart(
+            fileLocation,
+            lineOffsetByLine,
+            node.getFunction().getFileLocation().getFileName().toString(),
+            node.getFunctionName());
 
     InvariantRecord invariantRecord =
         new InvariantRecord(
@@ -201,7 +212,10 @@ public class ARGToWitness extends DirectWitnessExporter {
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
-      entries.add(createLoopInvariant(argStates, node));
+      InvariantRecord loopInvariant = createLoopInvariant(argStates, node);
+      if (loopInvariant != null) {
+        entries.add(loopInvariant);
+      }
     }
 
     // If we are exporting to witness version 3.0 then we want to include function contracts
