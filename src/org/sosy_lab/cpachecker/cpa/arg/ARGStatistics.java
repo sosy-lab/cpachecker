@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.ARGToWitness;
+import org.sosy_lab.cpachecker.util.invariantwitness.directexport.ARGToWitnessExport;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
@@ -211,7 +211,7 @@ public class ARGStatistics implements Statistics {
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
   private final InvariantWitnessWriter invariantWitnessWriter;
-  private final ARGToWitness argToWitnessWriter;
+  private final ARGToWitnessExport argToWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
@@ -254,7 +254,7 @@ public class ARGStatistics implements Statistics {
       throw new InvalidConfigurationException("InvariantWitnessWriter could not be created", e);
     }
 
-    argToWitnessWriter = new ARGToWitness(config, cfa, pSpecification, pLogger);
+    argToWitnessWriter = new ARGToWitnessExport(config, cfa, pSpecification, pLogger);
 
     if (counterexampleOptions.disabledCompletely()) {
       cexExporter = null;
