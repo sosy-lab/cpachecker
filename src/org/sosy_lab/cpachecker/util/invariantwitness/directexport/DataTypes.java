@@ -16,13 +16,10 @@ public class DataTypes {
 
     @Override
     public String toString() {
-      switch (this) {
-        case V2:
-          return "2.0";
-        case V3:
-          return "3.0";
-      }
-      return "Unknown";
+      return switch (this) {
+        case V2 -> "2.0";
+        case V3 -> "3.0";
+      };
     }
   }
 
@@ -32,13 +29,10 @@ public class DataTypes {
 
     @Override
     public String toString() {
-      switch (this) {
-        case C:
-          return "c_expression";
-        case ACSL:
-          return "ACSL";
-      }
-      return "Unknown";
+      return switch (this) {
+        case C -> "c_expression";
+        case ACSL -> "ACSL";
+      };
     }
   }
 }

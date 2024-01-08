@@ -102,12 +102,9 @@ public class ARGToWitness extends DirectWitnessExporter {
     }
   }
 
-  private static InvariantRecord createLoopInvariant(
-      Collection<ARGState> argStates,
-      CFANode node,
-      ListMultimap<String, Integer> lineOffsetByLine,
-      FunctionEntryNode entryNode)
-      throws InterruptedException {
+  private ExpressionTree<Object> getOverapproximationOfStates(
+      Collection<ARGState> argStates, CFANode node) throws InterruptedException {
+    FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
 
     FluentIterable<ExpressionTreeReportingState> reportingStates =
         FluentIterable.from(argStates)
@@ -123,12 +120,17 @@ public class ARGToWitness extends DirectWitnessExporter {
       }
       expressionsPerClass.add(expressionsMatchingClass);
     }
+    return And.of(FluentIterable.from(expressionsPerClass).transform(Or::of));
+  }
+
+  private InvariantRecord createLoopInvariant(Collection<ARGState> argStates, CFANode node)
+      throws InterruptedException, IOException {
+    ListMultimap<String, Integer> lineOffsetByLine = getlineOffsetsByFile();
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
     // TODO: Determine location from the ASTStructure
     FileLocation fileLocation = null;
-    ExpressionTree<Object> invariant =
-        And.of(FluentIterable.from(expressionsPerClass).transform(Or::of));
+    ExpressionTree<Object> invariant = getOverapproximationOfStates(argStates, node);
     LocationRecord locationRecord =
         Utils.createLocationRecordAtStart(fileLocation, lineOffsetByLine, node.getFunctionName());
 
@@ -154,14 +156,19 @@ public class ARGToWitness extends DirectWitnessExporter {
   private List<FunctionContractRecord> handleFunctionContract(
       Multimap<CFANode, ARGState> functionContractRequires,
       Multimap<CFANode, ARGState> functionContractEnsures,
-      ListMultimap<String, Integer> lineOffsetByLine) {
-    return null;
+      ListMultimap<String, Integer> lineOffsetByLine)
+      throws InterruptedException {
+    List<FunctionContractRecord> functionContractRecords = new ArrayList<>();
+    for (CFANode node : functionContractRequires.keySet()) {
+      Collection<ARGState> argStates = functionContractRequires.get(node);
+
+      String assumesClause = getOverapproximationOfStates(argStates, null, node).toString();
+      functionContractRecords.add(new FunctionContractRecord(argStates, node, lineOffsetByLine));
+    }
   }
 
   public void export(ARGState pRootState, Path outFile)
       throws YamlWitnessExportException, InterruptedException, IOException {
-    ListMultimap<String, Integer> lineOffsetByLine = getlineOffsetsByFile();
-
     // Collect the information about the states which contain the information about the invariants
     CollectRelevantARGStates statesCollector = new CollectRelevantARGStates(pRootState);
     statesCollector.traverse();
@@ -176,9 +183,7 @@ public class ARGToWitness extends DirectWitnessExporter {
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
-      FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
-
-      entries.add(createLoopInvariant(argStates, node, lineOffsetByLine, entryNode));
+      entries.add(createLoopInvariant(argStates, node));
     }
 
     // If we are exporting to witness version 3.0 then we want to include function contracts
