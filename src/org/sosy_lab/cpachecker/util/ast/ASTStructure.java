@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -239,6 +240,27 @@ public class ASTStructure {
 
   public boolean startsAtDeclaration(CFAEdge edge) {
     return classifier.declarationStartOffsets.contains(edge.getFileLocation().getNodeOffset());
+  }
+
+  public Optional<IterationStructure> getTightestIterationStructureForNode(CFANode pNode) {
+    Optional<IterationStructure> result = Optional.empty();
+    for (IterationStructure structure : getIterationStructures()) {
+      if (structure.getCompleteElement().edges().stream()
+          .anyMatch(pEdge -> pEdge.getPredecessor() == pNode || pEdge.getSuccessor() == pNode)) {
+        if (result.isPresent()) {
+          if (result
+              .get()
+              .getCompleteElement()
+              .edges()
+              .containsAll(structure.getCompleteElement().edges())) {
+            result = Optional.of(structure);
+          }
+        } else {
+          result = Optional.of(structure);
+        }
+      }
+    }
+    return result;
   }
 
   /*
