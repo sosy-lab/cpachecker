@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public abstract class AbstractInformationRecord {
+public abstract class AbstractInformationRecord implements ExportableRecord {
   @JsonAlias({"value", "string"})
   protected final String value;
 

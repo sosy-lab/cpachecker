@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -45,7 +46,10 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.ExpressionType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.GraphTraverser;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.SetEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ExportableRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
@@ -63,6 +67,8 @@ public class ARGToWitness extends DirectWitnessExporter {
 
     protected Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
     protected Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
+    protected Multimap<CFANode, ARGState> functionContractRequires = HashMultimap.create();
+    protected Multimap<CFANode, ARGState> functionContractEnsures = HashMultimap.create();
 
     protected CollectRelevantARGStates(ARGState startNode) {
       super(startNode);
@@ -79,6 +85,10 @@ public class ARGToWitness extends DirectWitnessExporter {
         } else if (leavingEdges.size() == 1
             && leavingEdges.anyMatch(e -> e instanceof FunctionCallEdge)) {
           functionCallInvariants.put(node, pSuccessor);
+        } else if (node instanceof FunctionEntryNode) {
+          functionContractRequires.put(node, pSuccessor);
+        } else if (node instanceof FunctionExitNode) {
+          functionContractEnsures.put(node, pSuccessor);
         }
       }
 
@@ -132,13 +142,20 @@ public class ARGToWitness extends DirectWitnessExporter {
     return invariantRecord;
   }
 
-  private void exportEntries(InvariantSetEntry entrySet, Path outFile) {
+  private void exportEntries(AbstractEntry entry, Path outFile) {
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      String entryYaml = mapper.writeValueAsString(ImmutableList.of(entrySet));
+      String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
       writer.write(entryYaml);
     } catch (IOException e) {
       logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
     }
+  }
+
+  private List<FunctionContractRecord> handleFunctionContract(
+      Multimap<CFANode, ARGState> functionContractRequires,
+      Multimap<CFANode, ARGState> functionContractEnsures,
+      ListMultimap<String, Integer> lineOffsetByLine) {
+    return null;
   }
 
   public void export(ARGState pRootState, Path outFile)
@@ -154,7 +171,7 @@ public class ARGToWitness extends DirectWitnessExporter {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    List<InvariantRecord> entries = new ArrayList<>();
+    List<ExportableRecord> entries = new ArrayList<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
@@ -164,6 +181,13 @@ public class ARGToWitness extends DirectWitnessExporter {
       entries.add(createLoopInvariant(argStates, node, lineOffsetByLine, entryNode));
     }
 
-    exportEntries(new InvariantSetEntry(getMetadata(), entries), outFile);
+    // If we are exporting to witness version 3.0 then we want to include function contracts
+    entries.addAll(
+        handleFunctionContract(
+            statesCollector.functionContractRequires,
+            statesCollector.functionContractEnsures,
+            lineOffsetByLine));
+
+    exportEntries(new SetEntry(getMetadata(), entries), outFile);
   }
 }
