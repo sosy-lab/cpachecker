@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.Expr
 import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.GraphTraverser;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.SetEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.EnsuresRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ExportableRecord;
@@ -223,7 +224,7 @@ public class ARGToWitness extends DirectWitnessExporter {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    List<ExportableRecord> entries = new ArrayList<>();
+    List<InvariantRecord> entries = new ArrayList<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
@@ -235,7 +236,8 @@ public class ARGToWitness extends DirectWitnessExporter {
     }
 
     exportEntries(
-        new SetEntry(getMetadata(WitnessVersion.V2), entries), getOutputFile(WitnessVersion.V2));
+        new InvariantSetEntry(getMetadata(WitnessVersion.V2), entries),
+        getOutputFile(WitnessVersion.V2));
   }
 
   public void export(ARGState pRootState)
