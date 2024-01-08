@@ -204,8 +204,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
         getOutputFile(WitnessVersion.V2));
   }
 
-  public void export(CounterexampleInfo pCex)
-      throws YamlWitnessExportException, InterruptedException, IOException {
+  public void export(CounterexampleInfo pCex) throws YamlWitnessExportException, IOException {
     for (WitnessVersion witnessVersion : witnessVersions) {
       switch (witnessVersion) {
         case V2:
