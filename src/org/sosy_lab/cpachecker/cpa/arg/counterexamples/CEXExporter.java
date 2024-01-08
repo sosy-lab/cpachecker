@@ -253,9 +253,8 @@ public class CEXExporter {
       if (options.getSourceFile() != null) {
         pathProgram =
             switch (codeStyle) {
-              case CONCRETE_EXECUTION ->
-                  PathToConcreteProgramTranslator.translateSinglePath(
-                      targetPath, counterexample.getCFAPathWithAssignments());
+              case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
+                  targetPath, counterexample.getCFAPathWithAssignments());
               case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
             };
       }
@@ -340,19 +339,12 @@ public class CEXExporter {
 
         if (invariantWitnessWriter != null) {
           if (exportYamlWitnessesDirectlyFromCex && counterexample.isPreciseCounterExample()) {
-            writeErrorPathFile(
-                options.getYamlWitnessFile(),
-                uniqueId,
-                (Appender)
-                    pApp -> {
-                      try {
-                        cexToWitness.export(counterexample, pApp);
-                      } catch (YamlWitnessExportException e) {
-                        logger.logUserException(
-                            Level.WARNING, e, "Could not generate YAML violation witness.");
-                      }
-                    },
-                compressWitness);
+            try {
+              cexToWitness.export(counterexample);
+            } catch (YamlWitnessExportException | IOException e) {
+              logger.logUserException(
+                  Level.WARNING, e, "Could not generate YAML violation witness.");
+            }
           } else if (exportYamlWitnessesDirectlyFromCex) {
             logger.log(
                 Level.WARNING,

@@ -8,24 +8,18 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
 
-import static java.util.logging.Level.WARNING;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -46,9 +40,9 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.GraphTraverser;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.SetEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.EnsuresRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ExportableRecord;
@@ -158,15 +152,6 @@ public class ARGToWitness extends DirectWitnessExporter {
     return invariantRecord;
   }
 
-  private void exportEntries(AbstractEntry entry, Path outFile) {
-    try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
-      writer.write(entryYaml);
-    } catch (IOException e) {
-      logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
-    }
-  }
-
   private List<FunctionContractRecord> handleFunctionContract(
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
       Multimap<FunctionExitNode, ARGState> functionContractEnsures)
@@ -196,7 +181,7 @@ public class ARGToWitness extends DirectWitnessExporter {
     return functionContractRecords;
   }
 
-  public void export(ARGState pRootState, Path outFile)
+  public void exportWitnessesVersion3(ARGState pRootState)
       throws YamlWitnessExportException, InterruptedException, IOException {
     // Collect the information about the states which contain the information about the invariants
     CollectRelevantARGStates statesCollector = new CollectRelevantARGStates(pRootState);
@@ -223,6 +208,49 @@ public class ARGToWitness extends DirectWitnessExporter {
         handleFunctionContract(
             statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
 
-    exportEntries(new SetEntry(getMetadata(), entries), outFile);
+    exportEntries(
+        new SetEntry(getMetadata(WitnessVersion.V3), entries), getOutputFile(WitnessVersion.V3));
+  }
+
+  public void exportWitnessesVersion2(ARGState pRootState)
+      throws YamlWitnessExportException, InterruptedException, IOException {
+    // Collect the information about the states which contain the information about the invariants
+    CollectRelevantARGStates statesCollector = new CollectRelevantARGStates(pRootState);
+    statesCollector.traverse();
+
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
+    @SuppressWarnings("unused")
+    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
+
+    // Use the collected states to generate invariants
+    List<ExportableRecord> entries = new ArrayList<>();
+
+    // First handle the loop invariants
+    for (CFANode node : loopInvariants.keySet()) {
+      Collection<ARGState> argStates = loopInvariants.get(node);
+      InvariantRecord loopInvariant = createLoopInvariant(argStates, node);
+      if (loopInvariant != null) {
+        entries.add(loopInvariant);
+      }
+    }
+
+    exportEntries(
+        new SetEntry(getMetadata(WitnessVersion.V2), entries), getOutputFile(WitnessVersion.V2));
+  }
+
+  public void export(ARGState pRootState)
+      throws YamlWitnessExportException, InterruptedException, IOException {
+    for (WitnessVersion witnessVersion : witnessVersions) {
+      switch (witnessVersion) {
+        case V2:
+          exportWitnessesVersion2(pRootState);
+          break;
+        case V3:
+          exportWitnessesVersion3(pRootState);
+          break;
+        default:
+          throw new YamlWitnessExportException("Unknown witness version: " + witnessVersion);
+      }
+    }
   }
 }

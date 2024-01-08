@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
 
-import static java.util.logging.Level.WARNING;
-
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +32,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
@@ -99,7 +97,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
             assumeEdge.getPredecessor().getFunctionName()));
   }
 
-  public void export(CounterexampleInfo pCex, Appendable pApp)
+  public void exportWitnessVersion2(CounterexampleInfo pCex)
       throws IOException, YamlWitnessExportException {
     ASTStructure astStructure = getASTStructure();
 
@@ -201,11 +199,23 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
                     getlineOffsetsByFile(),
                     lastEdge.getPredecessor().getFunctionName()))));
 
-    ViolationSequenceEntry entry = new ViolationSequenceEntry(getMetadata(), segments);
-    try {
-      pApp.append(mapper.writeValueAsString(ImmutableList.of(entry)));
-    } catch (IOException e) {
-      logger.logException(WARNING, e, "Failed to write yaml witness to file");
+    exportEntries(
+        new ViolationSequenceEntry(getMetadata(WitnessVersion.V2), segments),
+        getOutputFile(WitnessVersion.V2));
+  }
+
+  public void export(CounterexampleInfo pCex)
+      throws YamlWitnessExportException, InterruptedException, IOException {
+    for (WitnessVersion witnessVersion : witnessVersions) {
+      switch (witnessVersion) {
+        case V2:
+          exportWitnessVersion2(pCex);
+          break;
+        case V3:
+          break;
+        default:
+          throw new YamlWitnessExportException("Unknown witness version: " + witnessVersion);
+      }
     }
   }
 }

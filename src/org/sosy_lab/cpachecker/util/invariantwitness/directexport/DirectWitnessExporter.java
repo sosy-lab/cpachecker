@@ -8,16 +8,25 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
 
+import static java.util.logging.Level.WARNING;
+
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -25,6 +34,7 @@ import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 
@@ -32,7 +42,19 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 public class DirectWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
-  protected WitnessVersion witnessVersion = WitnessVersion.V2;
+  protected List<WitnessVersion> witnessVersions =
+      ImmutableList.of(WitnessVersion.V2, WitnessVersion.V3);
+
+  @Option(
+      secure = true,
+      name = "outputFileTemplate",
+      description =
+          "The template from which the different export"
+              + "versions of the witnesses will be exported. "
+              + "Each version replaces the string '<<VERSION>>' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputFileTemplate = Path.of("witness-<<VERSION>>.yml");
 
   protected CFA cfa;
   protected LogManager logger;
@@ -70,13 +92,17 @@ public class DirectWitnessExporter {
     return privateLineOffsetsByFile;
   }
 
-  protected MetadataRecord getMetadata() throws IOException {
+  protected MetadataRecord getMetadata(WitnessVersion version) throws IOException {
     if (metadata == null) {
       metadata =
           Utils.createMetadataRecord(
-              producerRecord, Utils.getTaskDescription(cfa, specification), witnessVersion);
+              producerRecord, Utils.getTaskDescription(cfa, specification), version);
     }
     return metadata;
+  }
+
+  protected Path getOutputFile(WitnessVersion version) {
+    return Path.of(outputFileTemplate.toString().replace("<<VERSION>>", version.toString()));
   }
 
   protected ASTStructure getASTStructure() throws YamlWitnessExportException {
@@ -85,5 +111,14 @@ public class DirectWitnessExporter {
           "Could not get ASTStructure which is required to export the witnesses!");
     }
     return cfa.getASTStructure().orElseThrow();
+  }
+
+  protected void exportEntries(AbstractEntry entry, Path outFile) {
+    try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
+      String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
+      writer.write(entryYaml);
+    } catch (IOException e) {
+      logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
+    }
   }
 }
