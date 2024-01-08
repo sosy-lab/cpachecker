@@ -186,7 +186,6 @@ public class ARGToWitness extends DirectWitnessExporter {
     statesCollector.traverse();
 
     Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
-    @SuppressWarnings("unused")
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
@@ -199,6 +198,16 @@ public class ARGToWitness extends DirectWitnessExporter {
           createInvariant(argStates, node, InvariantRecordType.LOOP_INVARIANT.getKeyword());
       if (loopInvariant != null) {
         entries.add(loopInvariant);
+      }
+    }
+
+    // Handle the location invariants
+    for (CFANode node : functionCallInvariants.keySet()) {
+      Collection<ARGState> argStates = functionCallInvariants.get(node);
+      InvariantRecord locationInvariant =
+          createInvariant(argStates, node, InvariantRecordType.LOCATION_INVARIANT.getKeyword());
+      if (locationInvariant != null) {
+        entries.add(locationInvariant);
       }
     }
 
