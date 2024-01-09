@@ -248,7 +248,8 @@ public class ASTStructure {
       if (structure.getCompleteElement().edges().stream()
           .anyMatch(pEdge -> pEdge.getPredecessor() == pNode || pEdge.getSuccessor() == pNode)) {
         if (result.isPresent()) {
-          if (result.orElseThrow()
+          if (result
+              .orElseThrow()
               .getCompleteElement()
               .edges()
               .containsAll(structure.getCompleteElement().edges())) {
