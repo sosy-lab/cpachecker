@@ -88,11 +88,9 @@ public class NoOverflowAlgorithm implements Algorithm{
     String path = "./output/AllOverflowInfos.txt";
     try (BufferedWriter writer = Files.newBufferedWriter(Path.of(path), StandardCharsets.UTF_8)) {
       for (StatementInformation s : information) {
-        writer.write("start new statement:\n");
         writer.write(s.listToString());
         logger.log(Level.INFO, s.listToString());
       }
-      writer.write("END");
     } catch (IOException pE) {
       throw new RuntimeException(pE);
     }
@@ -104,8 +102,8 @@ public class NoOverflowAlgorithm implements Algorithm{
 
     CExpression left = operand.getOperand1();
     CExpression right = operand.getOperand2();
-    binaryExpression.add(left.toASTString());
-    binaryExpression.add(right.toASTString());
+    binaryExpression.add(left.toASTString().replace(" ", ""));
+    binaryExpression.add(right.toASTString().replace(" ", ""));
     String operator = String.valueOf(operand.getOperator());
     binaryExpression.add(operator);
     expressionList.add(binaryExpression);
