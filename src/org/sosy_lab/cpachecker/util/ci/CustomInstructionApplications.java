@@ -191,17 +191,17 @@ public class CustomInstructionApplications {
         ShutdownNotifier pSdNotifier,
         CFA pCfa)
         throws InvalidConfigurationException {
-      switch (type) {
-        case AUTOMATIC:
-          return new CustomInstructionApplicationsAutomatic(pConfig, pCfa, pLogger, pSdNotifier);
-        case MANUAL:
-          return new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger, pSdNotifier);
-        case OPERATOR:
-          return new CustomInstructionsForBinaryOperator(pConfig, pLogger, pSdNotifier, pCfa);
-        default:
-          throw new IllegalArgumentException(
-              "Unknown type of custom instruction applications identifier");
-      }
+      return switch (type) {
+        case AUTOMATIC ->
+            new CustomInstructionApplicationsAutomatic(pConfig, pCfa, pLogger, pSdNotifier);
+        case MANUAL ->
+            new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger, pSdNotifier);
+        case OPERATOR ->
+            new CustomInstructionsForBinaryOperator(pConfig, pLogger, pSdNotifier, pCfa);
+        default ->
+            throw new IllegalArgumentException(
+                "Unknown type of custom instruction applications identifier");
+      };
     }
   }
 

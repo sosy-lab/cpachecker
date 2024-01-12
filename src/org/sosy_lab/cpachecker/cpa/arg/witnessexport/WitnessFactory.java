@@ -126,8 +126,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 class WitnessFactory implements EdgeAppender {
 
-  private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
-      EnumSet.of(
+  private static final ImmutableSet<KeyDef> INSUFFICIENT_KEYS =
+      Sets.immutableEnumSet(
           KeyDef.SOURCECODE,
           KeyDef.STARTLINE,
           KeyDef.ENDLINE,

@@ -387,16 +387,17 @@ public class LiveVariables {
     // prerequisites for creating the live variables
     Set<Wrapper<ASimpleDeclaration>> globalVariables =
         switch (config.evaluationStrategy) {
-          case FUNCTION_WISE -> from(globalsList)
-              .transform(Pair::getFirst)
-              .filter(notNull())
-              .filter(
-                  not(
-                      or(
-                          instanceOf(CTypeDeclaration.class),
-                          instanceOf(CFunctionDeclaration.class))))
-              .transform(TO_EQUIV_WRAPPER)
-              .toSet();
+          case FUNCTION_WISE ->
+              from(globalsList)
+                  .transform(Pair::getFirst)
+                  .filter(notNull())
+                  .filter(
+                      not(
+                          or(
+                              instanceOf(CTypeDeclaration.class),
+                              instanceOf(CFunctionDeclaration.class))))
+                  .transform(TO_EQUIV_WRAPPER)
+                  .toSet();
           case GLOBAL -> ImmutableSet.of();
         };
     final @Nullable ResourceLimitChecker limitChecker;

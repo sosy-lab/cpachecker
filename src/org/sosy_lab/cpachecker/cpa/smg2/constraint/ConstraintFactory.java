@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -43,7 +45,11 @@ public class ConstraintFactory {
 
   private final SMGCPAExpressionEvaluator evaluator;
 
-  private final CFAEdge edge;
+  // The edge is only used as failure trace in the value visitor that may be employed by the
+  // ExpressionTransformer.
+  // May be null for constraint constructions that don't use the visitor (i.e. memory validity
+  // checks)
+  @Nullable private final CFAEdge edge;
 
   private SymbolicValueFactory expressionFactory;
 
@@ -53,7 +59,7 @@ public class ConstraintFactory {
       LogManagerWithoutDuplicates pLogger,
       SMGOptions pOptions,
       SMGCPAExpressionEvaluator pEvaluator,
-      CFAEdge pEdge) {
+      @Nullable CFAEdge pEdge) {
 
     machineModel = pMachineModel;
     logger = pLogger;
@@ -115,24 +121,16 @@ public class ConstraintFactory {
   }
 
   private boolean isConstraint(CBinaryExpression pExpression) {
-    switch (pExpression.getOperator()) {
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_EQUAL:
-      case GREATER_THAN:
-      case LESS_EQUAL:
-      case LESS_THAN:
-        return true;
-      default:
-        return false;
-    }
+    return switch (pExpression.getOperator()) {
+      case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> true;
+      default -> false;
+    };
   }
 
   public Collection<ConstraintAndSMGState> createPositiveConstraint(CIdExpression pExpression)
       throws CPATransferException {
 
-    ExpressionTransformer transformer =
-        new ExpressionTransformer(edge, smgState, machineModel, logger, options, evaluator);
+    ExpressionTransformer transformer = getCTransformer();
     ImmutableList.Builder<ConstraintAndSMGState> builder = ImmutableList.builder();
     for (SymbolicExpressionAndSMGState symbolicExpressionAndState :
         transformer.transform(pExpression)) {
@@ -213,5 +211,16 @@ public class ConstraintFactory {
       Type pCalculationType) {
 
     return expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
+  }
+
+  public Collection<Constraint> checkValidMemoryAccess(
+      Value offsetInBits,
+      Value readSizeInBits,
+      Value memoryRegionSizeInBits,
+      CType offsetType,
+      SMGState currentState) {
+    final ExpressionTransformer transformer = getCTransformer();
+    return transformer.checkValidMemoryAccess(
+        offsetInBits, readSizeInBits, memoryRegionSizeInBits, offsetType, currentState);
   }
 }

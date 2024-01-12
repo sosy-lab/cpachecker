@@ -17,7 +17,6 @@ from logging import log
 import re
 import sys
 from enum import Enum
-from typing_extensions import LiteralString
 
 
 class EdgeType(Enum):
@@ -244,9 +243,9 @@ def listFiles(paths):
                     yield os.path.normpath(os.path.join(root, item))
 
 
-def getNodes(configDirectories) -> Dict[LiteralString, Node]:
+def getNodes(configDirectories) -> Dict[str, Node]:
     """collect all files and build a graph"""
-    nodes: Dict[LiteralString, Node] = {}
+    nodes: Dict[str, Node] = {}
 
     # collect nodes and their children
     waitlist = list(listFiles(configDirectories))

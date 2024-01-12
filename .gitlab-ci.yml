@@ -14,7 +14,7 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: 31cd8ffc4966957e156665dbba76679ade5bb5c9
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.22.0
+  REFASTER_VERSION: 2.24.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
@@ -55,15 +55,15 @@ configuration-checks:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-configuration-checks:jdk-20:
+configuration-checks:jdk-21:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-20
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-20
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
+    - build:jdk-21
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
 
 configuration-documentation:
@@ -127,15 +127,15 @@ python-unit-tests:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-python-unit-tests:jdk-20:
+python-unit-tests:jdk-21:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-20
+    - build:jdk-21
   needs:
     - build-dependencies
-    - build:jdk-20
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
+    - build:jdk-21
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
 
 javascript-build:
@@ -203,7 +203,7 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":2.2"
+    IMAGE: ":2.3"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
@@ -297,7 +297,7 @@ unit-tests:jdk-17:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-20:
+unit-tests:jdk-21:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:

@@ -114,8 +114,14 @@ public final class Solver implements AutoCloseable {
 
   // stats
   public final Timer solverTime = new Timer();
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int satChecks = 0;
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int trivialSatChecks = 0;
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int cachedSatChecks = 0;
 
   private Solver(Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier)

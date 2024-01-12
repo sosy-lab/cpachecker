@@ -17,9 +17,11 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -51,6 +53,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
@@ -63,6 +68,12 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
@@ -143,22 +154,52 @@ public class SMGCPAValueVisitorTest {
   @Before
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
+    Configuration defaultOptionsNoPreciseRead =
+        Configuration.builder()
+            .copyFrom(Configuration.defaultConfiguration())
+            .setOption("cpa.smg2.preciseSMGRead", "false")
+            .build();
+    options = new SMGOptions(defaultOptionsNoPreciseRead);
 
     // null, null is fine as long as builtin functions are not used!
-    evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null);
+    evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null, makeTestSolver());
 
-    options = new SMGOptions(Configuration.defaultConfiguration());
-    currentState = SMGState.of(MACHINE_MODEL, logger, options);
+    currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator);
 
     visitor =
         new SMGCPAValueVisitor(
             evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
+  private SMGConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
+    Solver smtSolver =
+        Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
+    FormulaManagerView formulaManager = smtSolver.getFormulaManager();
+    FormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new FormulaEncodingWithPointerAliasingOptions(Configuration.defaultConfiguration());
+    TypeHandlerWithPointerAliasing typeHandler =
+        new TypeHandlerWithPointerAliasing(logger, MACHINE_MODEL, formulaOptions);
+
+    CtoFormulaConverter converter =
+        new CToFormulaConverterWithPointerAliasing(
+            formulaOptions,
+            formulaManager,
+            MACHINE_MODEL,
+            Optional.empty(),
+            logger,
+            ShutdownNotifier.createDummy(),
+            typeHandler,
+            AnalysisDirection.FORWARD);
+
+    return new SMGConstraintsSolver(
+        smtSolver, formulaManager, converter, new ConstraintsStatistics(), options);
+  }
+
   // Resets state and visitor to an empty state
   public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
     currentState =
-        SMGState.of(MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()));
+        SMGState.of(
+            MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()), evaluator);
 
     visitor =
         new SMGCPAValueVisitor(
@@ -1959,7 +2000,13 @@ public class SMGCPAValueVisitorTest {
           .isTrue();
       assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+      assertThat(
+              currentState
+                  .dereferencePointer(resultValue)
+                  .get(0)
+                  .getOffsetForObject()
+                  .asNumericValue()
+                  .bigIntegerValue())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2028,7 +2075,13 @@ public class SMGCPAValueVisitorTest {
           .isTrue();
       assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+      assertThat(
+              currentState
+                  .dereferencePointer(resultValue)
+                  .get(0)
+                  .getOffsetForObject()
+                  .asNumericValue()
+                  .bigIntegerValue())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2105,7 +2158,13 @@ public class SMGCPAValueVisitorTest {
             .isTrue();
         assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+        assertThat(
+                currentState
+                    .dereferencePointer(resultValue)
+                    .get(0)
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .bigIntegerValue())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2179,7 +2238,13 @@ public class SMGCPAValueVisitorTest {
             .isTrue();
         assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+        assertThat(
+                currentState
+                    .dereferencePointer(resultValue)
+                    .get(0)
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .bigIntegerValue())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2254,7 +2319,13 @@ public class SMGCPAValueVisitorTest {
           .isTrue();
       assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+      assertThat(
+              currentState
+                  .dereferencePointer(resultValue)
+                  .get(0)
+                  .getOffsetForObject()
+                  .asNumericValue()
+                  .bigIntegerValue())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2326,7 +2397,8 @@ public class SMGCPAValueVisitorTest {
           currentState.dereferencePointer(resultValue).get(0);
       assertThat(resultMaybeTarget.hasSMGObjectAndOffset()).isTrue();
       assertThat(resultMaybeTarget.getSMGObject()).isEqualTo(expectedTarget);
-      assertThat(resultMaybeTarget.getOffsetForObject()).isEqualTo(expectedOffset);
+      assertThat(resultMaybeTarget.getOffsetForObject().asNumericValue().bigIntegerValue())
+          .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
       assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
@@ -2400,7 +2472,13 @@ public class SMGCPAValueVisitorTest {
             .isTrue();
         assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+        assertThat(
+                currentState
+                    .dereferencePointer(resultValue)
+                    .get(0)
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .bigIntegerValue())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2477,7 +2555,13 @@ public class SMGCPAValueVisitorTest {
             .isTrue();
         assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+        assertThat(
+                currentState
+                    .dereferencePointer(resultValue)
+                    .get(0)
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .bigIntegerValue())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -3276,7 +3360,7 @@ public class SMGCPAValueVisitorTest {
     SMGValue smgValue = valueAndState.getSMGValue();
     currentState = valueAndState.getSMGState();
     currentState =
-        currentState.writeValue(
+        currentState.writeValueWithoutChecks(
             currentState
                 .getMemoryModel()
                 .getObjectForVisibleVariable(stackVariableName)
@@ -3344,7 +3428,8 @@ public class SMGCPAValueVisitorTest {
     // the addressExpr)
     SMGStateAndOptionalSMGObjectAndOffset objectAndOffset =
         currentState.dereferencePointer(addressOfTargetWith0Offset).get(0);
-    Preconditions.checkArgument(objectAndOffset.getOffsetForObject().longValue() == 0);
+    Preconditions.checkArgument(
+        objectAndOffset.getOffsetForObject().asNumericValue().longValue() == 0);
 
     // Mapping to the smg points to edge
     ValueAndSMGState newPointerValueAndState =

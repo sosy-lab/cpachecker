@@ -19,8 +19,6 @@ import com.google.common.collect.Iterables;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -197,16 +195,13 @@ public class AssumptionToEdgeAllocator {
   }
 
   private String createComment(CFAEdge pCfaEdge, ConcreteState pConcreteState) {
-    switch (pCfaEdge.getEdgeType()) {
-      case AssumeEdge:
-        return handleAssumeComment((AssumeEdge) pCfaEdge, pConcreteState);
-      case DeclarationEdge:
-        return handleDclComment((ADeclarationEdge) pCfaEdge, pConcreteState);
-      case ReturnStatementEdge:
-        return handleReturnStatementComment((AReturnStatementEdge) pCfaEdge, pConcreteState);
-      default:
-        return "";
-    }
+    return switch (pCfaEdge.getEdgeType()) {
+      case AssumeEdge -> handleAssumeComment((AssumeEdge) pCfaEdge, pConcreteState);
+      case DeclarationEdge -> handleDclComment((ADeclarationEdge) pCfaEdge, pConcreteState);
+      case ReturnStatementEdge ->
+          handleReturnStatementComment((AReturnStatementEdge) pCfaEdge, pConcreteState);
+      default -> "";
+    };
   }
 
   private String handleReturnStatementComment(
@@ -566,8 +561,8 @@ public class AssumptionToEdgeAllocator {
     boolean equalTypes = leftType.equals(rightType);
 
     FluentIterable<Class<? extends CType>> acceptedTypes =
-        FluentIterable.from(Collections.singleton(CSimpleType.class));
-    acceptedTypes = acceptedTypes.append(Arrays.asList(CArrayType.class, CPointerType.class));
+        FluentIterable.from(
+            ImmutableList.of(CSimpleType.class, CArrayType.class, CPointerType.class));
 
     boolean leftIsAccepted =
         equalTypes
@@ -1527,10 +1522,65 @@ public class AssumptionToEdgeAllocator {
         } else {
           valueAsBigInt = BigInteger.valueOf(number.longValue());
         }
+        pType = enlargeTypeIfValueIsMinimalValue(pType, valueAsBigInt);
         return ExplicitValueLiteral.valueOf(valueAsBigInt, pType);
       }
 
       return ExplicitValueLiteral.valueOf(pIntegerValue, pType);
+    }
+
+    private CSimpleType enlargeTypeIfValueIsMinimalValue(
+        CSimpleType pType, final BigInteger valueAsBigInt) {
+      // In C there are no negative literals, so to represent the minimal value of an integer
+      // type, we need that number as positive literal of the next larger type,
+      // and then negate it.
+      // For example for LONG_MIN we want to have -9223372036854775808UL, so the literal is
+      // of type unsigned long and negated. This is only important when exporting the value
+      // e.g. inside a witness, since EclipseCDT will not like -9223372036854775808L.
+      if (valueAsBigInt.abs().compareTo(machineModel.getMaximalIntegerValue(pType)) > 0
+          && valueAsBigInt.compareTo(BigInteger.ZERO) < 0
+          && pType.getType().isIntegerType()) {
+        while (valueAsBigInt.abs().compareTo(machineModel.getMaximalIntegerValue(pType)) > 0
+            && !nextLargerIntegerTypeIfPossible(pType).equals(pType)) {
+          pType = nextLargerIntegerTypeIfPossible(pType);
+        }
+      }
+      return pType;
+    }
+
+    private CSimpleType nextLargerIntegerTypeIfPossible(CSimpleType pType) {
+      if (pType.hasSignedSpecifier()) {
+        return new CSimpleType(
+            pType.isConst(),
+            pType.isVolatile(),
+            pType.getType(),
+            pType.hasLongSpecifier(),
+            pType.hasShortSpecifier(),
+            false,
+            true,
+            pType.hasComplexSpecifier(),
+            pType.hasImaginarySpecifier(),
+            pType.hasLongLongSpecifier());
+      } else {
+        switch (pType.getType()) {
+          case INT:
+            if (pType.hasShortSpecifier()) {
+              return CNumericTypes.SIGNED_INT;
+            } else if (pType.hasLongSpecifier()) {
+              return CNumericTypes.SIGNED_LONG_LONG_INT;
+            } else if (pType.hasLongLongSpecifier()) {
+              // fall through, this is already the largest type
+            } else {
+              // if it had neither specifier it is a plain (unsigned) int
+              return CNumericTypes.SIGNED_LONG_INT;
+            }
+            // $FALL-THROUGH$
+          default:
+            // just log and do not throw an exception in order to not break things
+            logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);
+            return pType;
+        }
+      }
     }
 
     /** Resolves all subexpressions that can be resolved. Stops at duplicate memory location. */

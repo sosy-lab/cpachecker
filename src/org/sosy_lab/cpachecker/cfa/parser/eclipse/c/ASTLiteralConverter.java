@@ -72,22 +72,15 @@ class ASTLiteralConverter {
       return handleImaginaryNumber(fileLoc, (CSimpleType) type, e, valueStr);
     }
 
-    switch (e.getKind()) {
-      case IASTLiteralExpression.lk_char_constant:
-        return new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
-
-      case IASTLiteralExpression.lk_integer_constant:
-        return parseIntegerLiteral(fileLoc, valueStr, e);
-
-      case IASTLiteralExpression.lk_float_constant:
-        return parseFloatLiteral(fileLoc, type, valueStr, e);
-
-      case IASTLiteralExpression.lk_string_literal:
-        return new CStringLiteralExpression(fileLoc, valueStr);
-
-      default:
-        throw parseContext.parseError("Unknown literal", e);
-    }
+    return switch (e.getKind()) {
+      case IASTLiteralExpression.lk_char_constant ->
+          new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
+      case IASTLiteralExpression.lk_integer_constant -> parseIntegerLiteral(fileLoc, valueStr, e);
+      case IASTLiteralExpression.lk_float_constant -> parseFloatLiteral(fileLoc, type, valueStr, e);
+      case IASTLiteralExpression.lk_string_literal ->
+          new CStringLiteralExpression(fileLoc, valueStr);
+      default -> throw parseContext.parseError("Unknown literal", e);
+    };
   }
 
   private CImaginaryLiteralExpression handleImaginaryNumber(
@@ -288,8 +281,9 @@ class ASTLiteralConverter {
             case OCTAL -> new BigInteger(s, 8);
             case DECIMAL -> new BigInteger(s, 10);
             case HEXADECIMAL -> new BigInteger(s.substring(2), 16); // remove "0x" from the string
-            default -> throw parseContext.parseError(
-                String.format("invalid constant type: %s", type.name()), e);
+            default ->
+                throw parseContext.parseError(
+                    String.format("invalid constant type: %s", type.name()), e);
           };
     } catch (NumberFormatException exception) {
       throw parseContext.parseError("invalid number", e);

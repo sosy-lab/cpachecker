@@ -55,15 +55,14 @@ public class PartialCertificateTypeProvider {
 
   private PartialReachedConstructionAlgorithm getPartialCertificateConstructor(
       boolean pKeepARGState) {
-    switch (certificateType) {
-      case ARG:
-        return new ARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
-      case MONOTONESTOPARG:
-        return new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(
-            pKeepARGState, withCMC);
-      default: // HEURISTIC
-        return new HeuristicPartialReachedSetConstructionAlgorithm();
-    }
+    return switch (certificateType) {
+      case ARG -> new ARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
+      case MONOTONESTOPARG ->
+          new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(
+              pKeepARGState, withCMC);
+      default -> // HEURISTIC
+          new HeuristicPartialReachedSetConstructionAlgorithm();
+    };
   }
 
   public PartialReachedConstructionAlgorithm getCertificateConstructor() {

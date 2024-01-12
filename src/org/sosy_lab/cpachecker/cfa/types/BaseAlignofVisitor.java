@@ -110,7 +110,7 @@ class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentExcepti
         } else if (pSimpleType.hasLongSpecifier()) {
           return model.getAlignofLongInt();
         } else if (pSimpleType.hasShortSpecifier()) {
-          return model.getAlignofShort();
+          return model.getAlignofShortInt();
         } else {
           return model.getAlignofInt();
         }

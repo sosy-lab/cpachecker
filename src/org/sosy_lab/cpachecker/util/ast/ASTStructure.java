@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -43,12 +44,19 @@ public class ASTStructure {
 
   public ASTStructure(
       Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, CFA pCfa)
-      throws InvalidConfigurationException, CoreException, InterruptedException, IOException {
+      throws InvalidConfigurationException, InterruptedException, IOException {
     classifier = new ASTLocationClassifier();
-    cdt = new EclipseCdtWrapper(CParser.Factory.getOptions(pConfig), pShutdownNotifier);
+    cdt =
+        new EclipseCdtWrapper(
+            CParser.Factory.getOptions(pConfig), pCfa.getMachineModel(), pShutdownNotifier);
     logger = pLogger;
     cfa = pCfa;
-    analyzeCFA();
+    try {
+      analyzeCFA();
+    } catch (CoreException e) {
+      throw new InvalidConfigurationException(
+          "Exception during analysis of CFA for generating the AST structure", e);
+    }
   }
 
   private void analyzeCFA() throws CoreException, InterruptedException, IOException {
@@ -98,7 +106,7 @@ public class ASTStructure {
         Level.INFO,
         "The following statement offsets where found:",
         ImmutableList.of(
-            classifier.statementLocations.stream()
+            classifier.statementOffsetsToLocations.values().stream()
                 .map(loc -> loc.getNodeOffset())
                 .distinct()
                 .sorted()
@@ -192,7 +200,19 @@ public class ASTStructure {
   }
 
   public boolean startsAtStatement(CFAEdge edge) {
-    return classifier.statementStartOffsets.contains(edge.getFileLocation().getNodeOffset());
+    return classifier.statementOffsetsToLocations.containsKey(
+        edge.getFileLocation().getNodeOffset());
+  }
+
+  public FileLocation nextStartStatementLocation(Integer offset) {
+    for (int counter = offset;
+        counter < Collections.max(classifier.statementOffsetsToLocations.keySet());
+        counter++) {
+      if (classifier.statementOffsetsToLocations.containsKey(counter)) {
+        return classifier.statementOffsetsToLocations.get(counter);
+      }
+    }
+    return null;
   }
 
   public boolean startsAtDeclaration(CFAEdge edge) {

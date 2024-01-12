@@ -32,8 +32,7 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class ASTLocationClassifier extends ASTVisitor {
-  final Set<FileLocation> statementLocations = new HashSet<>();
-  Set<Integer> statementStartOffsets = new HashSet<>();
+  final Map<Integer, FileLocation> statementOffsetsToLocations = new HashMap<>();
   final Set<FileLocation> compoundLocations = new HashSet<>();
 
   private final Set<FileLocation> labelLocations = new HashSet<>();
@@ -65,7 +64,6 @@ class ASTLocationClassifier extends ASTVisitor {
   }
 
   public void update() {
-    statementStartOffsets = transformedImmutableSetCopy(statementLocations, x -> x.getNodeOffset());
     declarationStartOffsets =
         transformedImmutableSetCopy(declarationLocations, x -> x.getNodeOffset());
   }
@@ -92,7 +90,7 @@ class ASTLocationClassifier extends ASTVisitor {
       ifLocations.add(loc);
       handleIfStatement(statement);
     }
-    statementLocations.add(loc);
+    statementOffsetsToLocations.put(loc.getNodeOffset(), loc);
     return PROCESS_CONTINUE;
   }
 

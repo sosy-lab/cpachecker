@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -800,7 +798,7 @@ class ASTConverter {
 
     // If there is no initializer, the variable cannot be const.
     // For others we add it as our temporary variables are single-use.
-    CType type = (initializer == null) ? CTypes.withoutConst(pType) : CTypes.withConst(pType);
+    CType type = CTypes.withConstSetTo(pType, initializer != null);
 
     if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
       // Replace with pointer type.
@@ -1413,8 +1411,8 @@ class ASTConverter {
 
   private boolean areCompatibleTypes(CType a, CType b) {
     // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftypes_005fcompatible_005fp-3613
-    a = withoutConst(withoutVolatile(a.getCanonicalType()));
-    b = withoutConst(withoutVolatile(b.getCanonicalType()));
+    a = CTypes.copyDequalified(a.getCanonicalType());
+    b = CTypes.copyDequalified(b.getCanonicalType());
     if (a.equals(b)) {
       return true;
     }
@@ -2440,7 +2438,7 @@ class ASTConverter {
         newType = CNumericTypes.CHAR;
         break;
       case "HI": // half integer
-        assert machinemodel.getSizeofShort() == 2; // not guaranteed by C, but on our platforms
+        assert machinemodel.getSizeofShortInt() == 2; // not guaranteed by C, but on our platforms
         newType = CNumericTypes.SHORT_INT;
         break;
       case "SI": // single integer
@@ -2601,8 +2599,8 @@ class ASTConverter {
         switch (d.getKey()) {
           case IASTCompositeTypeSpecifier.k_struct -> ComplexTypeKind.STRUCT;
           case IASTCompositeTypeSpecifier.k_union -> ComplexTypeKind.UNION;
-          default -> throw parseContext.parseError(
-              "Unknown key " + d.getKey() + " for composite type", d);
+          default ->
+              throw parseContext.parseError("Unknown key " + d.getKey() + " for composite type", d);
         };
     String name = convert(d.getName());
     String origName = name;

@@ -144,7 +144,7 @@ class EdgeAnalyzer {
           // Extract formal parameters
           for (AParameterDeclaration parameter :
               functionCallEdge.getSuccessor().getFunctionParameters()) {
-            result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
+            result.putAll(getInvolvedVariableTypes(parameter));
           }
 
           return result;
@@ -270,12 +270,10 @@ class EdgeAnalyzer {
   }
 
   private Map<? extends MemoryLocation, ? extends CType> getInvolvedVariableTypes(
-      AParameterDeclaration pParameter, CFAEdge pCFAEdge) {
+      AParameterDeclaration pParameter) {
     if (pParameter.getType() instanceof CType) {
       return ImmutableMap.of(
-          new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pCFAEdge)
-              .getMemoryLocation(pParameter),
-          (CType) pParameter.getType());
+          MemoryLocation.forDeclaration(pParameter), (CType) pParameter.getType());
     }
     return ImmutableMap.of();
   }

@@ -500,12 +500,10 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
           return false;
       }
     } else if (expr instanceof CUnaryExpression) {
-      switch (((CUnaryExpression) expr).getOperator()) {
-        case MINUS:
-          return true;
-        default:
-          return false;
-      }
+      return switch (((CUnaryExpression) expr).getOperator()) {
+        case MINUS -> true;
+        default -> false;
+      };
     }
     return false;
   }
