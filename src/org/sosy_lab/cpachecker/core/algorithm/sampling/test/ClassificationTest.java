@@ -63,7 +63,10 @@ public class ClassificationTest {
   @Test
   @Ignore
   public void induction1_positiveSample()
-      throws ParserException, IOException, InterruptedException, InvalidConfigurationException,
+      throws ParserException,
+          IOException,
+          InterruptedException,
+          InvalidConfigurationException,
           CPAException {
     String fileName = "induction1.c";
     SampleClass expected = SampleClass.POSITIVE;

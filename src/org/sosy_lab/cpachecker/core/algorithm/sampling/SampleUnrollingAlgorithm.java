@@ -257,11 +257,8 @@ public class SampleUnrollingAlgorithm {
       if (this == pO) {
         return true;
       }
-      if (!(pO instanceof SampleTreeNode)) {
-        return false;
-      }
-      SampleTreeNode that = (SampleTreeNode) pO;
-      return sample.getVariableValues().equals(that.sample.getVariableValues())
+      return pO instanceof SampleTreeNode that
+          && sample.getVariableValues().equals(that.sample.getVariableValues())
           && sample.getLocation().equals(that.sample.getLocation());
     }
 

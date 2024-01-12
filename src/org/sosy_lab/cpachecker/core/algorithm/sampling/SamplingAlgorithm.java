@@ -175,8 +175,8 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       backwardUnrollingAlgorithm =
           new SampleUnrollingAlgorithm(
               backwardConfig, pLogger, pShutdownManager, pCfa, pSpecification);
-    } catch (IOException pE) {
-      throw new InvalidConfigurationException("Could not load unrolling config", pE);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Could not load unrolling config", e);
     }
   }
 

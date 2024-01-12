@@ -149,11 +149,9 @@ public class Sample {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof Sample)) {
-      return false;
-    }
-    Sample sample = (Sample) pO;
-    return variableValues.equals(sample.variableValues) && location.equals(sample.location);
+    return pO instanceof Sample sample
+        && variableValues.equals(sample.variableValues)
+        && location.equals(sample.location);
   }
 
   @Override

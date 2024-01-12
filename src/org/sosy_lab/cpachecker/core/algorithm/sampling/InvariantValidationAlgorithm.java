@@ -171,9 +171,9 @@ public class InvariantValidationAlgorithm implements Algorithm {
         } else {
           validateSMT(reachedSet, loopHead, preSamples, stepSamples, postSamples);
         }
-      } catch (InvalidConfigurationException pE) {
+      } catch (InvalidConfigurationException e) {
         logger.log(Level.WARNING, "Invariant validation failed due to invalid configuration.");
-      } catch (SolverException pE) {
+      } catch (SolverException e) {
         logger.log(Level.WARNING, "Invariant validation failed due to solver failure.");
       }
     }
