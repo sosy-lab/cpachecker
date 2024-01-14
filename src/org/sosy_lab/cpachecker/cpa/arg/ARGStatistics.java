@@ -427,7 +427,7 @@ public class ARGStatistics implements Statistics {
                 argWitnessExporter.getProofInvariantProvider());
 
         if (exportYAMLCorrectnessWitnessesDirectlyFromARG) {
-          if (invariantWitnessWriter != null) {
+          if (argToWitnessWriter != null) {
             try {
               argToWitnessWriter.export(rootState);
             } catch (YamlWitnessExportException | IOException e) {
