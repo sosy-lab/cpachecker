@@ -74,8 +74,6 @@ public final class InvariantRecordV3 extends InvariantRecord {
 
       gen.writeFieldName("format");
       serializers.defaultSerializeValue(value.getFormat(), gen);
-      // end the InvariantRecord object
-      gen.writeEndObject();
 
       // End the wrapper object
       gen.writeEndObject();
