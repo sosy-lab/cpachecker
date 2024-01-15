@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -308,7 +309,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     if (isBinaryExpressionThatMayOverflow(exp)) {
       CBinaryExpression binexp = (CBinaryExpression) exp;
       BinaryOperator binop = binexp.getOperator();
-      CType calculationType = binexp.getCalculationType();
+      CType calculationType = CTypes.copyDequalified(binexp.getCalculationType());
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
       if (trackAdditiveOperations
@@ -336,7 +337,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
         }
       }
     } else if (exp instanceof CUnaryExpression) {
-      CType calculationType = exp.getExpressionType();
+      CType calculationType = CTypes.copyDequalified(exp.getExpressionType());
       CUnaryExpression unaryexp = (CUnaryExpression) exp;
       if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
           && lowerBounds.get(calculationType) != null) {
