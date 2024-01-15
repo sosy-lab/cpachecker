@@ -12,4 +12,4 @@ input_files: 'overflowConstVariable.c'
 
 properties:
   - property_file: ../../../config/properties/no-overflow.prp
-    expected_verdict: true
+    expected_verdict: false
