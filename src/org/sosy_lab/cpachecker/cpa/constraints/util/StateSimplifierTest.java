@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -125,7 +125,7 @@ public class StateSimplifierTest {
 
   private ConstraintsState getSampleConstraints() {
     return new ConstraintsState(
-        Set.of(group1Constraint1, group1Constraint2, group2Constraint1, group2Constraint2));
+        ImmutableSet.of(group1Constraint1, group1Constraint2, group2Constraint1, group2Constraint2));
   }
 
   private ValueAnalysisState getCompleteValueState() {
