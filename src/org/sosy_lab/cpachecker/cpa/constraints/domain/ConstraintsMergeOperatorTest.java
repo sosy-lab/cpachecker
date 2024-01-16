@@ -53,9 +53,7 @@ public class ConstraintsMergeOperatorTest {
 
     assertThat(mergeResult).hasSize(state2.size() - 1);
     assertThat(mergeResult).doesNotContain(negConst);
-
-    state2.remove(negConst);
-    assertThat(mergeResult).isEqualTo(state2);
+    assertThat(mergeResult).isEqualTo(baseState);
   }
 
   private Set<Constraint> getConstraints() {
