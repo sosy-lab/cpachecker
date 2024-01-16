@@ -229,22 +229,6 @@ public class SMGState
         evaluator);
   }
 
-  private SMGState of(
-      ImmutableList<Constraint> pConstraints, ImmutableList<ValueAssignment> pDefiniteAssignment) {
-    checkNotNull(pConstraints);
-    checkNotNull(pDefiniteAssignment);
-    return new SMGState(
-        machineModel,
-        memoryModel,
-        logger,
-        options,
-        errorInfo,
-        materializer,
-        lastCheckedMemoryAccess,
-        constraintsState.copyWithNew(pConstraints).copyWithDefiniteAssignment(pDefiniteAssignment),
-        evaluator);
-  }
-
   public SMGState addConstraint(Constraint pConstraint) {
     checkNotNull(pConstraint);
     return of(listAndElement(constraintsState, pConstraint));

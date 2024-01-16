@@ -367,7 +367,6 @@ public class ConstraintsTransferRelation
       final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;
       final AssumeEdge assume = (AssumeEdge) pCfaEdge;
 
-      Collection<ConstraintsState> newStates = new ArrayList<>();
       final boolean truthAssumption = assume.getTruthAssumption();
       final AExpression edgeExpression = assume.getExpression();
 
@@ -387,14 +386,17 @@ public class ConstraintsTransferRelation
             newState = getIfSatisfiable(newState, functionName, solver);
           }
           if (newState != null) {
-            newStates.add(newState);
-          }
-
-          if (newState.equals(pStateToStrengthen)) {
-            return Optional.empty();
+            if (newState.equals(pStateToStrengthen)) {
+              // return of empty optional means state is unchanged
+              return Optional.empty();
+            } else {
+              return Optional.of(List.of(newState));
+            }
           }
         }
-        return Optional.of(newStates);
+        assert newState == null : "newState must be null if empty list is returned";
+        // return of an empty list means state is unreachable
+        return Optional.of(List.of());
 
       } catch (SolverException e) {
         throw new CPATransferException(
