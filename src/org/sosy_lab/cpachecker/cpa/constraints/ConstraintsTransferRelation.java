@@ -390,13 +390,13 @@ public class ConstraintsTransferRelation
               // return of empty optional means state is unchanged
               return Optional.empty();
             } else {
-              return Optional.of(List.of(newState));
+              return Optional.of(ImmutableList.of(newState));
             }
           }
         }
         assert newState == null : "newState must be null if empty list is returned";
         // return of an empty list means state is unreachable
-        return Optional.of(List.of());
+        return Optional.of(ImmutableList.of());
 
       } catch (SolverException e) {
         throw new CPATransferException(
