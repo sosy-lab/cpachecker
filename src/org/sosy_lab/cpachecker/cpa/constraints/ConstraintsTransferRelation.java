@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -171,7 +173,7 @@ public class ConstraintsTransferRelation
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (newConstraint.isTrivial()) {
-        if (solver.isUnsat(newConstraint, functionName)) {
+        if (solver.checkUnsat(newConstraint, functionName).equals(Satisfiability.UNSAT)) {
           return null;
         }
       } else {
@@ -329,6 +331,19 @@ public class ConstraintsTransferRelation
     }
   }
 
+  private static ConstraintsState getIfSatisfiable(
+      ConstraintsState pStateToCheck, String functionName, ConstraintsSolver solver)
+      throws UnrecognizedCodeException, SolverException, InterruptedException {
+    ConstraintsState newState = new ConstraintsState(pStateToCheck);
+    SolverResult solverResult = solver.checkUnsat(newState, functionName);
+    if (solverResult.satisfiability() == Satisfiability.SAT) {
+      solverResult.model().ifPresent(newState::setModel);
+      solverResult.definiteAssignments().ifPresent(newState::setDefiniteAssignment);
+      return newState;
+    }
+    return null;
+  }
+
   private final class ValueAnalysisStrengthenOperator implements StrengthenOperator {
 
     @Override
@@ -364,7 +379,10 @@ public class ConstraintsTransferRelation
         // (which represents the bottom element for strengthen methods)
         if (newState != null) {
           newState = simplify(newState, valueState);
-          if (checkStrategy != CheckStrategy.AT_ASSUME || !solver.isUnsat(newState, functionName)) {
+          if (checkStrategy == CheckStrategy.AT_ASSUME) {
+            newState = getIfSatisfiable(newState, functionName, solver);
+          }
+          if (newState != null) {
             newStates.add(newState);
           }
 
@@ -399,7 +417,8 @@ public class ConstraintsTransferRelation
       final AutomatonState automatonState = (AutomatonState) pStrengtheningState;
 
       try {
-        if (automatonState.isTarget() && solver.isUnsat(pStateToStrengthen, functionName)) {
+        if (automatonState.isTarget()
+            && getIfSatisfiable(pStateToStrengthen, functionName, solver) == null) {
 
           return Optional.of(ImmutableSet.of());
 

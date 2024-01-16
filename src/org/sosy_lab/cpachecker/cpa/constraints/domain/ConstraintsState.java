@@ -184,7 +184,7 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
     return definiteAssignment;
   }
 
-  void setDefiniteAssignment(ImmutableCollection<ValueAssignment> pAssignment) {
+  public void setDefiniteAssignment(ImmutableCollection<ValueAssignment> pAssignment) {
     definiteAssignment = pAssignment.asList();
   }
 
@@ -193,7 +193,7 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
     return lastModelAsAssignment;
   }
 
-  void setModel(List<ValueAssignment> pModel) {
+  public void setModel(List<ValueAssignment> pModel) {
     lastModelAsAssignment = ImmutableList.copyOf(pModel);
   }
 
