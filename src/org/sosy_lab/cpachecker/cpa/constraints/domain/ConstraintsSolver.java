@@ -364,18 +364,17 @@ public class ConstraintsSolver {
 
   private final class MatchingConstraintsCache implements ConstraintsCache {
 
-    // TODO This should use an immutable data structure as key, and not Collection but List/Set
-    private Map<Collection<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
+    private Map<ImmutableSet<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
 
     @Override
-    @SuppressWarnings("CollectionUndefinedEquality") // TODO there is a bug here
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
+      ImmutableSet<BooleanFormula> cacheKey = ImmutableSet.copyOf(pConstraints);
       stats.cacheLookups.inc();
       stats.directCacheLookupTime.start();
       try {
-        if (cacheMap.containsKey(pConstraints)) {
+        if (cacheMap.containsKey(cacheKey)) {
           stats.directCacheHits.inc();
-          return cacheMap.get(pConstraints);
+          return cacheMap.get(cacheKey);
 
         } else {
           return CacheResult.getUnknown();
@@ -397,7 +396,7 @@ public class ConstraintsSolver {
     }
 
     private void add(Collection<BooleanFormula> pConstraints, CacheResult pResult) {
-      cacheMap.put(pConstraints, pResult);
+      cacheMap.put(ImmutableSet.copyOf(pConstraints), pResult);
     }
   }
 
