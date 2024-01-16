@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.util.Iterator;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -44,11 +45,7 @@ public class ConstraintsStateTest {
 
   @Before
   public void setUp() {
-    state = new ConstraintsState();
-
-    state.add(constr1);
-    state.add(constr2);
-    state.add(constr3);
+    state = new ConstraintsState(Set.of(constr1, constr2, constr3));
   }
 
   @Test
