@@ -119,11 +119,16 @@ public class ConstraintsSolver {
     }
   }
 
-  public boolean isUnsat(
-      Constraint pConstraint, ImmutableList<ValueAssignment> pAssignment, String pFunctionName)
+  /**
+   * Returns whether the given constraint is unsatisfiable.
+   *
+   * @param pConstraintToCheck the constraint to check
+   * @param pFunctionName the name of this constraints function scope
+   * @return <code>true</code> if this constraint is unsatisfiable, <code>false</code> otherwise
+   */
+  public boolean isUnsat(Constraint pConstraintToCheck, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-    ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraint));
-    s.setDefiniteAssignment(pAssignment);
+    ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraintToCheck));
     return isUnsat(s, pFunctionName);
   }
 

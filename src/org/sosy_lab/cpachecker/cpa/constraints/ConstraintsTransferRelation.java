@@ -171,7 +171,7 @@ public class ConstraintsTransferRelation
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (newConstraint.isTrivial()) {
-        if (solver.isUnsat(newConstraint, ImmutableList.of(), functionName)) {
+        if (solver.isUnsat(newConstraint, functionName)) {
           return null;
         }
       } else {
