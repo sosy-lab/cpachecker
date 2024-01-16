@@ -167,18 +167,16 @@ public class ConstraintsTransferRelation
     Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
 
     if (oNewConstraint.isPresent()) {
-      ConstraintsState newState = pOldState.copyOf();
       final Constraint newConstraint = oNewConstraint.orElseThrow();
 
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (newConstraint.isTrivial()) {
-        if (solver.checkUnsat(newConstraint, functionName).equals(Satisfiability.UNSAT)) {
+        if (solver.checkUnsat(newConstraint, functionName) == Satisfiability.UNSAT) {
           return null;
         }
       } else {
-        newState.add(newConstraint);
-        return newState;
+        return pOldState.copyWithNew(newConstraint);
       }
     }
 
@@ -334,11 +332,17 @@ public class ConstraintsTransferRelation
   private static ConstraintsState getIfSatisfiable(
       ConstraintsState pStateToCheck, String functionName, ConstraintsSolver solver)
       throws UnrecognizedCodeException, SolverException, InterruptedException {
-    ConstraintsState newState = new ConstraintsState(pStateToCheck);
-    SolverResult solverResult = solver.checkUnsat(newState, functionName);
+    SolverResult solverResult = solver.checkUnsat(pStateToCheck, functionName);
     if (solverResult.satisfiability() == Satisfiability.SAT) {
-      solverResult.model().ifPresent(newState::setModel);
-      solverResult.definiteAssignments().ifPresent(newState::setDefiniteAssignment);
+      ConstraintsState newState = pStateToCheck;
+      if (solverResult.model().isPresent()) {
+        newState = pStateToCheck.copyWithSatisfyingModel(solverResult.model().orElseThrow());
+      }
+      if (solverResult.definiteAssignments().isPresent()) {
+        newState =
+            pStateToCheck.copyWithDefiniteAssignment(
+                solverResult.definiteAssignments().orElseThrow());
+      }
       return newState;
     }
     return null;

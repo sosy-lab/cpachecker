@@ -53,6 +53,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAAddressVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPABuiltins;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
@@ -62,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.BooleanAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
@@ -92,14 +93,14 @@ public class SMGCPAExpressionEvaluator {
 
   private final SMGCPABuiltins builtins;
 
-  private final SMGConstraintsSolver solver;
+  private final ConstraintsSolver solver;
 
   public SMGCPAExpressionEvaluator(
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       SMGCPAExportOptions pExportSMGOptions,
       SMGOptions pSMGOptions,
-      SMGConstraintsSolver pSolver) {
+      ConstraintsSolver pSolver) {
     logger = pLogger;
     machineModel = pMachineModel;
     exportSMGOptions = pExportSMGOptions;
@@ -1067,10 +1068,10 @@ public class SMGCPAExpressionEvaluator {
         // If a constraint is trivial, its satisfiability is not influenced by other constraints.
         // So to evade more expensive SAT checks, we just check the constraint on its own.
         currentState = currentState.updateLastCheckedMemoryBounds(constraint);
-        BooleanAndSMGState isUnsatAndState =
-            solver.isUnsat(currentState, constraint, stackFrameFunctionName);
-        if (!isUnsatAndState.getBoolean()) {
-          return isUnsatAndState;
+        Satisfiability satisfiablity = solver.checkUnsat(constraint, stackFrameFunctionName);
+        if (satisfiablity.equals(Satisfiability.SAT)) {
+          // TODO: replace the bool by satisfiablity
+          return BooleanAndSMGState.of(false, currentState);
         }
 
       } catch (InterruptedException | SolverException | UnrecognizedCodeException e) {
@@ -2484,7 +2485,7 @@ public class SMGCPAExpressionEvaluator {
     }
   }
 
-  public SMGConstraintsSolver getSolver() {
+  public ConstraintsSolver getSolver() {
     return solver;
   }
 }

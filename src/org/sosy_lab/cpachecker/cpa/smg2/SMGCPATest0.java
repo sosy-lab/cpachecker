@@ -25,8 +25,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
@@ -103,7 +103,7 @@ public class SMGCPATest0 {
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator);
   }
 
-  private SMGConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
+  private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
     Solver smtSolver =
         Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
@@ -123,8 +123,12 @@ public class SMGCPATest0 {
             typeHandler,
             AnalysisDirection.FORWARD);
 
-    return new SMGConstraintsSolver(
-        smtSolver, formulaManager, converter, new ConstraintsStatistics(), smgOptions);
+    return new ConstraintsSolver(
+        Configuration.defaultConfiguration(),
+        smtSolver,
+        formulaManager,
+        converter,
+        new ConstraintsStatistics());
   }
 
   /*

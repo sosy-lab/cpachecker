@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
@@ -171,12 +171,12 @@ public class SMGCPAValueVisitorTest {
             evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
-  private SMGConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
-    Solver smtSolver =
-        Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
+  private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
+    Configuration config = Configuration.defaultConfiguration();
+    Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
     FormulaEncodingWithPointerAliasingOptions formulaOptions =
-        new FormulaEncodingWithPointerAliasingOptions(Configuration.defaultConfiguration());
+        new FormulaEncodingWithPointerAliasingOptions(config);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, MACHINE_MODEL, formulaOptions);
 
@@ -191,8 +191,8 @@ public class SMGCPAValueVisitorTest {
             typeHandler,
             AnalysisDirection.FORWARD);
 
-    return new SMGConstraintsSolver(
-        smtSolver, formulaManager, converter, new ConstraintsStatistics(), options);
+    return new ConstraintsSolver(
+        config, smtSolver, formulaManager, converter, new ConstraintsStatistics());
   }
 
   // Resets state and visitor to an empty state

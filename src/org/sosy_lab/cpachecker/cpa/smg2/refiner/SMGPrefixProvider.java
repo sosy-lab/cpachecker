@@ -16,11 +16,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisDelegatingRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -35,7 +35,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
    * @param pCfa the cfa in use
    */
   public SMGPrefixProvider(
-      SMGConstraintsSolver pSolver,
+      ConstraintsSolver pSolver,
       LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
       Configuration config,

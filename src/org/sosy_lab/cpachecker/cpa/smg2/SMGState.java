@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
@@ -137,22 +138,11 @@ public class SMGState
   // Transformer for abstracted heap into concrete heap
   private final SMGCPAMaterializer materializer;
 
-  /** The constraints of this state */
-  private final ImmutableList<Constraint> constraints;
-
-  /**
-   * The last constraint added to this state. This does not have to be the last constraint in {@link
-   * #constraints}.
-   */
-  // It does not have to be the last constraint contained in 'constraints' because we only
-  // add a constraint to 'constraints' if it's not yet in this list.
-  private final Optional<Constraint> lastAddedConstraint;
-
   // Tracks the last checked memory access Constraint
   private final Optional<Constraint> lastCheckedMemoryAccess;
 
-  private final ImmutableList<ValueAssignment> definiteAssignment;
-  private final ImmutableList<ValueAssignment> lastModelAsAssignment;
+  // Holds the constraints and the model/definite value assignment
+  private final ConstraintsState constraintsState;
 
   private final SMGCPAExpressionEvaluator evaluator;
 
@@ -169,12 +159,9 @@ public class SMGState
     options = opts;
     errorInfo = ImmutableList.of();
     materializer = new SMGCPAMaterializer(logger);
-    lastAddedConstraint = Optional.empty();
     lastCheckedMemoryAccess = Optional.empty();
-    constraints = ImmutableList.of();
-    definiteAssignment = ImmutableList.of();
-    lastModelAsAssignment = ImmutableList.of();
     evaluator = pEvaluator;
+    constraintsState = new ConstraintsState();
   }
 
   private SMGState(
@@ -184,11 +171,8 @@ public class SMGState
       SMGOptions opts,
       List<SMGErrorInfo> errorInf,
       SMGCPAMaterializer pMaterializer,
-      ImmutableList<Constraint> pConstraints,
-      Optional<Constraint> pLastAddedConstraint,
       Optional<Constraint> pLastCheckedMemoryAccess,
-      ImmutableList<ValueAssignment> pDefiniteAssignment,
-      ImmutableList<ValueAssignment> pLastModelAsAssignment,
+      ConstraintsState pConstraintsState,
       SMGCPAExpressionEvaluator pEvaluator) {
     memoryModel = spc;
     machineModel = pMachineModel;
@@ -196,18 +180,13 @@ public class SMGState
     options = opts;
     errorInfo = errorInf;
     materializer = pMaterializer;
-    constraints = pConstraints;
-    lastAddedConstraint = pLastAddedConstraint;
     lastCheckedMemoryAccess = pLastCheckedMemoryAccess;
-    definiteAssignment = pDefiniteAssignment;
-    lastModelAsAssignment = pLastModelAsAssignment;
     evaluator = pEvaluator;
+    constraintsState = pConstraintsState;
   }
 
-  private SMGState of(
-      ImmutableList<Constraint> pConstraints, Optional<Constraint> pLastAddedConstraint) {
+  private SMGState of(ImmutableList<Constraint> pConstraints) {
     checkNotNull(pConstraints);
-    checkNotNull(pLastAddedConstraint);
     return new SMGState(
         machineModel,
         memoryModel,
@@ -215,16 +194,13 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        pConstraints,
-        pLastAddedConstraint,
         lastCheckedMemoryAccess,
-        definiteAssignment,
-        lastModelAsAssignment,
+        constraintsState.copyWithNew(pConstraints),
         evaluator);
   }
 
   private SMGState ofModelAssignment(
-      ImmutableList<ValueAssignment> pDefiniteAssignment,
+      ImmutableCollection<ValueAssignment> pDefiniteAssignment,
       ImmutableList<ValueAssignment> pLastModelAsAssignment) {
     return new SMGState(
         machineModel,
@@ -233,27 +209,10 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
         lastCheckedMemoryAccess,
-        pDefiniteAssignment,
-        pLastModelAsAssignment,
-        evaluator);
-  }
-
-  private SMGState ofLastAddedConstraint(Optional<Constraint> pLastAddedConstraint) {
-    return new SMGState(
-        machineModel,
-        memoryModel,
-        logger,
-        options,
-        errorInfo,
-        materializer,
-        constraints,
-        pLastAddedConstraint,
-        lastCheckedMemoryAccess,
-        definiteAssignment,
-        lastModelAsAssignment,
+        constraintsState
+            .copyWithDefiniteAssignment(pDefiniteAssignment)
+            .copyWithSatisfyingModel(pLastModelAsAssignment),
         evaluator);
   }
 
@@ -265,11 +224,8 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
         pLastCheckedMemoryAccess,
-        definiteAssignment,
-        lastModelAsAssignment,
+        constraintsState,
         evaluator);
   }
 
@@ -284,21 +240,14 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        pConstraints,
-        lastAddedConstraint,
         lastCheckedMemoryAccess,
-        pDefiniteAssignment,
-        lastModelAsAssignment,
+        constraintsState.copyWithNew(pConstraints).copyWithDefiniteAssignment(pDefiniteAssignment),
         evaluator);
   }
 
   public SMGState addConstraint(Constraint pConstraint) {
     checkNotNull(pConstraint);
-    if (constraints.contains(pConstraint)) {
-      return ofLastAddedConstraint(Optional.of(pConstraint));
-    }
-
-    return of(listAndElement(constraints, pConstraint), Optional.of(pConstraint));
+    return of(listAndElement(constraintsState, pConstraint));
   }
 
   public SMGState updateLastCheckedMemoryBounds(Constraint pConstraint) {
@@ -306,49 +255,27 @@ public class SMGState
     return ofLastCheckedMemoryBounds(Optional.of(pConstraint));
   }
 
-  public SMGState removeLastAddedConstraint() {
-    ImmutableList.Builder<Constraint> builder = ImmutableList.builder();
-
-    Constraint lastConstraint = lastAddedConstraint.orElseThrow();
-    for (Constraint oldConst : constraints) {
-      if (!oldConst.equals(lastConstraint)) {
-        builder.add(oldConst);
-      }
-    }
-    return of(builder.build(), Optional.empty());
-  }
-
-  @SuppressWarnings("unused")
-  public SMGState removeConstraint(Constraint pConstraintToRemove) {
-    if (!constraints.contains(pConstraintToRemove)) {
-      return this;
-    }
-
-    ImmutableList.Builder<Constraint> builder = ImmutableList.builder();
-    for (Constraint oldConst : constraints) {
-      if (!oldConst.equals(pConstraintToRemove)) {
-        builder.add(oldConst);
-      }
-    }
-
-    return of(builder.build(), ImmutableList.of());
-  }
-
   public boolean isEmptyConstraints() {
-    return constraints.isEmpty();
+    return constraintsState.isEmpty();
   }
 
   public Optional<Constraint> getLastAddedConstraint() {
-    return lastAddedConstraint;
+    return constraintsState.getLastAddedConstraint();
+  }
+
+  public SMGState replaceModelAndDefAssignmentAndCopy(
+      ImmutableCollection<ValueAssignment> pDefiniteAssignment,
+      ImmutableList<ValueAssignment> pLastModelAsAssignment) {
+    return ofModelAssignment(pDefiniteAssignment, pLastModelAsAssignment);
+  }
+
+  public ConstraintsState getConstraints() {
+    return constraintsState;
   }
 
   @SuppressWarnings("unused")
   public boolean containsConstraint(Constraint o) {
-    return constraints.contains(o);
-  }
-
-  public ImmutableList<Constraint> getConstraints() {
-    return constraints;
+    return constraintsState.contains(o);
   }
 
   /**
@@ -359,20 +286,12 @@ public class SMGState
    * @return the known assignment of variables that have no other fulfilling assignment
    */
   public ImmutableCollection<ValueAssignment> getDefiniteAssignment() {
-    return definiteAssignment;
-  }
-
-  public SMGState copyAndSetDefiniteAssignment(ImmutableCollection<ValueAssignment> pAssignment) {
-    return ofModelAssignment(pAssignment.asList(), lastModelAsAssignment);
+    return constraintsState.getDefiniteAssignment();
   }
 
   /** Returns the last model computed for this constraints state. */
   public ImmutableList<ValueAssignment> getModel() {
-    return lastModelAsAssignment;
-  }
-
-  public SMGState copyAndSetModel(List<ValueAssignment> pModel) {
-    return ofModelAssignment(definiteAssignment, ImmutableList.copyOf(pModel));
+    return constraintsState.getModel();
   }
 
   @Override
@@ -607,11 +526,8 @@ public class SMGState
         opts,
         pErrorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
         lastCheckedMemoryAccess,
-        definiteAssignment,
-        lastModelAsAssignment,
+        constraintsState,
         pEvaluator);
   }
 
@@ -629,11 +545,8 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
         lastCheckedMemoryAccess,
-        definiteAssignment,
-        lastModelAsAssignment,
+        constraintsState,
         evaluator);
   }
 
@@ -1298,7 +1211,7 @@ public class SMGState
       return false;
     }
 
-    if (!pOther.constraints.containsAll(constraints)) {
+    if (!pOther.constraintsState.containsAll(constraintsState)) {
       return false;
     }
 
@@ -2512,11 +2425,8 @@ public class SMGState
         options,
         pNewErrorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
         lastCheckedMemoryAccess,
-        definiteAssignment,
-        lastModelAsAssignment,
+        constraintsState,
         evaluator);
   }
 

@@ -53,8 +53,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.constraints")
 public class ConstraintsSolver {
 
-  /**c
-   * Result of a single constraint solving.
+  /**
+   * c Result of a single constraint solving.
    *
    * @param checkedConstraints the constraints checked for satisfiability. This may be only the
    *     relevant subset of the constraints provided to the solver.

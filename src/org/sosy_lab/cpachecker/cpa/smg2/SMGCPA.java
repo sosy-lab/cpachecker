@@ -58,10 +58,10 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -129,7 +129,7 @@ public class SMGCPA
 
   private final SMGCPAStatistics statistics;
 
-  private final SMGConstraintsSolver constraintsSolver;
+  private final ConstraintsSolver constraintsSolver;
   private final Solver solver;
 
   private final ConstraintsStatistics contraintsStats = new ConstraintsStatistics();
@@ -168,7 +168,7 @@ public class SMGCPA
         initializeCToFormulaConverter(
             formulaManager, logger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
     constraintsSolver =
-        new SMGConstraintsSolver(solver, formulaManager, converter, contraintsStats, options);
+        new ConstraintsSolver(pConfig, solver, formulaManager, converter, contraintsStats);
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel, logger, exportOptions, options, constraintsSolver);
@@ -221,7 +221,7 @@ public class SMGCPA
         evaluator);
   }
 
-  public SMGConstraintsSolver getSolver() {
+  public ConstraintsSolver getSolver() {
     return constraintsSolver;
   }
 

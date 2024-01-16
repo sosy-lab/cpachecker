@@ -365,8 +365,10 @@ public class SymbolicValueAnalysisRefiner
       nextConstraints = nextState.getConstraintsState();
       ConstraintsState oldConstraints = currentState.getConstraintsState();
 
-      ConstraintsState newConstraints = nextConstraints.copyOf();
-      newConstraints.removeAll(oldConstraints);
+      HashSet<Constraint> tempSet = new HashSet<>(nextConstraints);
+      tempSet.removeAll(oldConstraints);
+      ConstraintsState newConstraints = new ConstraintsState(tempSet);
+
       for (Constraint c : newConstraints) {
         toCExpressionVisitor = new ValueToCExpressionTransformer((CType) c.getType());
         CExpressionStatement exp =
