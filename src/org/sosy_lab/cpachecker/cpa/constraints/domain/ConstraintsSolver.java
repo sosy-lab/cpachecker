@@ -240,6 +240,7 @@ public class ConstraintsSolver {
         relevantConstraints.add(lastConstraint);
 
         Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints);
+        leftOverConstraints.remove(lastConstraint);
         Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
         Set<SymbolicIdentifier> relevantIdentifiers;
         do {
