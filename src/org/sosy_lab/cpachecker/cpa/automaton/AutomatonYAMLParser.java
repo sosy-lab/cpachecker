@@ -330,8 +330,12 @@ public class AutomatonYAMLParser {
   private List<Integer> getOffsetsByFileSimilarity(
       ListMultimap<String, Integer> pOffsetsByFile, String pFile) {
     String maxSimilarityFile = pFile;
+    if (pOffsetsByFile.containsKey(pFile)) {
+      return pOffsetsByFile.get(pFile);
+    }
+
     // The file extension plus at least one character of the file should match
-    int maxSimilarity = 3;
+    int maxSimilarity = 0;
     for (String file : pOffsetsByFile.keySet()) {
       int similarity = 0;
       int index1 = file.length() - 1;
@@ -347,7 +351,17 @@ public class AutomatonYAMLParser {
       }
     }
 
-    return pOffsetsByFile.get(maxSimilarityFile);
+    logger.log(
+        Level.INFO,
+        "File '"
+            + pFile
+            + "' could not be found in the files currently being processed, using similar file: "
+            + maxSimilarityFile);
+
+    List<Integer> offsets = pOffsetsByFile.get(maxSimilarityFile);
+    pOffsetsByFile.putAll(pFile, offsets);
+
+    return offsets;
   }
 
   private Set<Invariant> generateInvariantsFromEntries(List<AbstractEntry> pEntries)
