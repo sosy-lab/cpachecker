@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -308,18 +309,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private void computeNodesBetweenConditionAndBranch() {
       Set<CFANode> nodesThenBranch =
-          FluentIterable.from(ifStructure.getThenElement().edges())
-              .transform(CFAEdge::getPredecessor)
-              .toSet();
+          transformedImmutableSetCopy(ifStructure.getThenElement().edges(), CFAEdge::getPredecessor);
       Set<CFANode> nodesBoundaryCondition =
-          FluentIterable.from(ifStructure.getConditionElement().edges())
-              .transform(CFAEdge::getSuccessor)
-              .toSet();
+          transformedImmutableSetCopy(ifStructure.getConditionElement().edges(), CFAEdge::getSuccessor);
       nodesBoundaryCondition = new HashSet<>(nodesBoundaryCondition);
       nodesBoundaryCondition.removeAll(
-          FluentIterable.from(ifStructure.getConditionElement().edges())
-              .transform(CFAEdge::getPredecessor)
-              .toSet());
+          transformedImmutableSetCopy(ifStructure.getConditionElement().edges(), CFAEdge::getPredecessor));
       nodesBetweenConditionAndBranch = new HashSet<>(nodesBoundaryCondition);
       if (takeThenBranch) {
         nodesBetweenConditionAndBranch.retainAll(nodesThenBranch);
