@@ -104,7 +104,7 @@ public class Utils {
       String functionName) {
     final int lineNumber = location.getStartingLineInOrigin();
     final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
-    final int offsetInLine = location.getNodeOffset() - lineOffset;
+    final int offsetInLine = location.getNodeOffset() - lineOffset + 1;
 
     return new LocationRecord(fileName, "file_hash", lineNumber, offsetInLine, functionName);
   }
