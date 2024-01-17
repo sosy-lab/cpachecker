@@ -327,6 +327,29 @@ public class AutomatonYAMLParser {
     return generateInvariantsFromEntries(entries);
   }
 
+  private List<Integer> getOffsetsByFileSimilarity(
+      ListMultimap<String, Integer> pOffsetsByFile, String pFile) {
+    String maxSimilarityFile = pFile;
+    // The file extension plus at least one character of the file should match
+    int maxSimilarity = 3;
+    for (String file : pOffsetsByFile.keySet()) {
+      int similarity = 0;
+      int index1 = file.length() - 1;
+      int index2 = pFile.length() - 1;
+      while (index1 >= 0 && index2 >= 0 && file.charAt(index1) == pFile.charAt(index2)) {
+        similarity++;
+        index1--;
+        index2--;
+      }
+      if (similarity > maxSimilarity) {
+        maxSimilarity = similarity;
+        maxSimilarityFile = file;
+      }
+    }
+
+    return pOffsetsByFile.get(maxSimilarityFile);
+  }
+
   private Set<Invariant> generateInvariantsFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, IOException {
     Set<Invariant> invariants = new HashSet<>();
@@ -552,7 +575,8 @@ public class AutomatonYAMLParser {
         // covers to present the desired functionality.
         expr =
             new CheckCoversOffsetAndLine(
-                lineOffsetsByFile.get(followFilename).get(followLine - 1) + followColumn,
+                getOffsetsByFileSimilarity(lineOffsetsByFile, followFilename).get(followLine - 1)
+                    + followColumn,
                 followLine);
       } else {
         // The semantics of the YAML witnesses imply that every assumption waypoint should be
@@ -562,7 +586,8 @@ public class AutomatonYAMLParser {
         // Therefore we need the Reaches Offset guard.
         expr =
             new CheckReachesOffsetAndLine(
-                lineOffsetsByFile.get(followFilename).get(followLine - 1) + followColumn,
+                getOffsetsByFileSimilarity(lineOffsetsByFile, followFilename).get(followLine - 1)
+                    + followColumn,
                 followLine);
       }
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
