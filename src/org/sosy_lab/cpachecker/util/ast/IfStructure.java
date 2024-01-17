@@ -24,6 +24,7 @@ public class IfStructure extends StatementStructure {
 
   private Collection<CFAEdge> thenEdges = null;
   private Collection<CFAEdge> elseEdges = null;
+  private Collection<CFAEdge> conditionEdges = null;
 
   IfStructure(
       FileLocation pIfLocation,
@@ -61,6 +62,13 @@ public class IfStructure extends StatementStructure {
     return thenEdges;
   }
 
+  public Collection<CFAEdge> getConditionEdges() {
+    if (conditionEdges == null) {
+      conditionEdges = findConditionEdges();
+    }
+    return conditionEdges;
+  }
+
   public Collection<CFAEdge> getElseEdges() {
     if (elseEdges == null) {
       elseEdges = findElseEdges();
@@ -74,6 +82,10 @@ public class IfStructure extends StatementStructure {
 
   private Collection<CFAEdge> findElseEdges() {
     return maybeElseElement.map(x -> findBlockEdges(x.edges())).orElse(ImmutableSet.of());
+  }
+
+  private Collection<CFAEdge> findConditionEdges() {
+    return findBlockEdges(conditionElement.edges());
   }
 
   private Collection<CFAEdge> findBlockEdges(Collection<CFAEdge> target) {

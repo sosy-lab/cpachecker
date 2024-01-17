@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversOffsetAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersIfBranch;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesOffsetAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
@@ -63,6 +64,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -592,7 +595,7 @@ public class AutomatonYAMLParser {
                 getOffsetsByFileSimilarity(lineOffsetsByFile, followFilename).get(followLine - 1)
                     + followColumn,
                 followLine);
-      } else {
+      } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
         // The semantics of the YAML witnesses imply that every assumption waypoint should be
         // valid before the sequence statement it points to. Due to the semantics of the format:
         // "An assumption waypoint is evaluated at the sequence point immediately before the
@@ -603,6 +606,34 @@ public class AutomatonYAMLParser {
                 getOffsetsByFileSimilarity(lineOffsetsByFile, followFilename).get(followLine - 1)
                     + followColumn,
                 followLine);
+      } else if (follow.getType().equals(WaypointType.BRANCHING)) {
+        if (cfa.getASTStructure().isEmpty()) {
+          logger.log(
+              Level.INFO,
+              "Cannot handle branching waypoint without ASTStructure, skipping waypoint");
+          continue;
+        }
+
+        ASTStructure astStructure = cfa.getASTStructure().orElseThrow();
+        // The -1 in the column is needed since the ASTStructure element starts at the offset before
+        // the if keyword, but the waypoint points to the first character of the if keyword
+        IfStructure ifStructure =
+            astStructure.getIfStructureStartingAtOffset(
+                getOffsetsByFileSimilarity(lineOffsetsByFile, followFilename).get(followLine - 1)
+                    + followColumn
+                    - 1);
+        if (ifStructure == null) {
+          logger.log(
+              Level.INFO, "Could not find IfStructure corresponding to the waypoint, skipping it");
+          continue;
+        }
+
+        expr =
+            new CheckEntersIfBranch(
+                ifStructure, Boolean.parseBoolean(follow.getConstraint().getValue()));
+      } else {
+        logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
+        continue;
       }
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
 

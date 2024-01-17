@@ -46,6 +46,8 @@ public class ASTStructure {
   final Set<IterationStructure> iterationStructures = new HashSet<>();
   private Map<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
 
+  private Map<Integer, IfStructure> startOffsetToIfStructure = new HashMap<>();
+
   public ASTStructure(
       Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException, InterruptedException, IOException {
@@ -274,6 +276,21 @@ public class ASTStructure {
 
   public Set<IfStructure> getIfStructures() {
     return ifStructures;
+  }
+
+  public IfStructure getIfStructureStartingAtOffset(Integer pOffset) {
+    if (startOffsetToIfStructure.containsKey(pOffset)) {
+      return startOffsetToIfStructure.get(pOffset);
+    }
+
+    for (IfStructure structure : getIfStructures()) {
+      if (structure.getCompleteElement().location().getNodeOffset() == pOffset) {
+        startOffsetToIfStructure.put(pOffset, structure);
+        return structure;
+      }
+    }
+
+    return null;
   }
 
   public Set<IterationStructure> getIterationStructures() {

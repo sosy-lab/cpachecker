@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -55,6 +56,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
@@ -290,6 +292,72 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public boolean equals(Object o) {
       return o instanceof CheckReachesOffsetAndLine
           && offsetToReach.equals(((CheckReachesOffsetAndLine) o).offsetToReach);
+    }
+  }
+
+  public static class CheckEntersIfBranch implements AutomatonBoolExpr {
+
+    private final boolean takeThenBranch;
+    private final IfStructure ifStructure;
+    private Set<CFANode> nodesBetweenConditionAndBranch = null;
+
+    public CheckEntersIfBranch(IfStructure pIfStructure, boolean pTakeThenBranch) {
+      takeThenBranch = pTakeThenBranch;
+      ifStructure = pIfStructure;
+    }
+
+    private void computeNodesBetweenConditionAndBranch() {
+      Set<CFANode> nodesThenBranch =
+          FluentIterable.from(ifStructure.getThenElement().edges())
+              .transform(CFAEdge::getPredecessor)
+              .toSet();
+      Set<CFANode> nodesBoundaryCondition =
+          FluentIterable.from(ifStructure.getConditionElement().edges())
+              .transform(CFAEdge::getSuccessor)
+              .toSet();
+      nodesBoundaryCondition = new HashSet<>(nodesBoundaryCondition);
+      nodesBoundaryCondition.removeAll(
+          FluentIterable.from(ifStructure.getConditionElement().edges())
+              .transform(CFAEdge::getPredecessor)
+              .toSet());
+      nodesBetweenConditionAndBranch = new HashSet<>(nodesBoundaryCondition);
+      if (takeThenBranch) {
+        nodesBetweenConditionAndBranch.retainAll(nodesThenBranch);
+      } else {
+        nodesBetweenConditionAndBranch.removeAll(nodesThenBranch);
+      }
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      if (nodesBetweenConditionAndBranch == null) {
+        computeNodesBetweenConditionAndBranch();
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (nodesBetweenConditionAndBranch.contains(edge.getSuccessor())) {
+        return CONST_TRUE;
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "FOLLOW_BRANCH(" + (takeThenBranch ? "IF" : "ELSE") + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return nodesBetweenConditionAndBranch.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckEntersIfBranch checker
+          && nodesBetweenConditionAndBranch.equals(checker.nodesBetweenConditionAndBranch)
+          && takeThenBranch == checker.takeThenBranch;
     }
   }
 
