@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -144,7 +145,8 @@ public class AutomatonYAMLParser {
             cfa.getMachineModel(),
             shutdownNotifier);
     try {
-      lineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames());
+      lineOffsetsByFile = ArrayListMultimap.create();
+      lineOffsetsByFile.putAll(InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames()));
     } catch (IOException e) {
       throw new WitnessParseException(e);
     }
