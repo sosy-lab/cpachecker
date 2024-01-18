@@ -86,10 +86,9 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
   private WaypointRecord handleBranchingWaypoint(IfStructure ifStructure, AssumeEdge assumeEdge)
       throws IOException {
     String branchToFollow =
-        String.valueOf(
-            assumeEdge.isSwapped()
-                ? !assumeEdge.getTruthAssumption()
-                : assumeEdge.getTruthAssumption());
+        ifStructure.getNodesBetweenConditionAndThenBranch().contains(assumeEdge.getSuccessor())
+            ? "true"
+            : "false";
     return new WaypointRecord(
         WaypointRecord.WaypointType.BRANCHING,
         WaypointRecord.WaypointAction.FOLLOW,
