@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -671,18 +672,26 @@ public class CPAMain {
       appendWitnessToSpecificationOption(options, overrideOptions);
     } else {
       WitnessType witnessType;
-      Optional<WitnessType> optionalWitnessType =
-          AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
-      if (optionalWitnessType.isPresent()) {
-        witnessType = optionalWitnessType.orElseThrow();
-      } else {
-        optionalWitnessType = AutomatonYAMLParser.getWitnessTypeIfYAML(options.witness);
+      try {
+        Optional<WitnessType> optionalWitnessType =
+            AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
         if (optionalWitnessType.isPresent()) {
           witnessType = optionalWitnessType.orElseThrow();
         } else {
-          throw new InvalidConfigurationException(
-              "The Witness format found for " + options.witness + " is currently not supported.");
+          optionalWitnessType = AutomatonYAMLParser.getWitnessTypeIfYAML(options.witness);
+          if (optionalWitnessType.isPresent()) {
+            witnessType = optionalWitnessType.orElseThrow();
+          } else {
+            throw new InvalidConfigurationException(
+                "The Witness format found for " + options.witness + " is currently not supported.");
+          }
         }
+      } catch (NoSuchFileException e) {
+        throw new InvalidConfigurationException(
+            "Cannot parse witness: " + e.getFile() + " does not exist.", e);
+
+      } catch (IOException e) {
+        throw new InvalidConfigurationException("Cannot parse witness: " + e.getMessage(), e);
       }
       switch (witnessType) {
         case VIOLATION_WITNESS:
