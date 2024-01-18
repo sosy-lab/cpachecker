@@ -21,8 +21,10 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -454,7 +456,9 @@ public class SMGCPABuiltins {
     // to avoid invalid-derefs like   int * p; printf("%d", *p);
     SMGState currentState = pState;
     for (CExpression param : cFCExpression.getParameterExpressions()) {
-      if (param instanceof CPointerExpression) {
+      if (param instanceof CPointerExpression
+          || param instanceof CFieldReference
+          || param instanceof CArraySubscriptExpression) {
         SMGCPAValueVisitor valueVisitor =
             new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options);
         for (ValueAndSMGState valueAndState : param.accept(valueVisitor)) {
