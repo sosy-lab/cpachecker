@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -309,17 +310,37 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private void computeNodesBetweenConditionAndBranch() {
       Set<CFANode> nodesThenBranch =
-          transformedImmutableSetCopy(ifStructure.getThenElement().edges(), CFAEdge::getPredecessor);
+          transformedImmutableSetCopy(
+              ifStructure.getThenElement().edges(), CFAEdge::getPredecessor);
       Set<CFANode> nodesBoundaryCondition =
-          transformedImmutableSetCopy(ifStructure.getConditionElement().edges(), CFAEdge::getSuccessor);
+          transformedImmutableSetCopy(
+              ifStructure.getConditionElement().edges(), CFAEdge::getSuccessor);
       nodesBoundaryCondition = new HashSet<>(nodesBoundaryCondition);
       nodesBoundaryCondition.removeAll(
-          transformedImmutableSetCopy(ifStructure.getConditionElement().edges(), CFAEdge::getPredecessor));
+          transformedImmutableSetCopy(
+              ifStructure.getConditionElement().edges(), CFAEdge::getPredecessor));
       nodesBetweenConditionAndBranch = new HashSet<>(nodesBoundaryCondition);
-      if (takeThenBranch) {
-        nodesBetweenConditionAndBranch.retainAll(nodesThenBranch);
+
+      // TODO: Currently we overapproximate by taking both branches when there are no edges
+      //  in both branches
+      if (nodesThenBranch.isEmpty()) {
+        Optional<ASTElement> elseElement = ifStructure.getMaybeElseElement();
+        if (elseElement.isPresent()) {
+          Set<CFANode> nodesElseBranch =
+              transformedImmutableSetCopy(
+                  elseElement.orElseThrow().edges(), CFAEdge::getPredecessor);
+          if (takeThenBranch) {
+            nodesBetweenConditionAndBranch.removeAll(nodesElseBranch);
+          } else {
+            nodesBetweenConditionAndBranch.retainAll(nodesElseBranch);
+          }
+        }
       } else {
-        nodesBetweenConditionAndBranch.removeAll(nodesThenBranch);
+        if (takeThenBranch) {
+          nodesBetweenConditionAndBranch.retainAll(nodesThenBranch);
+        } else {
+          nodesBetweenConditionAndBranch.removeAll(nodesThenBranch);
+        }
       }
     }
 
