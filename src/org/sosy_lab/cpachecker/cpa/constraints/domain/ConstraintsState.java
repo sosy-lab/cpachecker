@@ -9,15 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ForwardingSet;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -26,11 +23,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-/** State for Constraints Analysis. Stores constraints and whether they are solvable. */
-public final class ConstraintsState implements AbstractState, Graphable, Set<Constraint> {
+/**
+ * State for Constraints Analysis. Stores path constraints and information about their
+ * satisfiability. This class is immutable.
+ */
+public final class ConstraintsState extends ForwardingSet<Constraint>
+    implements AbstractState, Graphable {
 
   /** The constraints of this state */
-  private List<Constraint> constraints;
+  private final ImmutableSet<Constraint> constraints;
 
   /**
    * The last constraint added to this state. This does not have to be the last constraint in {@link
@@ -38,10 +39,10 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
    */
   // It does not have to be the last constraint contained in 'constraints' because we only
   // add a constraint to 'constraints' if it's not yet in this list.
-  private Optional<Constraint> lastAddedConstraint = Optional.empty();
+  private final Optional<Constraint> lastAddedConstraint;
 
-  private ImmutableList<ValueAssignment> definiteAssignment;
-  private ImmutableList<ValueAssignment> lastModelAsAssignment = ImmutableList.of();
+  private final ImmutableList<ValueAssignment> lastModelAsAssignment;
+  private final ImmutableList<ValueAssignment> definiteAssignment;
 
   /** Creates a new, initial <code>ConstraintsState</code> object. */
   public ConstraintsState() {
@@ -49,128 +50,57 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
   }
 
   public ConstraintsState(final Set<Constraint> pConstraints) {
-    constraints = new ArrayList<>(pConstraints);
+    constraints = ImmutableSet.copyOf(pConstraints);
+    lastModelAsAssignment = ImmutableList.of();
     definiteAssignment = ImmutableList.of();
+    lastAddedConstraint = Optional.empty();
   }
 
-  /**
-   * Creates a new <code>ConstraintsState</code> copy of the given <code>ConstraintsState</code>.
-   *
-   * <p>This constructor should only be used by {@link #copyOf()} and subtypes of this class.
-   *
-   * @param pState the state to copy
-   */
-  ConstraintsState(ConstraintsState pState) {
-    constraints = new ArrayList<>(pState.constraints);
-
-    lastAddedConstraint = pState.lastAddedConstraint;
-    definiteAssignment = ImmutableList.copyOf(pState.definiteAssignment);
-    lastModelAsAssignment = pState.lastModelAsAssignment;
-  }
-
-  /** Returns a new copy of the given <code>ConstraintsState</code> object. */
-  // We use a method here so subtypes can override it, in contrast to a public copy constructor
-  public ConstraintsState copyOf() {
-    return new ConstraintsState(this);
-  }
-
-  /**
-   * Adds the given {@link Constraint} to this state.
-   *
-   * @param pConstraint the <code>Constraint</code> to add
-   * @return <code>true</code> if this state did not already contain the given <code>Constraint
-   *     </code>, <code>false</code> otherwise
-   */
-  @Override
-  public boolean add(Constraint pConstraint) {
-    checkNotNull(pConstraint);
-
-    lastAddedConstraint = Optional.of(pConstraint);
-    return !constraints.contains(pConstraint) && constraints.add(pConstraint);
+  private ConstraintsState(
+      final ImmutableSet<Constraint> pConstraints,
+      final Optional<Constraint> pLastAddedConstraint,
+      final ImmutableList<ValueAssignment> lastSatisfyingModel,
+      final ImmutableList<ValueAssignment> knownDefiniteAssignments) {
+    constraints = pConstraints;
+    lastAddedConstraint = pLastAddedConstraint;
+    lastModelAsAssignment = lastSatisfyingModel;
+    definiteAssignment = knownDefiniteAssignments;
   }
 
   @Override
-  public boolean remove(Object pObject) {
-    boolean changed = constraints.remove(pObject);
-
-    if (changed) {
-      definiteAssignment = ImmutableList.of();
-    }
-
-    return changed;
+  protected ImmutableSet<Constraint> delegate() {
+    return constraints;
   }
 
-  Optional<Constraint> getLastAddedConstraint() {
+  /**
+   * Creates a copy of this ConstraintsState with the given {@link Constraint} added to this state.
+   *
+   * @param pConstraint the <code>Constraint</code> to add to the new copy of the state
+   * @return the copy of this ConstraintsState with the added constraint
+   */
+  public ConstraintsState copyWithNew(Constraint pConstraint) {
+    return copyWithNew(ImmutableList.of(pConstraint));
+  }
+
+  /**
+   * Creates a copy of this ConstraintsState with the given {@link Constraint constraints} added to
+   * this state.
+   *
+   * @param pConstraints the <code>Constraint</code>s to add to the new copy of the state
+   * @return the copy of this ConstraintsState with the added constraints
+   */
+  public ConstraintsState copyWithNew(List<Constraint> pConstraints) {
+    checkNotNull(pConstraints);
+
+    Optional<Constraint> addedConstraint = Optional.of(pConstraints.get(pConstraints.size() - 1));
+    ImmutableSet<Constraint> newConstraints =
+        ImmutableSet.<Constraint>builder().addAll(constraints).addAll(pConstraints).build();
+    return new ConstraintsState(
+        newConstraints, addedConstraint, lastModelAsAssignment, definiteAssignment);
+  }
+
+  public Optional<Constraint> getLastAddedConstraint() {
     return lastAddedConstraint;
-  }
-
-  @Override
-  public boolean containsAll(Collection<?> pCollection) {
-    return constraints.containsAll(pCollection);
-  }
-
-  @Override
-  public boolean addAll(Collection<? extends Constraint> pCollection) {
-    boolean changed = false;
-    for (Constraint c : pCollection) {
-      changed |= add(c);
-    }
-
-    return changed;
-  }
-
-  @Override
-  public boolean retainAll(Collection<?> pCollection) {
-    List<Constraint> constraintsCopy = new ArrayList<>(constraints);
-    boolean changed = false;
-
-    for (Constraint c : constraintsCopy) {
-      if (!pCollection.contains(c)) {
-        changed |= remove(c);
-      }
-    }
-
-    if (changed) {
-      definiteAssignment = ImmutableList.of();
-    }
-
-    return changed;
-  }
-
-  @Override
-  public boolean removeAll(Collection<?> pCollection) {
-    boolean changed = false;
-
-    for (Object o : pCollection) {
-      changed |= remove(o);
-    }
-
-    if (changed) {
-      definiteAssignment = ImmutableList.of();
-    }
-
-    return changed;
-  }
-
-  @Override
-  public void clear() {
-    constraints.clear();
-    definiteAssignment = ImmutableList.of();
-  }
-
-  @Override
-  public int size() {
-    return constraints.size();
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return constraints.isEmpty();
-  }
-
-  @Override
-  public boolean contains(Object o) {
-    return constraints.contains(o);
   }
 
   /**
@@ -184,8 +114,19 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
     return definiteAssignment;
   }
 
-  void setDefiniteAssignment(ImmutableCollection<ValueAssignment> pAssignment) {
-    definiteAssignment = pAssignment.asList();
+  /**
+   * Creates a copy of this ConstraintsState with the given {@link Constraint constraints} added to
+   * this state.
+   *
+   * @param pAssignment the definite assignment to store in the new copy of the state
+   * @return the copy of this ConstraintsState with the definite assignment
+   */
+  public ConstraintsState copyWithDefiniteAssignment(
+      ImmutableCollection<ValueAssignment> pAssignment) {
+    checkNotNull(pAssignment);
+
+    return new ConstraintsState(
+        constraints, lastAddedConstraint, lastModelAsAssignment, ImmutableList.copyOf(pAssignment));
   }
 
   /** Returns the last model computed for this constraints state. */
@@ -193,13 +134,18 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
     return lastModelAsAssignment;
   }
 
-  void setModel(List<ValueAssignment> pModel) {
-    lastModelAsAssignment = ImmutableList.copyOf(pModel);
-  }
+  /**
+   * Creates a copy of this ConstraintsState with the given {@link Constraint constraints} added to
+   * this state.
+   *
+   * @param pModel the satisfying model for the constraints, to store in the new copy of the state
+   * @return the copy of this ConstraintsState with the satisfying model
+   */
+  public ConstraintsState copyWithSatisfyingModel(List<ValueAssignment> pModel) {
+    checkNotNull(pModel);
 
-  @Override
-  public Iterator<Constraint> iterator() {
-    return new ConstraintIterator();
+    return new ConstraintsState(
+        constraints, lastAddedConstraint, ImmutableList.copyOf(pModel), definiteAssignment);
   }
 
   @Override
@@ -222,16 +168,6 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
     int result = constraints.hashCode();
     result = 31 * result + definiteAssignment.hashCode();
     return result;
-  }
-
-  @Override
-  public Object[] toArray() {
-    return constraints.toArray();
-  }
-
-  @Override
-  public <T> T[] toArray(T[] pTs) {
-    return constraints.toArray(pTs);
   }
 
   @Override
@@ -261,29 +197,5 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
   @Override
   public boolean shouldBeHighlighted() {
     return false;
-  }
-
-  private class ConstraintIterator implements Iterator<Constraint> {
-
-    private int index = -1;
-
-    @Override
-    public boolean hasNext() {
-      return constraints.size() - 1 > index;
-    }
-
-    @Override
-    public Constraint next() {
-      index++;
-      return constraints.get(index);
-    }
-
-    @Override
-    public void remove() {
-      checkState(index >= 0, "Iterator not at valid location");
-
-      constraints.remove(index);
-      index--;
-    }
   }
 }

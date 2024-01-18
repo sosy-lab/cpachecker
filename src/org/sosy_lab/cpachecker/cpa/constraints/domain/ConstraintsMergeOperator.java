@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,22 +55,22 @@ public class ConstraintsMergeOperator implements MergeOperator {
     final ConstraintsState stateToUseForWeakening = (ConstraintsState) pState1;
     final ConstraintsState stateToWeaken = (ConstraintsState) pState2;
 
-    ConstraintsState weakenedState = stateToWeaken.copyOf();
-
-    if (stateToUseForWeakening.isEmpty() || weakenedState.isEmpty()) {
-      return pState2;
+    if (stateToUseForWeakening.isEmpty() || stateToWeaken.isEmpty()) {
+      return stateToWeaken;
     }
+
+    Set<Constraint> weakenedConstraints = new HashSet<>(stateToWeaken);
 
     Constraint lastConstraintOfState1 =
         stateToUseForWeakening.getLastAddedConstraint().orElseThrow();
-    Constraint lastConstraintOfState2 = weakenedState.getLastAddedConstraint().orElseThrow();
+    Constraint lastConstraintOfState2 = stateToWeaken.getLastAddedConstraint().orElseThrow();
 
     if (lastConstraintOfState1 instanceof LogicalNotExpression) {
       lastConstraintOfState1 =
           (Constraint) ((LogicalNotExpression) lastConstraintOfState1).getOperand();
 
       if (lastConstraintOfState1.equals(lastConstraintOfState2)) {
-        weakenedState.remove(lastConstraintOfState2);
+        weakenedConstraints.remove(lastConstraintOfState2);
         stats.constraintsRemovedInMerge.inc();
       }
 
@@ -75,15 +78,18 @@ public class ConstraintsMergeOperator implements MergeOperator {
       SymbolicValue innerExpression = ((LogicalNotExpression) lastConstraintOfState2).getOperand();
 
       if (lastConstraintOfState1.equals(innerExpression)) {
-        weakenedState.remove(lastConstraintOfState2);
+        weakenedConstraints.remove(lastConstraintOfState2);
         stats.constraintsRemovedInMerge.inc();
       }
     }
 
-    if (weakenedState.equals(pState2)) {
-      return pState2;
+    if (weakenedConstraints.size() == stateToWeaken.size()) {
+      return stateToWeaken;
     } else {
-      return weakenedState;
+      // only keep information about the last satisfying model.
+      // Because we delete constraints, the definite assignments may not be definite anymore.
+      return new ConstraintsState(ImmutableSet.copyOf(weakenedConstraints))
+          .copyWithSatisfyingModel(stateToWeaken.getModel());
     }
   }
 }

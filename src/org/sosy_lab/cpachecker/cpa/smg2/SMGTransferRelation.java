@@ -76,14 +76,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.BooleanAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -133,7 +134,7 @@ public class SMGTransferRelation
 
   private final @Nullable SMGCPAStatistics stats;
 
-  private final SMGConstraintsSolver solver;
+  private final ConstraintsSolver solver;
 
   private final CFA cfa;
 
@@ -144,7 +145,7 @@ public class SMGTransferRelation
       CFA pCfa,
       ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
       SMGCPAStatistics pStats,
-      SMGConstraintsSolver pSolver,
+      ConstraintsSolver pSolver,
       SMGCPAExpressionEvaluator pEvaluator) {
     cfa = pCfa;
     logger = new LogManagerWithoutDuplicates(pLogger);
@@ -203,8 +204,12 @@ public class SMGTransferRelation
             AnalysisDirection.FORWARD);
 
     solver =
-        new SMGConstraintsSolver(
-            smtSolver, formulaManager, converter, new ConstraintsStatistics(), options);
+        new ConstraintsSolver(
+            Configuration.defaultConfiguration(),
+            smtSolver,
+            formulaManager,
+            converter,
+            new ConstraintsStatistics());
 
     evaluator = pEvaluator;
     cfa = null;
@@ -857,9 +862,13 @@ public class SMGTransferRelation
 
           for (SMGState stateWithConstraint : statesWithConstraints) {
             if (options.isSatCheckStrategyAtAssume()) {
-              BooleanAndSMGState solverResult = solver.isUnsat(stateWithConstraint, functionName);
-              if (!solverResult.getBoolean()) {
-                resultStateBuilder.add(solverResult.getState());
+              SolverResult solverResult =
+                  solver.checkUnsat(stateWithConstraint.getConstraints(), functionName);
+              if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
+                resultStateBuilder.add(
+                    stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
+                        solverResult.definiteAssignments().orElseThrow(),
+                        solverResult.model().orElseThrow()));
               }
               // We might add/return nothing here if the check was UNSAT
             } else {
@@ -1382,7 +1391,7 @@ public class SMGTransferRelation
       // TODO: is this still correct for more than one returned constraint? I.e. can a trivial
       // constraint be non-trivial with a second constraint?
       if (newConstraint.isTrivial()) {
-        if (!solver.isUnsat(newConstraint, functionName)) {
+        if (solver.checkUnsat(newConstraint, functionName).equals(Satisfiability.SAT)) {
           // Iff SAT -> we go that path with this state
           // We don't add the constraint as it is trivial
           stateBuilder.add(currentState);

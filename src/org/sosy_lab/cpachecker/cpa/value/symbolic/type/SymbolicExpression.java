@@ -75,11 +75,11 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
   public abstract Type getType();
 
   /**
-   * Returns whether this <code>SymbolicExpression</code> is always true and does only contain
-   * explicit values.
+   * Returns whether this <code>SymbolicExpression</code> only contains explicit values.
    *
    * @return <code>true</code> if this <code>SymbolicExpression</code> is always true and does only
-   *     contain explicit values, <code>false</code> otherwise
+   *     contain explicit values. if the expression contains any SymbolicIdentifier, this method
+   *     returns <code>false</code>.
    */
   public abstract boolean isTrivial();
 
