@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -18,7 +17,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,7 +55,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -308,47 +305,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ifStructure = pIfStructure;
     }
 
-    private void computeNodesBetweenConditionAndBranch() {
-      Set<CFANode> nodesThenBranch =
-          transformedImmutableSetCopy(
-              ifStructure.getThenElement().edges(), CFAEdge::getPredecessor);
-      Set<CFANode> nodesBoundaryCondition =
-          transformedImmutableSetCopy(
-              ifStructure.getConditionElement().edges(), CFAEdge::getSuccessor);
-      nodesBoundaryCondition = new HashSet<>(nodesBoundaryCondition);
-      nodesBoundaryCondition.removeAll(
-          transformedImmutableSetCopy(
-              ifStructure.getConditionElement().edges(), CFAEdge::getPredecessor));
-      nodesBetweenConditionAndBranch = new HashSet<>(nodesBoundaryCondition);
-
-      // TODO: Currently we overapproximate by taking both branches when there are no edges
-      //  in both branches
-      if (nodesThenBranch.isEmpty()) {
-        Optional<ASTElement> elseElement = ifStructure.getMaybeElseElement();
-        if (elseElement.isPresent()) {
-          Set<CFANode> nodesElseBranch =
-              transformedImmutableSetCopy(
-                  elseElement.orElseThrow().edges(), CFAEdge::getPredecessor);
-          if (takeThenBranch) {
-            nodesBetweenConditionAndBranch.removeAll(nodesElseBranch);
-          } else {
-            nodesBetweenConditionAndBranch.retainAll(nodesElseBranch);
-          }
-        }
-      } else {
-        if (takeThenBranch) {
-          nodesBetweenConditionAndBranch.retainAll(nodesThenBranch);
-        } else {
-          nodesBetweenConditionAndBranch.removeAll(nodesThenBranch);
-        }
-      }
-    }
-
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
       if (nodesBetweenConditionAndBranch == null) {
-        computeNodesBetweenConditionAndBranch();
+        if (takeThenBranch) {
+          nodesBetweenConditionAndBranch = ifStructure.getNodesBetweenConditionAndThenBranch();
+        } else {
+          nodesBetweenConditionAndBranch = ifStructure.getNodesBetweenConditionAndElseBranch();
+        }
       }
 
       CFAEdge edge = pArgs.getCfaEdge();

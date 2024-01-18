@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -84,8 +85,11 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
 
   private WaypointRecord handleBranchingWaypoint(IfStructure ifStructure, AssumeEdge assumeEdge)
       throws IOException {
-    String branchToFollow = String.valueOf(assumeEdge.getTruthAssumption());
-
+    String branchToFollow =
+        String.valueOf(
+            assumeEdge.isSwapped()
+                ? !assumeEdge.getTruthAssumption()
+                : assumeEdge.getTruthAssumption());
     return new WaypointRecord(
         WaypointRecord.WaypointType.BRANCHING,
         WaypointRecord.WaypointAction.FOLLOW,
@@ -166,12 +170,14 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
           continue;
         }
 
-        Set<CFAEdge> edgesCondition = ifStructure.getConditionElement().edges();
+        Set<CFANode> nodesBetweenConditionAndThenBranch =
+            ifStructure.getNodesBetweenConditionAndThenBranch();
+        Set<CFANode> nodesBetweenConditionAndElseBranch =
+            ifStructure.getNodesBetweenConditionAndElseBranch();
+        CFANode successor = edge.getSuccessor();
 
-        // If this is not the last edge in the condition of the IfStructure we do nothing. Since
-        // only the last edge knows wether we should leave or remain in the loop
-        if (edgesCondition.contains(edge)
-            && CFAUtils.leavingEdges(edge.getSuccessor()).anyMatch(edgesCondition::contains)) {
+        if (!nodesBetweenConditionAndThenBranch.contains(successor)
+            && !nodesBetweenConditionAndElseBranch.contains(successor)) {
           continue;
         }
 

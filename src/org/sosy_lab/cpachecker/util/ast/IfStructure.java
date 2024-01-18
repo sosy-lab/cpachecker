@@ -8,11 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class IfStructure extends StatementStructure {
@@ -25,6 +30,9 @@ public class IfStructure extends StatementStructure {
   private Collection<CFAEdge> thenEdges = null;
   private Collection<CFAEdge> elseEdges = null;
   private Collection<CFAEdge> conditionEdges = null;
+
+  private Collection<CFANode> nodesBetweenConditionAndThenBranch = null;
+  private Collection<CFANode> nodesBetweenConditionAndElseBranch = null;
 
   IfStructure(
       FileLocation pIfLocation,
@@ -74,6 +82,47 @@ public class IfStructure extends StatementStructure {
       elseEdges = findElseEdges();
     }
     return elseEdges;
+  }
+
+  private void computeNodesBetweenConditionAndBranches() {
+    Set<CFANode> nodesThenBranch =
+        transformedImmutableSetCopy(thenElement.edges(), CFAEdge::getPredecessor);
+    Set<CFANode> nodesBoundaryCondition =
+        transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getSuccessor);
+    nodesBoundaryCondition = new HashSet<>(nodesBoundaryCondition);
+    nodesBoundaryCondition.removeAll(
+        transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getPredecessor));
+    nodesBetweenConditionAndElseBranch = new HashSet<>(nodesBoundaryCondition);
+    nodesBetweenConditionAndThenBranch = new HashSet<>(nodesBoundaryCondition);
+
+    // TODO: Currently we over-approximate by taking both branches when there are no edges
+    //  in both branches
+    if (nodesThenBranch.isEmpty()) {
+      if (maybeElseElement.isPresent()) {
+        Set<CFANode> nodesElseBranch =
+            transformedImmutableSetCopy(
+                maybeElseElement.orElseThrow().edges(), CFAEdge::getPredecessor);
+        nodesBetweenConditionAndThenBranch.removeAll(nodesElseBranch);
+        nodesBetweenConditionAndElseBranch.retainAll(nodesElseBranch);
+      }
+    } else {
+      nodesBetweenConditionAndThenBranch.retainAll(nodesThenBranch);
+      nodesBetweenConditionAndElseBranch.removeAll(nodesThenBranch);
+    }
+  }
+
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndThenBranch() {
+    if (nodesBetweenConditionAndThenBranch == null) {
+      computeNodesBetweenConditionAndBranches();
+    }
+    return ImmutableSet.copyOf(nodesBetweenConditionAndThenBranch);
+  }
+
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndElseBranch() {
+    if (nodesBetweenConditionAndElseBranch == null) {
+      computeNodesBetweenConditionAndBranches();
+    }
+    return ImmutableSet.copyOf(nodesBetweenConditionAndElseBranch);
   }
 
   private Collection<CFAEdge> findThenEdges() {
