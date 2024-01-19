@@ -17,6 +17,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
@@ -48,8 +49,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
@@ -411,7 +415,8 @@ public class AutomatonYAMLParser {
   private ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
       throws InterruptedException {
     Integer line = pInvariantEntry.getLocation().getLine();
-    Optional<String> resultFunction = Optional.of(pInvariantEntry.getLocation().getFunction());
+    Optional<String> resultFunction =
+        Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
     String invariantString = pInvariantEntry.getInvariant().getValue();
 
     Deque<String> callStack = new ArrayDeque<>();
@@ -494,7 +499,11 @@ public class AutomatonYAMLParser {
       AutomatonBoolExpr expr = new CheckReachesLine(line);
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
       if (follow.getType().equals(WaypointType.ASSUMPTION) && allowedLines.contains(line)) {
-        handleAssumptionWaypoint(follow, line, builder);
+        handleConstraint(
+            follow.getConstraint().getValue(),
+            Optional.ofNullable(follow.getLocation().getFunction()),
+            line,
+            builder);
       }
 
       ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
@@ -561,6 +570,11 @@ public class AutomatonYAMLParser {
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
+
+    // TODO: It may be worthwhile to refactor this into the CFA
+    Multimap<Integer, CFAEdge> startLineToCFAEdge =
+        FluentIterable.from(cfa.edges())
+            .index(edge -> edge.getFileLocation().getStartingLineNumber());
 
     int counter = 0;
     final String initState = getStateName(counter++);
@@ -641,6 +655,14 @@ public class AutomatonYAMLParser {
                     ifStructure, !Boolean.parseBoolean(follow.getConstraint().getValue())),
                 AutomatonInternalState.BOTTOM);
         transitions.add(builder.build());
+      } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
+
+        expr =
+            new CheckCoversOffsetAndLine(
+                getOffsetsByFileSimilarity(lineOffsetsByFile, followFilename).get(followLine - 1)
+                    + followColumn,
+                followLine,
+                true);
       } else {
         logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
         continue;
@@ -648,11 +670,46 @@ public class AutomatonYAMLParser {
       AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
 
       if (follow.getType().equals(WaypointType.ASSUMPTION)) {
-        handleAssumptionWaypoint(follow, followLine, builder);
+        handleConstraint(
+            follow.getConstraint().getValue(),
+            Optional.ofNullable(follow.getLocation().getFunction()),
+            followLine,
+            builder);
       } else if (follow.getType().equals(WaypointType.TARGET)) {
         // When we match the target state we want to enter the error location immediately
         builder = builder.withAssertion(createViolationAssertion());
+      } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
+        // This is basically a special case of an assumption waypoint.
+        // Currently, we ignore every return from a function call which is not assigned to a
+        // variable. This is because, for example a __VERIFIER_nondet call which is not assigned
+        // to a variable is not useful.
+        // In other words, currently we only consider function calls which of the form:
+        //    Type var = __VERIFIER_nondet();
+        // TODO: Handle functions whose return value is not assigned to a variable but are useful
+        //  information to replay the counterexample
+        for (AStatementEdge edge :
+            FluentIterable.from(startLineToCFAEdge.get(followLine)).filter(AStatementEdge.class)) {
+          // The syntax of the YAML witness describes that the return statement must point to the
+          // closing bracket of the function whose return statement is being considered
+          if (edge.getFileLocation().getNodeLength() != followColumn) {
+            continue;
+          }
+
+          if (edge.getStatement() instanceof AFunctionCallAssignmentStatement statement) {
+            if (statement.getLeftHandSide() instanceof AIdExpression variable) {
+              String constraint =
+                  follow.getConstraint().getValue().replace("\\result", variable.toString());
+              String function = follow.getLocation().getFunction();
+              if (function == null) {
+                function = edge.getSuccessor().getFunctionName();
+              }
+              handleConstraint(constraint, Optional.ofNullable(function), followLine, builder);
+              break;
+            }
+          }
+        }
       }
+
       ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
       actionBuilder.add(
           new AutomatonAction.Assignment(
@@ -734,14 +791,15 @@ public class AutomatonYAMLParser {
     return allowedLines;
   }
 
-  private void handleAssumptionWaypoint(
-      WaypointRecord follow, int line, AutomatonTransition.Builder builder)
+  private void handleConstraint(
+      String constraint,
+      Optional<String> resultFunction,
+      int line,
+      AutomatonTransition.Builder builder)
       throws InterruptedException, InvalidConfigurationException {
-    String invariantString = follow.getConstraint().getValue();
-    Optional<String> resultFunction = Optional.ofNullable(follow.getLocation().getFunction());
     try {
       AExpression exp =
-          createExpressionTreeFromString(resultFunction, invariantString, line, null)
+          createExpressionTreeFromString(resultFunction, constraint, line, null)
               .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
       builder.withAssumptions(ImmutableList.of(exp));
     } catch (UnrecognizedCodeException e) {

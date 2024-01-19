@@ -173,10 +173,19 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   public static class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
     private final Integer offsetToReach;
     private final Integer lineNumber;
+    private final boolean expectStatementEdge;
 
     public CheckCoversOffsetAndLine(Integer pOffset, Integer pLineNumber) {
       offsetToReach = pOffset;
       lineNumber = pLineNumber;
+      expectStatementEdge = false;
+    }
+
+    public CheckCoversOffsetAndLine(
+        Integer pOffset, Integer pLineNumber, boolean pExpectStatementEdge) {
+      offsetToReach = pOffset;
+      lineNumber = pLineNumber;
+      expectStatementEdge = pExpectStatementEdge;
     }
 
     @Override
@@ -187,6 +196,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       }
 
       CFAEdge edge = pArgs.getCfaEdge();
+      if (expectStatementEdge && !(edge instanceof AStatementEdge)) {
+        return CONST_FALSE;
+      }
 
       if (!CoverageData.coversLine(edge)) {
         return CONST_FALSE;
