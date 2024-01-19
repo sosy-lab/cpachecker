@@ -248,9 +248,10 @@ public class SMGState
   }
 
   public SMGState replaceModelAndDefAssignmentAndCopy(
-      ImmutableCollection<ValueAssignment> pDefiniteAssignment,
-      ImmutableList<ValueAssignment> pLastModelAsAssignment) {
-    return ofModelAssignment(pDefiniteAssignment, pLastModelAsAssignment);
+      Optional<ImmutableCollection<ValueAssignment>> pDefiniteAssignment,
+      Optional<ImmutableList<ValueAssignment>> pLastModelAsAssignment) {
+    return ofModelAssignment(
+        pDefiniteAssignment.orElse(ImmutableList.of()), pLastModelAsAssignment.orElseThrow());
   }
 
   public ConstraintsState getConstraints() {

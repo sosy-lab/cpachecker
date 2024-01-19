@@ -867,8 +867,7 @@ public class SMGTransferRelation
               if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
                 resultStateBuilder.add(
                     stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
-                        solverResult.definiteAssignments().orElseThrow(),
-                        solverResult.model().orElseThrow()));
+                        solverResult.definiteAssignments(), solverResult.model()));
               }
               // We might add/return nothing here if the check was UNSAT
             } else {

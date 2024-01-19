@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAAddressVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPABuiltins;
@@ -1067,11 +1068,17 @@ public class SMGCPAExpressionEvaluator {
       try {
         // If a constraint is trivial, its satisfiability is not influenced by other constraints.
         // So to evade more expensive SAT checks, we just check the constraint on its own.
+        // TODO: add triviality check
         currentState = currentState.updateLastCheckedMemoryBounds(constraint);
-        Satisfiability satisfiablity = solver.checkUnsat(constraint, stackFrameFunctionName);
-        if (satisfiablity.equals(Satisfiability.SAT)) {
+        SolverResult satResAndModel =
+            solver.checkUnsat(
+                currentState.getConstraints().copyWithNew(constraint), stackFrameFunctionName);
+        if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
           // TODO: replace the bool by satisfiablity
-          return BooleanAndSMGState.of(false, currentState);
+          return BooleanAndSMGState.of(
+              false,
+              currentState.replaceModelAndDefAssignmentAndCopy(
+                  satResAndModel.definiteAssignments(), satResAndModel.model()));
         }
 
       } catch (InterruptedException | SolverException | UnrecognizedCodeException e) {
