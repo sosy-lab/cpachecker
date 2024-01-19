@@ -633,6 +633,14 @@ public class AutomatonYAMLParser {
         expr =
             new CheckEntersIfBranch(
                 ifStructure, Boolean.parseBoolean(follow.getConstraint().getValue()));
+
+        // Add break state for the other branch, since we don't want to explore it
+        AutomatonTransition.Builder builder =
+            new AutomatonTransition.Builder(
+                new CheckEntersIfBranch(
+                    ifStructure, !Boolean.parseBoolean(follow.getConstraint().getValue())),
+                AutomatonInternalState.BOTTOM);
+        transitions.add(builder.build());
       } else {
         logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
         continue;

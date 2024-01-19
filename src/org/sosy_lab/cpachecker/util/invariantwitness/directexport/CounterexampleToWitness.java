@@ -164,6 +164,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
         // Currently we only export IfStructures, since there is no nice way to say how often a loop
         // should be traversed and exporting this information will quickly make the witness
         // difficult to read
+        // TODO: Also export branches at iteration statements
         IfStructure ifStructure = astStructure.getIfStructureForConditionEdge(edge);
         if (ifStructure == null) {
           continue;
