@@ -598,10 +598,11 @@ public class SMGTransferRelation
           // For example: print("string"); does not create a String constant beforehand
           String stringName = evaluator.getCStringLiteralExpressionVairableName(stringExpr);
           if (!currentState.isLocalOrGlobalVariablePresent(stringName)) {
+            // If s String literal is part of varArgs, we don't have a variable decl
             List<SMGState> statesWithString =
                 evaluator.handleStringInitializer(
                     currentState,
-                    paramDecl.get(i).asVariableDeclaration(),
+                    paramDecl.size() > i ? paramDecl.get(i).asVariableDeclaration() : null,
                     callEdge,
                     stringName,
                     new NumericValue(BigInteger.ZERO),
