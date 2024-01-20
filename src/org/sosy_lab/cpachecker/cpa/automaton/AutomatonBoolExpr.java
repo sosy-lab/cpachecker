@@ -97,10 +97,6 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (pArgs.getAbstractStates().isEmpty()) {
-        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.CheckCoversLines");
-      }
-
       CFAEdge edge = pArgs.getCfaEdge();
       if (!CoverageData.coversLine(edge)) {
         return CONST_FALSE;
@@ -137,10 +133,6 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (pArgs.getAbstractStates().isEmpty()) {
-        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.CheckCoversLines");
-      }
-
       CFAEdge edge = pArgs.getCfaEdge();
       if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
         return CONST_FALSE;
@@ -190,11 +182,6 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (pArgs.getAbstractStates().isEmpty()) {
-        return new ResultValue<>(
-            "No CPA elements available", "AutomatonBoolExpr.CheckReachesOffset");
-      }
-
       CFAEdge edge = pArgs.getCfaEdge();
       if (expectStatementEdge && !(edge instanceof AStatementEdge)) {
         return CONST_FALSE;
@@ -245,11 +232,6 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (pArgs.getAbstractStates().isEmpty()) {
-        return new ResultValue<>(
-            "No CPA elements available", "AutomatonBoolExpr.CheckReachesOffset");
-      }
-
       CFAEdge edge = pArgs.getCfaEdge();
 
       if (CFAUtils.leavingEdges(edge.getSuccessor()).filter(CoverageData::coversLine).isEmpty()) {
