@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -656,7 +655,6 @@ public class AutomatonYAMLParser {
                 AutomatonInternalState.BOTTOM);
         transitions.add(builder.build());
       } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
-
         expr =
             new CheckCoversOffsetAndLine(
                 getOffsetsByFileSimilarity(lineOffsetsByFile, followFilename).get(followLine - 1)
@@ -680,32 +678,44 @@ public class AutomatonYAMLParser {
         builder = builder.withAssertion(createViolationAssertion());
       } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
         // This is basically a special case of an assumption waypoint.
-        // Currently, we ignore every return from a function call which is not assigned to a
-        // variable. This is because, for example a __VERIFIER_nondet call which is not assigned
-        // to a variable is not useful.
-        // In other words, currently we only consider function calls which of the form:
-        //    Type var = __VERIFIER_nondet();
-        // TODO: Handle functions whose return value is not assigned to a variable but are useful
-        //  information to replay the counterexample
         for (AStatementEdge edge :
             FluentIterable.from(startLineToCFAEdge.get(followLine)).filter(AStatementEdge.class)) {
           // The syntax of the YAML witness describes that the return statement must point to the
           // closing bracket of the function whose return statement is being considered
-          if (edge.getFileLocation().getNodeLength() != followColumn) {
+          int offsetAccordingToWaypoint =
+              getOffsetsByFileSimilarity(lineOffsetsByFile, followFilename).get(followLine - 1)
+                  + followColumn;
+          int offsetEndOfEdge =
+              edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength() - 1;
+          if (offsetEndOfEdge != offsetAccordingToWaypoint) {
             continue;
           }
 
           if (edge.getStatement() instanceof AFunctionCallAssignmentStatement statement) {
-            if (statement.getLeftHandSide() instanceof AIdExpression variable) {
-              String constraint =
-                  follow.getConstraint().getValue().replace("\\result", variable.toString());
-              String function = follow.getLocation().getFunction();
-              if (function == null) {
-                function = edge.getSuccessor().getFunctionName();
-              }
-              handleConstraint(constraint, Optional.ofNullable(function), followLine, builder);
-              break;
+            Set<String> constraints = new HashSet<>();
+            if (follow.getConstraint().getValue() != null) {
+              constraints.add(follow.getConstraint().getValue());
             }
+
+            List<AExpression> expressions;
+            try {
+              expressions =
+                  CParserUtils.convertStatementsToAssumptions(
+                      CParserUtils.parseStatements(
+                          constraints,
+                          Optional.ofNullable(
+                              statement.getRightHandSide().getFunctionNameExpression().toString()),
+                          cparser,
+                          scope,
+                          parserTools),
+                      cfa.getMachineModel(),
+                      logger);
+            } catch (InvalidAutomatonException pE) {
+              logger.log(Level.INFO, "Could not generate automaton assumption.");
+              continue;
+            }
+            builder.withAssumptions(expressions);
+            break;
           }
         }
       }
