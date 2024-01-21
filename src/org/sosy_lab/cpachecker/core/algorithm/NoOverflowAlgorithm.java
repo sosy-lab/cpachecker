@@ -14,6 +14,9 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -38,7 +41,8 @@ public class NoOverflowAlgorithm implements Algorithm{
   private final LogManager logger;
   private final CFA cfa;
   private final List<StatementInformation> information = new ArrayList<>();
-  private final List<TemporaryValue> temporaryValueList = new ArrayList<TemporaryValue>();
+  private final List<String> allTemporaryValueList = new ArrayList<String>();
+  private final List<String> temporaryValueList = new ArrayList<String>();
 
   public NoOverflowAlgorithm(
       final LogManager pLogger,
@@ -68,14 +72,14 @@ public class NoOverflowAlgorithm implements Algorithm{
           ALeftHandSide leftHandSide = ((CAssignment) astNode).getLeftHandSide();
           ARightHandSide rightHandSide = ((CAssignment) astNode).getRightHandSide();
           if (leftHandSide.toASTString().contains("__CPAchecker_TMP_")) {
-            temporaryValueList.add(new TemporaryValue(leftHandSide.toASTString(), rightHandSide.toASTString()));
+            allTemporaryValueList.add(astNode.toASTString());
           }
 
           if (rightHandSide instanceof CFunctionCallExpression) {
             List<CExpression> parameterExpressions = ((CFunctionCallExpression) rightHandSide).getParameterExpressions();
             for (CExpression expression : parameterExpressions) {
               if (expression instanceof  CBinaryExpression) {
-                 handleBinaryExpression(edge, (CBinaryExpression) expression);
+                handleBinaryExpression(edge, (CBinaryExpression) expression);
               }
             }
           } else if (rightHandSide instanceof CBinaryExpression) {
@@ -85,8 +89,25 @@ public class NoOverflowAlgorithm implements Algorithm{
       }
     }
 
-    String path = "./output/AllOverflowInfos.txt";
+    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH-mm-ss");
+    LocalTime currentTime = LocalTime.now(ZoneId.systemDefault());
+    String path = "./output/CProgramInformation/AllOverflowInfos-"+dtf.format(currentTime)+".txt";
+    try {
+      Files.createDirectories(Path.of("./output/CProgramInformation"));
+    } catch (IOException pE) {
+      throw new RuntimeException(pE);
+    }
     try (BufferedWriter writer = Files.newBufferedWriter(Path.of(path), StandardCharsets.UTF_8)) {
+
+      if (!temporaryValueList.isEmpty()) {
+        writer.write("number of temporary values:\n");
+        writer.write(temporaryValueList.size()+"\n");
+        writer.write("temporary values:\n");
+        for (String s : temporaryValueList) {
+          writer.write(s + "\n");
+        }
+      }
+
       for (StatementInformation s : information) {
         writer.write(s.listToString());
         logger.log(Level.INFO, s.listToString());
@@ -114,38 +135,24 @@ public class NoOverflowAlgorithm implements Algorithm{
 
     CExpression left = operand.getOperand1();
     CExpression right = operand.getOperand2();
-    String leftString = left.toASTString().replace(" ", "");
-    String rightString = right.toASTString().replace(" ", "");
-    if (left.toASTString().contains("__CPAchecker_TMP_") && !right.toASTString().contains("__CPAchecker_TMP_")) {
-      for (TemporaryValue tv : temporaryValueList) {
-        if (tv.getValueName().equals(left.toASTString())) {
-          leftString = tv.getTemporaryValue();
-          break;
-        }
-      }
-    }else if (!left.toASTString().contains("__CPAchecker_TMP_") && right.toASTString().contains("__CPAchecker_TMP_")) {
-      for (TemporaryValue tv : temporaryValueList) {
-        if (tv.getValueName().equals(right.toASTString())) {
-          rightString = tv.getTemporaryValue();
-          break;
-        }
-      }
-    } else if (left.toASTString().contains("__CPAchecker_TMP_") && right.toASTString().contains("__CPAchecker_TMP_")) {
+    String leftString = left.toASTString();
+    String rightString = right.toASTString();
+
+    for (String tv: allTemporaryValueList) {
       int flag = 0;
-      for (TemporaryValue tv : temporaryValueList) {
-        if (tv.getValueName().equals(left.toASTString())) {
-          leftString = tv.getTemporaryValue();
-          flag++;
-        }
-        if (tv.getValueName().equals(right.toASTString())) {
-          rightString = tv.getTemporaryValue();
-          flag++;
-        }
-        if (flag == 2) {
-          break;
-        }
+      if (tv.contains(left.toASTString()) && !temporaryValueList.contains(tv)) {
+        temporaryValueList.add(tv);
+        flag++;
+      }
+      if (tv.contains(right.toASTString()) && !temporaryValueList.contains(tv)) {
+        temporaryValueList.add(tv);
+        flag++;
+      }
+      if (flag == 2){
+        break;
       }
     }
+
     leftString = leftString.replace(" ", "");
     rightString = rightString.replace(" ", "");
     binaryExpression.add(leftString);
@@ -208,23 +215,4 @@ public class NoOverflowAlgorithm implements Algorithm{
       return resultBuilder.toString();
     }
   }
-
-  public static class TemporaryValue implements Serializable {
-    final private String valueName;
-    final private String value;
-
-    public TemporaryValue(String pValueName, String pValue) {
-      valueName = pValueName;
-      value = pValue;
-    }
-
-    public String getValueName() {
-      return valueName;
-    }
-
-    public String getTemporaryValue() {
-      return value;
-    }
-  }
 }
-
