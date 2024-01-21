@@ -643,6 +643,17 @@ public class AutomatonYAMLParser {
           continue;
         }
 
+        if (ifStructure
+            .getNodesBetweenConditionAndElseBranch()
+            .equals(ifStructure.getNodesBetweenConditionAndThenBranch())) {
+          logger.log(
+              Level.INFO,
+              "Skipping branching waypoint at if statement since the"
+                  + " then and else branch are both empty,"
+                  + " and currently there is no way to distinguish them.");
+          continue;
+        }
+
         expr =
             new CheckEntersIfBranch(
                 ifStructure, Boolean.parseBoolean(follow.getConstraint().getValue()));

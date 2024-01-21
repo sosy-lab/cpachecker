@@ -306,7 +306,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         throws CPATransferException {
       if (nodesBetweenConditionAndBranch == null) {
         conditionElementPredecessors =
-            transformedImmutableSetCopy(ifStructure.getConditionElement().edges(), CFAEdge::getPredecessor);
+            transformedImmutableSetCopy(
+                ifStructure.getConditionElement().edges(), CFAEdge::getPredecessor);
         if (takeThenBranch) {
           nodesBetweenConditionAndBranch = ifStructure.getNodesBetweenConditionAndThenBranch();
         } else {
