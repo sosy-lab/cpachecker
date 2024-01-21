@@ -14,9 +14,6 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -89,14 +86,7 @@ public class NoOverflowAlgorithm implements Algorithm{
       }
     }
 
-    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH-mm-ss");
-    LocalTime currentTime = LocalTime.now(ZoneId.systemDefault());
-    String path = "./output/CProgramInformation/AllOverflowInfos-"+dtf.format(currentTime)+".txt";
-    try {
-      Files.createDirectories(Path.of("./output/CProgramInformation"));
-    } catch (IOException pE) {
-      throw new RuntimeException(pE);
-    }
+    String path = "./output/AllOverflowInfos-.txt";
     try (BufferedWriter writer = Files.newBufferedWriter(Path.of(path), StandardCharsets.UTF_8)) {
 
       if (!temporaryValueList.isEmpty()) {
@@ -126,11 +116,11 @@ public class NoOverflowAlgorithm implements Algorithm{
     List<List<String>> expressionList = new ArrayList<>();
     // data type
     List<List<String>> typeList = new ArrayList<>();
-    getInformation(expression, expressionList, typeList);
+    getInformation(expression, expressionList, typeList, lineNumber);
     information.add(new StatementInformation(lineNumber, expressionList, typeList));
   }
 
-  public void getInformation(CBinaryExpression operand, List<List<String>> expressionList, List<List<String>> typeList) {
+  public void getInformation(CBinaryExpression operand, List<List<String>> expressionList, List<List<String>> typeList, int lineNumber) {
     List<String> binaryExpression = new ArrayList<>();
 
     CExpression left = operand.getOperand1();
@@ -140,12 +130,13 @@ public class NoOverflowAlgorithm implements Algorithm{
 
     for (String tv: allTemporaryValueList) {
       int flag = 0;
-      if (tv.contains(left.toASTString()) && !temporaryValueList.contains(tv)) {
-        temporaryValueList.add(tv);
+      String s = lineNumber + " " + tv;
+      if (tv.contains(left.toASTString()) && !temporaryValueList.contains(s)) {
+        temporaryValueList.add(s);
         flag++;
       }
-      if (tv.contains(right.toASTString()) && !temporaryValueList.contains(tv)) {
-        temporaryValueList.add(tv);
+      if (tv.contains(right.toASTString()) && !temporaryValueList.contains(s)) {
+        temporaryValueList.add(s);
         flag++;
       }
       if (flag == 2){
@@ -162,13 +153,13 @@ public class NoOverflowAlgorithm implements Algorithm{
     expressionList.add(binaryExpression);
 
     if (left instanceof CBinaryExpression) {
-      getInformation((CBinaryExpression) left, expressionList, typeList);
+      getInformation((CBinaryExpression) left, expressionList, typeList, lineNumber);
     } else {
       CType type = left.getExpressionType();
       typeList.add(Collections.singletonList(leftString + " " + type.toString()));
     }
     if (right instanceof CBinaryExpression) {
-      getInformation((CBinaryExpression) right, expressionList, typeList);
+      getInformation((CBinaryExpression) right, expressionList, typeList, lineNumber);
     } else {
       CType type = right.getExpressionType();
       typeList.add(Collections.singletonList(rightString + " " + type.toString()));
