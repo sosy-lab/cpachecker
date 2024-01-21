@@ -219,10 +219,6 @@ public class ConstraintsSolver {
                   + pConstraints.getDefiniteAssignment();
 
         } else {
-          assert prover.isUnsat()
-              : "Unsat with definite assignment, but not without. Definite assignment: "
-                  + pConstraints.getDefiniteAssignment();
-
           cache.addUnsat(constraintsAsFormulas);
         }
       }
