@@ -338,18 +338,13 @@ public class CEXExporter {
             compressWitness);
 
         if (invariantWitnessWriter != null) {
-          if (exportYamlWitnessesDirectlyFromCex && counterexample.isPreciseCounterExample()) {
+          if (exportYamlWitnessesDirectlyFromCex) {
             try {
               cexToWitness.export(counterexample);
             } catch (YamlWitnessExportException | IOException e) {
               logger.logUserException(
                   Level.WARNING, e, "Could not generate YAML violation witness.");
             }
-          } else if (exportYamlWitnessesDirectlyFromCex) {
-            logger.log(
-                Level.WARNING,
-                "Could not export the YAML violation witness directly from the ARG, since the"
-                    + " counterexample is not precise. Therefore no YAML witness was produced.");
           } else {
             writeErrorPathFile(
                 options.getYamlWitnessFile(),

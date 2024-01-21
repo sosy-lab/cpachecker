@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -50,11 +52,10 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
   }
 
   private WaypointRecord handleAssumptionWaypoint(
-      CFAEdgeWithAssumptions edgeWithAssumptions, ASTStructure astStructure) throws IOException {
-    CFAEdge edge = edgeWithAssumptions.getCFAEdge();
-
+      Collection<AExpressionStatement> assumptions, CFAEdge edge, ASTStructure astStructure)
+      throws IOException {
     String statement;
-    if (edgeWithAssumptions.getExpStmts().isEmpty()) {
+    if (assumptions.isEmpty()) {
       // We need to export this waypoint in order to avoid errors caused by passing another
       // waypoint at the same location either too early or too late.
       statement = "1";
@@ -62,7 +63,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
       statement =
           String.join(
               " && ",
-              edgeWithAssumptions.getExpStmts().stream()
+              assumptions.stream()
                   .map(AExpressionStatement::toString)
                   .map(x -> "(" + x.replace(";", "") + ")")
                   .toList());
@@ -104,8 +105,16 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
       throws IOException, YamlWitnessExportException {
     ASTStructure astStructure = getASTStructure();
 
-    CFAPathWithAssumptions cexPathWithAssignments = pCex.getCFAPathWithAssignments();
+    Multimap<CFAEdge, AExpressionStatement> edgeToAssumptions = HashMultimap.create();
+    if (pCex.isPreciseCounterExample()) {
+      for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
+        edgeToAssumptions.putAll(
+            edgeWithAssumptions.getCFAEdge(), edgeWithAssumptions.getExpStmts());
+      }
+    }
+
     List<SegmentRecord> segments = new ArrayList<>();
+    List<CFAEdge> edges = pCex.getTargetPath().getInnerEdges();
     // The semantics of the YAML witnesses imply that every assumption waypoint should be
     // valid before the sequence statement it points to. Due to the semantics of the format:
     // "An assumption waypoint is evaluated at the sequence point immediately before the
@@ -117,14 +126,10 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
     //  The location has to point to the beginning of a statement.'
     // Therefore an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
-
     Map<CFAEdge, Long> cfaEdgesOccurences =
-        cexPathWithAssignments.stream()
-            .map(CFAEdgeWithAssumptions::getCFAEdge)
-            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        edges.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
-    for (CFAEdgeWithAssumptions edgeWithAssumptions : cexPathWithAssignments) {
-      CFAEdge edge = edgeWithAssumptions.getCFAEdge();
+    for (CFAEdge edge : edges) {
       // See if the edge contains an assignment of a VerifierNondet call
       List<WaypointRecord> waypoints = new ArrayList<>();
 
@@ -132,7 +137,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
         // Since waypoints are considered one after the other if an edge occurs more than once with
         // possibly different assumptions in the counterexample path, if not all are exported then
         // there may be a wrong matching
-        if (edgeWithAssumptions.getExpStmts().isEmpty() && cfaEdgesOccurences.get(edge) == 1) {
+        if (!edgeToAssumptions.containsKey(edge) && cfaEdgesOccurences.get(edge) == 1) {
           continue;
         }
 
@@ -155,7 +160,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
           continue;
         }
 
-        waypoints.add(handleAssumptionWaypoint(edgeWithAssumptions, astStructure));
+        waypoints.add(handleAssumptionWaypoint(edgeToAssumptions.get(edge), edge, astStructure));
       } else if (edge instanceof AssumeEdge assumeEdge) {
         // Without the AST structure we cannot guarantee that we are exporting at the beginning of
         // an iteration or if statement
@@ -193,7 +198,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
     // In contrast to the semantics of assumptions, targets are evaluated at the next possible
     // segment point. Therefore instead of creating a location record the way as is for assumptions,
     // this needs to be done using another function
-    CFAEdge lastEdge = cexPathWithAssignments.get(cexPathWithAssignments.size() - 1).getCFAEdge();
+    CFAEdge lastEdge = edges.get(edges.size() - 1);
     segments.add(
         SegmentRecord.ofOnlyElement(
             new WaypointRecord(
