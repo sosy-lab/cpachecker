@@ -212,11 +212,11 @@ public class ConstraintsSolver {
             definiteAssignmentsInModel = resolveDefiniteAssignments(pConstraints, satisfyingModel);
           }
 
-          assert pConstraints.getModel().containsAll(pConstraints.getDefiniteAssignment())
+          assert satisfyingModel.containsAll(definiteAssignmentsInModel)
               : "Model does not imply definites: "
-                  + pConstraints.getModel()
+                  + satisfyingModel
                   + " !=> "
-                  + pConstraints.getDefiniteAssignment();
+                  + definiteAssignmentsInModel;
 
         } else {
           cache.addUnsat(constraintsAsFormulas);
