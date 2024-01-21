@@ -114,7 +114,10 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
     }
 
     List<SegmentRecord> segments = new ArrayList<>();
-    List<CFAEdge> edges = pCex.getTargetPath().getInnerEdges();
+    // For some readon the edges can contain null elements
+    List<CFAEdge> edges =
+        pCex.getTargetPath().getInnerEdges().stream().filter(edge -> edge != null).toList();
+
     // The semantics of the YAML witnesses imply that every assumption waypoint should be
     // valid before the sequence statement it points to. Due to the semantics of the format:
     // "An assumption waypoint is evaluated at the sequence point immediately before the

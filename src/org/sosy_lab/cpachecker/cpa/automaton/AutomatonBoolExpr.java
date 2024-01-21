@@ -293,6 +293,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final boolean takeThenBranch;
     private final IfStructure ifStructure;
     private Set<CFANode> nodesBetweenConditionAndBranch = null;
+    private Set<CFANode> conditionElementPredecessors = null;
 
     public CheckEntersIfBranch(IfStructure pIfStructure, boolean pTakeThenBranch) {
       takeThenBranch = pTakeThenBranch;
@@ -303,6 +304,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
       if (nodesBetweenConditionAndBranch == null) {
+        conditionElementPredecessors =
+            FluentIterable.from(ifStructure.getConditionElement().edges())
+                .transform(CFAEdge::getPredecessor)
+                .toSet();
         if (takeThenBranch) {
           nodesBetweenConditionAndBranch = ifStructure.getNodesBetweenConditionAndThenBranch();
         } else {
@@ -311,7 +316,11 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       }
 
       CFAEdge edge = pArgs.getCfaEdge();
-      if (nodesBetweenConditionAndBranch.contains(edge.getSuccessor())) {
+      // Sometimes it happens that there are multiple ways of getting to the same node.
+      // We only want the edges which went through the condition element. In particular this
+      // happens when there is no else branch.
+      if (nodesBetweenConditionAndBranch.contains(edge.getSuccessor())
+          && conditionElementPredecessors.contains(edge.getPredecessor())) {
         return CONST_TRUE;
       }
 
