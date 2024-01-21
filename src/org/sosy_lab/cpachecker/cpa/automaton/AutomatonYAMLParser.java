@@ -710,7 +710,7 @@ public class AutomatonYAMLParser {
                           parserTools),
                       cfa.getMachineModel(),
                       logger);
-            } catch (InvalidAutomatonException pE) {
+            } catch (InvalidAutomatonException e) {
               logger.log(Level.INFO, "Could not generate automaton assumption.");
               continue;
             }

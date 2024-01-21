@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -305,9 +306,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         throws CPATransferException {
       if (nodesBetweenConditionAndBranch == null) {
         conditionElementPredecessors =
-            FluentIterable.from(ifStructure.getConditionElement().edges())
-                .transform(CFAEdge::getPredecessor)
-                .toSet();
+            transformedImmutableSetCopy(ifStructure.getConditionElement().edges(), CFAEdge::getPredecessor);
         if (takeThenBranch) {
           nodesBetweenConditionAndBranch = ifStructure.getNodesBetweenConditionAndThenBranch();
         } else {
