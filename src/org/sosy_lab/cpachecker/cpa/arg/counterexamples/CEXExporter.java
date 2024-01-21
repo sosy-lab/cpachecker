@@ -253,9 +253,8 @@ public class CEXExporter {
       if (options.getSourceFile() != null) {
         pathProgram =
             switch (codeStyle) {
-              case CONCRETE_EXECUTION ->
-                  PathToConcreteProgramTranslator.translateSinglePath(
-                      targetPath, counterexample.getCFAPathWithAssignments());
+              case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
+                  targetPath, counterexample.getCFAPathWithAssignments());
               case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
             };
       }
@@ -349,7 +348,7 @@ public class CEXExporter {
           } else if (exportYamlWitnessesDirectlyFromCex) {
             logger.log(
                 Level.WARNING,
-                "Could not expor the YAML violation witness directly from the ARG, since the"
+                "Could not export the YAML violation witness directly from the ARG, since the"
                     + " counterexample is not precise. Therefore no YAML witness was produced.");
           } else {
             writeErrorPathFile(
