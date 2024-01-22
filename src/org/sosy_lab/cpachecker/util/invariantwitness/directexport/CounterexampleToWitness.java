@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,11 +106,13 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
       throws IOException, YamlWitnessExportException {
     ASTStructure astStructure = getASTStructure();
 
-    Multimap<CFAEdge, AExpressionStatement> edgeToAssumptions = HashMultimap.create();
+    ArrayListMultimap<CFAEdge, AExpressionStatement> edgeToAssumptions = ArrayListMultimap.create();
+    Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
     if (pCex.isPreciseCounterExample()) {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
-        edgeToAssumptions.putAll(
-            edgeWithAssumptions.getCFAEdge(), edgeWithAssumptions.getExpStmts());
+        CFAEdge edge = edgeWithAssumptions.getCFAEdge();
+        edgeToAssumptions.putAll(edge, edgeWithAssumptions.getExpStmts());
+        edgeToCurrentExpressionIndex.put(edge, 0);
       }
     }
 
@@ -140,7 +143,13 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
         // Since waypoints are considered one after the other if an edge occurs more than once with
         // possibly different assumptions in the counterexample path, if not all are exported then
         // there may be a wrong matching
-        if (!edgeToAssumptions.containsKey(edge) && cfaEdgesOccurences.get(edge) == 1) {
+        if (cfaEdgesOccurences.get(edge) == 1) {
+          continue;
+        }
+
+        // Do not consider elements which have no assumptions
+        if (!(edgeToAssumptions.containsKey(edge)
+            && edgeToCurrentExpressionIndex.containsKey(edge))) {
           continue;
         }
 
@@ -163,7 +172,12 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
           continue;
         }
 
-        waypoints.add(handleAssumptionWaypoint(edgeToAssumptions.get(edge), edge, astStructure));
+        waypoints.add(
+            handleAssumptionWaypoint(
+                ImmutableList.of(
+                    edgeToAssumptions.get(edge).get(edgeToCurrentExpressionIndex.get(edge))),
+                edge,
+                astStructure));
       } else if (edge instanceof AssumeEdge assumeEdge) {
         // Without the AST structure we cannot guarantee that we are exporting at the beginning of
         // an iteration or if statement
@@ -195,6 +209,9 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
       if (!waypoints.isEmpty()) {
         segments.add(new SegmentRecord(waypoints));
       }
+
+      edgeToCurrentExpressionIndex.compute(
+          edge, (key, value) -> (value == null) ? null : value + 1);
     }
 
     // Add target
