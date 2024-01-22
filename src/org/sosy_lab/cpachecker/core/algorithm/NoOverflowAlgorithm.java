@@ -86,7 +86,7 @@ public class NoOverflowAlgorithm implements Algorithm{
       }
     }
 
-    String path = "./output/AllOverflowInfos-.txt";
+    String path = "./output/AllOverflowInfos.txt";
     try (BufferedWriter writer = Files.newBufferedWriter(Path.of(path), StandardCharsets.UTF_8)) {
 
       if (!temporaryValueList.isEmpty()) {
@@ -130,12 +130,12 @@ public class NoOverflowAlgorithm implements Algorithm{
 
     for (String tv: allTemporaryValueList) {
       int flag = 0;
-      String s = lineNumber + " " + tv;
-      if (tv.contains(left.toASTString()) && !temporaryValueList.contains(s)) {
+      String s = lineNumber + " " + tv.replace(" ", "");
+      if (left.toASTString().contains("__CPAchecker_TMP_") && tv.contains(left.toASTString()) && !temporaryValueList.contains(s)) {
         temporaryValueList.add(s);
         flag++;
       }
-      if (tv.contains(right.toASTString()) && !temporaryValueList.contains(s)) {
+      if (right.toASTString().contains("__CPAchecker_TMP_") && tv.contains(right.toASTString()) && !temporaryValueList.contains(s)) {
         temporaryValueList.add(s);
         flag++;
       }
