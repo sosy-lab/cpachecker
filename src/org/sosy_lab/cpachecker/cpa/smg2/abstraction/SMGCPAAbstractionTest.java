@@ -131,7 +131,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(nestedPointers).isNotEmpty();
 
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    SMGState stateBeforeAbstraction = currentState;
     currentState = absFinder.findAndAbstractLists();
+
     // 1 null obj + 1 top list + listLength nested
     assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2 + listLength);
     // Now we have abstracted all lists in the state, including the nested ones and materialize
@@ -224,6 +226,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // assertThat(checked0Plus).isTrue();
       } else {
         // last concrete segment with a read at nfo that results in a split of an 0+
+        if (topListSegmentAndState == null) {
+          // This can never happen, but our CI complains....
+          throw new RuntimeException();
+        }
         assertThat(topListSegmentAndState).hasSize(1);
 
         assertThat(topListSegmentAndState.get(0).hasSMGObjectAndOffset()).isTrue();
@@ -251,6 +257,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             currentState.dereferencePointer(readNextValueAndStates.get(1).getValue());
       }
     }
+    // We materialized some additional segments
+    // assertThat(stateBeforeAbstraction.getMemoryModel().getHeapObjects().size()).isEqualTo(currentState.getMemoryModel().getHeapObjects().size());
   }
 
   /**
