@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -113,6 +114,146 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   /**
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The lists are
+   * then abstracted and materialized. This test then checks that the materialized list equals the
+   * abstracted list in its shape and values.
+   */
+  @Ignore
+  @Test
+  public void nestedListMaterializationSLLTest() throws SMGException, SMGSolverException {
+    // TODO: nested lists are somehow broken
+    // Smaller lengths are fine here, else this runs a while!
+    // Increasing this is a good test for the overall performance of the SMGs!
+    int listLength = 15;
+    Value[] pointers = buildConcreteList(false, sllSize, listLength);
+    Value[][] nestedPointers = addSubListsToList(listLength, pointers, false);
+    // TODO: we can't handle rebuilding from pointers towards nested lists yet, so this is a dummy
+    assertThat(nestedPointers).isNotEmpty();
+
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    currentState = absFinder.findAndAbstractLists();
+    // 1 null obj + 1 top list + listLength nested
+    assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2 + listLength);
+    // Now we have abstracted all lists in the state, including the nested ones and materialize
+    // again
+    // <= because we materialize an additional segment to check it
+    boolean checked0Plus = false;
+    List<SMGStateAndOptionalSMGObjectAndOffset> topListSegmentAndState = null;
+    for (int i = 0; i <= listLength; i++) {
+      if (i < listLength) {
+        Value originalPointer = pointers[i];
+        // topListSegmentAndState is materialized
+        topListSegmentAndState = currentState.dereferencePointer(originalPointer);
+        assertThat(topListSegmentAndState).hasSize(1);
+
+        // only concrete segments
+        assertThat(topListSegmentAndState).hasSize(1);
+        assertThat(topListSegmentAndState.get(0).hasSMGObjectAndOffset()).isTrue();
+
+        currentState = topListSegmentAndState.get(0).getSMGState();
+        SMGObject materializedTopListSegment = topListSegmentAndState.get(0).getSMGObject();
+        assertThat(
+                topListSegmentAndState
+                    .get(0)
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+        // deref nested list and check it
+        // TODO: check materialization through read instead of deref
+        // TODO: check materialization through initial pointer used
+        List<ValueAndSMGState> readPointersAndStates =
+            currentState.readValue(materializedTopListSegment, hfo, pointerSizeInBits, null);
+        // Always size 1 as it is always a length+ list that is materialized
+        assertThat(readPointersAndStates).hasSize(1);
+        ValueAndSMGState readPointerAndState = readPointersAndStates.get(0);
+        Value pointerToNestedList = readPointerAndState.getValue();
+        currentState = readPointerAndState.getState();
+        // Make sure that we have a valid pointer
+        assertThat(currentState.getMemoryModel().isPointer(pointerToNestedList)).isTrue();
+        List<SMGStateAndOptionalSMGObjectAndOffset> nestedObjectsAndStates =
+            currentState.dereferencePointer(pointerToNestedList);
+
+        checked0Plus = false;
+        for (int j = 0; j <= listLength; j++) {
+          assertThat(nestedObjectsAndStates).hasSize(1);
+          SMGStateAndOptionalSMGObjectAndOffset nestedListObjectAndState =
+              nestedObjectsAndStates.get(0);
+          SMGObject nestedListObject = nestedListObjectAndState.getSMGObject();
+          currentState = nestedListObjectAndState.getSMGState();
+          assertThat(
+                  nestedListObjectAndState.getOffsetForObject().asNumericValue().bigIntegerValue())
+              .isEqualTo(BigInteger.ZERO);
+          // Check that it's not an abstracted object, correct size and payload value + next ptr
+          assertThat(nestedListObject).isNotSameInstanceAs(SMGSinglyLinkedListSegment.class);
+          assertThat(nestedListObject.getSize()).isEqualTo(sllSize);
+          List<ValueAndSMGState> readHeadsOfNestedList =
+              currentState.readValue(nestedListObject, hfo, pointerSizeInBits, null);
+          assertThat(readHeadsOfNestedList).hasSize(1);
+          ValueAndSMGState readHeadOfNestedList = readHeadsOfNestedList.get(0);
+          Value headValue = readHeadOfNestedList.getValue();
+          currentState = readHeadOfNestedList.getState();
+          assertThat(headValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
+          // read and deref the next pointer
+          List<ValueAndSMGState> readNfoOfNestedList =
+              currentState.readValue(nestedListObject, nfo, pointerSizeInBits, null);
+          if (readNfoOfNestedList.size() == 2) {
+            if (checked0Plus) {
+              break;
+            }
+            // Check that one is 0, the other is valid again once, then stop
+            ValueAndSMGState readNfoNestedList = readNfoOfNestedList.get(0);
+            Value nfoValue = readNfoNestedList.getValue();
+            assertThat(nfoValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
+
+            readNfoNestedList = readNfoOfNestedList.get(1);
+            nfoValue = readNfoNestedList.getValue();
+            currentState = readNfoNestedList.getState();
+            nestedObjectsAndStates = currentState.dereferencePointer(nfoValue);
+            checked0Plus = true;
+            continue;
+          }
+          assertThat(readNfoOfNestedList).hasSize(1);
+          ValueAndSMGState readNfoNestedList = readNfoOfNestedList.get(0);
+          Value nfoValue = readNfoNestedList.getValue();
+          currentState = readNfoNestedList.getState();
+          nestedObjectsAndStates = currentState.dereferencePointer(nfoValue);
+          // repeat loop
+        }
+        // Make sure we got a 0+
+        // assertThat(checked0Plus).isTrue();
+      } else {
+        // last concrete segment with a read at nfo that results in a split of an 0+
+        assertThat(topListSegmentAndState).hasSize(1);
+
+        assertThat(topListSegmentAndState.get(0).hasSMGObjectAndOffset()).isTrue();
+        currentState = topListSegmentAndState.get(0).getSMGState();
+        List<ValueAndSMGState> readNextValueAndStates =
+            currentState.readValue(
+                topListSegmentAndState.get(0).getSMGObject(), nfo, pointerSizeInBits, null);
+        // One is again the end, the other 0+
+        assertThat(readNextValueAndStates).hasSize(2);
+        assertThat(
+                currentState
+                    .getMemoryModel()
+                    .getSMGValueFromValue(readNextValueAndStates.get(0).getValue())
+                    .orElseThrow()
+                    .isZero())
+            .isTrue();
+        assertThat(readNextValueAndStates.get(0).getValue().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+
+        currentState = readNextValueAndStates.get(1).getState();
+        assertThat(
+                currentState.getMemoryModel().isPointer(readNextValueAndStates.get(1).getValue()))
+            .isTrue();
+        topListSegmentAndState =
+            currentState.dereferencePointer(readNextValueAndStates.get(1).getValue());
+      }
+    }
+  }
+
+  /**
    * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The top list is
    * then abstracted and checked. This works if we correctly check equality by shape and not pointer
    * identity.
@@ -131,7 +272,6 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Test
   public void nestedListAbstractionSLLTest() {
     resetSMGStateAndVisitor();
-    // TODO:
   }
 
   /**
@@ -993,7 +1133,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // The result value is simply the value pointer to the first concrete element
     for (int i = 0; i < TEST_LIST_LENGTH; i++) {
       List<SMGValueAndSMGState> resultValuesAndStates =
-          materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
+          materializer.handleMaterialisation(pointerToFirst, currentAbstraction, currentState);
       SMGValueAndSMGState resultValueAndState;
       assertThat(resultValuesAndStates).hasSize(1);
       resultValueAndState = resultValuesAndStates.get(0);
@@ -1135,7 +1275,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // The result value is simply the value pointer to the first concrete element
     for (int i = 0; i < TEST_LIST_LENGTH; i++) {
       List<SMGValueAndSMGState> resultValuesAndStates =
-          materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
+          materializer.handleMaterialisation(pointerToFirst, currentAbstraction, currentState);
       SMGValueAndSMGState resultValueAndState;
 
       assertThat(resultValuesAndStates).hasSize(1);
@@ -1430,7 +1570,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // The result value is simply the value pointer to the first concrete element
     for (int i = 0; i < length; i++) {
       List<SMGValueAndSMGState> resultValuesAndStates =
-          materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
+          materializer.handleMaterialisation(pointerToFirst, currentAbstraction, currentState);
       SMGValueAndSMGState resultValueAndState;
       if (i + 1 == TEST_LIST_LENGTH) {
         assertThat(resultValuesAndStates).hasSize(2);
@@ -1520,7 +1660,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // The result value is simply the value pointer to the first concrete element
     for (int i = 0; i < length; i++) {
       List<SMGValueAndSMGState> resultValuesAndStates =
-          materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
+          materializer.handleMaterialisation(pointerToFirst, currentAbstraction, currentState);
       SMGValueAndSMGState resultValueAndState;
       if (i + 1 == TEST_LIST_LENGTH) {
         assertThat(resultValuesAndStates).hasSize(2);

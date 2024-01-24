@@ -215,6 +215,7 @@ public class SMGCPATest0 {
 
   // Adds an EQUAL sublists depending on nfo, pfo and dll to each object that the pointer array
   // points to
+  // Returns a matrix of the nested pointers
   protected Value[][] addSubListsToList(int listLength, Value[] pointersOfTopList, boolean dll)
       throws SMGSolverException, SMGException {
     Value[][] nestedPointers = new Value[listLength][];

@@ -4330,6 +4330,21 @@ public class SMGState
             ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
   }
 
+  /**
+   * Materializes a list, starting from the pointer {@link SMGValue} given as initialPointerValue.
+   * Expects initialPointerValue to be a pointer towards an abstracted list segment.
+   * Returns a materialized memory region. For multiple possible results, returns the minimal result first (i.e. the ended list).
+   *
+   * @param initialPointerValue the SMGValue that is a pointer and has the {@link SMGPointsToEdge}
+   *     ptEdge, which points towards an abstracted list segment.
+   * @param ptEdge the points to edge of the pointer value from initialPointerValue.
+   * @param pState current {@link SMGState}
+   * @return a list of {@link SMGStateAndOptionalSMGObjectAndOffset} with the state after the
+   *     materialization and the target object of the pointer, but materialized, plus the offset in
+   *     that object. If there are multiple possible results, the minimal result (i.e. for a 0+ list
+   *     segment the list that ends) is handed back first in index 0.
+   * @throws SMGException for critical errors. (Mostly to debug if something goes wrong)
+   */
   private List<SMGStateAndOptionalSMGObjectAndOffset> materializeLinkedList(
       SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState) throws SMGException {
     SMGState currentState = pState;
@@ -4428,7 +4443,7 @@ public class SMGState
       // DLLs are also SLLs
       Preconditions.checkArgument(obj instanceof SMGSinglyLinkedListSegment);
       materializationAndState =
-          currentState.materializer.handleMaterilisation(
+          currentState.materializer.handleMaterialisation(
               valueToPointerToAbstractObject, obj, currentState);
       if (materializationAndState.size() == 1) {
         // We can assume that this is the default case
