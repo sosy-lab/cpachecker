@@ -73,7 +73,9 @@ public class SMGCPAMaterializer {
         return ImmutableList.of(materialiseSLLS(sllListSeg, valueTopointerToAbstractObject, state));
       }
     }
-    throw new SMGException("The SMG failed to materialize a abstract list as the memory object handled was not abstracted to begin with.");
+    throw new SMGException(
+        "The SMG failed to materialize a abstract list as the memory object handled was not"
+            + " abstracted to begin with.");
   }
 
   /*

@@ -4203,59 +4203,17 @@ public class SMGState
                 root, newSLL, incrementAmount));
 
     // Remove the 2 old objects and continue
-    if (!nextObj.isSLL()) {
-      // currentState = currentState.prunePointerValueTargets(nextObj, ImmutableSet.of(nfo));
-    }
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(nextObj));
 
-    // Also prune all objects and pointers in root that are not nfo offset and are unreachable now
-    // (Will be recreated later by materialize)
-    // currentState = currentState.prunePointerValueTargets(root, ImmutableSet.of(nfo));
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
 
+    // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
     return currentState.abstractIntoSLL(
         newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
-  }
-
-  public SMGState prunePointerValueTargets(SMGObject pRoot, Set<BigInteger> excludedOffsets) {
-    SMGState currentState = this;
-    Set<SMGValue> allValues =
-        currentState.getMemoryModel().getSmg().getEdges(pRoot).stream()
-            .filter(e -> !excludedOffsets.contains(e.getOffset()))
-            .map(e -> e.hasValue())
-            .collect(ImmutableSet.toImmutableSet());
-    for (SMGValue rootValue : allValues) {
-      Optional<Value> maybeValue = currentState.memoryModel.getValueFromSMGValue(rootValue);
-      if (!rootValue.isZero()
-          && maybeValue.isPresent()
-          && currentState.memoryModel.isPointer(maybeValue.orElseThrow())) {
-        // Check that this is the only pointer towards the target, if it is, invalidate the target
-        // if no other pointers exist, else repeat and then invalidate
-        SMGStateAndOptionalSMGObjectAndOffset targetAndOffset =
-            currentState
-                .dereferencePointerWithoutMaterilization(maybeValue.orElseThrow())
-                .orElseThrow();
-        SMGObject target = targetAndOffset.getSMGObject();
-        if (!currentState.memoryModel.isObjectValid(target)) {
-          continue;
-        }
-        // Offset does not matter, only if others have the same target
-        Set<SMGObject> pointerOccurences =
-            currentState.memoryModel.getAllSourcesForPointersPointingTowards(target);
-        if (pointerOccurences.size() == 1 && pointerOccurences.contains(pRoot)) {
-          // TODO: Selfpointer is also possible from target to target
-          currentState = currentState.prunePointerValueTargets(target, ImmutableSet.of());
-          currentState =
-              currentState.copyAndReplaceMemoryModel(
-                  currentState.memoryModel.invalidateSMGObject(target));
-        }
-      }
-    }
-    return currentState;
   }
 
   private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo) throws SMGException {
@@ -4332,8 +4290,9 @@ public class SMGState
 
   /**
    * Materializes a list, starting from the pointer {@link SMGValue} given as initialPointerValue.
-   * Expects initialPointerValue to be a pointer towards an abstracted list segment.
-   * Returns a materialized memory region. For multiple possible results, returns the minimal result first (i.e. the ended list).
+   * Expects initialPointerValue to be a pointer towards an abstracted list segment. Returns a
+   * materialized memory region. For multiple possible results, returns the minimal result first
+   * (i.e. the ended list).
    *
    * @param initialPointerValue the SMGValue that is a pointer and has the {@link SMGPointsToEdge}
    *     ptEdge, which points towards an abstracted list segment.
@@ -4583,8 +4542,10 @@ public class SMGState
   }
 
   /*
-   * Searches source for pointers (except for at the given exceptions) and copies the memory precisely and replaces the old pointers with new ones towards the new copied memory.
-   * Then the old memory is checked for external pointers towards it, and if there are any with the correct nesting level, they are replaced by the pointers towards the new copied memory.
+   * Searches source for pointers (except for at the given exceptions) and copies the memory
+   * precisely and replaces the old pointers with new ones towards the new copied memory.
+   * Then the old memory is checked for external pointers towards it, and if there are any with
+   * the correct nesting level, they are replaced by the pointers towards the new copied memory.
    * This is part of list materialization.
    */
   @SuppressWarnings("unused")
