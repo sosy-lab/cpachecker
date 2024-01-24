@@ -131,7 +131,6 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(nestedPointers).isNotEmpty();
 
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
-    SMGState stateBeforeAbstraction = currentState;
     currentState = absFinder.findAndAbstractLists();
 
     // 1 null obj + 1 top list + listLength nested
