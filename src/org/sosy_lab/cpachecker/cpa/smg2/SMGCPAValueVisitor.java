@@ -1055,9 +1055,13 @@ public class SMGCPAValueVisitor
         builder.add(ValueAndSMGState.of(value, currentState));
 
       } else if (returnType instanceof CArrayType) {
+
+        return ImmutableList.of(ValueAndSMGState.of(pointerValue, currentState));
+
         // For arrays, we want to actually read the values at the addresses
         // Dereference the Value and return it. The read checks for validity etc.
         // The precondition is a precondition for get(0) because of no state split
+        /*
         Preconditions.checkArgument(
             !currentState.getMemoryModel().pointsToZeroPlus(pointerValue.getMemoryAddress()));
 
@@ -1071,7 +1075,7 @@ public class SMGCPAValueVisitor
                     returnType,
                     CNumericTypes.INT)
                 .get(0);
-        builder.add(readArray);
+        builder.add(readArray);*/
 
       } else {
         // "Normal" return types
