@@ -425,10 +425,12 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
   /** check the boolean combination required for bounded model checking. */
   private boolean isRequiredBMC() {
-    return (!stats.requiresLoopHandling || stats.requiresFloatHandling)
-        && (stats.requiresFloatHandling || stats.requiresArrayHandling)
-        && (stats.requiresLoopHandling || !stats.requiresFloatHandling
-        || !stats.requiresArrayHandling)  && !stats.requiresCompositeTypeHandling;
+    return (!stats.requiresLoopHandling && !stats.requiresFloatHandling
+        && stats.requiresArrayHandling && !stats.requiresCompositeTypeHandling)
+        || (!stats.requiresLoopHandling && stats.requiresFloatHandling
+        && !stats.requiresArrayHandling && stats.requiresCompositeTypeHandling)
+        || (stats.requiresLoopHandling && stats.requiresFloatHandling
+        && !stats.requiresCompositeTypeHandling);
   }
 
   /** use statistical data and choose a configuration for further analysis. */
