@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.GraphTraverser;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 
@@ -121,6 +123,25 @@ public class ARGToWitness extends DirectWitnessExporter {
       }
       expressionsPerClass.add(expressionsMatchingClass);
     }
-    return And.of(FluentIterable.from(expressionsPerClass).transform(Or::of));
+
+    ExpressionTree<Object> overapproximationOfState =
+        And.of(FluentIterable.from(expressionsPerClass).transform(Or::of));
+
+    // Filter out CPAchecker internal variables from the over-approximation of the states
+    // This transformation is NOT correct for all possible cases, since if multiple internal
+    // variables are in relation to each other and this is relevant for the invariant, then this
+    // will not work. A more sophisticated approach may consider all these dependencies and do an
+    // actual replacement of CPAchecker internal variables
+    // TODO: Improve this
+    RemovingStructuresVisitor<Object, Exception> visitor =
+        new RemovingStructuresVisitor<>(x -> x.toString().contains("__CPAchecker_TMP"));
+    try {
+      overapproximationOfState = overapproximationOfState.accept(visitor);
+    } catch (Exception pE) {
+      logger.logException(
+          Level.INFO, pE, "Could not remove CPAchecker internal variables from invariant");
+    }
+
+    return overapproximationOfState;
   }
 }
