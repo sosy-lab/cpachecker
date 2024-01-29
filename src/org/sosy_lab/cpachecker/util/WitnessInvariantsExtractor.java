@@ -14,6 +14,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.io.MoreFiles;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,14 +36,11 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -55,9 +54,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInvariantsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParserUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -65,6 +65,9 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
+import org.sosy_lab.cpachecker.util.invariantwitness.InvariantExchangeFormatTransformer;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 
 /**
  * This class extracts invariants from the correctness witness automaton. Calling {@link
@@ -124,9 +127,13 @@ public class WitnessInvariantsExtractor {
     logger = pLogger;
     cfa = pCFA;
     shutdownNotifier = pShutdownNotifier;
-    isYAMLWitness = AutomatonYAMLParser.isYAMLWitness(pPathToWitnessFile);
+    isYAMLWitness = AutomatonYAMLParserUtils.isYAMLWitness(pPathToWitnessFile);
     if (isYAMLWitness) {
-      potentialCandidatesYAMLWitness = analyzeYAMLWitness(pPathToWitnessFile);
+      try {
+        potentialCandidatesYAMLWitness = analyzeYAMLWitness(pPathToWitnessFile);
+      } catch (IOException pE) {
+        throw new WitnessParseException("Could not parse YAML Witness", pE);
+      }
     } else {
       automatonAsSpec = buildSpecification(pPathToWitnessFile);
       analyzeWitness();
@@ -209,16 +216,15 @@ public class WitnessInvariantsExtractor {
   }
 
   private Optional<Set<ExpressionTreeLocationInvariant>> analyzeYAMLWitness(Path pPathToWitnessFile)
-      throws InvalidConfigurationException, InterruptedException {
-    Scope scope =
-        switch (cfa.getLanguage()) {
-          case C -> new CProgramScope(cfa, logger);
-          default -> DummyScope.getInstance();
-        };
-    AutomatonYAMLParser automatonYAMLParser =
-        new AutomatonYAMLParser(config, logger, shutdownNotifier, cfa, scope);
+      throws InvalidConfigurationException, InterruptedException, IOException {
 
-    Set<Invariant> invariants = automatonYAMLParser.generateInvariants(pPathToWitnessFile);
+    List<AbstractEntry> entries =
+        AutomatonYAMLParserUtils.parseYAML(MoreFiles.asByteSource(pPathToWitnessFile).openStream());
+    InvariantExchangeFormatTransformer transformer =
+        new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
+    Set<Invariant> invariants =
+        transformer.generateInvariantsFromEntries(
+            entries, InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames()));
     Set<ExpressionTreeLocationInvariant> candidateInvariants = new HashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
 
