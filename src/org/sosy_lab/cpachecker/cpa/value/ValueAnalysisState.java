@@ -28,8 +28,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
@@ -66,8 +66,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
@@ -775,18 +775,58 @@ public final class ValueAnalysisState
     return this;
   }
 
+  private Optional<CExpression> buildConstraint(CExpression pVar, CType pCType, NumericValue pNum) {
+    // TODO: Refactor the whole code to also handle JExpressions i.e. change CExpression to
+    //  AExpression
+    // TODO: Get real logger
+    CBinaryExpressionBuilder builder =
+        new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager());
+    FileLocation loc = pVar.getFileLocation();
+    CExpression val = null;
+    if (pCType instanceof CSimpleType simpleType) {
+      if (simpleType.getType().isIntegerType()) {
+        long value = pNum.getNumber().longValue();
+        val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
+      } else if (simpleType.getType().isFloatingPointType()) {
+        double value = pNum.getNumber().doubleValue();
+        if (((Double) value).isNaN() || ((Double) value).isInfinite()) {
+          // Cannot represent this here
+          return Optional.empty();
+        }
+        val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
+      } else {
+        throw new AssertionError("Unexpected type: " + simpleType);
+      }
+    } else if (pCType instanceof CEnumType enumType) {
+      Long value = pNum.getNumber().longValue();
+      for (CEnumerator enumerator : enumType.getEnumerators()) {
+        if (enumerator.getValue() == value) {
+          val = new CIdExpression(loc, enumerator);
+          break;
+        }
+      }
+      if (val == null) {
+        val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
+      }
+    } else {
+      // disabled since this blocks too many programs for which plenty other information
+      // would be available, so just skip the current variable
+
+      // throw new AssertionError("Unknown arithmetic type: " + cType);
+
+      return Optional.empty();
+    }
+    return Optional.of(builder.buildBinaryExpressionUnchecked(pVar, val, BinaryOperator.EQUALS));
+  }
+
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+      FunctionEntryNode pFunctionScope, CFANode pLocation, AIdExpression pFunctionReturnVariable) {
 
     if (machineModel == null) {
       return ExpressionTrees.getTrue();
     }
 
-    // TODO: Get real logger
-    CBinaryExpressionBuilder builder =
-        new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager());
-    ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     List<ExpressionTree<Object>> result = new ArrayList<>();
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
@@ -827,49 +867,29 @@ public final class ValueAnalysisState
                     memoryLocation.getExtendedQualifiedName(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
-            CExpression val = null;
-            if (cType instanceof CSimpleType) {
-              CSimpleType simpleType = (CSimpleType) type;
-              if (simpleType.getType().isIntegerType()) {
-                long value = num.getNumber().longValue();
-                val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
-              } else if (simpleType.getType().isFloatingPointType()) {
-                double value = num.getNumber().doubleValue();
-                if (((Double) value).isNaN() || ((Double) value).isInfinite()) {
-                  // Cannot represent this here
-                  continue;
-                }
-                val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
-              } else {
-                throw new AssertionError("Unexpected type: " + simpleType);
-              }
-            } else if (cType instanceof CEnumType enumType) {
-              Long value = num.getNumber().longValue();
-              for (CEnumerator enumerator : enumType.getEnumerators()) {
-                if (enumerator.getValue() == value) {
-                  val = new CIdExpression(loc, enumerator);
-                  break;
-                }
-              }
-              if (val == null) {
-                val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
-              }
-            } else {
-              // disabled since this blocks too many programs for which plenty other information
-              // would be available, so just skip the current variable
-
-              // throw new AssertionError("Unknown arithmetic type: " + cType);
-
-              continue;
+            Optional<CExpression> constraint = buildConstraint(var, cType, num);
+            if (constraint.isPresent()) {
+              result.add(LeafExpression.of(constraint.orElseThrow()));
             }
-            CBinaryExpression exp =
-                builder.buildBinaryExpressionUnchecked(var, val, BinaryOperator.EQUALS);
-            result.add(LeafExpression.of(exp));
+
+          } else if (pFunctionScope.getReturnVariable().isPresent()
+              && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
+              && pFunctionReturnVariable instanceof CIdExpression var) {
+            Optional<CExpression> constraint = buildConstraint(var, cType, num);
+            if (constraint.isPresent()) {
+              result.add(LeafExpression.of(constraint.orElseThrow()));
+            }
           }
         }
       }
     }
-    return factory.and(result);
+    return And.of(result);
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximation(
+      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+    return getFormulaApproximation(pFunctionScope, pLocation, null);
   }
 
   public static class ValueAndType implements Serializable {

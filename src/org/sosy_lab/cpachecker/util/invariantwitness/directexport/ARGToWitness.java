@@ -21,11 +21,17 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -114,11 +120,32 @@ public class ARGToWitness extends DirectWitnessExporter {
             .transformAndConcat(AbstractStates::asIterable)
             .filter(ExpressionTreeReportingState.class);
     List<List<ExpressionTree<Object>>> expressionsPerClass = new ArrayList<>();
+
+    // TODO: Extend this to also include java Variables
+    AIdExpression returnVariable;
+    if (node.getFunction().getType().getReturnType() instanceof CType cType) {
+      returnVariable =
+          new CIdExpression(
+              FileLocation.DUMMY,
+              new CVariableDeclaration(
+                  FileLocation.DUMMY,
+                  false,
+                  CStorageClass.AUTO,
+                  cType,
+                  "\\return",
+                  "\\return",
+                  node.getFunctionName() + "::\\return",
+                  null));
+    } else {
+      returnVariable = null;
+    }
+
     for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
       List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
       for (ExpressionTreeReportingState state : reportingStates) {
         if (stateClass.isAssignableFrom(state.getClass())) {
-          expressionsMatchingClass.add(state.getFormulaApproximation(entryNode, node));
+          expressionsMatchingClass.add(
+              state.getFormulaApproximation(entryNode, node, returnVariable));
         }
       }
       expressionsPerClass.add(expressionsMatchingClass);

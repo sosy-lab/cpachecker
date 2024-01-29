@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -45,7 +46,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
   default ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
-      AVariableDeclaration pFunctionReturnVariable)
+      @Nullable AIdExpression pFunctionReturnVariable)
       throws InterruptedException {
     return getFormulaApproximation(pFunctionScope, pLocation);
   }
