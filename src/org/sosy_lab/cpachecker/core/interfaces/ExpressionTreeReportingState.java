@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -28,4 +29,24 @@ public interface ExpressionTreeReportingState extends AbstractState {
    */
   ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException;
+
+  /**
+   * Returns an ExpressionTree over-approximating the state. With the extensions that expressions
+   * which represent the return from a function are replaced by the given variable. This is
+   * particularly useful in order to export function contracts. By default, or when
+   * pFunctionReturnVariable is null this method calls {@link
+   * #getFormulaApproximation(FunctionEntryNode, CFANode)}
+   *
+   * @param pFunctionScope the function scope as a function entry node.
+   * @param pLocation the formula should at least try to approximate variables referenced by
+   *     entering edges
+   * @param pFunctionReturnVariable the variable to replace function return expressions with
+   */
+  default ExpressionTree<Object> getFormulaApproximation(
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AVariableDeclaration pFunctionReturnVariable)
+      throws InterruptedException {
+    return getFormulaApproximation(pFunctionScope, pLocation);
+  }
 }
