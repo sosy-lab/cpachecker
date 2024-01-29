@@ -339,7 +339,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       DualReachabilitySequence pDualSequence,
       PartitionedFormulas pPartitionedFormulas,
       int pIdxOfLocalContradiction)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, SolverException {
     logger.log(Level.FINE, "Strengthening forward and backward reachability vectors locally");
     final int lastIdxOfSequences = pDualSequence.getSize() - 1;
     // Updating forward sequence
@@ -407,7 +407,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private BooleanFormula constructBackwardInterpolant(
       DualReachabilitySequence pDualSequence, PartitionedFormulas pPartitionedFormulas, int pIndex)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, SolverException {
     final int lastIndexOfSequences = pDualSequence.getSize() - 1;
     BooleanFormula transitionFormula = pPartitionedFormulas.getLoopFormulas().get(0);
     BooleanFormula forwardFormula = pDualSequence.getForwardImageAt(lastIndexOfSequences - pIndex);
@@ -606,7 +606,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     // We cannot uninstantiate B_0, so we check if the global phase was unsat with B_0 or some B_i
     if (pDualSequence.getSize() > pIndexOfGlobalUnsat) {
-      backwardFormula =
+     backwardFormula =
           fmgr.instantiate(
               fmgr.uninstantiate(backwardFormula),
               pFormulas.getLoopFormulaSsaMaps().get(pIndexOfGlobalUnsat - 1));

@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -139,7 +140,8 @@ class PartitionedFormulas {
       // no target is reachable, which means the program is safe
       prefixFormula = bfmgr.makeFalse();
       prefixSsaMap = SSAMap.emptySSAMap();
-      loopFormulas = ImmutableList.of();
+      loopFormulas = ImmutableList.of(bfmgr.makeFalse());
+      loopFormulaSsaMaps = ImmutableList.of(SSAMap.emptySSAMap());
       targetAssertion = bfmgr.makeFalse();
       return;
     }
@@ -166,6 +168,21 @@ class PartitionedFormulas {
         transformedImmutableListCopy(
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
+
+    if (!loopFormulas.isEmpty()) {
+      SSAMap transitionSSA = loopFormulaSsaMaps.get(0);
+      SSAMapBuilder prefixSSAMapBuilder = prefixSsaMap.builder();
+      for (String variable : transitionSSA.allVariables()) {
+        if (!prefixSsaMap.containsVariable(variable)) {
+          prefixSSAMapBuilder.setIndex(
+              variable,
+              transitionSSA.getType(variable),
+              transitionSSA.getIndex(variable)+4);
+        }
+      }
+      prefixSsaMap = prefixSSAMapBuilder.build();
+    }
+
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
