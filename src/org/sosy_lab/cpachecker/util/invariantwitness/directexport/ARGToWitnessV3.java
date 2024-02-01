@@ -85,13 +85,14 @@ class ARGToWitnessV3 extends ARGToWitness {
       Collection<ARGState> requiresArgStates = functionContractRequires.get(node);
 
       FileLocation location = node.getFileLocation();
-      String requiresClause = getOverapproximationOfStates(requiresArgStates, node).toString();
+      String requiresClause =
+          getOverapproximationOfStates(requiresArgStates, node, true).toString();
       String ensuresClause = "1";
       if (node.getExitNode().isPresent()
           && functionContractEnsures.containsKey(node.getExitNode().orElseThrow())) {
         Collection<ARGState> ensuresArgStates =
             functionContractEnsures.get(node.getExitNode().orElseThrow());
-        ensuresClause = getOverapproximationOfStates(ensuresArgStates, node).toString();
+        ensuresClause = getOverapproximationOfStates(ensuresArgStates, node, true).toString();
       }
       functionContractRecords.add(
           new FunctionContractRecord(

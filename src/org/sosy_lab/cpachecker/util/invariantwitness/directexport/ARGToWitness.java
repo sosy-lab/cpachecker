@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -113,6 +114,12 @@ public class ARGToWitness extends DirectWitnessExporter {
 
   protected ExpressionTree<Object> getOverapproximationOfStates(
       Collection<ARGState> argStates, CFANode node) throws InterruptedException {
+    return getOverapproximationOfStates(argStates, node, false);
+  }
+
+  protected ExpressionTree<Object> getOverapproximationOfStates(
+      Collection<ARGState> argStates, CFANode node, boolean pReplaceOutputVariable)
+      throws InterruptedException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
 
     FluentIterable<ExpressionTreeReportingState> reportingStates =
@@ -123,7 +130,9 @@ public class ARGToWitness extends DirectWitnessExporter {
 
     // TODO: Extend this to also include java Variables
     AIdExpression returnVariable;
-    if (node.getFunction().getType().getReturnType() instanceof CType cType) {
+    if (pReplaceOutputVariable
+        && node.getFunction().getType().getReturnType() instanceof CType cType
+        && !(cType instanceof CVoidType)) {
       returnVariable =
           new CIdExpression(
               FileLocation.DUMMY,
