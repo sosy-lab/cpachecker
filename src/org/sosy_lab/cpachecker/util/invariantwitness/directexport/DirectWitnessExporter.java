@@ -21,6 +21,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -102,6 +103,10 @@ public class DirectWitnessExporter {
   }
 
   protected Path getOutputFile(WitnessVersion version) {
+    if (outputFileTemplate == null) {
+      return null;
+    }
+
     return Path.of(outputFileTemplate.toString().replace("<<VERSION>>", version.toString()));
   }
 
@@ -114,6 +119,11 @@ public class DirectWitnessExporter {
   }
 
   protected void exportEntries(AbstractEntry entry, Path outFile) {
+    if (outFile == null) {
+      logger.log(Level.INFO, "Output file is null, not exporting witness.");
+      return;
+    }
+
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
       String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
       writer.write(entryYaml);
