@@ -68,6 +68,12 @@ public class AutomatonYAMLParserUtils {
     return result;
   }
 
+  /**
+   * @param pOffsetsByFile The Map containing the currently known offsets by file. This map will be
+   *     updated if the file is not found with the best known match.
+   * @param pFile The file for which to get the offsets.
+   * @return The offsets for the given file. If the file is not found the offsets for the file with
+   */
   public static List<Integer> getOffsetsByFileSimilarity(
       ListMultimap<String, Integer> pOffsetsByFile, String pFile) {
     String maxSimilarityFile = pFile;

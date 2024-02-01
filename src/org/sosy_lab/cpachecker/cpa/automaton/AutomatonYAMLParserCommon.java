@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import java.io.IOException;
@@ -80,7 +81,8 @@ public class AutomatonYAMLParserCommon {
 
   ListMultimap<String, Integer> getLineOffsetsByFile() throws IOException {
     if (lineOffsetsByFile == null) {
-      lineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames());
+      lineOffsetsByFile = ArrayListMultimap.create();
+      lineOffsetsByFile.putAll(InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames()));
     }
 
     return lineOffsetsByFile;
