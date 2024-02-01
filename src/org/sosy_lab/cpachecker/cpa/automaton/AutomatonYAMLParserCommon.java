@@ -70,7 +70,7 @@ public class AutomatonYAMLParserCommon {
   AutomatonYAMLParserCommon(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, AutomatonYAMLParserCommon.class);
     logger = pLogger;
     cfa = pCFA;
     config = pConfig;
