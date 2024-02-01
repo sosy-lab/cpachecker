@@ -1965,7 +1965,7 @@ public class SMGCPAExpressionEvaluator {
             pNewState, pVarDecl, pEdge, variableName, pOffset, arrayType, pNewInitializer);
       } else if (realCType instanceof CCompositeType structType) {
         return handleInitializerListForComposites(
-            pNewState, pVarDecl, pEdge, variableName, pOffset, structType, pNewInitializer);
+            pNewState, pVarDecl, pEdge, variableName, structType, pNewInitializer);
       }
 
       // Type cannot be resolved
@@ -2037,7 +2037,6 @@ public class SMGCPAExpressionEvaluator {
       CVariableDeclaration pVarDecl,
       CFAEdge pEdge,
       String variableName,
-      Value pOffset,
       CCompositeType pLValueType,
       CInitializerList pNewInitializer)
       throws CPATransferException {

@@ -124,8 +124,8 @@ public class OptimizedMaxSatAlgorithm
    * @return new minimal set
    * @throws SolverException thrown if tf is satisfiable
    * @throws InterruptedException thrown if interrupted
-   * @throws InvalidConfigurationException
-   * @throws CPATransferException
+   * @throws InvalidConfigurationException thrown if configuration is invalid
+   * @throws CPATransferException thrown if transfer failed
    */
   private Set<TraceAtom> coMSS(
       Set<TraceAtom> pSoftSet,

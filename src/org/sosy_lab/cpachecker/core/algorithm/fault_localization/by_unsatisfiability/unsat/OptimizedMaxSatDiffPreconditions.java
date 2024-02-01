@@ -78,7 +78,7 @@ public class OptimizedMaxSatDiffPreconditions
   }
 
   private Set<Fault> runOptimizedMaxSatAlgorithm(FormulaContext pContext, TraceFormula traceFormula)
-      throws CPAException, InterruptedException, SolverException {
+      throws CPAException, SolverException {
     OptimizedMaxSatAlgorithm algorithm = new OptimizedMaxSatAlgorithm(stopAfterFirstFault);
     return algorithm.run(pContext, traceFormula);
   }
