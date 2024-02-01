@@ -169,21 +169,6 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
 
-    if (!loopFormulas.isEmpty()) {
-      SSAMap transitionSSA = loopFormulaSsaMaps.get(0);
-      SSAMapBuilder prefixSSAMapBuilder = prefixSsaMap.builder();
-      for (String variable : transitionSSA.allVariables()) {
-        if (!prefixSsaMap.containsVariable(variable)) {
-          prefixSSAMapBuilder.setIndex(
-              variable,
-              transitionSSA.getType(variable),
-              transitionSSA.getIndex(variable)+4);
-        }
-      }
-      prefixSsaMap = prefixSSAMapBuilder.build();
-    }
-
-
     // collect target assertion formula
     BooleanFormula currentAssertion =
         InterpolationHelper.createDisjunctionFromStates(bfmgr, targetStatesAfterLoop);
