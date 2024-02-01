@@ -164,9 +164,9 @@ public class ARGToWitness extends DirectWitnessExporter {
         new RemovingStructuresVisitor<>(x -> x.toString().contains("__CPAchecker_TMP"));
     try {
       overapproximationOfState = overapproximationOfState.accept(visitor);
-    } catch (Exception pE) {
+    } catch (Exception e) {
       logger.logException(
-          Level.INFO, pE, "Could not remove CPAchecker internal variables from invariant");
+          Level.INFO, e, "Could not remove CPAchecker internal variables from invariant");
     }
 
     return overapproximationOfState;

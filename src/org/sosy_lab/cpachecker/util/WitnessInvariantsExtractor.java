@@ -131,8 +131,8 @@ public class WitnessInvariantsExtractor {
     if (isYAMLWitness) {
       try {
         potentialCandidatesYAMLWitness = analyzeYAMLWitness(pPathToWitnessFile);
-      } catch (IOException pE) {
-        throw new WitnessParseException("Could not parse YAML Witness", pE);
+      } catch (IOException e) {
+        throw new WitnessParseException("Could not parse YAML Witness", e);
       }
     } else {
       automatonAsSpec = buildSpecification(pPathToWitnessFile);
