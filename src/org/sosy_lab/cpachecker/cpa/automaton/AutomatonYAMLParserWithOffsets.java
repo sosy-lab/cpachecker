@@ -284,7 +284,7 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
 
     final List<AutomatonInternalState> automatonStates = new ArrayList<>();
     String currentStateId = initState;
-    WaypointRecord follow = null;
+    WaypointRecord follow;
 
     int distance = segments.size();
 
@@ -305,7 +305,12 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
         nextStateId = "X";
         transitions.add(
             handleTarget(nextStateId, followLine, followColumn, followFilename, distance));
-
+        if (counter != segments.size()) {
+          logger.log(
+              Level.INFO,
+              "Target waypoint is not the last waypoint, following waypoints will be ignored!");
+        }
+        break;
       } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
         transitions.add(
             handleAssumption(
@@ -345,6 +350,7 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
           continue;
         }
 
+        transitions.addAll(ifStatementTransitions);
       } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
         transitions.add(
             handleFunctionReturn(
@@ -374,18 +380,16 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
     }
 
     // add last state and stutter in it:
-    if (follow != null && follow.getType().equals(WaypointType.TARGET)) {
-      automatonStates.add(
-          new AutomatonInternalState(
-              currentStateId,
-              ImmutableList.of(
-                  new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
-                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
-                          .withAssertion(createViolationAssertion()))),
-              /* pIsTarget= */ false,
-              /* pAllTransitions= */ false,
-              /* pIsCycleStart= */ false));
-    }
+    automatonStates.add(
+        new AutomatonInternalState(
+            currentStateId,
+            ImmutableList.of(
+                new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+                    new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
+                        .withAssertion(createViolationAssertion()))),
+            /* pIsTarget= */ false,
+            /* pAllTransitions= */ false,
+            /* pIsCycleStart= */ false));
 
     Automaton automaton;
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
