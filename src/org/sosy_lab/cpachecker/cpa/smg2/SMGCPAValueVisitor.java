@@ -1055,23 +1055,11 @@ public class SMGCPAValueVisitor
         builder.add(ValueAndSMGState.of(value, currentState));
 
       } else if (returnType instanceof CArrayType) {
-        // For arrays, we want to actually read the values at the addresses
-        // Dereference the Value and return it. The read checks for validity etc.
-        // The precondition is a precondition for get(0) because of no state split
-        Preconditions.checkArgument(
-            !currentState.getMemoryModel().pointsToZeroPlus(pointerValue.getMemoryAddress()));
-
-        ValueAndSMGState readArray =
-            evaluator
-                .readValueWithPointerDereference(
-                    currentState,
-                    pointerValue.getMemoryAddress(),
-                    offset,
-                    sizeInBits,
-                    returnType,
-                    CNumericTypes.INT)
-                .get(0);
-        builder.add(readArray);
+        // Arrays in C are wierd....
+        // Essentially, they might be treated as pointers, but are not really pointers.
+        // Since they are used in a subscript expr after this (else it would be the else case below)
+        // we return the pointer so that the subscript works
+        return ImmutableList.of(ValueAndSMGState.of(pointerValue, currentState));
 
       } else {
         // "Normal" return types

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -84,9 +85,10 @@ public class StateSimplifierTest {
 
     ConstraintsState constraintsState = getSampleConstraints();
 
-    simplifier.removeOutdatedConstraints(constraintsState, initialValueState);
+    ConstraintsState simplifiedState =
+        simplifier.removeOutdatedConstraints(constraintsState, initialValueState);
 
-    assertThat(constraintsState).isEmpty();
+    assertThat(simplifiedState).isEmpty();
   }
 
   @Test
@@ -98,9 +100,10 @@ public class StateSimplifierTest {
 
     ConstraintsState constraintsState = getSampleConstraints();
 
-    simplifier.removeOutdatedConstraints(constraintsState, valueState);
+    ConstraintsState simplifiedState =
+        simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    assertThat(group2ConstraintsExist(constraintsState)).isTrue();
+    assertThat(group2ConstraintsExist(simplifiedState)).isTrue();
   }
 
   private boolean group2ConstraintsExist(ConstraintsState pNewState) {
@@ -116,21 +119,17 @@ public class StateSimplifierTest {
     valueState.forget(group2MemLoc2);
     ConstraintsState constraintsState = getSampleConstraints();
 
-    simplifier.removeOutdatedConstraints(constraintsState, valueState);
+    ConstraintsState simplifiedState =
+        simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    assertThat(constraintsState).hasSize(1);
-    assertThat(constraintsState).contains(group2Constraint1);
+    assertThat(simplifiedState).hasSize(1);
+    assertThat(simplifiedState).contains(group2Constraint1);
   }
 
   private ConstraintsState getSampleConstraints() {
-    ConstraintsState state = new ConstraintsState();
-
-    state.add(group1Constraint1);
-    state.add(group1Constraint2);
-    state.add(group2Constraint1);
-    state.add(group2Constraint2);
-
-    return state;
+    return new ConstraintsState(
+        ImmutableSet.of(
+            group1Constraint1, group1Constraint2, group2Constraint1, group2Constraint2));
   }
 
   private ValueAnalysisState getCompleteValueState() {

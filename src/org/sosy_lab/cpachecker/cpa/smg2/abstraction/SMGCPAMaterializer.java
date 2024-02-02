@@ -52,28 +52,30 @@ public class SMGCPAMaterializer {
    *     (In the context of the new state valueTopointerToAbstractObject behaves the same!)
    * @throws SMGException in case of critical errors.
    */
-  public List<SMGValueAndSMGState> handleMaterilisation(
+  public List<SMGValueAndSMGState> handleMaterialisation(
       SMGValue valueTopointerToAbstractObject, SMGObject pAbstractObject, SMGState state)
       throws SMGException {
 
-    if (pAbstractObject instanceof SMGDoublyLinkedListSegment sllListSeg) {
-      if (sllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
-        // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
-        // gone
-        return handleZeroPlusDLS(sllListSeg, valueTopointerToAbstractObject, state);
-      } else {
-        return ImmutableList.of(materialiseDLLS(sllListSeg, valueTopointerToAbstractObject, state));
-      }
-    } else if (pAbstractObject instanceof SMGSinglyLinkedListSegment dllListSeg) {
+    if (pAbstractObject instanceof SMGDoublyLinkedListSegment dllListSeg) {
       if (dllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
         // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
         // gone
-        return handleZeroPlusSLS(dllListSeg, valueTopointerToAbstractObject, state);
+        return handleZeroPlusDLS(dllListSeg, valueTopointerToAbstractObject, state);
       } else {
-        return ImmutableList.of(materialiseSLLS(dllListSeg, valueTopointerToAbstractObject, state));
+        return ImmutableList.of(materialiseDLLS(dllListSeg, valueTopointerToAbstractObject, state));
+      }
+    } else if (pAbstractObject instanceof SMGSinglyLinkedListSegment sllListSeg) {
+      if (sllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
+        // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
+        // gone
+        return handleZeroPlusSLS(sllListSeg, valueTopointerToAbstractObject, state);
+      } else {
+        return ImmutableList.of(materialiseSLLS(sllListSeg, valueTopointerToAbstractObject, state));
       }
     }
-    throw new SMGException("The SMG failed to materialize a abstract list.");
+    throw new SMGException(
+        "The SMG failed to materialize a abstract list as the memory object handled was not"
+            + " abstracted to begin with.");
   }
 
   /*
