@@ -216,6 +216,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
+                  logger.log(Level.SEVERE, TestTargetProvider.getCoverageInfo());
                   TestTargetProvider.processTargetPath(cexInfo);
 
                   if (shouldReportCoveredErrorCallAsError()) {
