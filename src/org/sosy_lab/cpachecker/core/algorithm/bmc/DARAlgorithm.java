@@ -652,7 +652,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         Level.ALL, "Updated forward reachability vector:", pDualSequence.getForwardReachVector());
   }
 
-  /** This method is an exact copy of {@link IMCAlgorithm#getCurrentMaxLoopIterations} */
+  /** This method is an exact copy of IMCAlgorithm.getCurrentMaxLoopIterations() */
   private int getCurrentMaxLoopIterations() {
     return CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
   }
