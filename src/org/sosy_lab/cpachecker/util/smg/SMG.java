@@ -541,13 +541,14 @@ public class SMG {
           valuesToRegionsTheyAreSavedIn.putAndCopy(
               pOldValue, oldInnerMapOldV.putAndCopy(pSmgObject, oldNumOldV - 1));
     } else {
-      // remove the entry
-      PersistentMap<SMGObject, Integer> newInnerMap = oldInnerMapOldV.removeAndCopy(pSmgObject);
-      if (newInnerMap.isEmpty()) {
+      if (oldInnerMapOldV.size() == 1) {
+        // remove the entry
         newValuesToRegionsTheyAreSavedIn = valuesToRegionsTheyAreSavedIn.removeAndCopy(pOldValue);
       } else {
+        // remove the inner entry
         newValuesToRegionsTheyAreSavedIn =
-            valuesToRegionsTheyAreSavedIn.putAndCopy(pOldValue, newInnerMap);
+            valuesToRegionsTheyAreSavedIn.putAndCopy(
+                pOldValue, oldInnerMapOldV.removeAndCopy(pSmgObject));
       }
     }
     // Also decrement pointer tracking
@@ -600,13 +601,17 @@ public class SMG {
       newObjectsAndPointersPointingAtThem =
           objectsAndPointersPointingAtThem
               .removeAndCopy(target)
-              .putAndCopy(
-                  target, innerMap.removeAndCopy(pointer).putAndCopy(pointer, currentNum - 1));
+              .putAndCopy(target, innerMap.putAndCopy(pointer, currentNum - 1));
     } else {
-      newObjectsAndPointersPointingAtThem =
-          objectsAndPointersPointingAtThem
-              .removeAndCopy(target)
-              .putAndCopy(target, innerMap.removeAndCopy(pointer));
+      if (innerMap.size() == 1) {
+        // remove whole entry
+        newObjectsAndPointersPointingAtThem =
+            objectsAndPointersPointingAtThem.removeAndCopy(target);
+      } else {
+        // Remove only inner entry
+        newObjectsAndPointersPointingAtThem =
+            objectsAndPointersPointingAtThem.putAndCopy(target, innerMap.removeAndCopy(pointer));
+      }
     }
     return new SMG(
         smgObjects,
