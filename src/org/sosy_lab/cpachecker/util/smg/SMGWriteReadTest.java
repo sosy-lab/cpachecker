@@ -535,6 +535,76 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   /*
+   * Write a non-zero value into a big zero block and cut it in half, resulting in zero,
+   * non-zero, zero. Check that the value mapping and reverse map is correct.
+   * Expected: ZERO [0; 32), Value1 [32; 32), ZERO [64; 64), Value2 [128; 32), ZERO [160; 96)
+   */
+  @Test
+  public void writeValueInBigZeroBlockTest() {
+    SMGObject testObject = createRegion(BigInteger.valueOf(256));
+    smg = smg.copyAndAddObject(testObject);
+
+    // First write everything to 0, then value1 and value2
+    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
+    smg = smg.writeValue(testObject, BigInteger.valueOf(32), BigInteger.valueOf(32), value1);
+
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(SMGValue.zeroValue()).get(testObject))
+        .isEqualTo(2);
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(value1).get(testObject)).isEqualTo(1);
+
+    smg = smg.writeValue(testObject, BigInteger.valueOf(128), BigInteger.valueOf(32), value2);
+
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(SMGValue.zeroValue()).get(testObject))
+        .isEqualTo(3);
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(value1).get(testObject)).isEqualTo(1);
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(value2).get(testObject)).isEqualTo(1);
+
+    SMGHasValueEdge expectedZero1Edge =
+        new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(0), BigInteger.valueOf(32));
+
+    SMGHasValueEdge expectedValue1Edge =
+        new SMGHasValueEdge(value1, BigInteger.valueOf(32), BigInteger.valueOf(32));
+
+    SMGHasValueEdge expectedZero2Edge =
+        new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(64), BigInteger.valueOf(64));
+
+    SMGHasValueEdge expectedValue2Edge =
+        new SMGHasValueEdge(value2, BigInteger.valueOf(128), BigInteger.valueOf(32));
+
+    SMGHasValueEdge expectedZero3Edge =
+        new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(160), BigInteger.valueOf(96));
+
+    PersistentSet<SMGHasValueEdge> expectedEdges =
+        PersistentSet.of(expectedValue1Edge)
+            .addAndCopy(expectedValue2Edge)
+            .addAndCopy(expectedZero1Edge)
+            .addAndCopy(expectedZero2Edge)
+            .addAndCopy(expectedZero3Edge);
+
+    // Check that nothing changed for the points to edges
+    assertThat(smg.getPTEdges().toList())
+        .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
+    // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
+    assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
+    assertThat(smg.getValues())
+        .isEqualTo(
+            PersistentSet.of(SMGValue.zeroValue())
+                .addAndCopy(SMGValue.zeroDoubleValue())
+                .addAndCopy(SMGValue.zeroFloatValue())
+                .addAndCopy(value1)
+                .addAndCopy(value2));
+    assertThat(smg.getObjects())
+        .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
+    // Check that only the expected HVEdges exists for the object
+    assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
+
+    assertThat(smg.checkCorrectObjectsToPointersMap()).isTrue();
+    assertThat(smg.verifyPointsToEdgeSanity()).isTrue();
+    assertThat(smg.checkValueInConcreteMemorySanity()).isTrue();
+  }
+
+  /*
    * Write the region to 0, then value1 in the first half and value2 in the second half such that they do not overlapp.
    * After that write value3 right in the middle of then such that it overlapps just 1 Byte in each direction,
    * invalidating both fields of value1 and 2.

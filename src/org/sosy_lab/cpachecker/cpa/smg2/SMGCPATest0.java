@@ -210,6 +210,20 @@ public class SMGCPATest0 {
       prevObject = listSegment;
     }
     checkListDataIntegrity(pointerArray, dll);
+    // Save all pointers in objects to not confuse the internal SMG assertions
+    for (Value pointer : pointerArray) {
+      SMGObjectAndSMGState stackObjAndState = currentState.copyAndAddStackObject(pointerSizeInBits);
+      currentState = stackObjAndState.getState();
+      SMGObject dummyStackObject = stackObjAndState.getSMGObject();
+      currentState =
+          currentState.writeValueWithChecks(
+              dummyStackObject,
+              new NumericValue(BigInteger.ZERO),
+              pointerSizeInBits,
+              pointer,
+              null,
+              dummyCDAEdge);
+    }
     return pointerArray;
   }
 

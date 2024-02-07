@@ -794,6 +794,11 @@ public class SMGCPATransferRelationTest {
         assertThat(statesAfterDecl).hasSize(1);
         // We check the variable later
         SMGState stateAfterDecl = statesAfterDecl.get(0);
+        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkValueInConcreteMemorySanity())
+            .isTrue();
+        assertThat(stateAfterDecl.getMemoryModel().getSmg().verifyPointsToEdgeSanity()).isTrue();
+        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap())
+            .isTrue();
 
         CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
             new CFunctionCallAssignmentStatement(
@@ -838,6 +843,11 @@ public class SMGCPATransferRelationTest {
             // Non zero return
             SymbolicProgramConfiguration memoryModel =
                 statesListAfterMallocAssign.get(0).getMemoryModel();
+
+            assertThat(memoryModel.getSmg().checkValueInConcreteMemorySanity()).isTrue();
+            assertThat(memoryModel.getSmg().verifyPointsToEdgeSanity()).isTrue();
+            assertThat(memoryModel.getSmg().checkCorrectObjectsToPointersMap()).isTrue();
+
             assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
             SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
             List<ValueAndSMGState> readValueAndState =
@@ -925,6 +935,11 @@ public class SMGCPATransferRelationTest {
         assertThat(mallocObjectAndOffset.getSMGObject().getOffset()).isEqualTo(BigInteger.ZERO);
         assertThat(mallocObjectAndOffset.getOffsetForObject().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
+
+        assertThat(memoryModel.getSmg().checkValueInConcreteMemorySanity()).isTrue();
+        assertThat(memoryModel.getSmg().verifyPointsToEdgeSanity()).isTrue();
+        assertThat(memoryModel.getSmg().checkCorrectObjectsToPointersMap()).isTrue();
+
         // Read the SMGObject to make sure that there is no value written
         // TODO:
       }

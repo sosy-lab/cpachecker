@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.smg.join;
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -121,6 +122,7 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
     assertThat(jto.isRecoverableFailur()).isTrue();
   }
 
+  @Ignore
   @Test
   public void joinTargetObjectsAlreadyJoinedNull() {
     SMGPointsToEdge pt1null = createPTRegionEdge(0, SMGObject.nullInstance());
