@@ -30,7 +30,6 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -528,7 +527,6 @@ public class SMG {
    * @return a new SMG with valuesToRegionsTheyAreSavedIn and potentially
    *     objectsAndPointersPointingAtThem changed
    */
-  @Nonnull
   private SMG decrementValueToMemoryMapEntry(SMGObject pSmgObject, SMGValue pOldValue) {
     PersistentMap<SMGObject, Integer> oldInnerMapOldV =
         valuesToRegionsTheyAreSavedIn.getOrDefault(pOldValue, PathCopyingPersistentTreeMap.of());
@@ -569,7 +567,6 @@ public class SMG {
    * @param pNewValue the value added
    * @return a new SMG with the valuesToRegionsTheyAreSavedIn
    */
-  @Nonnull
   private SMG incrementValueToMemoryMapEntry(SMGObject pSmgObject, SMGValue pNewValue) {
     PersistentMap<SMGObject, Integer> oldInnerMapNewV =
         valuesToRegionsTheyAreSavedIn.getOrDefault(pNewValue, PathCopyingPersistentTreeMap.of());
@@ -723,7 +720,6 @@ public class SMG {
     return newSMG.of(newObjects, newHVEdges);
   }
 
-  @Nonnull
   private SMG decrementHVEdgesInValueToMemoryMap(SMGObject pObject) {
     SMG newValuesToRegionsTheyAreSavedIn = this;
     for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(pObject, PersistentSet.of())) {
@@ -1819,8 +1815,8 @@ public class SMG {
       PersistentMap<SMGValue, Integer> realPointersAndOcc = realTargetAndPointers.getValue();
       // now check the smg for this obj
       Map<SMGValue, Integer> pointersTowardsTarget = new HashMap<>();
-      for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry : hasValueEdges.entrySet()) {
-        for (SMGHasValueEdge hve : entry.getValue()) {
+      for (PersistentSet<SMGHasValueEdge> hves : hasValueEdges.values()) {
+        for (SMGHasValueEdge hve : hves) {
           SMGValue value = hve.hasValue();
           if (pointsToEdges.containsKey(value)
               && pointsToEdges.get(value).pointsTo().equals(target)) {
