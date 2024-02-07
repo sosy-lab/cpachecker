@@ -12,8 +12,7 @@ input_files: 'alloca_deref_safe.c'
 
 properties:
   - property_file: ../../../config/properties/valid-memsafety.prp
-    expected_verdict: false
-    subproperty: valid-deref
+    expected_verdict: true
 
 options:
   language: C

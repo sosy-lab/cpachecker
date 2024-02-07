@@ -9,17 +9,13 @@
 #include <assert.h>
 #include <alloca.h>
 
-int * fun() {
+int main() {
   int *ptr = 0;
+  {
   ptr = alloca(10*sizeof(int));
 
   *ptr = 5;
   assert(*ptr == 5);
-  return ptr;
-}
-
-int main() {
-  int *ptr = 0;
-  ptr = fun();
-  assert(*ptr == 5); // Unsafe, alloca cleans up after the function returns OR a longjmp was used that skipped over the return
+  }
+  assert(*ptr == 5); // Safe, alloca only cleans up after the function returns OR a longjmp was used that skipped over the return
 }
