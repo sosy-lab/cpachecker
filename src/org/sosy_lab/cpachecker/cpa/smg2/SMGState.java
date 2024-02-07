@@ -3554,6 +3554,7 @@ public class SMGState
    */
   public ValueAndSMGState createAndAddPointerWithNestingLevel(
       SMGObject target, BigInteger offsetInBits, int nestingLevel) {
+    Preconditions.checkArgument(nestingLevel >= 0);
     // search for existing pointer first and return if found
     Optional<SMGValue> maybeAddressValue =
         getMemoryModel()
@@ -3957,6 +3958,7 @@ public class SMGState
         || alreadyVisited.contains(maybeNext.orElseThrow())) {
       return this;
     }
+    assert this.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
     SMGObject nextObj = maybeNext.orElseThrow();
     // Values not equal, continue traverse
     if (!checkEqualValuesForTwoStatesWithExemptions(
@@ -4057,7 +4059,6 @@ public class SMGState
       // to the new Obj, as it already exists from the previous segment (same nesting level)
       // There can never be more than 1 pointer to a 0+, and that is the next pointer
       // Since we override the next pointer anyway, we can just ignore the pointer
-
       // Assert that it truly only points towards the 0+
       assert (currentState
               .getMemoryModel()
@@ -4072,7 +4073,7 @@ public class SMGState
           currentState.copyAndReplaceMemoryModel(
               currentState
                   .getMemoryModel()
-                  .removePointerFromSMGAndCopy(nextPointerFromRoot.getSMGValue()));
+                  .removeLastPointerFromSMGAndCopy(nextPointerFromRoot.getSMGValue()));
 
       // Switch all other pointers
       currentState =
@@ -4106,6 +4107,9 @@ public class SMGState
       assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
           == 0);
     }
+    assert currentState.getMemoryModel().getSmg().verifyPointsToEdgeSanity();
+    assert currentState.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
+    assert currentState.getMemoryModel().getSmg().checkValueInConcreteMemorySanity();
     return currentState.abstractIntoDLL(
         newDLL,
         nfo,
@@ -4212,6 +4216,9 @@ public class SMGState
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
 
     // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
+    assert currentState.getMemoryModel().getSmg().verifyPointsToEdgeSanity();
+    assert currentState.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
+    assert currentState.getMemoryModel().getSmg().checkValueInConcreteMemorySanity();
     return currentState.abstractIntoSLL(
         newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }

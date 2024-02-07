@@ -255,10 +255,12 @@ public class SMGCPAMaterializer {
     // Create a Value mapping for the new Value representing a pointer
     SMGValueAndSMGState newValuePointingToWardsAbstractListAndState =
         currentState.copyAndAddValue(newPointerValue);
+
     SMGValue newValuePointingToWardsAbstractList =
         newValuePointingToWardsAbstractListAndState
             .getSMGValue()
-            .withNestingLevelAndCopy(newAbsListSeg.getMinLength() - 1);
+            .withNestingLevelAndCopy(
+                Integer.max(newAbsListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH));
     currentState = newValuePointingToWardsAbstractListAndState.getSMGState();
 
     // Write the new value w pointer towards abstract region to new region
@@ -267,6 +269,9 @@ public class SMGCPAMaterializer {
             newConcreteRegion, nfo, pointerSize, newValuePointingToWardsAbstractList);
 
     assert checkPointersOfMaterializedSLL(newConcreteRegion, nfo, currentState);
+    assert currentState.getMemoryModel().getSmg().verifyPointsToEdgeSanity();
+    assert currentState.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
+    assert currentState.getMemoryModel().getSmg().checkValueInConcreteMemorySanity();
     // Note: valueOfPointerToAbstractObject is now pointing to the materialized object!
     return SMGValueAndSMGState.of(currentState, initialPointer);
   }
@@ -286,6 +291,10 @@ public class SMGCPAMaterializer {
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMGException("Error when materializing a DLL.");
     }
+
+    assert state.getMemoryModel().getSmg().verifyPointsToEdgeSanity();
+    assert state.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
+    assert state.getMemoryModel().getSmg().checkValueInConcreteMemorySanity();
 
     SMGValue initialPointer = pValueOfPointerToAbstractObject;
 
@@ -367,7 +376,8 @@ public class SMGCPAMaterializer {
     SMGValue newValuePointingToWardsAbstractList =
         newValuePointingToWardsAbstractListAndState
             .getSMGValue()
-            .withNestingLevelAndCopy(newAbsListSeg.getMinLength() - 1);
+            .withNestingLevelAndCopy(
+                Integer.max(newAbsListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH));
     currentState = newValuePointingToWardsAbstractListAndState.getSMGState();
 
     // Write the new value w pointer towards abstract region to new concrete region as next pointer
@@ -408,6 +418,10 @@ public class SMGCPAMaterializer {
       // Reset nesting level
       initialPointer = initialPointer.withNestingLevelAndCopy(0);
     }
+
+    assert currentState.getMemoryModel().getSmg().verifyPointsToEdgeSanity();
+    assert currentState.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
+    assert currentState.getMemoryModel().getSmg().checkValueInConcreteMemorySanity();
     return SMGValueAndSMGState.of(currentState, initialPointer);
   }
 

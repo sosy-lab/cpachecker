@@ -87,6 +87,10 @@ public class SMGCPAAbstractionManager {
     List<Set<SMGCandidate>> orderListCandidatesByNesting =
         orderListCandidatesByNestingAndListType(refinedCandidates);
 
+    assert currentState.getMemoryModel().getSmg().verifyPointsToEdgeSanity();
+    assert currentState.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
+    assert currentState.getMemoryModel().getSmg().checkValueInConcreteMemorySanity();
+
     // Abstract top level nesting first
     for (Set<SMGCandidate> candidates : orderListCandidatesByNesting) {
       for (SMGCandidate candidate : candidates) {

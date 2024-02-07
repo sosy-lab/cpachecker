@@ -674,6 +674,7 @@ public class SymbolicProgramConfiguration {
     for (String varName : frame.getVariables().keySet()) {
       newVariableToTypeMap = newVariableToTypeMap.removeAndCopy(varName);
     }
+    assert newSmg.checkValueInConcreteMemorySanity();
     return of(
         newSmg,
         globalVariableMapping,
@@ -746,7 +747,7 @@ public class SymbolicProgramConfiguration {
         unreachableObjects);
   }
 
-  // For tests
+  // For tests only
   public SymbolicProgramConfiguration replaceSMGValueNestingLevel(SMGValue value, int newLevel) {
     return copyAndReplaceSMG(smg.replaceSMGValueNestingLevel(value, newLevel));
   }
@@ -759,6 +760,7 @@ public class SymbolicProgramConfiguration {
    * @return a new SPC with the object and subSMG removed.
    */
   public SymbolicProgramConfiguration copyAndRemoveObjectAndAssociatedSubSMG(SMGObject object) {
+    // TODO: rework urgently
     Preconditions.checkArgument(object instanceof SMGSinglyLinkedListSegment);
     Preconditions.checkArgument(((SMGSinglyLinkedListSegment) object).getMinLength() == 0);
     SMGAndSMGObjects newSMGAndToRemoveObjects = smg.copyAndRemoveObjectAndSubSMG(object);
@@ -1189,6 +1191,7 @@ public class SymbolicProgramConfiguration {
       Preconditions.checkArgument(
           ((SMGSinglyLinkedListSegment) target).getMinLength() >= nestingLevel);
     }
+    Preconditions.checkArgument(nestingLevel >= 0);
     return spc.copyAndReplaceSMG(
         spc.getSmg()
             .copyAndAddPTEdge(pointsToEdge, smgAddress.withNestingLevelAndCopy(nestingLevel)));
@@ -1290,6 +1293,8 @@ public class SymbolicProgramConfiguration {
       newSPC = copyAndInvalidateExternalAllocation(pObject);
     }
     SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject);
+    assert newSMG.checkValueInConcreteMemorySanity();
+    assert newSMG.checkValueInConcreteMemorySanity();
     return newSPC.copyAndReplaceSMG(newSMG).copyAndRemoveNumericAddressAssumption(pObject);
   }
 
@@ -1559,11 +1564,11 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Removes the {@link SMGPointsToEdge} and {@link SMGValue} from the {@link SMG}. Caution when
-   * using this method, should only ever be applied to SMGValues that are no longer used.
+   * using this method, should only ever be applied to SMGValues that are no longer used!
    *
    * @return a new {@link SMG} with the {@link SMGValue} and its {@link SMGPointsToEdge} removed.
    */
-  public SymbolicProgramConfiguration removePointerFromSMGAndCopy(SMGValue value) {
+  public SymbolicProgramConfiguration removeLastPointerFromSMGAndCopy(SMGValue value) {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemovePointsToEdge(value).copyAndRemoveValue(value),
         globalVariableMapping,
@@ -1627,6 +1632,7 @@ public class SymbolicProgramConfiguration {
   }
 
   public Set<SMGObject> getAllSourcesForPointersPointingTowards(SMGObject target) {
+    // TODO: use valuesToRegionsTheyAreSavedIn
     return smg.getAllSourcesForPointersPointingTowards(target);
   }
 
