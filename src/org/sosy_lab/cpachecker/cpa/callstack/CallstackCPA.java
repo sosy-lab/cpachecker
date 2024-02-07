@@ -100,15 +100,13 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    switch (options.getDomainType()) {
-      case "FLAT":
-        return new FlatLatticeDomain();
-      case "FLATPCC":
-        return new CallstackPCCAbstractDomain();
-      default:
-        // InvalidCongifurationException already thrown by ConfigurationOption due to values-field
-        throw new AssertionError("Unknown domain type for callstack cpa.");
-    }
+    return switch (options.getDomainType()) {
+      case "FLAT" -> new FlatLatticeDomain();
+      case "FLATPCC" -> new CallstackPCCAbstractDomain();
+      default -> // InvalidCongifurationException already thrown by ConfigurationOption due to
+          // values-field
+          throw new AssertionError("Unknown domain type for callstack cpa.");
+    };
   }
 
   @Override

@@ -15,17 +15,32 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 
 public abstract class TestValue {
 
-  private final ImmutableList<AAstNode> auxiliaryStatements;
+  /**
+   * Statements that must be added to the code before the test value is used, so that the test value
+   * is well-defined.
+   *
+   * @param code required code. Must be compilable (e.g., statements must end with a ';' when
+   *     required).
+   */
+  public record AuxiliaryCode(String code) {
+    public AuxiliaryCode {
+      if (code == null || code.isBlank()) {
+        throw new IllegalArgumentException("No valid code given: \"" + code + "\"");
+      }
+    }
+  }
+
+  private final ImmutableList<AuxiliaryCode> auxiliaryCodes;
 
   private final AAstNode value;
 
-  protected TestValue(ImmutableList<AAstNode> pAuxiliaryStatements, AAstNode pValue) {
-    auxiliaryStatements = pAuxiliaryStatements;
+  protected TestValue(ImmutableList<AuxiliaryCode> pAuxiliaryCodes, AAstNode pValue) {
+    auxiliaryCodes = pAuxiliaryCodes;
     value = pValue;
   }
 
-  public List<AAstNode> getAuxiliaryStatements() {
-    return auxiliaryStatements;
+  public List<AuxiliaryCode> getAuxiliaryCode() {
+    return auxiliaryCodes;
   }
 
   public AAstNode getValue() {
@@ -39,7 +54,7 @@ public abstract class TestValue {
 
   @Override
   public int hashCode() {
-    return Objects.hash(auxiliaryStatements, value);
+    return Objects.hash(auxiliaryCodes, value);
   }
 
   @Override
@@ -49,6 +64,6 @@ public abstract class TestValue {
     }
     return pObj instanceof TestValue other
         && value.equals(other.value)
-        && auxiliaryStatements.equals(other.auxiliaryStatements);
+        && auxiliaryCodes.equals(other.auxiliaryCodes);
   }
 }

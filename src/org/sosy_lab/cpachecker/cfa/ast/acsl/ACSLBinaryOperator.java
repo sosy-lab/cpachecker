@@ -40,78 +40,38 @@ public enum ACSLBinaryOperator {
   }
 
   public static boolean isComparisonOperator(ACSLBinaryOperator op) {
-    switch (op) {
-      case EQ:
-      case NEQ:
-      case LEQ:
-      case GEQ:
-      case LT:
-      case GT:
-        return true;
-      default:
-        return false;
-    }
+    return switch (op) {
+      case EQ, NEQ, LEQ, GEQ, LT, GT -> true;
+      default -> false;
+    };
   }
 
   public static boolean isLogicalOperator(ACSLBinaryOperator op) {
-    switch (op) {
-      case AND:
-      case OR:
-      case IMP:
-      case EQV:
-      case XOR:
-        return true;
-      default:
-        return false;
-    }
+    return switch (op) {
+      case AND, OR, IMP, EQV, XOR -> true;
+      default -> false;
+    };
   }
 
   public static boolean isBitwiseOperator(ACSLBinaryOperator op) {
-    switch (op) {
-      case BAND:
-      case BOR:
-      case BIMP:
-      case BEQV:
-      case BXOR:
-        return true;
-      default:
-        return false;
-    }
+    return switch (op) {
+      case BAND, BOR, BIMP, BEQV, BXOR -> true;
+      default -> false;
+    };
   }
 
   public static boolean isArithmeticOperator(ACSLBinaryOperator op) {
-    switch (op) {
-      case PLUS:
-      case MINUS:
-      case TIMES:
-      case DIVIDE:
-      case MOD:
-      case LSHIFT:
-      case RSHIFT:
-        return true;
-      default:
-        return false;
-    }
+    return switch (op) {
+      case PLUS, MINUS, TIMES, DIVIDE, MOD, LSHIFT, RSHIFT -> true;
+      default -> false;
+    };
   }
 
   public static boolean isCommutative(ACSLBinaryOperator op) {
-    switch (op) {
-      case EQ:
-      case NEQ:
-      case AND:
-      case OR:
-      case EQV:
-      case XOR:
-      case BAND:
-      case BOR:
-      case BEQV:
-      case BXOR:
-      case PLUS:
-      case TIMES:
-        return true;
-      default:
-        return false;
-    }
+    return switch (op) {
+      case EQ, NEQ, AND, OR, EQV, XOR, BAND, BOR, BEQV, BXOR, PLUS, TIMES -> true;
+      default -> false;
+    };
   }
 
   @Override

@@ -78,17 +78,12 @@ public class LockCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
-    switch (analysisMode) {
-      case RACE:
-        return new LockState();
-
-      case DEADLOCK:
-        return new DeadLockState();
-
-      default:
-        // The analysis should fail at CPA creation
-        throw new UnsupportedOperationException("Unsupported analysis mode");
-    }
+    return switch (analysisMode) {
+      case RACE -> new LockState();
+      case DEADLOCK -> new DeadLockState();
+      default -> // The analysis should fail at CPA creation
+          throw new UnsupportedOperationException("Unsupported analysis mode");
+    };
   }
 
   @Override
@@ -103,32 +98,22 @@ public class LockCPA extends AbstractCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-
-      case "JOIN":
-        return new MergeJoinOperator(getAbstractDomain());
-
-      default:
-        // The analysis should fail at CPA creation
-        throw new UnsupportedOperationException("Unsupported merge type");
-    }
+    return switch (mergeType) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "JOIN" -> new MergeJoinOperator(getAbstractDomain());
+      default -> // The analysis should fail at CPA creation
+          throw new UnsupportedOperationException("Unsupported merge type");
+    };
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopMode) {
-      case DEFAULT:
-        return buildStopOperator("SEP");
-
-      case EMPTYLOCKSET:
-        return new LockStopOperator();
-
-      default:
-        // The analysis should fail at CPA creation
-        throw new UnsupportedOperationException("Unsupported stop mode");
-    }
+    return switch (stopMode) {
+      case DEFAULT -> buildStopOperator("SEP");
+      case EMPTYLOCKSET -> new LockStopOperator();
+      default -> // The analysis should fail at CPA creation
+          throw new UnsupportedOperationException("Unsupported stop mode");
+    };
   }
 
   @Override

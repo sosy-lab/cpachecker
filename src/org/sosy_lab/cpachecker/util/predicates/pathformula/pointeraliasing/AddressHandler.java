@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.util.Optional;
 import java.util.OptionalLong;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -27,14 +29,20 @@ final class AddressHandler {
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
+  private final CFAEdge edge;
+  private final String function;
   private final SSAMapBuilder ssa;
+  private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
   private final MemoryRegionManager regionMgr;
 
   AddressHandler(
       CToFormulaConverterWithPointerAliasing pConv,
+      CFAEdge pEdge,
+      String pFunction,
       SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
       Constraints pConstraints,
       ErrorConditions pErrorConditions,
       MemoryRegionManager pRegionMgr) {
@@ -42,7 +50,10 @@ final class AddressHandler {
 
     typeHandler = pConv.typeHandler;
 
+    edge = pEdge;
+    function = pFunction;
     ssa = pSsa;
+    pts = pPts;
     constraints = pConstraints;
     errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
@@ -94,7 +105,8 @@ final class AddressHandler {
       final Expression base,
       final boolean directAddress,
       final CType elementType,
-      final Formula subscript) {
+      final Formula subscript)
+      throws UnrecognizedCodeException {
     AliasedLocation dereferencedBase = applyDereference(baseType, base, directAddress);
     return applySubscriptOffsetToDereferencedBase(dereferencedBase, elementType, subscript);
   }
@@ -108,13 +120,14 @@ final class AddressHandler {
    * @return An aliased location with the applied subscript offset.
    */
   AliasedLocation applySubscriptOffsetToDereferencedBase(
-      final AliasedLocation dereferencedBase, final CType elementType, final Formula subscript) {
+      final AliasedLocation dereferencedBase, final CType elementType, final Formula subscript)
+      throws UnrecognizedCodeException {
 
     // perform pointer arithmetic, we have array[base] and want array[base + i]
     // the subscript must be multiplied by the sizeof the element type
     final Formula dereferencedBaseAddress = dereferencedBase.getAddress();
     final Formula sizeOfElement =
-        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
+        conv.getSizeExpression(elementType, edge, function, ssa, pts, constraints, errorConditions);
     final Formula adjustedAddress =
         conv.fmgr.makePlus(
             dereferencedBaseAddress, conv.fmgr.makeMultiply(sizeOfElement, subscript));
@@ -205,8 +218,9 @@ final class AddressHandler {
             conv.makeDereference(
                 type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
       }
-      case UNALIASED_LOCATION -> Optional.of(
-          conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
+      case UNALIASED_LOCATION ->
+          Optional.of(
+              conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
       case DET_VALUE -> Optional.of(expression.asValue().getValue());
       case NONDET -> Optional.empty();
     };

@@ -9,6 +9,8 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <FindBugsFilter>
+    <!-- Exceptions from constructors are not really a problem because we do not use finalizers -->
+    <Match><Bug pattern="CT_CONSTRUCTOR_THROW"/></Match>
     <!-- These checks are too pessimistic: https://github.com/spotbugs/spotbugs/issues/1601 -->
     <Match><Bug pattern="EI_EXPOSE_REP"/></Match>
     <Match><Bug pattern="EI_EXPOSE_REP2"/></Match>

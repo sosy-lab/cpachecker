@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
@@ -1600,7 +1601,10 @@ public class AutomatonGraphmlParser {
           properties.add(getProperty(prop));
         } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
           logger.logf(
-              Level.WARNING, "Cannot map specification %s to property type. Will ignore it.", prop);
+              Level.WARNING,
+              "Cannot map specification %s to property type. Will ignore it (would only be"
+                  + " problematic if this were the termination property).",
+              prop);
         }
       }
       return properties.build();
@@ -1959,9 +1963,9 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
+  public static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
+    public TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
       super(pBuilder);
     }
 
@@ -2026,7 +2030,7 @@ public class AutomatonGraphmlParser {
       return transitions;
     }
 
-    public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
+    public ImmutableSet<NodeFlag> getNodeFlags(Element pStateNode) {
       EnumSet<NodeFlag> result = EnumSet.noneOf(NodeFlag.class);
 
       NodeList dataChilds = pStateNode.getElementsByTagName(GraphMLTag.DATA.toString());
@@ -2041,7 +2045,7 @@ public class AutomatonGraphmlParser {
         }
       }
 
-      return result;
+      return Sets.immutableEnumSet(result);
     }
 
     private static String getAttributeValue(Node of, String attributeName, String exceptionMessage)

@@ -75,6 +75,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -580,6 +582,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       nonIntAddVars.add(varName);
     }
 
+    handleType(edge, vdecl.getType(), varName);
+
     final CInitializer initializer = vdecl.getInitializer();
 
     if (!(initializer instanceof CInitializerExpression)) {
@@ -746,6 +750,13 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     }
   }
 
+  /** handle expressions contained in types */
+  private void handleType(CFAEdge edge, CType type, String varName) {
+    for (CExpression exp : CTypes.getArrayLengthExpressions(type)) {
+      handleExpression(edge, exp, varName);
+    }
+  }
+
   /** evaluates an expression and adds containing vars to the sets. */
   private void handleExpression(CFAEdge edge, CExpression exp, String varName) {
     handleExpression(edge, exp, varName, 0);
@@ -819,12 +830,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       if (value == null) {
         return null;
       }
-      switch (unExp.getOperator()) {
-        case MINUS:
-          return value.negate();
-        default:
-          return null;
-      }
+      return switch (unExp.getOperator()) {
+        case MINUS -> value.negate();
+        default -> null;
+      };
 
     } else if (exp instanceof CCastExpression) {
       return getNumber(((CCastExpression) exp).getOperand());

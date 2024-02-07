@@ -46,6 +46,9 @@ final class CollectingLHSVisitor
         r.getFirst(),
         r.getSecond()
             .withDependencies(
+                e.getArrayExpression()
+                    .accept(CollectingRHSVisitor.create(cfa, VariableOrField.unknown())))
+            .withDependencies(
                 e.getSubscriptExpression().accept(CollectingRHSVisitor.create(cfa, r.getFirst()))));
   }
 

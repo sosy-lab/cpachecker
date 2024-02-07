@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -19,17 +18,17 @@ class GraphMLState {
 
   private final String id;
 
-  private final Set<String> invariants;
+  private final ImmutableSet<String> invariants;
 
   private final Optional<String> explicitInvariantScope;
 
-  private final EnumSet<NodeFlag> flags;
+  private final ImmutableSet<NodeFlag> flags;
 
   public GraphMLState(
       String pId,
       Set<String> pInvariants,
       Optional<String> pExplicitInvariantScope,
-      EnumSet<NodeFlag> pFlags) {
+      ImmutableSet<NodeFlag> pFlags) {
     id = Objects.requireNonNull(pId);
     invariants = ImmutableSet.copyOf(pInvariants);
     explicitInvariantScope = Objects.requireNonNull(pExplicitInvariantScope);

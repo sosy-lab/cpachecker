@@ -121,14 +121,11 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (merge) {
-      case "sep":
-        return MergeSepOperator.getInstance();
-      case "join":
-        return new MergeJoinOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unexpected operator: " + merge);
-    }
+    return switch (merge) {
+      case "sep" -> MergeSepOperator.getInstance();
+      case "join" -> new MergeJoinOperator(getAbstractDomain());
+      default -> throw new AssertionError("unexpected operator: " + merge);
+    };
   }
 
   @Override

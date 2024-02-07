@@ -35,6 +35,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -55,6 +56,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -446,7 +449,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
   }
 
-  private Formula getSizeExpression(
+  Formula getSizeExpression(
       final CType type,
       final CFAEdge edge,
       final String function,
@@ -455,25 +458,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
-    if (type instanceof CArrayType arrayType) {
-      Formula elementSize =
-          getSizeExpression(
-              arrayType.getType(), edge, function, ssa, pts, constraints, errorConditions);
 
-      Formula elementCount =
-          buildTerm(arrayType.getLength(), edge, function, ssa, pts, constraints, errorConditions);
-      elementCount =
-          makeCast(
-              arrayType.getLength().getExpressionType(),
-              CPointerType.POINTER_TO_VOID,
-              elementCount,
-              constraints,
-              edge);
-
-      return fmgr.makeMultiply(elementSize, elementCount);
-
+    if (type.hasKnownConstantSize()) {
+      // shortcut for common case instead of using visitor in else branch
+      return fmgr.makeNumber(voidPointerFormulaType, typeHandler.getExactSizeof(type));
     } else {
-      return fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(type));
+      return buildTerm(
+          new CTypeIdExpression(
+              FileLocation.DUMMY, CNumericTypes.SIZE_T, TypeIdOperator.SIZEOF, type),
+          edge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
     }
   }
 
@@ -564,7 +562,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         } else if (lhsType instanceof CPointerType) {
           // TODO someone has to check if length must be fixed to string size here if yes replace
           // with stringExp.tranformTypeToArrayType
-          lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
+          lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType());
         } else {
           throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }
@@ -1032,7 +1030,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       forceArrayAttachment =
           rhs instanceof CStringLiteralExpression
               && lhsType instanceof CArrayType lhsArrayType
-              && options.handleStringLiteralInitializers();
+              && !options.handleStringLiteralInitializers();
     } else {
       forceArrayAttachment = false;
     }
@@ -1149,7 +1147,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler =
-          new DynamicMemoryHandler(this, edge, ssa, pts, constraints, errorConditions, regionMgr);
+          new DynamicMemoryHandler(
+              this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       memoryHandler.handleDeferredAllocationsInAssume(e, ev.getLearnedPointerTypes());
     }
 
@@ -1253,7 +1252,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (options.revealAllocationTypeFromLHS() || options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler =
           new DynamicMemoryHandler(
-              this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
+              this, summaryEdge, calledFunction, ssa, pts, constraints, errorConditions, regionMgr);
       memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
     }
 
@@ -1334,7 +1333,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
-    return super.makeVariable(pName, pType, pSsa);
+    return super.makeVariable(pName, typeHandler.simplifyType(pType), pSsa);
   }
 
   /** {@inheritDoc} */
@@ -1445,18 +1444,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
     }
     return super.makeFreshIndex(pName, pType, pSsa);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected long getSizeof(CType pType) {
-    return super.getSizeof(pType);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected long getBitSizeof(CType pType) {
-    return super.getBitSizeof(pType);
   }
 
   /**

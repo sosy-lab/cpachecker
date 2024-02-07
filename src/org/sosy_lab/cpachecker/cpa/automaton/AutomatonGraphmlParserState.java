@@ -215,11 +215,11 @@ public class AutomatonGraphmlParserState {
   }
 
   /**
-   * Gets the specification types.
+   * Gets the specification types that could be determined.
    *
    * @return the specification types.
    */
-  public ImmutableSet<Property> getSpecificationTypes() {
+  protected ImmutableSet<Property> getSpecificationTypes() {
     return specificationTypes;
   }
 

@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class OverflowTransferRelation extends SingleEdgeTransferRelation {
 
@@ -46,30 +47,17 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
-    boolean nextHasOverflow = prev.nextHasOverflow();
-    int leavingEdgesOfNextState = cfaEdge.getSuccessor().getNumLeavingEdges();
-    Set<CExpression> assumptions;
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
-    if (leavingEdgesOfNextState == 0) {
-      return ImmutableList.of(new OverflowState(ImmutableSet.of(), nextHasOverflow, prev));
-    }
-
-    for (int i = 0; i < leavingEdgesOfNextState; i++) {
-      assumptions =
-          noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
-
-      if (assumptions.isEmpty()) {
-        outStates.add(new OverflowState(ImmutableSet.of(), nextHasOverflow, prev));
-        continue;
-      }
+    for (CFAEdge nextEdge : CFAUtils.leavingEdges(cfaEdge.getSuccessor())) {
+      Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(nextEdge);
 
       for (CExpression assumption : assumptions) {
         outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, prev));
       }
 
       // No overflows <=> all assumptions hold.
-      outStates.add(new OverflowState(assumptions, nextHasOverflow, prev));
+      outStates.add(new OverflowState(assumptions, prev.nextHasOverflow(), prev));
     }
 
     return outStates.build();

@@ -151,7 +151,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
     int result = 1;
     result = prime * result + Objects.hashCode(variableBindingRelation);
     result = prime * result + Objects.hashCode(recentUsages);
-    result = prime * result + super.hashCode();
+    result = prime * result + getWrappedState().hashCode();
     return result;
   }
 

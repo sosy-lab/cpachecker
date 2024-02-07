@@ -267,15 +267,11 @@ public class SMGMemoryPathCollector {
       Integer pLocationOnStack,
       SMGMemoryPath pParent) {
 
-    switch (pPos) {
-      case GLOBAL:
-        return SMGMemoryPath.valueOf(pVariableName, pOffset);
-      case STACK:
-        return SMGMemoryPath.valueOf(pVariableName, pFunctionName, pOffset, pLocationOnStack);
-      case HEAP:
-        return SMGMemoryPath.valueOf(pParent, pOffset);
-      default:
-        throw new AssertionError();
-    }
+    return switch (pPos) {
+      case GLOBAL -> SMGMemoryPath.valueOf(pVariableName, pOffset);
+      case STACK -> SMGMemoryPath.valueOf(pVariableName, pFunctionName, pOffset, pLocationOnStack);
+      case HEAP -> SMGMemoryPath.valueOf(pParent, pOffset);
+      default -> throw new AssertionError();
+    };
   }
 }

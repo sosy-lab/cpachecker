@@ -11,11 +11,10 @@ package org.sosy_lab.cpachecker.util;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -71,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -105,12 +105,11 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
   @Option(description = "Check for unsigned integer overflows", secure = true)
   private boolean checkUnsigned = false;
 
-  private final Map<CType, CLiteralExpression> upperBounds;
-  private final Map<CType, CLiteralExpression> lowerBounds;
-  private final Map<CType, CLiteralExpression> width;
+  private final ImmutableMap<CType, CLiteralExpression> upperBounds;
+  private final ImmutableMap<CType, CLiteralExpression> lowerBounds;
+  private final ImmutableMap<CType, CLiteralExpression> width;
   private final OverflowAssumptionManager ofmgr;
   private final ExpressionSimplificationVisitor simplificationVisitor;
-  private final MachineModel machineModel;
   private final Optional<LiveVariables> liveVariables;
   private final LogManager logger;
 
@@ -129,35 +128,79 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     pConfiguration.inject(this);
     this.logger = logger;
     liveVariables = pLiveVariables;
-    machineModel = pMachineModel;
     if (useLiveness) {
       Preconditions.checkState(
           liveVariables.isPresent(), "Liveness information is required for overflow analysis.");
     }
 
-    upperBounds = new HashMap<>();
-    lowerBounds = new HashMap<>();
-    width = new HashMap<>();
+    ImmutableMap.Builder<CType, CLiteralExpression> upperBoundsBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<CType, CLiteralExpression> lowerBoundsBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<CType, CLiteralExpression> widthBuilder = ImmutableMap.builder();
 
     // TODO: find out if the bare types even occur, or if they are always converted to the SIGNED
     // variants. In that case we could remove the lines with types without the SIGNED_ prefix
     // (though this should really make no difference in performance).
-    trackType(CNumericTypes.INT);
-    trackType(CNumericTypes.SIGNED_INT);
-    trackType(CNumericTypes.LONG_INT);
-    trackType(CNumericTypes.SIGNED_LONG_INT);
-    trackType(CNumericTypes.LONG_LONG_INT);
-    trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
+    trackType(
+        CNumericTypes.INT, pMachineModel, upperBoundsBuilder, lowerBoundsBuilder, widthBuilder);
+    trackType(
+        CNumericTypes.SIGNED_INT,
+        pMachineModel,
+        upperBoundsBuilder,
+        lowerBoundsBuilder,
+        widthBuilder);
+    trackType(
+        CNumericTypes.LONG_INT,
+        pMachineModel,
+        upperBoundsBuilder,
+        lowerBoundsBuilder,
+        widthBuilder);
+    trackType(
+        CNumericTypes.SIGNED_LONG_INT,
+        pMachineModel,
+        upperBoundsBuilder,
+        lowerBoundsBuilder,
+        widthBuilder);
+    trackType(
+        CNumericTypes.LONG_LONG_INT,
+        pMachineModel,
+        upperBoundsBuilder,
+        lowerBoundsBuilder,
+        widthBuilder);
+    trackType(
+        CNumericTypes.SIGNED_LONG_LONG_INT,
+        pMachineModel,
+        upperBoundsBuilder,
+        lowerBoundsBuilder,
+        widthBuilder);
 
     if (checkUnsigned) {
-      trackType(CNumericTypes.UNSIGNED_INT);
-      trackType(CNumericTypes.UNSIGNED_LONG_INT);
-      trackType(CNumericTypes.UNSIGNED_LONG_LONG_INT);
+      trackType(
+          CNumericTypes.UNSIGNED_INT,
+          pMachineModel,
+          upperBoundsBuilder,
+          lowerBoundsBuilder,
+          widthBuilder);
+      trackType(
+          CNumericTypes.UNSIGNED_LONG_INT,
+          pMachineModel,
+          upperBoundsBuilder,
+          lowerBoundsBuilder,
+          widthBuilder);
+      trackType(
+          CNumericTypes.UNSIGNED_LONG_LONG_INT,
+          pMachineModel,
+          upperBoundsBuilder,
+          lowerBoundsBuilder,
+          widthBuilder);
     }
 
-    ofmgr = new OverflowAssumptionManager(machineModel, logger);
+    upperBounds = upperBoundsBuilder.buildOrThrow();
+    lowerBounds = lowerBoundsBuilder.buildOrThrow();
+    width = widthBuilder.buildOrThrow();
+
+    ofmgr = new OverflowAssumptionManager(pMachineModel, logger);
     simplificationVisitor =
-        new ExpressionSimplificationVisitor(machineModel, new LogManagerWithoutDuplicates(logger));
+        new ExpressionSimplificationVisitor(pMachineModel, new LogManagerWithoutDuplicates(logger));
   }
 
   /**
@@ -221,7 +264,12 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     return ImmutableSet.copyOf(result);
   }
 
-  private void trackType(CSimpleType type) {
+  private static void trackType(
+      CSimpleType type,
+      MachineModel machineModel,
+      ImmutableMap.Builder<CType, CLiteralExpression> upperBoundsBuilder,
+      ImmutableMap.Builder<CType, CLiteralExpression> lowerBoundsBuilder,
+      ImmutableMap.Builder<CType, CLiteralExpression> widthBoundsBuilder) {
     CIntegerLiteralExpression typeMinValue =
         new CIntegerLiteralExpression(
             FileLocation.DUMMY, type, machineModel.getMinimalIntegerValue(type));
@@ -234,9 +282,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
             type,
             OverflowAssumptionManager.getWidthForMaxOf(machineModel.getMaximalIntegerValue(type)));
 
-    upperBounds.put(type, typeMaxValue);
-    lowerBounds.put(type, typeMinValue);
-    width.put(type, typeWidth);
+    upperBoundsBuilder.put(type, typeMaxValue);
+    lowerBoundsBuilder.put(type, typeMinValue);
+    widthBoundsBuilder.put(type, typeWidth);
   }
 
   /**
@@ -261,7 +309,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     if (isBinaryExpressionThatMayOverflow(exp)) {
       CBinaryExpression binexp = (CBinaryExpression) exp;
       BinaryOperator binop = binexp.getOperator();
-      CType calculationType = binexp.getCalculationType();
+      CType calculationType = CTypes.copyDequalified(binexp.getCalculationType());
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
       if (trackAdditiveOperations
@@ -289,7 +337,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
         }
       }
     } else if (exp instanceof CUnaryExpression) {
-      CType calculationType = exp.getExpressionType();
+      CType calculationType = CTypes.copyDequalified(exp.getExpressionType());
       CUnaryExpression unaryexp = (CUnaryExpression) exp;
       if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
           && lowerBounds.get(calculationType) != null) {
@@ -500,12 +548,10 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
           return false;
       }
     } else if (expr instanceof CUnaryExpression) {
-      switch (((CUnaryExpression) expr).getOperator()) {
-        case MINUS:
-          return true;
-        default:
-          return false;
-      }
+      return switch (((CUnaryExpression) expr).getOperator()) {
+        case MINUS -> true;
+        default -> false;
+      };
     }
     return false;
   }

@@ -223,8 +223,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     pfbFactory =
         switch (pathFormulaBuilderVariant) {
           case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
-          case SYMBOLICLOCATIONS -> new SymbolicLocationPathFormulaBuilder.Factory(
-              new CBinaryExpressionBuilder(pMachineModel, pLogger));
+          case SYMBOLICLOCATIONS ->
+              new SymbolicLocationPathFormulaBuilder.Factory(
+                  new CBinaryExpressionBuilder(pMachineModel, pLogger));
         };
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);

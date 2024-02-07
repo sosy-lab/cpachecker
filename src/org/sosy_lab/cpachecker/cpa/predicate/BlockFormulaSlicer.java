@@ -325,11 +325,11 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
             // a = b + c;
           case StatementEdge -> handleStatement((CStatementEdge) edge, importantVars);
             // return (x);
-          case ReturnStatementEdge -> handleReturnStatement(
-              (CReturnStatementEdge) edge, importantVars);
+          case ReturnStatementEdge ->
+              handleReturnStatement((CReturnStatementEdge) edge, importantVars);
             // assignment from y = f(x);
-          case FunctionReturnEdge -> handleFunctionReturn(
-              (CFunctionReturnEdge) edge, importantVars);
+          case FunctionReturnEdge ->
+              handleFunctionReturn((CFunctionReturnEdge) edge, importantVars);
             // call from y = f(x);
           case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) edge, importantVars);
           case BlankEdge -> IS_BLANK_EDGE_IMPORTANT;

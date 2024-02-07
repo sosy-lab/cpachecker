@@ -37,26 +37,14 @@ public final class CDefaults {
 
     } else if (type instanceof CSimpleType) {
       CBasicType basicType = ((CSimpleType) type).getType();
-      switch (basicType) {
-        case CHAR:
-          return initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
-
-        case DOUBLE:
-        case FLOAT128:
-        case FLOAT:
-          return initializerFor(
-              new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO), fileLoc);
-
-        case UNSPECIFIED:
-        case BOOL:
-        case INT128:
-        case INT:
-          return initializerFor(
-              new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
-
-        default:
-          throw new AssertionError("Unknown basic type '" + basicType + "'");
-      }
+      return switch (basicType) {
+        case CHAR -> initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
+        case DOUBLE, FLOAT128, FLOAT ->
+            initializerFor(new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO), fileLoc);
+        case UNSPECIFIED, BOOL, INT128, INT ->
+            initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
+        default -> throw new AssertionError("Unknown basic type '" + basicType + "'");
+      };
 
     } else if (type instanceof CEnumType) {
       // enum declaration: enum e { ... } var;

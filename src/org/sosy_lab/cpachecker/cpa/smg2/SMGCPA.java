@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -57,11 +58,11 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
-import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGConcreteErrorPathAllocator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -110,7 +111,7 @@ public class SMGCPA
   private final MachineModel machineModel;
   private final BlockOperator blockOperator;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final Configuration config;
   private final CFA cfa;
   private final SMGOptions options;
@@ -128,10 +129,12 @@ public class SMGCPA
 
   private final SMGCPAStatistics statistics;
 
-  private final SMGConstraintsSolver constraintsSolver;
+  private final ConstraintsSolver constraintsSolver;
   private final Solver solver;
 
   private final ConstraintsStatistics contraintsStats = new ConstraintsStatistics();
+
+  private final SMGCPAExpressionEvaluator evaluator;
 
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
@@ -142,7 +145,7 @@ public class SMGCPA
     config = pConfig;
     cfa = pCfa;
     machineModel = cfa.getMachineModel();
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     precision = initializePrecision(config, cfa);
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
@@ -159,13 +162,16 @@ public class SMGCPA
     exportOptions =
         new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
 
-    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    solver = Solver.create(pConfig, logger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     CtoFormulaConverter converter =
         initializeCToFormulaConverter(
-            formulaManager, pLogger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
+            formulaManager, logger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
     constraintsSolver =
-        new SMGConstraintsSolver(solver, formulaManager, converter, contraintsStats, options);
+        new ConstraintsSolver(pConfig, solver, formulaManager, converter, contraintsStats);
+    evaluator =
+        new SMGCPAExpressionEvaluator(
+            machineModel, logger, exportOptions, options, constraintsSolver);
   }
 
   public static CPAFactory factory() {
@@ -211,42 +217,36 @@ public class SMGCPA
         cfa,
         constraintsStrengthenOperator,
         statistics,
-        constraintsSolver);
+        constraintsSolver,
+        evaluator);
   }
 
-  public SMGConstraintsSolver getSolver() {
+  public ConstraintsSolver getSolver() {
     return constraintsSolver;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "JOIN":
-        return new MergeJoinOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unknown mergetype for SMGCPA");
-    }
+    return switch (mergeType) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "JOIN" -> new MergeJoinOperator(getAbstractDomain());
+      default -> throw new AssertionError("unknown mergetype for SMGCPA");
+    };
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopType) {
-        // TODO END_BLOCK
-      case "NEVER":
-        return StopNeverOperator.getInstance();
-      case "SEP":
-        return new StopSepOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unknown stoptype for SMGCPA");
-    }
+    return switch (stopType) {
+      case "NEVER" -> StopNeverOperator.getInstance();
+      case "SEP" -> new StopSepOperator(getAbstractDomain());
+      default -> throw new AssertionError("unknown stoptype for SMGCPA");
+    };
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    SMGState initState = SMGState.of(machineModel, logger, options, cfa);
+    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator);
     return initState;
   }
 
@@ -261,7 +261,7 @@ public class SMGCPA
         statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
   }
 
-  public LogManager getLogger() {
+  public LogManagerWithoutDuplicates getLogger() {
     return logger;
   }
 
@@ -357,7 +357,7 @@ public class SMGCPA
   }
 
   // Can only be called after machineModel and formulaManager are set
-  private CtoFormulaConverter initializeCToFormulaConverter(
+  protected CtoFormulaConverter initializeCToFormulaConverter(
       FormulaManagerView pFormulaManager,
       LogManager pLogger,
       Configuration pConfig,
@@ -379,5 +379,9 @@ public class SMGCPA
         pShutdownNotifier,
         typeHandler,
         AnalysisDirection.FORWARD);
+  }
+
+  public SMGCPAExpressionEvaluator getEvaluator() {
+    return evaluator;
   }
 }
