@@ -656,7 +656,7 @@ class PointerTargetSetManager {
 
     final long typeSize =
         pType != null && pType.hasKnownConstantSize()
-            ? typeHandler.getSizeof(pType)
+            ? typeHandler.getExactSizeof(pType)
             : options.defaultAllocationSize();
     final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
     final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
@@ -773,7 +773,7 @@ class PointerTargetSetManager {
                 containerOffset + properOffset,
                 targets,
                 fields);
-        offset += typeHandler.getSizeof(arrayType.getType());
+        offset += typeHandler.getApproximatedSizeof(arrayType.getType());
       }
     } else if (cType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM

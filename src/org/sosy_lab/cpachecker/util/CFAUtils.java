@@ -79,11 +79,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -111,6 +114,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -221,6 +225,23 @@ public class CFAUtils {
         };
       }
     };
+  }
+
+  /**
+   * Returns all edges which are reachable in the forward direction without any branchings from the
+   * current edge.
+   *
+   * @param edge The edge where to start the reachability analysis from
+   * @return All the edges which can be reached from the current edge in the forward direction
+   */
+  public static Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
+    CFAEdge current = edge;
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+    while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
+      current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
+      builder.add(current);
+    }
+    return builder.build();
   }
 
   /**
@@ -726,6 +747,26 @@ public class CFAUtils {
   public static FluentIterable<CExpression> traverseRecursively(CExpression root) {
     return (FluentIterable<CExpression>)
         (FluentIterable<?>) FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
+  }
+
+  /** Checks whether the given edge has the form VAR = __VERIFIER_nondet_TYPE() */
+  public static boolean assignsNondetFunctionCall(CFAEdge pEdge) {
+    if (pEdge instanceof CStatementEdge statementEdge) {
+      if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement statement) {
+        CLeftHandSide leftHandSide = statement.getLeftHandSide();
+        // We do not want the cases where the variable is assigned to a TMP variable
+        if (leftHandSide.toString().contains("__CPAchecker_TMP")) {
+          return false;
+        }
+        CFunctionCallExpression expression = statement.getRightHandSide();
+        if (expression.getFunctionNameExpression() instanceof CIdExpression functionName) {
+          if (functionName.getName().startsWith("__VERIFIER_nondet_")) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**

@@ -19,6 +19,9 @@ import org.sosy_lab.common.configuration.Options;
 /** This class collects some configurations options for the C-to-formula encoding process. */
 @Options(prefix = "cpa.predicate")
 public class FormulaEncodingOptions {
+  // This function name is used in internal applications, e.g., when modeling side effects for
+  // function calls like fscanf.
+  static final String INTERNAL_NONDET_FUNCTION_NAME = "__CPAchecker_nondet_assign";
 
   @Option(
       secure = true,
@@ -34,7 +37,8 @@ public class FormulaEncodingOptions {
               + "to the list, so you need to specify them explicitly if you need them. "
               + "Mentioning a function in this list has only an effect, if it is an "
               + "'external function', i.e., no source is given in the code for this function.")
-  private Set<String> nondetFunctions = ImmutableSet.of("sscanf", "rand", "random");
+  private Set<String> nondetFunctions =
+      ImmutableSet.of("sscanf", "rand", "random", "rand_r", "srand", "time");
 
   @Option(
       secure = true,
@@ -152,7 +156,9 @@ public class FormulaEncodingOptions {
   }
 
   public boolean isNondetFunction(String function) {
-    return nondetFunctions.contains(function) || nondetFunctionsRegexp.matcher(function).matches();
+    return function.equals(INTERNAL_NONDET_FUNCTION_NAME)
+        || nondetFunctions.contains(function)
+        || nondetFunctionsRegexp.matcher(function).matches();
   }
 
   public boolean isMemoryAllocationFunction(String function) {

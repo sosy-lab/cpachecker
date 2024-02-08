@@ -259,11 +259,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               supplyReached = false;
               yield true;
             }
-            default -> throw new InvalidConfigurationException(
-                String.format(
-                    "Annotation %s is not valid for config %s in option"
-                        + " parallelAlgorithm.configFiles",
-                    pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
+            default ->
+                throw new InvalidConfigurationException(
+                    String.format(
+                        "Annotation %s is not valid for config %s in option"
+                            + " parallelAlgorithm.configFiles",
+                        pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
           };
     } else {
       supplyReached = false;

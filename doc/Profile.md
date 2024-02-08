@@ -11,6 +11,11 @@ SPDX-License-Identifier: Apache-2.0
 Profiling
 =========
 
+In order to profile CPAchecker in a meaningful way,
+it is recommended to disable internal (costly) assertions with `-disable-java-assertions`
+or even additionally disable optional features
+like for [benchmarking](Benchmark.md) with `-benchmark`.
+
 There exist many tools that allow to monitor Java processes, e.g. VisualVM.
 Most of these connect to the JVM via a special file in `/tmp/hsperfdata_*`.
 CPAchecker when started with `scripts/cpa.sh`

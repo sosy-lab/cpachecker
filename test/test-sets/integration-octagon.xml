@@ -70,7 +70,7 @@ SPDX-License-Identifier: Apache-2.0
       <option name="-setprop">cpa.octagon.initialPrecisionType=STATIC_FULL</option>
       <option name="-setprop">analysis.checkCounterexamples=true</option>
       <option name="-setprop">counterexample.checker=CPACHECKER</option>
-      <option name="-setprop">counterexample.checker.config=config/cex-checks/octagonAnalysis-as-cex-check.properties</option>
+      <option name="-setprop">counterexample.checker.config=config/unmaintained/cex-checks/octagonAnalysis-as-cex-check.properties</option>
   </tasks>
 
   <!-- Float Tests -->

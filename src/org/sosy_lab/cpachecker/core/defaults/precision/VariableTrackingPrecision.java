@@ -78,14 +78,11 @@ public abstract class VariableTrackingPrecision implements Precision {
       throws InvalidConfigurationException {
     Preconditions.checkNotNull(pBaseline);
     RefinablePrecisionOptions options = new RefinablePrecisionOptions(config);
-    switch (options.sharing) {
-      case LOCATION:
-        return new LocalizedRefinablePrecision(pBaseline);
-      case SCOPE:
-        return new ScopedRefinablePrecision(pBaseline);
-      default:
-        throw new AssertionError("Unhandled case in switch statement");
-    }
+    return switch (options.sharing) {
+      case LOCATION -> new LocalizedRefinablePrecision(pBaseline);
+      case SCOPE -> new ScopedRefinablePrecision(pBaseline);
+      default -> throw new AssertionError("Unhandled case in switch statement");
+    };
   }
 
   public static Predicate<Precision> isMatchingCPAClass(

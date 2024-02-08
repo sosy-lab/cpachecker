@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.math.BigInteger;
+import java.util.Optional;
 import org.junit.After;
 import org.junit.Before;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -21,12 +23,24 @@ import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 public class SMGCPATest0 {
@@ -39,6 +53,8 @@ public class SMGCPATest0 {
   protected SMGState currentState;
   protected SMGCPAMaterializer materializer;
   protected SMGOptions smgOptions;
+
+  protected SMGCPAExpressionEvaluator evaluator;
 
   protected BigInteger sllSize;
   protected BigInteger dllSize;
@@ -71,13 +87,48 @@ public class SMGCPATest0 {
     materializer = new SMGCPAMaterializer(logger);
 
     smgOptions = new SMGOptions(Configuration.defaultConfiguration());
-    currentState = SMGState.of(machineModel, logger, smgOptions);
+    evaluator =
+        new SMGCPAExpressionEvaluator(
+            machineModel,
+            logger,
+            SMGCPAExportOptions.getNoExportInstance(),
+            smgOptions,
+            makeTestSolver());
+    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator);
   }
 
   // Resets state and visitor to an empty state
   @After
   public void resetSMGStateAndVisitor() {
-    currentState = SMGState.of(machineModel, logger, smgOptions);
+    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator);
+  }
+
+  private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
+    Solver smtSolver =
+        Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
+    FormulaManagerView formulaManager = smtSolver.getFormulaManager();
+    FormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new FormulaEncodingWithPointerAliasingOptions(Configuration.defaultConfiguration());
+    TypeHandlerWithPointerAliasing typeHandler =
+        new TypeHandlerWithPointerAliasing(logger, machineModel, formulaOptions);
+
+    CtoFormulaConverter converter =
+        new CToFormulaConverterWithPointerAliasing(
+            formulaOptions,
+            formulaManager,
+            machineModel,
+            Optional.empty(),
+            logger,
+            ShutdownNotifier.createDummy(),
+            typeHandler,
+            AnalysisDirection.FORWARD);
+
+    return new ConstraintsSolver(
+        Configuration.defaultConfiguration(),
+        smtSolver,
+        formulaManager,
+        converter,
+        new ConstraintsStatistics());
   }
 
   /*
@@ -86,7 +137,7 @@ public class SMGCPATest0 {
    * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
    */
   protected Value[] buildConcreteList(boolean dll, BigInteger sizeOfSegment, int listLength)
-      throws SMGException {
+      throws SMGSolverException, SMGException {
     Value[] pointerArray = new Value[listLength];
     SMGObject prevObject = null;
 
@@ -95,9 +146,9 @@ public class SMGCPATest0 {
       currentState = currentState.copyAndAddObjectToHeap(listSegment);
       for (int j = 0; j < sizeOfSegment.divide(pointerSizeInBits).intValue(); j++) {
         currentState =
-            currentState.writeValueTo(
+            currentState.writeValueWithChecks(
                 listSegment,
-                BigInteger.valueOf(j).multiply(BigInteger.valueOf(32)),
+                new NumericValue(BigInteger.valueOf(j).multiply(BigInteger.valueOf(32))),
                 pointerSizeInBits,
                 new NumericValue(j),
                 null,
@@ -108,16 +159,26 @@ public class SMGCPATest0 {
       if (i == listLength - 1) {
         Value nextPointer = new NumericValue(0);
         currentState =
-            currentState.writeValueTo(
-                listSegment, nfo, pointerSizeInBits, nextPointer, null, dummyCDAEdge);
+            currentState.writeValueWithChecks(
+                listSegment,
+                new NumericValue(nfo),
+                pointerSizeInBits,
+                nextPointer,
+                null,
+                dummyCDAEdge);
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
             currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
         currentState = pointerAndState.getState();
         currentState =
-            currentState.writeValueTo(
-                prevObject, nfo, pointerSizeInBits, pointerAndState.getValue(), null, dummyCDAEdge);
+            currentState.writeValueWithChecks(
+                prevObject,
+                new NumericValue(nfo),
+                pointerSizeInBits,
+                pointerAndState.getValue(),
+                null,
+                dummyCDAEdge);
       }
 
       if (dll) {
@@ -132,8 +193,13 @@ public class SMGCPATest0 {
           currentState = pointerAndState.getState();
         }
         currentState =
-            currentState.writeValueTo(
-                listSegment, pfo, pointerSizeInBits, prevPointer, null, dummyCDAEdge);
+            currentState.writeValueWithChecks(
+                listSegment,
+                new NumericValue(pfo),
+                pointerSizeInBits,
+                prevPointer,
+                null,
+                dummyCDAEdge);
       }
       // Pointer to the list segment
       ValueAndSMGState pointerAndState =
@@ -144,13 +210,28 @@ public class SMGCPATest0 {
       prevObject = listSegment;
     }
     checkListDataIntegrity(pointerArray, dll);
+    // Save all pointers in objects to not confuse the internal SMG assertions
+    for (Value pointer : pointerArray) {
+      SMGObjectAndSMGState stackObjAndState = currentState.copyAndAddStackObject(pointerSizeInBits);
+      currentState = stackObjAndState.getState();
+      SMGObject dummyStackObject = stackObjAndState.getSMGObject();
+      currentState =
+          currentState.writeValueWithChecks(
+              dummyStackObject,
+              new NumericValue(BigInteger.ZERO),
+              pointerSizeInBits,
+              pointer,
+              null,
+              dummyCDAEdge);
+    }
     return pointerArray;
   }
 
   // Adds an EQUAL sublists depending on nfo, pfo and dll to each object that the pointer array
   // points to
+  // Returns a matrix of the nested pointers
   protected Value[][] addSubListsToList(int listLength, Value[] pointersOfTopList, boolean dll)
-      throws SMGException {
+      throws SMGSolverException, SMGException {
     Value[][] nestedPointers = new Value[listLength][];
     int i = 0;
     for (Value pointer : pointersOfTopList) {
@@ -163,7 +244,7 @@ public class SMGCPATest0 {
       currentState = topListSegmentAndState.getSMGState();
       SMGObject topListSegment = topListSegmentAndState.getSMGObject();
       currentState =
-          currentState.writeValue(
+          currentState.writeValueWithoutChecks(
               topListSegment,
               hfo,
               pointerSizeInBits,
@@ -179,7 +260,7 @@ public class SMGCPATest0 {
    *
    * @param pointers a array of pointers pointing to a list with the default data scheme.
    */
-  protected void checkListDataIntegrity(Value[] pointers, boolean dll) {
+  protected void checkListDataIntegrity(Value[] pointers, boolean dll) throws SMGException {
     int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();
     if (dll) {
       toCheckData =
@@ -206,5 +287,32 @@ public class SMGCPATest0 {
             .isEquivalentAccordingToCompareTo(BigInteger.valueOf(j));
       }
     }
+  }
+
+  /**
+   * Builds an array (stack) in an object with the values given in the size given and returns the
+   * array obj.
+   */
+  @SuppressWarnings("NarrowCalculation")
+  protected SMGObject buildFilledArray(int arraySize, Value[] valuesInOrder, int sizeOfElements)
+      throws SMGSolverException {
+    int objectSize = arraySize * sizeOfElements * valuesInOrder.length;
+    SMGObjectAndSMGState arrayAndState =
+        currentState.copyAndAddStackObject(BigInteger.valueOf(objectSize));
+    currentState = arrayAndState.getState();
+    SMGObject array = arrayAndState.getSMGObject();
+
+    for (int i = 0; i < valuesInOrder.length; i++) {
+      currentState =
+          currentState.writeValueWithChecks(
+              array,
+              new NumericValue(BigInteger.valueOf(i).multiply(BigInteger.valueOf(sizeOfElements))),
+              BigInteger.valueOf(sizeOfElements),
+              valuesInOrder[i],
+              null,
+              dummyCDAEdge);
+    }
+
+    return array;
   }
 }

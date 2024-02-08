@@ -68,22 +68,15 @@ public class SMGPredicateManager {
 
   private BooleanFormula createBooleanFormula(
       Formula pFormulaOne, Formula pFormulaTwo, BinaryOperator pOp) {
-    switch (pOp) {
-      case GREATER_THAN:
-        return fmgr.makeGreaterThan(pFormulaOne, pFormulaTwo, true);
-      case GREATER_EQUAL:
-        return fmgr.makeGreaterOrEqual(pFormulaOne, pFormulaTwo, true);
-      case LESS_THAN:
-        return fmgr.makeLessThan(pFormulaOne, pFormulaTwo, true);
-      case LESS_EQUAL:
-        return fmgr.makeLessOrEqual(pFormulaOne, pFormulaTwo, true);
-      case EQUALS:
-        return fmgr.makeEqual(pFormulaOne, pFormulaTwo);
-      case NOT_EQUALS:
-        return bfmgr.not(fmgr.makeEqual(pFormulaOne, pFormulaTwo));
-      default:
-        throw new AssertionError();
-    }
+    return switch (pOp) {
+      case GREATER_THAN -> fmgr.makeGreaterThan(pFormulaOne, pFormulaTwo, true);
+      case GREATER_EQUAL -> fmgr.makeGreaterOrEqual(pFormulaOne, pFormulaTwo, true);
+      case LESS_THAN -> fmgr.makeLessThan(pFormulaOne, pFormulaTwo, true);
+      case LESS_EQUAL -> fmgr.makeLessOrEqual(pFormulaOne, pFormulaTwo, true);
+      case EQUALS -> fmgr.makeEqual(pFormulaOne, pFormulaTwo);
+      case NOT_EQUALS -> bfmgr.not(fmgr.makeEqual(pFormulaOne, pFormulaTwo));
+      default -> throw new AssertionError();
+    };
   }
 
   private BooleanFormula addPredicateToFormula(

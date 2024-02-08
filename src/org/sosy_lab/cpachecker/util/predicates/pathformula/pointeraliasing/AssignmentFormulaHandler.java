@@ -152,6 +152,7 @@ class AssignmentFormulaHandler {
   AssignmentFormulaHandler(
       CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge,
+      String pFunction,
       SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
@@ -171,7 +172,9 @@ class AssignmentFormulaHandler {
     constraints = pConstraints;
     regionMgr = pRegionMgr;
 
-    addressHandler = new AddressHandler(pConv, pSsa, pConstraints, pErrorConditions, pRegionMgr);
+    addressHandler =
+        new AddressHandler(
+            pConv, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions, pRegionMgr);
   }
 
   /**
@@ -303,8 +306,8 @@ class AssignmentFormulaHandler {
     // formulas.
 
     final CType resultType = lhs.type();
-    long targetBitSize = typeHandler.getBitSizeof(targetType);
-    long lhsBitSize = typeHandler.getBitSizeof(resultType);
+    long targetBitSize = typeHandler.getExactBitSizeof(targetType);
+    long lhsBitSize = typeHandler.getExactBitSizeof(resultType);
 
     // Handle full-span assignments upfront, this is better than via the loop below.
     if (rhsList.size() == 1) {
@@ -518,8 +521,8 @@ class AssignmentFormulaHandler {
             .orElseThrow();
     return switch (conversionType) {
       case CAST ->
-      // cast rhs from rhs type to lhs type
-      Value.ofValue(conv.makeCast(fromType, toType, rhsFormula, constraints, edge));
+          // cast rhs from rhs type to lhs type
+          Value.ofValue(conv.makeCast(fromType, toType, rhsFormula, constraints, edge));
       case REINTERPRET -> {
         // reinterpret rhs from rhs type to lhs type
         final @Nullable Formula reinterpretedFormula =
@@ -559,7 +562,7 @@ class AssignmentFormulaHandler {
     final BitvectorFormula bitvectorFormula =
         conv.makeValueReinterpretationToBitvector(rhsType, rhsFormula);
 
-    final long fromBitSizeof = conv.getBitSizeof(rhsType);
+    final long fromBitSizeof = typeHandler.getExactBitSizeof(rhsType);
     // the type which we are repeating must be byte-sized
     // addressing would not make any sense otherwise
     verify(fromBitSizeof == conv.machineModel.getSizeofCharInBits());
@@ -660,7 +663,7 @@ class AssignmentFormulaHandler {
     assert !options.useArraysForHeap();
 
     checkIsSimplified(lvalueType);
-    final long size = conv.getSizeof(lvalueType);
+    final long size = typeHandler.getExactSizeof(lvalueType);
 
     if (options.useQuantifiersOnArrays()) {
       addRetentionConstraintsWithQuantifiers(
@@ -1115,7 +1118,7 @@ class AssignmentFormulaHandler {
                   updatedRegions,
                   condition,
                   useQuantifiers));
-      offset += conv.getSizeof(lvalueArrayType.getType());
+      offset += typeHandler.getExactSizeof(lvalueArrayType.getType());
     }
     return result;
   }

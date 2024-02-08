@@ -139,7 +139,8 @@ class PartitionedFormulas {
       // no target is reachable, which means the program is safe
       prefixFormula = bfmgr.makeFalse();
       prefixSsaMap = SSAMap.emptySSAMap();
-      loopFormulas = ImmutableList.of();
+      loopFormulas = ImmutableList.of(bfmgr.makeFalse());
+      loopFormulaSsaMaps = ImmutableList.of(SSAMap.emptySSAMap());
       targetAssertion = bfmgr.makeFalse();
       return;
     }

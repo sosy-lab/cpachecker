@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -160,10 +162,21 @@ public class SMGCPATransferRelationTest {
 
   @Before
   public void init() throws InvalidConfigurationException {
-    LogManager logManager = LogManager.createTestLogManager();
-    smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+
+    LogManagerWithoutDuplicates logManager =
+        new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
+    Configuration defaultOptionsNoPreciseRead =
+        Configuration.builder()
+            .copyFrom(Configuration.defaultConfiguration())
+            .setOption("cpa.smg2.preciseSMGRead", "false")
+            .build();
+    smgOptions = new SMGOptions(defaultOptionsNoPreciseRead);
+    SMGCPAExpressionEvaluator evaluator =
+        new SMGCPAExpressionEvaluator(
+            MACHINE_MODEL, logManager, SMGCPAExportOptions.getNoExportInstance(), smgOptions, null);
+
     initialState =
-        SMGState.of(MACHINE_MODEL, logManager, smgOptions)
+        SMGState.of(MACHINE_MODEL, logManager, smgOptions, evaluator)
             .copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
 
     // null for the constraintsStrengthenOperator is fine as long as we don't use it in tests!
@@ -174,7 +187,8 @@ public class SMGCPATransferRelationTest {
             SMGCPAExportOptions.getNoExportInstance(),
             MACHINE_MODEL,
             ImmutableList.of(),
-            null);
+            null,
+            evaluator);
 
     transferRelation.setInfo(
         initialState,
@@ -780,6 +794,11 @@ public class SMGCPATransferRelationTest {
         assertThat(statesAfterDecl).hasSize(1);
         // We check the variable later
         SMGState stateAfterDecl = statesAfterDecl.get(0);
+        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkValueInConcreteMemorySanity())
+            .isTrue();
+        assertThat(stateAfterDecl.getMemoryModel().getSmg().verifyPointsToEdgeSanity()).isTrue();
+        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap())
+            .isTrue();
 
         CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
             new CFunctionCallAssignmentStatement(
@@ -824,6 +843,11 @@ public class SMGCPATransferRelationTest {
             // Non zero return
             SymbolicProgramConfiguration memoryModel =
                 statesListAfterMallocAssign.get(0).getMemoryModel();
+
+            assertThat(memoryModel.getSmg().checkValueInConcreteMemorySanity()).isTrue();
+            assertThat(memoryModel.getSmg().verifyPointsToEdgeSanity()).isTrue();
+            assertThat(memoryModel.getSmg().checkCorrectObjectsToPointersMap()).isTrue();
+
             assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
             SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
             List<ValueAndSMGState> readValueAndState =
@@ -909,7 +933,13 @@ public class SMGCPATransferRelationTest {
         assertThat(mallocObjectAndOffset.getSMGObject().getSize())
             .isEqualTo(sizeInBytes.multiply(BigInteger.valueOf(8)));
         assertThat(mallocObjectAndOffset.getSMGObject().getOffset()).isEqualTo(BigInteger.ZERO);
-        assertThat(mallocObjectAndOffset.getOffsetForObject()).isEqualTo(BigInteger.ZERO);
+        assertThat(mallocObjectAndOffset.getOffsetForObject().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+
+        assertThat(memoryModel.getSmg().checkValueInConcreteMemorySanity()).isTrue();
+        assertThat(memoryModel.getSmg().verifyPointsToEdgeSanity()).isTrue();
+        assertThat(memoryModel.getSmg().checkCorrectObjectsToPointersMap()).isTrue();
+
         // Read the SMGObject to make sure that there is no value written
         // TODO:
       }
@@ -1106,7 +1136,8 @@ public class SMGCPATransferRelationTest {
           assertThat(mallocObjectAndOffset.getSMGObject().getSize())
               .isEqualTo(expectedMemorySizeInBits);
           assertThat(mallocObjectAndOffset.getSMGObject().getOffset()).isEqualTo(BigInteger.ZERO);
-          assertThat(mallocObjectAndOffset.getOffsetForObject()).isEqualTo(BigInteger.ZERO);
+          assertThat(mallocObjectAndOffset.getOffsetForObject().asNumericValue().bigIntegerValue())
+              .isEqualTo(BigInteger.ZERO);
           // Read the SMGObject to make sure that there is no value written
           // TODO:
         }
@@ -1254,7 +1285,13 @@ public class SMGCPATransferRelationTest {
       assertThat(maybeTargetOfPointer.hasSMGObjectAndOffset()).isTrue();
       SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer;
       // The offset of the address should be 0
-      assertThat(targetOfPointer.getOffsetForObject().compareTo(BigInteger.ZERO)).isEqualTo(0);
+      assertThat(
+              targetOfPointer
+                  .getOffsetForObject()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .compareTo(BigInteger.ZERO))
+          .isEqualTo(0);
       SMGObject arrayMemoryObject = targetOfPointer.getSMGObject();
       // The object is not 0
       assertThat(arrayMemoryObject.isZero()).isFalse();
@@ -1417,7 +1454,13 @@ public class SMGCPATransferRelationTest {
       assertThat(maybeTargetOfPointer.hasSMGObjectAndOffset()).isTrue();
       SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer;
       // The offset of the address should be 0
-      assertThat(targetOfPointer.getOffsetForObject().compareTo(BigInteger.ZERO)).isEqualTo(0);
+      assertThat(
+              targetOfPointer
+                  .getOffsetForObject()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .compareTo(BigInteger.ZERO))
+          .isEqualTo(0);
       SMGObject arrayMemoryObject = targetOfPointer.getSMGObject();
       // The object is not 0
       assertThat(arrayMemoryObject.isZero()).isFalse();

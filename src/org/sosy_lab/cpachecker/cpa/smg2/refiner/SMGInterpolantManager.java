@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
 /** InterpolantManager for interpolants of {@link SMGState}. */
@@ -22,7 +23,7 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
 
   private final SMGOptions options;
   private final MachineModel machineModel;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
   /** The cfa of this analysis. Only needed for its entry function. */
   private final CFA cfa;
@@ -30,32 +31,38 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
   /** Remember if we need to take memsafety into account for interpolants. * */
   private final boolean isRefineMemorySafety;
 
+  private final SMGCPAExpressionEvaluator evaluator;
+
   private SMGInterpolantManager(
       SMGOptions pOptions,
       MachineModel pMachineModel,
-      LogManager pLogger,
+      LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
-      boolean pIsRefineMemorySafety) {
+      boolean pIsRefineMemorySafety,
+      SMGCPAExpressionEvaluator pEvaluator) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
     cfa = pCfa;
     isRefineMemorySafety = pIsRefineMemorySafety;
+    evaluator = pEvaluator;
   }
 
   public static SMGInterpolantManager getInstance(
       SMGOptions pOptions,
       MachineModel pMachineModel,
-      LogManager pLogger,
+      LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
-      boolean pIsRefineMemorySafety) {
-    return new SMGInterpolantManager(pOptions, pMachineModel, pLogger, pCfa, pIsRefineMemorySafety);
+      boolean pIsRefineMemorySafety,
+      SMGCPAExpressionEvaluator pEvaluator) {
+    return new SMGInterpolantManager(
+        pOptions, pMachineModel, pLogger, pCfa, pIsRefineMemorySafety, pEvaluator);
   }
 
   @Override
   public SMGInterpolant createInitialInterpolant() {
     return SMGInterpolant.createInitial(
-        options, machineModel, logger, (CFunctionEntryNode) cfa.getMainFunction());
+        options, machineModel, logger, (CFunctionEntryNode) cfa.getMainFunction(), evaluator);
   }
 
   @Override
@@ -66,7 +73,7 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
   @Override
   public SMGInterpolant getTrueInterpolant() {
     return SMGInterpolant.createTRUE(
-        options, machineModel, logger, (CFunctionEntryNode) cfa.getMainFunction());
+        options, machineModel, logger, (CFunctionEntryNode) cfa.getMainFunction(), evaluator);
   }
 
   @Override

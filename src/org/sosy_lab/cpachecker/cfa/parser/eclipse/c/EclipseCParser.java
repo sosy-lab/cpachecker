@@ -76,7 +76,7 @@ class EclipseCParser implements CParser {
     options = pOptions;
     shutdownNotifier = pShutdownNotifier;
 
-    eclipseCdt = new EclipseCdtWrapper(pOptions, pShutdownNotifier);
+    eclipseCdt = new EclipseCdtWrapper(pOptions, pMachine, pShutdownNotifier);
   }
 
   /**

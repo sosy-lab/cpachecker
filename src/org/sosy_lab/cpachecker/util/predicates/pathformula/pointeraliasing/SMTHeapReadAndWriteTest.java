@@ -173,15 +173,11 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
   }
 
   private String getHeapSymbolName(int length) {
-    switch (heapToUse) {
-      case SINGLE_BYTE_ARRAY:
-        return TEST_TARGET_PRE + model.getSizeofPtrInBits();
-      case ARRAYS:
-      case UF:
-        return TEST_TARGET_PRE + model.getSizeofPtrInBits() + "_" + length;
-      default:
-        throw new AssertionError();
-    }
+    return switch (heapToUse) {
+      case SINGLE_BYTE_ARRAY -> TEST_TARGET_PRE + model.getSizeofPtrInBits();
+      case ARRAYS, UF -> TEST_TARGET_PRE + model.getSizeofPtrInBits() + "_" + length;
+      default -> throw new AssertionError();
+    };
   }
 
   @Override

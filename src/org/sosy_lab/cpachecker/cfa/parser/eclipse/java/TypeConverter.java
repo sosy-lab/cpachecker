@@ -131,8 +131,9 @@ abstract class TypeConverter {
           case "long" -> JSimpleType.getLong();
           case "short" -> JSimpleType.getShort();
           case "byte" -> JSimpleType.getByte();
-          default -> throw new CFAGenerationRuntimeException(
-              "Unknown primitive type " + primitiveTypeName);
+          default ->
+              throw new CFAGenerationRuntimeException(
+                  "Unknown primitive type " + primitiveTypeName);
         };
     return type;
   }

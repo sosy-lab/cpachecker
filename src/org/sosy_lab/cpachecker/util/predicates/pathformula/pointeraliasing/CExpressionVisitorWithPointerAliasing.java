@@ -146,7 +146,14 @@ class CExpressionVisitorWithPointerAliasing
 
     delegate =
         new ExpressionToFormulaVisitor(
-            cToFormulaConverter, cToFormulaConverter.fmgr, cfaEdge, function, ssa, constraints) {
+            cToFormulaConverter,
+            cToFormulaConverter.fmgr,
+            cfaEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions) {
           @Override
           protected Formula toFormula(CExpression e) throws UnrecognizedCodeException {
             // recursive application of pointer-aliasing.
@@ -168,7 +175,15 @@ class CExpressionVisitorWithPointerAliasing
     this.function = function;
 
     addressHandler =
-        new AddressHandler(cToFormulaConverter, ssa, constraints, errorConditions, regionMgr);
+        new AddressHandler(
+            cToFormulaConverter,
+            cfaEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr);
   }
 
   /**
@@ -501,7 +516,7 @@ class CExpressionVisitorWithPointerAliasing
         } else {
           Formula size =
               conv.fmgr.makeNumber(
-                  conv.voidPointerFormulaType, typeHandler.getSizeof(base.getType()));
+                  conv.voidPointerFormulaType, typeHandler.getExactSizeof(base.getType()));
           pts.addNextBaseAddressConstraints(
               base.getName(), base.getType(), size, false, constraints);
           pts.addBase(base.getName(), base.getType());
@@ -610,7 +625,8 @@ class CExpressionVisitorWithPointerAliasing
 
       if (conv.options.isDynamicMemoryFunction(functionName)) {
         DynamicMemoryHandler memoryHandler =
-            new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+            new DynamicMemoryHandler(
+                conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
         try {
           return memoryHandler.handleDynamicMemoryFunction(e, functionName, this);
         } catch (InterruptedException exc) {
@@ -945,7 +961,7 @@ class CExpressionVisitorWithPointerAliasing
   private final ErrorConditions errorConditions;
   private final PointerTargetSetBuilder pts;
   private final MemoryRegionManager regionMgr;
-  private String function;
+  private final String function;
 
   private final ExpressionToFormulaVisitor delegate;
 

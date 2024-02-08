@@ -50,6 +50,35 @@ public class SMGCPAAbstractionManager {
     minimumLengthForListsForAbstraction = pMinimumLengthForListsForAbstraction;
   }
 
+  /*
+   * Info on how lists are abstracted: a sequence of memory regions linked by at least 1 pointer
+   * (pfo) may be detected as a list to abstract if they are equal in shape and values
+   * (besides the pointers forward and backwards). An exception to the equal values are pointers,
+   * as those need to point to memory with the same shape and values again
+   * (for example nested lists).
+   * When 2 memory regions are merged, we create a new singly or doubly linked list segment with
+   * the number of concrete list segments as the minimum length
+   * (e.g. 2 concrete regions form a 2+, but a 2+ and a concrete region form a 3+).
+   * Pointers pointing to the original segments (everywhere in the SMG) now point
+   * to the new SLS or DLS, but remember their original nesting level in the list.
+   * If there was a nested list, those are also merged. First a single nested list is abstracted
+   * (for example into an X+ SLL).
+   * Then, when the upper list is merged, the nested abstracted linked lists are also merged.
+   * This just changes all pointers towards the nested lists to the new merged segments.
+   * Example: a list has a nested list of length 5. The first nested list is merged into a 5+,
+   * then the second, and so on. Then, the top-list is merged,
+   * and all pointers towards the first 5+ nested list are changed to point to
+   * the second nested 5+ list, not remembering the nesting level of nested lists.
+   * This is continued until all is merged.
+   * Note: we don't use nesting level as described in the paper
+   * "Byte-precise Verification of low level list manipulation"!
+   * They use nesting level for merges performed in joins.
+   * We remember concrete locations of pointers in abstracted memory.
+   * Future idea: remember level of nested lists, for pointers towards them.
+   * No nesting level as we do it now, but a list of nesting levels. With each segment corresponding
+   * to a level. E.g. {1, 2} -> a list nested in a list, with the upper list nesting level 1,
+   * the lower level 2. This would also give us the nesting level of the original paper back.
+   */
   public SMGState findAndAbstractLists() throws SMGException {
     SMGState currentState = state;
     equalityCache = EqualityCache.of();
@@ -57,6 +86,10 @@ public class SMGCPAAbstractionManager {
     // Sort in DLL and SLL candidates and also order by nesting
     List<Set<SMGCandidate>> orderListCandidatesByNesting =
         orderListCandidatesByNestingAndListType(refinedCandidates);
+
+    assert currentState.getMemoryModel().getSmg().verifyPointsToEdgeSanity();
+    assert currentState.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
+    assert currentState.getMemoryModel().getSmg().checkValueInConcreteMemorySanity();
 
     // Abstract top level nesting first
     for (Set<SMGCandidate> candidates : orderListCandidatesByNesting) {
@@ -315,7 +348,7 @@ public class SMGCPAAbstractionManager {
    *
    * @return an unsorted list of candidates.
    */
-  ImmutableList<SMGCandidate> getRefinedLinkedCandidates() {
+  ImmutableList<SMGCandidate> getRefinedLinkedCandidates() throws SMGException {
     ImmutableList<SMGCandidate> sortedCandiList =
         ImmutableList.sortedCopyOf(
             Comparator.comparing(SMGCandidate::getSuspectedNfo),
@@ -396,7 +429,8 @@ public class SMGCPAAbstractionManager {
     return findBackPointerOffsetForListObject(nextObject, root, smg, nfo, 1);
   }
 
-  Set<SMGCandidate> refineCandidates(Set<SMGCandidate> candidates, SMGState pState) {
+  Set<SMGCandidate> refineCandidates(Set<SMGCandidate> candidates, SMGState pState)
+      throws SMGException {
     Set<SMGCandidate> finalCandidates = candidates;
     ImmutableList<SMGCandidate> sortedCandiList =
         ImmutableList.sortedCopyOf(Comparator.comparing(SMGCandidate::getSuspectedNfo), candidates);
@@ -420,7 +454,8 @@ public class SMGCPAAbstractionManager {
       BigInteger nfo,
       Set<SMGCandidate> candidates,
       SMGState pState,
-      Set<SMGObject> alreadyVisited) {
+      Set<SMGObject> alreadyVisited)
+      throws SMGException {
     if (alreadyVisited.contains(candidate)) {
       return candidates;
     }
@@ -439,7 +474,8 @@ public class SMGCPAAbstractionManager {
     }
   }
 
-  private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo, SMGState pState) {
+  private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo, SMGState pState)
+      throws SMGException {
     SMGValueAndSMGState valueAndState =
         pState.readSMGValue(root, nfo, pState.getMemoryModel().getSizeOfPointer());
     SMGValue value = valueAndState.getSMGValue();

@@ -122,7 +122,7 @@ public final class CEXExportOptions {
       PathTemplate.ofFormatString("extendedWitness.%d.graphml");
 
   @Option(secure = true, name = "exportHarness", description = "export test harness")
-  private boolean exportHarness = false;
+  private boolean exportHarness = true;
 
   @Option(secure = true, name = "harness", description = "export test harness to file as code")
   @FileOption(FileOption.Type.OUTPUT_FILE)

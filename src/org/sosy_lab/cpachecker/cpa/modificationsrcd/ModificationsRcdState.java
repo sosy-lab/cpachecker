@@ -110,13 +110,12 @@ public final class ModificationsRcdState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
-      case "is_modified":
-        return hasRelevantModification;
-      default:
-        throw new InvalidQueryException(
-            "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
-    }
+    return switch (pProperty) {
+      case "is_modified" -> hasRelevantModification;
+      default ->
+          throw new InvalidQueryException(
+              "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
+    };
   }
 
   @Override

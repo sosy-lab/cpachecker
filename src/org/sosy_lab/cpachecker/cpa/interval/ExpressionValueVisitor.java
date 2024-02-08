@@ -109,28 +109,17 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
   private static Interval getArithmeticInterval(
       BinaryOperator operator, Interval interval1, Interval interval2) {
-    switch (operator) {
-      case PLUS:
-        return interval1.plus(interval2);
-      case MINUS:
-        return interval1.minus(interval2);
-      case MULTIPLY:
-        return interval1.times(interval2);
-      case DIVIDE:
-        return interval1.divide(interval2);
-      case SHIFT_LEFT:
-        return interval1.shiftLeft(interval2);
-      case SHIFT_RIGHT:
-        return interval1.shiftRight(interval2);
-      case MODULO:
-        return interval1.modulo(interval2);
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        return Interval.UNBOUND;
-      default:
-        throw new AssertionError("unknown binary operator: " + operator);
-    }
+    return switch (operator) {
+      case PLUS -> interval1.plus(interval2);
+      case MINUS -> interval1.minus(interval2);
+      case MULTIPLY -> interval1.times(interval2);
+      case DIVIDE -> interval1.divide(interval2);
+      case SHIFT_LEFT -> interval1.shiftLeft(interval2);
+      case SHIFT_RIGHT -> interval1.shiftRight(interval2);
+      case MODULO -> interval1.modulo(interval2);
+      case BINARY_AND, BINARY_OR, BINARY_XOR -> Interval.UNBOUND;
+      default -> throw new AssertionError("unknown binary operator: " + operator);
+    };
   }
 
   @Override
@@ -175,16 +164,11 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   @Override
   public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCodeException {
     Interval interval = unaryExpression.getOperand().accept(this);
-    switch (unaryExpression.getOperator()) {
-      case MINUS:
-        return interval.negate();
-
-      case AMPER:
-      case TILDE:
-        return Interval.UNBOUND; // valid expression, but it's a pointer value
-
-      default:
-        throw new UnrecognizedCodeException("unknown unary operator", cfaEdge, unaryExpression);
-    }
+    return switch (unaryExpression.getOperator()) {
+      case MINUS -> interval.negate();
+      case AMPER, TILDE -> Interval.UNBOUND;
+      default ->
+          throw new UnrecognizedCodeException("unknown unary operator", cfaEdge, unaryExpression);
+    };
   }
 }

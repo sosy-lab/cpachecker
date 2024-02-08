@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
@@ -41,6 +42,7 @@ public final class CfaMetadata implements Serializable {
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
+  private final @Nullable ASTStructure astStructure;
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
@@ -51,6 +53,7 @@ public final class CfaMetadata implements Serializable {
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness,
+      @Nullable ASTStructure pASTStructure,
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables) {
@@ -60,6 +63,7 @@ public final class CfaMetadata implements Serializable {
     mainFunctionEntry = checkNotNull(pMainFunctionEntry);
     connectedness = checkNotNull(pConnectedness);
 
+    astStructure = pASTStructure;
     loopStructure = pLoopStructure;
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
@@ -87,7 +91,15 @@ public final class CfaMetadata implements Serializable {
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness) {
     return new CfaMetadata(
-        pMachineModel, pLanguage, pFileNames, pMainFunctionEntry, pConnectedness, null, null, null);
+        pMachineModel,
+        pLanguage,
+        pFileNames,
+        pMainFunctionEntry,
+        pConnectedness,
+        null,
+        null,
+        null,
+        null);
   }
 
   /**
@@ -114,6 +126,7 @@ public final class CfaMetadata implements Serializable {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        astStructure,
         loopStructure,
         variableClassification,
         liveVariables);
@@ -162,6 +175,7 @@ public final class CfaMetadata implements Serializable {
         fileNames,
         checkNotNull(pMainFunctionEntry),
         connectedness,
+        astStructure,
         loopStructure,
         variableClassification,
         liveVariables);
@@ -190,9 +204,21 @@ public final class CfaMetadata implements Serializable {
         fileNames,
         mainFunctionEntry,
         checkNotNull(pConnectedness),
+        astStructure,
         loopStructure,
         variableClassification,
         liveVariables);
+  }
+
+  /**
+   * Returns the AST structure for the CFA, if it's stored in this metadata instance.
+   *
+   * @return If this metadata instance contains the AST structure for the CFA, an optional
+   *     containing the AST structure is returned. Otherwise, if this metadata instance does not
+   *     contain the AST structure for the CFA, an empty optional is returned.
+   */
+  public Optional<ASTStructure> getASTStructure() {
+    return Optional.ofNullable(astStructure);
   }
 
   /**
@@ -204,6 +230,26 @@ public final class CfaMetadata implements Serializable {
    */
   public Optional<LoopStructure> getLoopStructure() {
     return Optional.ofNullable(loopStructure);
+  }
+
+  /**
+   * Returns a copy of this metadata instance, but with the specified AST structure.
+   *
+   * @param pASTStructure the AST structure to store in the returned metadata instance (use {@code
+   *     null} to create an instance without AST structure)
+   * @return a copy of this metadata instance, but with the specified AST structure
+   */
+  public CfaMetadata withASTStructure(@Nullable ASTStructure pASTStructure) {
+    return new CfaMetadata(
+        machineModel,
+        language,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        pASTStructure,
+        loopStructure,
+        variableClassification,
+        liveVariables);
   }
 
   /**
@@ -220,6 +266,7 @@ public final class CfaMetadata implements Serializable {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        astStructure,
         pLoopStructure,
         variableClassification,
         liveVariables);
@@ -251,6 +298,7 @@ public final class CfaMetadata implements Serializable {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        astStructure,
         loopStructure,
         pVariableClassification,
         liveVariables);
@@ -281,6 +329,7 @@ public final class CfaMetadata implements Serializable {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        astStructure,
         loopStructure,
         variableClassification,
         pLiveVariables);
