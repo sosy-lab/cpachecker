@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import io.github.cvc5.Stat;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Serializable;
@@ -25,12 +26,23 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.common.log.LogManager;
 
@@ -40,6 +52,7 @@ public class NoOverflowAlgorithm implements Algorithm{
   private final List<StatementInformation> information = new ArrayList<>();
   private final List<String> allTemporaryValueList = new ArrayList<String>();
   private final List<String> temporaryValueList = new ArrayList<String>();
+  private final List<String> allExpressionList = new ArrayList<String>();
 
   public NoOverflowAlgorithm(
       final LogManager pLogger,
@@ -63,24 +76,45 @@ public class NoOverflowAlgorithm implements Algorithm{
             CExpression cExpression = optionalCExpression.get();
             if (cExpression instanceof CBinaryExpression) {
               handleBinaryExpression(edge, (CBinaryExpression) cExpression);
+            } else if (cExpression instanceof CUnaryExpression){
+              handleUnaryExpression(edge, cExpression);
             }
           }
         } else if (astNode instanceof CAssignment) {
+
           ALeftHandSide leftHandSide = ((CAssignment) astNode).getLeftHandSide();
           ARightHandSide rightHandSide = ((CAssignment) astNode).getRightHandSide();
           if (leftHandSide.toASTString().contains("__CPAchecker_TMP_")) {
-            allTemporaryValueList.add(astNode.toASTString());
+            allTemporaryValueList.add(edge.getLineNumber() + " " + astNode.toASTString().replace(" ", ""));
           }
 
           if (rightHandSide instanceof CFunctionCallExpression) {
             List<CExpression> parameterExpressions = ((CFunctionCallExpression) rightHandSide).getParameterExpressions();
             for (CExpression expression : parameterExpressions) {
-              if (expression instanceof  CBinaryExpression) {
+              if (expression instanceof CBinaryExpression) {
                 handleBinaryExpression(edge, (CBinaryExpression) expression);
+              }
+              if (expression instanceof CUnaryExpression) {
+                handleUnaryExpression(edge, expression);
               }
             }
           } else if (rightHandSide instanceof CBinaryExpression) {
             handleBinaryExpression(edge, (CBinaryExpression) rightHandSide);
+          } else if (rightHandSide instanceof CUnaryExpression){
+            handleUnaryExpression(edge, (CExpression) rightHandSide);
+          }
+        } else if (astNode instanceof CBinaryExpression) {
+          handleBinaryExpression(edge, (CBinaryExpression) astNode);
+        } else if (astNode instanceof CFunctionCall) {
+          CFunctionCallExpression cFunctionCallExpression = ((CFunctionCall) astNode).getFunctionCallExpression();
+          List<CExpression> parameterExpressions = cFunctionCallExpression.getParameterExpressions();
+          for (CExpression expression : parameterExpressions) {
+            if (expression instanceof CBinaryExpression) {
+              handleBinaryExpression(edge, (CBinaryExpression) expression);
+            }
+            if (expression instanceof CUnaryExpression) {
+              handleUnaryExpression(edge, expression);
+            }
           }
         }
       }
@@ -98,6 +132,40 @@ public class NoOverflowAlgorithm implements Algorithm{
         }
       }
 
+      // merge information if they are on same line
+      if (!information.isEmpty()) {
+        int flag = 0;
+        int i = 0;
+        while (true) {
+          int codeLineNumber1 = information.get(i).codeLineNumber;
+          for (int j = i + 1; j < information.size(); j++) {
+            int codeLineNumber2 = information.get(j).codeLineNumber;
+            if (codeLineNumber1 == codeLineNumber2) {
+              // Merge properties of element at index i and index j
+              information.get(i).numOfOperator += information.get(j).numOfOperator;
+              information.get(i).typeList.addAll(information.get(j).typeList);
+              information.get(i).expressionList.addAll(information.get(j).expressionList);
+              // Remove the duplicate element at index j
+              information.remove(j);
+              // Set flag to indicate that a merge occurred
+              flag = 1;
+              break;
+            }
+          }
+          if (i == information.size()-1 && flag == 0) {
+            break;
+          }
+          // Move to the next element in the list
+          i++;
+          // If a merge occurred, reset the loop to start from the beginning
+          if (flag == 1) {
+            flag = 0;
+            i = 0;
+          }
+        }
+      }
+
+
       for (StatementInformation s : information) {
         writer.write(s.listToString());
         logger.log(Level.INFO, s.listToString());
@@ -111,13 +179,37 @@ public class NoOverflowAlgorithm implements Algorithm{
   public void handleBinaryExpression(CFAEdge edge, CBinaryExpression expression) {
     // LineNumber
     int lineNumber = edge.getLineNumber();
-
+    if (allExpressionList.contains(lineNumber + " " + expression.toASTString())) {
+      return;
+    }
+    allExpressionList.add(lineNumber + " " + expression.toASTString());
     // subexpression
     List<List<String>> expressionList = new ArrayList<>();
     // data type
     List<List<String>> typeList = new ArrayList<>();
     getInformation(expression, expressionList, typeList, lineNumber);
     information.add(new StatementInformation(lineNumber, expressionList, typeList));
+  }
+
+  public void handleUnaryExpression(CFAEdge edge, CExpression cExpression) {
+    List<List<String>> typeList = new ArrayList<>();
+    List<List<String>> expressionList = new ArrayList<>();
+    List<String> expression = new ArrayList<>();
+
+    String expressionString = cExpression.toASTString().substring(1);
+    for (String tv: allTemporaryValueList) {
+      if (expressionString.contains("__CPAchecker_TMP_") && tv.contains(expressionString) && tv.contains(Integer.toString(
+          edge.getLineNumber())) && !temporaryValueList.contains(tv)) {
+        temporaryValueList.add(tv);
+        break;
+      }
+    }
+    typeList.add(Collections.singletonList(cExpression.toASTString() + " " + cExpression.getExpressionType().toString()));
+    expression.add("none");
+    expression.add(cExpression.toASTString().replace(" ", ""));
+    expression.add("UnaryMinus");
+    expressionList.add(expression);
+    information.add(new StatementInformation(edge.getLineNumber(), expressionList, typeList));
   }
 
   public void getInformation(CBinaryExpression operand, List<List<String>> expressionList, List<List<String>> typeList, int lineNumber) {
@@ -130,13 +222,12 @@ public class NoOverflowAlgorithm implements Algorithm{
 
     for (String tv: allTemporaryValueList) {
       int flag = 0;
-      String s = lineNumber + " " + tv.replace(" ", "");
-      if (left.toASTString().contains("__CPAchecker_TMP_") && tv.contains(left.toASTString()) && !temporaryValueList.contains(s)) {
-        temporaryValueList.add(s);
+      if (left.toASTString().contains("__CPAchecker_TMP_") && tv.contains(left.toASTString()) && tv.contains(Integer.toString(lineNumber)) && !temporaryValueList.contains(tv)) {
+        temporaryValueList.add(tv);
         flag++;
       }
-      if (right.toASTString().contains("__CPAchecker_TMP_") && tv.contains(right.toASTString()) && !temporaryValueList.contains(s)) {
-        temporaryValueList.add(s);
+      if (right.toASTString().contains("__CPAchecker_TMP_") && tv.contains(right.toASTString()) && tv.contains(Integer.toString(lineNumber)) && !temporaryValueList.contains(tv)) {
+        temporaryValueList.add(tv);
         flag++;
       }
       if (flag == 2){
@@ -168,7 +259,7 @@ public class NoOverflowAlgorithm implements Algorithm{
 
   public static class StatementInformation implements Serializable {
     final private int codeLineNumber;
-    final private int numOfOperator;
+    private int numOfOperator;
     final private List<List<String>> expressionList;
     final private List<List<String>> typeList;
 
