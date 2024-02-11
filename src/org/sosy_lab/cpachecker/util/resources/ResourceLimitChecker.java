@@ -119,9 +119,6 @@ public final class ResourceLimitChecker {
         }
       }
     }
-
-    logger.log(Level.INFO, "Wall-TIme: " + options.walltime + "Cpu time " + options.cpuTime
-        + "Cpu time requested " + options.cpuTimeRequired+ "Thread Time " + options.threadTime);
     if (cpuTimeLimitSet) {
       try {
         limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime));

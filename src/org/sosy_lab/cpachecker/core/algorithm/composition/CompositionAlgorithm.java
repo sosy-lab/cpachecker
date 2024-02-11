@@ -311,9 +311,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       Pair<Algorithm, ShutdownManager> currentRun;
       boolean analysisFinishedWithResult;
 
-
-      logger.log(Level.INFO, "Current run: " + stats.noOfRuns);
-
       while (!shutdownNotifier.shouldShutdown() && selectionStrategy.hasNextAlgorithm()) {
 
         analysisFinishedWithResult = false;
