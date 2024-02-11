@@ -325,6 +325,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
         currentContext.startTimer();
         stats.noOfRuns++;
+        logger.log(Level.INFO, "Current run: " + stats.noOfRuns);
+
         try {
           currentConfig =
               currentContext.getAndCreateConfigIfNecessary(globalConfig, logger, shutdownNotifier);

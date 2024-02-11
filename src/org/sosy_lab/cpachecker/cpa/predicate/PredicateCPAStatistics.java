@@ -261,6 +261,7 @@ class PredicateCPAStatistics implements Statistics {
     PredicateAbstractionStatistics as = abstractionStats;
 
     int numAbstractions = statistics.numAbstractions.getUpdateCount();
+    out.println("Test - stats");
     out.println(
         "Number of abstractions:            "
             + numAbstractions
