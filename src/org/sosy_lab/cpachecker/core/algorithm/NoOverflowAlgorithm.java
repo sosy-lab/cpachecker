@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.eclipse.cdt.internal.core.dom.parser.c.CVariable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -116,6 +118,14 @@ public class NoOverflowAlgorithm implements Algorithm{
               handleUnaryExpression(edge, expression);
             }
           }
+        } else if (astNode instanceof CVariableDeclaration) {
+          CInitializer cInitializer = ((CVariableDeclaration) astNode).getInitializer();
+          if (cInitializer instanceof CInitializerExpression) {
+            CExpression cExpression = ((CInitializerExpression) cInitializer).getExpression();
+            if (cExpression instanceof CBinaryExpression) {
+              handleBinaryExpression(edge, (CBinaryExpression) cExpression);
+            }
+          }
         }
       }
     }
@@ -134,35 +144,25 @@ public class NoOverflowAlgorithm implements Algorithm{
 
       // merge information if they are on same line
       if (!information.isEmpty()) {
-        int flag = 0;
         int i = 0;
-        while (true) {
+        do {
           int codeLineNumber1 = information.get(i).codeLineNumber;
-          for (int j = i + 1; j < information.size(); j++) {
+          int index_01 = information.get(i).typeList.size();
+          int index_02 = information.get(i).expressionList.size();
+          for (int j = information.size() - 1; j > i; j--) {
             int codeLineNumber2 = information.get(j).codeLineNumber;
             if (codeLineNumber1 == codeLineNumber2) {
               // Merge properties of element at index i and index j
               information.get(i).numOfOperator += information.get(j).numOfOperator;
-              information.get(i).typeList.addAll(information.get(j).typeList);
-              information.get(i).expressionList.addAll(information.get(j).expressionList);
+              information.get(i).typeList.addAll(index_01, information.get(j).typeList);
+              information.get(i).expressionList.addAll(index_02, information.get(j).expressionList);
               // Remove the duplicate element at index j
               information.remove(j);
-              // Set flag to indicate that a merge occurred
-              flag = 1;
-              break;
             }
-          }
-          if (i == information.size()-1 && flag == 0) {
-            break;
           }
           // Move to the next element in the list
           i++;
-          // If a merge occurred, reset the loop to start from the beginning
-          if (flag == 1) {
-            flag = 0;
-            i = 0;
-          }
-        }
+        } while (i != information.size());
       }
 
 
@@ -182,6 +182,11 @@ public class NoOverflowAlgorithm implements Algorithm{
     if (allExpressionList.contains(lineNumber + " " + expression.toASTString())) {
       return;
     }
+    for (String tv: allTemporaryValueList) {
+      if (tv.contains(Integer.toString(lineNumber)) && !temporaryValueList.contains(tv)) {
+        temporaryValueList.add(tv);
+      }
+    }
     allExpressionList.add(lineNumber + " " + expression.toASTString());
     // subexpression
     List<List<String>> expressionList = new ArrayList<>();
@@ -196,9 +201,8 @@ public class NoOverflowAlgorithm implements Algorithm{
     List<List<String>> expressionList = new ArrayList<>();
     List<String> expression = new ArrayList<>();
 
-    String expressionString = cExpression.toASTString().substring(1);
     for (String tv: allTemporaryValueList) {
-      if (expressionString.contains("__CPAchecker_TMP_") && tv.contains(expressionString) && tv.contains(Integer.toString(
+      if (tv.contains(Integer.toString(
           edge.getLineNumber())) && !temporaryValueList.contains(tv)) {
         temporaryValueList.add(tv);
         break;
@@ -220,20 +224,6 @@ public class NoOverflowAlgorithm implements Algorithm{
     String leftString = left.toASTString();
     String rightString = right.toASTString();
 
-    for (String tv: allTemporaryValueList) {
-      int flag = 0;
-      if (left.toASTString().contains("__CPAchecker_TMP_") && tv.contains(left.toASTString()) && tv.contains(Integer.toString(lineNumber)) && !temporaryValueList.contains(tv)) {
-        temporaryValueList.add(tv);
-        flag++;
-      }
-      if (right.toASTString().contains("__CPAchecker_TMP_") && tv.contains(right.toASTString()) && tv.contains(Integer.toString(lineNumber)) && !temporaryValueList.contains(tv)) {
-        temporaryValueList.add(tv);
-        flag++;
-      }
-      if (flag == 2){
-        break;
-      }
-    }
 
     leftString = leftString.replace(" ", "");
     rightString = rightString.replace(" ", "");
