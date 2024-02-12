@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
-import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.ExpressionType;
-import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
 
 public class CounterexampleToWitness extends DirectWitnessExporter {
 

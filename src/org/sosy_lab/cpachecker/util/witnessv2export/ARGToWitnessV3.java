@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecordV3;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.RequiresRecord;
-import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.ExpressionType;
-import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
 
 class ARGToWitnessV3 extends ARGToWitness {
   protected ARGToWitnessV3(

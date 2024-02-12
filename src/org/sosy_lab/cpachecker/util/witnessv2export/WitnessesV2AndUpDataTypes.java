@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.witnessv2export;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public class DataTypes {
+public class WitnessesV2AndUpDataTypes {
 
   public enum WitnessVersion {
     V2,

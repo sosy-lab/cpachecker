@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWr
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
-import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
 
 @Options(prefix = "witness.directexport")
 public abstract class DirectWitnessExporter {
