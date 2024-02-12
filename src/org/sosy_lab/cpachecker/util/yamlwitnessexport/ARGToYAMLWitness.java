@@ -173,8 +173,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     try {
       overapproximationOfState = overapproximationOfState.accept(visitor);
     } catch (Exception e) {
-      logger.logException(
-          Level.INFO, e, "Could not remove CPAchecker internal variables from invariant");
+      logger.log(Level.FINE, "Could not remove CPAchecker internal variables from invariant");
     }
 
     return overapproximationOfState;
