@@ -31,7 +31,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 
 @JsonDeserialize(using = InvariantRecordDeserializer.class)
 @JsonSerialize(using = InvariantRecordSerializer.class)
-public class InvariantRecord extends AbstractInformationRecord implements SetElementRecord {
+public sealed class InvariantRecord extends AbstractInformationRecord implements SetElementRecord
+    permits InvariantRecordV3 {
 
   @JsonProperty("location")
   @JsonInclude(JsonInclude.Include.NON_NULL)
