@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 
 @Options(prefix = "witness.directexport")
-public class DirectWitnessExporter {
+public abstract class DirectWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
   protected List<WitnessVersion> witnessVersions =
