@@ -95,7 +95,7 @@ abstract class AbstractYAMLWitnessExporter {
       String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
       writer.write(entryYaml);
     } catch (IOException e) {
-      logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
+      logger.log(Level.INFO, "witness export to " + outFile + " failed.");
     }
   }
 }
