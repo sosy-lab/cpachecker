@@ -26,19 +26,19 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord.InvariantRecordDeserializer;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord.InvariantRecordSerializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordDeserializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordSerializer;
 
 @JsonDeserialize(using = InvariantRecordDeserializer.class)
 @JsonSerialize(using = InvariantRecordSerializer.class)
-public sealed class InvariantRecord extends AbstractInformationRecord implements SetElementRecord
-    permits InvariantRecordV3 {
+public sealed class InvariantEntry extends AbstractInformationRecord implements SetElementRecord
+    permits InvariantEntryV3 {
 
   @JsonProperty("location")
   @JsonInclude(JsonInclude.Include.NON_NULL)
   private final LocationRecord location;
 
-  public InvariantRecord(
+  public InvariantEntry(
       @JsonProperty("value") String pString,
       @JsonProperty("type") String pType,
       @JsonProperty("format") String pFormat,
@@ -81,9 +81,9 @@ public sealed class InvariantRecord extends AbstractInformationRecord implements
     }
   }
 
-  public static class InvariantRecordDeserializer extends JsonDeserializer<InvariantRecord> {
+  public static class InvariantRecordDeserializer extends JsonDeserializer<InvariantEntry> {
     @Override
-    public InvariantRecord deserialize(JsonParser jp, DeserializationContext ctxt)
+    public InvariantEntry deserialize(JsonParser jp, DeserializationContext ctxt)
         throws IOException {
       ObjectMapper mapper = (ObjectMapper) jp.getCodec();
       JsonNode node = mapper.readTree(jp);
@@ -98,8 +98,8 @@ public sealed class InvariantRecord extends AbstractInformationRecord implements
       // Using the original deserializer is apparently very hard.
       // For now just manually construct this
       // (less elegant, but we probably never touch that code again, so it is fine):
-      InvariantRecord result =
-          new InvariantRecord(
+      InvariantEntry result =
+          new InvariantEntry(
               mapper.treeToValue(invariantNode.get("value"), String.class),
               mapper.treeToValue(invariantNode.get("type"), String.class),
               mapper.treeToValue(invariantNode.get("format"), String.class),
@@ -109,19 +109,19 @@ public sealed class InvariantRecord extends AbstractInformationRecord implements
     }
   }
 
-  public static class InvariantRecordSerializer extends JsonSerializer<InvariantRecord> {
+  public static class InvariantRecordSerializer extends JsonSerializer<InvariantEntry> {
 
     public InvariantRecordSerializer() {}
 
     @Override
-    public void serialize(InvariantRecord value, JsonGenerator gen, SerializerProvider serializers)
+    public void serialize(InvariantEntry value, JsonGenerator gen, SerializerProvider serializers)
         throws IOException {
 
       // Start a wrapper object for "waypoint"
       gen.writeStartObject();
       gen.writeFieldName("invariant");
 
-      // start the actual InvariantRecord object
+      // start the actual InvariantEntry object
       gen.writeStartObject();
       gen.writeFieldName("type");
       serializers.defaultSerializeValue(value.getType(), gen);
@@ -134,7 +134,7 @@ public sealed class InvariantRecord extends AbstractInformationRecord implements
 
       gen.writeFieldName("format");
       serializers.defaultSerializeValue(value.getFormat(), gen);
-      // end the InvariantRecord object
+      // end the InvariantEntry object
       gen.writeEndObject();
 
       // End the wrapper object
@@ -147,7 +147,7 @@ public sealed class InvariantRecord extends AbstractInformationRecord implements
     if (this == o) {
       return true;
     }
-    return o instanceof InvariantRecord invariantStoreEntryLoopInvariant
+    return o instanceof InvariantEntry invariantStoreEntryLoopInvariant
         && Objects.equals(value, invariantStoreEntryLoopInvariant.value)
         && Objects.equals(type, invariantStoreEntryLoopInvariant.type)
         && Objects.equals(format, invariantStoreEntryLoopInvariant.format)
@@ -165,7 +165,7 @@ public sealed class InvariantRecord extends AbstractInformationRecord implements
 
   @Override
   public String toString() {
-    return "InvariantRecord{"
+    return "InvariantEntry{"
         + " string='"
         + getValue()
         + "'"

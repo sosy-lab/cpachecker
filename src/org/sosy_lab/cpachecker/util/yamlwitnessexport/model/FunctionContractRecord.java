@@ -108,7 +108,7 @@ public non-sealed class FunctionContractRecord implements SetElementRecord {
         FunctionContractRecord value, JsonGenerator gen, SerializerProvider serializers)
         throws IOException {
 
-      // start the actual InvariantRecord object
+      // start the actual InvariantEntry object
       gen.writeStartObject();
       gen.writeFieldName("type");
       serializers.defaultSerializeValue(FUNCTION_CONTRACT_IDENTIFIER, gen);

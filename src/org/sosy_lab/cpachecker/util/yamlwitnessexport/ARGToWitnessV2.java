@@ -25,8 +25,8 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
@@ -37,7 +37,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
 
-  private InvariantRecord createInvariant(Collection<ARGState> argStates, CFANode node, String type)
+  private InvariantEntry createInvariant(Collection<ARGState> argStates, CFANode node, String type)
       throws InterruptedException, YamlWitnessExportException {
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
@@ -55,11 +55,11 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
             node.getFunction().getFileLocation().getFileName().toString(),
             node.getFunctionName());
 
-    InvariantRecord invariantRecord =
-        new InvariantRecord(
+    InvariantEntry invariantEntry =
+        new InvariantEntry(
             invariant.toString(), type, YAMLWitnessExpressionType.C.toString(), locationRecord);
 
-    return invariantRecord;
+    return invariantEntry;
   }
 
   void exportWitnesses(ARGState pRootState, Path pPath)
@@ -71,12 +71,12 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    List<InvariantRecord> entries = new ArrayList<>();
+    List<InvariantEntry> entries = new ArrayList<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
-      InvariantRecord loopInvariant =
+      InvariantEntry loopInvariant =
           createInvariant(argStates, node, InvariantRecordType.LOOP_INVARIANT.getKeyword());
       if (loopInvariant != null) {
         entries.add(loopInvariant);
@@ -86,7 +86,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     // Handle the location invariants
     for (CFANode node : functionCallInvariants.keySet()) {
       Collection<ARGState> argStates = functionCallInvariants.get(node);
-      InvariantRecord locationInvariant =
+      InvariantEntry locationInvariant =
           createInvariant(argStates, node, InvariantRecordType.LOCATION_INVARIANT.getKeyword());
       if (locationInvariant != null) {
         entries.add(locationInvariant);

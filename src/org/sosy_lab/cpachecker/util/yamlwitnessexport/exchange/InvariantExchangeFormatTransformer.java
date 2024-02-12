@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 public class InvariantExchangeFormatTransformer {
@@ -83,7 +83,7 @@ public class InvariantExchangeFormatTransformer {
         parserTools);
   }
 
-  public ExpressionTree<AExpression> parseInvariantEntry(InvariantRecord pInvariantEntry)
+  public ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
       throws InterruptedException {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction =
@@ -117,7 +117,7 @@ public class InvariantExchangeFormatTransformer {
 
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
-        for (InvariantRecord invariantEntry : invariantSetEntry.content) {
+        for (InvariantEntry invariantEntry : invariantSetEntry.content) {
           Integer line = invariantEntry.getLocation().getLine();
           String invariantString = invariantEntry.getValue();
 

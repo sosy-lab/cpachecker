@@ -19,20 +19,20 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.IOException;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecordV3.InvariantRecordV3Deserializer;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecordV3.InvariantRecordV3Serializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntryV3.InvariantRecordV3Deserializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntryV3.InvariantRecordV3Serializer;
 
 @JsonDeserialize(using = InvariantRecordV3Deserializer.class)
 @JsonSerialize(using = InvariantRecordV3Serializer.class)
-public final class InvariantRecordV3 extends InvariantRecord {
+public final class InvariantEntryV3 extends InvariantEntry {
 
-  public InvariantRecordV3(String pString, String pType, String pFormat, LocationRecord pLocation) {
+  public InvariantEntryV3(String pString, String pType, String pFormat, LocationRecord pLocation) {
     super(pString, pType, pFormat, pLocation);
   }
 
-  public static class InvariantRecordV3Deserializer extends JsonDeserializer<InvariantRecordV3> {
+  public static class InvariantRecordV3Deserializer extends JsonDeserializer<InvariantEntryV3> {
     @Override
-    public InvariantRecordV3 deserialize(JsonParser jp, DeserializationContext ctxt)
+    public InvariantEntryV3 deserialize(JsonParser jp, DeserializationContext ctxt)
         throws IOException {
       ObjectMapper mapper = (ObjectMapper) jp.getCodec();
       JsonNode node = mapper.readTree(jp);
@@ -43,8 +43,8 @@ public final class InvariantRecordV3 extends InvariantRecord {
       // Using the original deserializer is apparently very hard.
       // For now just manually construct this
       // (less elegant, but we probably never touch that code again, so it is fine):
-      InvariantRecordV3 result =
-          new InvariantRecordV3(
+      InvariantEntryV3 result =
+          new InvariantEntryV3(
               mapper.treeToValue(node.get("value"), String.class),
               mapper.treeToValue(node.get("type"), String.class),
               mapper.treeToValue(node.get("format"), String.class),
@@ -54,14 +54,13 @@ public final class InvariantRecordV3 extends InvariantRecord {
     }
   }
 
-  public static class InvariantRecordV3Serializer extends JsonSerializer<InvariantRecordV3> {
+  public static class InvariantRecordV3Serializer extends JsonSerializer<InvariantEntryV3> {
 
     @Override
-    public void serialize(
-        InvariantRecordV3 value, JsonGenerator gen, SerializerProvider serializers)
+    public void serialize(InvariantEntryV3 value, JsonGenerator gen, SerializerProvider serializers)
         throws IOException {
 
-      // start the actual InvariantRecord object
+      // start the actual InvariantEntry object
       gen.writeStartObject();
       gen.writeFieldName("type");
       serializers.defaultSerializeValue(value.getType(), gen);
