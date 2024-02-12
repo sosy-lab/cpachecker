@@ -23,13 +23,13 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractRecord.FunctionContractRecordDeserializer;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractRecord.FunctionContractRecordSerializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry.FunctionContractRecordDeserializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry.FunctionContractRecordSerializer;
 
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)
 @JsonSerialize(using = FunctionContractRecordSerializer.class)
-public non-sealed class FunctionContractRecord implements SetElementRecord {
+public non-sealed class FunctionContractEntry implements SetElementEntry {
 
   @SuppressWarnings("unused")
   private static final String FUNCTION_CONTRACT_IDENTIFIER = "function_contract";
@@ -48,7 +48,7 @@ public non-sealed class FunctionContractRecord implements SetElementRecord {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   private final YAMLWitnessExpressionType format;
 
-  public FunctionContractRecord(
+  public FunctionContractEntry(
       @JsonProperty("ensures") EnsuresRecord pEnsures,
       @JsonProperty("requires") RequiresRecord pRequires,
       @JsonProperty("format") YAMLWitnessExpressionType pFormat,
@@ -76,9 +76,9 @@ public non-sealed class FunctionContractRecord implements SetElementRecord {
   }
 
   public static class FunctionContractRecordDeserializer
-      extends JsonDeserializer<FunctionContractRecord> {
+      extends JsonDeserializer<FunctionContractEntry> {
     @Override
-    public FunctionContractRecord deserialize(JsonParser jp, DeserializationContext ctxt)
+    public FunctionContractEntry deserialize(JsonParser jp, DeserializationContext ctxt)
         throws IOException {
       ObjectMapper mapper = (ObjectMapper) jp.getCodec();
       JsonNode node = mapper.readTree(jp);
@@ -89,8 +89,8 @@ public non-sealed class FunctionContractRecord implements SetElementRecord {
       // Using the original deserializer is apparently very hard.
       // For now just manually construct this
       // (less elegant, but we probably never touch that code again, so it is fine):
-      FunctionContractRecord result =
-          new FunctionContractRecord(
+      FunctionContractEntry result =
+          new FunctionContractEntry(
               mapper.treeToValue(node.get("ensures"), EnsuresRecord.class),
               mapper.treeToValue(node.get("requires"), RequiresRecord.class),
               mapper.treeToValue(node.get("format"), YAMLWitnessExpressionType.class),
@@ -101,11 +101,11 @@ public non-sealed class FunctionContractRecord implements SetElementRecord {
   }
 
   public static class FunctionContractRecordSerializer
-      extends JsonSerializer<FunctionContractRecord> {
+      extends JsonSerializer<FunctionContractEntry> {
 
     @Override
     public void serialize(
-        FunctionContractRecord value, JsonGenerator gen, SerializerProvider serializers)
+        FunctionContractEntry value, JsonGenerator gen, SerializerProvider serializers)
         throws IOException {
 
       // start the actual InvariantEntry object

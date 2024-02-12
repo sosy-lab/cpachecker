@@ -21,11 +21,11 @@ public class SetEntry extends AbstractEntry {
   private final MetadataRecord metadata;
 
   @JsonProperty("content")
-  private final List<SetElementRecord> content;
+  private final List<SetElementEntry> content;
 
   public SetEntry(
       @JsonProperty("metadata") MetadataRecord pMetadata,
-      @JsonProperty("content") List<SetElementRecord> pContent) {
+      @JsonProperty("content") List<SetElementEntry> pContent) {
     super(SET_ENTRY_IDENTIFIER);
     metadata = pMetadata;
     content = pContent;

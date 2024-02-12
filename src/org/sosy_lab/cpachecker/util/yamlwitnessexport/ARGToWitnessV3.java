@@ -29,13 +29,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.EnsuresRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntryV3;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.RequiresRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SetElementRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SetElementEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SetEntry;
 
 class ARGToWitnessV3 extends ARGToYAMLWitness {
@@ -71,11 +71,11 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
     return invariantRecord;
   }
 
-  private List<FunctionContractRecord> handleFunctionContract(
+  private List<FunctionContractEntry> handleFunctionContract(
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
       Multimap<FunctionExitNode, ARGState> functionContractEnsures)
       throws InterruptedException {
-    List<FunctionContractRecord> functionContractRecords = new ArrayList<>();
+    List<FunctionContractEntry> functionContractRecords = new ArrayList<>();
     for (FunctionEntryNode node : functionContractRequires.keySet()) {
       Collection<ARGState> requiresArgStates = functionContractRequires.get(node);
 
@@ -90,7 +90,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
         ensuresClause = getOverapproximationOfStates(ensuresArgStates, node, true).toString();
       }
       functionContractRecords.add(
-          new FunctionContractRecord(
+          new FunctionContractEntry(
               new EnsuresRecord(ImmutableList.of(ensuresClause)),
               new RequiresRecord(ImmutableList.of(requiresClause)),
               YAMLWitnessExpressionType.C,
@@ -110,7 +110,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    List<SetElementRecord> entries = new ArrayList<>();
+    List<SetElementEntry> entries = new ArrayList<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
