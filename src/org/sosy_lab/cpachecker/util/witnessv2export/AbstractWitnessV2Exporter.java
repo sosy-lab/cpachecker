@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
 
-@Options(prefix = "witness.directexport")
-public abstract class DirectWitnessExporter {
+@Options(prefix = "witness.v2exporter")
+public abstract class AbstractWitnessV2Exporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
   protected List<WitnessVersion> witnessVersions = ImmutableList.of(WitnessVersion.V2);
@@ -70,10 +70,10 @@ public abstract class DirectWitnessExporter {
   private final ProducerRecord producerRecord;
   @LazyInit private MetadataRecord metadata;
 
-  protected DirectWitnessExporter(
+  protected AbstractWitnessV2Exporter(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
-    pConfig.inject(this, DirectWitnessExporter.class);
+    pConfig.inject(this, AbstractWitnessV2Exporter.class);
     specification = pSpecification;
     logger = pLogger;
     cfa = pCfa;

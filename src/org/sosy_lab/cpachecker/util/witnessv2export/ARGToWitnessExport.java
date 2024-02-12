@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
 
-public class ARGToWitnessExport extends DirectWitnessExporter {
+public class ARGToWitnessExport extends AbstractWitnessV2Exporter {
 
   private final ARGToWitnessV2 argToWitnessV2;
   private final ARGToWitnessV3 argToWitnessV3;
