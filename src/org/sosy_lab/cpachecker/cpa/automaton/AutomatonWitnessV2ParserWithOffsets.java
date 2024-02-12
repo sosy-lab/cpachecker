@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntr
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
 
-public class AutomatonWitnessV2ParserWithOffsets extends AutomatonWitnessV2ParserCommon {
+class AutomatonWitnessV2ParserWithOffsets extends AutomatonWitnessV2ParserCommon {
 
   private final CParser cparser;
   private final ParserTools parserTools;

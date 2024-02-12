@@ -106,7 +106,7 @@ class ARGToWitnessV3 extends ARGToWitness {
     return functionContractRecords;
   }
 
-  public void exportWitness(ARGState pRootState)
+  void exportWitness(ARGState pRootState)
       throws YamlWitnessExportException, InterruptedException, IOException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);

@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
 
 @Options(prefix = "witness")
-public class AutomatonWitnessV2ParserCommon {
+class AutomatonWitnessV2ParserCommon {
 
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)

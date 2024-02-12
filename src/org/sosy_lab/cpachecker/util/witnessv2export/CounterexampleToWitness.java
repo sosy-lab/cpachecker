@@ -103,7 +103,7 @@ public class CounterexampleToWitness extends AbstractWitnessV2Exporter {
             assumeEdge.getPredecessor().getFunctionName()));
   }
 
-  public void exportWitnessVersion2(CounterexampleInfo pCex)
+  private void exportWitnessVersion2(CounterexampleInfo pCex)
       throws IOException, YamlWitnessExportException {
     ASTStructure astStructure = getASTStructure();
 

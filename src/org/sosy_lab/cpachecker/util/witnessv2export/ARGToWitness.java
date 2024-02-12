@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.GraphTraverser;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 
-public class ARGToWitness extends AbstractWitnessV2Exporter {
+class ARGToWitness extends AbstractWitnessV2Exporter {
 
   private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
 
@@ -67,7 +67,7 @@ public class ARGToWitness extends AbstractWitnessV2Exporter {
   private static class CollectRelevantARGStates
       extends GraphTraverser<ARGState, YamlWitnessExportException> {
 
-    protected CollectedARGStates collectedStates = new CollectedARGStates();
+    private final CollectedARGStates collectedStates = new CollectedARGStates();
 
     protected CollectRelevantARGStates(ARGState startNode) {
       super(startNode);

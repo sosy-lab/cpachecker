@@ -47,7 +47,7 @@ public class AutomatonWitnessV2ParserUtils {
     return determineScope(pExplicitScope, pFunctionStack, lineMatcher, pScope);
   }
 
-  public static Scope determineScope(
+  private static Scope determineScope(
       Optional<String> pExplicitScope,
       Deque<String> pFunctionStack,
       Predicate<FileLocation> pLocationDescriptor,
@@ -78,7 +78,7 @@ public class AutomatonWitnessV2ParserUtils {
    * @return The offsets for the given file. If the file is not found the offsets for the file with
    *     the largest matching suffix will be returned.
    */
-  public static List<Integer> getOffsetsByFileSimilarity(
+  static List<Integer> getOffsetsByFileSimilarity(
       ListMultimap<String, Integer> pOffsetsByFile, String pFile) {
     String maxSimilarityFile = pFile;
     if (pOffsetsByFile.containsKey(pFile)) {
@@ -137,7 +137,7 @@ public class AutomatonWitnessV2ParserUtils {
     return getWitnessTypeIfYAML(entries);
   }
 
-  public static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {
+  static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {
     if (FluentIterable.from(entries).allMatch(e -> e instanceof ViolationSequenceEntry)) {
       return Optional.of(WitnessType.VIOLATION_WITNESS);
     } else if (FluentIterable.from(entries).allMatch(e -> !(e instanceof ViolationSequenceEntry))) {
