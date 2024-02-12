@@ -13,6 +13,14 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public class YAMLWitnessesTypes {
 
+  public static class YamlWitnessExportException extends Exception {
+    private static final long serialVersionUID = -5647551194742587246L;
+
+    public YamlWitnessExportException(String pReason) {
+      super(pReason);
+    }
+  }
+
   public enum WitnessVersion {
     V2,
     V3;

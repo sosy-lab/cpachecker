@@ -69,10 +69,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -119,13 +118,6 @@ public class ARGStatistics implements Statistics {
       name = "compressWitness",
       description = "compress the produced correctness-witness automata using GZIP compression.")
   private boolean compressWitness = true;
-
-  @Option(secure = true, name = "yamlProofWitness", description = "export a proof as .yaml file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path yamlProofWitness = null;
-
-  @Option(secure = true, description = "enable witness generation in the new yaml format.")
-  private boolean enableYamlWitnesses = false;
 
   @Option(
       secure = true,
@@ -210,7 +202,6 @@ public class ARGStatistics implements Statistics {
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
-  private final InvariantWitnessWriter invariantWitnessWriter;
   private final ARGToYAMLWitnessExport argToWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
@@ -245,15 +236,6 @@ public class ARGStatistics implements Statistics {
 
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
 
-    try {
-      invariantWitnessWriter =
-          enableYamlWitnesses
-              ? InvariantWitnessWriter.getWriter(config, cfa, pSpecification, pLogger)
-              : null;
-    } catch (IOException e) {
-      throw new InvalidConfigurationException("InvariantWitnessWriter could not be created", e);
-    }
-
     argToWitnessWriter = new ARGToYAMLWitnessExport(config, cfa, pSpecification, pLogger);
 
     if (counterexampleOptions.disabledCompletely()) {
@@ -270,8 +252,7 @@ public class ARGStatistics implements Statistics {
               cfa,
               cpa,
               argWitnessExporter,
-              extendedWitnessExporter,
-              invariantWitnessWriter);
+              extendedWitnessExporter);
     }
 
     argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());
@@ -437,11 +418,6 @@ public class ARGStatistics implements Statistics {
                   "Could not export the YAML correctness witness directly from the ARG. "
                       + "Therefore no YAML witness will be exported.");
             }
-          }
-        } else {
-          if (witness != null && yamlProofWitness != null && invariantWitnessWriter != null) {
-            invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(
-                witness, yamlProofWitness);
           }
         }
 

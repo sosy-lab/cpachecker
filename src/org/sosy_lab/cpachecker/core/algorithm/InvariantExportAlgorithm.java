@@ -8,11 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -38,10 +34,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessGenerator;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 
@@ -65,9 +59,6 @@ public class InvariantExportAlgorithm implements Algorithm {
   private final ShutdownNotifier shutdownNotifier;
   private final InvariantGenerator generator;
   private final InvariantWitnessFactory invariantWitnessFactory;
-  private final InvariantWitnessWriter invariantWitnessWriter;
-
-  private final Set<InvariantWitness> alreadyExported;
 
   @Option(secure = true, description = "Strategy for generating invariants")
   private InvariantGeneratorFactory invariantGenerationStrategy =
@@ -89,14 +80,6 @@ public class InvariantExportAlgorithm implements Algorithm {
     cfa = pCFA;
     shutdownNotifier = pShutdownManager.getNotifier();
     invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
-    try {
-      invariantWitnessWriter =
-          InvariantWitnessWriter.getWriter(pConfig, pCFA, pSpecification, pLogger);
-    } catch (IOException e) {
-      throw new CPAException("could not instantiate invariant witness writer", e);
-    }
-
-    alreadyExported = new HashSet<>();
 
     generator =
         invariantGenerationStrategy.createInvariantGenerator(
@@ -134,7 +117,7 @@ public class InvariantExportAlgorithm implements Algorithm {
 
     logger.log(Level.INFO, "Checking for invariants to export ...");
     ExpressionTreeSupplier supplier = getCurrentSupplier();
-    ImmutableSet.Builder<InvariantWitness> witnesses = ImmutableSet.builder();
+    // ImmutableSet.Builder<InvariantWitness> witnesses = ImmutableSet.builder();
     for (CFANode node : cfa.nodes()) {
       ExpressionTree<Object> invariant = supplier.getInvariantFor(node);
 
@@ -142,9 +125,8 @@ public class InvariantExportAlgorithm implements Algorithm {
         continue;
       }
 
-      witnesses.addAll(invariantWitnessFactory.fromNodeAndInvariant(node, invariant));
+      // witnesses.addAll(invariantWitnessFactory.fromNodeAndInvariant(node, invariant));
     }
-    exportWitnesses(Sets.difference(witnesses.build(), alreadyExported));
   }
 
   private ExpressionTreeSupplier getCurrentSupplier() {
@@ -157,19 +139,6 @@ public class InvariantExportAlgorithm implements Algorithm {
       logger.logDebugException(e);
     }
     return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
-  }
-
-  private void exportWitnesses(final Set<InvariantWitness> witnesses) {
-    // TODO: Possibly run multithreaded ?
-    if (witnesses.isEmpty()) {
-      return;
-    }
-    logger.log(Level.INFO, "Found " + witnesses.size() + " new invariants and will export them.");
-    for (InvariantWitness witness : witnesses) {
-      alreadyExported.add(witness);
-      logger.log(Level.INFO, "Exporting invariant " + witness);
-      invariantWitnessWriter.exportInvariantWitness(witness);
-    }
   }
 
   // TODO This is copy&paste from BMC Algorithm. Refactor!

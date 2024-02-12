@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
-import java.io.IOException;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -47,7 +46,6 @@ import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
@@ -210,12 +208,6 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description = "converts a witness to an ACSL annotated program")
   private boolean useWitnessToACSLAlgorithm = false;
-
-  @Option(
-      secure = true,
-      name = "witnessToInvariant",
-      description = "converts a graphml witness to invariant witness")
-  private boolean useWitnessToInvariantAlgorithm = false;
 
   @Option(
       secure = true,
@@ -513,14 +505,6 @@ public class CoreComponentsFactory {
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
-    } else if (useWitnessToInvariantAlgorithm) {
-      try {
-        algorithm =
-            new WitnessToInvariantWitnessAlgorithm(
-                config, logger, shutdownNotifier, cfa, specification);
-      } catch (IOException e) {
-        throw new CPAException("could not instantiate invariant witness writer", e);
-      }
     } else if (useInvariantExportAlgorithm) {
       algorithm =
           new InvariantExportAlgorithm(
