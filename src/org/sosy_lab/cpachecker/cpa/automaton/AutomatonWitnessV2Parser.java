@@ -32,7 +32,6 @@ public class AutomatonWitnessV2Parser {
   public AutomatonWitnessV2Parser(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
