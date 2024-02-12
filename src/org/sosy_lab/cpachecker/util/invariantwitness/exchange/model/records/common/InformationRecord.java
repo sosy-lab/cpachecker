@@ -16,9 +16,9 @@ import java.util.Objects;
 public final class InformationRecord extends AbstractInformationRecord {
   public InformationRecord(
       @JsonProperty("value") String string,
-      @JsonProperty("type") String type,
-      @JsonProperty("format") String format) {
-    super(string, type, format);
+      @JsonProperty("type") String pType,
+      @JsonProperty("format") String pFormat) {
+    super(string, pType, pFormat);
   }
 
   @Override
