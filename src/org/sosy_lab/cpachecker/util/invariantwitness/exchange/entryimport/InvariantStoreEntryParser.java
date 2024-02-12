@@ -228,6 +228,7 @@ class InvariantStoreEntryParser {
         offetInFile + entryLocation.getColumn(),
         0,
         entryLocation.getLine(),
-        entryLocation.getLine());
+        entryLocation.getLine(),
+        entryLocation.getColumn());
   }
 }

@@ -35,6 +35,7 @@ public class FileLocationUtils {
     int length = endOffset - startOffset;
     int startLine = Math.min(a.getStartingLineNumber(), b.getStartingLineNumber());
     int endLine = Math.max(a.getEndingLineNumber(), b.getEndingLineNumber());
-    return new FileLocation(a.getFileName(), startOffset, length, startLine, endLine);
+    int startColumn = Math.min(a.getNodeOffset(), b.getNodeOffset());
+    return new FileLocation(a.getFileName(), startOffset, length, startLine, endLine, startColumn);
   }
 }

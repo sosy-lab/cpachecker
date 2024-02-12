@@ -79,7 +79,8 @@ public class InvariantExchangeFormatTransformer {
         ImmutableSet.of(invariantString),
         resultFunction,
         cparser,
-        AutomatonWitnessV2ParserUtils.determineScopeForLine(resultFunction, callStack, pLine, pScope),
+        AutomatonWitnessV2ParserUtils.determineScopeForLine(
+            resultFunction, callStack, pLine, pScope),
         parserTools);
   }
 
@@ -135,11 +136,11 @@ public class InvariantExchangeFormatTransformer {
           FileLocation loc =
               new FileLocation(
                   Path.of(invariantEntry.getLocation().getFileName()),
-                  lineToOffset.get(invariantEntry.getLocation().getFileName()).get(line - 1)
-                      + invariantEntry.getLocation().getColumn(),
-                  -1, // The length is currently not important enough to warrant computing it
+                  -1,
+                  -1,
+                  line, // The length is currently not important enough to warrant computing it
                   line,
-                  line);
+                  invariantEntry.getLocation().getColumn());
           invariants.add(
               new Invariant(invariant, loc, invariantEntry instanceof LoopInvariantEntry));
 

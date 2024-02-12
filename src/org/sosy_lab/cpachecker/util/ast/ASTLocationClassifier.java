@@ -109,7 +109,8 @@ class ASTLocationClassifier extends ASTVisitor {
             iloc.getNodeOffset(),
             iloc.getNodeLength(),
             iloc.getStartingLineNumber(),
-            iloc.getEndingLineNumber());
+            iloc.getEndingLineNumber(),
+            -1); // The column used here is not so relevant as to warrant computing it
     return loc;
   }
 
