@@ -789,7 +789,7 @@ public final class ValueAnalysisState
         val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
       } else if (simpleType.getType().isFloatingPointType()) {
         double value = pNum.getNumber().doubleValue();
-        if (((Double) value).isNaN() || ((Double) value).isInfinite()) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
           // Cannot represent this here
           return Optional.empty();
         }
