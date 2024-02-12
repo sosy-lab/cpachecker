@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
 import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
 
-public class WitnessV2ExportUtils {
+class WitnessV2ExportUtils {
 
-  public static MetadataRecord createMetadataRecord(
+  static MetadataRecord createMetadataRecord(
       ProducerRecord producerDescription, TaskRecord taskDescription, WitnessVersion pVersion) {
     ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
     String creationTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
@@ -51,7 +51,7 @@ public class WitnessV2ExportUtils {
     return metadata;
   }
 
-  public static String getArchitecture(MachineModel pMachineModel) {
+  static String getArchitecture(MachineModel pMachineModel) {
     final String architecture =
         switch (pMachineModel) {
           case LINUX32 -> "ILP32";
@@ -65,7 +65,7 @@ public class WitnessV2ExportUtils {
     return architecture;
   }
 
-  public static ProducerRecord getProducerRecord(Configuration pConfig) {
+  static ProducerRecord getProducerRecord(Configuration pConfig) {
     return new ProducerRecord(
         "CPAchecker",
         CPAchecker.getPlainVersion(),
@@ -74,8 +74,7 @@ public class WitnessV2ExportUtils {
         null);
   }
 
-  public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
-      throws IOException {
+  static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification) throws IOException {
     List<Path> inputFiles = pCFA.getFileNames();
     ImmutableMap.Builder<String, String> inputFileHashes = ImmutableMap.builder();
     for (Path inputFile : inputFiles) {
@@ -95,13 +94,13 @@ public class WitnessV2ExportUtils {
         pCFA.getLanguage().toString());
   }
 
-  public static LocationRecord createLocationRecordAtStart(
+  static LocationRecord createLocationRecordAtStart(
       FileLocation location, ListMultimap<String, Integer> lineOffsetsByFile, String functionName) {
     return createLocationRecordAtStart(
         location, lineOffsetsByFile, location.getFileName().toString(), functionName);
   }
 
-  public static LocationRecord createLocationRecordAtStart(
+  static LocationRecord createLocationRecordAtStart(
       FileLocation location,
       ListMultimap<String, Integer> lineOffsetsByFile,
       String fileName,
@@ -113,7 +112,7 @@ public class WitnessV2ExportUtils {
     return new LocationRecord(fileName, "file_hash", lineNumber, offsetInLine, functionName);
   }
 
-  public static LocationRecord createLocationRecordAfterLocation(
+  static LocationRecord createLocationRecordAfterLocation(
       FileLocation fLoc,
       ListMultimap<String, Integer> lineOffsetsByFile,
       String functionName,
