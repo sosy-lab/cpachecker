@@ -27,12 +27,12 @@ public class IfStructure extends StatementStructure {
   private final ASTElement thenElement;
   private final Optional<ASTElement> maybeElseElement;
 
-  private Collection<CFAEdge> thenEdges = null;
-  private Collection<CFAEdge> elseEdges = null;
-  private Collection<CFAEdge> conditionEdges = null;
+  private ImmutableSet<CFAEdge> thenEdges = null;
+  private ImmutableSet<CFAEdge> elseEdges = null;
+  private ImmutableSet<CFAEdge> conditionEdges = null;
 
-  private Collection<CFANode> nodesBetweenConditionAndThenBranch = null;
-  private Collection<CFANode> nodesBetweenConditionAndElseBranch = null;
+  private ImmutableSet<CFANode> nodesBetweenConditionAndThenBranch = null;
+  private ImmutableSet<CFANode> nodesBetweenConditionAndElseBranch = null;
 
   IfStructure(
       FileLocation pIfLocation,
@@ -63,21 +63,21 @@ public class IfStructure extends StatementStructure {
     return maybeElseElement;
   }
 
-  public Collection<CFAEdge> getThenEdges() {
+  public ImmutableSet<CFAEdge> getThenEdges() {
     if (thenEdges == null) {
       thenEdges = findThenEdges();
     }
     return thenEdges;
   }
 
-  public Collection<CFAEdge> getConditionEdges() {
+  public ImmutableSet<CFAEdge> getConditionEdges() {
     if (conditionEdges == null) {
       conditionEdges = findConditionEdges();
     }
     return conditionEdges;
   }
 
-  public Collection<CFAEdge> getElseEdges() {
+  public ImmutableSet<CFAEdge> getElseEdges() {
     if (elseEdges == null) {
       elseEdges = findElseEdges();
     }
@@ -92,8 +92,10 @@ public class IfStructure extends StatementStructure {
     nodesBoundaryCondition = new HashSet<>(nodesBoundaryCondition);
     nodesBoundaryCondition.removeAll(
         transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getPredecessor));
-    nodesBetweenConditionAndElseBranch = new HashSet<>(nodesBoundaryCondition);
-    nodesBetweenConditionAndThenBranch = new HashSet<>(nodesBoundaryCondition);
+    Set<CFANode> collectorNodesBetweenConditionAndElseBranch =
+        new HashSet<>(nodesBoundaryCondition);
+    Set<CFANode> collectorNnodesBetweenConditionAndThenBranch =
+        new HashSet<>(nodesBoundaryCondition);
 
     // TODO: Currently we over-approximate by taking both branches when there are no edges
     //  in both branches
@@ -102,42 +104,46 @@ public class IfStructure extends StatementStructure {
         Set<CFANode> nodesElseBranch =
             transformedImmutableSetCopy(
                 maybeElseElement.orElseThrow().edges(), CFAEdge::getPredecessor);
-        nodesBetweenConditionAndThenBranch.removeAll(nodesElseBranch);
-        nodesBetweenConditionAndElseBranch.retainAll(nodesElseBranch);
+        collectorNnodesBetweenConditionAndThenBranch.removeAll(nodesElseBranch);
+        collectorNodesBetweenConditionAndElseBranch.retainAll(nodesElseBranch);
       }
     } else {
-      nodesBetweenConditionAndThenBranch.retainAll(nodesThenBranch);
-      nodesBetweenConditionAndElseBranch.removeAll(nodesThenBranch);
+      collectorNnodesBetweenConditionAndThenBranch.retainAll(nodesThenBranch);
+      collectorNodesBetweenConditionAndElseBranch.removeAll(nodesThenBranch);
     }
+    nodesBetweenConditionAndElseBranch =
+        ImmutableSet.copyOf(collectorNodesBetweenConditionAndElseBranch);
+    nodesBetweenConditionAndThenBranch =
+        ImmutableSet.copyOf(collectorNnodesBetweenConditionAndThenBranch);
   }
 
   public ImmutableSet<CFANode> getNodesBetweenConditionAndThenBranch() {
     if (nodesBetweenConditionAndThenBranch == null) {
       computeNodesBetweenConditionAndBranches();
     }
-    return ImmutableSet.copyOf(nodesBetweenConditionAndThenBranch);
+    return nodesBetweenConditionAndThenBranch;
   }
 
   public ImmutableSet<CFANode> getNodesBetweenConditionAndElseBranch() {
     if (nodesBetweenConditionAndElseBranch == null) {
       computeNodesBetweenConditionAndBranches();
     }
-    return ImmutableSet.copyOf(nodesBetweenConditionAndElseBranch);
+    return nodesBetweenConditionAndElseBranch;
   }
 
-  private Collection<CFAEdge> findThenEdges() {
+  private ImmutableSet<CFAEdge> findThenEdges() {
     return findBlockEdges(thenElement.edges());
   }
 
-  private Collection<CFAEdge> findElseEdges() {
+  private ImmutableSet<CFAEdge> findElseEdges() {
     return maybeElseElement.map(x -> findBlockEdges(x.edges())).orElse(ImmutableSet.of());
   }
 
-  private Collection<CFAEdge> findConditionEdges() {
+  private ImmutableSet<CFAEdge> findConditionEdges() {
     return findBlockEdges(conditionElement.edges());
   }
 
-  private Collection<CFAEdge> findBlockEdges(Collection<CFAEdge> target) {
+  private ImmutableSet<CFAEdge> findBlockEdges(Collection<CFAEdge> target) {
     ImmutableSet.Builder<CFAEdge> result = ImmutableSet.builder();
     for (CFAEdge e : conditionElement.edges()) {
       for (CFAEdge successor : CFAUtils.leavingEdges(e.getSuccessor())) {
