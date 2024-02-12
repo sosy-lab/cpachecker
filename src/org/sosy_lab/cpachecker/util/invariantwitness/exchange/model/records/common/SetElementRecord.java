@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
-// Only Records of this type should be exported, everything else is internal and should never be
-// exported
+/**
+ * A correctness witness contains multiple sets of entries, this interface is used to represent
+ * which entries/records can be exported inside a set of a correctness witness.
+ */
 public sealed interface SetElementRecord permits FunctionContractRecord, InvariantRecord {}
