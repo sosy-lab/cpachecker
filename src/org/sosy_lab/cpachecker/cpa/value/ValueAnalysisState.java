@@ -821,7 +821,9 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, AIdExpression pFunctionReturnVariable) {
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      Optional<AIdExpression> pFunctionReturnVariable) {
 
     if (machineModel == null) {
       return ExpressionTrees.getTrue();
@@ -874,7 +876,8 @@ public final class ValueAnalysisState
 
           } else if (pFunctionScope.getReturnVariable().isPresent()
               && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
-              && pFunctionReturnVariable instanceof CIdExpression var) {
+              && pFunctionReturnVariable.isPresent()
+              && pFunctionReturnVariable.orElseThrow() instanceof CIdExpression var) {
             Optional<CExpression> constraint = buildConstraint(var, cType, num);
             if (constraint.isPresent()) {
               result.add(LeafExpression.of(constraint.orElseThrow()));
@@ -884,12 +887,6 @@ public final class ValueAnalysisState
       }
     }
     return And.of(result);
-  }
-
-  @Override
-  public ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) {
-    return getFormulaApproximation(pFunctionScope, pLocation, null);
   }
 
   public static class ValueAndType implements Serializable {

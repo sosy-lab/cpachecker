@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -128,24 +129,25 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     List<List<ExpressionTree<Object>>> expressionsPerClass = new ArrayList<>();
 
     // TODO: Extend this to also include java Variables
-    AIdExpression returnVariable;
+    Optional<AIdExpression> returnVariable;
     if (pReplaceOutputVariable
         && node.getFunction().getType().getReturnType() instanceof CType cType
         && !(cType instanceof CVoidType)) {
       returnVariable =
-          new CIdExpression(
-              FileLocation.DUMMY,
-              new CVariableDeclaration(
+          Optional.of(
+              new CIdExpression(
                   FileLocation.DUMMY,
-                  false,
-                  CStorageClass.AUTO,
-                  cType,
-                  "\\return",
-                  "\\return",
-                  node.getFunctionName() + "::\\return",
-                  null));
+                  new CVariableDeclaration(
+                      FileLocation.DUMMY,
+                      false,
+                      CStorageClass.AUTO,
+                      cType,
+                      "\\return",
+                      "\\return",
+                      node.getFunctionName() + "::\\return",
+                      null)));
     } else {
-      returnVariable = null;
+      returnVariable = Optional.empty();
     }
 
     for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {

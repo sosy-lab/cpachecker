@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -21,33 +21,18 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 public interface ExpressionTreeReportingState extends AbstractState {
 
   /**
-   * Returns an ExpressionTree over-approximating the state.
-   *
-   * @param pFunctionScope the function scope as a function entry node.
-   * @param pLocation the formula should at least try to approximate variables referenced by
-   *     entering edges.
-   * @return an ExpressionTree over-approximating the state.
-   */
-  ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException;
-
-  /**
-   * Returns an ExpressionTree over-approximating the state. With the extensions that expressions
-   * which represent the return from a function are replaced by the given variable. This is
-   * particularly useful in order to export function contracts. By default, or when
-   * pFunctionReturnVariable is null this method calls {@link
-   * #getFormulaApproximation(FunctionEntryNode, CFANode)}
+   * Returns an ExpressionTree over-approximating the state. The expressions which represent the
+   * return from a function are replaced by the given variable. This is particularly useful in order
+   * to export function contracts.
    *
    * @param pFunctionScope the function scope as a function entry node.
    * @param pLocation the formula should at least try to approximate variables referenced by
    *     entering edges
    * @param pFunctionReturnVariable the variable to replace function return expressions with
    */
-  default ExpressionTree<Object> getFormulaApproximation(
+  ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
-      @Nullable AIdExpression pFunctionReturnVariable)
-      throws InterruptedException {
-    return getFormulaApproximation(pFunctionScope, pLocation);
-  }
+      Optional<AIdExpression> pFunctionReturnVariable)
+      throws InterruptedException;
 }
