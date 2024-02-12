@@ -6,8 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
+package org.sosy_lab.cpachecker.util.witnessv2export;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -21,26 +22,34 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.ExpressionType;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.SetEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.EnsuresRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ExportableRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecordV3;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.RequiresRecord;
+import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
 
-class ARGToWitnessV2 extends ARGToWitness {
-  protected ARGToWitnessV2(
+class ARGToWitnessV3 extends ARGToWitness {
+  protected ARGToWitnessV3(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
 
-  private InvariantRecord createInvariant(Collection<ARGState> argStates, CFANode node, String type)
+  private InvariantRecordV3 createInvariant(
+      Collection<ARGState> argStates, CFANode node, String type)
       throws InterruptedException, IOException, YamlWitnessExportException {
     ListMultimap<String, Integer> lineOffsetByLine = getlineOffsetsByFile();
 
@@ -60,14 +69,44 @@ class ARGToWitnessV2 extends ARGToWitness {
             node.getFunction().getFileLocation().getFileName().toString(),
             node.getFunctionName());
 
-    InvariantRecord invariantRecord =
-        new InvariantRecord(
+    InvariantRecordV3 invariantRecord =
+        new InvariantRecordV3(
             invariant.toString(), type, ExpressionType.C.toString(), locationRecord);
 
     return invariantRecord;
   }
 
-  public void exportWitnesses(ARGState pRootState)
+  private List<FunctionContractRecord> handleFunctionContract(
+      Multimap<FunctionEntryNode, ARGState> functionContractRequires,
+      Multimap<FunctionExitNode, ARGState> functionContractEnsures)
+      throws InterruptedException, IOException {
+    List<FunctionContractRecord> functionContractRecords = new ArrayList<>();
+    for (FunctionEntryNode node : functionContractRequires.keySet()) {
+      Collection<ARGState> requiresArgStates = functionContractRequires.get(node);
+
+      FileLocation location = node.getFileLocation();
+      String requiresClause =
+          getOverapproximationOfStates(requiresArgStates, node, true).toString();
+      String ensuresClause = "1";
+      if (node.getExitNode().isPresent()
+          && functionContractEnsures.containsKey(node.getExitNode().orElseThrow())) {
+        Collection<ARGState> ensuresArgStates =
+            functionContractEnsures.get(node.getExitNode().orElseThrow());
+        ensuresClause = getOverapproximationOfStates(ensuresArgStates, node, true).toString();
+      }
+      functionContractRecords.add(
+          new FunctionContractRecord(
+              new EnsuresRecord(ImmutableList.of(ensuresClause)),
+              new RequiresRecord(ImmutableList.of(requiresClause)),
+              ExpressionType.C,
+              WitnessV2ExportUtils.createLocationRecordAtStart(
+                  location, getlineOffsetsByFile(), node.getFunctionName())));
+    }
+
+    return functionContractRecords;
+  }
+
+  public void exportWitness(ARGState pRootState)
       throws YamlWitnessExportException, InterruptedException, IOException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
@@ -76,7 +115,7 @@ class ARGToWitnessV2 extends ARGToWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    List<InvariantRecord> entries = new ArrayList<>();
+    List<ExportableRecord> entries = new ArrayList<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
@@ -98,8 +137,12 @@ class ARGToWitnessV2 extends ARGToWitness {
       }
     }
 
+    // If we are exporting to witness version 3.0 then we want to include function contracts
+    entries.addAll(
+        handleFunctionContract(
+            statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
+
     exportEntries(
-        new InvariantSetEntry(getMetadata(WitnessVersion.V2), entries),
-        getOutputFile(WitnessVersion.V2));
+        new SetEntry(getMetadata(WitnessVersion.V3), entries), getOutputFile(WitnessVersion.V3));
   }
 }

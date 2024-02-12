@@ -69,10 +69,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.ARGToWitnessExport;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
+import org.sosy_lab.cpachecker.util.witnessv2export.ARGToWitnessExport;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {

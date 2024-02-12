@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Export YAML witnesses directly from the ARG or the Counterexample */
-package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
+package org.sosy_lab.cpachecker.util.witnessv2export;

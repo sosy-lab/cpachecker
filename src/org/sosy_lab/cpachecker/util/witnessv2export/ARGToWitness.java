@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
+package org.sosy_lab.cpachecker.util.witnessv2export;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;

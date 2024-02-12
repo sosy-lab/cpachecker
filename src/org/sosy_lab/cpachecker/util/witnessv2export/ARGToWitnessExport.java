@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
+package org.sosy_lab.cpachecker.util.witnessv2export;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -16,8 +16,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
+import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
 
 public class ARGToWitnessExport extends DirectWitnessExporter {
 

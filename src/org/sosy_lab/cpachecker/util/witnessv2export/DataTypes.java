@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
+package org.sosy_lab.cpachecker.util.witnessv2export;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

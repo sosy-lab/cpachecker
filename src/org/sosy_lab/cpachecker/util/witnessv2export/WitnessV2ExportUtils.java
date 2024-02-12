@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
+package org.sosy_lab.cpachecker.util.witnessv2export;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -28,11 +28,11 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
+import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
 
 public class WitnessV2ExportUtils {
 

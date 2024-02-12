@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
+package org.sosy_lab.cpachecker.util.witnessv2export;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -36,14 +36,14 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.ExpressionType;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
+import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
 
 public class CounterexampleToWitness extends DirectWitnessExporter {
 

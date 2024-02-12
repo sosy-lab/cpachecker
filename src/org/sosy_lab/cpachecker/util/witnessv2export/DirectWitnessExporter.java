@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.directexport;
+package org.sosy_lab.cpachecker.util.witnessv2export;
 
 import static java.util.logging.Level.WARNING;
 
@@ -33,12 +33,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.WitnessVersion;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
+import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.WitnessVersion;
 
 @Options(prefix = "witness.directexport")
 public abstract class DirectWitnessExporter {

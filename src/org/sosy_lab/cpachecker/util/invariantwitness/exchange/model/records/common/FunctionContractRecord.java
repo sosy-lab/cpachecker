@@ -22,9 +22,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
-import org.sosy_lab.cpachecker.util.invariantwitness.directexport.DataTypes.ExpressionType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord.FunctionContractRecordDeserializer;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord.FunctionContractRecordSerializer;
+import org.sosy_lab.cpachecker.util.witnessv2export.DataTypes.ExpressionType;
 
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)
