@@ -84,7 +84,7 @@ abstract class AbstractWitnessV2Exporter {
                 .disable(Feature.WRITE_DOC_START_MARKER, Feature.SPLIT_LINES)
                 .build());
     mapper.setSerializationInclusion(Include.NON_NULL);
-    producerRecord = WitnessV2ExportUtils.getProducerRecord(pConfig);
+    producerRecord = WitnessV2AndUpExportUtils.getProducerRecord(pConfig);
   }
 
   protected ListMultimap<String, Integer> getlineOffsetsByFile() throws IOException {
@@ -97,8 +97,10 @@ abstract class AbstractWitnessV2Exporter {
   protected MetadataRecord getMetadata(WitnessVersion version) throws IOException {
     if (metadata == null) {
       metadata =
-          WitnessV2ExportUtils.createMetadataRecord(
-              producerRecord, WitnessV2ExportUtils.getTaskDescription(cfa, specification), version);
+          WitnessV2AndUpExportUtils.createMetadataRecord(
+              producerRecord,
+              WitnessV2AndUpExportUtils.getTaskDescription(cfa, specification),
+              version);
     }
     return metadata;
   }

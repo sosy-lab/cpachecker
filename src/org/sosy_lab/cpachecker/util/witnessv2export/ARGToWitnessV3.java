@@ -63,7 +63,7 @@ class ARGToWitnessV3 extends ARGToWitness {
     FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
     ExpressionTree<Object> invariant = getOverapproximationOfStates(argStates, node);
     LocationRecord locationRecord =
-        WitnessV2ExportUtils.createLocationRecordAtStart(
+        WitnessV2AndUpExportUtils.createLocationRecordAtStart(
             fileLocation,
             lineOffsetByLine,
             node.getFunction().getFileLocation().getFileName().toString(),
@@ -99,7 +99,7 @@ class ARGToWitnessV3 extends ARGToWitness {
               new EnsuresRecord(ImmutableList.of(ensuresClause)),
               new RequiresRecord(ImmutableList.of(requiresClause)),
               ExpressionType.C,
-              WitnessV2ExportUtils.createLocationRecordAtStart(
+              WitnessV2AndUpExportUtils.createLocationRecordAtStart(
                   location, getlineOffsetsByFile(), node.getFunctionName())));
     }
 
