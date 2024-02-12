@@ -16,14 +16,12 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 
-@Options(prefix = "witness")
 public class AutomatonWitnessV2Parser {
 
   private final LogManager logger;
@@ -66,14 +64,9 @@ public class AutomatonWitnessV2Parser {
           new AutomatonWitnessV2ParserCorrectness(config, logger, shutdownNotifier, cfa);
       return parser.createCorrectnessAutomatonFromEntries(entries);
     } else {
-      return createViolationAutomatonFromEntries(entries);
+      AutomatonViolationWitnessV2Parser parser =
+          new AutomatonViolationWitnessV2Parser(config, logger, shutdownNotifier, cfa);
+      return parser.createViolationAutomatonFromEntriesMatchingOffsets(entries);
     }
-  }
-
-  private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
-      throws InterruptedException, InvalidConfigurationException, IOException {
-    AutomatonViolationWitnessV2Parser parser =
-        new AutomatonViolationWitnessV2Parser(config, logger, shutdownNotifier, cfa);
-    return parser.createViolationAutomatonFromEntriesMatchingOffsets(pEntries);
   }
 }
