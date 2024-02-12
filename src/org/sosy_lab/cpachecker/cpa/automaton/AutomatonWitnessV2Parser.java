@@ -16,7 +16,6 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -73,8 +72,8 @@ public class AutomatonWitnessV2Parser {
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException, IOException {
-    AutomatonWitnessV2ParserWithOffsets parser =
-        new AutomatonWitnessV2ParserWithOffsets(config, logger, shutdownNotifier, cfa);
+    AutomatonViolationWitnessV2Parser parser =
+        new AutomatonViolationWitnessV2Parser(config, logger, shutdownNotifier, cfa);
     return parser.createViolationAutomatonFromEntriesMatchingOffsets(pEntries);
   }
 }
