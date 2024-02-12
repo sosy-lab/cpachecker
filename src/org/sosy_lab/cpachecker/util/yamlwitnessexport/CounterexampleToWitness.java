@@ -53,8 +53,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   private WaypointRecord handleAssumptionWaypoint(
-      Collection<AExpressionStatement> assumptions, CFAEdge edge, ASTStructure astStructure)
-      throws IOException {
+      Collection<AExpressionStatement> assumptions, CFAEdge edge, ASTStructure astStructure) {
     String statement;
     if (assumptions.isEmpty()) {
       // We need to export this waypoint in order to avoid errors caused by passing another
@@ -82,8 +81,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         location);
   }
 
-  private WaypointRecord handleBranchingWaypoint(IfStructure ifStructure, AssumeEdge assumeEdge)
-      throws IOException {
+  private WaypointRecord handleBranchingWaypoint(IfStructure ifStructure, AssumeEdge assumeEdge) {
     String branchToFollow =
         Boolean.toString(
             ifStructure

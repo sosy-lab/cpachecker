@@ -47,7 +47,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
 
   private InvariantRecordV3 createInvariant(
       Collection<ARGState> argStates, CFANode node, String type)
-      throws InterruptedException, IOException, YamlWitnessExportException {
+      throws InterruptedException, YamlWitnessExportException {
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
     Optional<IterationStructure> iterationStructure =
@@ -74,7 +74,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
   private List<FunctionContractRecord> handleFunctionContract(
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
       Multimap<FunctionExitNode, ARGState> functionContractEnsures)
-      throws InterruptedException, IOException {
+      throws InterruptedException {
     List<FunctionContractRecord> functionContractRecords = new ArrayList<>();
     for (FunctionEntryNode node : functionContractRequires.keySet()) {
       Collection<ARGState> requiresArgStates = functionContractRequires.get(node);

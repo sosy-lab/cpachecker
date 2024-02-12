@@ -73,7 +73,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
 
     @Override
-    protected ARGState visit(ARGState pSuccessor) throws YamlWitnessExportException {
+    protected ARGState visit(ARGState pSuccessor) {
       for (LocationState state :
           AbstractStates.asIterable(pSuccessor).filter(LocationState.class)) {
         CFANode node = state.getLocationNode();
@@ -94,8 +94,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
 
     @Override
-    protected Iterable<ARGState> getSuccessors(ARGState pCurrent)
-        throws YamlWitnessExportException {
+    protected Iterable<ARGState> getSuccessors(ARGState pCurrent) {
       return pCurrent.getChildren();
     }
   }
