@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantExchangeFormatTransformer;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 
 /**
@@ -224,7 +223,7 @@ public class WitnessInvariantsExtractor {
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
     Set<Invariant> invariants =
         transformer.generateInvariantsFromEntries(
-            entries, InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames()));
+            entries);
     Set<ExpressionTreeLocationInvariant> candidateInvariants = new HashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
 

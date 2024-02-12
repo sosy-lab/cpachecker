@@ -113,8 +113,7 @@ public class InvariantExchangeFormatTransformer {
    *     relation between Columns and character offsets.
    * @return The set of invariants
    */
-  public Set<Invariant> generateInvariantsFromEntries(
-      List<AbstractEntry> pEntries, ListMultimap<String, Integer> lineToOffset)
+  public Set<Invariant> generateInvariantsFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException {
     Set<Invariant> invariants = new HashSet<>();
 

@@ -15,8 +15,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ListMultimap;
-import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -33,7 +31,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
@@ -48,11 +45,6 @@ abstract class AbstractYAMLWitnessExporter {
   protected final LogManager logger;
   private final Specification specification;
   protected final ObjectMapper mapper;
-
-  // Should only be accessed through the getter method, since having computations be done in the
-  // constructor does not seem ideal. In particular creating these methods may throw IOExceptions
-  // which is not ideal in a constructor
-  @LazyInit private ListMultimap<String, Integer> privateLineOffsetsByFile;
   private final ProducerRecord producerRecord;
 
   protected AbstractYAMLWitnessExporter(
@@ -70,13 +62,6 @@ abstract class AbstractYAMLWitnessExporter {
                 .build());
     mapper.setSerializationInclusion(Include.NON_NULL);
     producerRecord = YAMLWitnessesExportUtils.getProducerRecord(pConfig);
-  }
-
-  protected ListMultimap<String, Integer> getlineOffsetsByFile() throws IOException {
-    if (privateLineOffsetsByFile == null) {
-      privateLineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames());
-    }
-    return privateLineOffsetsByFile;
   }
 
   protected MetadataRecord getMetadata(YAMLWitnessVersion version) throws IOException {

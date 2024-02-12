@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import java.io.IOException;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantExchangeFormatTransformer;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
@@ -77,15 +75,6 @@ class AutomatonWitnessV2ParserCommon {
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
     transformer = new InvariantExchangeFormatTransformer(pConfig, pLogger, pShutdownNotifier, pCFA);
-  }
-
-  ListMultimap<String, Integer> getLineOffsetsByFile() throws IOException {
-    if (lineOffsetsByFile == null) {
-      lineOffsetsByFile = ArrayListMultimap.create();
-      lineOffsetsByFile.putAll(InvariantStoreUtil.getLineOffsetsByFile(cfa.getFileNames()));
-    }
-
-    return lineOffsetsByFile;
   }
 
   private static AutomatonBoolExpr not(AutomatonBoolExpr pA) {

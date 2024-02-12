@@ -10,6 +10,10 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ListMultimap;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +33,7 @@ import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class ASTLocationClassifier extends ASTVisitor {
@@ -53,6 +58,8 @@ class ASTLocationClassifier extends ASTVisitor {
 
   private final Map<String, Path> fileNames = new HashMap<>();
 
+  private final ListMultimap<Path, Integer> lineNumberToStartingColumn = ArrayListMultimap.create();
+
   public ASTLocationClassifier() {
     super(true);
   }
@@ -72,6 +79,24 @@ class ASTLocationClassifier extends ASTVisitor {
     for (Path path : pFileNames) {
       fileNames.put(path.getFileName().toString(), path);
     }
+  }
+
+  public int getStartingOffsetForLine(Path pAnalysisFileName, int pAnalysisCodeLine) {
+    if (!lineNumberToStartingColumn.containsKey(pAnalysisFileName)) {
+      try {
+        lineNumberToStartingColumn.putAll(
+            pAnalysisFileName,
+            CSourceOriginMapping.getLineOffsetsByFile(ImmutableList.of(pAnalysisFileName))
+                .get(pAnalysisFileName));
+      } catch (IOException e) {
+        return -3;
+      }
+    }
+    if (lineNumberToStartingColumn.get(pAnalysisFileName).size() <= pAnalysisCodeLine) {
+      return -4;
+    }
+
+    return lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1);
   }
 
   @Override
@@ -102,7 +127,7 @@ class ASTLocationClassifier extends ASTVisitor {
 
   private FileLocation getLocation(IASTNode node) {
     IASTFileLocation iloc = node.getFileLocation();
-    Path path = fileNames.getOrDefault(iloc.getFileName(), Path.of("#none#"));
+    Path path = Path.of(iloc.getFileName());
     FileLocation loc =
         new FileLocation(
             path,
@@ -110,7 +135,9 @@ class ASTLocationClassifier extends ASTVisitor {
             iloc.getNodeLength(),
             iloc.getStartingLineNumber(),
             iloc.getEndingLineNumber(),
-            -1); // The column used here is not so relevant as to warrant computing it
+            iloc.getNodeOffset()
+                - getStartingOffsetForLine(path, iloc.getStartingLineNumber())
+                + 1);
     return loc;
   }
 

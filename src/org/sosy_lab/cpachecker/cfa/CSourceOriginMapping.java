@@ -65,7 +65,7 @@ public class CSourceOriginMapping {
    * @return Immutable map
    * @throws IOException if the files can not be accessed.
    */
-  private static ListMultimap<Path, Integer> getLineOffsetsByFile(Collection<Path> filePaths)
+  public static ListMultimap<Path, Integer> getLineOffsetsByFile(Collection<Path> filePaths)
       throws IOException {
     ImmutableListMultimap.Builder<Path, Integer> result = ImmutableListMultimap.builder();
 
@@ -107,7 +107,7 @@ public class CSourceOriginMapping {
     return CodePosition.of(pAnalysisFileName, pAnalysisCodeLine);
   }
 
-  public int getPositionStartingColumnStartLine(Path pAnalysisFileName, int pAnalysisCodeLine) {
+  public int getStartingOffsetForLine(Path pAnalysisFileName, int pAnalysisCodeLine) {
     if (!lineNumberToStartingColumn.containsKey(pAnalysisFileName)) {
       try {
         lineNumberToStartingColumn.putAll(

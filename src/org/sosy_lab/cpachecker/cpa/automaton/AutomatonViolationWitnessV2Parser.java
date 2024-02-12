@@ -34,9 +34,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversOffsetAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersIfBranch;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesOffsetAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.util.CParserUtils;
@@ -94,13 +93,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // any successors in the ARG, since the verification stops there. Therefore handling targets
     // the same way as with assumptions would not work. As an overapproximation we use the
     // covers to present the desired functionality.
-    AutomatonBoolExpr expr =
-        new CheckCoversOffsetAndLine(
-            AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
-                        getLineOffsetsByFile(), followFilename)
-                    .get(followLine - 1)
-                + followColumn,
-            followLine);
+    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine);
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);
@@ -125,13 +118,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // "An assumption waypoint is evaluated at the sequence point immediately before the
     // waypoint location. The waypoint is passed if the given constraint evaluates to true."
     // Therefore, we need the Reaches Offset guard.
-    AutomatonBoolExpr expr =
-        new CheckReachesOffsetAndLine(
-            AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
-                        getLineOffsetsByFile(), followFilename)
-                    .get(followLine - 1)
-                + followColumn,
-            followLine);
+    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine);
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);
@@ -152,13 +139,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       throws IOException {
     // The -1 in the column is needed since the ASTStructure element starts at the offset before
     // the if keyword, but the waypoint points to the first character of the if keyword
-    IfStructure ifStructure =
-        astStructure.getIfStructureStartingAtOffset(
-            AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
-                        getLineOffsetsByFile(), followFilename)
-                    .get(followLine - 1)
-                + followColumn
-                - 1);
+    IfStructure ifStructure = astStructure.getIfStructureStartingAtColumn(followColumn, followLine);
     if (ifStructure == null) {
       logger.log(
           Level.INFO, "Could not find IfStructure corresponding to the waypoint, skipping it");
@@ -202,14 +183,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       Multimap<Integer, CFAEdge> startLineToCFAEdge)
       throws IOException, InterruptedException {
 
-    AutomatonBoolExpr expr =
-        new CheckCoversOffsetAndLine(
-            AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
-                        getLineOffsetsByFile(), followFilename)
-                    .get(followLine - 1)
-                + followColumn,
-            followLine,
-            true);
+    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine, true);
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);
@@ -219,14 +193,12 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         FluentIterable.from(startLineToCFAEdge.get(followLine)).filter(AStatementEdge.class)) {
       // The syntax of the witness V2 describes that the return statement must point to the
       // closing bracket of the function whose return statement is being considered
-      int offsetAccordingToWaypoint =
-          AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
-                      getLineOffsetsByFile(), followFilename)
-                  .get(followLine - 1)
-              + followColumn;
-      int offsetEndOfEdge =
-          edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength() - 1;
-      if (offsetEndOfEdge != offsetAccordingToWaypoint) {
+      int columnEndOfEdge =
+          edge.getFileLocation().getStartingLineInOrigin()
+              + edge.getFileLocation().getNodeLength()
+              - 1;
+      if (columnEndOfEdge != followColumn
+          || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;
       }
 

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,7 +39,6 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
 
   private InvariantRecord createInvariant(Collection<ARGState> argStates, CFANode node, String type)
       throws InterruptedException, IOException, YamlWitnessExportException {
-    ListMultimap<String, Integer> lineOffsetByLine = getlineOffsetsByFile();
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
     Optional<IterationStructure> iterationStructure =
@@ -54,7 +52,6 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     LocationRecord locationRecord =
         YAMLWitnessesExportUtils.createLocationRecordAtStart(
             fileLocation,
-            lineOffsetByLine,
             node.getFunction().getFileLocation().getFileName().toString(),
             node.getFunctionName());
 

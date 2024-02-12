@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.entryimport;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ListMultimap;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
@@ -22,7 +21,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
 
 /** Represents an invariant witness source. */
@@ -58,8 +56,6 @@ public final class InvariantWitnessProvider implements AutoCloseable {
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, IOException {
 
-    ListMultimap<String, Integer> lineOffsetsByFile =
-        InvariantStoreUtil.getLineOffsetsByFile(pCFA.getFileNames());
     FromDiskEntryProvider entryProvider =
         FromDiskEntryProvider.getNewFromDiskEntryProvider(pConfig);
     entryProvider.start();
@@ -70,7 +66,7 @@ public final class InvariantWitnessProvider implements AutoCloseable {
     // argument to other static methods).
     return new InvariantWitnessProvider(
         InvariantStoreEntryParser.getNewInvariantStoreEntryParser(
-            pConfig, pLogger, pShutdownNotifier, pCFA, lineOffsetsByFile),
+            pConfig, pLogger, pShutdownNotifier, pCFA, null),
         entryProvider);
   }
 

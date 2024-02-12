@@ -222,6 +222,66 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  public static class CheckCoversColumnAndLine implements AutomatonBoolExpr {
+    private final Integer columnToReach;
+    private final Integer lineNumber;
+    private final boolean expectStatementEdge;
+
+    public CheckCoversColumnAndLine(Integer pColumn, Integer pLineNumber) {
+      columnToReach = pColumn;
+      lineNumber = pLineNumber;
+      expectStatementEdge = false;
+    }
+
+    public CheckCoversColumnAndLine(
+        Integer pColumn, Integer pLineNumber, boolean pExpectStatementEdge) {
+      columnToReach = pColumn;
+      lineNumber = pLineNumber;
+      expectStatementEdge = pExpectStatementEdge;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (expectStatementEdge && !(edge instanceof AStatementEdge)) {
+        return CONST_FALSE;
+      }
+
+      if (!CoverageData.coversLine(edge)) {
+        return CONST_FALSE;
+      }
+
+      FileLocation edgeLocation = edge.getFileLocation();
+      int edgeNodeColumn = edgeLocation.getStartColumnInLine();
+
+      if (edgeLocation.getStartingLineInOrigin() == lineNumber
+          || edgeLocation.getEndingLineInOrigin() == lineNumber) {
+        if (edgeNodeColumn <= columnToReach
+            && columnToReach <= edgeNodeColumn + edgeLocation.getNodeLength()) {
+          return CONST_TRUE;
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "COVERS_COLUMN(" + columnToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return columnToReach.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckCoversColumnAndLine
+          && columnToReach.equals(((CheckCoversColumnAndLine) o).columnToReach)
+          && lineNumber.equals(((CheckCoversColumnAndLine) o).lineNumber);
+    }
+  }
+
   public static class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
     private final Integer offsetToReach;
     private final Integer lineNumber;

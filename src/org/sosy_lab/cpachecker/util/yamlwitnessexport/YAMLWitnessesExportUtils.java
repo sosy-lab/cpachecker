@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ListMultimap;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -100,34 +99,25 @@ class YAMLWitnessesExportUtils {
         pCFA.getLanguage().toString());
   }
 
-  static LocationRecord createLocationRecordAtStart(
-      FileLocation location, ListMultimap<String, Integer> lineOffsetsByFile, String functionName) {
-    return createLocationRecordAtStart(
-        location, lineOffsetsByFile, location.getFileName().toString(), functionName);
+  static LocationRecord createLocationRecordAtStart(FileLocation location, String functionName) {
+    return createLocationRecordAtStart(location, location.getFileName().toString(), functionName);
   }
 
   static LocationRecord createLocationRecordAtStart(
-      FileLocation location,
-      ListMultimap<String, Integer> lineOffsetsByFile,
-      String fileName,
-      String functionName) {
+      FileLocation location, String fileName, String functionName) {
     final int lineNumber = location.getStartingLineInOrigin();
-    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
-    final int offsetInLine = location.getNodeOffset() - lineOffset + 1;
 
-    return new LocationRecord(fileName, "file_hash", lineNumber, offsetInLine, functionName);
+    return new LocationRecord(
+        fileName, "file_hash", lineNumber, location.getStartColumnInLine(), functionName);
   }
 
   static LocationRecord createLocationRecordAfterLocation(
-      FileLocation fLoc,
-      ListMultimap<String, Integer> lineOffsetsByFile,
-      String functionName,
-      ASTStructure astStructure) {
+      FileLocation fLoc, String functionName, ASTStructure astStructure) {
     final String fileName = fLoc.getFileName().toString();
     FileLocation nextStatementFileLocation =
         astStructure.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
 
     return YAMLWitnessesExportUtils.createLocationRecordAtStart(
-        nextStatementFileLocation, lineOffsetsByFile, fileName, functionName);
+        nextStatementFileLocation, fileName, functionName);
   }
 }

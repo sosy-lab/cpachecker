@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class ASTStructure {
   private EclipseCdtWrapper cdt;
@@ -47,6 +48,8 @@ public class ASTStructure {
   private Map<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
 
   private Map<Integer, IfStructure> startOffsetToIfStructure = new HashMap<>();
+  private Map<Pair<Integer, Integer>, IfStructure> lineAndStartColumnToIfStructure =
+      new HashMap<>();
 
   public ASTStructure(
       Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, CFA pCfa)
@@ -286,6 +289,23 @@ public class ASTStructure {
     for (IfStructure structure : getIfStructures()) {
       if (structure.getCompleteElement().location().getNodeOffset() == pOffset) {
         startOffsetToIfStructure.put(pOffset, structure);
+        return structure;
+      }
+    }
+
+    return null;
+  }
+
+  public IfStructure getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
+    Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
+    if (lineAndStartColumnToIfStructure.containsKey(key)) {
+      return lineAndStartColumnToIfStructure.get(key);
+    }
+
+    for (IfStructure structure : getIfStructures()) {
+      FileLocation location = structure.getCompleteElement().location();
+      if (location.getStartColumnInLine() == pColumn && location.getStartingLineNumber() == pLine) {
+        lineAndStartColumnToIfStructure.put(key, structure);
         return structure;
       }
     }
