@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessGenerator;
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
@@ -58,7 +57,8 @@ public class InvariantExportAlgorithm implements Algorithm {
   private final CFA cfa;
   private final ShutdownNotifier shutdownNotifier;
   private final InvariantGenerator generator;
-  private final InvariantWitnessFactory invariantWitnessFactory;
+
+  // private final InvariantWitnessFactory invariantWitnessFactory;
 
   @Option(secure = true, description = "Strategy for generating invariants")
   private InvariantGeneratorFactory invariantGenerationStrategy =
@@ -79,7 +79,7 @@ public class InvariantExportAlgorithm implements Algorithm {
     logger = pLogger;
     cfa = pCFA;
     shutdownNotifier = pShutdownManager.getNotifier();
-    invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
+    // invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
 
     generator =
         invariantGenerationStrategy.createInvariantGenerator(
