@@ -107,9 +107,6 @@ public class InvariantExchangeFormatTransformer {
    * structure which should be used inside CPAchecker.
    *
    * @param pEntries The entries to transform
-   * @param lineToOffset A mapping from file names to a list of offsets. The offsets are the
-   *     character offsets of the beginning of each line in the file. This is used to compute the
-   *     relation between Columns and character offsets.
    * @return The set of invariants
    */
   public Set<Invariant> generateInvariantsFromEntries(List<AbstractEntry> pEntries)
