@@ -38,9 +38,6 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.RequiresRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SetElementRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessExpressionType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
 
 class ARGToWitnessV3 extends ARGToYAMLWitness {
   protected ARGToWitnessV3(

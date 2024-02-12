@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
 
 @Options(prefix = "witness.yamlexporter")
 abstract class AbstractYAMLWitnessExporter {

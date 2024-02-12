@@ -5097,4 +5097,4 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 witness.validation.violation.config = no default value
 
 # The version for which to export the witness.
-witness.yamlexporter.witnessVersions = [WitnessVersion.V2]
+witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]

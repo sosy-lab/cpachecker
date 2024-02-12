@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
 
 class YAMLWitnessesExportUtils {
 

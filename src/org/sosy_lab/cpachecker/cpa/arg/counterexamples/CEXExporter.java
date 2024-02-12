@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExpor
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YamlWitnessExportException;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
