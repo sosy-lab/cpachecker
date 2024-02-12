@@ -118,7 +118,7 @@ public class CSourceOriginMapping {
       }
     }
     if (lineNumberToStartingColumn.get(pAnalysisFileName).size() <= pAnalysisCodeLine) {
-      return -1;
+      return -2;
     }
 
     return lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1);
