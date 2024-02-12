@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LoopInvariantEntry;
 
 public class InvariantExchangeFormatTransformer {
 
@@ -83,12 +83,12 @@ public class InvariantExchangeFormatTransformer {
         parserTools);
   }
 
-  public ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
+  public ExpressionTree<AExpression> parseInvariantEntry(InvariantRecord pInvariantEntry)
       throws InterruptedException {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
-    String invariantString = pInvariantEntry.getInvariant().getValue();
+    String invariantString = pInvariantEntry.getValue();
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
@@ -117,9 +117,9 @@ public class InvariantExchangeFormatTransformer {
 
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
-        for (InvariantEntry invariantEntry : invariantSetEntry.toInvariantEntries()) {
+        for (InvariantRecord invariantEntry : invariantSetEntry.content) {
           Integer line = invariantEntry.getLocation().getLine();
-          String invariantString = invariantEntry.getInvariant().getValue();
+          String invariantString = invariantEntry.getValue();
 
           // Parsing is expensive, therefore cache everything we can
           if (lineToSeenInvariants.get(line).contains(invariantString)) {
@@ -137,7 +137,12 @@ public class InvariantExchangeFormatTransformer {
                   line,
                   invariantEntry.getLocation().getColumn());
           invariants.add(
-              new Invariant(invariant, loc, invariantEntry instanceof LoopInvariantEntry));
+              new Invariant(
+                  invariant,
+                  loc,
+                  invariantEntry
+                      .getType()
+                      .equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())));
 
           lineToSeenInvariants.get(line).add(invariantString);
         }

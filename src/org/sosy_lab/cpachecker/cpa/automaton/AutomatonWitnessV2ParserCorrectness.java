@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon {
@@ -53,10 +53,10 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
-        for (InvariantEntry invariantEntry : invariantSetEntry.toInvariantEntries()) {
+        for (InvariantRecord invariantEntry : invariantSetEntry.content) {
           Optional<String> resultFunction =
               Optional.ofNullable(invariantEntry.getLocation().getFunction());
-          String invariantString = invariantEntry.getInvariant().getValue();
+          String invariantString = invariantEntry.getValue();
           Integer line = invariantEntry.getLocation().getLine();
 
           // Parsing is expensive for long invariants, we therefore try to reduce it
@@ -78,8 +78,8 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
               new Builder(new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
                   .withCandidateInvariants(invariant)
                   .build());
-          automatonName = invariantEntry.getMetadata().getUuid();
         }
+        automatonName = invariantSetEntry.metadata.getUuid();
       } else {
         throw new WitnessParseException(
             "The witness contained other statements than Loop Invariants!");
