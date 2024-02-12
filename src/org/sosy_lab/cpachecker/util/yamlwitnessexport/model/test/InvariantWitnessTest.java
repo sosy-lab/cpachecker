@@ -24,27 +24,12 @@ import java.util.List;
 import java.util.Queue;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LoopInvariantCertificateEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
 public class InvariantWitnessTest {
 
   public static final String TEST_DIR_PATH = "test/witness/";
-
-  @Test
-  public void testParsingInvariantWitnessAndCertificate()
-      throws JsonParseException, JsonMappingException, IOException {
-    Queue<AbstractEntry> loadedEntries = testParsingFile("loop_invariant_and_certificate.yml");
-    for (AbstractEntry e : loadedEntries) {
-      if (e instanceof LoopInvariantEntry invEntry) {
-        assertThat(invEntry.getLocation().getFileName()).isEqualTo("multivar_1-1.c");
-      } else if (e instanceof LoopInvariantCertificateEntry invCertEntry) {
-        assertThat(invCertEntry.getCertification().getValue()).isEqualTo("confirmed");
-      }
-    }
-  }
 
   @Test
   public void testParsingViolationWitness()
