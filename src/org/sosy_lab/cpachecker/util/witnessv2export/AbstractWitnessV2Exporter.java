@@ -68,7 +68,6 @@ abstract class AbstractWitnessV2Exporter {
   // which is not ideal in a constructor
   @LazyInit private ListMultimap<String, Integer> privateLineOffsetsByFile;
   private final ProducerRecord producerRecord;
-  @LazyInit private MetadataRecord metadata;
 
   protected AbstractWitnessV2Exporter(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
@@ -95,14 +94,8 @@ abstract class AbstractWitnessV2Exporter {
   }
 
   protected MetadataRecord getMetadata(WitnessVersion version) throws IOException {
-    if (metadata == null) {
-      metadata =
-          WitnessV2AndUpExportUtils.createMetadataRecord(
-              producerRecord,
-              WitnessV2AndUpExportUtils.getTaskDescription(cfa, specification),
-              version);
-    }
-    return metadata;
+    return WitnessV2AndUpExportUtils.createMetadataRecord(
+        producerRecord, WitnessV2AndUpExportUtils.getTaskDescription(cfa, specification), version);
   }
 
   protected Path getOutputFile(WitnessVersion version) {
