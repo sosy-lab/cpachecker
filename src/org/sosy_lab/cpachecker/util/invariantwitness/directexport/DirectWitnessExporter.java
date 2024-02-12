@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -54,7 +55,7 @@ public abstract class DirectWitnessExporter {
               + "Each version replaces the string '<<VERSION>>' "
               + "with its version number.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFileTemplate = Path.of("witness-<<VERSION>>.yml");
+  private PathTemplate outputFileTemplate = PathTemplate.ofFormatString("witness-%s.yml");
 
   protected CFA cfa;
   protected LogManager logger;
@@ -106,7 +107,7 @@ public abstract class DirectWitnessExporter {
       return null;
     }
 
-    return Path.of(outputFileTemplate.toString().replace("<<VERSION>>", version.toString()));
+    return outputFileTemplate.getPath(version.toString());
   }
 
   protected ASTStructure getASTStructure() throws YamlWitnessExportException {
