@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,12 +82,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
   }
 
   private AutomatonTransition handleTarget(
-      String nextStateId,
-      Integer followLine,
-      Integer followColumn,
-      String followFilename,
-      Integer pDistanceToViolation)
-      throws IOException {
+      String nextStateId, Integer followLine, Integer followColumn, Integer pDistanceToViolation) {
     // For target nodes it sometimes does not make sense to evaluate them at the last possible
     // sequence point as with assumptions. For example, a reach_error call will usually not have
     // any successors in the ARG, since the verification stops there. Therefore handling targets
@@ -108,11 +102,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       String nextStateId,
       Integer followLine,
       Integer followColumn,
-      String followFilename,
       String function,
       Integer pDistanceToViolation,
       String constraint)
-      throws IOException, InterruptedException, WitnessParseException {
+      throws InterruptedException, WitnessParseException {
 
     // The semantics of the witnesses V2 imply that every assumption waypoint should be
     // valid before the sequence statement it points to. Due to the semantics of the format:
@@ -132,12 +125,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
   private List<AutomatonTransition> handleFollowWaypointAtIfStatement(
       ASTStructure astStructure,
       String nextStateId,
-      String followFilename,
       Integer followColumn,
       Integer followLine,
       Integer pDistanceToViolation,
-      Boolean followIfBranch)
-      throws IOException {
+      Boolean followIfBranch) {
     // The -1 in the column is needed since the ASTStructure element starts at the offset before
     // the if keyword, but the waypoint points to the first character of the if keyword
     IfStructure ifStructure = astStructure.getIfStructureStartingAtColumn(followColumn, followLine);
@@ -178,11 +169,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       String nextStateId,
       Integer followLine,
       Integer followColumn,
-      String followFilename,
       Integer pDistanceToViolation,
       @Nullable String constraint,
       Multimap<Integer, CFAEdge> startLineToCFAEdge)
-      throws IOException, InterruptedException {
+      throws InterruptedException {
 
     AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine, true);
 
@@ -241,7 +231,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
   }
 
   Automaton createViolationAutomatonFromEntriesMatchingOffsets(List<AbstractEntry> pEntries)
-      throws InterruptedException, InvalidYAMLWitnessException, IOException, WitnessParseException {
+      throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
     List<Pair<WaypointRecord, List<WaypointRecord>>> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
@@ -272,12 +262,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       String nextStateId = getStateName(counter++);
       int followLine = follow.getLocation().getLine();
       int followColumn = follow.getLocation().getColumn();
-      String followFilename = follow.getLocation().getFileName();
 
       if (follow.getType().equals(WaypointType.TARGET)) {
         nextStateId = "X";
-        transitions.add(
-            handleTarget(nextStateId, followLine, followColumn, followFilename, distance));
+        transitions.add(handleTarget(nextStateId, followLine, followColumn, distance));
         if (counter != segments.size()) {
           logger.log(
               Level.INFO,
@@ -290,7 +278,6 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 nextStateId,
                 followLine,
                 followColumn,
-                followFilename,
                 follow.getLocation().getFunction(),
                 distance,
                 follow.getConstraint().getValue()));
@@ -310,7 +297,6 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
             handleFollowWaypointAtIfStatement(
                 astStructure,
                 nextStateId,
-                followFilename,
                 followColumn,
                 followLine,
                 distance,
@@ -330,7 +316,6 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 nextStateId,
                 followLine,
                 followColumn,
-                followFilename,
                 distance,
                 follow.getConstraint().getValue(),
                 startLineToCFAEdge));

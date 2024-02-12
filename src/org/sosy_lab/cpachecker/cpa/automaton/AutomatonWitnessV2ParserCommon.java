@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ListMultimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -58,8 +57,7 @@ class AutomatonWitnessV2ParserCommon {
           "Validate correctness witness by specifying an invariants specification automaton")
   InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
-
-  private ListMultimap<String, Integer> lineOffsetsByFile = null;
+  
   final CFA cfa;
   final LogManager logger;
   final Configuration config;
