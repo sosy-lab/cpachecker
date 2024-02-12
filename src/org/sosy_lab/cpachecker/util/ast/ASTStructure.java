@@ -236,7 +236,7 @@ public class ASTStructure {
         builder.put(edge, structure);
       }
     }
-    conditionEdgesToIfStructure = builder.build();
+    conditionEdgesToIfStructure = builder.buildOrThrow();
   }
 
   public IfStructure getIfStructureForConditionEdge(CFAEdge pEdge) {
