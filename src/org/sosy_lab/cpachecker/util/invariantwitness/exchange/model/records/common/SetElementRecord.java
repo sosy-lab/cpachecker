@@ -10,4 +10,4 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.com
 
 // Only Records of this type should be exported, everything else is internal and should never be
 // exported
-public interface ExportableRecord {}
+public interface SetElementRecord {}

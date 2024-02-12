@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.List;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ExportableRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SetElementRecord;
 
 @JsonPropertyOrder({"entry_type", "metadata", "content"})
 public class SetEntry extends AbstractEntry {
@@ -23,11 +23,11 @@ public class SetEntry extends AbstractEntry {
   private final MetadataRecord metadata;
 
   @JsonProperty("content")
-  private final List<ExportableRecord> content;
+  private final List<SetElementRecord> content;
 
   public SetEntry(
       @JsonProperty("metadata") MetadataRecord pMetadata,
-      @JsonProperty("content") List<ExportableRecord> pContent) {
+      @JsonProperty("content") List<SetElementRecord> pContent) {
     super(SET_ENTRY_IDENTIFIER);
     metadata = pMetadata;
     content = pContent;

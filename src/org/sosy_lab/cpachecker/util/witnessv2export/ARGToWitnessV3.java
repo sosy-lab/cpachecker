@@ -31,13 +31,13 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.SetEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.EnsuresRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ExportableRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecordV3;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.RequiresRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SetElementRecord;
 import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.ExpressionType;
 import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
 
@@ -115,7 +115,7 @@ class ARGToWitnessV3 extends ARGToWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    List<ExportableRecord> entries = new ArrayList<>();
+    List<SetElementRecord> entries = new ArrayList<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {

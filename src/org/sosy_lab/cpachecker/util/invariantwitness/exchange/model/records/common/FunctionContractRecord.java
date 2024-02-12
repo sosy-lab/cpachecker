@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.Ex
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)
 @JsonSerialize(using = FunctionContractRecordSerializer.class)
-public class FunctionContractRecord implements ExportableRecord {
+public class FunctionContractRecord implements SetElementRecord {
 
   @SuppressWarnings("unused")
   private static final String FUNCTION_CONTRACT_IDENTIFIER = "function_contract";
