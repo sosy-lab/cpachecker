@@ -8,15 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.Builder;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -48,7 +49,7 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
 
     List<AutomatonTransition> transitions = new ArrayList<>();
 
-    Map<Integer, Set<Pair<String, String>>> lineToSeenInvariants = new HashMap<>();
+    SetMultimap<Integer, Pair<String, String>> lineToSeenInvariants = HashMultimap.create();
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
@@ -57,10 +58,6 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
               Optional.ofNullable(invariantEntry.getLocation().getFunction());
           String invariantString = invariantEntry.getInvariant().getValue();
           Integer line = invariantEntry.getLocation().getLine();
-
-          if (!lineToSeenInvariants.containsKey(line)) {
-            lineToSeenInvariants.put(line, new HashSet<>());
-          }
 
           // Parsing is expensive for long invariants, we therefore try to reduce it
           Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
@@ -78,8 +75,7 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
           }
 
           transitions.add(
-              new AutomatonTransition.Builder(
-                      new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
+              new Builder(new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
                   .withCandidateInvariants(invariant)
                   .build());
           automatonName = invariantEntry.getMetadata().getUuid();
