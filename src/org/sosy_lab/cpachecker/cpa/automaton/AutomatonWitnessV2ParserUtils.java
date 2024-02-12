@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ListMultimap;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,12 +42,28 @@ public class AutomatonWitnessV2ParserUtils {
     }
   }
 
+  /**
+   * Parses a YAML file and returns the entries found in the file.
+   *
+   * @param pInputStream the input stream to parse the YAML contents from.
+   * @return the entries found in the file.
+   * @throws IOException if there occurs an IOException while reading from the stream.
+   */
   public static List<AbstractEntry> parseYAML(InputStream pInputStream) throws IOException {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.findAndRegisterModules();
     return Arrays.asList(mapper.readValue(pInputStream, AbstractEntry[].class));
   }
 
+  /**
+   * Determine the scope for the given line in the source code.
+   *
+   * @param pExplicitScope The explicit scope to use if present.
+   * @param pFunctionStack The function stack to use if no explicit scope is present.
+   * @param pLine The line for which to determine the scope.
+   * @param pScope The scope to use if no explicit scope or function stack is present.
+   * @return The scope for the given line in the source code.
+   */
   public static Scope determineScopeForLine(
       Optional<String> pExplicitScope, Deque<String> pFunctionStack, Integer pLine, Scope pScope) {
     LineMatcher lineMatcher = new LineMatcher(Optional.empty(), pLine, pLine);
@@ -77,45 +92,14 @@ public class AutomatonWitnessV2ParserUtils {
   }
 
   /**
-   * Returns the offsets for the given file. If the file is not found the offsets for the file with
-   * the largest matching suffix will be returned.
+   * Determine if the given file is a YAML witness. Be aware that this parses the file into YAML
+   * entries.
    *
-   * @param pOffsetsByFile The Map containing the currently known offsets by file. This map will be
-   *     updated if the file is not found with the best known match.
-   * @param pFile The file for which to get the offsets.
-   * @return The offsets for the given file. If the file is not found the offsets for the file with
-   *     the largest matching suffix will be returned.
+   * @param pPath The file to check.
+   * @return True if the file is a YAML witness, false otherwise.
+   * @throws InvalidConfigurationException If the file is not a valid YAML witness.
+   * @throws InterruptedException If the parsing is interrupted.
    */
-  static List<Integer> getOffsetsByFileSimilarity(
-      ListMultimap<String, Integer> pOffsetsByFile, String pFile) {
-    String maxSimilarityFile = pFile;
-    if (pOffsetsByFile.containsKey(pFile)) {
-      return pOffsetsByFile.get(pFile);
-    }
-
-    // The file extension plus at least one character of the file should match
-    int maxSimilarity = 0;
-    for (String file : pOffsetsByFile.keySet()) {
-      int similarity = 0;
-      int index1 = file.length() - 1;
-      int index2 = pFile.length() - 1;
-      while (index1 >= 0 && index2 >= 0 && file.charAt(index1) == pFile.charAt(index2)) {
-        similarity++;
-        index1--;
-        index2--;
-      }
-      if (similarity > maxSimilarity) {
-        maxSimilarity = similarity;
-        maxSimilarityFile = file;
-      }
-    }
-
-    List<Integer> offsets = pOffsetsByFile.get(maxSimilarityFile);
-    pOffsetsByFile.putAll(pFile, offsets);
-
-    return offsets;
-  }
-
   public static boolean isYAMLWitness(Path pPath)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
@@ -131,6 +115,14 @@ public class AutomatonWitnessV2ParserUtils {
         WitnessParseException::new);
   }
 
+  /**
+   * Determine the type of the witness if it is a YAML witness. Be aware that this parses the file
+   * into YAML entries.
+   *
+   * @param pPath The file to check.
+   * @return The type of the witness if it is a YAML witness, empty otherwise.
+   * @throws InterruptedException If the parsing is interrupted.
+   */
   public static Optional<WitnessType> getWitnessTypeIfYAML(Path pPath) throws InterruptedException {
     List<AbstractEntry> entries;
     try {

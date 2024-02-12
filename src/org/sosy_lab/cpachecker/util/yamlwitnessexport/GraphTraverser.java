@@ -14,6 +14,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * This class provides a generic implementation of a graph traverser. It is used to traverse a graph
+ * in a breadth-first manner. The graph is represented by a set of nodes and a function that returns
+ * the successors of a given node. The graph is traversed by calling the method {@link #traverse()}.
+ *
+ * @param <NodeType> the type of the nodes in the graph
+ * @param <E> the type of the exception that can be thrown during the traversal
+ */
 public abstract class GraphTraverser<NodeType, E extends Throwable> {
 
   private List<NodeType> waitlist;

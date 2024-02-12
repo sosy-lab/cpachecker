@@ -66,6 +66,17 @@ public class InvariantExchangeFormatTransformer {
     logger = pLogger;
   }
 
+  /**
+   * Create an {@link ExpressionTree} from a given string.
+   *
+   * @param resultFunction The function in which the expression is contained
+   * @param invariantString The string to parse
+   * @param pLine The line of the expression in the original code
+   * @param callStack The call stack at the time of the expression
+   * @param pScope The scope in which the expression is contained
+   * @return The parsed expression
+   * @throws InterruptedException If the parsing is interrupted
+   */
   public ExpressionTree<AExpression> createExpressionTreeFromString(
       Optional<String> resultFunction,
       String invariantString,
@@ -83,6 +94,13 @@ public class InvariantExchangeFormatTransformer {
         parserTools);
   }
 
+  /**
+   * Parse the invariant string given in an {@link InvariantEntry} into an {@link ExpressionTree}.
+   *
+   * @param pInvariantEntry The entry whose invariant should be parsed
+   * @return The parsed invariant as a {@link ExpressionTree}
+   * @throws InterruptedException If the parsing is interrupted
+   */
   public ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
       throws InterruptedException {
     Integer line = pInvariantEntry.getLocation().getLine();

@@ -99,8 +99,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
   }
 
-  public CollectedARGStates getRelevantStates(ARGState pRootState)
-      throws YamlWitnessExportException {
+  CollectedARGStates getRelevantStates(ARGState pRootState) throws YamlWitnessExportException {
     if (!stateToStatesCollector.containsKey(pRootState)) {
       CollectRelevantARGStates statesCollector = new CollectRelevantARGStates(pRootState);
       statesCollector.traverse();

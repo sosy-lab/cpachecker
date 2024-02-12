@@ -37,6 +37,15 @@ public class AutomatonWitnessV2Parser {
     config = pConfig;
   }
 
+  /**
+   * Parses a specification from a file and returns the Automata found in the file. This handles
+   * potentially GZipped files.
+   *
+   * @param pInputFile the file to parse the witness from.
+   * @return the automata representing the witnesses found in the file.
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   * @throws InterruptedException if the parsing is interrupted.
+   */
   public Automaton parseAutomatonFile(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(

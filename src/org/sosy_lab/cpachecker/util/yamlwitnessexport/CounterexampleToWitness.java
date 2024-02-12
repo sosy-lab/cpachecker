@@ -227,6 +227,17 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);
   }
 
+  /**
+   * Export the given counterexample to a witness file. The format of the witness file is determined
+   * by the witness versions given in the configuration. All versions of witnesses will be exported.
+   * Currently only Version 2 exists for Violation Witnesses.
+   *
+   * @param pCex The counterexample to export.
+   * @param pPathTemplate The template for the output file. The template will be used to * generate
+   *     unique names for each witness version by replacing the string '%s' with the * version.
+   * @throws YamlWitnessExportException If the witness could not be exported.
+   * @throws IOException If the witness could not be written to the file.
+   */
   public void export(CounterexampleInfo pCex, PathTemplate pPathTemplate)
       throws YamlWitnessExportException, IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {

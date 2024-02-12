@@ -32,6 +32,18 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
     argToWitnessV3 = new ARGToWitnessV3(pConfig, pCfa, pSpecification, pLogger);
   }
 
+  /**
+   * Export the given ARG to a witness file in YAML format. All versions of witnesses will be
+   * exported.
+   *
+   * @param pRootState The root state of the ARG.
+   * @param pOutputFileTemplate The template for the output file. The template will be used to
+   *     generate unique names for each witness version by replacing the string '%s' with the
+   *     version.
+   * @throws YamlWitnessExportException If the witness could not be exported.
+   * @throws InterruptedException If the witness export was interrupted.
+   * @throws IOException If the witness could not be written to the file.
+   */
   public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
       throws YamlWitnessExportException, InterruptedException, IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {

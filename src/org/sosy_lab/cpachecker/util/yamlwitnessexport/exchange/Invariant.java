@@ -13,6 +13,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
+/**
+ * This class represents an invariant with a formula as an {@link ExpressionTree} and a {@link
+ * FileLocation}. It also contains a flag indicating whether the invariant is a loop invariant or
+ * only a location invariant.
+ */
 public class Invariant {
   private final ExpressionTree<AExpression> formula;
   private final FileLocation location;
