@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -19,8 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
@@ -127,8 +127,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     //  The location has to point to the beginning of a statement.'
     // Therefore an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
-    Map<CFAEdge, Long> cfaEdgesOccurences =
-        edges.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+    ImmutableMultimap<CFAEdge, CFAEdge> cfaEdgesOccurences =
+        Multimaps.index(edges.iterator(), key -> key);
 
     for (CFAEdge edge : edges) {
       // See if the edge contains an assignment of a VerifierNondet call
@@ -138,7 +138,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // Since waypoints are considered one after the other if an edge occurs more than once with
         // possibly different assumptions in the counterexample path, if not all are exported then
         // there may be a wrong matching
-        if (cfaEdgesOccurences.get(edge) == 1) {
+        if (cfaEdgesOccurences.get(edge).size() == 1) {
           continue;
         }
 
