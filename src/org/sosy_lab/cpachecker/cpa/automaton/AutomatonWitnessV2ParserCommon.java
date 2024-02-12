@@ -129,7 +129,7 @@ public class AutomatonWitnessV2ParserCommon {
             }
           }
         }
-        break; // for now just take the first ViolationSequenceEntry in the yaml witness
+        break; // for now just take the first ViolationSequenceEntry in the witness V2
       }
     }
     checkTargetIsAtEnd(latest, numTargetWaypoints);
@@ -149,7 +149,8 @@ public class AutomatonWitnessV2ParserCommon {
             default -> DummyScope.getInstance();
           };
       Scope scope =
-          AutomatonWitnessV2ParserUtils.determineScopeForLine(resultFunction, null, line, defaultScope);
+          AutomatonWitnessV2ParserUtils.determineScopeForLine(
+              resultFunction, null, line, defaultScope);
       AExpression exp =
           transformer
               .createExpressionTreeFromString(resultFunction, constraint, line, null, scope)
@@ -164,16 +165,16 @@ public class AutomatonWitnessV2ParserCommon {
       throws InvalidConfigurationException {
     switch (numTargetWaypoints) {
       case 0:
-        logger.log(Level.WARNING, "No target waypoint in yaml witness!");
+        logger.log(Level.WARNING, "No target waypoint in witness V2!");
         break;
       case 1:
         if (latest != null && !latest.getType().equals(WaypointType.TARGET)) {
           throw new InvalidConfigurationException(
-              "Target waypoint is not at the end in yaml witness!");
+              "Target waypoint is not at the end in witness V2!");
         }
         break;
       default:
-        throw new InvalidConfigurationException("More than one target waypoint in yaml witness!");
+        throw new InvalidConfigurationException("More than one target waypoint in witness V2!");
     }
   }
 

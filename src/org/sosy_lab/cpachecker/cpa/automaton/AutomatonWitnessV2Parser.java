@@ -29,11 +29,11 @@ public class AutomatonWitnessV2Parser {
 
   @Option(
       secure = true,
-      name = "matchOffsetsWhenCreatingViolationAutomatonFromYAML",
+      name = "matchOffsetsWhenCreatingViolationAutomatonFromWitnessV2",
       description =
           "If true the offsets will be matched when creating an automaton to validate Violation"
               + " witnesses. If false only the lines will be matched.")
-  private boolean matchOffsetsWhenCreatingViolationAutomatonFromYAML = false;
+  private boolean matchOffsetsWhenCreatingViolationAutomatonFromWitnessV2 = false;
 
   private final LogManager logger;
   private final Configuration config;
@@ -81,7 +81,7 @@ public class AutomatonWitnessV2Parser {
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException, IOException {
-    if (matchOffsetsWhenCreatingViolationAutomatonFromYAML) {
+    if (matchOffsetsWhenCreatingViolationAutomatonFromWitnessV2) {
       AutomatonWitnessV2ParserWithOffsets parser =
           new AutomatonWitnessV2ParserWithOffsets(config, logger, shutdownNotifier, cfa);
       return parser.createViolationAutomatonFromEntriesMatchingOffsets(pEntries);

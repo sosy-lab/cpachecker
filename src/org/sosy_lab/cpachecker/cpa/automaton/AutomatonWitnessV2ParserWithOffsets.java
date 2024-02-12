@@ -120,7 +120,7 @@ public class AutomatonWitnessV2ParserWithOffsets extends AutomatonWitnessV2Parse
       String constraint)
       throws IOException, InterruptedException, WitnessParseException {
 
-    // The semantics of the YAML witnesses imply that every assumption waypoint should be
+    // The semantics of the witnesses V2 imply that every assumption waypoint should be
     // valid before the sequence statement it points to. Due to the semantics of the format:
     // "An assumption waypoint is evaluated at the sequence point immediately before the
     // waypoint location. The waypoint is passed if the given constraint evaluates to true."
@@ -217,7 +217,7 @@ public class AutomatonWitnessV2ParserWithOffsets extends AutomatonWitnessV2Parse
     // This is basically a special case of an assumption waypoint.
     for (AStatementEdge edge :
         FluentIterable.from(startLineToCFAEdge.get(followLine)).filter(AStatementEdge.class)) {
-      // The syntax of the YAML witness describes that the return statement must point to the
+      // The syntax of the witness V2 describes that the return statement must point to the
       // closing bracket of the function whose return statement is being considered
       int offsetAccordingToWaypoint =
           AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
@@ -294,7 +294,7 @@ public class AutomatonWitnessV2ParserWithOffsets extends AutomatonWitnessV2Parse
       List<WaypointRecord> avoids = entry.getSecond();
       if (avoids != null && !avoids.isEmpty()) {
         logger.log(
-            Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
+            Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
       }
       String nextStateId = getStateName(counter++);
       int followLine = follow.getLocation().getLine();
@@ -406,7 +406,7 @@ public class AutomatonWitnessV2ParserWithOffsets extends AutomatonWitnessV2Parse
       automaton = new Automaton(automatonName, automatonVariables, automatonStates, initState);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(
-          "The witness automaton generated from the provided YAML Witness is invalid!", e);
+          "The witness automaton generated from the provided Witness V2 is invalid!", e);
     }
 
     automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);

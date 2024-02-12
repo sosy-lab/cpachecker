@@ -98,7 +98,7 @@ public class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2Parse
       automaton = new Automaton(automatonName, automatonVariables, automatonStates, entryStateId);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(
-          "The witness automaton generated from the provided YAML Witness is invalid!", e);
+          "The witness automaton generated from the provided Witness V2 is invalid!", e);
     }
 
     automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);

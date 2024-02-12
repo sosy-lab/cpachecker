@@ -87,7 +87,7 @@ public class AutomatonWitnessV2ParserViolation extends AutomatonWitnessV2ParserC
       List<WaypointRecord> avoids = entry.getSecond();
       if (!avoids.isEmpty()) {
         logger.log(
-            Level.WARNING, "Avoid waypoints in yaml violation witnesses are currently ignored!");
+            Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
       }
       String nextStateId = getStateName(counter++);
       if (follow.getType().equals(WaypointType.TARGET)) {
@@ -152,7 +152,7 @@ public class AutomatonWitnessV2ParserViolation extends AutomatonWitnessV2ParserC
       automaton = new Automaton(automatonName, automatonVariables, automatonStates, initState);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(
-          "The witness automaton generated from the provided YAML Witness is invalid!", e);
+          "The witness automaton generated from the provided Witness V2 is invalid!", e);
     }
 
     automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
