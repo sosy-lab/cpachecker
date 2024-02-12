@@ -16,6 +16,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -293,8 +294,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private final boolean takeThenBranch;
     private final IfStructure ifStructure;
-    private Set<CFANode> nodesBetweenConditionAndBranch = null;
-    private Set<CFANode> conditionElementPredecessors = null;
+    @LazyInit private Set<CFANode> nodesBetweenConditionAndBranch = null;
+
+    @LazyInit private Set<CFANode> conditionElementPredecessors = null;
 
     public CheckEntersIfBranch(IfStructure pIfStructure, boolean pTakeThenBranch) {
       takeThenBranch = pTakeThenBranch;
