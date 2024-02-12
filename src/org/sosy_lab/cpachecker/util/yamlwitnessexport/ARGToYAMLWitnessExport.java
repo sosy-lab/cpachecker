@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -32,16 +33,16 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
     argToWitnessV3 = new ARGToWitnessV3(pConfig, pCfa, pSpecification, pLogger);
   }
 
-  public void export(ARGState pRootState)
+  public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
       throws YamlWitnessExportException, InterruptedException, IOException {
     for (WitnessVersion witnessVersion : witnessVersions) {
       switch (witnessVersion) {
         case V2:
-          argToWitnessV2.exportWitnesses(pRootState);
+          argToWitnessV2.exportWitnesses(pRootState, pOutputFileTemplate);
           break;
         case V3:
           logger.log(Level.INFO, "Exporting witnesses in Version 3 is currently WIP.");
-          argToWitnessV3.exportWitness(pRootState);
+          argToWitnessV3.exportWitness(pRootState, pOutputFileTemplate);
           break;
         default:
           logger.log(

@@ -31,6 +31,7 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -87,8 +88,15 @@ public class CEXExporter {
 
   @Option(
       secure = true,
-      description = "export the yaml Violation Witnesses directly from the Counterexample.")
-  private boolean exportYamlWitnessesDirectlyFromCex = false;
+      name = "yaml",
+      description =
+          "The template from which the different "
+              + "versions of the violation witnesses will be exported. "
+              + "Each version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-%s.yml");
 
   @Option(
       secure = true,
@@ -334,9 +342,9 @@ public class CEXExporter {
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
 
-        if (exportYamlWitnessesDirectlyFromCex) {
+        if (yamlWitnessOutputFileTemplate != null) {
           try {
-            cexToWitness.export(counterexample);
+            cexToWitness.export(counterexample, yamlWitnessOutputFileTemplate);
           } catch (YamlWitnessExportException | IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
           }

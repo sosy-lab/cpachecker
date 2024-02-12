@@ -121,8 +121,15 @@ public class ARGStatistics implements Statistics {
 
   @Option(
       secure = true,
-      description = "export the yaml Correctness Witnesses directly from the ARG.")
-  private boolean exportYAMLCorrectnessWitnessesDirectlyFromARG = false;
+      name = "yamlProofWitness",
+      description =
+          "The template from which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-%s.yml");
 
   @Option(
       secure = true,
@@ -407,17 +414,15 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
-        if (exportYAMLCorrectnessWitnessesDirectlyFromARG) {
-          if (argToWitnessWriter != null) {
-            try {
-              argToWitnessWriter.export(rootState);
-            } catch (YamlWitnessExportException | IOException e) {
-              logger.logUserException(
-                  Level.WARNING,
-                  e,
-                  "Could not export the YAML correctness witness directly from the ARG. "
-                      + "Therefore no YAML witness will be exported.");
-            }
+        if (yamlWitnessOutputFileTemplate != null) {
+          try {
+            argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
+          } catch (YamlWitnessExportException | IOException e) {
+            logger.logUserException(
+                Level.WARNING,
+                e,
+                "Could not export the YAML correctness witness directly from the ARG. "
+                    + "Therefore no YAML witness will be exported.");
           }
         }
 

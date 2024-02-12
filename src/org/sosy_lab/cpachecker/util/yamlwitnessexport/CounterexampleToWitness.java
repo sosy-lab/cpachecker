@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -103,7 +104,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             assumeEdge.getPredecessor().getFunctionName()));
   }
 
-  private void exportWitnessVersion2(CounterexampleInfo pCex)
+  private void exportWitnessVersion2(CounterexampleInfo pCex, PathTemplate pPathTemplate)
       throws IOException, YamlWitnessExportException {
     ASTStructure astStructure = getASTStructure();
 
@@ -233,14 +234,15 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     exportEntries(
         new ViolationSequenceEntry(getMetadata(WitnessVersion.V2), segments),
-        getOutputFile(WitnessVersion.V2));
+        getOutputFile(WitnessVersion.V2, pPathTemplate));
   }
 
-  public void export(CounterexampleInfo pCex) throws YamlWitnessExportException, IOException {
+  public void export(CounterexampleInfo pCex, PathTemplate pPathTemplate)
+      throws YamlWitnessExportException, IOException {
     for (WitnessVersion witnessVersion : witnessVersions) {
       switch (witnessVersion) {
         case V2:
-          exportWitnessVersion2(pCex);
+          exportWitnessVersion2(pCex, pPathTemplate);
           break;
         case V3:
           break;

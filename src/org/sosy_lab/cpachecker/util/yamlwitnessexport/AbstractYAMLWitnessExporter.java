@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -46,17 +45,6 @@ abstract class AbstractYAMLWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
   protected List<WitnessVersion> witnessVersions = ImmutableList.of(WitnessVersion.V2);
-
-  @Option(
-      secure = true,
-      name = "outputFileTemplate",
-      description =
-          "The template from which the different export"
-              + "versions of the witnesses will be exported. "
-              + "Each version replaces the string '<<VERSION>>' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate outputFileTemplate = PathTemplate.ofFormatString("witness-%s.yml");
 
   protected final CFA cfa;
   protected final LogManager logger;
@@ -98,12 +86,12 @@ abstract class AbstractYAMLWitnessExporter {
         producerRecord, YAMLWitnessesExportUtils.getTaskDescription(cfa, specification), version);
   }
 
-  protected Path getOutputFile(WitnessVersion version) {
-    if (outputFileTemplate == null) {
+  protected static Path getOutputFile(WitnessVersion version, PathTemplate pPathTemplate) {
+    if (pPathTemplate == null) {
       return null;
     }
 
-    return outputFileTemplate.getPath(version.toString());
+    return pPathTemplate.getPath(version.toString());
   }
 
   protected ASTStructure getASTStructure() throws YamlWitnessExportException {
