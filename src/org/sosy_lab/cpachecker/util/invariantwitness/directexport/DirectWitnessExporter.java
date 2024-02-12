@@ -43,8 +43,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 public abstract class DirectWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
-  protected List<WitnessVersion> witnessVersions =
-      ImmutableList.of(WitnessVersion.V2, WitnessVersion.V3);
+  protected List<WitnessVersion> witnessVersions = ImmutableList.of(WitnessVersion.V2);
 
   @Option(
       secure = true,

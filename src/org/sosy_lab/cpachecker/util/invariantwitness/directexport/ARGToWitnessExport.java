@@ -40,6 +40,7 @@ public class ARGToWitnessExport extends DirectWitnessExporter {
           argToWitnessV2.exportWitnesses(pRootState);
           break;
         case V3:
+          logger.log(Level.INFO, "Exporting witnesses in Version 3 is currently WIP.");
           argToWitnessV3.exportWitness(pRootState);
           break;
         default:
