@@ -85,9 +85,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   private WaypointRecord handleBranchingWaypoint(IfStructure ifStructure, AssumeEdge assumeEdge)
       throws IOException {
     String branchToFollow =
-        ifStructure.getNodesBetweenConditionAndThenBranch().contains(assumeEdge.getSuccessor())
-            ? "true"
-            : "false";
+        Boolean.toString(
+            ifStructure
+                .getNodesBetweenConditionAndThenBranch()
+                .contains(assumeEdge.getSuccessor()));
     return new WaypointRecord(
         WaypointRecord.WaypointType.BRANCHING,
         WaypointRecord.WaypointAction.FOLLOW,
