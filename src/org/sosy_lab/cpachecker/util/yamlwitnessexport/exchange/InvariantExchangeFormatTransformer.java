@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.yamlwitnessexport;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;

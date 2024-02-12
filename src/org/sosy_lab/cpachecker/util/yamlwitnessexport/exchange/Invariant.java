@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.yamlwitnessexport;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;

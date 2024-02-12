@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.Inval
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.InvariantExchangeFormatTransformer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
