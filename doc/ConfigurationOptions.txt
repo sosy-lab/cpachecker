@@ -5043,10 +5043,10 @@ witness.debug.checkForMissedInvariants = false
 # The template from which the different exportversions of the witnesses will
 # be exported. Each version replaces the string '<<VERSION>>' with its
 # version number.
-witness.directexport.outputFileTemplate = "witness-<<VERSION>>.yml"
+witness.directexport.outputFileTemplate = "witness-%s.yml"
 
 # The version for which to export the witness.
-witness.directexport.witnessVersions = [WitnessVersion.V2, WitnessVersion.V3]
+witness.directexport.witnessVersions = [WitnessVersion.V2]
 
 # Validate correctness witness by specifying an invariants specification
 # automaton
