@@ -26,11 +26,11 @@ public abstract class AbstractInformationRecord implements ExportableRecord {
 
   public AbstractInformationRecord(
       @JsonProperty("value") String string,
-      @JsonProperty("type") String type,
-      @JsonProperty("format") String format) {
+      @JsonProperty("type") String pType,
+      @JsonProperty("format") String pFormat) {
     this.value = string;
-    this.type = type;
-    this.format = format;
+    this.type = pType;
+    this.format = pFormat;
   }
 
   public String getValue() {
