@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -230,7 +229,7 @@ public class ASTStructure {
     if (conditionEdgesToIfStructure != null) {
       return;
     }
-    ImmutableMap.Builder<CFAEdge, IfStructure> builder = new Builder<>();
+    ImmutableMap.Builder<CFAEdge, IfStructure> builder = new ImmutableMap.Builder<>();
     for (IfStructure structure : getIfStructures()) {
       for (CFAEdge edge : structure.getConditionElement().edges()) {
         builder.put(edge, structure);

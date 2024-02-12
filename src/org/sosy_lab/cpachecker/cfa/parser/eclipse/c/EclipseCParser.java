@@ -412,7 +412,6 @@ class EclipseCParser implements CParser {
     private final ImmutableMap<Path, Path> fileNameMapping;
 
     FixedPathSourceOriginMapping(CSourceOriginMapping pDelegate, Map<Path, Path> pFileNameMapping) {
-      super();
       delegate = pDelegate;
       fileNameMapping = ImmutableMap.copyOf(pFileNameMapping);
     }

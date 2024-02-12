@@ -57,7 +57,7 @@ class AutomatonWitnessV2ParserCommon {
           "Validate correctness witness by specifying an invariants specification automaton")
   InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
-  
+
   final CFA cfa;
   final LogManager logger;
   final Configuration config;

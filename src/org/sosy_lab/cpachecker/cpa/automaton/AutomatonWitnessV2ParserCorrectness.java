@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.Builder;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -75,7 +74,8 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
           }
 
           transitions.add(
-              new Builder(new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
+              new AutomatonTransition.Builder(
+                      new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
                   .withCandidateInvariants(invariant)
                   .build());
         }
