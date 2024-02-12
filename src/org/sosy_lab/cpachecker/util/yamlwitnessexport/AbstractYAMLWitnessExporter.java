@@ -87,7 +87,7 @@ abstract class AbstractYAMLWitnessExporter {
 
   protected void exportEntries(AbstractEntry entry, Path outFile) {
     if (outFile == null) {
-      logger.log(Level.INFO, "Output file is null, not exporting witness.");
+      logger.log(Level.FINE, "Output file is null, not exporting witness.");
       return;
     }
 

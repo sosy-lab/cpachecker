@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.invariantwitness;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.SetMultimap;
 import java.nio.file.Path;
 import java.util.ArrayDeque;

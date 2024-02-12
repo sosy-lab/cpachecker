@@ -12,6 +12,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -97,7 +98,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             assumeEdge.getPredecessor().getFunctionName()));
   }
 
-  private void exportWitnessVersion2(CounterexampleInfo pCex, PathTemplate pPathTemplate)
+  private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath)
       throws IOException, YamlWitnessExportException {
     ASTStructure astStructure = getASTStructure();
 
@@ -223,17 +224,16 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                 YAMLWitnessesExportUtils.createLocationRecordAtStart(
                     lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
 
-    exportEntries(
-        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments),
-        getOutputFile(YAMLWitnessVersion.V2, pPathTemplate));
+    exportEntries(new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments), pPath);
   }
 
   public void export(CounterexampleInfo pCex, PathTemplate pPathTemplate)
       throws YamlWitnessExportException, IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
+      Path outputPath = getOutputFile(YAMLWitnessVersion.V2, pPathTemplate);
       switch (witnessVersion) {
         case V2:
-          exportWitnessVersion2(pCex, pPathTemplate);
+          exportWitnessVersion2(pCex, outputPath);
           break;
         case V3:
           break;

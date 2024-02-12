@@ -218,12 +218,11 @@ public class WitnessInvariantsExtractor {
       throws InvalidConfigurationException, InterruptedException, IOException {
 
     List<AbstractEntry> entries =
-        AutomatonWitnessV2ParserUtils.parseYAML(MoreFiles.asByteSource(pPathToWitnessFile).openStream());
+        AutomatonWitnessV2ParserUtils.parseYAML(
+            MoreFiles.asByteSource(pPathToWitnessFile).openStream());
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
-    Set<Invariant> invariants =
-        transformer.generateInvariantsFromEntries(
-            entries);
+    Set<Invariant> invariants = transformer.generateInvariantsFromEntries(entries);
     Set<ExpressionTreeLocationInvariant> candidateInvariants = new HashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
 

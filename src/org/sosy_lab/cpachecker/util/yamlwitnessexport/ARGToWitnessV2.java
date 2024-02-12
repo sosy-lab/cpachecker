@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -62,7 +62,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     return invariantRecord;
   }
 
-  void exportWitnesses(ARGState pRootState, PathTemplate pPathTemplate)
+  void exportWitnesses(ARGState pRootState, Path pPath)
       throws YamlWitnessExportException, InterruptedException, IOException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
@@ -93,8 +93,6 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
       }
     }
 
-    exportEntries(
-        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), entries),
-        getOutputFile(YAMLWitnessVersion.V2, pPathTemplate));
+    exportEntries(new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), entries), pPath);
   }
 }
