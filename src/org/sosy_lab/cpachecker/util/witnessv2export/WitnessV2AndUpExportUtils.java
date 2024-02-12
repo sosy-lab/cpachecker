@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.witnessv2export;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ListMultimap;
 import java.io.IOException;
@@ -19,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -87,7 +87,7 @@ class WitnessV2AndUpExportUtils {
             .collect(Collectors.joining(" && "));
 
     return new TaskRecord(
-        inputFiles.stream().map(Path::toString).collect(ImmutableList.toImmutableList()),
+        Collections3.transformedImmutableListCopy(inputFiles, Path::toString),
         inputFileHashes.buildOrThrow(),
         specification,
         getArchitecture(pCFA.getMachineModel()),
