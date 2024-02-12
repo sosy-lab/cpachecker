@@ -16,7 +16,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -290,34 +289,30 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  public static class CheckEntersIfBranch implements AutomatonBoolExpr {
+  class CheckEntersIfBranch implements AutomatonBoolExpr {
 
     private final boolean takeThenBranch;
-    private final IfStructure ifStructure;
-    @LazyInit private Set<CFANode> nodesBetweenConditionAndBranch = null;
+    private final Set<CFANode> nodesBetweenConditionAndBranch;
 
-    @LazyInit private Set<CFANode> conditionElementPredecessors = null;
+    private final Set<CFANode> conditionElementPredecessors;
 
     public CheckEntersIfBranch(IfStructure pIfStructure, boolean pTakeThenBranch) {
       takeThenBranch = pTakeThenBranch;
-      ifStructure = pIfStructure;
+      conditionElementPredecessors =
+          transformedImmutableSetCopy(
+              pIfStructure.getConditionElement().edges(), CFAEdge::getPredecessor);
+      if (takeThenBranch) {
+        nodesBetweenConditionAndBranch = pIfStructure.getNodesBetweenConditionAndThenBranch();
+      } else {
+        nodesBetweenConditionAndBranch = pIfStructure.getNodesBetweenConditionAndElseBranch();
+      }
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
-      if (nodesBetweenConditionAndBranch == null) {
-        conditionElementPredecessors =
-            transformedImmutableSetCopy(
-                ifStructure.getConditionElement().edges(), CFAEdge::getPredecessor);
-        if (takeThenBranch) {
-          nodesBetweenConditionAndBranch = ifStructure.getNodesBetweenConditionAndThenBranch();
-        } else {
-          nodesBetweenConditionAndBranch = ifStructure.getNodesBetweenConditionAndElseBranch();
-        }
-      }
-
       CFAEdge edge = pArgs.getCfaEdge();
+
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this
       // happens when there is no else branch.
