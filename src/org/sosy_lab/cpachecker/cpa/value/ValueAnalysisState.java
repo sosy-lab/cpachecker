@@ -800,7 +800,7 @@ public final class ValueAnalysisState
     } else if (pCType instanceof CEnumType enumType) {
       Long value = pNum.getNumber().longValue();
       for (CEnumerator enumerator : enumType.getEnumerators()) {
-        if (enumerator.getValue() == value) {
+        if (value.equals(enumerator.getValue())) {
           val = new CIdExpression(loc, enumerator);
           break;
         }
