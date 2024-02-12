@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
 
-public class Utils {
+public class WitnessV2ExportUtils {
 
   public static MetadataRecord createMetadataRecord(
       ProducerRecord producerDescription, TaskRecord taskDescription, WitnessVersion pVersion) {
@@ -122,7 +122,7 @@ public class Utils {
     FileLocation nextStatementFileLocation =
         astStructure.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
 
-    return Utils.createLocationRecordAtStart(
+    return WitnessV2ExportUtils.createLocationRecordAtStart(
         nextStatementFileLocation, lineOffsetsByFile, fileName, functionName);
   }
 }

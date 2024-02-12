@@ -74,7 +74,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
     InformationRecord informationRecord =
         new InformationRecord(statement, null, ExpressionType.C.toString());
     LocationRecord location =
-        Utils.createLocationRecordAfterLocation(
+        WitnessV2ExportUtils.createLocationRecordAfterLocation(
             edge.getFileLocation(),
             getlineOffsetsByFile(),
             edge.getPredecessor().getFunctionName(),
@@ -96,7 +96,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
         WaypointRecord.WaypointType.BRANCHING,
         WaypointRecord.WaypointAction.FOLLOW,
         new InformationRecord(branchToFollow, null, null),
-        Utils.createLocationRecordAtStart(
+        WitnessV2ExportUtils.createLocationRecordAtStart(
             ifStructure.getCompleteElement().location(),
             getlineOffsetsByFile(),
             assumeEdge.getFileLocation().getFileName().toString(),
@@ -226,7 +226,7 @@ public class CounterexampleToWitness extends DirectWitnessExporter {
                 WaypointRecord.WaypointType.TARGET,
                 WaypointRecord.WaypointAction.FOLLOW,
                 null,
-                Utils.createLocationRecordAtStart(
+                WitnessV2ExportUtils.createLocationRecordAtStart(
                     lastEdge.getFileLocation(),
                     getlineOffsetsByFile(),
                     lastEdge.getPredecessor().getFunctionName()))));

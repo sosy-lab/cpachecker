@@ -83,7 +83,7 @@ public abstract class DirectWitnessExporter {
                 .disable(Feature.WRITE_DOC_START_MARKER, Feature.SPLIT_LINES)
                 .build());
     mapper.setSerializationInclusion(Include.NON_NULL);
-    producerRecord = Utils.getProducerRecord(pConfig);
+    producerRecord = WitnessV2ExportUtils.getProducerRecord(pConfig);
   }
 
   protected ListMultimap<String, Integer> getlineOffsetsByFile() throws IOException {
@@ -96,8 +96,8 @@ public abstract class DirectWitnessExporter {
   protected MetadataRecord getMetadata(WitnessVersion version) throws IOException {
     if (metadata == null) {
       metadata =
-          Utils.createMetadataRecord(
-              producerRecord, Utils.getTaskDescription(cfa, specification), version);
+          WitnessV2ExportUtils.createMetadataRecord(
+              producerRecord, WitnessV2ExportUtils.getTaskDescription(cfa, specification), version);
     }
     return metadata;
   }
