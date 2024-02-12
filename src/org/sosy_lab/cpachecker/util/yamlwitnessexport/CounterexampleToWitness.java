@@ -111,7 +111,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    List<SegmentRecord> segments = new ArrayList<>();
+    ImmutableList.Builder<SegmentRecord> segments = ImmutableList.builder();
     // For some readon the edges can contain null elements
     List<CFAEdge> edges =
         pCex.getTargetPath().getInnerEdges().stream().filter(edge -> edge != null).toList();
@@ -223,7 +223,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                 YAMLWitnessesExportUtils.createLocationRecordAtStart(
                     lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
 
-    exportEntries(new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments), pPath);
+    exportEntries(
+        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);
   }
 
   public void export(CounterexampleInfo pCex, PathTemplate pPathTemplate)
