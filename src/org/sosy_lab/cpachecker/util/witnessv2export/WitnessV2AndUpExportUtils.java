@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.witnessv2export;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ListMultimap;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -44,11 +45,17 @@ class WitnessV2AndUpExportUtils {
     final MetadataRecord metadata =
         new MetadataRecord(
             pVersion.toString(),
-            UUID.randomUUID().toString(),
+            // To generate a unique UUID which is also deterministic and reproducible, we use the
+            // input files and the Version to generate a UUID.
+            getUUID(taskDescription.getInputFiles().toString() + pVersion).toString(),
             creationTime,
             producerDescription,
             taskDescription);
     return metadata;
+  }
+
+  private static UUID getUUID(String pSeed) {
+    return UUID.nameUUIDFromBytes(pSeed.getBytes(StandardCharsets.UTF_8));
   }
 
   static String getArchitecture(MachineModel pMachineModel) {
