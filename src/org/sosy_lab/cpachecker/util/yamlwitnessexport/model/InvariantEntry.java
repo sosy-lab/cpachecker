@@ -25,14 +25,14 @@ public abstract class InvariantEntry extends AbstractEntry {
   private final InformationRecord invariant;
 
   public InvariantEntry(
-      MetadataRecord metadata,
-      LocationRecord location,
-      InformationRecord invariant,
+      MetadataRecord pMetadata,
+      LocationRecord pLocation,
+      InformationRecord pInvariant,
       String entryTypeIdentifier) {
     super(entryTypeIdentifier);
-    this.metadata = metadata;
-    this.location = location;
-    this.invariant = invariant;
+    this.metadata = pMetadata;
+    this.location = pLocation;
+    this.invariant = pInvariant;
   }
 
   public MetadataRecord getMetadata() {
