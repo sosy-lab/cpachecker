@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.witnessv2export;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -42,10 +42,10 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
-import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.ExpressionType;
-import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
 
-public class CounterexampleToWitness extends AbstractWitnessV2Exporter {
+public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
   public CounterexampleToWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
@@ -74,7 +74,7 @@ public class CounterexampleToWitness extends AbstractWitnessV2Exporter {
     InformationRecord informationRecord =
         new InformationRecord(statement, null, ExpressionType.C.toString());
     LocationRecord location =
-        WitnessV2AndUpExportUtils.createLocationRecordAfterLocation(
+        YAMLWitnessesExportUtils.createLocationRecordAfterLocation(
             edge.getFileLocation(),
             getlineOffsetsByFile(),
             edge.getPredecessor().getFunctionName(),
@@ -96,7 +96,7 @@ public class CounterexampleToWitness extends AbstractWitnessV2Exporter {
         WaypointRecord.WaypointType.BRANCHING,
         WaypointRecord.WaypointAction.FOLLOW,
         new InformationRecord(branchToFollow, null, null),
-        WitnessV2AndUpExportUtils.createLocationRecordAtStart(
+        YAMLWitnessesExportUtils.createLocationRecordAtStart(
             ifStructure.getCompleteElement().location(),
             getlineOffsetsByFile(),
             assumeEdge.getFileLocation().getFileName().toString(),
@@ -226,7 +226,7 @@ public class CounterexampleToWitness extends AbstractWitnessV2Exporter {
                 WaypointRecord.WaypointType.TARGET,
                 WaypointRecord.WaypointAction.FOLLOW,
                 null,
-                WitnessV2AndUpExportUtils.createLocationRecordAtStart(
+                YAMLWitnessesExportUtils.createLocationRecordAtStart(
                     lastEdge.getFileLocation(),
                     getlineOffsetsByFile(),
                     lastEdge.getPredecessor().getFunctionName()))));

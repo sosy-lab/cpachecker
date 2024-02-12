@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.witnessv2export;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ListMultimap;
@@ -33,9 +33,9 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
-import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
 
-class WitnessV2AndUpExportUtils {
+class YAMLWitnessesExportUtils {
 
   static MetadataRecord createMetadataRecord(
       ProducerRecord producerDescription, TaskRecord taskDescription, WitnessVersion pVersion) {
@@ -128,7 +128,7 @@ class WitnessV2AndUpExportUtils {
     FileLocation nextStatementFileLocation =
         astStructure.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
 
-    return WitnessV2AndUpExportUtils.createLocationRecordAtStart(
+    return YAMLWitnessesExportUtils.createLocationRecordAtStart(
         nextStatementFileLocation, lineOffsetsByFile, fileName, functionName);
   }
 }

@@ -6,12 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.witnessv2export;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public class WitnessesV2AndUpDataTypes {
+public class YAMLWitnessesTypes {
 
   public enum WitnessVersion {
     V2,

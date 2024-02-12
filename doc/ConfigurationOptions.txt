@@ -5040,19 +5040,9 @@ witness.considerAssumptions = true
 # the witness, so this options can be used to debug those cases.
 witness.debug.checkForMissedInvariants = false
 
-# The template from which the different exportversions of the witnesses will
-# be exported. Each version replaces the string '<<VERSION>>' with its
-# version number.
-witness.directexport.outputFileTemplate = no default value
-
-# The version for which to export the witness.
-witness.directexport.witnessVersions = no default value
-
 # Validate correctness witness by specifying an invariants specification
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
-  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
-witness.invariantsSpecificationAutomaton = no default value
   enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
 
 # Match the branching information at a branching location.
@@ -5064,7 +5054,6 @@ witness.matchOffset = true
 # If true the offsets will be matched when creating an automaton to validate
 # Violation witnesses. If false only the lines will be matched.
 witness.matchOffsetsWhenCreatingViolationAutomatonFromWitnessV2 = false
-witness.matchOffsetsWhenCreatingViolationAutomatonFromYAML = no default value
 
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
@@ -5100,10 +5089,10 @@ witness.useUniqueName = false
 # The template from which the different exportversions of the witnesses will
 # be exported. Each version replaces the string '<<VERSION>>' with its
 # version number.
-witness.v2exporter.outputFileTemplate = "witness-%s.yml"
+witness.v2exporter.outputFileTemplate = no default value
 
 # The version for which to export the witness.
-witness.v2exporter.witnessVersions = [WitnessVersion.V2]
+witness.v2exporter.witnessVersions = no default value
 
 # Validate program using invariants from ACSL annotations.
 witness.validation.correctness.acsl = false
@@ -5138,3 +5127,11 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# The template from which the different exportversions of the witnesses will
+# be exported. Each version replaces the string '<<VERSION>>' with its
+# version number.
+witness.yamlexporter.outputFileTemplate = "witness-%s.yml"
+
+# The version for which to export the witness.
+witness.yamlexporter.witnessVersions = [WitnessVersion.V2]

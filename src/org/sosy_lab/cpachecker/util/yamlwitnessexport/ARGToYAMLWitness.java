@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.witnessv2export;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -47,11 +47,11 @@ import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.GraphTraverser;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
 
-class ARGToWitness extends AbstractWitnessV2Exporter {
+class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
 
-  public ARGToWitness(
+  public ARGToYAMLWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);

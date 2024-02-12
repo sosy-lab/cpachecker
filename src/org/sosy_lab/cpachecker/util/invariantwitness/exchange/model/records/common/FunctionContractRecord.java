@@ -24,7 +24,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord.FunctionContractRecordDeserializer;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord.FunctionContractRecordSerializer;
-import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.ExpressionType;
 
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)

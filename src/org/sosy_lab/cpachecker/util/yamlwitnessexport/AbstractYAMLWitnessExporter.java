@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.witnessv2export;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static java.util.logging.Level.WARNING;
 
@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWr
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
-import org.sosy_lab.cpachecker.util.witnessv2export.WitnessesV2AndUpDataTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
 
-@Options(prefix = "witness.v2exporter")
-abstract class AbstractWitnessV2Exporter {
+@Options(prefix = "witness.yamlexporter")
+abstract class AbstractYAMLWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
   protected List<WitnessVersion> witnessVersions = ImmutableList.of(WitnessVersion.V2);
@@ -69,10 +69,10 @@ abstract class AbstractWitnessV2Exporter {
   @LazyInit private ListMultimap<String, Integer> privateLineOffsetsByFile;
   private final ProducerRecord producerRecord;
 
-  protected AbstractWitnessV2Exporter(
+  protected AbstractYAMLWitnessExporter(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
-    pConfig.inject(this, AbstractWitnessV2Exporter.class);
+    pConfig.inject(this, AbstractYAMLWitnessExporter.class);
     specification = pSpecification;
     logger = pLogger;
     cfa = pCfa;
@@ -83,7 +83,7 @@ abstract class AbstractWitnessV2Exporter {
                 .disable(Feature.WRITE_DOC_START_MARKER, Feature.SPLIT_LINES)
                 .build());
     mapper.setSerializationInclusion(Include.NON_NULL);
-    producerRecord = WitnessV2AndUpExportUtils.getProducerRecord(pConfig);
+    producerRecord = YAMLWitnessesExportUtils.getProducerRecord(pConfig);
   }
 
   protected ListMultimap<String, Integer> getlineOffsetsByFile() throws IOException {
@@ -94,8 +94,8 @@ abstract class AbstractWitnessV2Exporter {
   }
 
   protected MetadataRecord getMetadata(WitnessVersion version) throws IOException {
-    return WitnessV2AndUpExportUtils.createMetadataRecord(
-        producerRecord, WitnessV2AndUpExportUtils.getTaskDescription(cfa, specification), version);
+    return YAMLWitnessesExportUtils.createMetadataRecord(
+        producerRecord, YAMLWitnessesExportUtils.getTaskDescription(cfa, specification), version);
   }
 
   protected Path getOutputFile(WitnessVersion version) {
