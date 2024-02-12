@@ -56,8 +56,12 @@ public class Utils {
         switch (pMachineModel) {
           case LINUX32 -> "ILP32";
           case LINUX64 -> "LP64";
-          default -> pMachineModel.toString();
+          default -> null;
         };
+    if (architecture == null) {
+      throw new AssertionError("Unknown architecture: " + pMachineModel);
+    }
+
     return architecture;
   }
 
