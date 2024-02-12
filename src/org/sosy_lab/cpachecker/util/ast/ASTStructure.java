@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -45,7 +47,7 @@ public class ASTStructure {
 
   final Set<IfStructure> ifStructures = new HashSet<>();
   final Set<IterationStructure> iterationStructures = new HashSet<>();
-  private Map<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
+  private ImmutableMap<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
 
   private Map<Integer, IfStructure> startOffsetToIfStructure = new HashMap<>();
   private Map<Pair<Integer, Integer>, IfStructure> lineAndStartColumnToIfStructure =
@@ -228,12 +230,13 @@ public class ASTStructure {
     if (conditionEdgesToIfStructure != null) {
       return;
     }
-    conditionEdgesToIfStructure = new HashMap<>();
+    ImmutableMap.Builder<CFAEdge, IfStructure> builder = new Builder<>();
     for (IfStructure structure : getIfStructures()) {
       for (CFAEdge edge : structure.getConditionElement().edges()) {
-        conditionEdgesToIfStructure.put(edge, structure);
+        builder.put(edge, structure);
       }
     }
+    conditionEdgesToIfStructure = builder.build();
   }
 
   public IfStructure getIfStructureForConditionEdge(CFAEdge pEdge) {
