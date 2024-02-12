@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
 public class AutomatonWitnessV2ParserUtils {
 

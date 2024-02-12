@@ -21,7 +21,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 
 /** Represents an invariant witness source. */
 public final class InvariantWitnessProvider implements AutoCloseable {

@@ -37,12 +37,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantExchangeFormatTransformer;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointAction;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 @Options(prefix = "witness")
 class AutomatonWitnessV2ParserCommon {

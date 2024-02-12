@@ -45,9 +45,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
 

@@ -28,15 +28,15 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.SetEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.EnsuresRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordType;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecordV3;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.RequiresRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SetElementRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.EnsuresRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecord.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecordV3;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.RequiresRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SetElementRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SetEntry;
 
 class ARGToWitnessV3 extends ARGToYAMLWitness {
   protected ARGToWitnessV3(

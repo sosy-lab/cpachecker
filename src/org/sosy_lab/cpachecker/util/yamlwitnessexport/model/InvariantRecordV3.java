@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -19,8 +19,8 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.IOException;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecordV3.InvariantRecordV3Deserializer;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecordV3.InvariantRecordV3Serializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecordV3.InvariantRecordV3Deserializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantRecordV3.InvariantRecordV3Serializer;
 
 @JsonDeserialize(using = InvariantRecordV3Deserializer.class)
 @JsonSerialize(using = InvariantRecordV3Serializer.class)

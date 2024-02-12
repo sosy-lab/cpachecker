@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.Builder;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon {
 

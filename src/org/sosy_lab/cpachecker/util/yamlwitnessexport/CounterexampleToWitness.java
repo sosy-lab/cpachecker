@@ -38,11 +38,11 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 
 public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 

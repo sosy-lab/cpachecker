@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -22,9 +22,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord.FunctionContractRecordDeserializer;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord.FunctionContractRecordSerializer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractRecord.FunctionContractRecordDeserializer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractRecord.FunctionContractRecordSerializer;
 
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)

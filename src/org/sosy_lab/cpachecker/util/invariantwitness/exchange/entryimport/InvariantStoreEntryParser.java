@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 class InvariantStoreEntryParser {
   private final ListMultimap<String, Integer> lineOffsetsByFile;

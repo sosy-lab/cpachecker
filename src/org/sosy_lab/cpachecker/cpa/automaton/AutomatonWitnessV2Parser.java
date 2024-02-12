@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
 public class AutomatonWitnessV2Parser {
 

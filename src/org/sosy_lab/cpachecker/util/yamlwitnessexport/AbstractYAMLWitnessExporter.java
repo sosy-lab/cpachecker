@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
-import static java.util.logging.Level.WARNING;
-
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -31,9 +29,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ProducerRecord;
 
 @Options(prefix = "witness.yamlexporter")
 abstract class AbstractYAMLWitnessExporter {

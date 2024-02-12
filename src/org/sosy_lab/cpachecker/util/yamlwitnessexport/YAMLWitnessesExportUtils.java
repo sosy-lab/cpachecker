@@ -28,10 +28,10 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ProducerRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 
 class YAMLWitnessesExportUtils {
 

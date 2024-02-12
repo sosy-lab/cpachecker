@@ -9,4 +9,4 @@
 /**
  * This package contains everything that is related to testing the invariant witness format support.
  */
-package org.sosy_lab.cpachecker.util.invariantwitness.test;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport.model.test;

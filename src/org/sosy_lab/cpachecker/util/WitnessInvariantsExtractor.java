@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantExchangeFormatTransformer;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
 /**
  * This class extracts invariants from the correctness witness automaton. Calling {@link
