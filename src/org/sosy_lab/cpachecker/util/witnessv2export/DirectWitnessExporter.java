@@ -16,6 +16,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -57,17 +58,17 @@ public abstract class DirectWitnessExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate outputFileTemplate = PathTemplate.ofFormatString("witness-%s.yml");
 
-  protected CFA cfa;
-  protected LogManager logger;
-  protected Specification specification;
+  protected final CFA cfa;
+  protected final LogManager logger;
+  private final Specification specification;
   protected final ObjectMapper mapper;
 
   // Should only be accessed through the getter method, since having computations be done in the
   // constructor does not seem ideal. In particular creating these methods may throw IOExceptions
   // which is not ideal in a constructor
-  private ListMultimap<String, Integer> privateLineOffsetsByFile;
+  @LazyInit private ListMultimap<String, Integer> privateLineOffsetsByFile;
   private final ProducerRecord producerRecord;
-  private MetadataRecord metadata = null;
+  @LazyInit private MetadataRecord metadata;
 
   protected DirectWitnessExporter(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
