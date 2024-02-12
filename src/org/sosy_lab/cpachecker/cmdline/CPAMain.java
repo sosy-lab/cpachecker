@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProp
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -678,7 +678,7 @@ public class CPAMain {
         if (optionalWitnessType.isPresent()) {
           witnessType = optionalWitnessType.orElseThrow();
         } else {
-          optionalWitnessType = AutomatonYAMLParserUtils.getWitnessTypeIfYAML(options.witness);
+          optionalWitnessType = AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(options.witness);
           if (optionalWitnessType.isPresent()) {
             witnessType = optionalWitnessType.orElseThrow();
           } else {

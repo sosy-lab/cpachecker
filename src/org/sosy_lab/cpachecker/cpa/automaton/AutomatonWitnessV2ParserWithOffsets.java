@@ -49,12 +49,12 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntr
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
 
-public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
+public class AutomatonWitnessV2ParserWithOffsets extends AutomatonWitnessV2ParserCommon {
 
   private final CParser cparser;
   private final ParserTools parserTools;
 
-  AutomatonYAMLParserWithOffsets(
+  AutomatonWitnessV2ParserWithOffsets(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCFA);
@@ -96,7 +96,7 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
     // covers to present the desired functionality.
     AutomatonBoolExpr expr =
         new CheckCoversOffsetAndLine(
-            AutomatonYAMLParserUtils.getOffsetsByFileSimilarity(
+            AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
                         getLineOffsetsByFile(), followFilename)
                     .get(followLine - 1)
                 + followColumn,
@@ -127,7 +127,7 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
     // Therefore, we need the Reaches Offset guard.
     AutomatonBoolExpr expr =
         new CheckReachesOffsetAndLine(
-            AutomatonYAMLParserUtils.getOffsetsByFileSimilarity(
+            AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
                         getLineOffsetsByFile(), followFilename)
                     .get(followLine - 1)
                 + followColumn,
@@ -154,7 +154,7 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
     // the if keyword, but the waypoint points to the first character of the if keyword
     IfStructure ifStructure =
         astStructure.getIfStructureStartingAtOffset(
-            AutomatonYAMLParserUtils.getOffsetsByFileSimilarity(
+            AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
                         getLineOffsetsByFile(), followFilename)
                     .get(followLine - 1)
                 + followColumn
@@ -204,7 +204,7 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
 
     AutomatonBoolExpr expr =
         new CheckCoversOffsetAndLine(
-            AutomatonYAMLParserUtils.getOffsetsByFileSimilarity(
+            AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
                         getLineOffsetsByFile(), followFilename)
                     .get(followLine - 1)
                 + followColumn,
@@ -220,7 +220,7 @@ public class AutomatonYAMLParserWithOffsets extends AutomatonYAMLParserCommon {
       // The syntax of the YAML witness describes that the return statement must point to the
       // closing bracket of the function whose return statement is being considered
       int offsetAccordingToWaypoint =
-          AutomatonYAMLParserUtils.getOffsetsByFileSimilarity(
+          AutomatonWitnessV2ParserUtils.getOffsetsByFileSimilarity(
                       getLineOffsetsByFile(), followFilename)
                   .get(followLine - 1)
               + followColumn;

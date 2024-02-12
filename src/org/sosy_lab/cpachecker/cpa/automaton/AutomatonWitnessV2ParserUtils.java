@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
 
-public class AutomatonYAMLParserUtils {
+public class AutomatonWitnessV2ParserUtils {
 
   public static List<AbstractEntry> parseYAML(InputStream pInputStream) throws IOException {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -114,7 +114,7 @@ public class AutomatonYAMLParserUtils {
         MoreFiles.asByteSource(pPath),
         x -> {
           try {
-            AutomatonYAMLParserUtils.parseYAML(x);
+            AutomatonWitnessV2ParserUtils.parseYAML(x);
             return true;
           } catch (JsonProcessingException e) {
             return false;
@@ -129,7 +129,7 @@ public class AutomatonYAMLParserUtils {
       entries =
           AutomatonGraphmlParser.handlePotentiallyGZippedInput(
               MoreFiles.asByteSource(pPath),
-              AutomatonYAMLParserUtils::parseYAML,
+              AutomatonWitnessV2ParserUtils::parseYAML,
               WitnessParseException::new);
     } catch (WitnessParseException e) {
       entries = ImmutableList.of();

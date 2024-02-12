@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -79,7 +79,7 @@ public class InvariantExchangeFormatTransformer {
         ImmutableSet.of(invariantString),
         resultFunction,
         cparser,
-        AutomatonYAMLParserUtils.determineScopeForLine(resultFunction, callStack, pLine, pScope),
+        AutomatonWitnessV2ParserUtils.determineScopeForLine(resultFunction, callStack, pLine, pScope),
         parserTools);
   }
 

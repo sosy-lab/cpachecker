@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord.WaypointType;
 
 @Options(prefix = "witness")
-public class AutomatonYAMLParserCommon {
+public class AutomatonWitnessV2ParserCommon {
 
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -68,10 +68,10 @@ public class AutomatonYAMLParserCommon {
 
   final InvariantExchangeFormatTransformer transformer;
 
-  AutomatonYAMLParserCommon(
+  AutomatonWitnessV2ParserCommon(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this, AutomatonYAMLParserCommon.class);
+    pConfig.inject(this, AutomatonWitnessV2ParserCommon.class);
     logger = pLogger;
     cfa = pCFA;
     config = pConfig;
@@ -149,7 +149,7 @@ public class AutomatonYAMLParserCommon {
             default -> DummyScope.getInstance();
           };
       Scope scope =
-          AutomatonYAMLParserUtils.determineScopeForLine(resultFunction, null, line, defaultScope);
+          AutomatonWitnessV2ParserUtils.determineScopeForLine(resultFunction, null, line, defaultScope);
       AExpression exp =
           transformer
               .createExpressionTreeFromString(resultFunction, constraint, line, null, scope)

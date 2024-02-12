@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 
 @Options(prefix = "witness")
-public class AutomatonYAMLParser {
+public class AutomatonWitnessV2Parser {
 
   @Option(
       secure = true,
@@ -40,7 +40,7 @@ public class AutomatonYAMLParser {
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
-  public AutomatonYAMLParser(
+  public AutomatonWitnessV2Parser(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -67,12 +67,12 @@ public class AutomatonYAMLParser {
    */
   private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
-    List<AbstractEntry> entries = AutomatonYAMLParserUtils.parseYAML(pInputStream);
-    if (AutomatonYAMLParserUtils.getWitnessTypeIfYAML(entries)
+    List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pInputStream);
+    if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(entries)
         .orElseThrow()
         .equals(WitnessType.CORRECTNESS_WITNESS)) {
-      AutomatonYAMLParserCorrectness parser =
-          new AutomatonYAMLParserCorrectness(config, logger, shutdownNotifier, cfa);
+      AutomatonWitnessV2ParserCorrectness parser =
+          new AutomatonWitnessV2ParserCorrectness(config, logger, shutdownNotifier, cfa);
       return parser.createCorrectnessAutomatonFromEntries(entries);
     } else {
       return createViolationAutomatonFromEntries(entries);
@@ -82,12 +82,12 @@ public class AutomatonYAMLParser {
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException, IOException {
     if (matchOffsetsWhenCreatingViolationAutomatonFromYAML) {
-      AutomatonYAMLParserWithOffsets parser =
-          new AutomatonYAMLParserWithOffsets(config, logger, shutdownNotifier, cfa);
+      AutomatonWitnessV2ParserWithOffsets parser =
+          new AutomatonWitnessV2ParserWithOffsets(config, logger, shutdownNotifier, cfa);
       return parser.createViolationAutomatonFromEntriesMatchingOffsets(pEntries);
     } else {
-      AutomatonYAMLParserViolation parser =
-          new AutomatonYAMLParserViolation(config, logger, shutdownNotifier, cfa);
+      AutomatonWitnessV2ParserViolation parser =
+          new AutomatonWitnessV2ParserViolation(config, logger, shutdownNotifier, cfa);
       return parser.createViolationAutomatonFromEntriesMatchingLines(pEntries);
     }
   }
