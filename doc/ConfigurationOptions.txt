@@ -5052,6 +5052,8 @@ witness.directexport.witnessVersions = no default value
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
   enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
+witness.invariantsSpecificationAutomaton = no default value
+  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
 
 # Match the branching information at a branching location.
 witness.matchAssumeCase = true
@@ -5061,7 +5063,8 @@ witness.matchOffset = true
 
 # If true the offsets will be matched when creating an automaton to validate
 # Violation witnesses. If false only the lines will be matched.
-witness.matchOffsetsWhenCreatingViolationAutomatonFromYAML = false
+witness.matchOffsetsWhenCreatingViolationAutomatonFromWitnessV2 = false
+witness.matchOffsetsWhenCreatingViolationAutomatonFromYAML = no default value
 
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
