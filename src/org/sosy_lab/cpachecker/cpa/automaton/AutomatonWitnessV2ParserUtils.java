@@ -35,6 +35,14 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSeq
 
 public class AutomatonWitnessV2ParserUtils {
 
+  public static class InvalidYAMLWitnessException extends InvalidConfigurationException {
+    private static final long serialVersionUID = -5647551194742587246L;
+
+    public InvalidYAMLWitnessException(String pReason) {
+      super(pReason);
+    }
+  }
+
   public static List<AbstractEntry> parseYAML(InputStream pInputStream) throws IOException {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.findAndRegisterModules();

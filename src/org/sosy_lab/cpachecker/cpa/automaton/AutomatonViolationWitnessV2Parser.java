@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumn
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersIfBranch;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -240,7 +241,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
   }
 
   Automaton createViolationAutomatonFromEntriesMatchingOffsets(List<AbstractEntry> pEntries)
-      throws InterruptedException, InvalidConfigurationException, IOException {
+      throws InterruptedException, InvalidYAMLWitnessException, IOException, WitnessParseException {
     List<Pair<WaypointRecord, List<WaypointRecord>>> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(

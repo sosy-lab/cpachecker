@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
@@ -96,7 +97,7 @@ class AutomatonWitnessV2ParserCommon {
   }
 
   List<Pair<WaypointRecord, List<WaypointRecord>>> segmentize(List<AbstractEntry> pEntries)
-      throws InvalidConfigurationException {
+      throws InvalidYAMLWitnessException {
     List<Pair<WaypointRecord, List<WaypointRecord>>> segments = new ArrayList<>();
     WaypointRecord latest = null;
     int numTargetWaypoints = 0;
@@ -151,19 +152,17 @@ class AutomatonWitnessV2ParserCommon {
   }
 
   private void checkTargetIsAtEnd(WaypointRecord latest, int numTargetWaypoints)
-      throws InvalidConfigurationException {
+      throws InvalidYAMLWitnessException {
     switch (numTargetWaypoints) {
       case 0:
-        logger.log(Level.WARNING, "No target waypoint in witness V2!");
-        break;
+        throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
       case 1:
         if (latest != null && !latest.getType().equals(WaypointType.TARGET)) {
-          throw new InvalidConfigurationException(
-              "Target waypoint is not at the end in witness V2!");
+          throw new InvalidYAMLWitnessException("Target waypoint is not at the end in witness V2!");
         }
         break;
       default:
-        throw new InvalidConfigurationException("More than one target waypoint in witness V2!");
+        throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
     }
   }
 

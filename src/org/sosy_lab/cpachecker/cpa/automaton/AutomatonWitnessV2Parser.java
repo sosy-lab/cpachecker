@@ -19,6 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 
@@ -54,7 +55,10 @@ public class AutomatonWitnessV2Parser {
    * @return the automata representing the witnesses found in the stream.
    */
   private Automaton parseAutomatonFile(InputStream pInputStream)
-      throws InvalidConfigurationException, IOException, InterruptedException {
+      throws InvalidConfigurationException,
+          IOException,
+          InterruptedException,
+          InvalidYAMLWitnessException {
     List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pInputStream);
     if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(entries)
         .orElseThrow()
