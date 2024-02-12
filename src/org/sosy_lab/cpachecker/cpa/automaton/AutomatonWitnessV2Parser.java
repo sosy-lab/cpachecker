@@ -27,14 +27,6 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntr
 @Options(prefix = "witness")
 public class AutomatonWitnessV2Parser {
 
-  @Option(
-      secure = true,
-      name = "matchOffsetsWhenCreatingViolationAutomatonFromWitnessV2",
-      description =
-          "If true the offsets will be matched when creating an automaton to validate Violation"
-              + " witnesses. If false only the lines will be matched.")
-  private boolean matchOffsetsWhenCreatingViolationAutomatonFromWitnessV2 = false;
-
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
@@ -81,14 +73,8 @@ public class AutomatonWitnessV2Parser {
 
   private Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidConfigurationException, IOException {
-    if (matchOffsetsWhenCreatingViolationAutomatonFromWitnessV2) {
-      AutomatonWitnessV2ParserWithOffsets parser =
-          new AutomatonWitnessV2ParserWithOffsets(config, logger, shutdownNotifier, cfa);
-      return parser.createViolationAutomatonFromEntriesMatchingOffsets(pEntries);
-    } else {
-      AutomatonWitnessV2ParserViolation parser =
-          new AutomatonWitnessV2ParserViolation(config, logger, shutdownNotifier, cfa);
-      return parser.createViolationAutomatonFromEntriesMatchingLines(pEntries);
-    }
+    AutomatonWitnessV2ParserWithOffsets parser =
+        new AutomatonWitnessV2ParserWithOffsets(config, logger, shutdownNotifier, cfa);
+    return parser.createViolationAutomatonFromEntriesMatchingOffsets(pEntries);
   }
 }
