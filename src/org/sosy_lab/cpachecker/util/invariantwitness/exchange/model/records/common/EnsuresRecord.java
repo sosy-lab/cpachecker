@@ -13,13 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
-public class EnsuresRecord {
-
-  private final ImmutableList<String> clauses;
-
-  public EnsuresRecord(ImmutableList<String> pClauses) {
-    clauses = pClauses;
-  }
+public record EnsuresRecord(ImmutableList<String> clauses) {
 
   @JsonValue
   public ImmutableList<String> getClauses() {
