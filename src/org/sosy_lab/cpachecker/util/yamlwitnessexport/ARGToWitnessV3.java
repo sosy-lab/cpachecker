@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.RequiresRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SetElementRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.ExpressionType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
 
 class ARGToWitnessV3 extends ARGToYAMLWitness {
@@ -72,7 +72,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
 
     InvariantRecordV3 invariantRecord =
         new InvariantRecordV3(
-            invariant.toString(), type, ExpressionType.C.toString(), locationRecord);
+            invariant.toString(), type, YAMLWitnessExpressionType.C.toString(), locationRecord);
 
     return invariantRecord;
   }
@@ -99,7 +99,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
           new FunctionContractRecord(
               new EnsuresRecord(ImmutableList.of(ensuresClause)),
               new RequiresRecord(ImmutableList.of(requiresClause)),
-              ExpressionType.C,
+              YAMLWitnessExpressionType.C,
               YAMLWitnessesExportUtils.createLocationRecordAtStart(
                   location, getlineOffsetsByFile(), node.getFunctionName())));
     }
@@ -144,7 +144,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
             statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
 
     exportEntries(
-        new SetEntry(getMetadata(WitnessVersion.V3), entries),
-        getOutputFile(WitnessVersion.V3, pOutputFileTemplate));
+        new SetEntry(getMetadata(YAMLWitnessVersion.V3), entries),
+        getOutputFile(YAMLWitnessVersion.V3, pOutputFileTemplate));
   }
 }

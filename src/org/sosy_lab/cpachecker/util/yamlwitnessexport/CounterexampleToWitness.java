@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.SegmentRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.ExpressionType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
 
 public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
@@ -73,7 +73,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     InformationRecord informationRecord =
-        new InformationRecord(statement, null, ExpressionType.C.toString());
+        new InformationRecord(statement, null, YAMLWitnessExpressionType.C.toString());
     LocationRecord location =
         YAMLWitnessesExportUtils.createLocationRecordAfterLocation(
             edge.getFileLocation(),
@@ -233,13 +233,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                     lastEdge.getPredecessor().getFunctionName()))));
 
     exportEntries(
-        new ViolationSequenceEntry(getMetadata(WitnessVersion.V2), segments),
-        getOutputFile(WitnessVersion.V2, pPathTemplate));
+        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments),
+        getOutputFile(YAMLWitnessVersion.V2, pPathTemplate));
   }
 
   public void export(CounterexampleInfo pCex, PathTemplate pPathTemplate)
       throws YamlWitnessExportException, IOException {
-    for (WitnessVersion witnessVersion : witnessVersions) {
+    for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       switch (witnessVersion) {
         case V2:
           exportWitnessVersion2(pCex, pPathTemplate);

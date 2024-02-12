@@ -21,7 +21,7 @@ public class YAMLWitnessesTypes {
     }
   }
 
-  public enum WitnessVersion {
+  public enum YAMLWitnessVersion {
     V2,
     V3;
 
@@ -34,7 +34,7 @@ public class YAMLWitnessesTypes {
     }
   }
 
-  public enum ExpressionType {
+  public enum YAMLWitnessExpressionType {
     C,
     ACSL;
 
@@ -48,7 +48,7 @@ public class YAMLWitnessesTypes {
     }
 
     @JsonCreator
-    public static ExpressionType fromKeyword(String keyword) {
+    public static YAMLWitnessExpressionType fromKeyword(String keyword) {
       return switch (keyword) {
         case "c_expression" -> C;
         case "ACSL" -> ACSL;

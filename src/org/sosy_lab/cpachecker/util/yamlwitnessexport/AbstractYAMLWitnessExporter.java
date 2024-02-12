@@ -37,14 +37,14 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
 
 @Options(prefix = "witness.yamlexporter")
 abstract class AbstractYAMLWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
-  protected List<WitnessVersion> witnessVersions = ImmutableList.of(WitnessVersion.V2);
+  protected List<YAMLWitnessVersion> witnessVersions = ImmutableList.of(YAMLWitnessVersion.V2);
 
   protected final CFA cfa;
   protected final LogManager logger;
@@ -81,12 +81,12 @@ abstract class AbstractYAMLWitnessExporter {
     return privateLineOffsetsByFile;
   }
 
-  protected MetadataRecord getMetadata(WitnessVersion version) throws IOException {
+  protected MetadataRecord getMetadata(YAMLWitnessVersion version) throws IOException {
     return YAMLWitnessesExportUtils.createMetadataRecord(
         producerRecord, YAMLWitnessesExportUtils.getTaskDescription(cfa, specification), version);
   }
 
-  protected static Path getOutputFile(WitnessVersion version, PathTemplate pPathTemplate) {
+  protected static Path getOutputFile(YAMLWitnessVersion version, PathTemplate pPathTemplate) {
     if (pPathTemplate == null) {
       return null;
     }

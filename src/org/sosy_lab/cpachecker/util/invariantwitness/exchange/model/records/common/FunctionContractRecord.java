@@ -24,7 +24,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord.FunctionContractRecordDeserializer;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.FunctionContractRecord.FunctionContractRecordSerializer;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.ExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessExpressionType;
 
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)
@@ -46,12 +46,12 @@ public non-sealed class FunctionContractRecord implements SetElementRecord {
 
   @JsonProperty("format")
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  private final ExpressionType format;
+  private final YAMLWitnessExpressionType format;
 
   public FunctionContractRecord(
       @JsonProperty("ensures") EnsuresRecord pEnsures,
       @JsonProperty("requires") RequiresRecord pRequires,
-      @JsonProperty("format") ExpressionType pFormat,
+      @JsonProperty("format") YAMLWitnessExpressionType pFormat,
       @JsonProperty("location") LocationRecord pLocation) {
     location = pLocation;
     ensures = pEnsures;
@@ -71,7 +71,7 @@ public non-sealed class FunctionContractRecord implements SetElementRecord {
     return requires;
   }
 
-  public ExpressionType getFormat() {
+  public YAMLWitnessExpressionType getFormat() {
     return format;
   }
 
@@ -93,7 +93,7 @@ public non-sealed class FunctionContractRecord implements SetElementRecord {
           new FunctionContractRecord(
               mapper.treeToValue(node.get("ensures"), EnsuresRecord.class),
               mapper.treeToValue(node.get("requires"), RequiresRecord.class),
-              mapper.treeToValue(node.get("format"), ExpressionType.class),
+              mapper.treeToValue(node.get("format"), YAMLWitnessExpressionType.class),
               mapper.treeToValue(node.get("location"), LocationRecord.class));
 
       return result;

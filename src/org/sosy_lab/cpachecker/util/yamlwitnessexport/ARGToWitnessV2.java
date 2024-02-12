@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSet
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InvariantRecord.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.ExpressionType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
 
 class ARGToWitnessV2 extends ARGToYAMLWitness {
@@ -63,7 +63,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
 
     InvariantRecord invariantRecord =
         new InvariantRecord(
-            invariant.toString(), type, ExpressionType.C.toString(), locationRecord);
+            invariant.toString(), type, YAMLWitnessExpressionType.C.toString(), locationRecord);
 
     return invariantRecord;
   }
@@ -100,7 +100,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     }
 
     exportEntries(
-        new InvariantSetEntry(getMetadata(WitnessVersion.V2), entries),
-        getOutputFile(WitnessVersion.V2, pPathTemplate));
+        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), entries),
+        getOutputFile(YAMLWitnessVersion.V2, pPathTemplate));
   }
 }

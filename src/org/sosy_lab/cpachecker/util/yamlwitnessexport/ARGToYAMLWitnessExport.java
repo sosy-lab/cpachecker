@@ -17,7 +17,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YamlWitnessExportException;
 
 public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
@@ -35,7 +35,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
 
   public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
       throws YamlWitnessExportException, InterruptedException, IOException {
-    for (WitnessVersion witnessVersion : witnessVersions) {
+    for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       switch (witnessVersion) {
         case V2:
           argToWitnessV2.exportWitnesses(pRootState, pOutputFileTemplate);

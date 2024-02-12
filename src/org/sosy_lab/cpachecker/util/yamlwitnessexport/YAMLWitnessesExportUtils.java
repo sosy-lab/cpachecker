@@ -33,12 +33,12 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.WitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessesTypes.YAMLWitnessVersion;
 
 class YAMLWitnessesExportUtils {
 
   static MetadataRecord createMetadataRecord(
-      ProducerRecord producerDescription, TaskRecord taskDescription, WitnessVersion pVersion) {
+      ProducerRecord producerDescription, TaskRecord taskDescription, YAMLWitnessVersion pVersion) {
     ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
     String creationTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
