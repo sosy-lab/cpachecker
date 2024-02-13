@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BridgeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.ImportDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -63,7 +64,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.BlockSummaryMessageLogger;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisWorker;
@@ -146,8 +146,16 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + "Missing blocks make the analysis slower but not impossible.")
   private boolean allowMissingAbstractionNodes = true;
 
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  @Option(description = "Where to store the block graph in JSON format")
+  private Path blockCFAFile = Path.of("block_analysis/blocks.json");
+
   @Option(description = "Whether to stop after exporting the blockgraph")
   private boolean generateBlockGraphOnly = false;
+
+  @Option(description = "Import an existing decomposition from a file")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private Path importDecomposition = null;
 
   @Option(description = "Whether to spawn a worker for only one block id")
   private String spawnWorkerForId = "";
@@ -201,7 +209,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     };
   }
 
-  private BlockSummaryCFADecomposer getDecomposer() throws InvalidConfigurationException {
+  private BlockSummaryCFADecomposer getDecomposer()
+      throws InvalidConfigurationException, IOException {
+    if (importDecomposition != null) {
+      return new ImportDecomposition(importDecomposition);
+    }
     BlockOperator blockOperator = new BlockOperator();
     configuration.inject(blockOperator);
     blockOperator.setCFA(initialCFA);
@@ -259,7 +271,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           decompositionType);
 
       if (generateBlockGraphOnly) {
-        new BlockSummaryMessageLogger(blockGraph, configuration).logBlockGraph();
+        blockGraph.export(blockCFAFile);
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
 

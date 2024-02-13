@@ -9,15 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -33,7 +29,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 @Options
 public class BlockSummaryMessageLogger {
 
-  @Option(description = "output file for visualizing message exchange")
+  @Option(
+      name = "dss.logging.reportFiles",
+      description = "output file for visualizing message exchange")
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path reportFiles = Path.of("block_analysis/block_analysis");
 
@@ -52,18 +50,8 @@ public class BlockSummaryMessageLogger {
     tree = pTree;
   }
 
-  public synchronized void logBlockGraph() throws IOException {
-    Map<String, Map<String, List<String>>> treeMap = new HashMap<>();
-    Iterables.concat(tree.getNodes(), ImmutableList.of(tree.getRoot()))
-        .forEach(
-            n -> {
-              Map<String, List<String>> attributes = new HashMap<>();
-              attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
-              attributes.put("predecessors", ImmutableList.copyOf(n.getPredecessorIds()));
-              attributes.put("successors", ImmutableList.copyOf(n.getSuccessorIds()));
-              treeMap.put(n.getId(), attributes);
-            });
-    JSON.writeJSONString(treeMap, blockCFAFile);
+  public void logBlockGraph() throws IOException {
+    tree.export(blockCFAFile);
   }
 
   // suppress warnings is fine here because error-prone does not recognize that we call
