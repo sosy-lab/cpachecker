@@ -234,8 +234,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     for (int i = 1; i < pDualSequence.getSize(); i++) {
       BooleanFormula forwardFormula = pDualSequence.getForwardImageAt(i);
       BooleanFormula backwardFormula = pDualSequence.getBackwardImageAt(i);
-      if (solver.implies(forwardFormula, forwardImage)
-          || solver.implies(backwardFormula, backwardImage)) {
+      if ((solver.implies(forwardFormula, forwardImage)
+              || solver.implies(backwardFormula, backwardImage))
+          // The set that is represented by formula B_0 should not be empty.
+          // If it is, then the algorithm catches it sooner.
+          && !pDualSequence.getBackwardImageAt(0).equals(bfmgr.makeFalse())) {
         stats.fixedPointConvergenceLength = pDualSequence.getSize();
         logger.log(Level.INFO, "Fixed point reached");
         return true;
