@@ -3758,6 +3758,9 @@ distributedSummaries.allowMissingAbstractionNodes = true
 # functions.
 distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
 
+# Where to store the block graph in JSON format
+distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
+
 # Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
 # creates blocks from each merge/branching point to the next merge/branching
 # point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
@@ -3769,6 +3772,9 @@ distributedSummaries.decompositionType = MERGE_DECOMPOSITION
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.generateBlockGraphOnly = false
+
+# Import an existing decomposition from a file
+distributedSummaries.importDecomposition = no default value
 
 # Where to find messages in a file format
 distributedSummaries.inputMessages = "input/"
@@ -3801,6 +3807,9 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-block-sum
 # Destination directory for the logfiles of all BlockSummaryWorkers. The
 # logfiles have the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_summary/logfiles"
+
+# output file for visualizing message exchange
+dss.logging.reportFiles = "block_analysis/block_analysis"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -4516,9 +4525,6 @@ report.export = true
 
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
-
-# output file for visualizing message exchange
-reportFiles = "block_analysis/block_analysis"
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value

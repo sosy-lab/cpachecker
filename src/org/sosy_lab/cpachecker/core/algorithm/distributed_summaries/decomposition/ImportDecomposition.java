@@ -36,7 +36,7 @@ public class ImportDecomposition implements BlockSummaryCFADecomposer {
         objectMapper.readValue(
             pImportFile.toFile(), new TypeReference<Map<String, ImportedBlock>>() {});
     for (ImportedBlock value : blocks.values()) {
-      if (value.edges().size() != 2) {
+      if (value.edges().stream().anyMatch(e -> e.size() != 2)) {
         throw new IllegalArgumentException(
             "Imported block has edges with more than two nodes (" + value.edges() + ")");
       }

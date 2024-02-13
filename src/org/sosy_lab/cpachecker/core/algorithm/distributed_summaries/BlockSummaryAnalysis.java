@@ -146,7 +146,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + "Missing blocks make the analysis slower but not impossible.")
   private boolean allowMissingAbstractionNodes = true;
 
-  @FileOption(Type.OUTPUT_DIRECTORY)
+  @FileOption(Type.OUTPUT_FILE)
   @Option(description = "Where to store the block graph in JSON format")
   private Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
@@ -242,6 +242,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockSummaryCFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier());
+      if (generateBlockGraphOnly) {
+        blockGraph.export(blockCFAFile);
+        logger.logf(Level.INFO, "Block graph exported to %s.", blockCFAFile);
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
       Modification modification =
           BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
@@ -269,11 +274,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           "Decomposed CFA in %d blocks using the %s.",
           blockGraph.getNodes().size(),
           decompositionType);
-
-      if (generateBlockGraphOnly) {
-        blockGraph.export(blockCFAFile);
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
-      }
 
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();

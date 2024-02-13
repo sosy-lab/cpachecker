@@ -196,7 +196,7 @@ public class BlockGraph {
     ImmutableSet<BlockNode> allNodes = nodes.build();
     BlockNode root =
         Iterables.getOnlyElement(FluentIterable.from(allNodes).filter(BlockNode::isRoot));
-    return new BlockGraph(root, allNodes);
+    return new BlockGraph(root, FluentIterable.from(allNodes).filter(b -> !b.isRoot()).toSet());
   }
 
   private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
