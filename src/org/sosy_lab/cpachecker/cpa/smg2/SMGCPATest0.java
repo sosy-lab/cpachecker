@@ -209,7 +209,6 @@ public class SMGCPATest0 {
 
       prevObject = listSegment;
     }
-    checkListDataIntegrity(pointerArray, dll);
     // Save all pointers in objects to not confuse the internal SMG assertions
     for (Value pointer : pointerArray) {
       SMGObjectAndSMGState stackObjAndState = currentState.copyAndAddStackObject(pointerSizeInBits);
@@ -224,6 +223,8 @@ public class SMGCPATest0 {
               null,
               dummyCDAEdge);
     }
+    checkListDataIntegrity(pointerArray, dll);
+
     return pointerArray;
   }
 

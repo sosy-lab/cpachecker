@@ -3393,7 +3393,7 @@ public class SMGCPAValueVisitorTest {
     // Mapping to the smg points to edge
     spc =
         spc.copyAndAddPointerFromAddressToRegion(
-            addressValue, smgHeapObject, BigInteger.valueOf(offset));
+            addressValue, smgHeapObject, BigInteger.valueOf(offset), 0);
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
