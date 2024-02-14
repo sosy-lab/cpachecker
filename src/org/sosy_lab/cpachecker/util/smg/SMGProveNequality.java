@@ -40,17 +40,11 @@ public class SMGProveNequality {
    * @return true if the prove of not equality succeeded, false if both are potentially equal.
    */
   public boolean proveInequality(SMGValue value1, SMGValue value2) {
-    // Modified for == for both nesting levels, before it was == 0 for both
-    if (value1.isZero() && !value2.isZero() || value2.isZero() && !value1.isZero()) {
-      return false;
-    }
     checkArgument(
-        smg.getNestingLevel(value1) == smg.getNestingLevel(value2),
+        smg.getNestingLevel(value1) == 0 && smg.getNestingLevel(value2) == 0,
         "%s or %s is not on the same level",
         value1,
-        smg.getNestingLevel(value1),
-        value2,
-        smg.getNestingLevel(value2));
+        value2);
     if (value1.equals(value2)) {
       return false;
     }
