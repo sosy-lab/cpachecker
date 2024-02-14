@@ -46,7 +46,7 @@ public class SMGStateAndOptionalSMGObjectAndOffset {
   }
 
   public static SMGStateAndOptionalSMGObjectAndOffset of(
-      SMGObjectAndOffset objAndOff, SMGState pState) {
+      SMGObjectAndOffsetMaybeNestingLvl objAndOff, SMGState pState) {
     Preconditions.checkNotNull(objAndOff);
     Preconditions.checkNotNull(pState);
     return new SMGStateAndOptionalSMGObjectAndOffset(
@@ -54,7 +54,7 @@ public class SMGStateAndOptionalSMGObjectAndOffset {
   }
 
   public static SMGStateAndOptionalSMGObjectAndOffset of(
-      SMGState pState, Optional<SMGObjectAndOffset> pMaybeObjectAndOffset) {
+      SMGState pState, Optional<SMGObjectAndOffsetMaybeNestingLvl> pMaybeObjectAndOffset) {
     Preconditions.checkNotNull(pState);
     Preconditions.checkNotNull(pMaybeObjectAndOffset);
     if (pMaybeObjectAndOffset.isEmpty()) {

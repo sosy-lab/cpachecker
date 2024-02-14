@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.BooleanAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -226,12 +226,12 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.of(address1.getMemoryAddress(), state);
     } else {
       // Get the correct address with its offset in the SMGPointsToEdge
-      Optional<SMGObjectAndOffset> maybeTargetAndOffset =
+      Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
           state.getPointsToTarget(address1.getMemoryAddress());
       if (maybeTargetAndOffset.isEmpty()) {
         return ValueAndSMGState.ofUnknownValue(state);
       }
-      SMGObjectAndOffset targetAndOffset = maybeTargetAndOffset.orElseThrow();
+      SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeTargetAndOffset.orElseThrow();
       SMGObject target = targetAndOffset.getSMGObject();
       if (!offsetValue.isNumericValue()) {
         throw new SMGException(
@@ -585,7 +585,7 @@ public class SMGCPAExpressionEvaluator {
   public ValueAndSMGState createAddressForLocalOrGlobalVariable(
       String variableName, SMGState pState) {
     // Get the variable SMGObject
-    Optional<SMGObjectAndOffset> maybeObjectAndOffset =
+    Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeObjectAndOffset =
         getTargetObjectAndOffset(pState, variableName, new NumericValue(BigInteger.ZERO));
     if (maybeObjectAndOffset.isEmpty()) {
       // TODO: improve error handling and add more specific exceptions to the visitor!
@@ -593,7 +593,7 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.ofUnknownValue(pState);
       // throw new SMG2Exception("No address could be created for the variable: " + variableName);
     }
-    SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
+    SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeObjectAndOffset.orElseThrow();
     SMGObject target = targetAndOffset.getSMGObject();
     Value offset = targetAndOffset.getOffsetForObject();
     if (!offset.isNumericValue()) {
@@ -768,8 +768,9 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
-   * Returns the {@link SMGObjectAndOffset} pair for the entered address {@link Value} and
-   * additional offset on the entered state. This does dereference the address {@link Value}.
+   * Returns the {@link SMGObjectAndOffsetMaybeNestingLvl} pair for the entered address {@link
+   * Value} and additional offset on the entered state. This does dereference the address {@link
+   * Value}.
    *
    * @param pState current {@link SMGState}.
    * @param value {@link Value} pointer to be dereferenced leading to the {@link SMGObject} desired.
@@ -808,7 +809,7 @@ public class SMGCPAExpressionEvaluator {
    * @return Either an empty {@link Optional} if no object was found, or a filled one with the
    *     {@link SMGObject} and its offset.
    */
-  public Optional<SMGObjectAndOffset> getTargetObjectAndOffset(
+  public Optional<SMGObjectAndOffsetMaybeNestingLvl> getTargetObjectAndOffset(
       SMGState state, String variableName) {
     return getTargetObjectAndOffset(state, variableName, new NumericValue(BigInteger.ZERO));
   }
@@ -823,7 +824,7 @@ public class SMGCPAExpressionEvaluator {
    * @return Either an empty {@link Optional} if no object was found, or a filled one with the
    *     {@link SMGObject} and its offset.
    */
-  public Optional<SMGObjectAndOffset> getTargetObjectAndOffset(
+  public Optional<SMGObjectAndOffsetMaybeNestingLvl> getTargetObjectAndOffset(
       SMGState state, String variableName, Value offsetInBits) {
     // TODO: maybe use this in getStackOrGlobalVar?
     Optional<SMGObject> maybeObject =
@@ -831,7 +832,8 @@ public class SMGCPAExpressionEvaluator {
     if (maybeObject.isEmpty()) {
       return Optional.empty();
     }
-    return Optional.of(SMGObjectAndOffset.of(maybeObject.orElseThrow(), offsetInBits));
+    return Optional.of(
+        SMGObjectAndOffsetMaybeNestingLvl.of(maybeObject.orElseThrow(), offsetInBits));
   }
 
   /**
@@ -1619,13 +1621,14 @@ public class SMGCPAExpressionEvaluator {
             transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
         currentState = properPointerAndState.getState();
 
-        Optional<SMGObjectAndOffset> maybeParamMemoryAndOffset =
+        Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeParamMemoryAndOffset =
             currentState.getPointsToTarget(properPointerAndState.getValue());
 
         if (maybeParamMemoryAndOffset.isEmpty()) {
           return currentState;
         }
-        SMGObjectAndOffset paramMemoryAndOffset = maybeParamMemoryAndOffset.orElseThrow();
+        SMGObjectAndOffsetMaybeNestingLvl paramMemoryAndOffset =
+            maybeParamMemoryAndOffset.orElseThrow();
 
         // copySMGObjectContentToSMGObject checks for sizes etc.
         return currentState.copySMGObjectContentToSMGObject(
@@ -2289,7 +2292,7 @@ public class SMGCPAExpressionEvaluator {
         Preconditions.checkArgument(
             pOffsetInBits.asNumericValue().bigIntegerValue().intValueExact() == 0);
 
-        Optional<SMGObjectAndOffset> maybeLeftHandSideVariableObject =
+        Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeLeftHandSideVariableObject =
             getTargetObjectAndOffset(currentState, variableName);
         if (maybeLeftHandSideVariableObject.isEmpty()) {
           throw new SMGException("Usage of undeclared variable: " + variableName + ".");

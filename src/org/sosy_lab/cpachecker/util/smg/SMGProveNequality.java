@@ -41,7 +41,7 @@ public class SMGProveNequality {
    */
   public boolean proveInequality(SMGValue value1, SMGValue value2) {
     checkArgument(
-        value1.getNestingLevel() == 0 && value2.getNestingLevel() == 0,
+        smg.getNestingLevel(value1) == 0 && smg.getNestingLevel(value2) == 0,
         "%s or %s is not on level 0",
         value1,
         value2);

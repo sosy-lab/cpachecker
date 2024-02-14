@@ -64,7 +64,10 @@ public class SMG {
 
   // The bool is the validity of the SMGObject, not being in the map -> not valid (false)
   private final PersistentMap<SMGObject, Boolean> smgObjects;
-  private final PersistentSet<SMGValue> smgValues;
+
+  // TODO: we use the nesting level only for pointers at the moment
+  //  (as we don't merge) -> move to points-to-edges
+  private final PersistentMap<SMGValue, Integer> smgValuesAndNestingLvl;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
   private final PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>>
       valuesToRegionsTheyAreSavedIn;
@@ -80,9 +83,10 @@ public class SMG {
     hasValueEdges = PathCopyingPersistentTreeMap.of();
     objectsAndPointersPointingAtThem = PathCopyingPersistentTreeMap.of();
     valuesToRegionsTheyAreSavedIn = PathCopyingPersistentTreeMap.of();
-    PersistentSet<SMGValue> newSMGValues = PersistentSet.of(SMGValue.zeroValue());
-    newSMGValues = newSMGValues.addAndCopy(SMGValue.zeroFloatValue());
-    smgValues = newSMGValues.addAndCopy(SMGValue.zeroDoubleValue());
+    PersistentMap<SMGValue, Integer> newSMGValues =
+        PathCopyingPersistentTreeMap.<SMGValue, Integer>of().putAndCopy(SMGValue.zeroValue(), 0);
+    newSMGValues = newSMGValues.putAndCopy(SMGValue.zeroFloatValue(), 0);
+    smgValuesAndNestingLvl = newSMGValues.putAndCopy(SMGValue.zeroDoubleValue(), 0);
     PersistentMap<SMGObject, Boolean> smgObjectsTmp = PathCopyingPersistentTreeMap.of();
     smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
     SMGPointsToEdge nullPointer =
@@ -100,14 +104,14 @@ public class SMG {
 
   private SMG(
       PersistentMap<SMGObject, Boolean> pSmgObjects,
-      PersistentSet<SMGValue> pSmgValues,
+      PersistentMap<SMGValue, Integer> pSmgValues,
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges,
       PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>> pValuesToRegionsTheyAreSavedIn,
       ImmutableMap<SMGValue, SMGPointsToEdge> pPointsToEdges,
       PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> pObjectsAndPointersPointingAtThem,
       BigInteger pSizeOfPointer) {
     smgObjects = pSmgObjects;
-    smgValues = pSmgValues;
+    smgValuesAndNestingLvl = pSmgValues;
     hasValueEdges = pHasValueEdges;
     valuesToRegionsTheyAreSavedIn = pValuesToRegionsTheyAreSavedIn;
     pointsToEdges = pPointsToEdges;
@@ -115,10 +119,22 @@ public class SMG {
     objectsAndPointersPointingAtThem = pObjectsAndPointersPointingAtThem;
   }
 
+  private SMG copyWithNewValuesAndNestingLvl(
+      PersistentMap<SMGValue, Integer> pSMGValuesAndNestingLvl) {
+    return new SMG(
+        smgObjects,
+        pSMGValuesAndNestingLvl,
+        hasValueEdges,
+        valuesToRegionsTheyAreSavedIn,
+        pointsToEdges,
+        objectsAndPointersPointingAtThem,
+        sizeOfPointer);
+  }
+
   private SMG of(ImmutableMap<SMGValue, SMGPointsToEdge> pPointsToEdges) {
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pPointsToEdges,
@@ -130,7 +146,7 @@ public class SMG {
       PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>> pValuesToRegionsTheyAreSavedIn) {
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges,
         pValuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -142,7 +158,7 @@ public class SMG {
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges) {
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         pHasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -155,7 +171,7 @@ public class SMG {
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges) {
     return new SMG(
         pSmgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         pHasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -172,7 +188,7 @@ public class SMG {
   public SMG copyAndAddObject(SMGObject pObject) {
     return new SMG(
         smgObjects.putAndCopy(pObject, true),
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -181,15 +197,33 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an adds the given value.
+   * Creates a copy of the SMG an adds the given value w nesting level given.
    *
-   * @param pValue - The object to be added.
+   * @param pValue - The value to be added.
+   * @param nestingLvl - The values nesting level.
    * @return A modified copy of the SMG.
    */
-  public SMG copyAndAddValue(SMGValue pValue) {
+  public SMG copyAndAddValue(SMGValue pValue, int nestingLvl) {
     return new SMG(
         smgObjects,
-        smgValues.addAndCopy(pValue),
+        smgValuesAndNestingLvl.putAndCopy(pValue, nestingLvl),
+        hasValueEdges,
+        valuesToRegionsTheyAreSavedIn,
+        pointsToEdges,
+        objectsAndPointersPointingAtThem,
+        sizeOfPointer);
+  }
+
+  /**
+   * Creates a copy of the SMG an adds the given value w nesting level of the value.
+   *
+   * @param pValue - The value to be added. Assumes nesting level 0.
+   * @return A modified copy of the SMG.
+   */
+  public SMG copyAndAddValueWithNestingLevelZero(SMGValue pValue) {
+    return new SMG(
+        smgObjects,
+        smgValuesAndNestingLvl.putAndCopy(pValue, 0),
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -206,7 +240,7 @@ public class SMG {
   public SMG copyAndRemoveValue(SMGValue pValue) {
     return new SMG(
         smgObjects,
-        smgValues.removeAndCopy(pValue),
+        smgValuesAndNestingLvl.removeAndCopy(pValue),
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -239,7 +273,7 @@ public class SMG {
       SMG newSMG = decrementPointerToObjectMap(pValue, target);
       return new SMG(
           newSMG.smgObjects,
-          newSMG.smgValues,
+          newSMG.smgValuesAndNestingLvl,
           newSMG.hasValueEdges,
           newSMG.valuesToRegionsTheyAreSavedIn,
           builder.buildOrThrow(),
@@ -248,7 +282,7 @@ public class SMG {
     }
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         builder.buildOrThrow(),
@@ -328,7 +362,6 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndAddPTEdge(SMGPointsToEdge edge, SMGValue source) {
-    assert verifyPointsToEdgeSanity();
     if (pointsToEdges.containsKey(source)) {
       if (Objects.equals(pointsToEdges.get(source), edge)) {
         return this;
@@ -343,7 +376,6 @@ public class SMG {
     // saved in an object yet. Increment when they are saved in an obj.
     // SMG newSMG = incrementPointerToObjectMap(source, edge.pointsTo());
     SMG newSMG = of(pointsToEdgesBuilder.buildOrThrow());
-    assert newSMG.verifyPointsToEdgeSanity();
     return newSMG;
   }
 
@@ -357,30 +389,13 @@ public class SMG {
   public SMG copyAndSetHVEdges(PersistentSet<SMGHasValueEdge> edges, SMGObject source) {
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges.putAndCopy(source, edges),
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
         objectsAndPointersPointingAtThem,
         sizeOfPointer);
   }
-
-  /**
-   * Creates a copy of the SMG an adds/replaces the old edges with the given has value edges.
-   *
-   * @param edges - the edges to be added/replaced.
-   * @param source - the source object.
-   * @return a modified copy of the SMG.
-   */
-  /*
-  public SMG copyAndSetHVEdges(PersistentSet<SMGHasValueEdge> edges, SMGObject source, PersistentMap<SMGValue) {
-    return new SMG(
-        smgObjects,
-        smgValues,
-        hasValueEdges.putAndCopy(source, edges), valuesToRegionsTheyAreSavedIn,
-        pointsToEdges, objectsAndPointersPointingAtThem,
-        sizeOfPointer);
-  }*/
 
   public SMG copyAndAddHVEdges(Iterable<SMGHasValueEdge> edges, SMGObject source) {
     PersistentSet<SMGHasValueEdge> smgEdges = hasValueEdges.get(source);
@@ -400,7 +415,7 @@ public class SMG {
 
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges.putAndCopy(source, smgEdges),
         newValuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -615,7 +630,7 @@ public class SMG {
     }
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -649,7 +664,7 @@ public class SMG {
                 target, innerMap.removeAndCopy(pointer).putAndCopy(pointer, currentNum + 1));
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -720,8 +735,9 @@ public class SMG {
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pObject);
 
+    // TODO: delete PTEs with no values left
     // TODO: actually delete old objects with no references to them (for example the dirt from
-    // SLL/DLL creation/deletion)
+    //  SLL/DLL creation/deletion)
     return newSMG.of(newObjects, newHVEdges);
   }
 
@@ -744,7 +760,7 @@ public class SMG {
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, true);
     return new SMG(
         newObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -803,16 +819,18 @@ public class SMG {
       }
     }
 
+    SMG newSMG = decrementHVEdgesInValueToMemoryMap(objectToRemove);
+
     // Remove object from the SMG and remove all values inside from the SMG
     SMG currentSMG =
         new SMG(
-            smgObjects.removeAndCopy(objectToRemove),
-            smgValues,
-            hasValueEdges.removeAndCopy(objectToRemove),
-            valuesToRegionsTheyAreSavedIn,
+            newSMG.smgObjects.removeAndCopy(objectToRemove),
+            newSMG.smgValuesAndNestingLvl,
+            newSMG.hasValueEdges.removeAndCopy(objectToRemove),
+            newSMG.valuesToRegionsTheyAreSavedIn,
             newPointers.buildOrThrow(),
-            objectsAndPointersPointingAtThem,
-            sizeOfPointer);
+            newSMG.objectsAndPointersPointingAtThem,
+            newSMG.sizeOfPointer);
     ImmutableSet<SMGObject> objectsToRemove = objectsToRemoveBuilder.build();
     ImmutableSet.Builder<SMGObject> objectsThatHaveBeenRemovedBuilder = ImmutableSet.builder();
     objectsThatHaveBeenRemovedBuilder.add(objectToRemove);
@@ -847,12 +865,12 @@ public class SMG {
   }
 
   /**
-   * Returns all SMGValues associated with this SMG in a set.
+   * Returns all SMGValues associated with this SMG and their current nesting levels.
    *
    * @return The set of SMGValues associated with this SMG.
    */
-  public Set<SMGValue> getValues() {
-    return smgValues;
+  public Map<SMGValue, Integer> getValues() {
+    return smgValuesAndNestingLvl;
   }
 
   /**
@@ -1010,9 +1028,9 @@ public class SMG {
       return SMGAndHasValueEdges.of(
           this, new SMGHasValueEdge(SMGValue.zeroValue(), offset, sizeInBits));
     }
-    int nestingLevel = object.getNestingLevel();
-    SMGValue newValue = SMGValue.of(nestingLevel);
-    SMG newSMG = copyAndAddValue(newValue);
+
+    SMGValue newValue = SMGValue.of();
+    SMG newSMG = copyAndAddValue(newValue, 0);
     // Extend H by the has-value edge o -> v with the offset and size and return (smg,v) based on
     // the newly obtained SMG.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, offset, sizeInBits);
@@ -1021,10 +1039,12 @@ public class SMG {
   }
 
   /**
-   * Returns a SMG with a write reinterpretation of the current SMG. Essentially just writes a value
-   * to the given object and field. The reinterpretation removes other values from the field. This
-   * is done by either removing a HasValueEdge completely, or reintroducing a new one, covering only
-   * the parts outside of the field.
+   * Returns an SMG with a write reinterpretation of the current SMG. Essentially just writes a
+   * value to the given object and field. The reinterpretation removes other values from the field.
+   * This is done by either removing a HasValueEdge completely, or reintroducing a new one, covering
+   * only the parts outside the field. This method assumes that there are no changes to the values
+   * nesting level or that it is 0 for values non-existent in the SMG. In the later case the mapping
+   * is added.
    *
    * @param object The object in which the field lies.
    * @param offset The offset (beginning of the field).
@@ -1034,7 +1054,6 @@ public class SMG {
    */
   public SMG writeValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
-    // assert checkValueInConcreteMemorySanity();
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
     BigInteger offsetPlusSize = offset.add(sizeInBits);
     Preconditions.checkArgument(offsetPlusSize.compareTo(object.getSize()) <= 0);
@@ -1054,7 +1073,13 @@ public class SMG {
       return this;
     }
     // Add the value to the Values present in this SMG
-    SMG newSMG = copyAndAddValue(value);
+    Integer nestingLevel = smgValuesAndNestingLvl.get(value);
+    SMG newSMG = this;
+    // We assume that the nesting level is updated externally and is retained here
+    if (nestingLevel == null) {
+      newSMG = copyAndAddValue(value, 0);
+    }
+
     // Remove all HasValueEdges from the object with non-zero values overlapping with the given
     // field.
     FluentIterable<SMGHasValueEdge> nonZeroOverlappingEdges =
@@ -1410,7 +1435,7 @@ public class SMG {
 
   @Override
   public int hashCode() {
-    return Objects.hash(hasValueEdges, smgObjects, pointsToEdges, smgValues);
+    return Objects.hash(hasValueEdges, smgObjects, pointsToEdges, smgValuesAndNestingLvl);
   }
 
   @Override
@@ -1422,7 +1447,7 @@ public class SMG {
         && Objects.equals(hasValueEdges, other.hasValueEdges)
         && Objects.equals(smgObjects, other.smgObjects)
         && Objects.equals(pointsToEdges, other.pointsToEdges)
-        && Objects.equals(smgValues, other.smgValues);
+        && Objects.equals(smgValuesAndNestingLvl, other.smgValuesAndNestingLvl);
   }
 
   public BigInteger getSizeOfPointer() {
@@ -1493,12 +1518,11 @@ public class SMG {
   // Replace the pointer behind value with a new pointer with the new SMGObject target
   public SMG replaceAllPointersTowardsWith(SMGValue pointerValue, SMGObject newTarget) {
     SMGPointsToEdge oldEdge = getPTEdge(pointerValue).orElseThrow();
-    assert verifyPointsToEdgeSanity();
     SMG newSMG =
         copyAndSetPTEdges(
             new SMGPointsToEdge(newTarget, oldEdge.getOffset(), oldEdge.targetSpecifier()),
             pointerValue);
-    assert newSMG.verifyPointsToEdgeSanity();
+    assert newSMG.checkSMGSanity();
     return newSMG;
   }
 
@@ -1511,7 +1535,6 @@ public class SMG {
    * @return a new SMG with the replacement.
    */
   public SMG replaceAllPointersTowardsWith(SMGObject oldObj, SMGObject newTarget) {
-    assert verifyPointsToEdgeSanity();
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
       throw new AssertionError("Can't replace a 0 value!");
@@ -1532,7 +1555,7 @@ public class SMG {
               pointerValue);
     }
 
-    assert newSMG.verifyPointsToEdgeSanity();
+    assert newSMG.checkSMGSanity();
     return newSMG;
   }
 
@@ -1570,7 +1593,7 @@ public class SMG {
 
     return new SMG(
         smgObjects,
-        smgValues,
+        smgValuesAndNestingLvl,
         hasValueEdges,
         valuesToRegionsTheyAreSavedIn,
         pointsToEdges,
@@ -1589,11 +1612,10 @@ public class SMG {
    */
   public SMG replaceAllPointersTowardsWithAndIncrementNestingLevel(
       SMGObject oldObj, SMGObject newTarget, int incrementAmount) {
-    // assert checkCorrectObjectsToPointersMap();
 
-    int min = 0;
+    int minListLen = 0;
     if (newTarget instanceof SMGSinglyLinkedListSegment) {
-      min = ((SMGSinglyLinkedListSegment) newTarget).getMinLength();
+      minListLen = ((SMGSinglyLinkedListSegment) newTarget).getMinLength();
     }
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
@@ -1604,70 +1626,30 @@ public class SMG {
         objectsAndPointersPointingAtThem.getOrDefault(oldObj, PathCopyingPersistentTreeMap.of());
     for (Entry<SMGValue, Integer> pointerValueAndOcc : pointersTowardsOldObj.entrySet()) {
       SMGValue pointerValue = pointerValueAndOcc.getKey();
+      // Switch points-to-edges to new target
       SMGPointsToEdge oldPTEdge = pointsToEdges.get(pointerValue);
       assert oldPTEdge.pointsTo().equals(oldObj);
-      // Since we decrement the nesting level afterward, we check for 1 instead of 0
-      // The equals for values checks only the ID not the nesting level!!!
       newSMG =
           newSMG.copyAndSetPTEdges(
               new SMGPointsToEdge(newTarget, oldPTEdge.getOffset(), oldPTEdge.targetSpecifier()),
-              pointerValue.withNestingLevelAndCopy(
-                  pointerValue.getNestingLevel() + incrementAmount));
+              pointerValue);
 
-      if (min <= pointerValue.getNestingLevel() + incrementAmount) {
-        Preconditions.checkArgument(min > pointerValue.getNestingLevel() + incrementAmount);
-      }
-      // The values to decrement the nesting level are the pointer values for the object
-    }
-    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges = hasValueEdges;
-    // Update the nesting level
-    // TODO: check if contains in PersistentSet is O(1)
-    // TODO: use valuesToRegionsTheyAreSavedIn
-    Preconditions.checkArgument(incrementAmount >= 0);
-    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objToHvEntry : hasValueEdges.entrySet()) {
-      SMGObject currentObject = objToHvEntry.getKey();
-      boolean contains = false;
-      PersistentSet<SMGHasValueEdge> hvEdges = objToHvEntry.getValue();
-      for (SMGHasValueEdge hvEdge : objToHvEntry.getValue()) {
-        if (pointersTowardsOldObj.containsKey(hvEdge.hasValue())) {
-          contains = true;
-          hvEdges = hvEdges.removeAndCopy(hvEdge);
-          hvEdges =
-              hvEdges.addAndCopy(
-                  new SMGHasValueEdge(
-                      hvEdge
-                          .hasValue()
-                          .withNestingLevelAndCopy(
-                              hvEdge.hasValue().getNestingLevel() + incrementAmount),
-                      hvEdge.getOffset(),
-                      hvEdge.getSizeInBits()));
-        }
-      }
-      if (contains) {
-        // Save to copy the entire entry
-        newHasValueEdges = newHasValueEdges.removeAndCopy(currentObject);
-        newHasValueEdges = newHasValueEdges.putAndCopy(currentObject, hvEdges);
-      }
+      // Update the nesting level
+      int newNestingLvl = smgValuesAndNestingLvl.get(pointerValue) + incrementAmount;
+      // If there is an abstracted list, the min length is always larger than the nesting level.
+      // The pointer to the first element is minListLen - 1.
+      // The nesting always needs to be >= 0
+      Preconditions.checkArgument(
+          (minListLen > newNestingLvl || (newNestingLvl == 0 && minListLen == 0))
+              && newNestingLvl >= 0);
+      newSMG =
+          newSMG.copyWithNewValuesAndNestingLvl(
+              newSMG.smgValuesAndNestingLvl.putAndCopy(pointerValue, newNestingLvl));
     }
 
+    // Switch pointer targets
     newSMG = newSMG.replaceTargetOfPointersMap(oldObj, newTarget);
-    newSMG = newSMG.replaceHasValueEdgesAndCopy(newHasValueEdges);
-
-    // assert newSMG.verifyPointsToEdgeSanity();
     return newSMG;
-  }
-
-  // Only to be used for cases in which HasValueEdges are changed, but none removed/added.
-  private SMG replaceHasValueEdgesAndCopy(
-      PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pNewHasValueEdges) {
-    return new SMG(
-        smgObjects,
-        smgValues,
-        pNewHasValueEdges,
-        valuesToRegionsTheyAreSavedIn,
-        pointsToEdges,
-        objectsAndPointersPointingAtThem,
-        sizeOfPointer);
   }
 
   /**
@@ -1677,11 +1659,11 @@ public class SMG {
    *
    * @param oldObj old object.
    * @param newTarget new target object.
+   * @param levelToReplace the nesting level we want to replace with 0.
    * @return a new SMG with the replacement.
    */
   public SMG replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-      SMGObject oldObj, SMGObject newTarget, int replacementLevel) {
-    assert verifyPointsToEdgeSanity();
+      SMGObject oldObj, SMGObject newTarget, int levelToReplace) {
 
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
@@ -1696,95 +1678,29 @@ public class SMG {
       SMGPointsToEdge pointsToEdge = pointsToEdges.get(pointerValue);
       assert pointsToEdge.pointsTo().equals(oldObj);
       // Since we decrement the nesting level afterward, we check for 1 instead of 0
-      if (pointerValue.getNestingLevel() == replacementLevel) {
-        // The equals for values checks only the ID not the nesting level!!!
+      int currentNestingLevel = smgValuesAndNestingLvl.get(pointerValue);
+      if (currentNestingLevel == levelToReplace) {
+        SMGPointsToEdge newPTEdge =
+            new SMGPointsToEdge(
+                newTarget, pointsToEdge.getOffset(), pointsToEdge.targetSpecifier());
+        // Update the points-to-edges to new targets, this also includes the reverse map
+        newSMG = newSMG.copyAndSetPTEdges(newPTEdge, pointerValue);
+
+        // Update nesting level
         newSMG =
-            newSMG.copyAndSetPTEdges(
-                new SMGPointsToEdge(
-                    newTarget, pointsToEdge.getOffset(), pointsToEdge.targetSpecifier()),
-                pointerValue.withNestingLevelAndCopy(0));
-      }
-    }
-    // TODO: is contains on PersistentSet O(1)?
-    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges =
-        newSMG.hasValueEdges;
-    // Update the nesting level
-    // TODO: use valuesToRegionsTheyAreSavedIn
-    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objToHvEntry :
-        newSMG.hasValueEdges.entrySet()) {
-      SMGObject currentObject = objToHvEntry.getKey();
-      boolean contains = false;
-      PersistentSet<SMGHasValueEdge> hvEdges = objToHvEntry.getValue();
-      for (SMGHasValueEdge hvEdge : objToHvEntry.getValue()) {
-        if (pointersTowardsOldObj.containsKey(hvEdge.hasValue())) {
-          contains = true;
-          hvEdges = hvEdges.removeAndCopy(hvEdge);
-          hvEdges =
-              hvEdges.addAndCopy(
-                  new SMGHasValueEdge(
-                      hvEdge.hasValue().withNestingLevelAndCopy(0),
-                      hvEdge.getOffset(),
-                      hvEdge.getSizeInBits()));
-
-          // newSMG = newSMG.replaceTargetOfPointersMap(oldObj, newTarget, hvEdge.hasValue());
-        }
-      }
-      if (contains) {
-        // Save to copy the entire entry
-        newHasValueEdges = newHasValueEdges.removeAndCopy(currentObject);
-        newHasValueEdges = newHasValueEdges.putAndCopy(currentObject, hvEdges);
+            newSMG.copyWithNewValuesAndNestingLvl(
+                smgValuesAndNestingLvl.putAndCopy(pointerValue, 0));
       }
     }
 
-    newSMG = newSMG.replaceHasValueEdgesAndCopy(newHasValueEdges);
-    assert newSMG.verifyPointsToEdgeSanity();
     return newSMG;
   }
 
   // Needed for tests only
-  public SMG replaceSMGValueNestingLevel(SMGValue value, int replacementLevel) {
-    SMG newSMG = this;
-    assert verifyPointsToEdgeSanity();
-    Preconditions.checkArgument(replacementLevel >= 0);
-    SMGPointsToEdge originalPTE = pointsToEdges.get(value);
-    // Since we decrement the nesting level afterward, we check for 1 instead of 0
-    // The equals for values checks only the ID not the nesting level!!!
-    newSMG =
-        newSMG.copyAndSetPTEdges(
-            new SMGPointsToEdge(
-                originalPTE.pointsTo(), originalPTE.getOffset(), originalPTE.targetSpecifier()),
-            value.withNestingLevelAndCopy(replacementLevel));
-    // Switch the nesting level in the objects and pointer pointing at them map
-
-    assert newSMG.verifyPointsToEdgeSanity();
-
-    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges = hasValueEdges;
-    // Update the nesting level
-    // TODO: use valuesToRegionsTheyAreSavedIn
-    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objToHvEntry : hasValueEdges.entrySet()) {
-      SMGObject currentObject = objToHvEntry.getKey();
-      boolean contains = false;
-      PersistentSet<SMGHasValueEdge> hvEdges = objToHvEntry.getValue();
-      for (SMGHasValueEdge hvEdge : objToHvEntry.getValue()) {
-        if (value.equals(hvEdge.hasValue())) {
-          contains = true;
-          hvEdges = hvEdges.removeAndCopy(hvEdge);
-          hvEdges =
-              hvEdges.addAndCopy(
-                  new SMGHasValueEdge(
-                      hvEdge.hasValue().withNestingLevelAndCopy(replacementLevel),
-                      hvEdge.getOffset(),
-                      hvEdge.getSizeInBits()));
-        }
-      }
-      if (contains) {
-        // Save to copy the entire entry
-        newHasValueEdges = newHasValueEdges.removeAndCopy(currentObject);
-        newHasValueEdges = newHasValueEdges.putAndCopy(currentObject, hvEdges);
-      }
-    }
-    // We only change the nesting level, and all values are the same
-    return newSMG.replaceHasValueEdgesAndCopy(newHasValueEdges);
+  public SMG replaceSMGValueNestingLevel(SMGValue value, int newNestingLevel) {
+    Preconditions.checkArgument(newNestingLevel >= 0);
+    // We only change the nesting level, all values are the same
+    return copyAndAddValue(value, newNestingLevel);
   }
 
   /*
@@ -1808,9 +1724,21 @@ public class SMG {
     throw new AssertionError("Critical error: could not find origin of points-to-edge in the SMG.");
   }
 
+  /**
+   * Checks the SMG internally for consistency. For example that the reverse maps are correct, that
+   * there are no 2 pointers pointing to the exact same location in memory.
+   *
+   * @return false if anything is violated.
+   */
+  public boolean checkSMGSanity() {
+    return checkCorrectObjectsToPointersMapSanity()
+        && checkValueInConcreteMemorySanity()
+        && verifyPointsToEdgeSanity();
+  }
+
   // Only every use this after all operations are done. I.e. at the beginning and end of abstracting
   // a list segment for example.
-  public boolean checkCorrectObjectsToPointersMap() {
+  private boolean checkCorrectObjectsToPointersMapSanity() {
     for (Entry<SMGObject, PersistentMap<SMGValue, Integer>> realTargetAndPointers :
         objectsAndPointersPointingAtThem.entrySet()) {
       SMGObject target = realTargetAndPointers.getKey();
@@ -1837,10 +1765,16 @@ public class SMG {
       if (pointersTowardsTarget.size() != realPointersAndOcc.size()) {
         return false;
       } else {
-        for (Entry<SMGValue, Integer> e1 : realPointersAndOcc.entrySet()) {
-          if (!pointersTowardsTarget.containsKey(e1.getKey())
-              || !pointersTowardsTarget.get(e1.getKey()).equals(e1.getValue())) {
+        for (Entry<SMGValue, Integer> realEntry : realPointersAndOcc.entrySet()) {
+          SMGValue realValue = realEntry.getKey();
+          int realNumOfOcc = realEntry.getValue();
+          if (!pointersTowardsTarget.containsKey(realValue)) {
             return false;
+          } else {
+            int smgOcc = pointersTowardsTarget.get(realValue); // reference map created here
+            if (smgOcc != realNumOfOcc) {
+              return false;
+            }
           }
         }
       }
@@ -1850,7 +1784,7 @@ public class SMG {
 
   // Returns false if the values saved in the memory object does not match the reverse map
   // valuesToRegionsTheyAreSavedIn
-  public boolean checkValueInConcreteMemorySanity() {
+  private boolean checkValueInConcreteMemorySanity() {
     Map<SMGValue, Map<SMGObject, Integer>> mapBuiltFromCurrentValues = new HashMap<>();
     for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry : hasValueEdges.entrySet()) {
       SMGObject source = entry.getKey();
@@ -1899,15 +1833,19 @@ public class SMG {
    * @return false if there is more than 1 value with the exact same points-to-edge pointing to the
    *     same object/offset with the same nesting level.
    */
-  public boolean verifyPointsToEdgeSanity() {
-    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry2 : pointsToEdges.entrySet()) {
-      for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry3 : pointsToEdges.entrySet()) {
-        if (pointsToEntry2.getValue().equals(pointsToEntry3.getValue())
-            && !pointsToEntry2.getKey().equals(pointsToEntry3.getKey())
-            && !pointsToEntry2.getKey().isZero()
-            && pointsToEntry2.getKey().getNestingLevel()
-                == pointsToEntry3.getKey().getNestingLevel()) {
-          return false;
+  private boolean verifyPointsToEdgeSanity() {
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry1 : pointsToEdges.entrySet()) {
+      for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry2 : pointsToEdges.entrySet()) {
+        if (pointsToEntry1.getValue().equals(pointsToEntry2.getValue())
+            && !pointsToEntry1.getKey().equals(pointsToEntry2.getKey())
+            && !pointsToEntry1.getKey().isZero()) {
+          int nestingLevel1 = smgValuesAndNestingLvl.get(pointsToEntry1.getKey());
+          int nestingLevel2 = smgValuesAndNestingLvl.get(pointsToEntry2.getKey());
+          if (nestingLevel1 == nestingLevel2) {
+            // Both ptEdges have the same target, but different values, are none zero, and have the
+            // same nesting level
+            return false;
+          }
         }
       }
     }
@@ -1918,5 +1856,15 @@ public class SMG {
   public PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>>
       getValuesToRegionsTheyAreSavedIn() {
     return valuesToRegionsTheyAreSavedIn;
+  }
+
+  /**
+   * Returns the nesting level for existing SMGValues. Does crash for non-existent SMGValues.
+   *
+   * @param pSMGValue the {@link SMGValue}
+   * @return the nesting level.
+   */
+  public int getNestingLevel(SMGValue pSMGValue) {
+    return smgValuesAndNestingLvl.get(pSMGValue);
   }
 }

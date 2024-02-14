@@ -86,7 +86,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -1307,13 +1307,13 @@ public class SMGTransferRelation
           properPointer = newAddressAndState.getValue();
         }
 
-        Optional<SMGObjectAndOffset> maybeRightHandSideMemoryAndOffset =
+        Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeRightHandSideMemoryAndOffset =
             currentState.getPointsToTarget(properPointer);
 
         if (maybeRightHandSideMemoryAndOffset.isEmpty()) {
           return currentState;
         }
-        SMGObjectAndOffset rightHandSideMemoryAndOffset =
+        SMGObjectAndOffsetMaybeNestingLvl rightHandSideMemoryAndOffset =
             maybeRightHandSideMemoryAndOffset.orElseThrow();
         // copySMGObjectContentToSMGObject checks for sizes etc.
 
