@@ -65,7 +65,7 @@ public abstract class CFloatUnitTest {
       }
     }
 
-    Random randomNumbers = new Random();
+    Random randomNumbers = new Random(0);
     int i = 0;
     while (i < 10) {
       float flt = Float.intBitsToFloat(randomNumbers.nextInt());
