@@ -134,20 +134,16 @@ public class CFloatImpl extends CFloat {
           man = (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ? getNormalizationMask() : 0L);
           break;
         case "nan":
-          exp = 1L;
-          man = 0L;
-          break;
-        case "-nan":
-          exp = getSignBitMask() + 1L;
-          man = 0L;
-          break;
-        case "inf":
           exp = getExponentMask();
           man = 1L;
           break;
+        case "inf":
+          exp = getExponentMask();
+          man = 0L;
+          break;
         case "-inf":
           exp = getExponentMask() + getSignBitMask();
-          man = 1L;
+          man = 0L;
           break;
         case "-0.0":
         case "-0":
@@ -1242,19 +1238,19 @@ public class CFloatImpl extends CFloat {
   @Override
   public CFloat powTo(final CFloat pExponent) {
     // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public CFloat powToIntegral(final int pExponent) {
     // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public CFloat sqrt() {
     // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -1368,6 +1364,18 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
+  public boolean isNan() {
+    long mask = getExponentMask();
+    return (getExponent() & mask) == mask && getMantissa() != 0;
+  }
+
+  @Override
+  public boolean isInfinity() {
+    long mask = getExponentMask();
+    return (getExponent() & mask) == mask && getMantissa() == 0;
+  }
+
+  @Override
   public boolean isNegative() {
     return (wrapper.getExponent() & getSignBitMask()) != 0;
   }
@@ -1449,7 +1457,7 @@ public class CFloatImpl extends CFloat {
   @Override
   public Number castToOther(final int pToType) {
     // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -1543,6 +1551,16 @@ public class CFloatImpl extends CFloat {
 
   @Override
   public String toString() {
+    if (isNan()) {
+      return "nan";
+    }
+    if (isInfinity()) {
+      return isNegative() ? "-inf" : "inf";
+    }
+    if (isZero()) {
+      return isNegative() ? "-0.0" : "0.0";
+    }
+
     long exp = wrapper.getExponent();
     long man = wrapper.getMantissa();
     StringBuilder builder = new StringBuilder();
@@ -1565,8 +1583,7 @@ public class CFloatImpl extends CFloat {
         started = true;
       }
     }
-
-    return builder.toString().replaceAll("(\\.[0-9]+?)0*$", "$1");
+    return String.format("%.6e", Float.parseFloat(builder.toString()));
   }
 
   private int[] getDecimalArray(final long pExp, final long pMan) {

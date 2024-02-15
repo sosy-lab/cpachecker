@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
-import java.util.List;
 
 @Deprecated
 public class CFloatNative extends CFloat {
@@ -108,8 +107,10 @@ public class CFloatNative extends CFloat {
 
   @Override
   public CFloat powToIntegral(int exponent) {
-    CFloatWrapper newFloat = CFloatNativeAPI.powIntegralFp(wrapper, exponent, type);
+    // FIXME: Add support for negative integer exponent in floatingPoints.c
+    Preconditions.checkArgument(0 <= exponent, "Negative exponents not supported");
 
+    CFloatWrapper newFloat = CFloatNativeAPI.powIntegralFp(wrapper, exponent, type);
     return new CFloatNative(newFloat, type);
   }
 
@@ -228,12 +229,16 @@ public class CFloatNative extends CFloat {
   public String toString() {
     // FIXME: Implement this for double and long double as well
     Preconditions.checkArgument(type == CFloatNativeAPI.FP_TYPE_SINGLE);
-
-    String repr = CFloatNativeAPI.printFp(wrapper, type);
-    if (List.of("-inf", "inf", "nan").contains(repr)) {
-      return repr;
+    if (isNan()) {
+      return "nan";
     }
-    return String.valueOf(Float.parseFloat(repr));
+    if (isInfinity()) {
+      return isNegative() ? "-inf" : "inf";
+    }
+    if (isZero()) {
+      return isNegative() ? "-0.0" : "0.0";
+    }
+    return String.format("%.6e", Float.parseFloat(CFloatNativeAPI.printFp(wrapper, type)));
   }
 
   @Override
@@ -249,7 +254,7 @@ public class CFloatNative extends CFloat {
   @Override
   public boolean greaterThan(CFloat pFloat) {
     // TODO ... implement some time; not too urgent
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override

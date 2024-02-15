@@ -160,6 +160,11 @@ public class CFloatInf extends CFloat {
   }
 
   @Override
+  public boolean isNan() {
+    return false;
+  }
+
+  @Override
   public boolean isNegative() {
     return negative;
   }

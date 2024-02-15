@@ -201,18 +201,14 @@ public abstract class CFloat {
    *
    * @return whether <code>this</code> is NaN or not
    */
-  public boolean isNan() {
-    return false;
-  }
+  public abstract boolean isNan();
 
   /**
    * Determine whether <code>this</code> has an infinite value or not.
    *
    * @return whether <code>this</code> has an infinite value or not
    */
-  public boolean isInfinity() {
-    return false;
-  }
+  public abstract boolean isInfinity();
 
   /**
    * Determine whether the sign-bit is set.
@@ -302,6 +298,10 @@ public abstract class CFloat {
     if (other == this) return true;
     if (other instanceof CFloat) {
       CFloat that = (CFloat) other;
+      if (isNan() && ((CFloat) other).isNan()) {
+        // FIXME: Should we really collapse NaN values?
+        return true;
+      }
       return getType() == that.getType()
           && getExponent() == that.getExponent()
           && getMantissa() == that.getMantissa();

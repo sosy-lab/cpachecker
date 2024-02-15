@@ -185,6 +185,11 @@ public class CFloatNaN extends CFloat {
   }
 
   @Override
+  public boolean isInfinity() {
+    return false;
+  }
+
+  @Override
   public String toString() {
     return (negative ? "-" : "") + "nan";
   }
