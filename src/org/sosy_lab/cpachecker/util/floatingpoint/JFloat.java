@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 /* Implementation of the CFLoat interface that uses Java floats */
 public class JFloat extends CFloat {
   private final CFloatWrapper wrapper;
-  private float value;
+  private final float value;
 
   public JFloat(float pValue) {
     value = pValue;
@@ -31,17 +31,16 @@ public class JFloat extends CFloat {
   }
 
   private float toFloat(CFloatWrapper wfloat) {
-    long e = wfloat.getExponent();
-    long m = wfloat.getMantissa();
-    float ret = Float.intBitsToFloat((int) ((e << 23) + m));
-    return ret;
+    long exponent = wfloat.getExponent();
+    long mantissa = wfloat.getMantissa();
+    return Float.intBitsToFloat((int) ((exponent << 23) + mantissa));
   }
 
   private CFloatWrapper fromFloat(float jfloat) {
     long bits = Float.floatToRawIntBits(jfloat);
-    long eBits = ((bits & 0xFF800000) >> 23) & 0x1FF;
-    long mBits = bits & 0x007FFFFF;
-    return new CFloatWrapper(eBits, mBits);
+    long exponent = ((bits & 0xFF800000) >> 23) & 0x1FF;
+    long mantissa = bits & 0x007FFFFF;
+    return new CFloatWrapper(exponent, mantissa);
   }
 
   private float parseFloat(String repr) {
@@ -59,13 +58,16 @@ public class JFloat extends CFloat {
 
   @Override
   public String toString() {
-    if (Float.isNaN(value)) {
+    if (isNan()) {
       return "nan";
     }
-    if (Float.isInfinite(value)) {
-      return Float.compare(value, 0.0f) < 0 ? "-inf" : "inf";
+    if (isInfinity()) {
+      return isNegative() ? "-inf" : "inf";
     }
-    return String.valueOf(value);
+    if (isZero()) {
+      return isNegative() ? "-0.0" : "0.0";
+    }
+    return String.format("%.6e", value);
   }
 
   @Override
@@ -83,22 +85,22 @@ public class JFloat extends CFloat {
   }
 
   @Override
-  public CFloat multiply(CFloat pSummand) {
-    return new JFloat(value * toFloat(pSummand.getWrapper()));
+  public CFloat multiply(CFloat pFactor) {
+    return new JFloat(value * toFloat(pFactor.getWrapper()));
   }
 
   @Override
-  public CFloat multiply(CFloat... pSummands) {
+  public CFloat multiply(CFloat... pFactors) {
     float result = 0.0f;
-    for (CFloat f : pSummands) {
+    for (CFloat f : pFactors) {
       result *= toFloat(f.getWrapper());
     }
     return new JFloat(result);
   }
 
   @Override
-  public CFloat subtract(CFloat pSummand) {
-    return new JFloat(value - toFloat(pSummand.getWrapper()));
+  public CFloat subtract(CFloat pSubtrahend) {
+    return new JFloat(value - toFloat(pSubtrahend.getWrapper()));
   }
 
   @Override
@@ -159,14 +161,24 @@ public class JFloat extends CFloat {
   }
 
   @Override
+  public boolean isNan() {
+    return Float.isNaN(value);
+  }
+
+  @Override
+  public boolean isInfinity() {
+    return Float.isInfinite(value);
+  }
+
+  @Override
   public boolean isNegative() {
-    return value < 0.0f;
+    return Float.compare(value, 0.0f) < 0;
   }
 
   @Override
   public CFloat copySignFrom(CFloat source) {
     return new JFloat(
-        Math.signum(toFloat(source.getWrapper())) < 0.0f ? -Math.abs(value) : Math.abs(value));
+        Float.compare(toFloat(source.getWrapper()), 0.0f) < 0 ? -Math.abs(value) : Math.abs(value));
   }
 
   @Override
