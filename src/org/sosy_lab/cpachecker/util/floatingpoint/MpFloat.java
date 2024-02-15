@@ -49,7 +49,7 @@ public class MpFloat extends CFloat {
 
   /** Returns the bias of the exponent. This is needed to convert from and to the IEEE format. */
   public int biasExponent() {
-    return (1 << sizeExponent() - 1) - 1;
+    return (1 << (sizeExponent() - 1)) - 1;
   }
 
   private BigFloat toBigFloat(CFloatWrapper wfloat) {
