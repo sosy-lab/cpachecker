@@ -52,14 +52,14 @@ public class MpFloat extends CFloat {
     return (1 << (sizeExponent() - 1)) - 1;
   }
 
-  private BigFloat toBigFloat(CFloatWrapper wfloat) {
+  private BigFloat toBigFloat(CFloatWrapper floatWrapper) {
     long signMask = 1L << sizeExponent();
     long exponentMask = signMask - 1;
 
     // Extract bits for sign, exponent and mantissa from the wrapper
-    long signBit = wfloat.getExponent() & signMask;
-    long exponentBits = wfloat.getExponent() & exponentMask;
-    long mantissaBits = wfloat.getMantissa();
+    long signBit = floatWrapper.getExponent() & signMask;
+    long exponentBits = floatWrapper.getExponent() & exponentMask;
+    long mantissaBits = floatWrapper.getMantissa();
 
     // Shift the exponent and convert the values
     boolean sign = signBit != 0;
@@ -75,17 +75,17 @@ public class MpFloat extends CFloat {
     return new BigFloat(sign, mantissa, exponent, format);
   }
 
-  private CFloatWrapper fromBigFloat(BigFloat bfloat) {
+  private CFloatWrapper fromBigFloat(BigFloat floatValue) {
     // TODO: This method should probably use mpfr_set_z_2exp (unfortunately not in BigFloat)
-    long signBit = (value.sign() ? 1L : 0) << sizeExponent();
-    long exponentBits = value.exponent(format.minExponent, format.maxExponent) + biasExponent();
+    long signBit = (floatValue.sign() ? 1L : 0) << sizeExponent();
+    long exponentBits = floatValue.exponent(format.minExponent, format.maxExponent) + biasExponent();
 
     // We consider NaN the default value and in this case we set the mantissa to "10..."
     BigInteger mantissa = BigInteger.ONE.shiftLeft(format.precision - 2);
 
     // If the value is not NaN we get the actual mantissa.
-    if (!value.isNaN()) {
-      mantissa = value.significand(format.minExponent, format.maxExponent);
+    if (!floatValue.isNaN()) {
+      mantissa = floatValue.significand(format.minExponent, format.maxExponent);
       // Delete the leading "1." if the number is normal (= not subnormal or zero)
       if (exponentBits != 0) {
         mantissa = mantissa.clearBit(format.precision - 1);
