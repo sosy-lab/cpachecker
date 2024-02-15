@@ -78,7 +78,8 @@ public class MpFloat extends CFloat {
   private CFloatWrapper fromBigFloat(BigFloat floatValue) {
     // TODO: This method should probably use mpfr_set_z_2exp (unfortunately not in BigFloat)
     long signBit = (floatValue.sign() ? 1L : 0) << sizeExponent();
-    long exponentBits = floatValue.exponent(format.minExponent, format.maxExponent) + biasExponent();
+    long exponentBits =
+        floatValue.exponent(format.minExponent, format.maxExponent) + biasExponent();
 
     // We consider NaN the default value and in this case we set the mantissa to "10..."
     BigInteger mantissa = BigInteger.ONE.shiftLeft(format.precision - 2);
