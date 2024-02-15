@@ -22,13 +22,13 @@ public class CFloatImplTest extends CFloatUnitTest {
 
   @Override
   public CFloat toTestedImpl(String repr, int pFloatType) {
-    if (repr == "nan") {
+    if (repr.equals("nan")) {
       return new CFloatNaN(floatType);
     }
-    if (repr == "-inf") {
+    if (repr.equals("-inf")) {
       return new CFloatInf(true, floatType);
     }
-    if (repr == "inf") {
+    if (repr.equals("inf")) {
       return new CFloatInf(false, floatType);
     }
     return new CFloatImpl(repr, floatType);

@@ -44,13 +44,13 @@ public class JFloat extends CFloat {
   }
 
   private float parseFloat(String repr) {
-    if (repr == "nan") {
+    if ("nan".equals(repr)) {
       return Float.NaN;
     }
-    if (repr == "-inf") {
+    if ("-inf".equals(repr)) {
       return Float.NEGATIVE_INFINITY;
     }
-    if (repr == "inf") {
+    if ("inf".equals(repr)) {
       return Float.POSITIVE_INFINITY;
     }
     return Float.parseFloat(repr);

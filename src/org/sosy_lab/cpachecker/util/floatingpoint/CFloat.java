@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * This abstract class is used to implement classes which provide floating point arithmetic
@@ -295,7 +294,7 @@ public abstract class CFloat {
   public abstract boolean greaterThan(final CFloat other);
 
   @Override
-  public boolean equals(@Nullable Object pOther) {
+  public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }

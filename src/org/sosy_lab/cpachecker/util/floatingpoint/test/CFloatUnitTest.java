@@ -90,8 +90,14 @@ public abstract class CFloatUnitTest {
     return builder.build();
   }
 
-  private Float arg1, arg2;
-  private CFloat nat1, nat2, jav1, jav2;
+  private final Float arg1;
+  private final Float arg2;
+
+  private final CFloat nat1;
+  private final CFloat nat2;
+
+  private final CFloat jav1;
+  private final CFloat jav2;
 
   public CFloatUnitTest(Float pArg1, Float pArg2) {
     String arg1Str = toPlainString(pArg1);
@@ -120,13 +126,13 @@ public abstract class CFloatUnitTest {
   }
 
   protected void assumeOneArgument() {
-    assume().that(arg1.equals(arg2) || arg1.isNaN() && arg2.isNaN()).isTrue();
+    assume().that(arg1.equals(arg2) || (arg1.isNaN() && arg2.isNaN())).isTrue();
   }
 
   protected void assertEqualValue(CFloat fp1, CFloat fp2) {
     assertWithMessage(
             "tested impl: %s (%s)\nreference  : %s (%s)", fp1, toBits(fp1), fp2, toBits(fp2))
-        .that(fp1.equals(fp2) || fp1.isNan() && fp2.isNan())
+        .that(fp1.equals(fp2) || (fp1.isNan() && fp2.isNan()))
         .isTrue();
   }
 

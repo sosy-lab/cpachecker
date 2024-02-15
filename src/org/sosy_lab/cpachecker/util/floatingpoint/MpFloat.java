@@ -96,13 +96,13 @@ public class MpFloat extends CFloat {
   }
 
   private BigFloat parseBigFloat(String repr) {
-    if (repr == "nan") {
+    if ("nan".equals(repr)) {
       return BigFloat.NaN(format.precision);
     }
-    if (repr == "-inf") {
+    if ("-inf".equals(repr)) {
       return BigFloat.negativeInfinity(format.precision);
     }
-    if (repr == "inf") {
+    if ("inf".equals(repr)) {
       return BigFloat.positiveInfinity(format.precision);
     }
     return new BigFloat(repr, format);
