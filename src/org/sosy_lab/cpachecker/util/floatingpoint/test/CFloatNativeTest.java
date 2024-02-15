@@ -20,12 +20,12 @@ public class CFloatNativeTest extends CFloatUnitTest {
   }
 
   @Override
-  public CFloat makeCFloatType1(String repr, int pFloatType) {
+  public CFloat toTestedImpl(String repr, int pFloatType) {
     return new CFloatNative(repr, pFloatType);
   }
 
   @Override
-  public CFloat makeCFloatType2(String repr, int pFloatType) {
+  public CFloat toReferenceImpl(String repr, int pFloatType) {
     return new JFloat(repr, pFloatType);
   }
 

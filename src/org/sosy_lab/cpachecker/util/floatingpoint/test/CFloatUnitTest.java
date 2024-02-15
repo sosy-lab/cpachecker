@@ -12,11 +12,11 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.truth.StandardSubjectBuilder;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -95,19 +95,19 @@ public abstract class CFloatUnitTest {
 
   public CFloatUnitTest(Float pArg1, Float pArg2) {
     String arg1Str = toPlainString(pArg1);
-    nat1 = makeCFloatType1(arg1Str, floatType);
-    jav1 = makeCFloatType2(arg1Str, floatType);
+    nat1 = toTestedImpl(arg1Str, floatType);
+    jav1 = toReferenceImpl(arg1Str, floatType);
     arg1 = pArg1;
 
     String arg2Str = toPlainString(pArg2);
-    nat2 = makeCFloatType1(arg2Str, floatType);
-    jav2 = makeCFloatType2(arg2Str, floatType);
+    nat2 = toTestedImpl(arg2Str, floatType);
+    jav2 = toReferenceImpl(arg2Str, floatType);
     arg2 = pArg2;
   }
 
-  public abstract CFloat makeCFloatType1(String repr, int pFloatType);
+  public abstract CFloat toTestedImpl(String repr, int pFloatType);
 
-  public abstract CFloat makeCFloatType2(String repr, int pFloatType);
+  public abstract CFloat toReferenceImpl(String repr, int pFloatType);
 
   private String toBinary(long number) {
     return BigInteger.valueOf(number).toString(2);
@@ -116,62 +116,76 @@ public abstract class CFloatUnitTest {
   private String toBits(CFloat fp) {
     long sign = (fp.getExponent() & 0x100) >> 8;
     long exponent = fp.getExponent() & 0xFF;
-    return toBinary(sign) + ", " + toBinary(exponent) + ", " + toBinary(fp.getMantissa());
+    return toBinary(sign) + " " + toBinary(exponent) + " " + toBinary(fp.getMantissa());
   }
 
-  protected StandardSubjectBuilder assertWith(CFloat fp1, CFloat fp2) {
-    return assertWithMessage("cfloat1: (%s)\ncfloat2: (%s)", toBits(fp1), toBits(fp2));
-  }
-
-  void onlyOneArgument() {
+  protected void assumeOneArgument() {
     assume().that(arg1.equals(arg2) || arg1.isNaN() && arg2.isNaN()).isTrue();
+  }
+
+  protected void assertEqualValue(CFloat fp1, CFloat fp2) {
+    assertWithMessage(
+            "tested impl: %s (%s)\nreference  : %s (%s)", fp1, toBits(fp1), fp2, toBits(fp2))
+        .that(fp1.equals(fp2) || fp1.isNan() && fp2.isNan())
+        .isTrue();
+  }
+
+  protected void assertEqualRepr(CFloat fp1, CFloat fp2) {
+    assertWithMessage(
+            "tested impl: %s (%s)\nreference  : %s (%s)", fp1, toBits(fp1), fp2, toBits(fp2))
+        .that(Objects.equals(fp1.toString(), fp2.toString()))
+        .isTrue();
+  }
+
+  protected void assertEqualP(boolean r1, boolean r2) {
+    assertWithMessage("tested impl: %s\nreference  : %s", r1, r2).that(r1 == r2).isTrue();
   }
 
   @Test
   public void constTest() {
-    onlyOneArgument();
-    assertWith(nat1, jav1).that(nat1).isEqualTo(jav1);
+    assumeOneArgument();
+    assertEqualValue(nat1, jav1);
   }
 
   @Test
   public void toStringTest() {
-    onlyOneArgument();
-    assertWith(nat1, jav1).that(nat1.toString()).isEqualTo(jav1.toString());
+    assumeOneArgument();
+    assertEqualRepr(nat1, jav1);
   }
 
   @Test
   public void addTest() {
     CFloat nat_ = nat1.add(nat2);
     CFloat jav_ = jav1.add(jav2);
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void multiplyTest() {
     CFloat nat_ = nat1.multiply(nat2);
     CFloat jav_ = jav1.multiply(jav2);
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void subtractTest() {
     CFloat nat_ = nat1.subtract(nat2);
     CFloat jav_ = jav1.subtract(jav2);
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void divideByTest() {
     CFloat nat_ = nat1.divideBy(nat2);
     CFloat jav_ = jav1.divideBy(jav2);
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void powToTest() {
     CFloat nat_ = nat1.powTo(nat2);
     CFloat jav_ = jav1.powTo(jav2);
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
@@ -180,109 +194,109 @@ public abstract class CFloatUnitTest {
     assume().that(arg2).isEqualTo(rounded);
     CFloat nat_ = nat1.powToIntegral(Math.round(arg2));
     CFloat jav_ = jav1.powToIntegral(Math.round(arg2));
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void sqrtTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     CFloat nat_ = nat1.sqrt();
     CFloat jav_ = jav1.sqrt();
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void roundTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     CFloat nat_ = nat1.round();
     CFloat jav_ = jav1.round();
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void truncTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     CFloat nat_ = nat1.trunc();
     CFloat jav_ = jav1.trunc();
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void ceilTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     CFloat nat_ = nat1.ceil();
     CFloat jav_ = jav1.ceil();
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void floorTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     CFloat nat_ = nat1.floor();
     CFloat jav_ = jav1.floor();
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void absTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     CFloat nat_ = nat1.abs();
     CFloat jav_ = jav1.abs();
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   @Test
   public void isZeroTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     boolean nat_ = nat1.isZero();
     boolean jav_ = jav1.isZero();
-    assertWith(nat1, jav1).that(nat_).isEqualTo(jav_);
+    assertEqualP(nat_, jav_);
   }
 
   @Test
   public void isOneTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     boolean nat_ = nat1.isOne();
     boolean jav_ = jav1.isOne();
-    assertWith(nat1, jav1).that(nat_).isEqualTo(jav_);
+    assertEqualP(nat_, jav_);
   }
 
   @Test
   public void isNanTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     boolean nat_ = nat1.isNan();
     boolean jav_ = jav1.isNan();
-    assertWith(nat1, jav1).that(nat_).isEqualTo(jav_);
+    assertEqualP(nat_, jav_);
   }
 
   @Test
   public void isInfinityTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     boolean nat_ = nat1.isInfinity();
     boolean jav_ = jav1.isInfinity();
-    assertWith(nat1, jav1).that(nat_).isEqualTo(jav_);
+    assertEqualP(nat_, jav_);
   }
 
   @Test
   public void isNegativeTest() {
-    onlyOneArgument();
+    assumeOneArgument();
     boolean nat_ = nat1.isNegative();
     boolean jav_ = jav1.isNegative();
-    assertWith(nat1, jav1).that(nat_).isEqualTo(jav_);
+    assertEqualP(nat_, jav_);
   }
 
   @Test
   public void greaterThanTest() {
     boolean nat_ = nat1.greaterThan(nat2);
     boolean jav_ = jav1.greaterThan(jav2);
-    assertWith(nat1, jav1).that(nat_).isEqualTo(jav_);
+    assertEqualP(nat_, jav_);
   }
 
   @Test
   public void copySignFromTest() {
     CFloat nat_ = nat1.copySignFrom(nat2);
     CFloat jav_ = jav1.copySignFrom(jav2);
-    assertWith(nat_, jav_).that(nat_).isEqualTo(jav_);
+    assertEqualValue(nat_, jav_);
   }
 
   // FIXME: Implement castTo
