@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import java.util.Objects;
+
 /**
  * This abstract class is used to implement classes which provide floating point arithmetic
  * according to close to hardware level C compilations.
@@ -294,6 +296,23 @@ public abstract class CFloat {
    * @return whether <code>this</code> is greater than <code>other</code>
    */
   public abstract boolean greaterThan(final CFloat other);
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == this) return true;
+    if (other instanceof CFloat) {
+      CFloat that = (CFloat) other;
+      return getType() == that.getType()
+          && getExponent() == that.getExponent()
+          && getMantissa() == that.getMantissa();
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getType(), getMantissa(), getExponent());
+  }
 
   public final long getExponent() {
     return getWrapper().getExponent();
