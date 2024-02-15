@@ -10,6 +10,9 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.primitives.Ints.max;
 
+import com.google.common.base.Preconditions;
+import java.util.List;
+
 @Deprecated
 public class CFloatNative extends CFloat {
   private final CFloatWrapper wrapper;
@@ -223,7 +226,14 @@ public class CFloatNative extends CFloat {
 
   @Override
   public String toString() {
-    return CFloatNativeAPI.printFp(wrapper, type).replaceAll("(\\.[0-9]+?)0*$", "$1");
+    // FIXME: Implement this for double and long double as well
+    Preconditions.checkArgument(type == CFloatNativeAPI.FP_TYPE_SINGLE);
+
+    String repr = CFloatNativeAPI.printFp(wrapper, type);
+    if (List.of("-inf", "inf", "nan").contains(repr)) {
+      return repr;
+    }
+    return String.valueOf(Float.parseFloat(repr));
   }
 
   @Override
