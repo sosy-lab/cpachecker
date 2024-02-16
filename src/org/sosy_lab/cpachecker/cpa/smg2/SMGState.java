@@ -1883,11 +1883,11 @@ public class SMGState
   }
 
   /*
-   * Remove the entered object from the heap and general memory mappings.
+   * Remove the entered object from the heap and delete it internally and general memory mappings.
    * Also, all has-value-edges are pruned. Nothing else.
    */
-  public SMGState copyAndRemoveObjectFromHeap(SMGObject obj) {
-    return copyAndReplaceMemoryModel(memoryModel.copyAndRemoveObjectFromHeap(obj));
+  public SMGState copyAndRemoveAbstractedObjectFromHeap(SMGObject obj) {
+    return copyAndReplaceMemoryModel(memoryModel.copyAndRemoveAbstractedObjectFromHeap(obj));
   }
 
   /*
@@ -4375,8 +4375,22 @@ public class SMGState
       SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState) throws SMGException {
     SMGState currentState = pState;
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
-      List<SMGValueAndSMGState> newPointersValueAndStates =
-          currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
+      int abstractionMinLen = ((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength();
+      int ptrNestingLvl = memoryModel.getNestingLevel(initialPointerValue);
+      // Nesting is ordered that the pointer to the first element (from the left) starts with
+      // abstractionMinLen - 1, then decrements until the last concrete element has nesting lvl 0
+      List<SMGValueAndSMGState> newPointersValueAndStates;
+      if (ptrNestingLvl < abstractionMinLen / 2 && abstractionMinLen > 0) {
+        // Idea: When we always materialize from the left to the right, we end up with a 0+ in the
+        // very right, which blocks us from extending the list to the right. So we materialize from
+        // the right in cases in which the pointer is more on the right side of the abstracted list,
+        // so that the 0+ would end up on the left end.
+        newPointersValueAndStates =
+            currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
+      } else {
+        newPointersValueAndStates =
+            currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
+      }
       if (newPointersValueAndStates.size() == 2) {
         Preconditions.checkArgument(
             ((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength() == 0);

@@ -777,6 +777,19 @@ public class SMG {
     return returnSmg;
   }
 
+  public SMG copyAndRemoveAbstractedObjectFromHeap(SMGObject pUnreachableObject) {
+    assert objectsAndPointersPointingAtThem
+            .getOrDefault(pUnreachableObject, PathCopyingPersistentTreeMap.of())
+            .size()
+        == 0;
+    PersistentMap<SMGObject, Boolean> newObjects = smgObjects.removeAndCopy(pUnreachableObject);
+    PersistentSet<SMGHasValueEdge> values =
+        hasValueEdges.getOrDefault(pUnreachableObject, PersistentSet.of());
+    SMG newSMG = copyAndRemoveHVEdges(values, pUnreachableObject);
+    // TODO: remove unused values
+    return newSMG.of(newObjects, newSMG.hasValueEdges);
+  }
+
   /**
    * Removes e.g. a 0+ object from the SMG. This assumed that no valid pointers to the object exist
    * and removes all pointers TOWARDS the object and all objects that are connected to those
@@ -1707,19 +1720,13 @@ public class SMG {
    * Get the object pointing towards a 0+ list segment.
    * We can assume that there is only 1 of those objects.
    */
-  public SMGObject getPreviousObjectOfZeroPlusAbstraction(SMGValue ptObject) {
-    // TODO: use reverse maps!
-    for (Entry<SMGObject, Boolean> entry : smgObjects.entrySet()) {
-      if (entry.getValue()) {
-        PersistentSet<SMGHasValueEdge> hvEdgesPerObj = hasValueEdges.get(entry.getKey());
-        if (hvEdgesPerObj != null) {
-          for (SMGHasValueEdge value : hvEdgesPerObj) {
-            if (value.hasValue().equals(ptObject)) {
-              return entry.getKey();
-            }
-          }
-        }
-      }
+  public SMGObject getPreviousObjectOfZeroPlusAbstraction(SMGValue pointerTowards) {
+      PersistentMap<SMGObject, Integer> objects =
+          valuesToRegionsTheyAreSavedIn.get(pointerTowards);
+      assert objects.size() == 1;
+      for (Entry<SMGObject, Integer> sourceOfPointer : objects.entrySet()) {
+        assert sourceOfPointer.getValue() == 1;
+        return sourceOfPointer.getKey();
     }
     throw new AssertionError("Critical error: could not find origin of points-to-edge in the SMG.");
   }

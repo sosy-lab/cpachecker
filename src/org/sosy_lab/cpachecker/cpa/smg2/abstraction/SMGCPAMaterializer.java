@@ -373,7 +373,7 @@ public class SMGCPAMaterializer {
     }
 
     // Remove the old abstract list segment
-    currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
+    currentState = currentState.copyAndRemoveAbstractedObjectFromHeap(pListSeg);
 
     Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
     assert checkPointersOfMaterializedList(newConcreteRegion, nfo, pfo, currentState);

@@ -1548,6 +1548,23 @@ public class SymbolicProgramConfiguration {
         mallocZeroMemory);
   }
 
+  /*
+   * Remove the entered object from the heap and general memory mappings.
+   * Also, all has-value-edges are pruned. Nothing else.
+   */
+  public SymbolicProgramConfiguration copyAndRemoveAbstractedObjectFromHeap(SMGObject obj) {
+    return new SymbolicProgramConfiguration(
+        smg.copyAndRemoveAbstractedObjectFromHeap(obj),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects.removeAndCopy(obj),
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap.removeAndCopy(obj),
+        mallocZeroMemory);
+  }
+
   /**
    * Search for all pointers towards the object old and replaces them with pointers pointing towards
    * the new object.
