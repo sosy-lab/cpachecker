@@ -331,6 +331,17 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Returns the nesting level of the value given. This will not check if the given value is
+   * existing in the SMG! It will fail if the value does not exist!
+   *
+   * @param pValue a {@link Value} with existing {@link SMGValue} mapping.
+   * @return a nesting level >= 0
+   */
+  public int getNestingLevel(Value pValue) {
+    return smg.getNestingLevel(getSMGValueFromValue(pValue).orElseThrow());
+  }
+
+  /**
    * Returns the size of the pointer used for the SMG of this {@link SymbolicProgramConfiguration}.
    */
   public BigInteger getSizeOfPointer() {
@@ -737,6 +748,7 @@ public class SymbolicProgramConfiguration {
       newHeapObjects = newHeapObjects.removeAndCopy(smgObject);
       newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(smgObject);
     }
+    assert newSmg.getObjects().size() == smg.getObjects().size();
     return SPCAndSMGObjects.of(
         of(
             newSmg,
