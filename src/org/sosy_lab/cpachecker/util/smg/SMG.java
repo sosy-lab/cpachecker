@@ -1720,15 +1720,27 @@ public class SMG {
    * Get the object pointing towards a 0+ list segment.
    * We can assume that there is only 1 of those objects.
    */
-  public SMGObject getPreviousObjectOfZeroPlusAbstraction(SMGValue pointerTowards) {
+  public List<SMGObject> getObjectsPointingToZeroPlusAbstraction(
+      SMGSinglyLinkedListSegment zeroPlusObj) {
+    ImmutableList.Builder<SMGObject> builder = ImmutableList.builder();
+assert objectsAndPointersPointingAtThem.get(zeroPlusObj) != null;
+    for (Entry<SMGValue, Integer> pointerTowards :
+        objectsAndPointersPointingAtThem.get(zeroPlusObj).entrySet()) {
+      assert pointerTowards.getValue() == 1;
+
       PersistentMap<SMGObject, Integer> objects =
-          valuesToRegionsTheyAreSavedIn.get(pointerTowards);
+          valuesToRegionsTheyAreSavedIn.get(pointerTowards.getKey());
       assert objects.size() == 1;
       for (Entry<SMGObject, Integer> sourceOfPointer : objects.entrySet()) {
         assert sourceOfPointer.getValue() == 1;
-        return sourceOfPointer.getKey();
+        builder.add(sourceOfPointer.getKey());
+      }
     }
-    throw new AssertionError("Critical error: could not find origin of points-to-edge in the SMG.");
+    ImmutableList<SMGObject> objectsWithPointersToward = builder.build();
+    if (objectsWithPointersToward.isEmpty()) {
+      throw new AssertionError("Critical error: could not find pointers towards 0+ in the SMG.");
+    }
+    return objectsWithPointersToward;
   }
 
   /**
