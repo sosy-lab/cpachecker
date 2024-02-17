@@ -140,7 +140,6 @@ class CFAMethodBuilder extends ASTVisitor {
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
-
   private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues =
       new HashMap<>();
 
@@ -187,6 +186,7 @@ class CFAMethodBuilder extends ASTVisitor {
    */
   @Override
   public boolean visit(MethodDeclaration mDeclaration) {
+
     if (!locStack.isEmpty()) {
       throw new CFAGenerationRuntimeException("Nested method declarations?");
     }
@@ -208,8 +208,10 @@ class CFAMethodBuilder extends ASTVisitor {
       // more than one time
 
       // TODO insert super Constructor if not explicit given.
+
       mDeclaration.getBody().accept(this);
     }
+
     return SKIP_CHILDREN;
   }
 
@@ -259,7 +261,6 @@ class CFAMethodBuilder extends ASTVisitor {
     cfa = startNode;
 
     final CFANode nextNode = new CFANode(fdef);
-
     cfaNodes.add(nextNode);
     locStack.push(nextNode);
 
@@ -294,6 +295,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     assert nextNode != null;
     locStack.push(nextNode);
+
     return SKIP_CHILDREN;
   }
 
@@ -524,6 +526,7 @@ class CFAMethodBuilder extends ASTVisitor {
           new JDeclarationEdge(
               rawSignature, fileLocation, prevNode, nextNode, (JDeclaration) sideeffect);
     }
+
     addToCFA(previous);
   }
 
@@ -768,6 +771,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     // When else is not in a block (else Statement)
     handleElseCondition(expressionStatement);
+
     CFANode prevNode = locStack.pop();
 
     JStatement statement = astCreator.convert(expressionStatement);
@@ -826,10 +830,10 @@ class CFAMethodBuilder extends ASTVisitor {
         locStack.push(lastNode);
 
       } else {
+
         JStatementEdge edge =
             new JStatementEdge(
                 rawSignature, statement, statement.getFileLocation(), nextNode, lastNode);
-
         addToCFA(edge);
         locStack.push(lastNode);
       }
@@ -1936,7 +1940,6 @@ class CFAMethodBuilder extends ASTVisitor {
     }
 
     switchCaseStack.push(notCaseNode); // for later cases, only reachable through jumps
-
     locStack.push(caseNode);
 
     // blank edge connecting rootNode with caseNode
@@ -2429,7 +2432,6 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
-
     locStack.push(nextNode);
   }
 
@@ -2473,7 +2475,6 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
-
     locStack.push(nextNode);
   }
 
@@ -2491,7 +2492,6 @@ class CFAMethodBuilder extends ASTVisitor {
     addToCFA(blankEdge);
 
     CFANode nextNode = new CFANode(cfa.getFunction());
-
     locStack.push(nextNode);
   }
 
