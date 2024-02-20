@@ -9,18 +9,20 @@
 package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
 import static com.google.common.truth.Truth.assertWithMessage;
-import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.truth.Correspondence.BinaryPredicate;
 import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
+import java.util.function.BinaryOperator;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
@@ -28,6 +30,42 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
 @RunWith(Parameterized.class)
 public abstract class CFloatUnitTest {
   protected int floatType = CFloatNativeAPI.FP_TYPE_SINGLE; // TODO: Add other float types
+
+  public enum Filter {
+    NORMAL,
+    SUBNORMAL,
+    REGULAR, // Normal + Subnormal
+    INFINITIES,
+    EXTENDED, // Regular with infinities
+    NAN,
+    FINITE, // Regular and NaN
+    ALL // Regular, infinities and NaN
+  }
+
+  @Parameters(name = "{0}")
+  public static Filter[] testClasses() {
+    return Filter.values();
+  }
+
+  @Parameter(0)
+  public Filter testClass;
+
+  private boolean isInClass(Float pFloat) {
+    return switch (testClass) {
+      case NORMAL -> Float.isFinite(pFloat) && (Float.MIN_NORMAL <= pFloat || pFloat == 0.0f);
+      case SUBNORMAL -> Float.isFinite(pFloat) && (Float.MIN_NORMAL > pFloat && pFloat != 0.0f);
+      case REGULAR -> Float.isFinite(pFloat) && !Float.isNaN(pFloat);
+      case INFINITIES -> Float.isInfinite(pFloat);
+      case EXTENDED -> !Float.isNaN(pFloat);
+      case NAN -> Float.isNaN(pFloat);
+      case FINITE -> Float.isFinite(pFloat);
+      case ALL -> true;
+    };
+  }
+
+  protected boolean isInTestClass(Float... pValues) {
+    return Arrays.stream(pValues).map(this::isInClass).reduce(Boolean::logicalAnd).get();
+  }
 
   // Convert floating point value to its decimal representation
   private static String toPlainString(float fpVal) {
@@ -59,7 +97,7 @@ public abstract class CFloatUnitTest {
         Float.MAX_VALUE,
         Float.POSITIVE_INFINITY);
 
-    for (int c = 1; c <= 2; c++) {
+    for (int c = 1; c <= 3; c++) {
       for (int e = 1; e <= 5; e++) {
         builder.add((float) Math.pow(c * 0.1f, e));
       }
@@ -79,230 +117,307 @@ public abstract class CFloatUnitTest {
     return builder.build();
   }
 
-  @Parameters(name = "a:{0} b:{1}")
-  public static Collection<Object[]> floatArgs() {
-    ImmutableList.Builder<Object[]> builder = ImmutableList.builder();
-    for (Float f1 : floatConsts()) {
-      for (Float f2 : floatConsts()) {
-        builder.add(new Object[] {f1, f2});
-      }
+  // Wraps a generated input value along with the result of the operation
+  private static class TestValue<T> {
+    private final Float[] args;
+    private final T expected;
+
+    public TestValue(Float arg, T result) {
+      args = new Float[] {arg};
+      expected = result;
     }
-    return builder.build();
+
+    public TestValue(Float arg1, Float arg2, T result) {
+      args = new Float[] {arg1, arg2};
+      expected = result;
+    }
+
+    Float arg1() {
+      return args[0];
+    }
+
+    Float arg2() {
+      return args[1];
+    }
+
+    T result() {
+      return expected;
+    }
   }
 
-  private final Float arg1;
-  private final Float arg2;
+  private String toBits(Float value) {
+    String repr = Integer.toUnsignedString(Float.floatToIntBits(value), 2);
+    repr = "0".repeat(32 - repr.length()) + repr;
+    return String.format("%s %s %s", repr.substring(0, 1), repr.substring(1, 9), repr.substring(9));
+  }
 
-  private final CFloat nat1;
-  private final CFloat nat2;
+  private String printValue(Float value) {
+    return String.format("%s [%s]", toBits(value), value);
+  }
 
-  private final CFloat jav1;
-  private final CFloat jav2;
+  private String printTestHeader(String name, Float arg) {
+    return String.format("\n\nTestcase %s(%s): ", name, printValue(arg));
+  }
 
-  public CFloatUnitTest(Float pArg1, Float pArg2) {
-    String arg1Str = toPlainString(pArg1);
-    nat1 = toTestedImpl(arg1Str, floatType);
-    jav1 = toReferenceImpl(arg1Str, floatType);
-    arg1 = pArg1;
+  private String printTestHeader(String name, Float arg1, Float arg2) {
+    return String.format("\n\nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
+  }
 
-    String arg2Str = toPlainString(pArg2);
-    nat2 = toTestedImpl(arg2Str, floatType);
-    jav2 = toReferenceImpl(arg2Str, floatType);
-    arg2 = pArg2;
+  protected void testOperator(String name, UnaryOperator<CFloat> operator) {
+    ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
+    for (Float arg : floatConsts()) {
+      CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
+      Float result = operator.apply(ref).toFloat();
+      if (isInTestClass(arg, result)) {
+        testBuilder.add(new TestValue<>(arg, result));
+      }
+    }
+    ImmutableList<TestValue<Float>> testCases = testBuilder.build();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
+    for (TestValue<Float> test : testCases) {
+      try {
+        String testHeader = printTestHeader(name, test.arg1());
+        CFloat tested = toTestedImpl(toPlainString(test.arg1()), floatType);
+        Float result = Float.NaN;
+        try {
+          result = operator.apply(tested).toFloat();
+        } catch (Throwable t) {
+          assertWithMessage(testHeader + t.getMessage()).fail();
+        }
+        assertWithMessage(testHeader).that(printValue(result)).isEqualTo(printValue(test.result()));
+      } catch (AssertionError e) {
+        logBuilder.add(e.getMessage());
+      }
+    }
+    ImmutableList<String> errorLog = logBuilder.build();
+    if (!errorLog.isEmpty()) {
+      assertWithMessage(
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
+          .fail();
+    }
+  }
+
+  protected void testOperator(String name, BinaryOperator<CFloat> operator) {
+    ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
+    for (Float arg1 : floatConsts()) {
+      for (Float arg2 : floatConsts()) {
+        CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
+        CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
+        Float result = operator.apply(ref1, ref2).toFloat();
+        if (isInTestClass(arg1, arg2, result)) {
+          testBuilder.add(new TestValue<>(arg1, arg2, result));
+        }
+      }
+    }
+    ImmutableList<TestValue<Float>> testCases = testBuilder.build();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
+    for (TestValue<Float> test : testCases) {
+      try {
+        String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+        CFloat tested1 = toTestedImpl(toPlainString(test.arg1()), floatType);
+        CFloat tested2 = toTestedImpl(toPlainString(test.arg2()), floatType);
+        Float result = Float.NaN;
+        try {
+          result = operator.apply(tested1, tested2).toFloat();
+        } catch (Throwable t) {
+          String errorMessage = testHeader + t.getMessage();
+          assertWithMessage(errorMessage).fail();
+        }
+        assertWithMessage(testHeader).that(printValue(result)).isEqualTo(printValue(test.result()));
+      } catch (AssertionError e) {
+        logBuilder.add(e.getMessage());
+      }
+    }
+    ImmutableList<String> errorLog = logBuilder.build();
+    if (!errorLog.isEmpty()) {
+      assertWithMessage(
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
+          .fail();
+    }
+  }
+
+  protected void testPredicate(String name, Predicate<CFloat> operator) {
+    ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
+    for (Float arg : floatConsts()) {
+      CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
+      boolean result = operator.test(ref);
+      if (isInTestClass(arg)) {
+        testBuilder.add(new TestValue<>(arg, result));
+      }
+    }
+    ImmutableList<TestValue<Boolean>> testCases = testBuilder.build();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
+    for (TestValue<Boolean> test : testCases) {
+      try {
+        String testHeader = printTestHeader(name, test.arg1());
+        CFloat tested = toTestedImpl(toPlainString(test.arg1()), floatType);
+        boolean result = true;
+        try {
+          result = operator.test(tested);
+        } catch (Throwable t) {
+          assertWithMessage(testHeader + t.getMessage()).fail();
+        }
+        assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+      } catch (AssertionError e) {
+        logBuilder.add(e.getMessage());
+      }
+    }
+    ImmutableList<String> errorLog = logBuilder.build();
+
+    if (!errorLog.isEmpty()) {
+      assertWithMessage(
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
+          .fail();
+    }
+  }
+
+  protected void testPredicate(String name, BinaryPredicate<CFloat, CFloat> operator) {
+    ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
+    for (Float arg1 : floatConsts()) {
+      for (Float arg2 : floatConsts()) {
+        CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
+        CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
+        boolean result = operator.apply(ref1, ref2);
+        if (isInTestClass(arg1, arg2)) {
+          testBuilder.add(new TestValue<>(arg1, arg2, result));
+        }
+      }
+    }
+    ImmutableList<TestValue<Boolean>> testCases = testBuilder.build();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
+    for (TestValue<Boolean> test : testCases) {
+      try {
+        String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+        CFloat tested1 = toTestedImpl(toPlainString(test.arg1()), floatType);
+        CFloat tested2 = toTestedImpl(toPlainString(test.arg2()), floatType);
+        boolean result = true;
+        try {
+          result = operator.apply(tested1, tested2);
+        } catch (Throwable t) {
+          String errorMessage = testHeader + t.getMessage();
+          assertWithMessage(errorMessage).fail();
+        }
+        assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+      } catch (AssertionError e) {
+        logBuilder.add(e.getMessage());
+      }
+    }
+    ImmutableList<String> errorLog = logBuilder.build();
+    if (!errorLog.isEmpty()) {
+      assertWithMessage(
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
+          .fail();
+    }
   }
 
   public abstract CFloat toTestedImpl(String repr, int pFloatType);
 
   public abstract CFloat toReferenceImpl(String repr, int pFloatType);
 
-  private String toBinary(long number) {
-    return BigInteger.valueOf(number).toString(2);
-  }
-
-  private String toBits(CFloat fp) {
-    long sign = (fp.getExponent() & 0x100) >> 8;
-    long exponent = fp.getExponent() & 0xFF;
-    return toBinary(sign) + " " + toBinary(exponent) + " " + toBinary(fp.getMantissa());
-  }
-
-  protected void assumeOneArgument() {
-    assume().that(arg1.equals(arg2) || (arg1.isNaN() && arg2.isNaN())).isTrue();
-  }
-
-  protected void assertEqualValue(CFloat fp1, CFloat fp2) {
-    assertWithMessage(
-            "tested impl: %s (%s)\nreference  : %s (%s)", fp1, toBits(fp1), fp2, toBits(fp2))
-        .that(fp1.equals(fp2) || (fp1.isNan() && fp2.isNan()))
-        .isTrue();
-  }
-
-  protected void assertEqualRepr(CFloat fp1, CFloat fp2) {
-    assertWithMessage(
-            "tested impl: %s (%s)\nreference  : %s (%s)", fp1, toBits(fp1), fp2, toBits(fp2))
-        .that(Objects.equals(fp1.toString(), fp2.toString()))
-        .isTrue();
-  }
-
-  protected void assertEqualP(boolean r1, boolean r2) {
-    assertWithMessage("tested impl: %s\nreference  : %s", r1, r2).that(r1 == r2).isTrue();
-  }
-
+  // (This test is here to check that parsing and printing of values is handles correctly by the
+  // implementation)
   @Test
   public void constTest() {
-    assumeOneArgument();
-    assertEqualValue(nat1, jav1);
-  }
-
-  @Test
-  public void toStringTest() {
-    assumeOneArgument();
-    assertEqualRepr(nat1, jav1);
+    testOperator("id", (CFloat a) -> a);
   }
 
   @Test
   public void addTest() {
-    CFloat nat_ = nat1.add(nat2);
-    CFloat jav_ = jav1.add(jav2);
-    assertEqualValue(nat_, jav_);
+    testOperator("add", (CFloat a, CFloat b) -> a.add(b));
   }
 
   @Test
   public void multiplyTest() {
-    CFloat nat_ = nat1.multiply(nat2);
-    CFloat jav_ = jav1.multiply(jav2);
-    assertEqualValue(nat_, jav_);
+    testOperator("multiply", (CFloat a, CFloat b) -> a.multiply(b));
   }
 
   @Test
   public void subtractTest() {
-    CFloat nat_ = nat1.subtract(nat2);
-    CFloat jav_ = jav1.subtract(jav2);
-    assertEqualValue(nat_, jav_);
+    testOperator("subtract", (CFloat a, CFloat b) -> a.subtract(b));
   }
 
   @Test
   public void divideByTest() {
-    CFloat nat_ = nat1.divideBy(nat2);
-    CFloat jav_ = jav1.divideBy(jav2);
-    assertEqualValue(nat_, jav_);
+    testOperator("divideBy", (CFloat a, CFloat b) -> a.divideBy(b));
   }
 
   @Test
   public void powToTest() {
-    CFloat nat_ = nat1.powTo(nat2);
-    CFloat jav_ = jav1.powTo(jav2);
-    assertEqualValue(nat_, jav_);
+    testOperator("powTo", (CFloat a, CFloat b) -> a.powTo(b));
   }
 
   @Test
   public void powToIntegralTest() {
-    float rounded = Float.parseFloat(String.valueOf(Math.round(arg2)));
-    assume().that(arg2).isEqualTo(rounded);
-    CFloat nat_ = nat1.powToIntegral(Math.round(arg2));
-    CFloat jav_ = jav1.powToIntegral(Math.round(arg2));
-    assertEqualValue(nat_, jav_);
+    testOperator("powToInteger", (CFloat a, CFloat b) -> a.powToIntegral(b.toInteger()));
   }
 
   @Test
   public void sqrtTest() {
-    assumeOneArgument();
-    CFloat nat_ = nat1.sqrt();
-    CFloat jav_ = jav1.sqrt();
-    assertEqualValue(nat_, jav_);
+    testOperator("sqrt", (CFloat a) -> a.sqrt());
   }
 
   @Test
   public void roundTest() {
-    assumeOneArgument();
-    CFloat nat_ = nat1.round();
-    CFloat jav_ = jav1.round();
-    assertEqualValue(nat_, jav_);
+    testOperator("round", (CFloat a) -> a.round());
   }
 
   @Test
   public void truncTest() {
-    assumeOneArgument();
-    CFloat nat_ = nat1.trunc();
-    CFloat jav_ = jav1.trunc();
-    assertEqualValue(nat_, jav_);
+    testOperator("trunc", (CFloat a) -> a.trunc());
   }
 
   @Test
   public void ceilTest() {
-    assumeOneArgument();
-    CFloat nat_ = nat1.ceil();
-    CFloat jav_ = jav1.ceil();
-    assertEqualValue(nat_, jav_);
+    testOperator("ceil", (CFloat a) -> a.ceil());
   }
 
   @Test
   public void floorTest() {
-    assumeOneArgument();
-    CFloat nat_ = nat1.floor();
-    CFloat jav_ = jav1.floor();
-    assertEqualValue(nat_, jav_);
+    testOperator("floor", (CFloat a) -> a.floor());
   }
 
   @Test
   public void absTest() {
-    assumeOneArgument();
-    CFloat nat_ = nat1.abs();
-    CFloat jav_ = jav1.abs();
-    assertEqualValue(nat_, jav_);
+    testOperator("abs", (CFloat a) -> a.abs());
   }
 
   @Test
   public void isZeroTest() {
-    assumeOneArgument();
-    boolean nat_ = nat1.isZero();
-    boolean jav_ = jav1.isZero();
-    assertEqualP(nat_, jav_);
+    testPredicate("isZero", (CFloat a) -> a.isZero());
   }
 
   @Test
   public void isOneTest() {
-    assumeOneArgument();
-    boolean nat_ = nat1.isOne();
-    boolean jav_ = jav1.isOne();
-    assertEqualP(nat_, jav_);
+    testPredicate("isOne", (CFloat a) -> a.isOne());
   }
 
   @Test
   public void isNanTest() {
-    assumeOneArgument();
-    boolean nat_ = nat1.isNan();
-    boolean jav_ = jav1.isNan();
-    assertEqualP(nat_, jav_);
+    testPredicate("isNan", (CFloat a) -> a.isNan());
   }
 
   @Test
   public void isInfinityTest() {
-    assumeOneArgument();
-    boolean nat_ = nat1.isInfinity();
-    boolean jav_ = jav1.isInfinity();
-    assertEqualP(nat_, jav_);
+    testPredicate("isInfinity", (CFloat a) -> a.isInfinity());
   }
 
   @Test
   public void isNegativeTest() {
-    assumeOneArgument();
-    boolean nat_ = nat1.isNegative();
-    boolean jav_ = jav1.isNegative();
-    assertEqualP(nat_, jav_);
+    testPredicate("isNegative", (CFloat a) -> a.isNegative());
   }
 
   @Test
   public void greaterThanTest() {
-    boolean nat_ = nat1.greaterThan(nat2);
-    boolean jav_ = jav1.greaterThan(jav2);
-    assertEqualP(nat_, jav_);
+    testPredicate("greaterThan", (CFloat a, CFloat b) -> a.greaterThan(b));
   }
 
   @Test
   public void copySignFromTest() {
-    CFloat nat_ = nat1.copySignFrom(nat2);
-    CFloat jav_ = jav1.copySignFrom(jav2);
-    assertEqualValue(nat_, jav_);
+    testOperator("copySignFrom", (CFloat a, CFloat b) -> a.copySignFrom(b));
   }
 
   // FIXME: Implement castTo

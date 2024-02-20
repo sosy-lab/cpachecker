@@ -16,10 +16,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNaN;
 import org.sosy_lab.cpachecker.util.floatingpoint.JFloat;
 
 public class CFloatImplTest extends CFloatUnitTest {
-  public CFloatImplTest(Float pArg1, Float pArg2) {
-    super(pArg1, pArg2);
-  }
-
   @Override
   public CFloat toTestedImpl(String repr, int pFloatType) {
     if (repr.equals("nan")) {

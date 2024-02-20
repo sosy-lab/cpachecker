@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 
 /**
@@ -315,6 +316,17 @@ public abstract class CFloat {
 
   public final long getMantissa() {
     return getWrapper().getMantissa();
+  }
+
+  public Float toFloat() {
+    Preconditions.checkState(getType() == CFloatNativeAPI.FP_TYPE_SINGLE);
+    long exponent = getExponent();
+    long mantissa = getMantissa();
+    return Float.intBitsToFloat((int) ((exponent << 23) + mantissa));
+  }
+
+  public Integer toInteger() {
+    return toFloat().intValue();
   }
 
   public final int getNormalizedMantissaLength() {

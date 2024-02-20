@@ -15,10 +15,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.JFloat;
 
 @SuppressWarnings("deprecation")
 public class CFloatNativeTest extends CFloatUnitTest {
-  public CFloatNativeTest(Float pArg1, Float pArg2) {
-    super(pArg1, pArg2);
-  }
-
   @Override
   public CFloat toTestedImpl(String repr, int pFloatType) {
     return new CFloatNative(repr, pFloatType);
