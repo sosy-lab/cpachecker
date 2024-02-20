@@ -374,6 +374,84 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   /**
+   * Test that a list is correctly materialized to 0+ in the end and then a 0+ is added to the left,
+   * it is then correctly reabsorbed to the original abstracted list with all pointers being
+   * correctly nested and no extra segments or states added.
+   */
+  @Test
+  public void correctLeftZeroPlusAbsorptionDLLTest() throws SMGException, SMGSolverException {
+    int lengthOfList = 10;
+    nfo = BigInteger.ZERO;
+    pfo = nfo.add(pointerSizeInBits);
+    dllSize = pointerSizeInBits.multiply(BigInteger.TWO);
+    // We start with no data and add int size space each iteration for data, moving the nfo
+    for (int i = 0; i < 3; i++) {
+      resetSMGStateAndVisitor();
+      Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
+      // Now add a 0+ left
+      SMGStateAndOptionalSMGObjectAndOffset leftMostConcreteObjAndState =
+          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+      currentState = leftMostConcreteObjAndState.getSMGState();
+      SMGObject leftMostConcreteObj = leftMostConcreteObjAndState.getSMGObject();
+      ValueAndSMGState pointerToLeftmostConcreteAndState =
+          currentState.createAndAddPointerWithNestingLevel(leftMostConcreteObj, BigInteger.ZERO, 0);
+      currentState = pointerToLeftmostConcreteAndState.getState();
+      Value pointerToLeftMostConcrete = pointerToLeftmostConcreteAndState.getValue();
+      SMGDoublyLinkedListSegment newDLLSegment =
+          new SMGDoublyLinkedListSegment(0, dllSize, BigInteger.ZERO, hfo, nfo, pfo, 0);
+      ValueAndSMGState pointerToLeftmostZeroPlusAndState =
+          currentState.createAndAddPointerWithNestingLevel(newDLLSegment, BigInteger.ZERO, 0);
+      currentState = pointerToLeftmostZeroPlusAndState.getState();
+      Value pointerToLeftMostZeroPlus = pointerToLeftmostZeroPlusAndState.getValue();
+      // Write the pointer to the leftmost concrete to the new 0+
+      SymbolicProgramConfiguration newMemModel =
+          currentState
+              .getMemoryModel()
+              .writeValue(
+                  newDLLSegment,
+                  nfo,
+                  pointerSizeInBits,
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(pointerToLeftMostConcrete)
+                      .orElseThrow());
+      // Write the prev to 0 in the new 0+
+      newMemModel =
+          newMemModel.writeValue(newDLLSegment, pfo, pointerSizeInBits, SMGValue.zeroValue());
+      // Write the prev of the concrete to the 0+
+      newMemModel =
+          newMemModel.writeValue(
+              newDLLSegment,
+              pfo,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointerToLeftMostZeroPlus)
+                  .orElseThrow());
+      currentState = currentState.copyAndReplaceMemoryModel(newMemModel);
+
+      SMGCPAAbstractionManager absFinder =
+          new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
+      currentState = absFinder.findAndAbstractLists();
+      // Now we have a 10+DLS
+      // Deref a pointer not in the beginning or end, check that the list is consistent with the
+      // pointers and the nesting level and materialization is correct afterward
+      derefPointersAtAndCheckListMaterialization(
+          lengthOfList, pointers, new int[] {lengthOfList - 1}, true, true);
+      // Now only the 0+ trails, re-merge
+      currentState = absFinder.findAndAbstractLists();
+      // Now there should be only 1 non-zero valid object left that is a 10+ list (and 1 null obj)
+      assertAbstractedList(pointers, lengthOfList, true);
+      // Data is intact
+      checkListDataIntegrity(pointers, true);
+      // Increase num of data and position of nfo
+      nfo = nfo.add(pointerSizeInBits);
+      dllSize = dllSize.add(pointerSizeInBits);
+      pfo = nfo.add(pointerSizeInBits);
+    }
+  }
+
+  /**
    * Test that a list is correctly materialized to 0+ in the end and then correctly reabsorbed to
    * the original abstracted list with all pointers being correctly nested and no extra segments or
    * states added.
