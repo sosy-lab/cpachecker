@@ -834,7 +834,7 @@ public class SMGState
    */
   public SMGState copyAndAddGlobalVariable(
       BigInteger pTypeSizeInBits, String pVarName, CType type) {
-    SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
+    SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO, pVarName);
     if (pVarName.endsWith("_STRING_LITERAL")) {
       newObject = newObject.copyAsConstStringInBinary();
     }
@@ -965,7 +965,7 @@ public class SMGState
               + pVarName
               + " to the memory model because there is no stack frame.");
     }
-    SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
+    SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO, pVarName);
     return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject, pVarName, type));
   }
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.smg.graph;
 
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
+import java.util.Optional;
 import org.sosy_lab.common.UniqueIdGenerator;
 
 public class SMGObject implements SMGNode, Comparable<SMGObject> {
@@ -28,12 +29,25 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   private final boolean isConstBinaryString;
 
+  // For statically named objects, e.g. stack variables
+  private final Optional<String> name;
+
   protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
     id = U_ID_GENERATOR.getFreshId();
     isConstBinaryString = false;
+    name = Optional.empty();
+  }
+
+  private SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset, String objectName) {
+    nestingLevel = pNestingLevel;
+    size = pSize;
+    offset = pOffset;
+    id = U_ID_GENERATOR.getFreshId();
+    isConstBinaryString = false;
+    name = Optional.ofNullable(objectName);
   }
 
   protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset, int pId) {
@@ -42,6 +56,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     offset = pOffset;
     id = pId;
     isConstBinaryString = false;
+    name = Optional.empty();
   }
 
   protected SMGObject(
@@ -55,6 +70,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     offset = pOffset;
     id = pId;
     isConstBinaryString = pIsConstBinaryString;
+    name = Optional.empty();
   }
 
   /** Returns the static 0 {@link SMGObject} instance. */
@@ -64,6 +80,11 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   public static SMGObject of(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
     return new SMGObject(pNestingLevel, pSize, pOffset);
+  }
+
+  public static SMGObject of(
+      int pNestingLevel, BigInteger pSize, BigInteger pOffset, String objectName) {
+    return new SMGObject(pNestingLevel, pSize, pOffset, objectName);
   }
 
   /**
@@ -117,7 +138,11 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   @Override
   public String toString() {
-    return "SMGObject" + id + "[" + offset + ", " + size + ")";
+    if (name.isEmpty()) {
+      return "SMGObject" + id + "[" + offset + ", " + size + ")";
+    } else {
+      return name + "[" + offset + ", " + size + ")";
+    }
   }
 
   /** Returns true if the checked {@link SMGObject} is the null instance. */
