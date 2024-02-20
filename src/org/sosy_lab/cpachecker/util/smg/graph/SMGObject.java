@@ -64,13 +64,14 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
       BigInteger pSize,
       BigInteger pOffset,
       int pId,
-      boolean pIsConstBinaryString) {
+      boolean pIsConstBinaryString,
+      Optional<String> maybeObjectName) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
     id = pId;
     isConstBinaryString = pIsConstBinaryString;
-    name = Optional.empty();
+    name = maybeObjectName;
   }
 
   /** Returns the static 0 {@link SMGObject} instance. */
@@ -141,7 +142,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     if (name.isEmpty()) {
       return "SMGObject" + id + "[" + offset + ", " + size + ")";
     } else {
-      return name + "[" + offset + ", " + size + ")";
+      return name.orElseThrow() + "[" + offset + ", " + size + ")";
     }
   }
 
@@ -156,7 +157,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   public SMGObject copyAsConstStringInBinary() {
-    return new SMGObject(nestingLevel, size, offset, id, true);
+    return new SMGObject(nestingLevel, size, offset, id, true, name);
   }
 
   public SMGObject freshCopy() {

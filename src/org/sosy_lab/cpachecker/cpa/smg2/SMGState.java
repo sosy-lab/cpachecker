@@ -1026,7 +1026,7 @@ public class SMGState
               + pVarName
               + " to the memory model because there is no stack frame.");
     }
-    SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
+    SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO, pVarName);
     return copyAndReplaceMemoryModel(
         memoryModel.copyAndAddStackObject(newObject, pVarName, type, exceptionOnRead));
   }
