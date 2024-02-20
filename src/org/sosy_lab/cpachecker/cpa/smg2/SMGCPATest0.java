@@ -84,7 +84,7 @@ public class SMGCPATest0 {
     pfo = nfo.add(pointerSizeInBits);
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
-    materializer = new SMGCPAMaterializer(logger);
+    materializer = new SMGCPAMaterializer(logger, new SMGCPAStatistics());
 
     smgOptions = new SMGOptions(Configuration.defaultConfiguration());
     evaluator =
@@ -94,13 +94,13 @@ public class SMGCPATest0 {
             SMGCPAExportOptions.getNoExportInstance(),
             smgOptions,
             makeTestSolver());
-    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator);
+    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
   }
 
   // Resets state and visitor to an empty state
   @After
   public void resetSMGStateAndVisitor() {
-    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator);
+    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
   }
 
   private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {

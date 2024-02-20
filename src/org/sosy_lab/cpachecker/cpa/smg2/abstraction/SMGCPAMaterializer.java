@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
@@ -36,8 +37,11 @@ public class SMGCPAMaterializer {
   // For the 0+ segments
   private static final int MINIMUM_LIST_LENGTH = 0;
 
-  public SMGCPAMaterializer(LogManager pLogger) {
+  private final SMGCPAStatistics statistics;
+
+  public SMGCPAMaterializer(LogManager pLogger, SMGCPAStatistics pStatistics) {
     logger = pLogger;
+    statistics = pStatistics;
   }
 
   /**
@@ -90,6 +94,8 @@ public class SMGCPAMaterializer {
       SMGSinglyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
       throws SMGException {
 
+    statistics.incrementZeroPlusMaterializations();
+    statistics.startTotalZeroPlusMaterializationTime();
     logger.log(Level.ALL, "Split into 2 states because of 0+ SLS materialization.", pListSeg);
     ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
 
@@ -121,6 +127,7 @@ public class SMGCPAMaterializer {
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
     returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
+    statistics.stopTotalZeroPlusMaterializationTime();
     return returnStates
         .add(materialiseLLS(pListSeg, pointerValueTowardsThisSegment, state))
         .build();
@@ -132,6 +139,9 @@ public class SMGCPAMaterializer {
   private List<SMGValueAndSMGState> handleZeroPlusDLS(
       SMGDoublyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
       throws SMGException {
+
+    statistics.incrementZeroPlusMaterializations();
+    statistics.startTotalZeroPlusMaterializationTime();
 
     logger.log(Level.ALL, "Split into 2 states because of 0+ DLS materialization.", pListSeg);
     ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
@@ -179,11 +189,7 @@ public class SMGCPAMaterializer {
       pointersFixed++;
     }
 
-    assert state
-            .getMemoryModel()
-            .getSmg()
-            .getObjectsPointingToZeroPlusAbstraction(pListSeg)
-            .size()
+    assert state.getMemoryModel().getSmg().getObjectsPointingToZeroPlusAbstraction(pListSeg).size()
         == pointersFixed;
 
     // We can assume that a 0+ does not have other valid pointers to it!
@@ -196,6 +202,7 @@ public class SMGCPAMaterializer {
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
     returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
+    statistics.stopTotalZeroPlusMaterializationTime();
     return returnStates
         .add(materialiseLLS(pListSeg, pointerValueTowardsThisSegment, state))
         .build();
@@ -403,7 +410,8 @@ public class SMGCPAMaterializer {
   private SMGValueAndSMGState materialiseLLS(
       SMGSinglyLinkedListSegment pListSeg, SMGValue pInitialPointer, SMGState state)
       throws SMGException {
-
+    statistics.startTotalMaterializationTime();
+    statistics.incrementListMaterializations();
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMGException(
           "Error when materializing a "
@@ -521,6 +529,7 @@ public class SMGCPAMaterializer {
       // The nesting level of the initial pointer should be 0
       assert currentState.getMemoryModel().getSmg().getNestingLevel(pInitialPointer) == 0;
     }
+    statistics.stopTotalMaterializationTime();
     return SMGValueAndSMGState.of(currentState, pInitialPointer);
   }
 

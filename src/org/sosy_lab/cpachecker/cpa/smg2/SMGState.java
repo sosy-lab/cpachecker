@@ -146,19 +146,23 @@ public class SMGState
 
   private final SMGCPAExpressionEvaluator evaluator;
 
+  private final SMGCPAStatistics statistics;
+
   // Constructor only for NEW/EMPTY SMGStates!
   private SMGState(
       MachineModel pMachineModel,
       SymbolicProgramConfiguration spc,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
     errorInfo = ImmutableList.of();
-    materializer = new SMGCPAMaterializer(logger);
+    statistics = pStatistics;
+    materializer = new SMGCPAMaterializer(logger, statistics);
     lastCheckedMemoryAccess = Optional.empty();
     evaluator = pEvaluator;
     constraintsState = new ConstraintsState();
@@ -173,7 +177,8 @@ public class SMGState
       SMGCPAMaterializer pMaterializer,
       Optional<Constraint> pLastCheckedMemoryAccess,
       ConstraintsState pConstraintsState,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
@@ -183,6 +188,7 @@ public class SMGState
     lastCheckedMemoryAccess = pLastCheckedMemoryAccess;
     evaluator = pEvaluator;
     constraintsState = pConstraintsState;
+    statistics = pStatistics;
   }
 
   private SMGState of(ImmutableList<Constraint> pConstraints) {
@@ -196,7 +202,8 @@ public class SMGState
         materializer,
         lastCheckedMemoryAccess,
         constraintsState.copyWithNew(pConstraints),
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   private SMGState ofModelAssignment(
@@ -213,7 +220,8 @@ public class SMGState
         constraintsState
             .copyWithDefiniteAssignment(pDefiniteAssignment)
             .copyWithSatisfyingModel(pLastModelAsAssignment),
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   private SMGState ofLastCheckedMemoryBounds(Optional<Constraint> pLastCheckedMemoryAccess) {
@@ -226,7 +234,8 @@ public class SMGState
         materializer,
         pLastCheckedMemoryAccess,
         constraintsState,
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   public SMGState addConstraint(Constraint pConstraint) {
@@ -403,13 +412,15 @@ public class SMGState
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     return new SMGState(
         pMachineModel,
         SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits())),
         logManager,
         opts,
-        pEvaluator);
+        pEvaluator,
+        pStatistics);
   }
 
   /**
@@ -431,9 +442,10 @@ public class SMGState
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
       CFA pCfa,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     FunctionEntryNode pNode = pCfa.getMainFunction();
-    return of(pMachineModel, logManager, opts, pNode, pEvaluator);
+    return of(pMachineModel, logManager, opts, pNode, pEvaluator, pStatistics);
   }
 
   /**
@@ -455,8 +467,9 @@ public class SMGState
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
       FunctionEntryNode cfaFunEntryNode,
-      SMGCPAExpressionEvaluator pEvaluator) {
-    SMGState newState = of(pMachineModel, logManager, opts, pEvaluator);
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
+    SMGState newState = of(pMachineModel, logManager, opts, pEvaluator, pStatistics);
     if (cfaFunEntryNode instanceof CFunctionEntryNode functionNode) {
       return newState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
     }
@@ -482,8 +495,10 @@ public class SMGState
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
       CFunctionDeclaration cfaEntryFunDecl,
-      SMGCPAExpressionEvaluator pEvaluator) {
-    return of(pMachineModel, logManager, opts, pEvaluator).copyAndAddStackFrame(cfaEntryFunDecl);
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
+    return of(pMachineModel, logManager, opts, pEvaluator, pStatistics)
+        .copyAndAddStackFrame(cfaEntryFunDecl);
   }
 
   /**
@@ -503,7 +518,8 @@ public class SMGState
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
       List<SMGErrorInfo> pErrorInfo,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     return new SMGState(
         pMachineModel,
         pSPC,
@@ -513,7 +529,8 @@ public class SMGState
         materializer,
         lastCheckedMemoryAccess,
         constraintsState,
-        pEvaluator);
+        pEvaluator,
+        pStatistics);
   }
 
   /**
@@ -532,7 +549,8 @@ public class SMGState
         materializer,
         lastCheckedMemoryAccess,
         constraintsState,
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   /**
@@ -2412,7 +2430,8 @@ public class SMGState
         materializer,
         lastCheckedMemoryAccess,
         constraintsState,
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   /** Returns memory model, including Heap, stack and global vars. */
@@ -3771,7 +3790,8 @@ public class SMGState
         getTrackedHeapValues(),
         memoryModel,
         isMemorySafety ? errorInfo : ImmutableList.of(),
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   /**
@@ -4013,6 +4033,7 @@ public class SMGState
   public SMGState abstractIntoDLL(
       SMGObject root, BigInteger nfo, BigInteger pfo, Set<SMGObject> alreadyVisited)
       throws SMGException {
+    statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
     if (maybeNext.isEmpty()
@@ -4185,7 +4206,7 @@ public class SMGState
    */
   public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo, Set<SMGObject> alreadyVisited)
       throws SMGException {
-
+    statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
     if (maybeNext.isEmpty()
@@ -4696,6 +4717,10 @@ public class SMGState
     // Careful when there is the same pointer twice in this obj
 
     return currentState;
+  }
+
+  public SMGCPAStatistics getStatistics() {
+    return statistics;
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find

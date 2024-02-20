@@ -151,7 +151,7 @@ public class SMGCPA
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
-    statistics = new SMGCPAStatistics(this, config);
+    statistics = new SMGCPAStatistics();
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
 
@@ -246,7 +246,7 @@ public class SMGCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator);
+    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator, statistics);
     return initState;
   }
 
@@ -383,5 +383,9 @@ public class SMGCPA
 
   public SMGCPAExpressionEvaluator getEvaluator() {
     return evaluator;
+  }
+
+  public SMGCPAStatistics getStatistics() {
+    return statistics;
   }
 }

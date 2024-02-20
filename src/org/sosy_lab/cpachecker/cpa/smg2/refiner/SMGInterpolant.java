@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -73,13 +74,16 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   private final SMGCPAExpressionEvaluator evaluator;
 
+  private final SMGCPAStatistics statistics;
+
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
   private SMGInterpolant(
       SMGOptions pOptions,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       CFunctionDeclaration pCFAEntryFunctionDef,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -96,6 +100,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
     errorInfo = ImmutableList.of();
     evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   /**
@@ -117,7 +122,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       Set<Value> pAllowedHeapValues,
       SymbolicProgramConfiguration memMod,
       Collection<SMGErrorInfo> pErrorInfo,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -135,6 +141,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     memoryModel = memMod;
     errorInfo = pErrorInfo;
     evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   // For UseDefInterpolation
@@ -150,7 +157,9 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       CFunctionDeclaration pCfaEntryFunDecl,
       Set<Value> pAllowedHeapValues,
       Collection<SMGErrorInfo> pErrorInfo,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
+    statistics = pStatistics;
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -168,7 +177,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     allowedHeapValues = pAllowedHeapValues;
     try {
       memoryModel =
-          SMGState.of(machineModel, logger, options, pEvaluator)
+          SMGState.of(machineModel, logger, options, pEvaluator, statistics)
               .reconstructStackFrames(stackFrameDeclarations)
               .reconstructSMGStateFromNonHeapAssignments(
                   nonHeapAssignments,
@@ -204,9 +213,15 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       CFunctionEntryNode cfaFuncEntryNode,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     return new SMGInterpolant(
-        pOptions, pMachineModel, pLogger, cfaFuncEntryNode.getFunctionDefinition(), pEvaluator);
+        pOptions,
+        pMachineModel,
+        pLogger,
+        cfaFuncEntryNode.getFunctionDefinition(),
+        pEvaluator,
+        pStatistics);
   }
 
   /** the interpolant representing "true" */
@@ -215,8 +230,10 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       CFunctionEntryNode cfaFuncEntryNode,
-      SMGCPAExpressionEvaluator pEvaluator) {
-    return createInitial(pOptions, pMachineModel, pLogger, cfaFuncEntryNode, pEvaluator);
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
+    return createInitial(
+        pOptions, pMachineModel, pLogger, cfaFuncEntryNode, pEvaluator, pStatistics);
   }
 
   /** Keeps interpolant information (i.e. "true") but copies and adds stack frame information. */
@@ -233,7 +250,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         allowedHeapValues,
         memoryModel,
         errorInfo,
-        evaluator);
+        evaluator,
+        stateForFrameInfo.getStatistics());
   }
 
   /** the interpolant representing "false" */
@@ -241,7 +259,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       SMGOptions pOptions,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
-      CFunctionDeclaration cfaEntryFuncDef) {
+      CFunctionDeclaration cfaEntryFuncDef,
+      SMGCPAStatistics pStatistics) {
     return new SMGInterpolant(
         pOptions,
         pMachineModel,
@@ -253,7 +272,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         cfaEntryFuncDef,
         null,
         null,
-        null);
+        null,
+        pStatistics);
   }
 
   @Override
@@ -274,7 +294,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     // We expect that if nonHeapAssignments != null all other nullables are not null also except for
     // maybe the state!
     if (nonHeapAssignments == null || other.nonHeapAssignments == null || memoryModel == null) {
-      return createFALSE(options, machineModel, logger, cfaEntryFunctionDeclaration);
+      return createFALSE(options, machineModel, logger, cfaEntryFunctionDeclaration, statistics);
     }
 
     // add other itp mapping - one by one for now, to check for correctness
@@ -320,7 +340,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
             .build(),
         memoryModel,
         errorInfo,
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   @Override
@@ -385,7 +406,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     } else {
       // TODO: heap?
       try {
-        return SMGState.of(machineModel, logger, options, evaluator)
+        return SMGState.of(machineModel, logger, options, evaluator, statistics)
             .reconstructStackFrames(stackFrameDeclarations);
       } catch (SMGSolverException e) {
         throw new RuntimeException(e);
@@ -490,7 +511,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         allowedHeapValues,
         memoryModel,
         errorInfo,
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

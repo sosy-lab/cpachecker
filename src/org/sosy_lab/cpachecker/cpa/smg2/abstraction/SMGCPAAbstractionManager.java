@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -45,9 +46,13 @@ public class SMGCPAAbstractionManager {
 
   private int minimumLengthForListsForAbstraction;
 
-  public SMGCPAAbstractionManager(SMGState pState, int pMinimumLengthForListsForAbstraction) {
+  private final SMGCPAStatistics statistics;
+
+  public SMGCPAAbstractionManager(
+      SMGState pState, int pMinimumLengthForListsForAbstraction, SMGCPAStatistics pStatistics) {
     state = pState;
     minimumLengthForListsForAbstraction = pMinimumLengthForListsForAbstraction;
+    statistics = pStatistics;
   }
 
   /*
@@ -82,13 +87,15 @@ public class SMGCPAAbstractionManager {
   public SMGState findAndAbstractLists() throws SMGException {
     SMGState currentState = state;
     equalityCache = EqualityCache.of();
+    statistics.startTotalListSearchTime();
     ImmutableList<SMGCandidate> refinedCandidates = getRefinedLinkedCandidates();
     // Sort in DLL and SLL candidates and also order by nesting
     List<Set<SMGCandidate>> orderListCandidatesByNesting =
         orderListCandidatesByNestingAndListType(refinedCandidates);
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
-
+    statistics.stopTotalListSearchTime();
+    statistics.startTotalAbstractionTime();
     // Abstract top level nesting first
     for (Set<SMGCandidate> candidates : orderListCandidatesByNesting) {
       for (SMGCandidate candidate : candidates) {
@@ -111,6 +118,7 @@ public class SMGCPAAbstractionManager {
         }
       }
     }
+    statistics.stopTotalAbstractionTime();
     return currentState;
   }
 

@@ -1723,7 +1723,7 @@ public class SMG {
   public List<SMGObject> getObjectsPointingToZeroPlusAbstraction(
       SMGSinglyLinkedListSegment zeroPlusObj) {
     ImmutableList.Builder<SMGObject> builder = ImmutableList.builder();
-assert objectsAndPointersPointingAtThem.get(zeroPlusObj) != null;
+    assert objectsAndPointersPointingAtThem.get(zeroPlusObj) != null;
     for (Entry<SMGValue, Integer> pointerTowards :
         objectsAndPointersPointingAtThem.get(zeroPlusObj).entrySet()) {
       assert pointerTowards.getValue() == 1;

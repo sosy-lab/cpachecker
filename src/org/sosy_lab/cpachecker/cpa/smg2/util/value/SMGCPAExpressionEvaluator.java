@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -782,6 +783,27 @@ public class SMGCPAExpressionEvaluator {
 
     ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> returnBuilder =
         ImmutableList.builder();
+
+    // Check for writes to the next pointer of the last abstracted list element
+    Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetObjWOMat =
+        pState.dereferencePointerWithoutMaterilization(value);
+    if (maybeTargetObjWOMat.isPresent()) {
+      SMGObject targetObjWOMat = maybeTargetObjWOMat.orElseThrow().getSMGObject();
+      SMGState innerState = maybeTargetObjWOMat.orElseThrow().getSMGState();
+      if (targetObjWOMat instanceof SMGSinglyLinkedListSegment targetAbstrList) {
+        // int concreteListSize = targetAbstrList.getMinLength();
+        int pointerToDerefNestingLvl = innerState.getMemoryModel().getNestingLevel(value);
+        if (0 == pointerToDerefNestingLvl
+            && pOffsetInBits.isNumericValue()
+            && targetAbstrList
+                .getNextOffset()
+                .equals(pOffsetInBits.asNumericValue().bigIntegerValue())) {
+          // Access to the last list elements next pointer
+          // return ImmutableList.of(
+          // SMGStateAndOptionalSMGObjectAndOffset.of(targetObjWOMat, pOffsetInBits, innerState));
+        }
+      }
+    }
     for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffset : pState.dereferencePointer(value)) {
       if (!targetAndOffset.hasSMGObjectAndOffset()) {
         // The value is unknown and therefore does not point to a valid memory location

@@ -19,8 +19,10 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
@@ -89,7 +91,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     Value[] pointers = buildConcreteList(false, sllSize, listLength);
     addSubListsToList(listLength, pointers, false);
 
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     // 1 null obj + 1 top list + listLength nested
     assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2 + listLength);
@@ -131,7 +134,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // TODO: we can't handle rebuilding from pointers towards nested lists yet, so this is a dummy
     assertThat(nestedPointers).isNotEmpty();
 
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
 
     // 1 null obj + 1 top list + listLength nested
@@ -304,7 +308,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+        new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -326,7 +330,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+        new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -352,7 +356,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+          new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       // Now we have a 10+SLS
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -385,7 +389,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+          new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       // Now we have a 10+SLS
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -472,7 +476,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, sizeOfList, new SMGCPAStatistics());
     // Now we have a 3+SLS
     currentState = absFinder.findAndAbstractLists();
     // Materialize the complete list; We should have 3 concrete objects again and a fourth 0+
@@ -507,7 +512,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(true, dllSize, sizeOfList);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, sizeOfList - 1, new SMGCPAStatistics());
     // Now we have a 3+DLS
     currentState = absFinder.findAndAbstractLists();
     // Materialize the complete list; We should have 3 concrete objects again and a fourth 0+
@@ -715,7 +721,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, 3, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObjectAfterAbstraction =
@@ -770,7 +777,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, 3, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObjectAfterAbstraction =
@@ -833,7 +841,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, minAbstractionLength);
+        new SMGCPAAbstractionManager(currentState, minAbstractionLength, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObjectAfterAbstraction =
@@ -909,7 +917,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, 3, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
 
     for (int i = 0; i < TEST_LIST_LENGTH; i++) {
@@ -1101,7 +1110,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, 3, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     return pointers;
   }
@@ -1529,7 +1539,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       // abstract
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, minAbstractionLength);
+          new SMGCPAAbstractionManager(currentState, minAbstractionLength, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       // the pointer to the new element should point to minSize -1!
       // derefWOMat is the top of the list
@@ -1557,7 +1567,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitDLLOnHeap(i);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(state, minAbstractionLength);
+          new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i > minAbstractionLength - 1) {
         assertThat(candidates).hasSize(1);
@@ -1581,7 +1591,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitSLLOnHeap(i);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(state, minAbstractionLength);
+          new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i < minAbstractionLength) {
         continue;
@@ -1626,7 +1636,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitSLLOnHeap(i);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(state, minAbstractionLength);
+          new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i < minAbstractionLength) {
         continue;
@@ -1667,7 +1677,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitDLLOnHeap(i);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(state, minAbstractionLength);
+          new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i < minAbstractionLength) {
         continue;
@@ -1715,7 +1725,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       for (int i = 1; i < TEST_LIST_LENGTH; i++) {
         resetSMGStateAndVisitor();
         SMGState state = createXLongExplicitDLLOnHeap(i);
-        SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(state, minLength);
+        SMGCPAAbstractionManager absFinder =
+            new SMGCPAAbstractionManager(state, minLength, new SMGCPAStatistics());
         ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
         if (i < minLength) {
           assertThat(candidates.isEmpty()).isTrue();
@@ -1972,6 +1983,27 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   private void derefPointersAtAndCheckListMaterialization(
       int totalSizeOfList, Value[] pointers, int[] derefPositions, boolean isDll)
       throws SMGException {
+    derefPointersAtAndCheckListMaterialization(
+        totalSizeOfList, pointers, derefPositions, isDll, false);
+  }
+
+  /**
+   * Checks the integrity of list pointers and nesting levels.
+   *
+   * @param totalSizeOfList size of list.
+   * @param pointers array of all the pointers to the (former) concrete list elements in order.
+   *     Expected to be as large as totalSizeOfList.
+   * @param derefPositions ordered array of deref positions, min: 0, max: totalSizeOfList - 1.
+   * @param isDll true if dlls tested.
+   * @throws SMGException indicates errors
+   */
+  private void derefPointersAtAndCheckListMaterialization(
+      int totalSizeOfList,
+      Value[] pointers,
+      int[] derefPositions,
+      boolean isDll,
+      boolean extraPointer)
+      throws SMGException {
     int tmp = 0;
     assertThat(derefPositions[0]).isAtLeast(0);
     for (int num : derefPositions) {
@@ -2094,6 +2126,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       if (k + 1 < totalSizeOfList) {
         assertThat(currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet())
             .hasSize(totalSizeOfList + 3);
+      } else if (extraPointer) {
+        // The last one has an additional pointer to 0+ + the 0+ from the left
+        assertThat(currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet())
+            .hasSize(totalSizeOfList + 4 + 1);
       } else {
         // The last one has an additional pointer to 0+
         assertThat(currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet())
