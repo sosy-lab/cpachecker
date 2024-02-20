@@ -1006,8 +1006,38 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGObject newObj = returnedObjAndState.getSMGObject();
       assertThat(newObj).isNotSameInstanceAs(SMGSinglyLinkedListSegment.class);
       assertThat(currentState.getMemoryModel().isObjectValid(newObj)).isTrue();
-      // get(0) takes the list that is not extending for 0+
+      // Check payload
+      List<ValueAndSMGState> payloadAndState =
+          currentState.readValue(newObj, hfo, pointerSizeInBits, null);
+      // The hfo never materializes
+      assertThat(payloadAndState).hasSize(1);
+      currentState = payloadAndState.get(0).getState();
+      Value payloadValue = payloadAndState.get(0).getValue();
+      assertThat(payloadValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
+
+      // Read would normally materialize, we want to check the correct min length of the list first
       ValueAndSMGState nextPointerAndState =
+          currentState.readValueWithoutMaterialization(newObj, nfo, pointerSizeInBits, null);
+
+      SMGState nonMatCurrentState = nextPointerAndState.getState();
+      Value nonMatNextPointer = nextPointerAndState.getValue();
+      assertThat(nonMatCurrentState.getMemoryModel().isPointer(nonMatNextPointer)).isTrue();
+
+      Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeNextNonMatObj =
+          nonMatCurrentState.dereferencePointerWithoutMaterilization(nonMatNextPointer);
+      assertThat(maybeNextNonMatObj).isPresent();
+      SMGStateAndOptionalSMGObjectAndOffset nextNonMatObjAndState =
+          maybeNextNonMatObj.orElseThrow();
+      nonMatCurrentState = nextNonMatObjAndState.getSMGState();
+      SMGObject nextNonMatObj = nextNonMatObjAndState.getSMGObject();
+      assertThat(nextNonMatObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+      assertThat(nonMatCurrentState.getMemoryModel().isObjectValid(nextNonMatObj)).isTrue();
+      assertThat(((SMGSinglyLinkedListSegment) nextNonMatObj).getMinLength())
+          .isEqualTo(TEST_LIST_LENGTH - i - 1);
+
+      // Reading the next pointer materializes the next element
+      // get(0) takes the list that is not extending for 0+
+      nextPointerAndState =
           currentState.readValue(newObj, pointerSizeInBits, pointerSizeInBits, null).get(0);
       currentState = nextPointerAndState.getState();
       for (Entry<SMGValue, SMGPointsToEdge> entry :
@@ -1038,10 +1068,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGStateAndOptionalSMGObjectAndOffset nextObjAndState = maybeNextObj.orElseThrow();
         currentState = nextObjAndState.getSMGState();
         SMGObject nextObj = nextObjAndState.getSMGObject();
-        assertThat(nextObj).isInstanceOf(SMGDoublyLinkedListSegment.class);
+        assertThat(nextObj).isInstanceOf(SMGObject.class);
         assertThat(currentState.getMemoryModel().isObjectValid(nextObj)).isTrue();
-        assertThat(((SMGDoublyLinkedListSegment) nextObj).getMinLength())
-            .isEqualTo(TEST_LIST_LENGTH - i - 1);
         // Check the nesting level
         // We only change the nesting level for the values mappings to pointers and in the objects
         // but not the mapping to Values
@@ -1053,15 +1081,29 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           }
         }
 
-        // Now get the next obj from the next pointer in the array. It should be the same obj
+        // Now get the next obj from the next pointer in the array WITHOUT deref.
+        // It should be the same obj as above with the same length
+        SMGStateAndOptionalSMGObjectAndOffset nextObjNonMatAndStateFromExternalPointer =
+            nonMatCurrentState
+                .dereferencePointerWithoutMaterilization(pointers[i + 1])
+                .orElseThrow();
+        nonMatCurrentState = nextObjNonMatAndStateFromExternalPointer.getSMGState();
+        SMGObject newObjNonMatFromExternalPointer =
+            nextObjNonMatAndStateFromExternalPointer.getSMGObject();
+        assertThat(newObjNonMatFromExternalPointer).isInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(
+                nonMatCurrentState.getMemoryModel().isObjectValid(newObjNonMatFromExternalPointer))
+            .isTrue();
+        assertThat(((SMGSinglyLinkedListSegment) newObjNonMatFromExternalPointer).getMinLength())
+            .isEqualTo(TEST_LIST_LENGTH - (i + 1));
+        // Now from the materialized state
         SMGStateAndOptionalSMGObjectAndOffset nextObjAndStateFromExternalPointer =
             currentState.dereferencePointerWithoutMaterilization(pointers[i + 1]).orElseThrow();
         currentState = nextObjAndStateFromExternalPointer.getSMGState();
         SMGObject newObjFromExternalPointer = nextObjAndStateFromExternalPointer.getSMGObject();
-        assertThat(newObjFromExternalPointer).isInstanceOf(SMGDoublyLinkedListSegment.class);
+        assertThat(newObjFromExternalPointer).isInstanceOf(SMGObject.class);
         assertThat(currentState.getMemoryModel().isObjectValid(newObjFromExternalPointer)).isTrue();
-        assertThat(((SMGDoublyLinkedListSegment) newObjFromExternalPointer).getMinLength())
-            .isEqualTo(TEST_LIST_LENGTH - (i + 1));
+        assertThat(newObjFromExternalPointer).isEqualTo(nextObj);
         // Check the nesting level
         // We only change the nesting level for the values mappings to pointers and in the objects
         // but not the mapping to Values
@@ -1097,9 +1139,38 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGObject newObj = returnedObjAndState.getSMGObject();
       assertThat(newObj).isNotSameInstanceAs(SMGSinglyLinkedListSegment.class);
       assertThat(currentState.getMemoryModel().isObjectValid(newObj)).isTrue();
-      // get(0) takes the list that is not extending for 0+
+
+      List<ValueAndSMGState> payloadAndState =
+          currentState.readValue(newObj, hfo, pointerSizeInBits, null);
+      // The hfo never materializes
+      assertThat(payloadAndState).hasSize(1);
+      currentState = payloadAndState.get(0).getState();
+      Value payloadValue = payloadAndState.get(0).getValue();
+      assertThat(payloadValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
+
+      // Read would normally materialize, we want to check the correct min length of the list first
       ValueAndSMGState nextPointerAndState =
-          currentState.readValue(newObj, pointerSizeInBits, pointerSizeInBits, null).get(0);
+          currentState.readValueWithoutMaterialization(newObj, nfo, pointerSizeInBits, null);
+
+      SMGState nonMatCurrentState = nextPointerAndState.getState();
+      Value nonMatNextPointer = nextPointerAndState.getValue();
+      assertThat(nonMatCurrentState.getMemoryModel().isPointer(nonMatNextPointer)).isTrue();
+
+      Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeNextNonMatObj =
+          nonMatCurrentState.dereferencePointerWithoutMaterilization(nonMatNextPointer);
+      assertThat(maybeNextNonMatObj).isPresent();
+      SMGStateAndOptionalSMGObjectAndOffset nextNonMatObjAndState =
+          maybeNextNonMatObj.orElseThrow();
+      nonMatCurrentState = nextNonMatObjAndState.getSMGState();
+      SMGObject nextNonMatObj = nextNonMatObjAndState.getSMGObject();
+      assertThat(nextNonMatObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+      assertThat(nonMatCurrentState.getMemoryModel().isObjectValid(nextNonMatObj)).isTrue();
+      assertThat(((SMGSinglyLinkedListSegment) nextNonMatObj).getMinLength())
+          .isEqualTo(TEST_LIST_LENGTH - i - 1);
+
+      // get(0) takes the list that is not extending for 0+
+      nextPointerAndState = currentState.readValue(newObj, nfo, pointerSizeInBits, null).get(0);
+
       currentState = nextPointerAndState.getState();
       for (Entry<SMGValue, SMGPointsToEdge> entry :
           currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
@@ -1129,10 +1200,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGStateAndOptionalSMGObjectAndOffset nextObjAndState = maybeNextObj.orElseThrow();
         currentState = nextObjAndState.getSMGState();
         SMGObject nextObj = nextObjAndState.getSMGObject();
-        assertThat(nextObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(nextObj).isInstanceOf(SMGObject.class);
         assertThat(currentState.getMemoryModel().isObjectValid(nextObj)).isTrue();
-        assertThat(((SMGSinglyLinkedListSegment) nextObj).getMinLength())
-            .isEqualTo(TEST_LIST_LENGTH - i - 1);
         // Check the nesting level
         // We only change the nesting level for the values mappings to pointers and in the objects
         // but not the mapping to Values
@@ -1144,15 +1213,29 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           }
         }
 
-        // Now get the next obj from the next pointer in the array. It should be the same obj
+        // Now get the next obj from the next pointer in the array WITHOUT deref.
+        // It should be the same obj as above with the same length
+        SMGStateAndOptionalSMGObjectAndOffset nextObjNonMatAndStateFromExternalPointer =
+            nonMatCurrentState
+                .dereferencePointerWithoutMaterilization(pointers[i + 1])
+                .orElseThrow();
+        nonMatCurrentState = nextObjNonMatAndStateFromExternalPointer.getSMGState();
+        SMGObject newObjNonMatFromExternalPointer =
+            nextObjNonMatAndStateFromExternalPointer.getSMGObject();
+        assertThat(newObjNonMatFromExternalPointer).isInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(
+                nonMatCurrentState.getMemoryModel().isObjectValid(newObjNonMatFromExternalPointer))
+            .isTrue();
+        assertThat(((SMGSinglyLinkedListSegment) newObjNonMatFromExternalPointer).getMinLength())
+            .isEqualTo(TEST_LIST_LENGTH - (i + 1));
+        // Now from the materialized state
         SMGStateAndOptionalSMGObjectAndOffset nextObjAndStateFromExternalPointer =
             currentState.dereferencePointerWithoutMaterilization(pointers[i + 1]).orElseThrow();
         currentState = nextObjAndStateFromExternalPointer.getSMGState();
         SMGObject newObjFromExternalPointer = nextObjAndStateFromExternalPointer.getSMGObject();
-        assertThat(newObjFromExternalPointer).isInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(newObjFromExternalPointer).isInstanceOf(SMGObject.class);
         assertThat(currentState.getMemoryModel().isObjectValid(newObjFromExternalPointer)).isTrue();
-        assertThat(((SMGSinglyLinkedListSegment) newObjFromExternalPointer).getMinLength())
-            .isEqualTo(TEST_LIST_LENGTH - (i + 1));
+        assertThat(newObjFromExternalPointer).isEqualTo(nextObj);
         // Check the nesting level
         // We only change the nesting level for the values mappings to pointers and in the objects
         // but not the mapping to Values

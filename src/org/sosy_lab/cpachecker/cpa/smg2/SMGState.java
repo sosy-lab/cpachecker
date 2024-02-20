@@ -1588,7 +1588,8 @@ public class SMGState
                       otherSLL.getNextOffset(),
                       memoryModel.getSizeOfPointer(),
                       null,
-                      options.isPreciseSMGRead());
+                      options.isPreciseSMGRead(),
+                      false);
 
           for (ValueAndSMGState stateAndUseless : readStatesAndUseless) {
             if (stateAndUseless
@@ -2616,23 +2617,26 @@ public class SMGState
       BigInteger pSizeofInBits,
       @Nullable CType readType)
       throws SMGException {
-    // TODO: check that: Might materialize a list if an abstracted 0+ list pointer not-pointing to
-    // the head of the abstracted memory
-    //   * is read. is strict
-    return readValue(pObject, pFieldOffset, pSizeofInBits, readType, options.isPreciseSMGRead());
+
+    return readValue(
+        pObject, pFieldOffset, pSizeofInBits, readType, options.isPreciseSMGRead(), true);
   }
 
   /**
    * Read the value in the {@link SMGObject} at the position specified by the offset and size.
    * Checks for validity of the object and if its externally allocated and may fail because of that.
    * The read {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the
-   * known value is used, unknown symbolic else. Might materialize a list if an abstracted 0+ list
-   * is read.
+   * known value is used, unknown symbolic else. Might materialize a list if an abstracted list is
+   * read (Materializes if we read a pointer to an abstract list that does not point towards the
+   * head).
    *
    * @param pObject {@link SMGObject} where to read. May not be 0.
    * @param pFieldOffset {@link BigInteger} offset.
    * @param pSizeofInBits {@link BigInteger} sizeInBits.
    * @param readType the {@link CType} of the read. Not cast! Null for irrelevant types.
+   * @param preciseRead if true, tries to read partial has value edges (e.g. read a short from an
+   *     int)
+   * @param materialize if true, materializes correctly. Never materializes on false.
    * @return The {@link Value} read and the {@link SMGState} after the read.
    * @throws SMGException for critical errors if a list is materialized.
    */
@@ -2641,7 +2645,8 @@ public class SMGState
       BigInteger pFieldOffset,
       BigInteger pSizeofInBits,
       @Nullable CType readType,
-      boolean preciseRead)
+      boolean preciseRead,
+      boolean materialize)
       throws SMGException {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ImmutableList.of(
@@ -2662,7 +2667,7 @@ public class SMGState
               + readType
               + " from memory, as multiple values would need to be combined. The analysis defaulted"
               + " back to symbolic read.");
-      return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false);
+      return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
     }
     SMGHasValueEdge readSMGValueEdge = valueAndNewSPC.getSMGHasValueEdges().get(0);
     boolean exactRead =
@@ -2671,9 +2676,12 @@ public class SMGState
     SMGValue readSMGValue = readSMGValueEdge.hasValue();
     ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     if (memoryModel.getSmg().isPointer(readSMGValue)
-        && memoryModel.getSmg().pointsToZeroPlus(readSMGValue)
-        && exactRead) {
-      // 0+ needs Materialization as we generate 2 states, one of which deleted the 0+, and for this
+        && memoryModel.getSmg().pointsToMaterializableList(readSMGValue, pFieldOffset)
+        && exactRead
+        && materialize) {
+      // TODO: do we need to materialize if the object read is abstract (and we read non head)?
+      // Materialize for all pointers towards an abstracted list, excluding the hfo offset
+      // Materialization might generate 2 states, one of which deleted the 0+, and for this
       // state the read value is wrong!
       for (SMGStateAndOptionalSMGObjectAndOffset newState :
           materializeLinkedList(
@@ -2682,7 +2690,9 @@ public class SMGState
               currentState)) {
         // This is expected not to Materialize again
         List<ValueAndSMGState> readAfterMat =
-            newState.getSMGState().readValue(pObject, pFieldOffset, pSizeofInBits, readType, false);
+            newState
+                .getSMGState()
+                .readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
         Preconditions.checkArgument(readAfterMat.size() == 1);
         returnBuilder.addAll(readAfterMat);
       }
@@ -2690,7 +2700,7 @@ public class SMGState
       Optional<Value> maybeValue = getMemoryModel().getValueFromSMGValue(readSMGValue);
       if (!exactRead) {
         if (maybeValue.isEmpty()) {
-          return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false);
+          return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
         } else {
           // Interpret the larger value as a smaller
           // TODO: general case with overlapping values
@@ -2703,7 +2713,7 @@ public class SMGState
                 "Failed to accurately read type "
                     + readType
                     + " from memory and default back to symbolic read.");
-            return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false);
+            return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
           }
           returnBuilder.add(ValueAndSMGState.of(valueInterpretation, currentState));
           return returnBuilder.build();
@@ -2714,7 +2724,20 @@ public class SMGState
     return returnBuilder.build();
   }
 
-  // Similar to readValue but without materialization. For internal == comparisons.
+  /**
+   * This method does not check the boundaries of the read! Reads without materialization. Read the
+   * value in the {@link SMGObject} at the position specified by the offset and size. Checks for
+   * validity of the object and if its externally allocated and may fail because of that. The read
+   * {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the known
+   * value is used, unknown symbolic else.
+   *
+   * @param pObject {@link SMGObject} where to read. May not be 0.
+   * @param pFieldOffset {@link BigInteger} offset.
+   * @param pSizeofInBits {@link BigInteger} sizeInBits.
+   * @param readType the {@link CType} of the read. Not cast! Null for irrelevant types.
+   * @return The {@link Value} read and the {@link SMGState} after the read.
+   * @throws SMGException for critical errors if a list is materialized.
+   */
   public ValueAndSMGState readValueWithoutMaterialization(
       SMGObject pObject,
       BigInteger pFieldOffset,
@@ -4396,22 +4419,11 @@ public class SMGState
       SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState) throws SMGException {
     SMGState currentState = pState;
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
-      int abstractionMinLen = ((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength();
-      int ptrNestingLvl = memoryModel.getNestingLevel(initialPointerValue);
       // Nesting is ordered that the pointer to the first element (from the left) starts with
       // abstractionMinLen - 1, then decrements until the last concrete element has nesting lvl 0
-      List<SMGValueAndSMGState> newPointersValueAndStates;
-      if (ptrNestingLvl < abstractionMinLen / 2 && abstractionMinLen > 0) {
-        // Idea: When we always materialize from the left to the right, we end up with a 0+ in the
-        // very right, which blocks us from extending the list to the right. So we materialize from
-        // the right in cases in which the pointer is more on the right side of the abstracted list,
-        // so that the 0+ would end up on the left end.
-        newPointersValueAndStates =
-            currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
-      } else {
-        newPointersValueAndStates =
-            currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
-      }
+      List<SMGValueAndSMGState> newPointersValueAndStates =
+          currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
+
       if (newPointersValueAndStates.size() == 2) {
         Preconditions.checkArgument(
             ((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength() == 0);

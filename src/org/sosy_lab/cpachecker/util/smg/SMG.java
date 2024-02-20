@@ -1345,6 +1345,23 @@ public class SMG {
   }
 
   /**
+   * Returns true if the value is a pointer that points to an abstracted list segment not equalling
+   * the head offset. Else false.
+   *
+   * @param value some {@link SMGValue}. Does not have to be a pointer.
+   * @return true for SLL or DLL target with non hfo offset. false else.
+   */
+  public boolean pointsToMaterializableList(@Nullable SMGValue value, BigInteger hfo) {
+    if (value == null) {
+      return false;
+    }
+    Optional<SMGPointsToEdge> maybePTEdge = getPTEdge(value);
+    return maybePTEdge.isPresent()
+        && maybePTEdge.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment linkedList
+        && !linkedList.getHeadOffset().equals(hfo);
+  }
+
+  /**
    * Checks whether a given value is a pointer address.
    *
    * @param pValue to be checked
