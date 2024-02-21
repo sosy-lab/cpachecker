@@ -47,10 +47,6 @@ public final class CInitializerExpression extends AInitializerExpression impleme
       return true;
     }
 
-    if (!(obj instanceof CInitializerExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CInitializerExpression && super.equals(obj);
   }
 }

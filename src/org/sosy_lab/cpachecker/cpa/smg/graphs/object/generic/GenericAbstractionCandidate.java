@@ -74,7 +74,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     GenericAbstraction genericAbstraction =
         GenericAbstraction.valueOf(machineModel, materlisationStep, abstractToConcretePointerMap);
 
-    /* Second, create the pointer that lead from/to this abstraction. */
+    // Second, create the pointer that lead from/to this abstraction.
     Set<SMGEdgePointsTo> pointsToThisAbstraction = new HashSet<>();
     Set<SMGEdgeHasValue> pointsFromThisAbstraction = new HashSet<>();
 

@@ -594,7 +594,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *   <li>Variable: required
      * </ul>
      */
-    ACTUAL_OUT;
+    ACTUAL_OUT,
   }
 
   /** Type for system dependence graph edges. */
@@ -640,7 +640,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *
      * <p>Edges with this type should always be intra-procedural.
      */
-    SUMMARY_EDGE;
+    SUMMARY_EDGE,
   }
 
   /**
@@ -760,13 +760,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         return true;
       }
 
-      if (!(pObject instanceof Node)) {
-        return false;
-      }
-
-      Node<?, ?, ?> other = (Node<?, ?, ?>) pObject;
-
-      return id == other.id
+      return pObject instanceof Node<?, ?, ?> other
+          && id == other.id
           && hash == other.hash
           && type == other.type
           && Objects.equals(procedure, other.procedure)
@@ -825,12 +820,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         return true;
       }
 
-      if (!(pObject instanceof GraphNode)) {
-        return false;
-      }
-
-      GraphNode<?, ?> other = (GraphNode<?, ?>) pObject;
-      return node.equals(other.node);
+      return pObject instanceof GraphNode<?, ?> other && node.equals(other.node);
     }
 
     @Override
@@ -1015,12 +1005,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       if (this == pObject) {
         return true;
       }
-
-      if (pObject == null) {
-        return false;
-      }
-
-      if (getClass() != pObject.getClass()) {
+      if (pObject == null || getClass() != pObject.getClass()) {
         return false;
       }
 
@@ -1465,12 +1450,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       if (this == pObject) {
         return true;
       }
-
-      if (pObject == null) {
-        return false;
-      }
-
-      if (getClass() != pObject.getClass()) {
+      if (pObject == null || getClass() != pObject.getClass()) {
         return false;
       }
 
@@ -1561,7 +1541,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *
      * <p>The traversal still continues for other edges and nodes that were not skipped.
      */
-    SKIP;
+    SKIP,
   }
 
   /**

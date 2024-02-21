@@ -14,19 +14,36 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /** Generic feasibility checker */
+@Options(prefix = "util.refinement")
 public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
     implements FeasibilityChecker<S> {
+
+  /*
+   * The feasibility checker and refiner refine by path.
+   * If the location that is flagged as error location is reachable, the error is feasible.
+   * This of course does not hold for MemorySafety, where the ErrorInfo also has to be set!
+   */
+  @Option(
+      secure = true,
+      description = "Whether or not one wants to refine MemorySafety errors.",
+      name = "refineMemorySafety",
+      toUppercase = true)
+  private boolean refineMemorySafety = false;
 
   private final LogManager logger;
 
@@ -43,6 +60,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
       final CFA pCfa)
       throws InvalidConfigurationException {
 
+    pConfig.inject(this, GenericFeasibilityChecker.class);
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;
@@ -59,7 +77,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   @Override
   public boolean isFeasible(final ARGPath pPath, final S pStartingPoint)
       throws CPAException, InterruptedException {
-    return isFeasible(pPath, pStartingPoint, new ArrayDeque<S>());
+    return isFeasible(pPath, pStartingPoint, new ArrayDeque<>());
   }
 
   @Override
@@ -86,10 +104,26 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
         iterator.advance();
       }
 
+      if (refineMemorySafety) {
+        for (AbstractState state : iterator.getAbstractState().getWrappedStates()) {
+          if (state instanceof SMGState && next instanceof SMGState) {
+            if (((SMGState) state)
+                .getErrorInfo().stream().anyMatch(((SMGState) next).getErrorInfo()::contains)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
       return true;
     } catch (CPATransferException e) {
       throw new CPAException(
           "Computation of successor failed for checking path: " + e.getMessage(), e);
     }
+  }
+
+  @Override
+  public boolean isRefineMemorySafety() {
+    return refineMemorySafety;
   }
 }

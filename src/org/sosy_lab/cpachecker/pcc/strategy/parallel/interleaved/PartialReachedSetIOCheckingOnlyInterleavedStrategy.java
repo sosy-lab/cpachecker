@@ -28,6 +28,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -44,21 +45,25 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends AbstractStrategy {
 
   private final PartitioningIOHelper ioHelper;
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
+  private final CFA injectedCFA;
 
   public PartialReachedSetIOCheckingOnlyInterleavedStrategy(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Path pProofFile,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA pCpa,
+      final @Nullable CFA pInjectedCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    injectedCFA = pInjectedCFA;
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
@@ -89,7 +94,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create reading thread");
-    Thread readingThread = new Thread(new PartitionReader(checkResult, partitionsAvailable));
+    Thread readingThread =
+        new Thread(new PartitionReader(injectedCFA, checkResult, partitionsAvailable));
     try {
       readingThread.start();
 
@@ -204,15 +210,19 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
     private final AtomicBoolean checkResult;
     private final Semaphore mainSemaphore;
+    private final CFA cfa;
 
-    public PartitionReader(final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
+    public PartitionReader(
+        final CFA pCFA, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
       checkResult = pCheckResult;
       mainSemaphore = pPartitionChecked;
+      cfa = pCFA;
     }
 
     @Override
     @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
+      SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
       try (ObjectInputStream o = openProofStream()) {
         ioHelper.readMetadata(o, false);
 
@@ -231,6 +241,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       } catch (Exception e2) {
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abortPreparation();
+      } finally {
+        SerializationInfoStorage.clear();
       }
     }
 

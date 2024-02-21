@@ -297,7 +297,7 @@ class ReachedSetExecutor {
   }
 
   private static String id(final Collection<AbstractState> states) {
-    return Collections2.transform(states, s -> id(s)).toString();
+    return Collections2.transform(states, ReachedSetExecutor::id).toString();
   }
 
   private static String id(final AbstractState state) {
@@ -385,8 +385,8 @@ class ReachedSetExecutor {
           : String.format(
               "result-states already registered for reached-set %s: current = %s, cached = %s",
               id(rs),
-              Collections2.transform(exitStates, s -> id(s)),
-              Collections2.transform(entry.getExitStates(), s -> id(s)));
+              Collections2.transform(exitStates, ReachedSetExecutor::id),
+              Collections2.transform(entry.getExitStates(), ReachedSetExecutor::id));
       entry.setExitStates(exitStates);
       entry.setRootOfBlock(null);
     }

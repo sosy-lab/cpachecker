@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CExpressionStatement extends AExpressionStatement implements CStatement {
+public final class CExpressionStatement extends AExpressionStatement implements CStatement {
 
   private static final long serialVersionUID = 536239630070098410L;
 
@@ -47,10 +47,6 @@ public class CExpressionStatement extends AExpressionStatement implements CState
       return true;
     }
 
-    if (!(obj instanceof CExpressionStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CExpressionStatement && super.equals(obj);
   }
 }

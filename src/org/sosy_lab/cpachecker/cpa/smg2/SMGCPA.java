@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -29,6 +30,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -54,14 +56,22 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.smg2")
@@ -118,6 +128,11 @@ public class SMGCPA
 
   private final SMGCPAStatistics statistics;
 
+  private final SMGConstraintsSolver constraintsSolver;
+  private final Solver solver;
+
+  private final ConstraintsStatistics contraintsStats = new ConstraintsStatistics();
+
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
@@ -143,6 +158,14 @@ public class SMGCPA
 
     exportOptions =
         new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
+
+    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
+    CtoFormulaConverter converter =
+        initializeCToFormulaConverter(
+            formulaManager, pLogger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
+    constraintsSolver =
+        new SMGConstraintsSolver(solver, formulaManager, converter, contraintsStats, options);
   }
 
   public static CPAFactory factory() {
@@ -182,7 +205,17 @@ public class SMGCPA
   @Override
   public TransferRelation getTransferRelation() {
     return new SMGTransferRelation(
-        logger, options, exportOptions, cfa, constraintsStrengthenOperator, statistics);
+        logger,
+        options,
+        exportOptions,
+        cfa,
+        constraintsStrengthenOperator,
+        statistics,
+        constraintsSolver);
+  }
+
+  public SMGConstraintsSolver getSolver() {
+    return constraintsSolver;
   }
 
   @Override
@@ -321,5 +354,30 @@ public class SMGCPA
 
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
+  }
+
+  // Can only be called after machineModel and formulaManager are set
+  private CtoFormulaConverter initializeCToFormulaConverter(
+      FormulaManagerView pFormulaManager,
+      LogManager pLogger,
+      Configuration pConfig,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+
+    FormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new FormulaEncodingWithPointerAliasingOptions(pConfig);
+    TypeHandlerWithPointerAliasing typeHandler =
+        new TypeHandlerWithPointerAliasing(logger, pMachineModel, formulaOptions);
+
+    return new CToFormulaConverterWithPointerAliasing(
+        formulaOptions,
+        pFormulaManager,
+        pMachineModel,
+        Optional.empty(),
+        pLogger,
+        pShutdownNotifier,
+        typeHandler,
+        AnalysisDirection.FORWARD);
   }
 }

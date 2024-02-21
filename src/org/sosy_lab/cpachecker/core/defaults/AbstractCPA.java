@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.defaults;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -68,7 +69,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   protected MergeOperator buildMergeOperator(String pMergeType) {
-    switch (pMergeType.toUpperCase()) {
+    switch (Ascii.toUpperCase(pMergeType)) {
       case "SEP":
         return MergeSepOperator.getInstance();
 
@@ -86,7 +87,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   protected StopOperator buildStopOperator(String pStopType) throws AssertionError {
-    switch (pStopType.toUpperCase()) {
+    switch (Ascii.toUpperCase(pStopType)) {
       case "SEP": // state is LESS_OR_EQUAL to any reached state
         return new StopSepOperator(getAbstractDomain());
 

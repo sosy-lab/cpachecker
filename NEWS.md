@@ -8,6 +8,13 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 2.2
+----------------------------
+* Java 17 required  
+  Since revision r42803 CPAchecker requires Java 17 or newer
+  in order to be built or executed.
+
+
 Changes from CPAchecker 2.1.1 to CPAchecker 2.2
 -----------------------------------------------
 * Compatibility with Java 18 on non-UTF-8 machines, e.g., Windows  

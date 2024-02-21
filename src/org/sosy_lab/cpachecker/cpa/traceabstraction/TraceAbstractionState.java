@@ -68,11 +68,8 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof TraceAbstractionState)) {
-      return false;
-    }
-    TraceAbstractionState other = (TraceAbstractionState) obj;
-    return Objects.equals(activePredicates, other.activePredicates);
+    return obj instanceof TraceAbstractionState other
+        && Objects.equals(activePredicates, other.activePredicates);
   }
 
   @Override

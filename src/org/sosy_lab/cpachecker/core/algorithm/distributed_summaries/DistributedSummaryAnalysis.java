@@ -157,8 +157,7 @@ public class DistributedSummaryAnalysis implements Algorithm {
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
               cfa,
-              new InMemoryBlockSummaryConnectionProvider(
-                  () -> new BlockSummarySortedMessageQueue()),
+              new InMemoryBlockSummaryConnectionProvider(BlockSummarySortedMessageQueue::new),
               specification,
               configuration,
               shutdownManager);
@@ -208,9 +207,9 @@ public class DistributedSummaryAnalysis implements Algorithm {
         }
         return resultPair.getFirst();
       }
-    } catch (InvalidConfigurationException | IOException pE) {
-      logger.logException(Level.SEVERE, pE, "Block analysis stopped unexpectedly.");
-      throw new CPAException("Component Analysis run into an error.", pE);
+    } catch (InvalidConfigurationException | IOException e) {
+      logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
+      throw new CPAException("Component Analysis run into an error.", e);
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }

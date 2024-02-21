@@ -65,23 +65,25 @@ public class InformationProvider implements FaultExplanation {
   public String explanationFor(Fault fault) {
     Set<String> tokens = FaultRankingUtils.findTokensInFault(fault);
     Set<String> availableToken = Sets.intersection(iterationVariables, tokens);
-    String explanation = "";
-    if (!availableToken.isEmpty()) {
-      explanation +=
-          "This fault operates on the following iteration variables: " + availableToken + ".";
-    }
+    String explanation;
     boolean hasCalc =
         fault.stream()
             .map(fc -> fc.correspondingEdge().getDescription())
             .anyMatch(MATCH_ARRAY_OPERATION.asPredicate());
-    if (hasCalc) {
-      if (!availableToken.isEmpty()) {
+    if (!availableToken.isEmpty()) {
+      explanation =
+          "This fault operates on the following iteration variables: " + availableToken + ".";
+      if (hasCalc) {
         explanation +=
             " Additionally, some calculations happen within the array subscript. Please take a"
                 + " closer look.";
-      } else {
-        explanation +=
+      }
+    } else {
+      if (hasCalc) {
+        explanation =
             "Some calculations happen within the array subscript. Please take a closer look.";
+      } else {
+        explanation = "";
       }
     }
     return explanation;

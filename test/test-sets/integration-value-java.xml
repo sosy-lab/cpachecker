@@ -122,6 +122,6 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <includesfile>../programs/java-benchmarks/ReachSafety-Java.set</includesfile>
-    <propertyfile>../programs/java-benchmarks/properties/assert.prp</propertyfile>
+    <propertyfile>../programs/java-benchmarks/properties/assert_java.prp</propertyfile>
   </tasks>
 </benchmark>

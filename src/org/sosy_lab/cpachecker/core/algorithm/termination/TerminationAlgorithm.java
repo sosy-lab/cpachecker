@@ -187,7 +187,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     terminationInformation = terminationCpa.getTerminationInformation();
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
-    for (CFANode function : cfa.getAllFunctionHeads()) {
+    for (CFANode function : cfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
     }
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
@@ -426,8 +426,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean containsBinaryOperation(CRightHandSide expression) {
-    if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExp = (CBinaryExpression) expression;
+    if (expression instanceof CBinaryExpression binaryExp) {
       BinaryOperator operator = binaryExp.getOperator();
 
       if (isBitwiseBinaryOperation(operator)
@@ -438,8 +437,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       return containsBinaryOperation(binaryExp.getOperand1())
           || containsBinaryOperation(binaryExp.getOperand2());
     }
-    if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExp = (CUnaryExpression) expression;
+    if (expression instanceof CUnaryExpression unaryExp) {
       UnaryOperator operator = unaryExp.getOperator();
 
       if (operator.equals(UnaryOperator.TILDE)) {
@@ -489,13 +487,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     boolean equalFactorsFound = false;
-    if (pExpression instanceof CBinaryExpression) {
-
-      CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
-      if (binaryExpression.getOperator() == BinaryOperator.MULTIPLY) {
-        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
-        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
-      }
+    if ((pExpression instanceof CBinaryExpression binaryExpression)
+        && (binaryExpression.getOperator() == BinaryOperator.MULTIPLY)) {
+      equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
+      equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
     }
 
     return equalFactorsFound;
@@ -516,8 +511,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean possiblyNotEqualsNullPointer(final CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      CBinaryExpression binExpr = (CBinaryExpression) expr;
+    if (expr instanceof CBinaryExpression binExpr) {
       if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
           && binExpr.getOperand2() instanceof CCastExpression
           && binExpr.getOperand2().getExpressionType() instanceof CPointerType
@@ -601,7 +595,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
     Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
-    Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
+    Preconditions.checkArgument(!cfa.nodes().contains(extractLocation(pTargetState)));
     ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
     Preconditions.checkArgument(targetState.getCounterexampleInformation().isPresent());
     CounterexampleInfo counterexample = targetState.getCounterexampleInformation().orElseThrow();
@@ -653,7 +647,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         CFANode location = outgoingEdge.getPredecessor();
         CFANode nextLocation = outgoingEdge.getSuccessor();
 
-        if (cfa.getAllNodes().contains(location) && cfa.getAllNodes().contains(nextLocation)) {
+        if (cfa.nodes().contains(location) && cfa.nodes().contains(nextLocation)) {
 
           if (targetPathIt.isPositionWithState() || lastStateInCfa.isPresent()) {
             ARGState state = lastStateInCfa.orElseGet(targetPathIt::getAbstractState);
@@ -669,7 +663,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
           lastStateInCfa = Optional.empty();
 
-        } else if (cfa.getAllNodes().contains(location) && targetPathIt.isPositionWithState()) {
+        } else if (cfa.nodes().contains(location) && targetPathIt.isPositionWithState()) {
           lastStateInCfa = Optional.of(targetPathIt.getAbstractState());
         }
       }
@@ -809,9 +803,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
       if (pEdge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
-        if (declaration instanceof CVariableDeclaration) {
-          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.isGlobal()) {
             globalDeclarations.add(variableDeclaration);
 

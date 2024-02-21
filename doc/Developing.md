@@ -66,15 +66,28 @@ This also works with GitHub.
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-0. Install a Java 11 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
+0. Install a Java 17 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
 
-1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.6, with JDT.
+1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.22, with JDT.
+   If you have more than one Java version installed,
+   make sure to start Eclipse with Java 17 or newer.
 
 2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
    from the most recent [google-java-format release](https://github.com/google/google-java-format/releases)
    and put it into the `dropins` folder of your Eclipse installation
    (where you extracted the Eclipse archive, not the workspace).
+   Open the `eclipse.ini` file in your Eclipse installation and append the following lines:
+
+```
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.util=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
+```
 
 3. Install an SVN plugin for Eclipse, e.g. [SubClipse](http://subclipse.tigris.org).
    Create new project from [SVN repository](https://svn.sosy-lab.org/software/cpachecker/trunk)
@@ -84,9 +97,9 @@ Develop CPAchecker from within Eclipse
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 5. If Eclipse complains about a missing JDK
-   (`Unbound classpath container: 'JRE System Library [JavaSE-11]'`),
+   (`Unbound classpath container: 'JRE System Library [JavaSE-17]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
-   click the "Search" button and select the path where your Java 11 installation
+   click the "Search" button and select the path where your Java 17 installation
    can be found (on Ubuntu `/usr/lib/jvm` will do).
 
 6. In order to run CPAchecker, use one of the supplied launch configurations
@@ -131,18 +144,45 @@ We use javac, the Eclipse Java Compiler,
 for findings bugs in the source, and we keep CPAchecker
 free of warnings from all these tools.
 You can run them all at once (plus the unit tests) with `ant all-checks`.
+There is one additional check (Refaster) that is not included
+because it needs additional setup, cf. below.
 
-Our [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
+Our [CI](https://gitlab.com/sosy-lab/software/cpachecker/-/pipelines)
 will also execute these checks and send mails to the developer list
 (cf. [`Mailing.md`](Mailing.md), please apply for membership if you commit to CPAchecker).
 
 If any of these tools or the unit tests find a problem,
 please fix them as soon as possible (ideally before committing).
 
-The BuildBot also executes integration tests with thousands of CPAchecker runs
-in various configurations on every commit and checks for regression.
+Additionally, our [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
+executes integration tests with thousands of CPAchecker runs
+in various configurations on every commit to `trunk` and checks for regression.
 All major projects and configurations within CPAchecker should be part of this test suite.
 Please refer to [`Test.md`](Test.md) for more information.
+
+
+Refaster Setup
+--------------
+
+[Refaster](https://errorprone.info/docs/refaster) is a way to extend Google Error Prone
+with custom rules, and we have a [collection of such rules](https://gitlab.com/sosy-lab/software/refaster).
+To apply them to CPAchecker, the following setup is required:
+- Checkout rule repository with `git clone https://gitlab.com/sosy-lab/software/refaster.git` to some directory.
+- Add the following line to `build.properties` in the CPAchecker project directory
+  (create the file if you do not have it already):
+  ```
+  refaster.rule.file=/PATH_TO_YOUR_REFASTER_RULES_CHECKOUT/rule.refaster
+  ```
+- Then from time to time update the rules checkout
+  (the desired revision can be seen with `grep REFASTER_REPO_REVISION .gitlab-ci.yml` in the CPAchecker directory)
+  and compile the rules with the following command in the rules directory:
+  ```
+  ant build-refaster-rule -Drefaster.source.pattern=**/*.java -Derrorprone.version=ERROR_PRONE_VERSION
+  ```
+  (The desired Error Prone version can be seen with `grep REFASTER_VERSION .gitlab-ci.yml` in the CPAchecker directory.)
+
+Now you can execute the rules with `ant refaster`
+and an `error-prone.patch` file with the result will be created if there are recommendations.
 
 
 Debugging
@@ -162,6 +202,23 @@ Our JS code is postprocessed with [webpack](https://webpack.js.org/). Webpack bu
 
 During development, we also have a small development server that can be started via `npm run start`. This server automatically opens an example report file in the browser and enables live updates for any changes to the JS code. Since a fully rendered HTML file is necessary for this server, the example file was created by CPAchecker and can be found under `development_data/index.html`. Therefore, changes to the `report.html` file will not be updated automatically. It is important to keep this file up to date by hand after any changes to the `report.html` file.
 
+
+Offline Development
+-------------------
+
+Dependencies for CPAchecker are downloaded from an Ivy repository
+hosted at sosy-lab.org during build.
+Once all dependencies are cached locally, builds work offline.
+
+It is also possible to override the path to the Ivy repository
+and to use a fully local copy of the Ivy repository.
+Instructions for doing so can be found in our cross-project
+[wiki](https://gitlab.com/sosy-lab/doc/-/wikis/Using-a-Different-Ivy-Repository-for-Development).
+
+As a last resort for offline builds even if not all dependencies are available,
+one can disable Ivy with `ant -Divy.disable=true`.
+But of course, as soon as a missing dependency is required,
+this may not work.
 
 Releasing a New Version
 -----------------------

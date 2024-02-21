@@ -90,6 +90,7 @@ class EclipseCParser implements CParser {
     return path;
   }
 
+  @FunctionalInterface
   private interface FileParseWrapper {
     FileContent wrap(Path pFileName, FileToParse pContent) throws IOException;
   }

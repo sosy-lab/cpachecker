@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,11 +29,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
@@ -65,6 +67,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   // We need this because stackFrameDeclarations must not always exist, this does!
   private final CFunctionDeclaration cfaEntryFunctionDeclaration;
 
+  private final Collection<SMGErrorInfo> errorInfo;
+
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
   private SMGInterpolant(
       SMGOptions pOptions,
@@ -85,6 +89,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     allowedHeapValues = ImmutableSet.of();
     memoryModel =
         SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+    errorInfo = ImmutableList.of();
   }
 
   /**
@@ -104,7 +109,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackFrameDeclarations,
       CFunctionDeclaration pCfaEntryFunDecl,
       Set<Value> pAllowedHeapValues,
-      SymbolicProgramConfiguration memMod) {
+      SymbolicProgramConfiguration memMod,
+      Collection<SMGErrorInfo> pErrorInfo) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -120,6 +126,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     cfaEntryFunctionDeclaration = pCfaEntryFunDecl;
     allowedHeapValues = pAllowedHeapValues;
     memoryModel = memMod;
+    errorInfo = pErrorInfo;
   }
 
   // For UseDefInterpolation
@@ -133,7 +140,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       Map<String, CType> pVariableToTypeMap,
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackFrameDeclarations,
       CFunctionDeclaration pCfaEntryFunDecl,
-      Set<Value> pAllowedHeapValues) {
+      Set<Value> pAllowedHeapValues,
+      Collection<SMGErrorInfo> pErrorInfo) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -150,13 +158,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     allowedHeapValues = pAllowedHeapValues;
     try {
       memoryModel =
-          SMGState.of(
-                  machineModel,
-                  SymbolicProgramConfiguration.of(
-                      BigInteger.valueOf(pMachineModel.getSizeofPtrInBits())),
-                  logger,
-                  options,
-                  ImmutableList.of())
+          SMGState.of(machineModel, logger, options)
               .reconstructStackFrames(stackFrameDeclarations)
               .reconstructSMGStateFromNonHeapAssignments(
                   nonHeapAssignments,
@@ -164,10 +166,11 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
                   variableToTypeMap,
                   stackFrameDeclarations)
               .getMemoryModel();
-    } catch (SMG2Exception e) {
+    } catch (SMGException e) {
       memoryModel =
           SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
     }
+    errorInfo = pErrorInfo;
   }
 
   // Precondition
@@ -216,7 +219,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         stateForFrameInfo.getMemoryModel().getFunctionDeclarationsFromStackFrames(),
         cfaEntryFunctionDeclaration,
         allowedHeapValues,
-        memoryModel);
+        memoryModel,
+        errorInfo);
   }
 
   /** the interpolant representing "false" */
@@ -291,7 +295,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
             .addAll(allowedHeapValues)
             .addAll(other.allowedHeapValues)
             .build(),
-        memoryModel);
+        memoryModel,
+        errorInfo);
   }
 
   @Override
@@ -304,12 +309,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     if (this == obj) {
       return true;
     }
-
-    if (obj == null) {
-      return false;
-    }
-
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
 
@@ -326,7 +326,10 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
    */
   @Override
   public boolean isTrue() {
-    return !isFalse() && nonHeapAssignments.isEmpty() && allowedHeapValues.isEmpty();
+    return !isFalse()
+        && nonHeapAssignments.isEmpty()
+        && allowedHeapValues.isEmpty()
+        && errorInfo.isEmpty();
   }
 
   /**
@@ -336,7 +339,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
    */
   @Override
   public boolean isFalse() {
-    return nonHeapAssignments == null && allowedHeapValues == null;
+    return (nonHeapAssignments == null && allowedHeapValues == null) || !errorInfo.isEmpty();
   }
 
   public Set<Value> getAllowedHeapValues() {
@@ -357,7 +360,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
       // TODO: heap?
-      return SMGState.of(machineModel, memoryModel, logger, options, ImmutableList.of())
+      return SMGState.of(machineModel, logger, options)
           .reconstructStackFrames(stackFrameDeclarations);
       /*.reconstructSMGStateFromNonHeapAssignments(
       nonHeapAssignments,
@@ -457,7 +460,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         stackFrameDeclarations,
         cfaEntryFunctionDeclaration,
         allowedHeapValues,
-        memoryModel);
+        memoryModel,
+        errorInfo);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

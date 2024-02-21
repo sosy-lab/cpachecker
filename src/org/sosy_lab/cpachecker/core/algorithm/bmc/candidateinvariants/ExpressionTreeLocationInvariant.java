@@ -106,14 +106,11 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof ExpressionTreeLocationInvariant) {
-      ExpressionTreeLocationInvariant other = (ExpressionTreeLocationInvariant) pObj;
-      return groupId.equals(other.groupId)
-          && location.equals(other.location)
-          && expressionTree.equals(other.expressionTree)
-          && visitorCache == other.visitorCache;
-    }
-    return false;
+    return pObj instanceof ExpressionTreeLocationInvariant other
+        && groupId.equals(other.groupId)
+        && location.equals(other.location)
+        && expressionTree.equals(other.expressionTree)
+        && visitorCache == other.visitorCache;
   }
 
   @Override
@@ -148,13 +145,10 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof ManagerKey) {
-        ManagerKey other = (ManagerKey) pObj;
-        return formulaManagerView == other.formulaManagerView
-            && pathFormulaManager == other.pathFormulaManager
-            && Objects.equals(clearContext, other.clearContext);
-      }
-      return false;
+      return pObj instanceof ManagerKey other
+          && formulaManagerView == other.formulaManagerView
+          && pathFormulaManager == other.pathFormulaManager
+          && Objects.equals(clearContext, other.clearContext);
     }
   }
 }

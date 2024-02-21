@@ -89,8 +89,18 @@ public class ARGUtils {
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
   public static ImmutableSet<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
+    return getAllStatesOnPathsTo(ImmutableList.of(pLastElement));
+  }
+
+  /**
+   * Get all elements on all paths from the ARG root to a set of given elements.
+   *
+   * @param pLastElements The last elements in the paths.
+   * @return A set of elements, all of which have one of pLastElements as their (transitive) child.
+   */
+  public static ImmutableSet<ARGState> getAllStatesOnPathsTo(Iterable<ARGState> pLastElements) {
     return ImmutableSet.copyOf(
-        Traverser.forGraph(ARGState::getParents).depthFirstPreOrder(pLastElement));
+        Traverser.forGraph(ARGState::getParents).depthFirstPreOrder(pLastElements));
   }
 
   /** Get all abstract states without parents. */
@@ -173,7 +183,7 @@ public class ARGUtils {
    * @return A path from root to lastElement.
    */
   public static ARGPath getOnePathTo(ARGState pLastElement) {
-    return getOnePathFromTo((x) -> x.getParents().isEmpty(), pLastElement);
+    return getOnePathFromTo(x -> x.getParents().isEmpty(), pLastElement);
   }
 
   public static Optional<ARGPath> getOnePathTo(
@@ -1057,8 +1067,7 @@ public class ARGUtils {
 
         // skip function calls
         if (edge instanceof FunctionCallEdge) {
-          FunctionSummaryEdge sumEdge = ((FunctionCallEdge) edge).getSummaryEdge();
-          CFANode sumEdgeSuccessor = sumEdge.getSuccessor();
+          CFANode sumEdgeSuccessor = ((FunctionCallEdge) edge).getReturnNode();
 
           // only continue if we do not meet the loophead again
           if (!sumEdgeSuccessor.equals(loopHead)) {
@@ -1071,7 +1080,7 @@ public class ARGUtils {
           handleUseFirstNode(sb, curNode, true);
 
           sb.append("    ( CHECK(location, \"functionname==")
-              .append(sumEdge.getPredecessor().getFunctionName())
+              .append(edge.getPredecessor().getFunctionName())
               .append("\")) -> ");
 
           handlePossibleOutOfLoopSuccessor(sb, intoLoopState, loopHead, sumEdgeSuccessor);

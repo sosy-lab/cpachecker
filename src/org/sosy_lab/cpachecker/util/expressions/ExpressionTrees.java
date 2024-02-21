@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -180,7 +181,7 @@ public final class ExpressionTrees {
 
   public static <LeafType> Iterable<ExpressionTree<LeafType>> traverseRecursively(
       ExpressionTree<LeafType> pExpressionTree) {
-    return Traverser.<ExpressionTree<LeafType>>forTree(node -> getChildren(node))
+    return Traverser.<ExpressionTree<LeafType>>forTree(ExpressionTrees::getChildren)
         .depthFirstPreOrder(pExpressionTree);
   }
 
@@ -193,7 +194,7 @@ public final class ExpressionTrees {
             // A clause may be a single literal or a disjunction of literals
             assert getChildren(pAnd).allMatch(pClause -> !isAnd(pClause))
                 : "A conjunction must not contain child conjunctions";
-            return getChildren(pAnd).allMatch(pClause -> isCNFClause(pClause));
+            return getChildren(pAnd).allMatch(ExpressionTrees::isCNFClause);
           }
 
           @Override
@@ -237,7 +238,7 @@ public final class ExpressionTrees {
             // A clause may be a single literal or a conjunction of literals
             assert getChildren(pOr).allMatch(pClause -> !isOr(pClause))
                 : "A disjunction must not contain child disjunctions";
-            return getChildren(pOr).allMatch(pClause -> isDNFClause(pClause));
+            return getChildren(pOr).allMatch(ExpressionTrees::isDNFClause);
           }
 
           @Override
@@ -267,7 +268,7 @@ public final class ExpressionTrees {
       return pExpressionTree;
     }
     if (isOr(pExpressionTree)) {
-      return Or.of(getChildren(pExpressionTree).transform(pExprTree -> toDNF(pExprTree)));
+      return Or.of(getChildren(pExpressionTree).transform(ExpressionTrees::toDNF));
     }
     assert isAnd(pExpressionTree);
     Iterator<ExpressionTree<LeafType>> elementIterator = getChildren(pExpressionTree).iterator();
@@ -309,7 +310,7 @@ public final class ExpressionTrees {
       return pExpressionTree;
     }
     if (isAnd(pExpressionTree)) {
-      return And.of(getChildren(pExpressionTree).transform(pExprTree -> toCNF(pExprTree)));
+      return And.of(getChildren(pExpressionTree).transform(ExpressionTrees::toCNF));
     }
     assert isOr(pExpressionTree);
     Iterator<ExpressionTree<LeafType>> elementIterator = getChildren(pExpressionTree).iterator();
@@ -891,4 +892,27 @@ public final class ExpressionTrees {
           return 4;
         }
       };
+
+  public static ExpressionTree<Object> removeCPAcheckerInternals(ExpressionTree<Object> pExprTree) {
+    ContainsCPAcheckerInternalVisitor cpacheckerInternalsVisitor =
+        new ContainsCPAcheckerInternalVisitor();
+    Function<Object, Boolean> removalFunction =
+        x -> {
+          try {
+            return ((CExpression) x).accept(cpacheckerInternalsVisitor);
+          } catch (Exception e1) {
+            return false;
+          }
+        };
+
+    RemovingStructuresVisitor<Object, Exception> visitor =
+        new RemovingStructuresVisitor<>(removalFunction);
+    ExpressionTree<Object> result;
+    try {
+      result = pExprTree.accept(visitor);
+    } catch (Exception e) {
+      return pExprTree;
+    }
+    return result;
+  }
 }

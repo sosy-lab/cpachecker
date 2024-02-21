@@ -75,7 +75,7 @@ class BitvectorComputer {
       }
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N + M) / Math.log(2));
-    } else if (type != null) {
+    } else if (type != null && type.hasKnownConstantSize()) {
       return machineModel.getSizeofInBits(type).intValueExact();
     } else {
       // we know nothing

@@ -47,9 +47,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInterpolator {
 
   private enum RefinementStrategy {
-    /* First try to delete as many constraints as possible, then assignments */
+    // First try to delete as many constraints as possible, then assignments
     CONSTRAINTS_FIRST,
-    /* First try to delete as many assignments as possible, then constraints */
+    // First try to delete as many assignments as possible, then constraints
     VALUES_FIRST,
     /*
     Alternate between constraints-first and values-first.
@@ -57,7 +57,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     In second, use VALUES_FIRST. In third, use CONSTRAINTS_FIRST again, and so on.
      */
     ALTERNATING,
-    /* Always keep all constraints and only try to delete as many assignments as possible */
+    // Always keep all constraints and only try to delete as many assignments as possible
     VALUES_ONLY
   }
 
@@ -101,22 +101,14 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
             pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     machineModel = pCfa.getMachineModel();
 
-    switch (strategy) {
-      case ALTERNATING:
-        stateReducers = ImmutableList.of(new ConstraintsFirstReducer(), new ValuesFirstReducer());
-        break;
-      case CONSTRAINTS_FIRST:
-        stateReducers = ImmutableList.of(new ConstraintsFirstReducer());
-        break;
-      case VALUES_FIRST:
-        stateReducers = ImmutableList.of(new ValuesFirstReducer());
-        break;
-      case VALUES_ONLY:
-        stateReducers = ImmutableList.of(new ValuesOnlyReducer());
-        break;
-      default:
-        throw new AssertionError("Unhandled strategy: " + strategy);
-    }
+    stateReducers =
+        switch (strategy) {
+          case ALTERNATING -> ImmutableList.of(
+              new ConstraintsFirstReducer(), new ValuesFirstReducer());
+          case CONSTRAINTS_FIRST -> ImmutableList.of(new ConstraintsFirstReducer());
+          case VALUES_FIRST -> ImmutableList.of(new ValuesFirstReducer());
+          case VALUES_ONLY -> ImmutableList.of(new ValuesOnlyReducer());
+        };
     if (avoidConstraints) {
       stateReducers =
           Collections3.transformedImmutableListCopy(stateReducers, AvoidConstraintsReducer::new);
@@ -200,7 +192,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
         throws InterruptedException, CPAException;
   }
 
-  private class ValuesOnlyReducer implements SymbolicStateReducer {
+  private final class ValuesOnlyReducer implements SymbolicStateReducer {
 
     @Override
     public ForgettingCompositeState reduce(
@@ -224,7 +216,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     }
   }
 
-  private class ConstraintsOnlyReducer implements SymbolicStateReducer {
+  private final class ConstraintsOnlyReducer implements SymbolicStateReducer {
 
     @Override
     public ForgettingCompositeState reduce(
@@ -245,7 +237,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     }
   }
 
-  private class ValuesFirstReducer implements SymbolicStateReducer {
+  private final class ValuesFirstReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer valueReducer = new ValuesOnlyReducer();
     private SymbolicStateReducer constraintsReducer = new ConstraintsOnlyReducer();
@@ -258,7 +250,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     }
   }
 
-  private class ConstraintsFirstReducer implements SymbolicStateReducer {
+  private final class ConstraintsFirstReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer valueReducer = new ValuesOnlyReducer();
     private SymbolicStateReducer constraintsReducer = new ConstraintsOnlyReducer();
@@ -271,7 +263,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     }
   }
 
-  private class AvoidConstraintsReducer implements SymbolicStateReducer {
+  private final class AvoidConstraintsReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer delegate;
 

@@ -212,14 +212,13 @@ public class HarnessExporter {
 
   private Optional<AFunctionDeclaration> getErrorFunction(CFAEdge pEdgeToTarget) {
     AFunctionCall callStatement = null;
-    if (pEdgeToTarget instanceof AStatementEdge) {
-      AStatementEdge statementEdge = (AStatementEdge) pEdgeToTarget;
+    if (pEdgeToTarget instanceof AStatementEdge statementEdge) {
       AStatement statement = statementEdge.getStatement();
       if (statement instanceof AFunctionCall) {
         callStatement = (AFunctionCall) statement;
       }
     } else if (pEdgeToTarget instanceof FunctionCallEdge) {
-      callStatement = ((FunctionCallEdge) pEdgeToTarget).getSummaryEdge().getExpression();
+      callStatement = ((FunctionCallEdge) pEdgeToTarget).getFunctionCall();
     }
 
     if (callStatement != null) {
@@ -251,11 +250,9 @@ public class HarnessExporter {
             if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
               ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
               ADeclaration declaration = declarationEdge.getDeclaration();
-              if (declaration instanceof AFunctionDeclaration) {
-                AFunctionDeclaration functionDeclaration = (AFunctionDeclaration) declaration;
-                if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
-                  externalFunctions.add(functionDeclaration);
-                }
+              if ((declaration instanceof AFunctionDeclaration functionDeclaration)
+                  && !cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
+                externalFunctions.add(functionDeclaration);
               }
             }
             return TraversalProcess.CONTINUE;
@@ -343,11 +340,9 @@ public class HarnessExporter {
       ARGState pChild,
       CFAEdge pEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-    if (pEdge instanceof AStatementEdge) {
-      AStatementEdge statementEdge = (AStatementEdge) pEdge;
+    if (pEdge instanceof AStatementEdge statementEdge) {
       return handleStatementEdge(pPrevious, pChild, statementEdge, pValueMap);
-    } else if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+    } else if (pEdge instanceof ADeclarationEdge declarationEdge) {
       return handleDeclarationEdge(pPrevious, pChild, declarationEdge, pValueMap);
     }
     return Optional.of(State.of(pChild, pPrevious.testVector));
@@ -359,8 +354,7 @@ public class HarnessExporter {
       AStatementEdge pStatementEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
     AStatement statement = pStatementEdge.getStatement();
-    if (statement instanceof AFunctionCall) {
-      AFunctionCall functionCall = (AFunctionCall) statement;
+    if (statement instanceof AFunctionCall functionCall) {
       AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
       AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
 
@@ -369,9 +363,8 @@ public class HarnessExporter {
           && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
 
         AExpression nameExpression = functionCallExpression.getFunctionNameExpression();
-        if (nameExpression instanceof AIdExpression) {
+        if (nameExpression instanceof AIdExpression idExpression) {
 
-          AIdExpression idExpression = (AIdExpression) nameExpression;
           ASimpleDeclaration declaration = idExpression.getDeclaration();
           if (declaration != null) {
             String name = declaration.getQualifiedName();
@@ -427,37 +420,34 @@ public class HarnessExporter {
       ADeclarationEdge pDeclarationEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
     ADeclaration declaration = pDeclarationEdge.getDeclaration();
-    if (declaration instanceof CVariableDeclaration) {
-      CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-      if (variableDeclaration.getCStorageClass() == CStorageClass.EXTERN) {
-        final Optional<State> nextState =
-            handleVariableDeclaration(
-                pDeclarationEdge, pPrevious, pChild, variableDeclaration, pValueMap);
-        if (nextState.isPresent()) {
-          return nextState;
-        }
-        Type type = variableDeclaration.getType();
-        Type canonicalType = getCanonicalType(type);
-        if (canonicalType instanceof CPointerType) {
-          return Optional.of(
-              State.of(
-                  pChild, handlePointerDeclaration(pPrevious.testVector, variableDeclaration)));
-        }
-        if (canonicalType instanceof CCompositeType) {
-          return Optional.of(
-              State.of(
-                  pChild, handleCompositeDeclaration(pPrevious.testVector, variableDeclaration)));
-        }
-        if (canonicalType instanceof CArrayType) {
-          return Optional.of(
-              State.of(pChild, handleArrayDeclaration(pPrevious.testVector, variableDeclaration)));
-        }
+    if ((declaration instanceof CVariableDeclaration variableDeclaration)
+        && (variableDeclaration.getCStorageClass() == CStorageClass.EXTERN)) {
+      final Optional<State> nextState =
+          handleVariableDeclaration(
+              pDeclarationEdge, pPrevious, pChild, variableDeclaration, pValueMap);
+      if (nextState.isPresent()) {
+        return nextState;
+      }
+      Type type = variableDeclaration.getType();
+      Type canonicalType = getCanonicalType(type);
+      if (canonicalType instanceof CPointerType) {
+        return Optional.of(
+            State.of(pChild, handlePointerDeclaration(pPrevious.testVector, variableDeclaration)));
+      }
+      if (canonicalType instanceof CCompositeType) {
         return Optional.of(
             State.of(
-                pChild,
-                pPrevious.testVector.addInputValue(
-                    variableDeclaration, getDummyInitializer(variableDeclaration.getType()))));
+                pChild, handleCompositeDeclaration(pPrevious.testVector, variableDeclaration)));
       }
+      if (canonicalType instanceof CArrayType) {
+        return Optional.of(
+            State.of(pChild, handleArrayDeclaration(pPrevious.testVector, variableDeclaration)));
+      }
+      return Optional.of(
+          State.of(
+              pChild,
+              pPrevious.testVector.addInputValue(
+                  variableDeclaration, getDummyInitializer(variableDeclaration.getType()))));
     }
     return Optional.of(State.of(pChild, pPrevious.testVector));
   }
@@ -507,8 +497,7 @@ public class HarnessExporter {
       leftHandSide =
           new CIdExpression(
               pVariableDeclaration.getFileLocation(), (CSimpleDeclaration) pVariableDeclaration);
-    } else if (pVariableDeclaration instanceof JVariableDeclaration) {
-      JVariableDeclaration variableDeclaration = (JVariableDeclaration) pVariableDeclaration;
+    } else if (pVariableDeclaration instanceof JVariableDeclaration variableDeclaration) {
       leftHandSide =
           new JIdExpression(
               pVariableDeclaration.getFileLocation(),
@@ -729,8 +718,7 @@ public class HarnessExporter {
             FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, BigInteger.valueOf(4096));
     if (canonicalType.equals(CVoidType.VOID)) {
       size = dummyLength;
-    } else if (canonicalType instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) canonicalType;
+    } else if (canonicalType instanceof CArrayType arrayType) {
       CExpression length = arrayType.getLength();
       if (length == null) {
         length = dummyLength;
@@ -890,12 +878,10 @@ public class HarnessExporter {
     if (actualType.equals(pExpectedType)) {
       return true;
     }
-    if (actualType instanceof CSimpleType && pExpectedType instanceof CSimpleType) {
-      CSimpleType simpleActualType = (CSimpleType) actualType;
-      CSimpleType simpleExpectedType = (CSimpleType) pExpectedType;
-      if (simpleActualType.isUnsigned() && simpleExpectedType.isUnsigned()) {
-        return true;
-      }
+    if ((actualType instanceof CSimpleType simpleActualType
+            && pExpectedType instanceof CSimpleType simpleExpectedType)
+        && (simpleActualType.hasUnsignedSpecifier() && simpleExpectedType.hasUnsignedSpecifier())) {
+      return true;
     }
     return false;
   }
@@ -941,11 +927,9 @@ public class HarnessExporter {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof State) {
-        State other = (State) pObj;
-        return argState.equals(other.argState) && testVector.equals(other.testVector);
-      }
-      return false;
+      return pObj instanceof State other
+          && argState.equals(other.argState)
+          && testVector.equals(other.testVector);
     }
 
     @Override

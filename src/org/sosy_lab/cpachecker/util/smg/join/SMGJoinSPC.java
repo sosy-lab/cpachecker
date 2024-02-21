@@ -86,7 +86,7 @@ public class SMGJoinSPC extends SMGAbstractJoin {
       }
 
       Optional<SMGObject> returnOptional = Optional.empty();
-      /* Don't forget to join the return object */
+      // Don't forget to join the return object
       if (frameInSMG1.getReturnObject().isPresent()) {
         SMGObject returnObjectInSmg1 = frameInSMG1.getReturnObject().orElseThrow();
         SMGObject returnObjectInSmg2 = frameInSMG2.getReturnObject().orElseThrow();
@@ -116,6 +116,8 @@ public class SMGJoinSPC extends SMGAbstractJoin {
             PersistentSet.of(),
             PathCopyingPersistentTreeMap.of(),
             ImmutableBiMap.of(),
+            PathCopyingPersistentTreeMap.of(),
+            PathCopyingPersistentTreeMap.of(),
             PathCopyingPersistentTreeMap.of());
   }
 

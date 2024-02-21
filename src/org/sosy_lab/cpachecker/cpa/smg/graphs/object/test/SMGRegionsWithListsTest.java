@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
@@ -134,11 +133,7 @@ public class SMGRegionsWithListsTest {
     assertThat(smg.isPointer(dataValue)).isTrue();
     SMGObject subobject = smg.getObjectPointedBy(dataValue);
     Truth.assertThat(subobject).isNotNull();
-    int minSublistLength =
-        Stream.of(sublists)
-            .map(e -> e.length)
-            .min(Comparator.comparing(Integer::valueOf))
-            .orElseThrow();
+    int minSublistLength = Stream.of(sublists).mapToInt(e -> e.length).min().orElseThrow();
 
     SMGListAbstractionTestHelpers.assertAbstractListSegmentAsExpected(
         subobject, nodeSize, LEVEL_ONE, listKind, minSublistLength);

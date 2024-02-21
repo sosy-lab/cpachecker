@@ -29,7 +29,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *   void . class
  * </pre>
  */
-public class JClassLiteralExpression extends ALiteralExpression implements JLiteralExpression {
+public final class JClassLiteralExpression extends ALiteralExpression
+    implements JLiteralExpression {
 
   private static final long serialVersionUID = -5629884765912549873L;
 

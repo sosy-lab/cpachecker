@@ -39,11 +39,7 @@ final class Variable {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof Variable)) {
-      return false;
-    }
-    Variable other = (Variable) obj;
-    return name.equals(other.name);
+    return obj instanceof Variable other && name.equals(other.name);
   }
 
   @Override

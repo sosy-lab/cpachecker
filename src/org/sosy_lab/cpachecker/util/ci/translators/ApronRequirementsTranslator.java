@@ -87,12 +87,16 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     }
 
     String converted;
-    for (Tcons0 constraint :
-        pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager())) {
-      converted = convertConstraintToFormula(constraint, varNames, pIndices, requiredVarNames);
-      if (converted != null) {
-        result.add(converted);
+    try {
+      for (Tcons0 constraint :
+          pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager())) {
+        converted = convertConstraintToFormula(constraint, varNames, pIndices, requiredVarNames);
+        if (converted != null) {
+          result.add(converted);
+        }
       }
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
     }
 
     return result;
@@ -120,8 +124,13 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     Preconditions.checkNotNull(requiredVars);
     Set<String> required = new HashSet<>(requiredVars);
     List<String> varNames = getAllVarNames(pRequirement);
-    Tcons0[] constraints =
-        pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager());
+    Tcons0[] constraints;
+    try {
+      constraints =
+          pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager());
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     List<Set<String>> constraintVars = new ArrayList<>(constraints.length);
 
     for (Tcons0 constraint : constraints) {
@@ -146,8 +155,13 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
 
   private Collection<String> getAllVarsUsed(final ApronState pRequirement) {
     List<String> varNames = getAllVarNames(pRequirement);
-    Tcons0[] constraints =
-        pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager());
+    Tcons0[] constraints;
+    try {
+      constraints =
+          pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager());
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     Set<String> constraintVars = new HashSet<>(constraints.length);
 
     for (Tcons0 constraint : constraints) {

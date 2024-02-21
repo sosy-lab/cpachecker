@@ -27,7 +27,6 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -85,9 +84,9 @@ public class PJBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region f) {
+  public IfThenElseParts getIfThenElse(Region f) {
     DD bdd = unwrap(f);
-    return Triple.of(
+    return new IfThenElseParts(
         wrap(bddCreator.makeIthVar(bdd.getVariable())), wrap(bdd.getHigh()), wrap(bdd.getLow()));
   }
 
@@ -453,12 +452,12 @@ public class PJBDDRegionManager implements RegionManager {
         return falseFormula;
       } else {
 
-        DD[] clauses = cubes.stream().filter(bdd -> bdd != null).toArray(DD[]::new);
-
         DD result = bddCreator.makeFalse();
 
-        for (DD bdd : clauses) {
-          result = bddCreator.makeOr(result, bdd);
+        for (DD bdd : cubes) {
+          if (bdd != null) {
+            result = bddCreator.makeOr(result, bdd);
+          }
         }
 
         cubes.clear();

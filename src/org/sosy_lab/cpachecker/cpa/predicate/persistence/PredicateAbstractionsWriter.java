@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -53,6 +55,16 @@ public class PredicateAbstractionsWriter {
   }
 
   public void writeAbstractions(Path abstractionsFile, UnmodifiableReachedSet reached) {
+    writeAbstractions0(abstractionsFile, reached, /* asExpression= */ false);
+  }
+
+  public void writeAbstractionsAsExpressions(
+      Path abstractionsFile, UnmodifiableReachedSet reached) {
+    writeAbstractions0(abstractionsFile, reached, /* asExpression= */ true);
+  }
+
+  private void writeAbstractions0(
+      Path abstractionsFile, UnmodifiableReachedSet reached, boolean asExpression) {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
@@ -96,6 +108,13 @@ public class PredicateAbstractionsWriter {
         // Abstraction formula
         PredicateAbstractState predicateState = PredicateAbstractState.getPredicateState(state);
         BooleanFormula formula = predicateState.getAbstractionFormula().asFormula();
+        if (asExpression) {
+          ExpressionTree<Object> tree =
+              ExpressionTrees.fromFormula(formula, fmgr, AbstractStates.extractLocation(state));
+          stateToAssert.put(state, tree.toString());
+          done.add(state);
+          continue;
+        }
 
         Pair<String, List<String>> p = splitFormula(fmgr, formula);
         String formulaString = p.getFirst();
@@ -140,6 +159,9 @@ public class PredicateAbstractionsWriter {
 
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write abstractions to file");
+    } catch (InterruptedException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Received interrupt while writing abstractions to file");
     }
   }
 }

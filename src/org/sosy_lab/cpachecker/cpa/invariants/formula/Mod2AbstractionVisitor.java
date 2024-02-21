@@ -24,10 +24,8 @@ public class Mod2AbstractionVisitor
 
   public enum Type {
     EVEN,
-
     ODD,
-
-    UNKNOWN;
+    UNKNOWN,
   }
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;

@@ -23,7 +23,7 @@ public class PrecisionAdjustmentResultTest {
     Precision precision = mock(Precision.class);
     Action action = Action.BREAK;
 
-    PrecisionAdjustmentResult r = PrecisionAdjustmentResult.create(state, precision, action);
+    PrecisionAdjustmentResult r = new PrecisionAdjustmentResult(state, precision, action);
     assertThat(r.abstractState()).isSameInstanceAs(state);
     assertThat(r.precision()).isSameInstanceAs(precision);
     assertThat(r.action()).isSameInstanceAs(action);
@@ -42,7 +42,7 @@ public class PrecisionAdjustmentResultTest {
   @Test
   public void testWithAbstractState() {
     PrecisionAdjustmentResult r1 =
-        PrecisionAdjustmentResult.create(
+        new PrecisionAdjustmentResult(
             mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
 
     AbstractState newState = mock(AbstractState.class);
@@ -59,7 +59,7 @@ public class PrecisionAdjustmentResultTest {
   @Test
   public void testWithPrecision() {
     PrecisionAdjustmentResult r1 =
-        PrecisionAdjustmentResult.create(
+        new PrecisionAdjustmentResult(
             mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
 
     Precision newPrecision = mock(Precision.class);
@@ -76,7 +76,7 @@ public class PrecisionAdjustmentResultTest {
   @Test
   public void testWithAction() {
     PrecisionAdjustmentResult r1 =
-        PrecisionAdjustmentResult.create(
+        new PrecisionAdjustmentResult(
             mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
 
     Action newAction = Action.BREAK;

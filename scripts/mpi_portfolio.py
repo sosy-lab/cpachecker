@@ -282,7 +282,6 @@ class MPIMain:
                     stderr=subprocess.STDOUT,
                     universal_newlines=True,
                 ) as self.process:
-
                     try:
                         proc_stdout, _ = self.process.communicate()
                     except KeyboardInterrupt:

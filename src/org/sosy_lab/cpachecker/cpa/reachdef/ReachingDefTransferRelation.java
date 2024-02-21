@@ -260,9 +260,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
                     } else if (pExp instanceof CLiteralExpression) {
                       return ImmutableList.of();
 
-                    } else if (pExp instanceof CBinaryExpression) {
-                      CBinaryExpression binExp = (CBinaryExpression) pExp;
-
+                    } else if (pExp instanceof CBinaryExpression binExp) {
                       Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
                       Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);
 
@@ -307,7 +305,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private ImmutableSet<MemoryLocation> getParameters(CFunctionEntryNode pNode) {
     return Collections3.transformedImmutableSetCopy(
-        pNode.getFunctionParameters(), x -> MemoryLocation.forDeclaration(x));
+        pNode.getFunctionParameters(), MemoryLocation::forDeclaration);
   }
 
   private ReachingDefState handleReturnStatement(
@@ -405,8 +403,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
   }
 
   private ReachingDefState handleDeclarationEdge(ReachingDefState pState, CDeclarationEdge edge) {
-    if (edge.getDeclaration() instanceof CVariableDeclaration) {
-      CVariableDeclaration dec = (CVariableDeclaration) edge.getDeclaration();
+    if (edge.getDeclaration() instanceof CVariableDeclaration dec) {
       // If there is no initialization at the declaration,
       // we still keep the declaration as a non-deterministic, first definition.
       MemoryLocation var = MemoryLocation.forDeclaration(dec);
@@ -440,7 +437,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
         "Remove local variables and parameters of function from reaching definition.");
     ReachingDefState newState = pState.pop(pReturnEdge.getPredecessor().getFunctionName());
 
-    CFunctionCall callExpression = pReturnEdge.getSummaryEdge().getExpression();
+    CFunctionCall callExpression = pReturnEdge.getFunctionCall();
     CFunctionCallExpression functionCall = callExpression.getFunctionCallExpression();
 
     List<CExpression> outFunctionParams = functionCall.getParameterExpressions();

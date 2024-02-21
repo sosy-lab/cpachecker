@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorith
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.DARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCSPCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
@@ -164,6 +165,14 @@ public class CoreComponentsFactory {
           "use McMillan's interpolation-based model checking algorithm, "
               + "works only with PredicateCPA and large-block encoding")
   private boolean useIMC = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.DAR",
+      description =
+          "use dual approximated reachability model checking algorithm, "
+              + "works only with PredicateCPA and large-block encoding")
+  private boolean useDAR = false;
 
   @Option(
       secure = true,
@@ -457,7 +466,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useInvariantExportAlgorithm || useIMCSPC);
+        && (useBMC || useIMC || useDAR || useInvariantExportAlgorithm || useIMCSPC);
   }
 
   public Algorithm createAlgorithm(
@@ -621,6 +630,21 @@ public class CoreComponentsFactory {
         verifyNotNull(shutdownManager);
         algorithm =
             new IMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification,
+                aggregatedReachedSets);
+      }
+
+      if (useDAR) {
+        verifyNotNull(shutdownManager);
+        algorithm =
+            new DARAlgorithm(
                 algorithm,
                 cpa,
                 config,

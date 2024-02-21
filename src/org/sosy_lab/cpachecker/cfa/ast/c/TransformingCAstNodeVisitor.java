@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 
 /**
  * A {@link CAstNodeVisitor} that is used to create modified copies of abstract syntax tree (AST)

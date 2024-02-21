@@ -111,7 +111,6 @@ class Benchmark(VcloudBenchmarkBase):
                 webclient = True
                 import benchmark.webclient_executor as executor
             else:
-
                 download_required_jars()
 
                 import benchmark.benchmarkclient_executor as executor

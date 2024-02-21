@@ -71,9 +71,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
 public class CPAchecker {
@@ -319,7 +317,6 @@ public class CPAchecker {
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
-      GlobalInfo.getInstance().storeCFA(cfa);
       shutdownNotifier.shutdownIfNecessary();
 
       ConfigurableProgramAnalysis cpa;
@@ -337,8 +334,6 @@ public class CPAchecker {
         ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
       }
 
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
       algorithm = factory.createAlgorithm(cpa, cfa, specification);
 
       if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
@@ -354,8 +349,7 @@ public class CPAchecker {
       }
 
       reached = factory.createReachedSet(cpa);
-      if (algorithm instanceof ImpactAlgorithm) {
-        ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
+      if (algorithm instanceof ImpactAlgorithm mcmillan) {
         reached.add(
             mcmillan.getInitialState(cfa.getMainFunction()),
             mcmillan.getInitialPrecision(cfa.getMainFunction()));
@@ -445,7 +439,10 @@ public class CPAchecker {
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
+      throws InvalidConfigurationException,
+          IOException,
+          ParserException,
+          InterruptedException,
           ClassNotFoundException {
 
     final CFA cfa;
@@ -585,54 +582,36 @@ public class CPAchecker {
     logger.log(Level.FINE, "Creating initial reached set");
 
     for (InitialStatesFor isf : initialStatesFor) {
-      final ImmutableSet<? extends CFANode> initialLocations;
-      switch (isf) {
-        case ENTRY:
-          initialLocations = ImmutableSet.of(pAnalysisEntryFunction);
-          break;
-        case EXIT:
-          if (pAnalysisEntryFunction.getExitNode().isEmpty()) {
-            logger.logf(
-                Level.SEVERE,
-                "Cannot use exit node of '%s' because it never returns in a normal way"
-                    + " (because, e.g., it always aborts the program or always executes an obvious"
-                    + " infinite loop)",
-                pAnalysisEntryFunction.getFunction().getOrigName());
-          }
-          initialLocations = Optionals.asSet(pAnalysisEntryFunction.getExitNode());
-          break;
-        case FUNCTION_ENTRIES:
-          initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
-          break;
-        case FUNCTION_SINKS:
-          initialLocations =
-              ImmutableSet.<CFANode>builder()
-                  .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
-                  .addAll(getAllFunctionExitNodes(pCfa))
-                  .build();
-          break;
-        case PROGRAM_SINKS:
-          initialLocations =
-              ImmutableSet.<CFANode>builder()
-                  .addAll(
-                      CFAUtils.getProgramSinks(
-                          pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
-                  .build();
-
-          break;
-        case TARGET:
-          TargetLocationProvider tlp =
-              new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa);
-          initialLocations =
-              tlp.tryGetAutomatonTargetLocations(
-                  pAnalysisEntryFunction,
-                  Specification.fromFiles(
-                      backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
-          break;
-        default:
-          throw new AssertionError("Unhandled case statement: " + initialStatesFor);
-      }
-
+      final ImmutableSet<? extends CFANode> initialLocations =
+          switch (isf) {
+            case ENTRY -> ImmutableSet.of(pAnalysisEntryFunction);
+            case EXIT -> {
+              if (pAnalysisEntryFunction.getExitNode().isEmpty()) {
+                logger.logf(
+                    Level.SEVERE,
+                    "Cannot use exit node of '%s' because it never returns in a normal way"
+                        + " (because, e.g., it always aborts the program or always executes an"
+                        + " obvious infinite loop)",
+                    pAnalysisEntryFunction.getFunction().getOrigName());
+              }
+              yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
+            }
+            case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.entryNodes());
+            case FUNCTION_SINKS -> ImmutableSet.<CFANode>builder()
+                .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
+                .addAll(getAllFunctionExitNodes(pCfa))
+                .build();
+            case PROGRAM_SINKS -> ImmutableSet.<CFANode>builder()
+                .addAll(
+                    CFAUtils.getProgramSinks(
+                        pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                .build();
+            case TARGET -> new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
+                .tryGetAutomatonTargetLocations(
+                    pAnalysisEntryFunction,
+                    Specification.fromFiles(
+                        backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
+          };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }
 
@@ -651,7 +630,7 @@ public class CPAchecker {
   private Set<CFANode> getAllFunctionExitNodes(CFA cfa) {
     Set<CFANode> functionExitNodes = new HashSet<>();
 
-    for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode node : cfa.entryNodes()) {
       node.getExitNode().ifPresent(functionExitNodes::add);
     }
     return functionExitNodes;

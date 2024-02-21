@@ -251,11 +251,8 @@ public class ARGPath extends AbstractAppender {
     if (this == pOther) {
       return true;
     }
-    if (!(pOther instanceof ARGPath)) {
-      return false;
-    }
     // We do not compare the states because they are different from iteration to iteration!
-    return Objects.equals(edges, ((ARGPath) pOther).edges);
+    return pOther instanceof ARGPath && Objects.equals(edges, ((ARGPath) pOther).edges);
   }
 
   @Override

@@ -46,12 +46,8 @@ public abstract class AbstractRightHandSide extends AbstractAstNode implements A
       return true;
     }
 
-    if (!(obj instanceof AbstractRightHandSide) || !super.equals(obj)) {
-      return false;
-    }
-
-    AbstractRightHandSide other = (AbstractRightHandSide) obj;
-
-    return Objects.equals(other.type, type);
+    return obj instanceof AbstractRightHandSide other
+        && super.equals(obj)
+        && Objects.equals(other.type, type);
   }
 }

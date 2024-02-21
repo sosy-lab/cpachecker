@@ -235,7 +235,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
     resultState = resultState.equals(pState) ? pState : resultState;
 
-    return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
   }
 
   /**

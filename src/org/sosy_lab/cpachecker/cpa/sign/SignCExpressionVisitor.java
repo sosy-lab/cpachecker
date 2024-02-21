@@ -118,54 +118,24 @@ public class SignCExpressionVisitor
 
   private SIGN evaluateExpression(SIGN pLeft, CBinaryExpression pExp, SIGN pRight)
       throws UnsupportedCodeException {
-    SIGN result = SIGN.EMPTY;
-    switch (pExp.getOperator()) {
-      case PLUS:
-        result = evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
-        break;
-      case MINUS:
-        result = evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
-        break;
-      case MULTIPLY:
-        result = evaluateMulOperator(pLeft, pRight);
-        break;
-      case DIVIDE:
-        result = evaluateDivideOperator(pLeft, pRight);
-        break;
-      case MODULO:
-        result = evaluateModuloOperator(pLeft, pRight);
-        break;
-      case BINARY_AND:
-        result = evaluateAndOperator(pLeft, pRight);
-        break;
-      case LESS_EQUAL:
-        result = evaluateLessEqualOperator(pLeft, pRight);
-        break;
-      case GREATER_EQUAL:
-        result = evaluateLessEqualOperator(pRight, pLeft);
-        break;
-      case LESS_THAN:
-        result = evaluateLessOperator(pLeft, pRight);
-        break;
-      case GREATER_THAN:
-        result = evaluateLessOperator(pRight, pLeft);
-        break;
-      case EQUALS:
-        result = evaluateEqualOperator(pLeft, pRight);
-        break;
-      case NOT_EQUALS:
-        result = evaluateUnequalOperator(pLeft, pRight);
-        break;
-      case SHIFT_LEFT:
-        result = evaluateLeftShiftOperator(pLeft, pRight);
-        break;
-      case SHIFT_RIGHT:
-        result = evaluateRightShiftOperator(pLeft, pRight);
-        break;
-
-      default:
-        throw new UnsupportedCodeException("Not supported", edgeOfExpr);
-    }
+    SIGN result =
+        switch (pExp.getOperator()) {
+          case PLUS -> evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
+          case MINUS -> evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
+          case MULTIPLY -> evaluateMulOperator(pLeft, pRight);
+          case DIVIDE -> evaluateDivideOperator(pLeft, pRight);
+          case MODULO -> evaluateModuloOperator(pLeft, pRight);
+          case BINARY_AND -> evaluateAndOperator(pLeft, pRight);
+          case LESS_EQUAL -> evaluateLessEqualOperator(pLeft, pRight);
+          case GREATER_EQUAL -> evaluateLessEqualOperator(pRight, pLeft);
+          case LESS_THAN -> evaluateLessOperator(pLeft, pRight);
+          case GREATER_THAN -> evaluateLessOperator(pRight, pLeft);
+          case EQUALS -> evaluateEqualOperator(pLeft, pRight);
+          case NOT_EQUALS -> evaluateUnequalOperator(pLeft, pRight);
+          case SHIFT_LEFT -> evaluateLeftShiftOperator(pLeft, pRight);
+          case SHIFT_RIGHT -> evaluateRightShiftOperator(pLeft, pRight);
+          default -> throw new UnsupportedCodeException("Not supported", edgeOfExpr);
+        };
     return result;
   }
 

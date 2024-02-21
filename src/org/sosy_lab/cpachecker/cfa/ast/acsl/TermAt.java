@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class TermAt implements ACSLBuiltin, ACSLTerm {
+public final class TermAt implements ACSLBuiltin, ACSLTerm {
 
   private final ACSLTerm inner;
   private final ACSLLabel label;
@@ -38,11 +38,7 @@ public class TermAt implements ACSLBuiltin, ACSLTerm {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof TermAt) {
-      TermAt other = (TermAt) obj;
-      return inner.equals(other.inner) && label.equals(other.label);
-    }
-    return false;
+    return obj instanceof TermAt other && inner.equals(other.inner) && label.equals(other.label);
   }
 
   @Override

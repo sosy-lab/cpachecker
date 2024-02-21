@@ -335,14 +335,11 @@ public final class SSAMap implements Serializable {
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
-    } else if (!(obj instanceof SSAMap)) {
-      return false;
-    } else {
-      SSAMap other = (SSAMap) obj;
-      // Do a few cheap checks before the expensive ones.
-      return varsHashCode == other.varsHashCode
-          && vars.equals(other.vars)
-          && freshValueProvider.equals(other.freshValueProvider);
     }
+    return obj instanceof SSAMap other
+        // Do a few cheap checks before the expensive ones.
+        && varsHashCode == other.varsHashCode
+        && vars.equals(other.vars)
+        && freshValueProvider.equals(other.freshValueProvider);
   }
 }

@@ -40,10 +40,8 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof SMGSingleLinkedListCandidate)) {
-      return false;
-    }
-    SMGSingleLinkedListCandidate other = (SMGSingleLinkedListCandidate) o;
-    return super.equals(other) && nfoSize == other.nfoSize;
+    return o instanceof SMGSingleLinkedListCandidate other
+        && super.equals(other)
+        && nfoSize == other.nfoSize;
   }
 }

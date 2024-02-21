@@ -89,13 +89,10 @@ interface LoopIterationState {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof UndeterminedLoopIterationState) {
-        UndeterminedLoopIterationState other = (UndeterminedLoopIterationState) pObj;
-        return loopCounterAbstracted == other.loopCounterAbstracted
-            && maxLoopIteration == other.maxLoopIteration
-            && iterations.equals(other.iterations);
-      }
-      return false;
+      return pObj instanceof UndeterminedLoopIterationState other
+          && loopCounterAbstracted == other.loopCounterAbstracted
+          && maxLoopIteration == other.maxLoopIteration
+          && iterations.equals(other.iterations);
     }
 
     @Override
@@ -202,11 +199,9 @@ interface LoopIterationState {
         if (this == pObj) {
           return true;
         }
-        if (pObj instanceof LoopIteration) {
-          LoopIteration other = (LoopIteration) pObj;
-          return iteration == other.iteration && loop.equals(other.loop);
-        }
-        return false;
+        return pObj instanceof LoopIteration other
+            && iteration == other.iteration
+            && loop.equals(other.loop);
       }
     }
   }
@@ -241,13 +236,10 @@ interface LoopIterationState {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof DeterminedLoopIterationState) {
-        DeterminedLoopIterationState other = (DeterminedLoopIterationState) pObj;
-        return loopCounterAbstracted == other.loopCounterAbstracted
-            && iteration == other.iteration
-            && loop.equals(other.loop);
-      }
-      return false;
+      return pObj instanceof DeterminedLoopIterationState other
+          && loopCounterAbstracted == other.loopCounterAbstracted
+          && iteration == other.iteration
+          && loop.equals(other.loop);
     }
 
     @Override

@@ -65,7 +65,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       ImmutableMap<String, ThreadInfo> newThreadInfo =
           updateThreadInfo(threadInfo, threadIds, activeThread, synchronizationBuilder);
 
-      if (newThreadInfo.values().stream().filter(i -> i.isRunning()).count() == 1) {
+      if (newThreadInfo.values().stream().filter(ThreadInfo::isRunning).count() == 1) {
         // No data race possible in sequential part
         strengthenedStates.add(new DataRaceState(newThreadInfo, state.hasDataRace()));
         continue;
@@ -314,7 +314,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
    */
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
     for (String id : threadingState.getThreadIds()) {
-      if (Iterables.contains(threadingState.getThreadLocation(id).getIngoingEdges(), cfaEdge)) {
+      if (Iterables.contains(threadingState.getThreadLocation(id).getIncomingEdges(), cfaEdge)) {
         return id;
       }
     }

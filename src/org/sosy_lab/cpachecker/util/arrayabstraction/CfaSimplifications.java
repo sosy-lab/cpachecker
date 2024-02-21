@@ -155,7 +155,7 @@ final class CfaSimplifications {
                   .computeIfAbsent(edge, key -> new HashMap<>())
                   .put(current, substituteExpression);
               if (edge instanceof FunctionCallEdge) {
-                FunctionSummaryEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
+                FunctionSummaryEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
                 assert summaryEdge != null : "Missing summary edge for call edge";
                 substitution
                     .computeIfAbsent(summaryEdge, key -> new HashMap<>())
@@ -178,10 +178,7 @@ final class CfaSimplifications {
           }
 
           // there should be no writing accesses, we only replace reading accesses
-          assert arrayAccessSubstitution.keySet().stream()
-              .filter(ArrayAccess::isWrite)
-              .findAny()
-              .isEmpty();
+          assert arrayAccessSubstitution.keySet().stream().noneMatch(ArrayAccess::isWrite);
 
           Function<Map.Entry<ArrayAccess, ?>, CAstNode> extractExpression =
               entry -> entry.getKey().getExpression();
@@ -192,8 +189,7 @@ final class CfaSimplifications {
           // TODO: add support for more edges/statements that can contain writing array accesses
           if (edge instanceof CStatementEdge) {
             CStatement statement = ((CStatementEdge) edge).getStatement();
-            if (statement instanceof CExpressionAssignmentStatement) {
-              var assignStatement = (CExpressionAssignmentStatement) statement;
+            if (statement instanceof CExpressionAssignmentStatement assignStatement) {
               CAstNode rhs =
                   assignStatement
                       .getRightHandSide()

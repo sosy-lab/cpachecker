@@ -36,11 +36,7 @@ public class EnsuresClause {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof EnsuresClause)) {
-      return false;
-    }
-    EnsuresClause that = (EnsuresClause) other;
-    return Objects.equals(predicate, that.predicate);
+    return other instanceof EnsuresClause that && Objects.equals(predicate, that.predicate);
   }
 
   @Override

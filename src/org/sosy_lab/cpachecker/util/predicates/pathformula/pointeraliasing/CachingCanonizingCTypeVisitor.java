@@ -141,8 +141,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
 
     @Override
     public CType visit(final CEnumType t) {
-      // refactor once #348 was improved
-      return t.getEnumerators().get(0).getType().accept(CachingCanonizingCTypeVisitor.this);
+      return t.getCompatibleType().accept(CachingCanonizingCTypeVisitor.this);
     }
 
     @Override
@@ -154,20 +153,20 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
     public CSimpleType visit(final CSimpleType t) {
       return (!ignoreConst || !t.isConst())
               && (!ignoreVolatile || !t.isVolatile())
-              && (!ignoreSignedness || !t.isSigned())
-              && (!ignoreSignedness || !t.isUnsigned())
+              && (!ignoreSignedness || !t.hasSignedSpecifier())
+              && (!ignoreSignedness || !t.hasUnsignedSpecifier())
           ? t
           : new CSimpleType(
               !ignoreConst && t.isConst(),
               !ignoreVolatile && t.isVolatile(),
               t.getType(),
-              t.isLong(),
-              t.isShort(),
-              !ignoreSignedness && t.isSigned(),
-              !ignoreSignedness && t.isUnsigned(),
-              t.isComplex(),
-              t.isImaginary(),
-              t.isLongLong());
+              t.hasLongSpecifier(),
+              t.hasShortSpecifier(),
+              !ignoreSignedness && t.hasSignedSpecifier(),
+              !ignoreSignedness && t.hasUnsignedSpecifier(),
+              t.hasComplexSpecifier(),
+              t.hasImaginarySpecifier(),
+              t.hasLongLongSpecifier());
     }
 
     @Override

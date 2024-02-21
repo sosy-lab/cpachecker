@@ -215,13 +215,8 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       return true;
     }
 
-    if (!(obj instanceof FileLocation)) {
-      return false;
-    }
-
-    FileLocation other = (FileLocation) obj;
-
-    return other.offset == offset
+    return obj instanceof FileLocation other
+        && other.offset == offset
         && other.length == length
         && other.startingLine == startingLine
         && other.endingLine == endingLine

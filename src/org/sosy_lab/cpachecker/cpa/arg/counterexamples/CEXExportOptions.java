@@ -85,11 +85,25 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
+      name = "exportYamlWitness",
+      description = "export counterexample as witness/yaml file")
+  private boolean exportYamlWitness = false;
+
+  @Option(
+      secure = true,
       name = "graphml",
       description = "export counterexample witness as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathWitnessFile =
       PathTemplate.ofFormatString("Counterexample.%d.graphml");
+
+  @Option(
+      secure = true,
+      name = "yaml",
+      description = "export counterexample witness as GraphML automaton")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate errorPathYamlWitnessFile =
+      PathTemplate.ofFormatString("Counterexample.%d.yaml");
 
   @Option(
       secure = true,
@@ -210,6 +224,13 @@ public final class CEXExportOptions {
       return null;
     }
     return exportWitness ? errorPathWitnessFile : null;
+  }
+
+  @Nullable PathTemplate getYamlWitnessFile() {
+    if (!exportErrorPath) {
+      return null;
+    }
+    return exportYamlWitness ? errorPathYamlWitnessFile : null;
   }
 
   @Nullable PathTemplate getWitnessDotFile() {

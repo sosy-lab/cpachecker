@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 
 /** A CFANode for a location that a label in the original source code. */
-public class CFALabelNode extends CFANode {
+public final class CFALabelNode extends CFANode {
 
   private static final long serialVersionUID = 9172364902060726643L;
   private final String label;

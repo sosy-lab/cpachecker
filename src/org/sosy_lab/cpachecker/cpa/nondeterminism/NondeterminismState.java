@@ -79,8 +79,7 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
     @Override
     @SuppressWarnings("JdkObsolete")
     public NondeterminismState join(NondeterminismState pOther) {
-      if (pOther instanceof NondeterminismNonAbstractionState) {
-        NondeterminismNonAbstractionState other = (NondeterminismNonAbstractionState) pOther;
+      if (pOther instanceof NondeterminismNonAbstractionState other) {
         SortedMapDifference<String, Object> diff =
             Maps.difference(nondetVariables, other.nondetVariables);
         if (diff.entriesOnlyOnLeft().isEmpty()) {
@@ -109,14 +108,11 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
 
     @Override
     public boolean equals(Object pObj) {
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
-      if (pObj instanceof NondeterminismNonAbstractionState) {
-        NondeterminismNonAbstractionState other = (NondeterminismNonAbstractionState) pObj;
-        return nondetVariables.equals(other.nondetVariables);
-      }
-      return super.equals(pObj);
+      return pObj instanceof NondeterminismNonAbstractionState other
+          && nondetVariables.equals(other.nondetVariables);
     }
 
     @Override
@@ -165,14 +161,11 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
 
     @Override
     public boolean equals(Object pObj) {
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
-      if (pObj instanceof NondeterminismAbstractionState) {
-        NondeterminismAbstractionState other = (NondeterminismAbstractionState) pObj;
-        return nondetVariablesPreAbstraction.equals(other.nondetVariablesPreAbstraction);
-      }
-      return super.equals(pObj);
+      return pObj instanceof NondeterminismAbstractionState other
+          && nondetVariablesPreAbstraction.equals(other.nondetVariablesPreAbstraction);
     }
 
     @Override

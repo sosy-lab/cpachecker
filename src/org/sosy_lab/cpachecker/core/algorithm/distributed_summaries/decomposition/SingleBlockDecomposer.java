@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph.BlockGraphFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Decompose a CFA into a single block containing the complete CFA */
 public class SingleBlockDecomposer implements CFADecomposer {
@@ -34,12 +33,8 @@ public class SingleBlockDecomposer implements CFADecomposer {
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();
-    Set<CFAEdge> edges = new LinkedHashSet<>();
-    for (CFANode allNode : cfa.getAllNodes()) {
-      CFAUtils.leavingEdges(allNode).copyInto(edges);
-      CFAUtils.enteringEdges(allNode).copyInto(edges);
-    }
-    Set<CFANode> nodes = new LinkedHashSet<>(cfa.getAllNodes());
+    Set<CFAEdge> edges = new LinkedHashSet<>(cfa.edges());
+    Set<CFANode> nodes = new LinkedHashSet<>(cfa.nodes());
     nodes.add(lastNode);
     BlockNodeMetaData root =
         builder.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());

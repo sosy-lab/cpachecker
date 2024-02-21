@@ -19,9 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class AssumptionToEdgeAllocatorTest {
@@ -35,7 +33,7 @@ public class AssumptionToEdgeAllocatorTest {
   private ConcreteState full;
   private static final String MEMORYNAME = "Test_Heap";
 
-  private MemoryName memoryName = (pExp) -> MEMORYNAME;
+  private MemoryName memoryName = pExp -> MEMORYNAME;
 
   @Before
   public void setUp() throws Exception {
@@ -215,11 +213,8 @@ public class AssumptionToEdgeAllocatorTest {
 
   @Test
   public void testAllocateAssignmentsToEdge() throws InvalidConfigurationException {
-
-    for (CFANode node : cfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        testWithEdge(edge);
-      }
+    for (CFAEdge edge : cfa.edges()) {
+      testWithEdge(edge);
     }
   }
 

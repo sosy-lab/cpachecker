@@ -67,12 +67,8 @@ public final class JEnumConstantExpression extends AbstractExpression implements
       return true;
     }
 
-    if (!(obj instanceof JEnumConstantExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    JEnumConstantExpression other = (JEnumConstantExpression) obj;
-
-    return Objects.equals(other.constantName, constantName);
+    return obj instanceof JEnumConstantExpression other
+        && super.equals(obj)
+        && Objects.equals(other.constantName, constantName);
   }
 }

@@ -30,17 +30,13 @@ public abstract class SMTHeapBasedTest0 extends SolverViewBasedTest0 {
     FormulaType<?> pointerType =
         FormulaType.getBitvectorTypeWithSize(modelToUse().getSizeofPtrInBits());
 
-    switch (heapToUse()) {
-      case UF:
-        heap = new SMTHeapWithUninterpretedFunctionCalls(mgrv);
-        break;
-      case ARRAYS:
-        heap = new SMTHeapWithArrays(mgrv, pointerType);
-        break;
-      case SINGLE_BYTE_ARRAY:
-        heap = new SMTHeapWithByteArray(mgrv, pointerType, modelToUse());
-        break;
-    }
+    heap =
+        switch (heapToUse()) {
+          case UF -> new SMTHeapWithUninterpretedFunctionCalls(mgrv);
+          case ARRAYS -> new SMTHeapWithArrays(mgrv, pointerType);
+          case SINGLE_BYTE_ARRAY -> new SMTHeapWithByteArray(
+              mgrv, pointerType, modelToUse(), new SMTHeapWithArrays(mgrv, pointerType));
+        };
   }
 
   protected void requireSingleByteArrayHeap() {

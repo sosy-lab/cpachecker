@@ -20,6 +20,7 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
   /** The static value 0 */
   private static final SMGValue ZERO_VALUE = new SMGValue(0);
+
   // Floats and doubles can have all bits as 0. We need to save them as different values though to
   // not lose track of their types
   private static final SMGValue ZERO_FLOAT_VALUE = new SMGValue(0);
@@ -89,14 +90,7 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null) {
-      return false;
-    }
-    if (!(other instanceof SMGValue)) {
-      return false;
-    }
-    SMGValue otherObj = (SMGValue) other;
-    return id == otherObj.id;
+    return other instanceof SMGValue otherObj && id == otherObj.id;
   }
 
   @Override

@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CBinaryExpression extends ABinaryExpression implements CExpression {
+public final class CBinaryExpression extends ABinaryExpression implements CExpression {
 
   private static final long serialVersionUID = 1902123965106390020L;
   private final CType calculationType;
@@ -27,6 +30,11 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
       final BinaryOperator pOperator) {
     super(pFileLocation, pExpressionType, pOperand1, pOperand2, pOperator);
     calculationType = pCalculationType;
+    checkArgument(
+        pOperator.isLogicalOperator()
+            || pOperator == BinaryOperator.PLUS
+            || pOperator == BinaryOperator.MINUS
+            || !(calculationType.getCanonicalType() instanceof CPointerType));
   }
 
   @Override
@@ -191,12 +199,8 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
       return true;
     }
 
-    if (!(obj instanceof CBinaryExpression)) {
-      return false;
-    }
-
-    final CBinaryExpression other = (CBinaryExpression) obj;
-
-    return Objects.equals(other.calculationType, calculationType) && super.equals(obj);
+    return obj instanceof CBinaryExpression other
+        && Objects.equals(other.calculationType, calculationType)
+        && super.equals(obj);
   }
 }

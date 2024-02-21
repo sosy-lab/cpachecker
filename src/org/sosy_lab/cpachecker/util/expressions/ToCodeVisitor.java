@@ -23,7 +23,7 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, No
   private final Function<? super LeafType, String> leafExpressionToCodeFunction;
 
   public ToCodeVisitor(Function<? super LeafType, String> pLeafExpressionToCodeFunction) {
-    this.leafExpressionToCodeFunction = pLeafExpressionToCodeFunction;
+    leafExpressionToCodeFunction = pLeafExpressionToCodeFunction;
   }
 
   private String toParenthesizedCode(ExpressionTree<LeafType> pExpressionTree) {

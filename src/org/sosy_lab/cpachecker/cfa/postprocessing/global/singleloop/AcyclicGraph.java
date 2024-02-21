@@ -65,6 +65,7 @@ class AcyclicGraph {
             })
         .filter(notNull());
   }
+
   /**
    * Creates a new acyclic graph with the given root node and default growth strategy.
    *

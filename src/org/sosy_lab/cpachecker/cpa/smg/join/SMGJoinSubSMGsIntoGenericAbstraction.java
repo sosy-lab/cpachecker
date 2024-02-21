@@ -371,14 +371,10 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       SMGObject object = pNode.getObject();
       SMGObjectTemplate objectTemplate = pNodeTemplate.getObjectTemplate();
 
-      if (objectTemplate instanceof GenericAbstractionCandidateTemplate) {
-        GenericAbstractionCandidateTemplate genAbsTmp =
-            (GenericAbstractionCandidateTemplate) objectTemplate;
-
+      if (objectTemplate instanceof GenericAbstractionCandidateTemplate genAbsTmp) {
         return matchGenericAbstractionTemplateWithGenericAbstraction(
             genAbsTmp, pInputSMG, pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep);
-      } else if (objectTemplate instanceof SMGRegion) {
-        SMGRegion regionTemplate = (SMGRegion) objectTemplate;
+      } else if (objectTemplate instanceof SMGRegion regionTemplate) {
         return matchRegionTemplateWithObject(
             regionTemplate,
             object,
@@ -596,10 +592,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
           return false;
         }
       } else {
-        if (targetTemplate instanceof GenericAbstractionCandidateTemplate) {
-          GenericAbstractionCandidateTemplate genAbs =
-              (GenericAbstractionCandidateTemplate) targetTemplate;
-
+        if (targetTemplate instanceof GenericAbstractionCandidateTemplate genAbs) {
           MatchResult result;
           if (pTemplateToInputSmgMapping.containsAbstraction(genAbs)) {
             result = pTemplateToInputSmgMapping.getAbstraction(genAbs);
@@ -662,10 +655,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
           return false;
         }
       } else {
-        if (targetTemplate instanceof GenericAbstractionCandidateTemplate) {
-          GenericAbstractionCandidateTemplate genAbs =
-              (GenericAbstractionCandidateTemplate) targetTemplate;
-
+        if (targetTemplate instanceof GenericAbstractionCandidateTemplate genAbs) {
           MatchResult result;
           if (pTemplateToInputSmgMapping.containsAbstraction(genAbs)) {
             result = pTemplateToInputSmgMapping.getAbstraction(genAbs);

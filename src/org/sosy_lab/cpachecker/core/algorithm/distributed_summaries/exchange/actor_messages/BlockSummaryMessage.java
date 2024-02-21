@@ -286,11 +286,8 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof BlockSummaryMessage)) {
-      return false;
-    }
-    BlockSummaryMessage message = (BlockSummaryMessage) pO;
-    return targetNodeNumber == message.targetNodeNumber
+    return pO instanceof BlockSummaryMessage message
+        && targetNodeNumber == message.targetNodeNumber
         && Objects.equals(uniqueBlockId, message.uniqueBlockId)
         && type == message.type
         && Objects.equals(payload, message.payload);
@@ -362,6 +359,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       return mapper.readValue(pBytes, BlockSummaryMessage.class);
     }
   }
+
   /** Mimics a MessageConverter but it zips messages. */
   public static class CompressedMessageConverter extends MessageConverter {
 

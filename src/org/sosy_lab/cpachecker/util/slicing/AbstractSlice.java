@@ -68,9 +68,8 @@ abstract class AbstractSlice implements Slice {
 
       for (CFANode relevantNode :
           ImmutableList.of(relevantEdge.getPredecessor(), relevantEdge.getSuccessor())) {
-        if (relevantNode instanceof FunctionEntryNode) {
+        if (relevantNode instanceof FunctionEntryNode relevantFunctionEntryNode) {
 
-          FunctionEntryNode relevantFunctionEntryNode = (FunctionEntryNode) relevantNode;
           Optional<? extends ASimpleDeclaration> optionalReturnVariable =
               relevantFunctionEntryNode.getReturnVariable();
 

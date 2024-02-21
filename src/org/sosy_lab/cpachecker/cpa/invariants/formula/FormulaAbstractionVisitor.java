@@ -235,11 +235,8 @@ public class FormulaAbstractionVisitor
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof FormulaAbstractionVisitor) {
-      FormulaAbstractionVisitor other = (FormulaAbstractionVisitor) pOther;
-      return evaluationVisitor.equals(other.evaluationVisitor)
-          && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory);
-    }
-    return false;
+    return pOther instanceof FormulaAbstractionVisitor other
+        && evaluationVisitor.equals(other.evaluationVisitor)
+        && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory);
   }
 }

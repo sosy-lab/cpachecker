@@ -114,19 +114,10 @@ public class OctagonInterval {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof OctagonInterval)) {
-      return false;
-    }
-
-    OctagonInterval other = (OctagonInterval) obj;
-
-    if (isEmpty() && other.isEmpty()) {
-      return true;
-    } else if (isEmpty() || other.isEmpty()) {
-      return false;
-    }
-
-    return low.isEqual(other.low) && high.isEqual(other.high);
+    return obj instanceof OctagonInterval other
+        && isEmpty() == other.isEmpty()
+        && low.isEqual(other.low)
+        && high.isEqual(other.high);
   }
 
   public boolean isSingular() {
@@ -415,7 +406,7 @@ public class OctagonInterval {
       scalarTimes(low, other.low),
       scalarTimes(low, other.high),
       scalarTimes(high, other.low),
-      scalarTimes(high, other.high)
+      scalarTimes(high, other.high),
     };
 
     return new OctagonInterval(
@@ -435,7 +426,7 @@ public class OctagonInterval {
       return createUnboundOctInterval();
     } else {
       OctagonNumericValue<?>[] values = {
-        low.div(other.low), low.div(other.high), high.div(other.low), high.div(other.high)
+        low.div(other.low), low.div(other.high), high.div(other.low), high.div(other.high),
       };
 
       return new OctagonInterval(

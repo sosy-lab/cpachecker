@@ -75,9 +75,7 @@ abstract class AddressVisitor
 
     if (object == null && variableName.getDeclaration() != null) {
       CSimpleDeclaration dcl = variableName.getDeclaration();
-      if (dcl instanceof CVariableDeclaration) {
-        CVariableDeclaration varDcl = (CVariableDeclaration) dcl;
-
+      if (dcl instanceof CVariableDeclaration varDcl) {
         if (varDcl.isGlobal()) {
           object =
               state.addGlobalVariable(

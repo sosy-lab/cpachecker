@@ -32,6 +32,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSet
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStrategy {
 
@@ -54,15 +56,18 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
   private final Lock lock = new ReentrantLock();
+  private final CFA cfa;
 
   public PartialReachedSetIOCheckingInterleavedStrategy(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Path pProofFile,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA pCpa,
+      final @Nullable CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    cfa = pCFA;
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
@@ -230,6 +235,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     @Override
     @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
+      SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
       try (ObjectInputStream o = openProofStream()) {
         ioHelper.readMetadata(o, false);
         for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
@@ -246,6 +252,8 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
       } catch (Exception e2) {
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abort();
+      } finally {
+        SerializationInfoStorage.clear();
       }
     }
 

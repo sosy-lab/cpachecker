@@ -10,7 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.util.List;
 
-public interface ACSLAnnotation {
+public sealed interface ACSLAnnotation
+    permits ACSLAssertion,
+        ACSLLoopAnnotation,
+        FunctionContract,
+        InvalidAnnotation,
+        StatementContract {
 
   /**
    * Returns a predicate that represents the semantics of the annotation as they could be used in an

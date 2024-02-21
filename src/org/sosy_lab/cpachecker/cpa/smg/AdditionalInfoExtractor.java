@@ -110,13 +110,11 @@ public class AdditionalInfoExtractor {
   }
 
   private boolean containsInvalidElement(UnmodifiableCLangSMG smg, Object elem) {
-    if (elem instanceof SMGObject) {
-      SMGObject smgObject = (SMGObject) elem;
+    if (elem instanceof SMGObject smgObject) {
       return smg.isHeapObject(smgObject)
           || smg.getGlobalObjects().containsValue(smgObject)
           || isStackObject(smg, smgObject);
-    } else if (elem instanceof SMGEdgeHasValue) {
-      SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;
+    } else if (elem instanceof SMGEdgeHasValue edgeHasValue) {
       SMGEdgeHasValueFilter filter =
           SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
               .filterAtOffset(edgeHasValue.getOffset())
@@ -124,16 +122,14 @@ public class AdditionalInfoExtractor {
               .filterBySize(edgeHasValue.getSizeInBits());
       Iterable<SMGEdgeHasValue> edges = smg.getHVEdges(filter);
       return edges.iterator().hasNext();
-    } else if (elem instanceof SMGEdgePointsTo) {
-      SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
+    } else if (elem instanceof SMGEdgePointsTo edgePointsTo) {
       SMGEdgePointsToFilter filter =
           SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
               .filterAtTargetOffset(edgePointsTo.getOffset())
               .filterHavingValue(edgePointsTo.getValue());
       Set<SMGEdgePointsTo> edges = smg.getPtEdges(filter);
       return !edges.isEmpty();
-    } else if (elem instanceof SMGValue) {
-      SMGValue smgValue = (SMGValue) elem;
+    } else if (elem instanceof SMGValue smgValue) {
       return smg.getValues().contains(smgValue);
     }
     return false;
@@ -156,8 +152,7 @@ public class AdditionalInfoExtractor {
       return "Assign edge";
     } else if (elem instanceof Integer || elem instanceof SMGValue) {
       return "Assign value";
-    } else if (elem instanceof SMGObject) {
-      SMGObject smgObject = (SMGObject) elem;
+    } else if (elem instanceof SMGObject smgObject) {
       if (isFunctionParameter(smg, smgObject)) {
         return "Function parameter";
       }

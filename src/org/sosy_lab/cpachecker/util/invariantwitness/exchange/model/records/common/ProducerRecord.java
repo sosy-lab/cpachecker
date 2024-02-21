@@ -64,14 +64,11 @@ public class ProducerRecord {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o) {
       return true;
     }
-    if (!(o instanceof ProducerRecord)) {
-      return false;
-    }
-    ProducerRecord invariantStoreEntryProducer = (ProducerRecord) o;
-    return Objects.equals(name, invariantStoreEntryProducer.name)
+    return o instanceof ProducerRecord invariantStoreEntryProducer
+        && Objects.equals(name, invariantStoreEntryProducer.name)
         && Objects.equals(version, invariantStoreEntryProducer.version)
         && Objects.equals(configuration, invariantStoreEntryProducer.configuration)
         && Objects.equals(description, invariantStoreEntryProducer.description)

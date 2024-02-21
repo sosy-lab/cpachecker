@@ -59,7 +59,7 @@ public class MachineModelGetOffsetTest {
       {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL32},
       {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL64},
       {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL32},
-      {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL64}
+      {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL64},
     };
   }
 

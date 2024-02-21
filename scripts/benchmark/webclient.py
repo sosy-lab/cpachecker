@@ -107,6 +107,14 @@ class UserAbortError(Exception):
         return repr(self.value)
 
 
+class CommandLineArgumentError(Exception):
+    def _init_(self, value):
+        self.value = value
+
+    def _str_(self):
+        return repr(self.value)
+
+
 class PollingResultDownloader:
     def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
         self._unfinished_runs = set()
@@ -122,7 +130,6 @@ class PollingResultDownloader:
         self._shutdown = threading.Event()
 
     def _poll_run_states(self):
-
         # in every iteration the states of all unfinished runs are requested once
         while not self._shutdown.is_set():
             start = time()
@@ -137,7 +144,6 @@ class PollingResultDownloader:
 
             # Collect states of runs
             for state_future in as_completed(states.keys()):
-
                 run_id = states[state_future]
                 state = state_future.result()
 
@@ -174,7 +180,7 @@ if HAS_SSECLIENT:
             last_id=None,
             retry=3000,
             session=None,
-            **kwargs
+            **kwargs,
         ):
             super().__init__(url, last_id, retry, session, **kwargs)
             self._should_reconnect = should_reconnect
@@ -227,11 +233,9 @@ if HAS_SSECLIENT:
                 logging.debug("Exception in SSE connection: %s", error)
                 return False
             else:
-
                 return True
 
         def _start_sse_connection(self):
-
             while self._new_runs:
                 run_ids = set(self._web_interface._unfinished_runs.keys())
                 self._new_runs = False
@@ -476,12 +480,21 @@ class WebInterface:
         directory = os.path.dirname(HASH_CODE_CACHE_PATH)
         try:
             os.makedirs(directory, exist_ok=True)
-            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
-                for (path, mTime), hashValue in hash_code_cache.items():
-                    line = path + "\t" + mTime + "\t" + hashValue + "\n"
-                    tmpFile.write(line.encode())
+            try:
+                with tempfile.NamedTemporaryFile(
+                    dir=directory, delete=False
+                ) as tmpFile:
+                    for (path, mTime), hashValue in hash_code_cache.items():
+                        line = path + "\t" + mTime + "\t" + hashValue + "\n"
+                        tmpFile.write(line.encode())
 
-                os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
+                os.replace(tmpFile.name, HASH_CODE_CACHE_PATH)
+            except OSError:
+                try:
+                    os.remove(tmpFile.name)
+                except OSError:
+                    pass
+                raise
         except OSError as e:
             logging.warning(
                 "Could not write hash-code cache file to %s: %s",
@@ -606,6 +619,7 @@ class WebInterface:
         @param required_files: list of additional file required to execute the run (optional)
         @raise WebClientError: if the HTTP request could not be created
         @raise UserAbortError: if the user already requested shutdown on this instance
+        @raise CommandLineArgumentError: if no source files are provided by the user
         @raise HTTPError: if the HTTP request was not successful
         """
         if not self.active:
@@ -617,6 +631,8 @@ class WebInterface:
                     "at the same time."
                 )
             result_files_patterns = [result_files_pattern]
+        if not run.sourcefiles:
+            raise CommandLineArgumentError("No source files are provided.")
 
         return self._submit(
             run,
@@ -643,7 +659,6 @@ class WebInterface:
         revision,
         counter=0,
     ):
-
         params = []
         opened_files = []  # open file handles are passed to the request library
 
@@ -1141,7 +1156,13 @@ class WebInterface:
 
             else:
                 if response.status_code == 401:
-                    message = "Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary."
+                    message = "Permission denied. "
+                    if not self._connection.auth and not user_pwd:
+                        message += (
+                            "Please specify the user information using --cloudUser."
+                        )
+                    else:
+                        message += "Please check the given username and password."
 
                 elif response.status_code == 404:
                     message = "Not found. Please check the URL given to --cloudMaster."
@@ -1158,7 +1179,7 @@ class WebInterface:
                 # HTTPError.request is automatically filled with response.request so no need to pass it.
                 # Also HTTPError extends IOError, so there is a constructor IOError(errno, strerror, filename)
                 raise requests.HTTPError(
-                    response.status_code, message, path, response=response
+                    response.status_code, message, response=response
                 )
 
 
@@ -1268,7 +1289,6 @@ def _handle_result(
     result_files_patterns,
     run_identifier,
 ):
-
     files = set(resultZipFile.namelist())
 
     # extract run info

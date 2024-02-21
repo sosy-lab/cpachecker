@@ -109,12 +109,9 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
-    if (pOtherPrecision.getClass().equals(getClass())
+    return pOtherPrecision.getClass().equals(getClass())
         && super.getBaseline().equals(((ScopedRefinablePrecision) pOtherPrecision).getBaseline())
-        && rawPrecision.equals(((ScopedRefinablePrecision) pOtherPrecision).rawPrecision)) {
-      return true;
-    }
-    return false;
+        && rawPrecision.equals(((ScopedRefinablePrecision) pOtherPrecision).rawPrecision);
   }
 
   @Override

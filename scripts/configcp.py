@@ -27,7 +27,6 @@ class EdgeType(Enum):
 
 
 def get_parser() -> ArgumentParser:
-
     parser = ArgumentParser("configcp.py")
     parser.add_argument("--root", help="The file to start copying from.", required=True)
     parser.add_argument(
@@ -274,7 +273,6 @@ def matchesFilter(filter_exp: str, arg: str) -> bool:
 
 
 def main(argv: Sequence[str]):
-
     parser = get_parser()
     args = parser.parse_args(argv)
 

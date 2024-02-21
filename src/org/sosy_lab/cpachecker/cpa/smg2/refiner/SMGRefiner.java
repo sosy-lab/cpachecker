@@ -149,13 +149,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final CFA cfa = smgCpa.getCFA();
 
     final StrongestPostOperator<SMGState> strongestPostOp =
-        new SMGStrongestPostOperator(logger, config, cfa);
+        new SMGStrongestPostOperator(smgCpa.getSolver(), logger, config, cfa);
 
     final SMGFeasibilityChecker checker =
         new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
     final GenericPrefixProvider<SMGState> prefixProvider =
-        new SMGPrefixProvider(logger, cfa, config, smgCpa.getShutdownNotifier());
+        new SMGPrefixProvider(
+            smgCpa.getSolver(), logger, cfa, config, smgCpa.getShutdownNotifier());
 
     return new SMGRefiner(
         checker,
@@ -190,7 +191,11 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pShutdownNotifier,
             pCfa),
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety()),
         pPathExtractor,
         pConfig,
         pLogger);
@@ -227,25 +232,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       }
 
       List<Precision> precisions = new ArrayList<>(2);
-      VariableTrackingPrecision basePrecision;
-      switch (basisStrategy) {
-        case ALL:
-          basePrecision =
-              mergeValuePrecisionsForSubgraph((ARGState) reached.getFirstState(), reached);
-          break;
-        case SUBGRAPH:
-          basePrecision = mergeValuePrecisionsForSubgraph(root, reached);
-          break;
-        case TARGET:
-          basePrecision = extractValuePrecision(reached.getPrecision(reached.getLastState()));
-          break;
-        case CUTPOINT:
-          basePrecision = extractValuePrecision(reached.getPrecision(root));
-          break;
-        default:
-          throw new AssertionError("unknown strategy for predicate basis.");
-      }
-
+      VariableTrackingPrecision basePrecision =
+          switch (basisStrategy) {
+            case ALL -> mergeValuePrecisionsForSubgraph(
+                (ARGState) reached.getFirstState(), reached);
+            case SUBGRAPH -> mergeValuePrecisionsForSubgraph(root, reached);
+            case TARGET -> extractValuePrecision(reached.getPrecision(reached.getLastState()));
+            case CUTPOINT -> extractValuePrecision(reached.getPrecision(root));
+          };
       // merge the value precisions of the subtree, and refine it
       precisions.add(
           ((SMGPrecision) basePrecision)

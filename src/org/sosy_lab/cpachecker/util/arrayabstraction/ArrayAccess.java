@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -56,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -90,9 +90,8 @@ final class ArrayAccess {
       return Optional.of((CArraySubscriptExpression) pExpression);
     }
 
-    if (pExpression instanceof CPointerExpression) {
+    if (pExpression instanceof CPointerExpression pointerExpression) {
 
-      CPointerExpression pointerExpression = (CPointerExpression) pExpression;
       CExpression operand = pointerExpression.getOperand();
 
       if (operand instanceof CIdExpression) {
@@ -105,9 +104,8 @@ final class ArrayAccess {
         return Optional.of(arraySubscriptExpression);
       }
 
-      if (operand instanceof CBinaryExpression) {
+      if (operand instanceof CBinaryExpression binaryExpression) {
 
-        CBinaryExpression binaryExpression = (CBinaryExpression) operand;
         CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
         CExpression operand1 = binaryExpression.getOperand1();
         CExpression operand2 = binaryExpression.getOperand2();
@@ -178,9 +176,9 @@ final class ArrayAccess {
     ImmutableSet.Builder<ArrayAccess> builder = ImmutableSet.builder();
 
     Consumer<CExpression> readingArrayAccessConsumer =
-        (arrayAccessExpression) -> builder.add(new ArrayAccess(Type.READ, arrayAccessExpression));
+        arrayAccessExpression -> builder.add(new ArrayAccess(Type.READ, arrayAccessExpression));
     Consumer<CExpression> writingArrayAccessConsumer =
-        (arrayAccessExpression) -> builder.add(new ArrayAccess(Type.WRITE, arrayAccessExpression));
+        arrayAccessExpression -> builder.add(new ArrayAccess(Type.WRITE, arrayAccessExpression));
     analyseAstNode(
         pCAstNode, readingArrayAccessConsumer, writingArrayAccessConsumer, arrayDeclaration -> {});
 
@@ -199,9 +197,9 @@ final class ArrayAccess {
     ImmutableSet.Builder<ArrayAccess> builder = ImmutableSet.builder();
 
     Consumer<CExpression> readingArrayAccessConsumer =
-        (arrayAccessExpression) -> builder.add(new ArrayAccess(Type.READ, arrayAccessExpression));
+        arrayAccessExpression -> builder.add(new ArrayAccess(Type.READ, arrayAccessExpression));
     Consumer<CExpression> writingArrayAccessConsumer =
-        (arrayAccessExpression) -> builder.add(new ArrayAccess(Type.WRITE, arrayAccessExpression));
+        arrayAccessExpression -> builder.add(new ArrayAccess(Type.WRITE, arrayAccessExpression));
     analyseCfaEdge(
         pEdge, readingArrayAccessConsumer, writingArrayAccessConsumer, arrayDeclaration -> {});
 
@@ -220,7 +218,7 @@ final class ArrayAccess {
     ImmutableSet.Builder<CSimpleDeclaration> builder = ImmutableSet.builder();
 
     Consumer<CSimpleDeclaration> arrayDeclarationConsumer =
-        (arrayDeclaration) -> builder.add(arrayDeclaration);
+        arrayDeclaration -> builder.add(arrayDeclaration);
     analyseCfaEdge(pEdge, arrayAccess -> {}, arrayAccess -> {}, arrayDeclarationConsumer);
 
     return builder.build();
@@ -300,12 +298,9 @@ final class ArrayAccess {
       return true;
     }
 
-    if (!(pObject instanceof ArrayAccess)) {
-      return false;
-    }
-
-    ArrayAccess other = (ArrayAccess) pObject;
-    return type == other.type && Objects.equals(expression, other.expression);
+    return pObject instanceof ArrayAccess other
+        && type == other.type
+        && Objects.equals(expression, other.expression);
   }
 
   @Override

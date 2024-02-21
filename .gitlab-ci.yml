@@ -12,9 +12,9 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 0287f114a4fa2af2e4e743b9cbf86d179d89553a
+  REFASTER_REPO_REVISION: 31cd8ffc4966957e156665dbba76679ade5bb5c9
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.18.0
+  REFASTER_VERSION: 2.21.1
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
@@ -45,16 +45,6 @@ variables:
     reports:
       junit: "output/configuration-checks/TESTS-TestSuites.xml"
 
-configuration-checks:jdk-11:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-
 configuration-checks:jdk-17:
   <<: *configuration-checks
   dependencies:
@@ -65,15 +55,15 @@ configuration-checks:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-configuration-checks:jdk-19:
+configuration-checks:jdk-20:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-19
+    - build:jdk-20
   needs:
     - build-dependencies
-    - build:jdk-19
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
+    - build:jdk-20
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
 
 
 configuration-documentation:
@@ -115,19 +105,17 @@ forbidden-apis:
     - build:jdk-17
 
 
+check-code-patterns:
+  stage: checks
+  script: "build/check-code-patterns.sh"
+  dependencies: []
+  needs: []
+  image: ubuntu:20.04
+
+
 .python-unit-tests: &python-unit-tests
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"
-
-python-unit-tests:jdk-11:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
 python-unit-tests:jdk-17:
   <<: *python-unit-tests
@@ -139,15 +127,15 @@ python-unit-tests:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-python-unit-tests:jdk-19:
+python-unit-tests:jdk-20:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-19
+    - build:jdk-20
   needs:
     - build-dependencies
-    - build:jdk-19
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
+    - build:jdk-20
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-20
 
 
 javascript-build:
@@ -253,9 +241,9 @@ check-format-python:
   needs: []
   image: python
   before_script:
-    - pip install black
+    - pip install 'black[jupyter]<2024'
   script:
-    - black . --check --diff --include='contrib/.*\.py'
+    - black . --check --diff
   <<: *pip-cache
 
 flake8:
@@ -303,19 +291,13 @@ deploy-docker:
 
 
 # No coverage is computed for CPAchecker
-unit-tests:jdk-11:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-  artifacts:
-    reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
-
 unit-tests:jdk-17:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-19:
+unit-tests:jdk-20:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
@@ -334,9 +316,21 @@ spotbugs:
     - build:jdk-17
 
 refaster:
-  # so far does not work with Java 17:
-  # https://github.com/google/error-prone/issues/3553
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+
+
+# Disable Java 11 jobs
+build-docker:test:jdk-11:
+  only: []
+
+build:jdk-11:
+  only: []
+
+build-project-ecj:jdk-11:
+  only: []
+
+unit-tests:jdk-11:
+  only: []
 
 
 # Disable some checks because they are not used for CPAchecker

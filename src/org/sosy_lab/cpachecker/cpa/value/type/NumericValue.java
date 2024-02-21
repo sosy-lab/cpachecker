@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -21,26 +20,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
-public class NumericValue implements Value, Serializable {
+public record NumericValue(Number number) implements Value {
 
   private static final long serialVersionUID = -3829943575180448170L;
 
-  private Number number;
-
-  /**
-   * Creates a new <code>NumericValue</code>.
-   *
-   * @param pNumber the value of the number
-   */
-  public NumericValue(Number pNumber) {
-    number = pNumber;
-  }
-
-  /**
-   * Returns the number stored in the container.
-   *
-   * @return the number stored in the container
-   */
+  /** Returns the number stored in the container. Same as {@link #number()} for consistency. */
   public Number getNumber() {
     return number;
   }
@@ -48,24 +32,43 @@ public class NumericValue implements Value, Serializable {
   /**
    * Returns the integer stored in the container as long. Before calling this function, it must be
    * ensured using `getType()` that this container contains an integer.
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a long. Use {@link
+   * #bigDecimalValue() or #bigIntegerValue()} instead.
    */
   public long longValue() {
     return number.longValue();
   }
 
-  /** Returns the floating point stored in the container as float. */
+  /**
+   * Returns the floating point stored in the container as float.
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a float. Use {@link
+   * #bigDecimalValue() or #bigIntegerValue()} instead.
+   */
   public float floatValue() {
     return number.floatValue();
   }
 
-  /** Returns the floating point stored in the container as double. */
+  /**
+   * Returns the floating point stored in the container as double. *
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a double. Use {@link
+   * #bigDecimalValue() or #bigIntegerValue()} instead.
+   */
   public double doubleValue() {
     return number.doubleValue();
   }
 
-  /** Returns a BigDecimal value representing the stored number. */
+  /**
+   * Returns a BigDecimal value representing the stored number.
+   *
+   * <p>WARNING: This silently rounds numbers that are stored as a {@link Rational}.
+   */
   public BigDecimal bigDecimalValue() {
-    if (number instanceof Double || number instanceof Float) {
+    if (number instanceof BigDecimal decimal) {
+      return decimal;
+    } else if (number instanceof Double || number instanceof Float) {
       // if we use number.toString() for float values, the toString() method
       // will not print the full double but only the number of digits
       // necessary to distinguish it from the surrounding double-values.
@@ -74,8 +77,9 @@ public class NumericValue implements Value, Serializable {
       //
       // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
       return BigDecimal.valueOf(number.doubleValue());
-    } else if (number instanceof Rational) {
-      Rational rat = (Rational) number;
+    } else if (number instanceof BigInteger bigInt) {
+      return new BigDecimal(bigInt);
+    } else if (number instanceof Rational rat) {
       return new BigDecimal(rat.getNum())
           .divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
     } else {
@@ -83,42 +87,21 @@ public class NumericValue implements Value, Serializable {
     }
   }
 
-  /** Returns a {@link BigInteger} value representing the stored number. */
-  public BigInteger bigInteger() {
-    if (number instanceof BigInteger) {
-      return (BigInteger) number;
-    }
-    if (number instanceof Double || number instanceof Float) {
-      long x = (long) number.doubleValue();
-      return BigInteger.valueOf(x);
-    }
-    if (number instanceof BigDecimal) {
-      return ((BigDecimal) number).toBigInteger();
-    }
-    if (number instanceof Rational) {
-      return new NumericValue(number).bigDecimalValue().toBigInteger();
-    }
-    return new BigInteger(number.toString());
-  }
-
-  @Override
-  public String toString() {
-    return "NumericValue [number=" + number + "]";
-  }
-
   /**
-   * Returns whether this object and a given object are equal. Two <code>NumericValue</code> objects
-   * are equal if and only if their stored values are equal.
+   * Returns a {@link BigInteger} value representing the stored number.
    *
-   * @param other the <code>Object</code> to compare to this object
-   * @return <code>true</code> if the given object equals this object, <code>false</code> otherwise
+   * <p>WARNING: This silently rounds decimal numbers.
    */
-  @Override
-  public boolean equals(Object other) {
-    if (other instanceof NumericValue) {
-      return getNumber().equals(((NumericValue) other).getNumber());
+  public BigInteger bigIntegerValue() {
+    if (number instanceof BigInteger bigInt) {
+      return bigInt;
+    } else if (number instanceof Double
+        || number instanceof Float
+        || number instanceof BigDecimal
+        || number instanceof Rational) {
+      return bigDecimalValue().toBigInteger();
     } else {
-      return false;
+      return new BigInteger(number.toString());
     }
   }
 
@@ -139,10 +122,8 @@ public class NumericValue implements Value, Serializable {
    */
   public NumericValue negate() {
     // TODO explicitfloat: handle the remaining different implementations of Number properly
-    final Number numberToNegate = getNumber();
-
     // check if number is infinite or NaN
-    if (numberToNegate instanceof Float) {
+    if (number instanceof Float numberToNegate) {
       if (numberToNegate.equals(Float.POSITIVE_INFINITY)) {
         return new NumericValue(Float.NEGATIVE_INFINITY);
 
@@ -151,8 +132,10 @@ public class NumericValue implements Value, Serializable {
 
       } else if (numberToNegate.equals(Float.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
+      } else {
+        return new NumericValue(-numberToNegate);
       }
-    } else if (numberToNegate instanceof Double) {
+    } else if (number instanceof Double numberToNegate) {
       if (numberToNegate.equals(Double.POSITIVE_INFINITY)) {
         return new NumericValue(Double.NEGATIVE_INFINITY);
 
@@ -161,22 +144,21 @@ public class NumericValue implements Value, Serializable {
 
       } else if (numberToNegate.equals(Double.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
+      } else {
+        return new NumericValue(-numberToNegate);
       }
-    } else if (numberToNegate instanceof Rational) {
-      return new NumericValue(((Rational) numberToNegate).negate());
-    } else if (NegativeNaN.VALUE.equals(numberToNegate)) {
+    } else if (number instanceof BigInteger bigInt) {
+      return new NumericValue(bigInt.negate());
+    } else if (number instanceof Rational rat) {
+      return new NumericValue(rat.negate());
+    } else if (NegativeNaN.VALUE.equals(number)) {
       return new NumericValue(Double.NaN);
+    } else if (number instanceof BigDecimal bd && bd.signum() == 0) {
+      return new NumericValue(-bd.doubleValue());
+    } else {
+      // if the stored number is a 'casual' number, just negate it
+      return new NumericValue(bigDecimalValue().negate());
     }
-
-    if (numberToNegate instanceof BigDecimal) {
-      BigDecimal bd = (BigDecimal) numberToNegate;
-      if (bd.signum() == 0) {
-        return new NumericValue(-bd.doubleValue());
-      }
-    }
-
-    // if the stored number is a 'casual' number, just negate it
-    return new NumericValue(bigDecimalValue().negate());
   }
 
   @Override
@@ -222,13 +204,6 @@ public class NumericValue implements Value, Serializable {
   @Override
   public boolean isExplicitlyKnown() {
     return true;
-  }
-
-  @Override
-  public int hashCode() {
-    // fulfills contract that if this.equals(other),
-    // then this.hashCode() == other.hashCode()
-    return number.hashCode();
   }
 
   public static class NegativeNaN extends Number {

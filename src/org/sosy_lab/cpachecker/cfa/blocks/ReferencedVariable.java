@@ -46,12 +46,9 @@ public class ReferencedVariable {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ReferencedVariable)) {
-      return false;
-    }
-
-    ReferencedVariable rhs = (ReferencedVariable) o;
-    return ident.equals(rhs.ident) && occursInCondition == rhs.occursInCondition;
+    return o instanceof ReferencedVariable rhs
+        && ident.equals(rhs.ident)
+        && occursInCondition == rhs.occursInCondition;
   }
 
   @Override

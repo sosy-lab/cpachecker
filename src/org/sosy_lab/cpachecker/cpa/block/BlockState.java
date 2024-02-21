@@ -94,11 +94,8 @@ public class BlockState implements AbstractQueryableState, Partitionable, Serial
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof BlockState)) {
-      return false;
-    }
-    BlockState that = (BlockState) pO;
-    return direction == that.direction
+    return pO instanceof BlockState that
+        && direction == that.direction
         && Objects.equals(targetCFANode, that.targetCFANode)
         && Objects.equals(node, that.node)
         && type == that.type;

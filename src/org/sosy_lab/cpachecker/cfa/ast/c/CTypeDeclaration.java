@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *
  * <p>struct s { int i; } typedef int my_int;
  */
-public abstract class CTypeDeclaration extends AbstractDeclaration implements CDeclaration {
+public abstract sealed class CTypeDeclaration extends AbstractDeclaration implements CDeclaration
+    permits CComplexTypeDeclaration, CTypeDefDeclaration {
 
   private static final long serialVersionUID = -607383651501118425L;
   private final String qualifiedName;
@@ -51,14 +52,10 @@ public abstract class CTypeDeclaration extends AbstractDeclaration implements CD
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CTypeDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CTypeDeclaration && super.equals(obj);
   }
 }

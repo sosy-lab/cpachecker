@@ -52,8 +52,7 @@ public class LeafGoalStrategy implements IGoalFindingStrategy {
 
       var label = state.getLocationNode();
 
-      if (label instanceof CFALabelNode) {
-        var lbl = (CFALabelNode) label;
+      if (label instanceof CFALabelNode lbl) {
         if (lbl.getLabel().matches("^GOAL_[0-9]+$")) {
           if (coveredGoals.contains(lbl.getLabel())) {
             leafGoals.get(LeafStates.COVERED).add(label);

@@ -133,8 +133,7 @@ enum GraphBuilder {
                 pValueMap,
                 pAdditionalInfo.get(s));
             // For branchings, it is important to have both branches explicitly in the witness
-            if (edgeToNextState instanceof AssumeEdge) {
-              AssumeEdge assumeEdge = (AssumeEdge) edgeToNextState;
+            if (edgeToNextState instanceof AssumeEdge assumeEdge) {
               AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {

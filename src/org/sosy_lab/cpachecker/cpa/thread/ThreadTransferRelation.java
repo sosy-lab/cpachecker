@@ -88,8 +88,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
           newState = joinThread(tState, (CThreadJoinStatement) stmnt);
         }
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-        CFunctionCall functionCall =
-            ((CFunctionReturnEdge) pCfaEdge).getSummaryEdge().getExpression();
+        CFunctionCall functionCall = ((CFunctionReturnEdge) pCfaEdge).getFunctionCall();
         if (isThreadCreateFunction(functionCall)) {
           newState = null;
         }
@@ -114,7 +113,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException {
 
     ThreadState newState = state;
-    CFunctionCall fCall = pCfaEdge.getSummaryEdge().getExpression();
+    CFunctionCall fCall = pCfaEdge.getFunctionCall();
     if (isThreadCreateFunction(fCall)) {
       newState = handleChildThread(state, (CThreadCreateStatement) fCall);
       if (threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName())) {

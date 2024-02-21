@@ -87,7 +87,7 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
 
     Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.buildOrThrow();
     final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
-        Maps.filterValues(allCounterexamples, cex -> cex.isPreciseCounterExample());
+        Maps.filterValues(allCounterexamples, CounterexampleInfo::isPreciseCounterExample);
     return preciseCounterexamples.isEmpty() ? allCounterexamples : preciseCounterexamples;
   }
 

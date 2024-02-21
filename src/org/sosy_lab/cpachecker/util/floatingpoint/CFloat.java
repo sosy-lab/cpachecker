@@ -304,134 +304,93 @@ public abstract class CFloat {
   }
 
   public final int getNormalizedMantissaLength() {
-    int length = 0;
-
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        length = 24;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        length = 53;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        length = 64;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
-    }
+    int length =
+        switch (getType()) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE -> 24;
+          case CFloatNativeAPI.FP_TYPE_DOUBLE -> 53;
+          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> 64;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
 
     return length;
   }
 
   public final long getOverflowHighBitsMask() {
-    long bits = 0L;
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        bits = 0b11111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        bits = 0b11111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        bits = 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
-    }
-
+    long bits =
+        switch (getType()) {
+          case CFloatNativeAPI
+              .FP_TYPE_SINGLE -> 0b11111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
+          case CFloatNativeAPI
+              .FP_TYPE_DOUBLE -> 0b11111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
+          case CFloatNativeAPI
+              .FP_TYPE_LONG_DOUBLE -> 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
     return bits;
   }
 
   public final int getExponentLength() {
-    int res = -1;
-
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        res = 8;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        res = 11;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        res = 15;
-        break;
-      default:
-        throw new IllegalArgumentException("Unimplemented floating point type: " + getType());
-    }
+    int res =
+        switch (getType()) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE -> 8;
+          case CFloatNativeAPI.FP_TYPE_DOUBLE -> 11;
+          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> 15;
+          default -> throw new IllegalArgumentException(
+              "Unimplemented floating point type: " + getType());
+        };
 
     return res;
   }
 
   public final long getBias() {
-    long bias = 0L;
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        bias = getExponentMask() / 2;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
-    }
-
+    long bias =
+        switch (getType()) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE,
+              CFloatNativeAPI.FP_TYPE_DOUBLE,
+              CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> getExponentMask() / 2;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
     return bias;
   }
 
   public final int getMantissaLength() {
-    int res = -1;
-
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        res = 23;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        res = 52;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        res = 64;
-        break;
-      default:
-        throw new IllegalArgumentException("Unimplemented floating point type: " + getType());
-    }
+    int res =
+        switch (getType()) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE -> 23;
+          case CFloatNativeAPI.FP_TYPE_DOUBLE -> 52;
+          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> 64;
+          default -> throw new IllegalArgumentException(
+              "Unimplemented floating point type: " + getType());
+        };
 
     return res;
   }
 
   public final long getSignBitMask() {
-    long signBit = 0L;
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        signBit = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000001_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        signBit = 0b00000000_00000000_00000000_00000000_00000000_00000000_00001000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        signBit = 0b00000000_00000000_00000000_00000000_00000000_00000000_10000000_00000000L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
-    }
-
+    long signBit =
+        switch (getType()) {
+          case CFloatNativeAPI
+              .FP_TYPE_SINGLE -> 0b00000000_00000000_00000000_00000000_00000000_00000000_00000001_00000000L;
+          case CFloatNativeAPI
+              .FP_TYPE_DOUBLE -> 0b00000000_00000000_00000000_00000000_00000000_00000000_00001000_00000000L;
+          case CFloatNativeAPI
+              .FP_TYPE_LONG_DOUBLE -> 0b00000000_00000000_00000000_00000000_00000000_00000000_10000000_00000000L;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
     return signBit;
   }
 
   public final long getExponentMask() {
-    long exp = 0L;
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        exp = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_11111111L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        exp = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000111_11111111L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        exp = 0b00000000_00000000_00000000_00000000_00000000_00000000_01111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
-    }
-
+    long exp =
+        switch (getType()) {
+          case CFloatNativeAPI
+              .FP_TYPE_SINGLE -> 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_11111111L;
+          case CFloatNativeAPI
+              .FP_TYPE_DOUBLE -> 0b00000000_00000000_00000000_00000000_00000000_00000000_00000111_11111111L;
+          case CFloatNativeAPI
+              .FP_TYPE_LONG_DOUBLE -> 0b00000000_00000000_00000000_00000000_00000000_00000000_01111111_11111111L;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
     return exp;
   }
 
@@ -470,21 +429,16 @@ public abstract class CFloat {
   }
 
   public final long getLowerOrderOverflowBitsMask() {
-    long bits = 0L;
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        bits = 0b01111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        bits = 0b01111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        bits = 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
-    }
-
+    long bits =
+        switch (getType()) {
+          case CFloatNativeAPI
+              .FP_TYPE_SINGLE -> 0b01111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
+          case CFloatNativeAPI
+              .FP_TYPE_DOUBLE -> 0b01111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
+          case CFloatNativeAPI
+              .FP_TYPE_LONG_DOUBLE -> 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
     return bits;
   }
 
@@ -493,40 +447,30 @@ public abstract class CFloat {
   }
 
   public final long getMantissaMask() {
-    long man = 0L;
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        man = 0b00000000_00000000_00000000_00000000_00000000_01111111_11111111_11111111L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        man = 0b00000000_00001111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        man = 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
-    }
-
+    long man =
+        switch (getType()) {
+          case CFloatNativeAPI
+              .FP_TYPE_SINGLE -> 0b00000000_00000000_00000000_00000000_00000000_01111111_11111111_11111111L;
+          case CFloatNativeAPI
+              .FP_TYPE_DOUBLE -> 0b00000000_00001111_11111111_11111111_11111111_11111111_11111111_11111111L;
+          case CFloatNativeAPI
+              .FP_TYPE_LONG_DOUBLE -> 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
     return man;
   }
 
   public final long getNormalizationMask() {
-    long oneBit = 0L;
-    switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        oneBit = 0b00000000_00000000_00000000_00000000_00000000_10000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        oneBit = 0b00000000_00010000_00000000_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        oneBit = 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
-    }
-
+    long oneBit =
+        switch (getType()) {
+          case CFloatNativeAPI
+              .FP_TYPE_SINGLE -> 0b00000000_00000000_00000000_00000000_00000000_10000000_00000000_00000000L;
+          case CFloatNativeAPI
+              .FP_TYPE_DOUBLE -> 0b00000000_00010000_00000000_00000000_00000000_00000000_00000000_00000000L;
+          case CFloatNativeAPI
+              .FP_TYPE_LONG_DOUBLE -> 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
     return oneBit;
   }
 

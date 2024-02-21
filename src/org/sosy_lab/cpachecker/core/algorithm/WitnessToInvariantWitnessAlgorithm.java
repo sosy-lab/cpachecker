@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -73,9 +72,9 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
       WitnessInvariantsExtractor invariantsExtractor =
           new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witness);
       invariants = invariantsExtractor.extractInvariantsFromReachedSet();
-    } catch (InvalidConfigurationException pE) {
+    } catch (InvalidConfigurationException e) {
       throw new CPAException(
-          "Invalid Configuration while analyzing witness:\n" + pE.getMessage(), pE);
+          "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
     }
 
     Set<InvariantWitness> invariantWitnesses = new HashSet<>();
@@ -87,11 +86,7 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
     }
 
     for (InvariantWitness invariantWitness : invariantWitnesses) {
-      try {
-        invariantExporter.exportInvariantWitness(invariantWitness);
-      } catch (IOException e) {
-        logger.log(Level.WARNING, "Could not write witness to file");
-      }
+      invariantExporter.exportInvariantWitness(invariantWitness);
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }

@@ -32,7 +32,7 @@ enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
 
     return Optional.of(
-        PrecisionAdjustmentResult.create(
+        new PrecisionAdjustmentResult(
             AlwaysTopState.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE));
   }
 }

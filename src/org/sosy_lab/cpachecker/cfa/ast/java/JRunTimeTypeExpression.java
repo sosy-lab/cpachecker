@@ -13,7 +13,8 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
  * expression evaluate to the run time type of the expression if they are part of {@link
  * JRunTimeTypeEqualsType}.
  */
-public interface JRunTimeTypeExpression extends JExpression {
+public sealed interface JRunTimeTypeExpression extends JExpression
+    permits JThisExpression, JVariableRunTimeType {
 
   boolean isThisReference();
 

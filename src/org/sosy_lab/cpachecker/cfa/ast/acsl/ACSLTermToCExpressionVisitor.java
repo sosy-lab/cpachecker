@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -25,9 +26,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -53,59 +54,26 @@ public class ACSLTermToCExpressionVisitor
           new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
       CExpression leftExpression = binaryTerm.getLeft().accept(this);
       CExpression rightExpression = binaryTerm.getRight().accept(this);
-      CBinaryExpression.BinaryOperator op;
-      switch (binaryTerm.getOperator()) {
-        case BAND:
-          op = CBinaryExpression.BinaryOperator.BINARY_AND;
-          break;
-        case BOR:
-          op = CBinaryExpression.BinaryOperator.BINARY_OR;
-          break;
-        case BXOR:
-          op = CBinaryExpression.BinaryOperator.BINARY_XOR;
-          break;
-        case PLUS:
-          op = CBinaryExpression.BinaryOperator.PLUS;
-          break;
-        case MINUS:
-          op = CBinaryExpression.BinaryOperator.MINUS;
-          break;
-        case TIMES:
-          op = CBinaryExpression.BinaryOperator.MULTIPLY;
-          break;
-        case DIVIDE:
-          op = CBinaryExpression.BinaryOperator.DIVIDE;
-          break;
-        case MOD:
-          op = CBinaryExpression.BinaryOperator.MODULO;
-          break;
-        case LSHIFT:
-          op = CBinaryExpression.BinaryOperator.SHIFT_LEFT;
-          break;
-        case RSHIFT:
-          op = CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
-          break;
-        case EQ:
-          op = CBinaryExpression.BinaryOperator.EQUALS;
-          break;
-        case NEQ:
-          op = CBinaryExpression.BinaryOperator.NOT_EQUALS;
-          break;
-        case LEQ:
-          op = CBinaryExpression.BinaryOperator.LESS_EQUAL;
-          break;
-        case GEQ:
-          op = CBinaryExpression.BinaryOperator.GREATER_EQUAL;
-          break;
-        case LT:
-          op = CBinaryExpression.BinaryOperator.LESS_THAN;
-          break;
-        case GT:
-          op = CBinaryExpression.BinaryOperator.GREATER_THAN;
-          break;
-        default:
-          throw new AssertionError("Invalid operator: " + binaryTerm.getOperator());
-      }
+      BinaryOperator op =
+          switch (binaryTerm.getOperator()) {
+            case BAND -> CBinaryExpression.BinaryOperator.BINARY_AND;
+            case BOR -> CBinaryExpression.BinaryOperator.BINARY_OR;
+            case BXOR -> CBinaryExpression.BinaryOperator.BINARY_XOR;
+            case PLUS -> CBinaryExpression.BinaryOperator.PLUS;
+            case MINUS -> CBinaryExpression.BinaryOperator.MINUS;
+            case TIMES -> CBinaryExpression.BinaryOperator.MULTIPLY;
+            case DIVIDE -> CBinaryExpression.BinaryOperator.DIVIDE;
+            case MOD -> CBinaryExpression.BinaryOperator.MODULO;
+            case LSHIFT -> CBinaryExpression.BinaryOperator.SHIFT_LEFT;
+            case RSHIFT -> CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
+            case EQ -> CBinaryExpression.BinaryOperator.EQUALS;
+            case NEQ -> CBinaryExpression.BinaryOperator.NOT_EQUALS;
+            case LEQ -> CBinaryExpression.BinaryOperator.LESS_EQUAL;
+            case GEQ -> CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+            case LT -> CBinaryExpression.BinaryOperator.LESS_THAN;
+            case GT -> CBinaryExpression.BinaryOperator.GREATER_THAN;
+            default -> throw new AssertionError("Invalid operator: " + binaryTerm.getOperator());
+          };
       result = builder.buildBinaryExpression(leftExpression, rightExpression, op);
       cache.put(binaryTerm, result);
     }
@@ -123,23 +91,14 @@ public class ACSLTermToCExpressionVisitor
       } else if (operator == ACSLUnaryOperator.PLUS) {
         return inner;
       }
-      CUnaryExpression.UnaryOperator op;
-      switch (operator) {
-        case BNEG:
-          op = CUnaryExpression.UnaryOperator.TILDE;
-          break;
-        case MINUS:
-          op = CUnaryExpression.UnaryOperator.MINUS;
-          break;
-        case ADDRESS_OF:
-          op = CUnaryExpression.UnaryOperator.AMPER;
-          break;
-        case SIZEOF:
-          op = CUnaryExpression.UnaryOperator.SIZEOF;
-          break;
-        default:
-          throw new AssertionError("Unknown unary operator: " + operator);
-      }
+      UnaryOperator op =
+          switch (operator) {
+            case BNEG -> CUnaryExpression.UnaryOperator.TILDE;
+            case MINUS -> CUnaryExpression.UnaryOperator.MINUS;
+            case ADDRESS_OF -> CUnaryExpression.UnaryOperator.AMPER;
+            case SIZEOF -> CUnaryExpression.UnaryOperator.SIZEOF;
+            default -> throw new AssertionError("Unknown unary operator: " + operator);
+          };
       result = new CUnaryExpression(inner.getFileLocation(), inner.getExpressionType(), inner, op);
       cache.put(unaryTerm, result);
     }
@@ -227,11 +186,7 @@ public class ACSLTermToCExpressionVisitor
   public CExpression visit(ACSLStringLiteral stringLiteral) {
     CExpression result = cache.get(stringLiteral);
     if (result == null) {
-      result =
-          new CStringLiteralExpression(
-              FileLocation.DUMMY,
-              new CPointerType(false, false, CNumericTypes.UNSIGNED_CHAR),
-              stringLiteral.getLiteral());
+      result = new CStringLiteralExpression(FileLocation.DUMMY, stringLiteral.getLiteral());
       cache.put(stringLiteral, result);
     }
     return result;

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -155,41 +156,39 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
             "Failed to modify queryString \"" + queryString + "\"", "AutomatonIntExpr.CPAQuery");
       }
 
-      for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
-          if (aqe.getCPAName().equals(cpaName)) {
-            try {
-              Object result = aqe.evaluateProperty(modifiedQueryString);
-              if (result instanceof NumericValue) {
-                result = ((NumericValue) result).getNumber();
-              }
-              String message =
-                  String.format(
-                      "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s) \"%s\"",
-                      modifiedQueryString, aqe.getCPAName(), aqe);
-              if (result instanceof Integer) {
-                pArgs.getLogger().log(Level.FINER, message);
-                return new ResultValue<>((Integer) result);
-              } else if (result instanceof Long) {
-                pArgs.getLogger().log(Level.FINER, message);
-                return new ResultValue<>(((Long) result).intValue());
-              } else {
-                String failureMessage =
-                    String.format(
-                        "Automaton got a non-Numeric value during Query of the %s CPA on Edge %s.",
-                        cpaName, pArgs.getCfaEdge().getDescription());
-                pArgs.getLogger().log(Level.WARNING, failureMessage);
-                return new ResultValue<>(failureMessage, "AutomatonIntExpr.CPAQuery");
-              }
-            } catch (InvalidQueryException e) {
-              String errorMessage =
-                  String.format(
-                      "Automaton encountered an Exception during Query of the %s CPA on Edge %s.",
-                      cpaName, pArgs.getCfaEdge().getDescription());
-              pArgs.getLogger().logException(Level.WARNING, e, errorMessage);
-              return new ResultValue<>(errorMessage, "AutomatonIntExpr.CPAQuery");
+      List<AbstractState> abstractStates = pArgs.getAbstractStates();
+      for (AbstractState ae : abstractStates) {
+        if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
+          try {
+            Object result = aqe.evaluateProperty(modifiedQueryString);
+            if (result instanceof NumericValue) {
+              result = ((NumericValue) result).getNumber();
             }
+            String message =
+                String.format(
+                    "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s) \"%s\"",
+                    modifiedQueryString, aqe.getCPAName(), aqe);
+            if (result instanceof Integer) {
+              pArgs.getLogger().log(Level.FINER, message);
+              return new ResultValue<>((Integer) result);
+            } else if (result instanceof Long) {
+              pArgs.getLogger().log(Level.FINER, message);
+              return new ResultValue<>(((Long) result).intValue());
+            } else {
+              String failureMessage =
+                  String.format(
+                      "Automaton got a non-Numeric value during Query of the %s CPA on Edge %s.",
+                      cpaName, pArgs.getCfaEdge().getDescription());
+              pArgs.getLogger().log(Level.WARNING, failureMessage);
+              return new ResultValue<>(failureMessage, "AutomatonIntExpr.CPAQuery");
+            }
+          } catch (InvalidQueryException e) {
+            String errorMessage =
+                String.format(
+                    "Automaton encountered an Exception during Query of the %s CPA on Edge %s.",
+                    cpaName, pArgs.getCfaEdge().getDescription());
+            pArgs.getLogger().logException(Level.WARNING, e, errorMessage);
+            return new ResultValue<>(errorMessage, "AutomatonIntExpr.CPAQuery");
           }
         }
       }
@@ -197,7 +196,12 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
           String.format(
               "Did not find the CPA to be queried %s CPA on Edge %s.",
               cpaName, pArgs.getCfaEdge().getDescription());
-      pArgs.getLogger().log(Level.WARNING, cpaNotAvailableMessage);
+      if (!abstractStates.isEmpty()) {
+        // If there are abstract states but the queried CPA was not included, warn the user.
+        // We skip this warning if there are no abstract states, because this is the default
+        // when multiple CFA edges are handled at once at the beginning of the analysis.
+        pArgs.getLogger().log(Level.WARNING, cpaNotAvailableMessage);
+      }
       return new ResultValue<>(cpaNotAvailableMessage, "AutomatonIntExpr.CPAQuery");
     }
 
@@ -208,11 +212,9 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery) {
-        CPAQuery other = (CPAQuery) o;
-        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
-      }
-      return false;
+      return o instanceof CPAQuery other
+          && cpaName.equals(other.cpaName)
+          && queryString.equals(other.queryString);
     }
   }
 
@@ -262,11 +264,10 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       if (this == o) {
         return true;
       }
-      if (o instanceof BinaryAutomatonIntExpr) {
-        BinaryAutomatonIntExpr other = (BinaryAutomatonIntExpr) o;
-        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
-      }
-      return false;
+      return o instanceof BinaryAutomatonIntExpr other
+          && a.equals(other.a)
+          && b.equals(other.b)
+          && repr.equals(other.repr);
     }
   }
 

@@ -112,17 +112,17 @@ public class SymbolEncoding {
 
   /** create symbol encoding with information about symbol from variables of the CFA */
   public SymbolEncoding(CFA pCfa) {
-    decls = getAllDeclarations(pCfa.getAllNodes());
+    decls = getAllDeclarations(pCfa.nodes());
     machineModel = pCfa.getMachineModel();
 
-    encodedSymbols.put("true", new Type<FormulaType<?>>(FormulaType.BooleanType));
-    encodedSymbols.put("false", new Type<FormulaType<?>>(FormulaType.BooleanType));
+    encodedSymbols.put("true", new Type<>(FormulaType.BooleanType));
+    encodedSymbols.put("false", new Type<>(FormulaType.BooleanType));
   }
 
   private final Map<String, Type<FormulaType<?>>> encodedSymbols = new HashMap<>();
 
   public void put(String symbol, int length) {
-    put(symbol, new Type<FormulaType<?>>(getBitvectorTypeWithSize(length)));
+    put(symbol, new Type<>(getBitvectorTypeWithSize(length)));
   }
 
   public void put(String symbol, FormulaType<?> pReturnType, ImmutableList<FormulaType<?>> pArgs) {
@@ -180,7 +180,7 @@ public class SymbolEncoding {
     }
     Type<FormulaType<?>> type = new Type<>(fType);
     if (cType instanceof CSimpleType) {
-      type.setSigness(!((CSimpleType) cType).isUnsigned());
+      type.setSigness(!((CSimpleType) cType).hasUnsignedSpecifier());
     }
     return type;
   }
@@ -250,13 +250,13 @@ public class SymbolEncoding {
     private final ImmutableList<T> parameterTypes;
 
     public Type(T pReturnType, ImmutableList<T> pParameterTypes) {
-      this.returnType = pReturnType;
-      this.parameterTypes = pParameterTypes;
+      returnType = pReturnType;
+      parameterTypes = pParameterTypes;
     }
 
     public Type(T pReturnType) {
-      this.returnType = pReturnType;
-      this.parameterTypes = ImmutableList.of();
+      returnType = pReturnType;
+      parameterTypes = ImmutableList.of();
     }
 
     public T getReturnType() {
@@ -268,7 +268,7 @@ public class SymbolEncoding {
     }
 
     public void setSigness(boolean pSigned) {
-      this.signed = pSigned;
+      signed = pSigned;
     }
 
     public boolean isSigned() {
@@ -280,14 +280,11 @@ public class SymbolEncoding {
       return returnType + " " + parameterTypes;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object other) {
-      if (other instanceof Type) {
-        Type<T> t = (Type<T>) other;
-        return returnType.equals(t.returnType) && parameterTypes.equals(t.parameterTypes);
-      }
-      return false;
+      return other instanceof Type<?> t
+          && returnType.equals(t.returnType)
+          && parameterTypes.equals(t.parameterTypes);
     }
 
     @Override

@@ -451,30 +451,15 @@ public class ApronTransferRelation
           case MODULO:
           case MULTIPLY:
           case PLUS:
-            Texpr0BinNode innerExp = null;
-            switch (binExp.getOperator()) {
-              case DIVIDE:
-                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_DIV, left, right);
-                break;
-              case MINUS:
-                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right);
-                break;
-              case MODULO:
-                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_MOD, left, right);
-                break;
-              case MULTIPLY:
-                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_MUL, left, right);
-                break;
-              case PLUS:
-                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, right);
-                break;
-
-                // this cannot happen, this switch clause checks the same binary operator
-                // as the outer switch clause
-              default:
-                throw new AssertionError();
-            }
-
+            Texpr0BinNode innerExp =
+                switch (binExp.getOperator()) {
+                  case DIVIDE -> new Texpr0BinNode(Texpr0BinNode.OP_DIV, left, right);
+                  case MINUS -> new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right);
+                  case MODULO -> new Texpr0BinNode(Texpr0BinNode.OP_MOD, left, right);
+                  case MULTIPLY -> new Texpr0BinNode(Texpr0BinNode.OP_MUL, left, right);
+                  case PLUS -> new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, right);
+                  default -> throw new AssertionError();
+                };
             if (truthAssumption) {
               possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ, innerExp)));
             } else {
@@ -681,18 +666,12 @@ public class ApronTransferRelation
 
   @Override
   protected Set<ApronState> handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall exprOnSummary, String callerFunctionName)
       throws CPATransferException {
-    CFunctionCall exprOnSummary = fnkCall.getExpression();
-
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement binExp = ((CFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement binExp) {
       CLeftHandSide op1 = binExp.getLeftHandSide();
       MemoryLocation assignedVarName = buildVarName(op1, callerFunctionName);
 
@@ -707,7 +686,7 @@ public class ApronTransferRelation
       MemoryLocation returnVarName =
           MemoryLocation.forLocalVariable(
               calledFunctionName,
-              fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName());
+              cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getName());
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 

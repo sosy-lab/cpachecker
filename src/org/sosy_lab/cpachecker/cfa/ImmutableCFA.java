@@ -9,99 +9,79 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import java.io.Serializable;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.LiveVariables;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * This class represents a CFA after it has been fully created (parsing, linking of functions,
  * etc.).
  */
-class ImmutableCFA implements CFA, Serializable {
+class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
 
   private static final long serialVersionUID = 5399965350156780812L;
-  private final MachineModel machineModel;
+
   private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
-  private final FunctionEntryNode mainFunction;
-  private final @Nullable LoopStructure loopStructure;
-  private final @Nullable VariableClassification varClassification;
-  private final @Nullable LiveVariables liveVariables;
-  private final Language language;
 
-  /* fileNames are final, except for serialization. */
-  private transient ImmutableList<Path> fileNames;
+  private final CfaMetadata metadata;
+
+  // `network` isn't `final` due to serialization, but shouldn't be reassigned anywhere else
+  private transient CfaNetwork network;
 
   ImmutableCFA(
-      MachineModel pMachineModel,
       Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
-      FunctionEntryNode pMainFunction,
-      Optional<LoopStructure> pLoopStructure,
-      Optional<VariableClassification> pVarClassification,
-      Optional<LiveVariables> pLiveVariables,
-      List<Path> pFileNames,
-      Language pLanguage) {
-
-    machineModel = pMachineModel;
+      CfaMetadata pCfaMetadata) {
     functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
-    mainFunction = checkNotNull(pMainFunction);
-    loopStructure = pLoopStructure.orElse(null);
-    varClassification = pVarClassification.orElse(null);
-    liveVariables = pLiveVariables.orElse(null);
-    fileNames = ImmutableList.copyOf(pFileNames);
-    language = pLanguage;
 
-    checkArgument(mainFunction.equals(functions.get(mainFunction.getFunctionName())));
-  }
+    metadata = pCfaMetadata;
 
-  private ImmutableCFA(MachineModel pMachineModel, Language pLanguage) {
-    machineModel = pMachineModel;
-    functions = ImmutableSortedMap.of();
-    allNodes = ImmutableSortedSet.of();
-    mainFunction = null;
-    loopStructure = null;
-    varClassification = null;
-    liveVariables = null;
-    fileNames = ImmutableList.of();
-    language = pLanguage;
-  }
+    FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
+    checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
 
-  static ImmutableCFA empty(MachineModel pMachineModel, Language pLanguage) {
-    return new ImmutableCFA(pMachineModel, pLanguage);
+    network =
+        CheckingCfaNetwork.wrapIfAssertionsEnabled(
+            new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
   }
 
   @Override
-  public MachineModel getMachineModel() {
-    return machineModel;
+  public ImmutableCFA immutableCopy() {
+    return this;
   }
 
   @Override
-  public boolean isEmpty() {
-    return functions.isEmpty();
+  protected CfaNetwork delegate() {
+    return network;
+  }
+
+  @Override
+  public ImmutableSortedSet<CFANode> nodes() {
+    // we can directly return `allNodes`, no need to use the delegate `CfaNetwork`
+    return allNodes;
+  }
+
+  @Override
+  public ImmutableSet<FunctionEntryNode> entryNodes() {
+    // we are sure that the delegate `CfaNetwork` always returns an `ImmutableSet`
+    return (ImmutableSet<FunctionEntryNode>) network.entryNodes();
   }
 
   @Override
@@ -115,11 +95,6 @@ class ImmutableCFA implements CFA, Serializable {
   }
 
   @Override
-  public ImmutableCollection<FunctionEntryNode> getAllFunctionHeads() {
-    return functions.values();
-  }
-
-  @Override
   public FunctionEntryNode getFunctionHead(String name) {
     return functions.get(name);
   }
@@ -130,46 +105,8 @@ class ImmutableCFA implements CFA, Serializable {
   }
 
   @Override
-  public ImmutableSortedSet<CFANode> getAllNodes() {
-    return allNodes;
-  }
-
-  @Override
-  public FunctionEntryNode getMainFunction() {
-    return mainFunction;
-  }
-
-  @Override
-  public Optional<LoopStructure> getLoopStructure() {
-    return Optional.ofNullable(loopStructure);
-  }
-
-  @Override
-  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    if (loopStructure != null) {
-      return Optional.of(loopStructure.getAllLoopHeads());
-    }
-    return Optional.empty();
-  }
-
-  @Override
-  public Optional<VariableClassification> getVarClassification() {
-    return Optional.ofNullable(varClassification);
-  }
-
-  @Override
-  public Optional<LiveVariables> getLiveVariables() {
-    return Optional.ofNullable(liveVariables);
-  }
-
-  @Override
-  public Language getLanguage() {
-    return language;
-  }
-
-  @Override
-  public List<Path> getFileNames() {
-    return fileNames;
+  public CfaMetadata getMetadata() {
+    return metadata;
   }
 
   private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {
@@ -190,9 +127,6 @@ class ImmutableCFA implements CFA, Serializable {
       Iterables.addAll(leavingEdges, CFAUtils.leavingEdges(node));
     }
     s.writeObject(leavingEdges);
-
-    // UnixPath is not serializable, we convert it to String and back
-    s.writeObject(ImmutableList.copyOf(Lists.transform(fileNames, Path::toString)));
   }
 
   @SuppressWarnings("unchecked")
@@ -212,6 +146,30 @@ class ImmutableCFA implements CFA, Serializable {
       edge.getPredecessor().addLeavingEdge(edge);
     }
 
-    fileNames = ImmutableList.copyOf(Lists.transform((List<String>) s.readObject(), Path::of));
+    network =
+        CheckingCfaNetwork.wrapIfAssertionsEnabled(
+            new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+  }
+
+  private static class DelegateCfaNetwork extends ConsistentCfaNetwork {
+
+    private final ImmutableSet<CFANode> nodes;
+    private final ImmutableSet<FunctionEntryNode> entryNodes;
+
+    private DelegateCfaNetwork(
+        ImmutableSet<CFANode> pNodes, ImmutableSet<FunctionEntryNode> pEntryNodes) {
+      nodes = pNodes;
+      entryNodes = pEntryNodes;
+    }
+
+    @Override
+    public Set<CFANode> nodes() {
+      return nodes;
+    }
+
+    @Override
+    public Set<FunctionEntryNode> entryNodes() {
+      return entryNodes;
+    }
   }
 }

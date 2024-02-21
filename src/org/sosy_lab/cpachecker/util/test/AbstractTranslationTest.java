@@ -45,6 +45,7 @@ public abstract class AbstractTranslationTest {
 
   /** Compiler executable to use in tests. */
   private static final String COMPILER = "gcc";
+
   /** Compile parameter that tells gcc/clang to not perform linking. */
   private static final String PARAM_NO_LINKING = "-c";
 

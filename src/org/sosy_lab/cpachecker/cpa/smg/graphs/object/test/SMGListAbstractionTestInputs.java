@@ -44,7 +44,7 @@ public final class SMGListAbstractionTestInputs {
     {newVal(), newVal(), newVal()},
     {newVal(), newVal()},
     {newVal(), newVal()},
-    {newVal(), newVal(), newVal()}
+    {newVal(), newVal(), newVal()},
   };
   private static final SMGValue[][] SUBLISTS_C = {{}, {}};
   private static final SMGValue[][] SUBLISTS_D = {{newVal()}, {newVal()}};
@@ -130,7 +130,7 @@ public final class SMGListAbstractionTestInputs {
           SUBLISTS_E,
           SUBLISTS_F,
           SUBLISTS_G,
-          SUBLISTS_H
+          SUBLISTS_H,
         },
         new Object[] {SMGListCircularity.OPEN, SMGListCircularity.CIRCULAR},
         new Object[] {SMGListLinkage.SINGLE_LINKED, SMGListLinkage.DOUBLY_LINKED});

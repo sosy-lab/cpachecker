@@ -14,7 +14,10 @@ import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import java.util.Comparator;
 import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -144,7 +147,12 @@ public class LoopTransitionFinderTest {
             "}",
             "}");
 
-    CFANode loopHead = cfa.getAllLoopHeads().orElseThrow().iterator().next();
+    // loop heads ordered by their reverse post-order IDs
+    SortedSet<CFANode> loopHeads =
+        new TreeSet<>(Comparator.comparingInt(CFANode::getReversePostorderId));
+    loopHeads.addAll(cfa.getAllLoopHeads().orElseThrow());
+    // first loop head in the program has the highest reverse post-order ID
+    CFANode loopHead = loopHeads.last();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
             config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);

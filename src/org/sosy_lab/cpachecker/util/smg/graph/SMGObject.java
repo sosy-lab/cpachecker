@@ -69,11 +69,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   @Override
   public boolean equals(Object other) {
-    if (!(other instanceof SMGObject)) {
-      return false;
-    }
-    SMGObject otherObj = (SMGObject) other;
-    return id == otherObj.id;
+    return other instanceof SMGObject otherObj && id == otherObj.id;
   }
 
   @Override

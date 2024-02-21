@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * <p>Note also, that the expressions have to be side-effect free.
  */
 public final class JExpressionAssignmentStatement extends AExpressionAssignmentStatement
-    implements JAssignment, JStatement {
+    implements JAssignment {
 
   private static final long serialVersionUID = 4121782081088537434L;
 
@@ -62,10 +62,6 @@ public final class JExpressionAssignmentStatement extends AExpressionAssignmentS
       return true;
     }
 
-    if (!(obj instanceof JExpressionAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JExpressionAssignmentStatement && super.equals(obj);
   }
 }

@@ -15,17 +15,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * This class represents a boolean value. It may store the values <code>false</code> and <code>true
  * </code>.
  */
-public class BooleanValue implements Value {
-
-  private static final long serialVersionUID = -35132790150256304L;
-
-  // static objects for singleton pattern
-  private static final BooleanValue TRUE_VALUE = new BooleanValue(true);
-  private static final BooleanValue FALSE_VALUE = new BooleanValue(false);
+public enum BooleanValue implements Value {
+  TRUE_VALUE(true),
+  FALSE_VALUE(false);
 
   private final boolean value;
 
-  private BooleanValue(boolean value) {
+  BooleanValue(boolean value) {
     this.value = value;
   }
 
@@ -159,29 +155,6 @@ public class BooleanValue implements Value {
   @Override
   public <T> T accept(ValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);
-  }
-
-  /**
-   * Returns whether the given object and this object are equal.
-   *
-   * <p>Two <code>BooleanValue</code> objects are equal when they represent the same boolean value.
-   *
-   * @param other the object to compare to this object
-   * @return <code>true</code> if the objects are equal, <code>false</code> otherwise
-   */
-  @Override
-  public boolean equals(Object other) {
-    if (other instanceof BooleanValue) {
-      return ((BooleanValue) other).value == value;
-
-    } else {
-      return false;
-    }
-  }
-
-  @Override
-  public int hashCode() {
-    return value ? 1 : 0;
   }
 
   @Override

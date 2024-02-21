@@ -58,7 +58,7 @@ public class BlockPartitioningBuilder {
     Map<FunctionEntryNode, Set<CFANode>> functions = new HashMap<>();
     Map<FunctionEntryNode, Set<ReferencedVariable>> referencedVariables = new HashMap<>();
     Map<FunctionEntryNode, Set<FunctionEntryNode>> innerFunctionCalls = new HashMap<>();
-    for (FunctionEntryNode head : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode head : cfa.entryNodes()) {
       final Set<CFANode> body = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(head);
       functions.put(head, body);
       referencedVariables.put(head, collectReferencedVariables(body));

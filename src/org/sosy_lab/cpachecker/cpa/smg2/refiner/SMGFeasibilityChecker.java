@@ -135,9 +135,8 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
         iterator.advance();
 
-        if (!iterator.hasNext() && edge instanceof AssumeEdge) {
+        if (!iterator.hasNext() && edge instanceof AssumeEdge assumeEdge) {
           // last assume edge
-          AssumeEdge assumeEdge = (AssumeEdge) edge;
           // check with complementary edge
           Optional<SMGState> maybeNextComplimentary =
               strongestPostOp.step(

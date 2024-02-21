@@ -22,9 +22,9 @@ DEFAULT_STACK_SIZE="1024k"
 java_version="`$JAVA -XX:-UsePerfData -Xmx5m -version 2>&1`"
 result=$?
 if [ $result -eq 127 ]; then
-  echo "Java not found, please install Java 11 or newer." 1>&2
-  echo "For Ubuntu: sudo apt-get install openjdk-11-jre" 1>&2
-  echo "If you have installed Java 11, but it is not in your PATH," 1>&2
+  echo "Java not found, please install Java 17 or newer." 1>&2
+  echo "For Ubuntu: sudo apt-get install openjdk-17-jre" 1>&2
+  echo "If you have installed Java 17, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi
@@ -35,10 +35,10 @@ if [ $result -ne 0 ]; then
   exit 1
 fi
 java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | cut -f1 -d.`"
-if [ -z "$java_version" ] || [ "$java_version" -lt 11 ] ; then
-  echo "Your Java version is too old, please install Java 11 or newer." 1>&2
-  echo "For Ubuntu: sudo apt-get install openjdk-11-jre" 1>&2
-  echo "If you have installed Java 11, but it is not in your PATH," 1>&2
+if [ -z "$java_version" ] || [ "$java_version" -lt 17 ] ; then
+  echo "Your Java version is too old, please install Java 17 or newer." 1>&2
+  echo "For Ubuntu: sudo apt-get install openjdk-17-jre" 1>&2
+  echo "If you have installed Java 17, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi

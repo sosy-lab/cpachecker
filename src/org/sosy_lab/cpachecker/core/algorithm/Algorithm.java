@@ -115,11 +115,8 @@ public interface Algorithm {
       if (this == obj) {
         return true;
       }
-      if (!(obj instanceof AlgorithmStatus)) {
-        return false;
-      }
-      AlgorithmStatus other = (AlgorithmStatus) obj;
-      return propertyChecked == other.propertyChecked
+      return obj instanceof AlgorithmStatus other
+          && propertyChecked == other.propertyChecked
           && isSound == other.isSound
           && isPrecise == other.isPrecise;
     }

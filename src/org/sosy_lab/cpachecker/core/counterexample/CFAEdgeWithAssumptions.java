@@ -164,12 +164,9 @@ public class CFAEdgeWithAssumptions {
     if (this == obj) {
       return true;
     }
-    if (obj instanceof CFAEdgeWithAssumptions) {
-      CFAEdgeWithAssumptions other = (CFAEdgeWithAssumptions) obj;
-      return comment.equals(other.comment)
-          && edge.equals(other.edge)
-          && expressionStmts.equals(other.expressionStmts);
-    }
-    return false;
+    return obj instanceof CFAEdgeWithAssumptions other
+        && comment.equals(other.comment)
+        && edge.equals(other.edge)
+        && expressionStmts.equals(other.expressionStmts);
   }
 }

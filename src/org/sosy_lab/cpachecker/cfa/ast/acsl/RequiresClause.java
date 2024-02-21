@@ -36,11 +36,7 @@ public class RequiresClause {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof RequiresClause)) {
-      return false;
-    }
-    RequiresClause that = (RequiresClause) other;
-    return Objects.equals(predicate, that.predicate);
+    return other instanceof RequiresClause that && Objects.equals(predicate, that.predicate);
   }
 
   @Override

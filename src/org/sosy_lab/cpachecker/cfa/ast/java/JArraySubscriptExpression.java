@@ -69,10 +69,6 @@ public final class JArraySubscriptExpression extends AArraySubscriptExpression
       return true;
     }
 
-    if (!(obj instanceof JArraySubscriptExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JArraySubscriptExpression && super.equals(obj);
   }
 }

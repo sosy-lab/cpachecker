@@ -69,13 +69,9 @@ public abstract class ABinaryExpression extends AbstractExpression {
       return true;
     }
 
-    if (!(obj instanceof ABinaryExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    ABinaryExpression other = (ABinaryExpression) obj;
-
-    return Objects.equals(other.operand1, operand1)
+    return obj instanceof ABinaryExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand1, operand1)
         && Objects.equals(other.operand2, operand2)
         && Objects.equals(other.operator, operator);
   }

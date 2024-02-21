@@ -38,7 +38,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
       logManager =
           BasicLogManager.createWithHandler(
               new FileHandler(pOptions.getLogDirectory().toString() + "/" + id + ".log"));
-    } catch (IOException pE) {
+    } catch (IOException e) {
       logManager = LogManager.createNullLogManager();
     }
     logger = logManager;
@@ -55,9 +55,9 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
   protected void broadcastOrLogException(Collection<BlockSummaryMessage> pMessage) {
     try {
       broadcast(pMessage);
-    } catch (InterruptedException pE) {
+    } catch (InterruptedException e) {
       logger.logfException(
-          Level.SEVERE, pE, "Broadcasting %s messages interrupted unexpectedly.", pMessage);
+          Level.SEVERE, e, "Broadcasting %s messages interrupted unexpectedly.", pMessage);
     }
   }
 
@@ -71,10 +71,10 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
           break;
         }
       }
-    } catch (CPAException | InterruptedException | IOException | SolverException pE) {
+    } catch (CPAException | InterruptedException | IOException | SolverException e) {
       logger.logfException(
-          Level.SEVERE, pE, "%s faced a problem while processing messages.", getId());
-      broadcastOrLogException(ImmutableList.of(BlockSummaryMessage.newErrorMessage(getId(), pE)));
+          Level.SEVERE, e, "%s faced a problem while processing messages.", getId());
+      broadcastOrLogException(ImmutableList.of(BlockSummaryMessage.newErrorMessage(getId(), e)));
     } finally {
       logger.logf(Level.INFO, "Worker %s finished and shuts down.", id);
     }

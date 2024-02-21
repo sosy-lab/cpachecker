@@ -14,8 +14,8 @@ import java.util.Objects;
 
 public final class ConstantIdentifier implements AbstractIdentifier {
 
-  String name;
-  int dereference;
+  private final String name;
+  private final int dereference;
 
   public ConstantIdentifier(String nm, int deref) {
     name = nm;
@@ -81,6 +81,7 @@ public final class ConstantIdentifier implements AbstractIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof ReturnIdentifier) {
       return 1;
     } else if (pO instanceof ConstantIdentifier) {

@@ -17,7 +17,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
+public final class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
 
   private static final long serialVersionUID = -2567254248669651550L;
   private final List<CDesignator> designators;
@@ -74,12 +74,9 @@ public class CDesignatedInitializer extends AbstractInitializer implements CInit
       return true;
     }
 
-    if (!(obj instanceof CDesignatedInitializer) || !super.equals(obj)) {
-      return false;
-    }
-
-    CDesignatedInitializer other = (CDesignatedInitializer) obj;
-
-    return Objects.equals(other.designators, designators) && Objects.equals(other.right, right);
+    return obj instanceof CDesignatedInitializer other
+        && super.equals(obj)
+        && Objects.equals(other.designators, designators)
+        && Objects.equals(other.right, right);
   }
 }

@@ -52,12 +52,12 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public void add(AbstractState state, Precision precision) {
-    add(state, precision, /*updateWaitlist=*/ true);
+    add(state, precision, /* updateWaitlist= */ true);
   }
 
   @Override
   public void addNoWaitlist(AbstractState state, Precision precision) {
-    add(state, precision, /*updateWaitlist=*/ false);
+    add(state, precision, /* updateWaitlist= */ false);
   }
 
   private void add(AbstractState state, Precision precision, boolean updateWaitlist) {
@@ -237,10 +237,7 @@ class DefaultReachedSet implements ReachedSet {
 
       @Override
       public boolean contains(Object obj) {
-        if (!(obj instanceof AbstractState)) {
-          return false;
-        }
-        return waitlist.contains((AbstractState) obj);
+        return obj instanceof AbstractState && waitlist.contains((AbstractState) obj);
       }
 
       @Override

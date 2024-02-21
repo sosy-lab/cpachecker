@@ -46,13 +46,8 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       return true;
     }
 
-    if (!(other instanceof MemoryLocation)) {
-      return false;
-    }
-
-    MemoryLocation otherLocation = (MemoryLocation) other;
-
-    return Objects.equals(functionName, otherLocation.functionName)
+    return other instanceof MemoryLocation otherLocation
+        && Objects.equals(functionName, otherLocation.functionName)
         && Objects.equals(identifier, otherLocation.identifier)
         && Objects.equals(offset, otherLocation.offset);
   }

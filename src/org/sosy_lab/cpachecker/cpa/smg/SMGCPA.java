@@ -188,8 +188,7 @@ public class SMGCPA
       throw new AssertionError(exc);
     }
 
-    if (pNode instanceof CFunctionEntryNode) {
-      CFunctionEntryNode functionNode = (CFunctionEntryNode) pNode;
+    if (pNode instanceof CFunctionEntryNode functionNode) {
       try {
         initState.addStackFrame(functionNode.getFunctionDefinition());
         initState.performConsistencyCheck(SMGRuntimeCheck.FULL);

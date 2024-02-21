@@ -114,8 +114,8 @@ public class PolicyInterpolationRefiner implements Refiner {
           forceRestart(pReached);
           return true;
         }
-      } catch (SolverException pE) {
-        throw new CPAException("Got solver exception during interpolation", pE);
+      } catch (SolverException e) {
+        throw new CPAException("Got solver exception during interpolation", e);
       }
     }
 

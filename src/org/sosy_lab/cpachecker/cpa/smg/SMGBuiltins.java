@@ -265,6 +265,7 @@ public class SMGBuiltins {
 
     return result;
   }
+
   /**
    * The method "alloca" (or "__builtin_alloca") allocates memory from the stack. The memory is
    * automatically freed at function-exit.

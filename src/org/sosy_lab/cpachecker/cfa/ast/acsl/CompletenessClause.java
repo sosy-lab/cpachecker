@@ -65,7 +65,7 @@ public class CompletenessClause {
     StringBuilder builder = new StringBuilder();
     if (!behaviors.isEmpty()) {
       builder.append(' ');
-      Joiner.on(", ").appendTo(builder, behaviors.stream().map(x -> x.getName()).iterator());
+      Joiner.on(", ").appendTo(builder, behaviors.stream().map(Behavior::getName).iterator());
     }
     builder.append(';');
     return kind.toString() + builder;
@@ -76,11 +76,9 @@ public class CompletenessClause {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof CompletenessClause)) {
-      return false;
-    }
-    CompletenessClause that = (CompletenessClause) other;
-    return Objects.equals(behaviors, that.behaviors) && kind == that.kind;
+    return other instanceof CompletenessClause that
+        && Objects.equals(behaviors, that.behaviors)
+        && kind == that.kind;
   }
 
   @Override

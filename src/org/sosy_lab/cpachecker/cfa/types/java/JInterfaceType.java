@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
  *
  * <p>A Java interface is described by its name, visibility and the interfaces it extends.
  */
-public final class JInterfaceType extends JClassOrInterfaceType implements JReferenceType {
+public final class JInterfaceType extends JClassOrInterfaceType {
 
   private static final long serialVersionUID = 1985477760453866693L;
 

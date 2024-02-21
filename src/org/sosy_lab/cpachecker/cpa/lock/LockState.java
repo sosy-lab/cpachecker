@@ -252,6 +252,7 @@ public final class LockState extends AbstractLockState {
           Entry.<LockIdentifier, Integer>comparingByKey().thenComparing(Entry.comparingByValue()));
 
   private final ImmutableMap<LockIdentifier, Integer> locks;
+
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
   public LockState() {

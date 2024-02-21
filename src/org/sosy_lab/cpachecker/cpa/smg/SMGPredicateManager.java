@@ -290,12 +290,12 @@ public class SMGPredicateManager {
         } else {
           return false;
         }
-      } catch (SolverException pE) {
-        logger.log(Level.WARNING, "Solver Exception: " + pE + " on predicate " + errorPredicate);
-      } catch (InterruptedException pE) {
+      } catch (SolverException e) {
+        logger.log(Level.WARNING, "Solver Exception: " + e + " on predicate " + errorPredicate);
+      } catch (InterruptedException e) {
         logger.log(
             Level.WARNING,
-            "Solver Interrupted Exception: " + pE + " on predicate " + errorPredicate);
+            "Solver Interrupted Exception: " + e + " on predicate " + errorPredicate);
       }
     }
 

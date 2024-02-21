@@ -14,7 +14,7 @@ import java.util.List;
  * Represents a malformed ACSL annotation. Used for communicating errors discovered by the scanner
  * to the parser.
  */
-public class InvalidAnnotation implements ACSLAnnotation {
+public final class InvalidAnnotation implements ACSLAnnotation {
   @Override
   public ACSLPredicate getPredicateRepresentation() {
     throw new UnsupportedOperationException();

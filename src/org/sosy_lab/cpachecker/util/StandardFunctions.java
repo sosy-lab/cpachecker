@@ -13,10 +13,10 @@ import com.google.common.collect.ImmutableSet;
 /** List of functions defined by standards */
 public final class StandardFunctions {
 
-  /** C11 B.1 Diagnostics assert.h * */
+  /** C11 B.1 Diagnostics assert.h */
   public static final ImmutableSet<String> C11_ASSERT_H_FUNCTIONS = ImmutableSet.of("assert");
 
-  /** C11 B.5 Floating-point environment fenv.h * */
+  /** C11 B.5 Floating-point environment fenv.h */
   public static final ImmutableSet<String> C11_FENV_H_FUNCTIONS =
       ImmutableSet.of(
           "feclearexcept",
@@ -218,11 +218,11 @@ public final class StandardFunctions {
           "truncf",
           "truncl");
 
-  /** C11 B.12 Nonlocal jumps stdio.h * */
+  /** C11 B.12 Nonlocal jumps stdio.h */
   public static final ImmutableSet<String> C11_SETJUMP_H_FUNCTIONS =
       ImmutableSet.of("setjmp", "longjmp");
 
-  /** C11 B.20 Input/output stdio.h * */
+  /** C11 B.20 Input/output stdio.h */
   public static final ImmutableSet<String> C11_STDIO_H_FUNCTIONS =
       ImmutableSet.of(
           "clearerr",
@@ -290,7 +290,7 @@ public final class StandardFunctions {
           "vsscanf",
           "vsscanf_s");
 
-  /** C11 B.21 Input/output stdlib.h * */
+  /** C11 B.21 Input/output stdlib.h */
   public static final ImmutableSet<String> C11_STDLIB_H_FUNCTIONS =
       ImmutableSet.of(
           "_Exit",
@@ -342,7 +342,7 @@ public final class StandardFunctions {
           "wctomb",
           "wctomb_s");
 
-  /** C11 B.23 String handling string.h * */
+  /** C11 B.23 String handling string.h */
   public static final ImmutableSet<String> C11_STRING_H_FUNCTIONS =
       ImmutableSet.of(
           "memchr",
@@ -379,7 +379,7 @@ public final class StandardFunctions {
           "strtok_s",
           "strxfrm");
 
-  /** C11 B.26 Date and time time.h * */
+  /** C11 B.26 Date and time time.h */
   public static final ImmutableSet<String> C11_TIME_H_FUNCTIONS =
       ImmutableSet.of(
           "clock",

@@ -83,8 +83,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
       }
     }
 
-    return new CIntegerLiteralExpression(
-        FileLocation.DUMMY, type, BigInteger.valueOf(pValue.longValue()));
+    return new CIntegerLiteralExpression(FileLocation.DUMMY, type, pValue.bigIntegerValue());
   }
 
   private CExpression visitFloatingValue(NumericValue pValue, CSimpleType pType) {

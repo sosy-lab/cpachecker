@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 
-public interface CInitializer extends AInitializer, CAstNode {
+public sealed interface CInitializer extends AInitializer, CAstNode
+    permits CDesignatedInitializer, CInitializerExpression, CInitializerList {
 
   <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X;
 }

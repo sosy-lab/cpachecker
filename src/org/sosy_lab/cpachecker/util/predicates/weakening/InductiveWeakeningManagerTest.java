@@ -83,9 +83,8 @@ public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
 
   @Test
   public void testRemovingRedundancies() throws Exception {
-    IntegerFormula x, y;
-    x = ifmgr.makeVariable("x");
-    y = ifmgr.makeVariable("y");
+    IntegerFormula x = ifmgr.makeVariable("x");
+    IntegerFormula y = ifmgr.makeVariable("y");
     IntegerFormula zero = ifmgr.makeNumber(0);
 
     BooleanFormula input =

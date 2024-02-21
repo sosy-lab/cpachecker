@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.ImmutableIntArray;
@@ -42,7 +43,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -137,7 +137,7 @@ class JavaBDDRegionManager implements RegionManager {
     if (cacheSize == 0) {
       cacheSize = (int) (initTableSize * cacheRatio);
     }
-    factory = BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
+    factory = BDDFactory.init(Ascii.toLowerCase(bddPackage), initTableSize, cacheSize);
 
     // register callbacks for logging
     try {
@@ -402,7 +402,7 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     cleanupReferences();
 
     BDD f = unwrap(pF);
@@ -411,7 +411,7 @@ class JavaBDDRegionManager implements RegionManager {
     Region fThen = wrap(f.high());
     Region fElse = wrap(f.low());
 
-    return Triple.of(predicate, fThen, fElse);
+    return new IfThenElseParts(predicate, fThen, fElse);
   }
 
   @Override

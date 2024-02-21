@@ -42,11 +42,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAException> {
 
-  protected final Deque<Triple<AbstractState, Precision, Block>> stack = new ArrayDeque<>();
+  record AnalysisLevel(AbstractState state, Precision precision, Block block) {}
+
+  final Deque<AnalysisLevel> stack = new ArrayDeque<>();
 
   private final AlgorithmFactory algorithmFactory;
   protected final BAMPCCManager bamPccManager;
@@ -120,7 +121,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
    */
   @Override
   protected Block getBlockForState(ARGState state) {
-    return stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().getThird();
+    return stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().block();
   }
 
   /**
@@ -134,7 +135,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       // If only LoopBlocks are used, we can have recursive Loops, too.
 
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
-        for (Block block : Iterables.transform(stack, Triple::getThird)) {
+        for (Block block : Iterables.transform(stack, AnalysisLevel::block)) {
           if (block.getCallNodes().contains(e.getSuccessor())) {
             return true;
           }
@@ -172,8 +173,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     // -> cache the result
 
     final Block outerSubtree = getBlockForState((ARGState) initialState);
-    assert outerSubtree
-        == (stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().getThird());
+    assert outerSubtree == (stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().block());
     final Block innerSubtree = partitioning.getBlockForCallNode(node);
     bamPccManager.setCurrentBlock(innerSubtree);
     assert innerSubtree.getCallNodes().contains(node);
@@ -184,8 +184,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     final Precision reducedInitialPrecision =
         wrappedReducer.getVariableReducedPrecision(pPrecision, innerSubtree);
 
-    final Triple<AbstractState, Precision, Block> currentLevel =
-        Triple.of(reducedInitialState, reducedInitialPrecision, innerSubtree);
+    final AnalysisLevel currentLevel =
+        new AnalysisLevel(reducedInitialState, reducedInitialPrecision, innerSubtree);
     stack.push(currentLevel);
     logger.log(
         Level.FINEST,
@@ -208,7 +208,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     } finally {
       logger.log(Level.FINEST, "Finished recursive analysis of depth", stack.size());
       stats.switchBlock(innerSubtree, outerSubtree);
-      final Triple<AbstractState, Precision, Block> lastLevel = stack.pop();
+      final AnalysisLevel lastLevel = stack.pop();
       assert lastLevel.equals(currentLevel);
       bamPccManager.setCurrentBlock(outerSubtree);
     }

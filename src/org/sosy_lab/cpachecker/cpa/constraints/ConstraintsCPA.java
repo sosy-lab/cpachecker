@@ -153,14 +153,12 @@ public class ConstraintsCPA
   }
 
   private AbstractDomain initializeAbstractDomain() {
-    switch (lessOrEqualType) {
-      case SUBSET:
-        abstractDomain = SubsetLessOrEqualOperator.getInstance();
-        break;
-
-      default:
-        throw new AssertionError("Unhandled type for less-or-equal operator: " + lessOrEqualType);
-    }
+    abstractDomain =
+        switch (lessOrEqualType) {
+          case SUBSET -> SubsetLessOrEqualOperator.getInstance();
+          default -> throw new AssertionError(
+              "Unhandled type for less-or-equal operator: " + lessOrEqualType);
+        };
 
     return abstractDomain;
   }

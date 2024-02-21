@@ -18,9 +18,11 @@ import java.util.Objects;
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "entry_type", visible = true)
 @JsonSubTypes({
   @JsonSubTypes.Type(value = LoopInvariantEntry.class, name = "loop_invariant"),
+  @JsonSubTypes.Type(value = LocationInvariantEntry.class, name = "location_invariant"),
   @JsonSubTypes.Type(
       value = LoopInvariantCertificateEntry.class,
-      name = "loop_invariant_certificate")
+      name = "loop_invariant_certificate"),
+  @JsonSubTypes.Type(value = ViolationSequenceEntry.class, name = "violation_sequence")
 })
 public abstract class AbstractEntry {
 
@@ -50,16 +52,6 @@ public abstract class AbstractEntry {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (!(obj instanceof AbstractEntry)) {
-      return false;
-    }
-    AbstractEntry other = (AbstractEntry) obj;
-    if (!Objects.equals(entryType, other.entryType)) {
-      return false;
-    }
-    return true;
+    return obj instanceof AbstractEntry other && Objects.equals(entryType, other.entryType);
   }
 }

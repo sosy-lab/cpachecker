@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class JAssumeEdge extends AssumeEdge {
+public final class JAssumeEdge extends AssumeEdge {
 
   private static final long serialVersionUID = -2456773904604276548L;
 

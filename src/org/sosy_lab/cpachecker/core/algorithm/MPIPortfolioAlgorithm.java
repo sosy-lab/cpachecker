@@ -108,6 +108,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private final String mpiArgs;
 
+  @SuppressWarnings("AddressSelection") // TODO comment below
   public MPIPortfolioAlgorithm(
       Configuration config,
       LogManager pLogger,
@@ -219,6 +220,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
         String mainNodeIPAddress = null;
         try {
+          // TODO Prefer InetAddress.getAllByName. This call is not even guaranteed to return an
+          // IPv4 address, but it is used later assuming that it does.
+          // Also, why do we perform a lookup for a host name that is equal to the user name?
+          // This seems like a mistake.
           mainNodeIPAddress =
               InetAddress.getByName(System.getProperty("user.name")).getHostAddress();
         } catch (IOException e) {

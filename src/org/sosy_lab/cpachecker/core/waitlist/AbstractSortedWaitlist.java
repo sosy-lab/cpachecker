@@ -149,7 +149,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
    * of the returned Map are the names of the waitlists, the values are the existing delegations.
    */
   public Map<String, StatInt> getDelegationCounts() {
-    String waitlistName = this.getClass().getSimpleName();
+    String waitlistName = getClass().getSimpleName();
     StatInt directDelegations = new StatInt(StatKind.AVG, waitlistName);
     assert delegationCount.getValue() <= Integer.MAX_VALUE;
     directDelegations.setNextValue((int) delegationCount.getValue());

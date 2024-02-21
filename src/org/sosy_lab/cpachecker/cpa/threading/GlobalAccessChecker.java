@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -54,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
@@ -87,7 +87,7 @@ public class GlobalAccessChecker {
       case FunctionCallEdge:
         return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
       case FunctionReturnEdge:
-        return hasGlobalAccess(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
+        return hasGlobalAccess(((FunctionReturnEdge) edge).getFunctionCall());
       default:
         throw new AssertionError("unexpected edge: " + edge);
     }
@@ -127,8 +127,7 @@ public class GlobalAccessChecker {
       if (ast instanceof CExpression) {
         return ((CExpression) ast).accept(GlobalAccessVisitor.INSTANCE);
 
-      } else if (ast instanceof CFunctionCallExpression) {
-        CFunctionCallExpression func = (CFunctionCallExpression) ast;
+      } else if (ast instanceof CFunctionCallExpression func) {
         return anyHasGlobalAccess(func.getParameterExpressions());
       }
 
@@ -140,44 +139,37 @@ public class GlobalAccessChecker {
       } else if (ast instanceof CInitializerList) {
         return anyHasGlobalAccess(((CInitializerList) ast).getInitializers());
 
-      } else if (ast instanceof CDesignatedInitializer) {
-        CDesignatedInitializer di = (CDesignatedInitializer) ast;
+      } else if (ast instanceof CDesignatedInitializer di) {
         return anyHasGlobalAccess(di.getDesignators()) || hasGlobalAccess(di.getRightHandSide());
       }
 
     } else if (ast instanceof CSimpleDeclaration) {
 
-      if (ast instanceof CVariableDeclaration) {
-        CVariableDeclaration decl = (CVariableDeclaration) ast;
+      if (ast instanceof CVariableDeclaration decl) {
         return decl.isGlobal() || hasGlobalAccess(decl.getInitializer());
 
-      } else if (ast instanceof CFunctionDeclaration) {
-        CFunctionDeclaration decl = (CFunctionDeclaration) ast;
+      } else if (ast instanceof CFunctionDeclaration decl) {
         return anyHasGlobalAccess(decl.getParameters());
 
-      } else if (ast instanceof CComplexTypeDeclaration) {
-        CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;
+      } else if (ast instanceof CComplexTypeDeclaration decl) {
         return decl.isGlobal();
 
-      } else if (ast instanceof CTypeDefDeclaration) {
-        CTypeDefDeclaration decl = (CTypeDefDeclaration) ast;
+      } else if (ast instanceof CTypeDefDeclaration decl) {
         return decl.isGlobal();
 
       } else if (ast instanceof CParameterDeclaration) {
         return false;
 
-      } else if (ast instanceof CEnumType.CEnumerator) {
+      } else if (ast instanceof CEnumerator) {
         return false;
       }
 
     } else if (ast instanceof CStatement) {
 
-      if (ast instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement stat = (CFunctionCallAssignmentStatement) ast;
+      if (ast instanceof CFunctionCallAssignmentStatement stat) {
         return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
 
-      } else if (ast instanceof CExpressionAssignmentStatement) {
-        CExpressionAssignmentStatement stat = (CExpressionAssignmentStatement) ast;
+      } else if (ast instanceof CExpressionAssignmentStatement stat) {
         return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
 
       } else if (ast instanceof CFunctionCallStatement) {

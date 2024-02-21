@@ -45,10 +45,6 @@ public abstract class AbstractAstNode implements AAstNode {
       return true;
     }
 
-    if (obj instanceof AbstractAstNode) {
-      return true;
-    }
-
-    return false;
+    return obj instanceof AbstractAstNode;
   }
 }

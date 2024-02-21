@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
 
 /**
  * Watches a directory for new invariant-store entries and reads and returns them.
@@ -52,8 +52,8 @@ class FromDiskEntryProvider implements AutoCloseable {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path storeDirectory = Path.of("invariantWitnesses");
 
-  private final Queue<LoopInvariantEntry> loadedEntries;
   private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+  private final Queue<InvariantEntry> loadedEntries;
   private final JavaType entryType;
 
   private WatchService watchService;
@@ -77,7 +77,7 @@ class FromDiskEntryProvider implements AutoCloseable {
    * @return optional invariant
    * @throws IOException if accessing the invariant files fails
    */
-  Optional<LoopInvariantEntry> getNext() throws IOException {
+  Optional<InvariantEntry> getNext() throws IOException {
     synchronized (this) {
       if (!loadedEntries.isEmpty()) {
         return Optional.of(loadedEntries.remove());
@@ -97,7 +97,7 @@ class FromDiskEntryProvider implements AutoCloseable {
    * @return next available invariant.
    * @throws IOException if accessing the invariant files fails
    */
-  LoopInvariantEntry awaitNext() throws InterruptedException, IOException {
+  InvariantEntry awaitNext() throws InterruptedException, IOException {
     synchronized (this) {
       if (!loadedEntries.isEmpty()) {
         return loadedEntries.remove();
@@ -140,7 +140,7 @@ class FromDiskEntryProvider implements AutoCloseable {
 
     // Load already present files
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(storeDirectory, (p) -> p.toFile().isFile())) {
+        Files.newDirectoryStream(storeDirectory, p -> p.toFile().isFile())) {
       for (Path file : stream) {
         loadEntries(file.toFile());
       }
@@ -149,7 +149,7 @@ class FromDiskEntryProvider implements AutoCloseable {
 
   private synchronized void loadEntries(File entriesFile) throws IOException {
     List<AbstractEntry> entries = mapper.readValue(entriesFile, entryType);
-    FluentIterable.from(entries).filter(LoopInvariantEntry.class).copyInto(loadedEntries);
+    FluentIterable.from(entries).filter(InvariantEntry.class).copyInto(loadedEntries);
   }
 
   @Override

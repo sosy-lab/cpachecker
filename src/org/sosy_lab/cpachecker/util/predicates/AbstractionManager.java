@@ -27,7 +27,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager.VariableOrderingStrategy;
@@ -222,9 +221,9 @@ public final class AbstractionManager {
       BooleanFormula m1 = null;
       BooleanFormula m2 = null;
 
-      Triple<Region, Region, Region> parts = rmgr.getIfThenElse(n);
-      Region c1 = parts.getSecond();
-      Region c2 = parts.getThird();
+      RegionManager.IfThenElseParts parts = rmgr.getIfThenElse(n);
+      Region c1 = parts.thenBranch();
+      Region c2 = parts.elseBranch();
       if (!cache.containsKey(c1)) {
         toProcess.push(c1);
         childrenDone = false;
@@ -242,7 +241,7 @@ public final class AbstractionManager {
         assert m2 != null;
 
         toProcess.pop();
-        Region var = parts.getFirst();
+        Region var = parts.condition();
 
         AbstractionPredicate pred = absVarToPredicate.get(var);
         assert pred != null : var;
@@ -320,14 +319,14 @@ public final class AbstractionManager {
       AbstractionPredicate pred = absVarToPredicate.get(n);
 
       if (pred == null) {
-        Triple<Region, Region, Region> parts = rmgr.getIfThenElse(n);
+        RegionManager.IfThenElseParts parts = rmgr.getIfThenElse(n);
 
-        Region var = parts.getFirst();
+        Region var = parts.condition();
         pred = absVarToPredicate.get(var);
         assert pred != null;
 
-        toProcess.push(parts.getSecond());
-        toProcess.push(parts.getThird());
+        toProcess.push(parts.thenBranch());
+        toProcess.push(parts.elseBranch());
       }
 
       vars.add(pred);

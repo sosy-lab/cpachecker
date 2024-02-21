@@ -258,7 +258,7 @@ public class IMCSPCAlgorithm implements Algorithm, StatisticsProvider {
     PathFormula transitionRelation =
         PathFormula.createManually(
             bfmgr.makeFalse(), pOldPathFormula.getSsa(), pOldPathFormula.getPointerTargetSet(), 0);
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.nodes()) {
       logger.log(Level.FINEST, node);
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
@@ -289,7 +289,7 @@ public class IMCSPCAlgorithm implements Algorithm, StatisticsProvider {
   private PathFormula buildErrorCondition(final PathFormula pOldPathFormula)
       throws CPATransferException, InterruptedException {
     ImmutableSet<CFANode> errorLocations =
-        cfa.getAllNodes().stream()
+        cfa.nodes().stream()
             .filter(
                 n -> n instanceof CFALabelNode && ((CFALabelNode) n).getLabel().equals("__ERROR"))
             .collect(ImmutableSet.toImmutableSet());

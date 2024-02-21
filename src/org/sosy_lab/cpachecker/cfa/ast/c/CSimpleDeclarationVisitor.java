@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-
 public interface CSimpleDeclarationVisitor<R, X extends Exception> {
 
   R visit(CFunctionDeclaration pDecl) throws X;

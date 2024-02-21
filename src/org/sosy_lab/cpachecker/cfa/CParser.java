@@ -145,7 +145,6 @@ public interface CParser extends Parser {
   enum Dialect {
     C99,
     GNUC,
-    ;
   }
 
   @Options(prefix = "parser")
@@ -169,7 +168,9 @@ public interface CParser extends Parser {
   }
 
   /** Factory that tries to create a parser based on available libraries (e.g. Eclipse CDT). */
-  class Factory {
+  final class Factory {
+
+    private Factory() {}
 
     public static ParserOptions getOptions(Configuration config)
         throws InvalidConfigurationException {

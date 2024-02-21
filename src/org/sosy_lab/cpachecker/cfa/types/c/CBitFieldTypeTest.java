@@ -25,7 +25,7 @@ public class CBitFieldTypeTest {
   private final ClassSanityTester tester = new ClassSanityTester();
 
   public CBitFieldTypeTest() {
-    tester.setDefault(CType.class, CNumericTypes.INT);
+    tester.setDistinctValues(CType.class, CNumericTypes.INT, CNumericTypes.CHAR);
   }
 
   @Test
@@ -116,7 +116,10 @@ public class CBitFieldTypeTest {
 
   @Test
   public void testBaseTypeEnum() {
-    new CBitFieldType(new CEnumType(false, false, ImmutableList.of(), "DummyEnum", "DummyEnum"), 0);
+    new CBitFieldType(
+        new CEnumType(
+            false, false, CNumericTypes.INT, ImmutableList.of(), "DummyEnum", "DummyEnum"),
+        0);
   }
 
   @Test

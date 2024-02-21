@@ -100,7 +100,7 @@ public class LassoRankerLogger implements ILogger {
       case WARN:
         return logger.wouldBeLogged(Level.INFO);
       default:
-        throw new IllegalArgumentException(this.getClass() + "Unhandled loglevel");
+        throw new IllegalArgumentException(getClass() + "Unhandled loglevel");
     }
   }
 
@@ -132,7 +132,7 @@ public class LassoRankerLogger implements ILogger {
 
   @Override
   public void setLevel(LogLevel pLevel) {
-    throw new UnsupportedOperationException(this.getClass() + "::setLevel is not implemented");
+    throw new UnsupportedOperationException(getClass() + "::setLevel is not implemented");
   }
 
   private void logException(Level level, Object pMessage, Throwable pThrowable) {

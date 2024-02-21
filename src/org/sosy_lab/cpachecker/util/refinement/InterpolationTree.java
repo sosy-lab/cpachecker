@@ -458,7 +458,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     I getInitialInterpolantForRoot(ARGState root);
   }
 
-  private class TopDownInterpolationStrategy implements InterpolationStrategy<I> {
+  private final class TopDownInterpolationStrategy implements InterpolationStrategy<I> {
 
     /** the states that are the sources for obtaining (partial) error paths */
     private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
@@ -543,7 +543,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     }
   }
 
-  private class BottomUpInterpolationStrategy implements InterpolationStrategy<I> {
+  private final class BottomUpInterpolationStrategy implements InterpolationStrategy<I> {
 
     /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;

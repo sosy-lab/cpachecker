@@ -40,12 +40,6 @@ public abstract class AArrayType implements Type {
       return true;
     }
 
-    if (!(obj instanceof AArrayType)) {
-      return false;
-    }
-
-    AArrayType other = (AArrayType) obj;
-
-    return Objects.equals(elementType, other.elementType);
+    return obj instanceof AArrayType other && Objects.equals(elementType, other.elementType);
   }
 }

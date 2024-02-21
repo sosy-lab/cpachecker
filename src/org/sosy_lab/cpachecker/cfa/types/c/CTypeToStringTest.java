@@ -40,6 +40,7 @@ public class CTypeToStringTest {
       new CSimpleType(true, true, CBasicType.INT, false, false, false, false, false, false, false);
 
   @Parameters(name = "{0} [{1}]")
+  @SuppressWarnings("checkstyle:NoWhitespaceAfter") // nicely readable in this special case
   public static Object[][] types() {
     return new Object[][] {
       { // declare var as pointer to int

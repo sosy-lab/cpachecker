@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract class CDesignator extends AbstractAstNode implements CAstNode {
+public abstract sealed class CDesignator extends AbstractAstNode implements CAstNode
+    permits CArrayDesignator, CArrayRangeDesignator, CFieldDesignator {
 
   private static final long serialVersionUID = 6870178640888782994L;
 
@@ -30,14 +31,10 @@ public abstract class CDesignator extends AbstractAstNode implements CAstNode {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CDesignator)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CDesignator && super.equals(obj);
   }
 }

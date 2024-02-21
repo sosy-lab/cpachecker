@@ -74,12 +74,9 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof AIdExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AIdExpression other = (AIdExpression) obj;
-
-    return Objects.equals(other.declaration, declaration) && Objects.equals(other.name, name);
+    return obj instanceof AIdExpression other
+        && super.equals(obj)
+        && Objects.equals(other.declaration, declaration)
+        && Objects.equals(other.name, name);
   }
 }

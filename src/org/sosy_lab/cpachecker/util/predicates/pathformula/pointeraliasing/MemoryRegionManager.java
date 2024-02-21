@@ -22,6 +22,7 @@ public interface MemoryRegionManager {
    * @return the uninterpreted function name
    */
   String getPointerAccessName(final MemoryRegion pRegion);
+
   /**
    * Creates a memory region for a given type
    *
@@ -29,6 +30,7 @@ public interface MemoryRegionManager {
    * @return New region for the given type
    */
   MemoryRegion makeMemoryRegion(CType pType);
+
   /**
    * Creates a region for the field access
    *
@@ -56,6 +58,7 @@ public interface MemoryRegionManager {
    * @param pTarget - pointer target belonging to the region
    */
   void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget);
+
   /**
    * Prints statistics to the specified output
    *

@@ -14,7 +14,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
  * Interface for all statements that contain an assignment. Only sub-classes of {@link JStatement}
  * may implement this interface.
  */
-public interface JAssignment extends AAssignment, JStatement {
+public sealed interface JAssignment extends AAssignment, JStatement
+    permits JExpressionAssignmentStatement, JMethodInvocationAssignmentStatement {
 
   @Override
   JLeftHandSide getLeftHandSide();

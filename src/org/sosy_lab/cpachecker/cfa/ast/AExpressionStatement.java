@@ -50,12 +50,8 @@ public abstract class AExpressionStatement extends AbstractStatement {
       return true;
     }
 
-    if (!(obj instanceof AExpressionStatement) || !super.equals(obj)) {
-      return false;
-    }
-
-    AExpressionStatement other = (AExpressionStatement) obj;
-
-    return Objects.equals(other.expression, expression);
+    return obj instanceof AExpressionStatement other
+        && super.equals(obj)
+        && Objects.equals(other.expression, expression);
   }
 }

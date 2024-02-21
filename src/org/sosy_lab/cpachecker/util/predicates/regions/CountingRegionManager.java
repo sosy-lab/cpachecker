@@ -15,7 +15,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -115,7 +114,7 @@ public class CountingRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     operationsCtr.setNextValue(1);
     return delegate.getIfThenElse(pF);
   }

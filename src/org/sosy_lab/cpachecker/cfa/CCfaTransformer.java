@@ -478,8 +478,7 @@ public final class CCfaTransformer {
           oldEdgeToNewEdge.put(pOldEdge, newEdge);
         }
 
-        if (newEdge instanceof CFunctionSummaryEdge) {
-          CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newEdge;
+        if (newEdge instanceof CFunctionSummaryEdge cfaSummaryEdge) {
           newNodeU.addLeavingSummaryEdge(cfaSummaryEdge);
           newNodeV.addEnteringSummaryEdge(cfaSummaryEdge);
         } else {
@@ -588,20 +587,18 @@ public final class CCfaTransformer {
         }
       }
 
-      return new MutableCFA(
-          pOriginalCfa.getMachineModel(),
-          newFunctions,
-          newNodes,
-          (FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode),
-          pOriginalCfa.getFileNames(),
-          pOriginalCfa.getLanguage());
+      CfaMetadata newCfaMetadata =
+          pOriginalCfa
+              .getMetadata()
+              .withMainFunctionEntry((FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode));
+      return new MutableCFA(newFunctions, newNodes, newCfaMetadata);
     }
 
     private CFA createCfa(Configuration pConfiguration, LogManager pLogger, CFA pOriginalCfa) {
 
       MutableCFA newMutableCfa = createUnconnectedFunctionCfa(pOriginalCfa);
 
-      newMutableCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
+      newMutableCfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
       if (pOriginalCfa.getLoopStructure().isPresent()) {
         try {
@@ -620,15 +617,13 @@ public final class CCfaTransformer {
         }
       }
 
-      Optional<VariableClassification> variableClassification;
       if (pOriginalCfa.getVarClassification().isPresent()) {
-        variableClassification =
+        Optional<VariableClassification> variableClassification =
             createVariableClassification(pConfiguration, pLogger, newMutableCfa);
-      } else {
-        variableClassification = Optional.empty();
+        newMutableCfa.setVariableClassification(variableClassification.orElse(null));
       }
 
-      return newMutableCfa.makeImmutableCFA(variableClassification);
+      return newMutableCfa.immutableCopy();
     }
 
     private static final class SummaryPlaceholderEdge extends BlankEdge {

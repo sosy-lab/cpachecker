@@ -265,25 +265,15 @@ public class ReachedSetFactory {
       waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockConfig, logger);
     }
 
-    ReachedSet reached;
-    switch (reachedSet) {
-      case PARTITIONED:
-        reached = new PartitionedReachedSet(cpa, waitlistFactory);
-        break;
-      case PSEUDOPARTITIONED:
-        reached = new PseudoPartitionedReachedSet(cpa, waitlistFactory);
-        break;
-      case LOCATIONMAPPED:
-        reached = new LocationMappedReachedSet(cpa, waitlistFactory);
-        break;
-      case USAGE:
-        reached = new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
-        break;
-      case NORMAL:
-      default:
-        reached = new DefaultReachedSet(cpa, waitlistFactory);
-    }
-
+    ReachedSet reached =
+        switch (reachedSet) {
+          case PARTITIONED -> new PartitionedReachedSet(cpa, waitlistFactory);
+          case PSEUDOPARTITIONED -> new PseudoPartitionedReachedSet(cpa, waitlistFactory);
+          case LOCATIONMAPPED -> new LocationMappedReachedSet(cpa, waitlistFactory);
+          case USAGE -> new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
+          case NORMAL -> new DefaultReachedSet(cpa, waitlistFactory);
+          default -> new DefaultReachedSet(cpa, waitlistFactory);
+        };
     if (withStatistics) {
       reached = new StatisticsReachedSet(reached);
     }

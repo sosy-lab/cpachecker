@@ -283,7 +283,7 @@ public class PolicyIterationManager {
       throws CPAException, InterruptedException {
     return precisionAdjustment0(inputState, inputPrecision, states, pArgState)
         .flatMap(
-            s -> Optional.of(PrecisionAdjustmentResult.create(s, inputPrecision, Action.CONTINUE)));
+            s -> Optional.of(new PrecisionAdjustmentResult(s, inputPrecision, Action.CONTINUE)));
   }
 
   /** Perform abstraction and reachability checking with precision adjustment operator. */
@@ -431,7 +431,7 @@ public class PolicyIterationManager {
       locationID = sibling.orElseThrow().getLocationID();
     } else {
       locationID = getFreshLocationID();
-      logger.log(Level.INFO, "Generating new location ID", locationID, " for node ", node);
+      logger.log(Level.FINEST, "Generating new location ID", locationID, "for node", node);
     }
     return locationID;
   }
@@ -610,11 +610,10 @@ public class PolicyIterationManager {
       Map<Template, PolicyBound> updated,
       ValueDeterminationConstraints valDetConstraints)
       throws InterruptedException, CPATransferException {
-    logger.log(
-        Level.INFO,
-        "Value determination at node",
+    logger.logf(
+        Level.FINER,
+        "Value determination at node %s, #constraints = %d",
         stateWithUpdates.getNode(),
-        ", #constraints = ",
         valDetConstraints.constraints.size());
     Map<Template, PolicyBound> newAbstraction = new HashMap<>(stateWithUpdates.getAbstraction());
     int locId = stateWithUpdates.getLocationID();
@@ -653,8 +652,8 @@ public class PolicyIterationManager {
           return Optional.empty();
         } else if (result == OptStatus.UNDEF) {
           shutdownNotifier.shutdownIfNecessary();
-          logger.log(Level.WARNING, "Solver returned undefined status on the problem: ");
-          logger.log(Level.INFO, optEnvironment);
+          logger.log(
+              Level.ALL, "Solver returned undefined status on the problem:\n", optEnvironment);
           throw new CPATransferException("Unexpected solver state");
         }
         assert result == OptStatus.OPT;
@@ -664,7 +663,7 @@ public class PolicyIterationManager {
         if (value.isPresent()
             && !templateToFormulaConversionManager.isOverflowing(template, value.orElseThrow())) {
           Rational v = value.orElseThrow();
-          logger.log(Level.FINE, "Updating", template, "to value", v);
+          logger.log(Level.FINEST, "Updating", template, "to value", v);
           newAbstraction.put(template, mergedBound.updateValueFromValueDetermination(v));
         } else {
 

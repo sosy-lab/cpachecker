@@ -27,7 +27,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType>
   private final ImmutableSet<MemoryLocation> specifiedVariables;
 
   public AcceptSpecifiedVariableSelection(Iterable<? extends MemoryLocation> pIterable) {
-    this.specifiedVariables = ImmutableSet.copyOf(pIterable);
+    specifiedVariables = ImmutableSet.copyOf(pIterable);
   }
 
   @Override
@@ -55,7 +55,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType>
   @Override
   public VariableSelection<ConstantType> acceptAssumption(
       BooleanFormula<ConstantType> pAssumption) {
-    Set<MemoryLocation> involvedVariables = pAssumption.accept(this.collectVarsVisitor);
+    Set<MemoryLocation> involvedVariables = pAssumption.accept(collectVarsVisitor);
     for (MemoryLocation involvedVariable : involvedVariables) {
       if (contains(involvedVariable)) {
         /*
@@ -80,14 +80,14 @@ public class AcceptSpecifiedVariableSelection<ConstantType>
        * Extend the set of specified variables transitively.
        * See acceptAssumptions for thoughts about this.
        */
-      return join(pAssumption.accept(this.collectVarsVisitor));
+      return join(pAssumption.accept(collectVarsVisitor));
     }
     return null;
   }
 
   @Override
   public String toString() {
-    return this.specifiedVariables.toString();
+    return specifiedVariables.toString();
   }
 
   @Override
@@ -122,8 +122,8 @@ public class AcceptSpecifiedVariableSelection<ConstantType>
   }
 
   private VariableSelection<ConstantType> join(Set<MemoryLocation> pSpecifiedVariables) {
-    if (this.specifiedVariables == pSpecifiedVariables
-        || this.specifiedVariables.containsAll(pSpecifiedVariables)) {
+    if (specifiedVariables == pSpecifiedVariables
+        || specifiedVariables.containsAll(pSpecifiedVariables)) {
       return this;
     }
     AcceptSpecifiedVariableSelection<ConstantType> result =

@@ -103,14 +103,7 @@ public final class ForgettingCompositeState implements ForgetfulState<ValueAnaly
 
     ForgettingCompositeState that = (ForgettingCompositeState) o;
 
-    if (!constraints.equals(that.constraints)) {
-      return false;
-    }
-    if (!values.equals(that.values)) {
-      return false;
-    }
-
-    return true;
+    return constraints.equals(that.constraints) && values.equals(that.values);
   }
 
   @Override

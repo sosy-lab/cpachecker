@@ -155,12 +155,10 @@ public class SSCPath extends ARGPath {
     if (this == pOther) {
       return true;
     }
-    if (!(pOther instanceof SSCPath)) {
-      return false;
-    }
-    // We do not compare the states because they are different from iteration to iteration!
-    // We do not have edges for most SSCPaths, lets use locations from states.
-    return super.equals(pOther)
+    return pOther instanceof SSCPath
+        && super.equals(pOther)
+        // We do not compare the states because they are different from iteration to iteration!
+        // We do not have edges for most SSCPaths, lets use locations from states.
         && Objects.equals(getLocations(), ((SSCPath) pOther).getLocations());
   }
 

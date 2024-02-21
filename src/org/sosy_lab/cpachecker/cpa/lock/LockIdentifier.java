@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import java.util.HashSet;
 import java.util.Objects;
@@ -22,7 +23,7 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     SPINLOCK;
 
     public String toASTString() {
-      return name().toLowerCase();
+      return Ascii.toLowerCase(name());
     }
   }
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
@@ -27,10 +28,12 @@ public class DCPAHandler {
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
   private final BlockSummaryAnalysisOptions options;
+  private final CFA cfa;
 
-  public DCPAHandler(BlockSummaryAnalysisOptions pOptions) {
+  public DCPAHandler(BlockSummaryAnalysisOptions pOptions, CFA pCFA) {
     analyses = new HashMap<>();
     options = pOptions;
+    cfa = pCFA;
   }
 
   public void registerDCPA(
@@ -52,7 +55,7 @@ public class DCPAHandler {
       PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     analyses.put(
         pPredicateCPA.getClass(),
-        new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection, options));
+        new DistributedPredicateCPA(pPredicateCPA, pBlockNode, cfa, pDirection, options));
   }
 
   private void registerDCPA(

@@ -70,10 +70,6 @@ public final class CCastExpression extends ACastExpression implements CExpressio
       return true;
     }
 
-    if (!(obj instanceof CCastExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CCastExpression && super.equals(obj);
   }
 }

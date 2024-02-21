@@ -126,8 +126,7 @@ public class PointerState implements AbstractState {
     if (pointsToSet.equals(LocationSetBot.INSTANCE)) {
       return false;
     }
-    if (pointsToSet instanceof ExplicitLocationSet) {
-      ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pointsToSet;
+    if (pointsToSet instanceof ExplicitLocationSet explicitLocationSet) {
       if (explicitLocationSet.mayPointTo(pTarget)) {
         return explicitLocationSet.getSize() == 1 ? true : null;
       } else {
@@ -194,10 +193,7 @@ public class PointerState implements AbstractState {
     if (this == pO) {
       return true;
     }
-    if (pO instanceof PointerState) {
-      return pointsToMap.equals(((PointerState) pO).pointsToMap);
-    }
-    return false;
+    return pO instanceof PointerState && pointsToMap.equals(((PointerState) pO).pointsToMap);
   }
 
   @Override

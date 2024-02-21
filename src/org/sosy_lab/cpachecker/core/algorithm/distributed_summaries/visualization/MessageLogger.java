@@ -59,8 +59,8 @@ public class MessageLogger {
     Multimap<String, Object> map = ArrayListMultimap.create();
     map.putAll("code", Splitter.on("\n").splitToList(pNode.getCode()));
     map.putAll(
-        "predecessors", transformedImmutableSetCopy(pNode.getPredecessors(), p -> p.getId()));
-    map.putAll("successors", transformedImmutableSetCopy(pNode.getSuccessors(), p -> p.getId()));
+        "predecessors", transformedImmutableSetCopy(pNode.getPredecessors(), BlockNode::getId));
+    map.putAll("successors", transformedImmutableSetCopy(pNode.getSuccessors(), BlockNode::getId));
     return map;
   }
 
@@ -73,9 +73,9 @@ public class MessageLogger {
               attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
               attributes.put(
                   "predecessors",
-                  transformedImmutableListCopy(n.getPredecessors(), p -> p.getId()));
+                  transformedImmutableListCopy(n.getPredecessors(), BlockNode::getId));
               attributes.put(
-                  "successors", transformedImmutableListCopy(n.getSuccessors(), p -> p.getId()));
+                  "successors", transformedImmutableListCopy(n.getSuccessors(), BlockNode::getId));
               treeMap.put(n.getId(), attributes);
             });
     JSON.writeJSONString(treeMap, blockCFAFile);

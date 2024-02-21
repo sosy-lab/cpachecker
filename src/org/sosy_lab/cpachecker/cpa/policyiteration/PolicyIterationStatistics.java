@@ -87,7 +87,8 @@ public class PolicyIterationStatistics implements Statistics {
   private static class UpdateStats<T> {
     final T maxObject;
     final T minObject;
-    final int max, min;
+    final int max;
+    final int min;
     final double avg;
 
     UpdateStats(int pMax, int pMin, double pAvg, T pMaxObject, T pMinObject) {
@@ -154,11 +155,9 @@ public class PolicyIterationStatistics implements Statistics {
 
     @Override
     public boolean equals(Object o) {
-      if (!(o instanceof TemplateUpdateEvent)) {
-        return false;
-      }
-      TemplateUpdateEvent other = (TemplateUpdateEvent) o;
-      return locationID == other.locationID && template.equals(other.template);
+      return o instanceof TemplateUpdateEvent other
+          && locationID == other.locationID
+          && template.equals(other.template);
     }
 
     @Override

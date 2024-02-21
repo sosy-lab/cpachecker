@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.math.IntMath;
 import java.io.PrintStream;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -27,10 +30,25 @@ public class BMCStatistics implements Statistics {
   final Timer inductionPreparation = new Timer();
   final Timer inductionCheck = new Timer();
 
-  // IMC/ISMC operations
+  // IMC/ISMC/DAR operations
   final Timer interpolationPreparation = new Timer();
   final Timer fixedPointComputation = new Timer();
-  int numOfIMCInnerIterations = -1;
+  int numOfInterpolationCalls = -1;
+  int numOfInterpolants = -1;
+  int numOfAtomsInInterpolants = -1;
+  int minNumOfAtomsInInterpolants = -1;
+  int maxNumOfAtomsInInterpolants = -1;
+  int numOfVarsInInterpolants = -1;
+  int minNumOfVarsInInterpolants = -1;
+  int maxNumOfVarsInInterpolants = -1;
+  BigInteger numOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
+  BigInteger minNumOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
+  BigInteger maxNumOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
+  int fixedPointConvergenceLength = -1;
+  // DAR specific
+  int numOfDARGlobalPhases = -1;
+  int numOfDARLocalPhases = -1;
+  int numOfDARLocalInterpolants = -1;
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
@@ -55,10 +73,58 @@ public class BMCStatistics implements Statistics {
     }
     if (fixedPointComputation.getNumberOfIntervals() > 0) {
       out.println("Time for collecting formulas for interpolation:  " + interpolationPreparation);
-      out.println("Time for computing fixed point by interpolation: " + fixedPointComputation);
+      out.println("Time for computing fixed-point by interpolation: " + fixedPointComputation);
     }
-    if (numOfIMCInnerIterations >= 0) {
-      out.println("Number of IMC inner iterations:                  " + numOfIMCInnerIterations);
+    if (numOfInterpolants >= 0) {
+      out.println("Total number of computed interpolants:           " + numOfInterpolants);
+    }
+    if (numOfInterpolationCalls >= 0) {
+      out.println("Total number of interpolation calls:             " + numOfInterpolationCalls);
+    }
+    if (numOfAtomsInInterpolants >= 0) {
+      out.println("Total number of atoms in interpolants:           " + numOfAtomsInInterpolants);
+      out.println(
+          "  Avg. #atoms in itp:                            "
+              + IntMath.divide(numOfAtomsInInterpolants, numOfInterpolants, RoundingMode.HALF_UP));
+      out.println(
+          "  Min. #atoms in itp:                            " + minNumOfAtomsInInterpolants);
+      out.println(
+          "  Max. #atoms in itp:                            " + maxNumOfAtomsInInterpolants);
+    }
+    if (numOfVarsInInterpolants >= 0) {
+      out.println("Total number of vars in interpolants:            " + numOfVarsInInterpolants);
+      out.println(
+          "  Avg. #vars in itp:                             "
+              + IntMath.divide(numOfVarsInInterpolants, numOfInterpolants, RoundingMode.HALF_UP));
+      out.println("  Min. #vars in itp:                             " + minNumOfVarsInInterpolants);
+      out.println("  Max. #vars in itp:                             " + maxNumOfVarsInInterpolants);
+    }
+    if (numOfBoolOpsInInterpolants.compareTo(BigInteger.ZERO) >= 0) {
+      out.println("Total number of Boolean ops in interpolants:     " + numOfBoolOpsInInterpolants);
+      out.println(
+          "  Avg. #Boolean-ops in itp:                      "
+              + numOfBoolOpsInInterpolants.divide(BigInteger.valueOf(numOfInterpolants)));
+      out.println(
+          "  Min. #Boolean-ops in itp:                      " + minNumOfBoolOpsInInterpolants);
+      out.println(
+          "  Max. #Boolean-ops in itp:                      " + maxNumOfBoolOpsInInterpolants);
+    }
+    if (fixedPointConvergenceLength >= 0) {
+      out.println(
+          "Fixed-point convergence length:                  " + fixedPointConvergenceLength);
+    }
+    if (numOfDARGlobalPhases >= 0) {
+      out.println("Number of DAR global strengthening phases:       " + numOfDARGlobalPhases);
+      if (fixedPointConvergenceLength >= 0) {
+        out.println(
+            "  Ratio to convergence length:                   "
+                + (float) numOfDARGlobalPhases / fixedPointConvergenceLength);
+      }
+    }
+    if (numOfDARLocalPhases >= 0) {
+      out.println("Number of DAR local strengthening phases:        " + numOfDARLocalPhases);
+      assert numOfDARLocalInterpolants >= 0;
+      out.println("  Number of local interpolants:                  " + numOfDARLocalInterpolants);
     }
   }
 

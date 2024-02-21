@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 @Immutable
 public final class CSimpleType implements CType, Serializable {
@@ -74,31 +75,41 @@ public final class CSimpleType implements CType, Serializable {
     return type;
   }
 
-  public boolean isLong() {
+  public boolean hasLongSpecifier() {
     return isLong;
   }
 
-  public boolean isShort() {
+  public boolean hasShortSpecifier() {
     return isShort;
   }
 
-  public boolean isSigned() {
+  /**
+   * Returns whether this type has an explicit "signed" specifier. Do not use this method to check
+   * whether a type is signed! The correct way to do that is {@link
+   * MachineModel#isSigned(CSimpleType)}.
+   */
+  public boolean hasSignedSpecifier() {
     return isSigned;
   }
 
-  public boolean isUnsigned() {
+  /**
+   * Returns whether this type has an explicit "unsigned" specifier. Do not use this method to check
+   * whether a type is signed! The correct way to do that is {@link
+   * MachineModel#isSigned(CSimpleType)}.
+   */
+  public boolean hasUnsignedSpecifier() {
     return isUnsigned;
   }
 
-  public boolean isComplex() {
+  public boolean hasComplexSpecifier() {
     return isComplex;
   }
 
-  public boolean isImaginary() {
+  public boolean hasImaginarySpecifier() {
     return isImaginary;
   }
 
-  public boolean isLongLong() {
+  public boolean hasLongLongSpecifier() {
     return isLongLong;
   }
 
@@ -138,17 +149,12 @@ public final class CSimpleType implements CType, Serializable {
    */
   @Override
   public boolean equals(@Nullable Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CSimpleType)) {
-      return false;
-    }
-
-    CSimpleType other = (CSimpleType) obj;
-
-    return isComplex == other.isComplex
+    return obj instanceof CSimpleType other
+        && isComplex == other.isComplex
         && isConst == other.isConst
         && isVolatile == other.isVolatile
         && isImaginary == other.isImaginary

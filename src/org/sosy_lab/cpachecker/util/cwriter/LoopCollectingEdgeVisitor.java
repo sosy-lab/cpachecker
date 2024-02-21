@@ -104,7 +104,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
       // if one of these is a functionsummary edge, we want to skip
       // all states until the next state in the current function if it is so
       if (edge instanceof CFunctionReturnEdge) {
-        CFANode beforeFunctionCall = ((CFunctionReturnEdge) edge).getSummaryEdge().getPredecessor();
+        CFANode beforeFunctionCall = ((CFunctionReturnEdge) edge).getCallNode();
         while (cfaIterator.hasPrevious()) {
           tmp = cfaIterator.previous();
           if (Objects.equals(tmp.getFirst().getPredecessor(), beforeFunctionCall)) {
@@ -208,10 +208,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
   static List<Loop> getLoopsOfNode(LoopStructure loopStructure, final CFANode node) {
     return from(loopStructure.getAllLoops())
         .filter(pInput -> pInput.getLoopNodes().contains(node))
-        .toSortedList(
-            (loop1, loop2) -> {
-              return isOuterLoopOf(loop1, loop2) ? -1 : 1;
-            });
+        .toSortedList((loop1, loop2) -> (isOuterLoopOf(loop1, loop2) ? -1 : 1));
   }
 
   static boolean isOuterLoopOf(Loop outer, Loop inner) {

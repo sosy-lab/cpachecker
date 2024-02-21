@@ -31,10 +31,7 @@ public class PJBDDRegion implements Region {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof PJBDDRegion) {
-      return bddRep.equals(((PJBDDRegion) o).bddRep);
-    }
-    return false;
+    return o instanceof PJBDDRegion && bddRep.equals(((PJBDDRegion) o).bddRep);
   }
 
   @Override

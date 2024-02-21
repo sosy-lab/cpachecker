@@ -52,7 +52,7 @@ public class ToCodeFormulaVisitor
     CNumericTypes.LONG_INT,
     CNumericTypes.UNSIGNED_LONG_INT,
     CNumericTypes.LONG_LONG_INT,
-    CNumericTypes.UNSIGNED_LONG_LONG_INT
+    CNumericTypes.UNSIGNED_LONG_LONG_INT,
   };
 
   /**
@@ -78,8 +78,7 @@ public class ToCodeFormulaVisitor
   }
 
   private CSimpleType determineType(TypeInfo pTypeInfo) {
-    if (pTypeInfo instanceof BitVectorInfo) {
-      BitVectorInfo bitVectorInfo = (BitVectorInfo) pTypeInfo;
+    if (pTypeInfo instanceof BitVectorInfo bitVectorInfo) {
       int sizeOfChar = machineModel.getSizeofCharInBits();
       int size = bitVectorInfo.getSize();
       boolean isSigned = bitVectorInfo.isSigned();
@@ -90,8 +89,7 @@ public class ToCodeFormulaVisitor
         }
       }
       return CNumericTypes.INT;
-    } else if (pTypeInfo instanceof FloatingPointTypeInfo) {
-      FloatingPointTypeInfo fpTypeInfo = (FloatingPointTypeInfo) pTypeInfo;
+    } else if (pTypeInfo instanceof FloatingPointTypeInfo fpTypeInfo) {
       switch (fpTypeInfo) {
         case FLOAT:
           return CNumericTypes.FLOAT;
@@ -136,8 +134,7 @@ public class ToCodeFormulaVisitor
    * @return a bit vector formula representing the given value as a bit vector with the given size.
    */
   private String asFormulaString(TypeInfo pInfo, Number pValue) {
-    if (pInfo instanceof BitVectorInfo && pValue instanceof BigInteger) {
-      BitVectorInfo bitVectorInfo = (BitVectorInfo) pInfo;
+    if (pInfo instanceof BitVectorInfo bitVectorInfo && pValue instanceof BigInteger) {
       int size = bitVectorInfo.getSize();
       BigInteger value = (BigInteger) pValue;
       // Get only the [size] least significant bits
@@ -333,8 +330,8 @@ public class ToCodeFormulaVisitor
     TypeInfo targetInfo = pCast.getTypeInfo();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
     TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    if (targetInfo instanceof BitVectorInfo && sourceInfo instanceof BitVectorInfo) {
-      BitVectorInfo sourceBitVectorInfo = (BitVectorInfo) sourceInfo;
+    if (targetInfo instanceof BitVectorInfo
+        && sourceInfo instanceof BitVectorInfo sourceBitVectorInfo) {
       int sourceSize = sourceBitVectorInfo.getSize();
       int targetSize = ((BitVectorInfo) targetInfo).getSize();
       if ((sourceSize == targetSize && sourceBitVectorInfo.isSigned() == targetInfo.isSigned())

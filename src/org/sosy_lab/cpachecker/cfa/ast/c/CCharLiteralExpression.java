@@ -12,7 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CCharLiteralExpression extends ACharLiteralExpression implements CLiteralExpression {
+public final class CCharLiteralExpression extends ACharLiteralExpression
+    implements CLiteralExpression {
 
   private static final long serialVersionUID = -8145502438011551776L;
 
@@ -51,10 +52,6 @@ public class CCharLiteralExpression extends ACharLiteralExpression implements CL
       return true;
     }
 
-    if (!(obj instanceof CCharLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CCharLiteralExpression && super.equals(obj);
   }
 }

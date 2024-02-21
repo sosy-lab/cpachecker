@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -394,6 +393,12 @@ public final class CInitializers {
     return (Iterator<T>) it;
   }
 
+  private static boolean isCharArray(CType type) {
+    return type instanceof CArrayType arrayType
+        && arrayType.getType() instanceof CSimpleType elementType
+        && elementType.getType() == CBasicType.CHAR;
+  }
+
   /**
    * Find the first subobject inside the current subobject that may be initialized with a value of a
    * given type. Usually this method just enters nested structs and arrays until it finds the first
@@ -430,14 +435,8 @@ public final class CInitializers {
       }
 
       // String literals may be used to initialize char arrays.
-      // They have a type of (const char)*.
-      if (targetType.equals(CPointerType.POINTER_TO_CONST_CHAR)
-          && currentType instanceof CArrayType) {
-        CType currentElementType = ((CArrayType) currentType).getType();
-        if (currentElementType instanceof CSimpleType
-            && ((CSimpleType) currentElementType).getType() == CBasicType.CHAR) {
-          break;
-        }
+      if (isCharArray(targetType) && isCharArray(currentType)) {
+        break;
       }
       boolean successful;
 

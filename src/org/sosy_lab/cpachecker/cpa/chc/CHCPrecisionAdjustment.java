@@ -43,9 +43,9 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
     if (ancestor != null) {
       AbstractState newState = generalize(candidateState, ancestor);
-      return Optional.of(PrecisionAdjustmentResult.create(newState, precision, Action.CONTINUE));
+      return Optional.of(new PrecisionAdjustmentResult(newState, precision, Action.CONTINUE));
     } else {
-      return Optional.of(PrecisionAdjustmentResult.create(successor, precision, Action.CONTINUE));
+      return Optional.of(new PrecisionAdjustmentResult(successor, precision, Action.CONTINUE));
     }
   }
 

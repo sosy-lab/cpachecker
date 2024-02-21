@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationGroup;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -32,9 +32,9 @@ public class SequentialInterpolationWithSolver extends ITPStrategy {
   @Override
   public <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
       throws InterruptedException, SolverException {
     return interpolator.itpProver.getSeqInterpolants0(
-        projectToThird(formulasWithStatesAndGroupdIds));
+        Lists.transform(formulasWithStatesAndGroupdIds, InterpolationGroup::groupId));
   }
 }

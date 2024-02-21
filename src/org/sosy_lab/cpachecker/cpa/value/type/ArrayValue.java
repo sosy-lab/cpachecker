@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * Each of its fields can be assigned a value with the same type, a subtype of the array or an
  * unknown value. No other types can be stored in instances of this class.
  */
-public class ArrayValue implements Value {
+public final class ArrayValue implements Value {
 
   private static final long serialVersionUID = -3963825961335658001L;
 

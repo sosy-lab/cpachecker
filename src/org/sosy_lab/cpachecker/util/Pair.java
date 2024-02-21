@@ -24,14 +24,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6229146
  *
  * <p>PLEASE DO NOT USE THIS CLASS! It is better design to use proper specific classes that have
- * semantically meaningful names instead of Pair and Triple. There might be cases where usage of
- * such generic classes is understandable, but their mere presence invites to misuse them and
- * introduce non-understandable code using things like {@code Triple<String, String, String>}. Thus
- * the general goal is to remove these classes completely, CPAchecker just relies too heavily on
- * them for now.
+ * semantically meaningful names instead of Pair. There might be cases where usage of such generic
+ * classes is understandable, but their mere presence invites to misuse them and introduce
+ * non-understandable code using things like {@code Pair<String, String>}. Thus the general goal is
+ * to remove this class completely, CPAchecker just relies too heavily on it for now.
  *
- * <p>Please do not use these two classes in new code. Either write a custom class with meaningful
- * names, or we start using AutoValue in CPAchecker to generate such classes automatically.
+ * <p>Please do not use these two classes in new code. Write a custom class with meaningful names, a
+ * record makes this really easy.
  */
 public class Pair<A, B> implements Serializable {
 

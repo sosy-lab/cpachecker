@@ -51,7 +51,11 @@ public class SMGEdgeInterpolator
         pStrongestPostOperator,
         pFeasibilityChecker,
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety()),
         SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig), pCfa),
         ValueAnalysisCPA.class,
         pConfig,
@@ -106,6 +110,8 @@ public class SMGEdgeInterpolator
     }
 
     if (!maybeSuccessor.isPresent()) {
+      return interpolantMgr.getFalseInterpolant();
+    } else if (maybeSuccessor.orElseThrow().hasMemoryErrors()) {
       return interpolantMgr.getFalseInterpolant();
     }
 

@@ -8,4 +8,5 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public interface ACSLBuiltin extends ACSLLogicExpression {}
+public sealed interface ACSLBuiltin extends ACSLLogicExpression
+    permits ACSLResult, PredicateAt, TermAt {}

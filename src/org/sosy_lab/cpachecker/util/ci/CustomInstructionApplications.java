@@ -179,7 +179,9 @@ public class CustomInstructionApplications {
     }
 
     public abstract CustomInstructionApplications identifyCIApplications()
-        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
+        throws AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException,
             UnrecognizedCodeException;
 
     public static CustomInstructionApplicationBuilder getBuilder(
@@ -277,7 +279,7 @@ public class CustomInstructionApplications {
 
       try (Writer out =
           IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset())) {
-        for (CFANode node : cfa.getAllNodes()) {
+        for (CFANode node : cfa.nodes()) {
           if (!Objects.equals(node, ci.getStartNode()) && pParser.isAppliedCI(ci, node)) {
             shutdownNotifier.shutdownIfNecessary();
             out.append(node.getNodeNumber() + "\n");
@@ -319,23 +321,24 @@ public class CustomInstructionApplications {
     }
 
     private CustomInstructionApplications findSimpleCustomInstructionApplications()
-        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
+        throws AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException,
             UnrecognizedCodeException {
       // build simple custom instruction, is of the form r= x pOp y;
       // create variable expressions
       CType type = CNumericTypes.INT;
-      CIdExpression r, x, y;
-      r =
+      CIdExpression r =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
                   FileLocation.DUMMY, true, CStorageClass.AUTO, type, "r", "r", "r", null));
-      x =
+      CIdExpression x =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
                   FileLocation.DUMMY, true, CStorageClass.AUTO, type, "x", "x", "x", null));
-      y =
+      CIdExpression y =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
@@ -377,7 +380,7 @@ public class CustomInstructionApplications {
           IO.openOutputFile(foundCustomInstructionsDefinition, Charset.defaultCharset())) {
 
         // inspect all CFA edges potential candidates
-        for (CFANode node : cfa.getAllNodes()) {
+        for (CFANode node : cfa.nodes()) {
           for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
             if (edge instanceof CStatementEdge
                 && ((CStatementEdge) edge).getStatement()
@@ -409,8 +412,10 @@ public class CustomInstructionApplications {
 
     @Override
     public CustomInstructionApplications identifyCIApplications()
-        throws UnrecognizedCodeException, AppliedCustomInstructionParsingFailedException,
-            IOException, InterruptedException {
+        throws UnrecognizedCodeException,
+            AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException {
       CustomInstructionApplications cia = findSimpleCustomInstructionApplications();
       logger.log(
           Level.INFO,

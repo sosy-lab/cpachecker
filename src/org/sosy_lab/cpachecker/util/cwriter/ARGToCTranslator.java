@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -274,10 +275,9 @@ public class ARGToCTranslator {
       ARGState child = Iterables.getOnlyElement(childrenOfElement);
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
 
-      if (edgeToChild instanceof CAssumeEdge) {
+      if (edgeToChild instanceof CAssumeEdge assumeEdge) {
         // due to some reason the other edge is not considered
         // if part
-        CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
         // create a new block starting with this condition
         boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
@@ -424,8 +424,7 @@ public class ARGToCTranslator {
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
 
       Set<AExpression> conditions = new LinkedHashSet<>();
-      if (edgeToChild instanceof CAssumeEdge) {
-        CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
+      if (edgeToChild instanceof CAssumeEdge assumeEdge) {
         if (assumeEdge.getTruthAssumption()) {
           conditions.add(assumeEdge.getExpression());
         } else {
@@ -450,7 +449,7 @@ public class ARGToCTranslator {
       CompoundStatement newBlock = addIfStatement(currentBlock, cond, edgeToChild);
       if (!conditions.isEmpty()) {
         StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
-        conditions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
+        conditions.stream().map(AExpression::toQualifiedASTString).forEach(joiner::add);
         newBlock.addStatement(new SimpleStatement(edgeToChild, joiner.toString()));
       }
       pushToWaitlist(waitlist, currentElement, child, edgeToChild, newBlock);
@@ -567,9 +566,7 @@ public class ARGToCTranslator {
     if (edge instanceof CFunctionCallEdge) {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
-    } else if (edge instanceof CReturnStatementEdge) {
-      CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
-
+    } else if (edge instanceof CReturnStatementEdge returnEdge) {
       if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
         String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
@@ -583,9 +580,8 @@ public class ARGToCTranslator {
         }
         currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
       }
-    } else if (edge instanceof CFunctionReturnEdge) {
+    } else if (edge instanceof CFunctionReturnEdge returnEdge) {
       // assumes that ReturnStateEdge is followed by FunctionReturnEdge
-      CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) edge;
       currentBlock =
           processReturnStatementCall(
               returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
@@ -647,12 +643,12 @@ public class ARGToCTranslator {
       List<AExpression> assumptions = new ArrayList<>();
       AbstractStates.asIterable(childElement)
           .filter(AbstractStateWithAssumptions.class)
-          .transform(x -> x.getAssumptions())
+          .transform(AbstractStateWithAssumptions::getAssumptions)
           .forEach(x -> assumptions.addAll(x));
 
       if (!assumptions.isEmpty()) {
         StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
-        assumptions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
+        assumptions.stream().map(AExpression::toQualifiedASTString).forEach(joiner::add);
         String statement = joiner.toString();
         currentBlock.addStatement(new SimpleStatement(statement));
       }
@@ -687,11 +683,7 @@ public class ARGToCTranslator {
     } else {
       CFunctionReturnEdge functionReturnEdge =
           (CFunctionReturnEdge) pReturnEdge.getSuccessor().getLeavingEdge(0);
-      CFANode functionDefNode = functionReturnEdge.getSummaryEdge().getPredecessor();
-      assert functionDefNode.getNumLeavingEdges() == 1;
-      assert functionDefNode.getLeavingEdge(0) instanceof CFunctionCallEdge;
-      CFunctionCallEdge callEdge = (CFunctionCallEdge) functionDefNode.getLeavingEdge(0);
-      CFunctionEntryNode fn = callEdge.getSuccessor();
+      CFunctionEntryNode fn = functionReturnEdge.getFunctionEntry();
       CType retType = fn.getFunctionDefinition().getType().getReturnType();
       if (retType instanceof CArrayType) {
         returnType = ((CArrayType) retType).toQualifiedASTString(varName);
@@ -721,16 +713,12 @@ public class ARGToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        {
-          // nothing to do
-          break;
-        }
+        // nothing to do
+        break;
 
       case AssumeEdge:
-        {
-          // nothing to do
-          break;
-        }
+        // nothing to do
+        break;
 
       case StatementEdge:
         {
@@ -804,16 +792,12 @@ public class ARGToCTranslator {
         }
 
       case CallToReturnEdge:
-        {
-          //          this should not have been taken
-          throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
-        }
+        //          this should not have been taken
+        throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
 
       default:
-        {
-          throw new AssertionError(
-              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
-        }
+        throw new AssertionError(
+            "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
 
     return "";
@@ -870,9 +854,7 @@ public class ARGToCTranslator {
     if (retExp instanceof CFunctionCallStatement) {
       // end of void function, just leave block (no assignment needed)
       return getBlockAfterEndOfFunction(pCurrentBlock);
-    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
-
+    } else if (retExp instanceof CFunctionCallAssignmentStatement exp) {
       String returnVar = "__return_" + id;
       String leftHandSide = exp.getLeftHandSide().toQualifiedASTString();
 
@@ -996,14 +978,13 @@ public class ARGToCTranslator {
     Map<ARGState, List<CDeclaration>> probVarDec =
         Maps.newHashMapWithExpectedSize(decProblems.keySet().size());
 
-    boolean containAll, different;
     for (ARGState key : decProblems.keySet()) {
       probs = new ArrayList<>(decProblems.get(key));
       probVars = new ArrayList<>();
 
       for (Entry<CDeclaration, String> prob : probs.get(0).entrySet()) {
-        containAll = true;
-        different = false;
+        boolean containAll = true;
+        boolean different = false;
         for (int i = 1; i < probs.size(); i++) {
           if (!probs.get(i).containsKey(prob.getKey())) {
             containAll = false;
@@ -1083,21 +1064,12 @@ public class ARGToCTranslator {
       ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
 
       for (CParameterDeclaration paramDecl :
-          callEdge
-              .getSummaryEdge()
-              .getExpression()
-              .getFunctionCallExpression()
-              .getDeclaration()
-              .getParameters()) {
+          callEdge.getFunctionCall().getFunctionCallExpression().getDeclaration().getParameters()) {
         builder.put(paramDecl.asVariableDeclaration(), decId);
       }
 
       return new DeclarationInfo(
-          builder.buildOrThrow(),
-          ImmutableList.<ImmutableMap<CDeclaration, String>>builder()
-              .addAll(calleeFunDecInfos)
-              .add(currentFuncDecInfo)
-              .build());
+          builder.buildOrThrow(), listAndElement(calleeFunDecInfos, currentFuncDecInfo));
     }
 
     public DeclarationInfo fromFunctionReturn() {

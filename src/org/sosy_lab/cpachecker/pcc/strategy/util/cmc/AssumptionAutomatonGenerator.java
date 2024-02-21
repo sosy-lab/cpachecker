@@ -29,7 +29,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -80,7 +79,7 @@ public class AssumptionAutomatonGenerator {
           w,
           root,
           getAllAncestorsFor(incompleteNodes),
-          new HashSet<AbstractState>(incompleteNodes),
+          new HashSet<>(incompleteNodes),
           0,
           true,
           false);

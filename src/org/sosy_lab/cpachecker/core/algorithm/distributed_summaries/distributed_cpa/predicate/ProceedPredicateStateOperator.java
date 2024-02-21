@@ -131,9 +131,9 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
         unsatPredecessors.add(message.getUniqueBlockId());
         return BlockSummaryMessageProcessing.stop();
       }
-    } catch (SolverException pE) {
+    } catch (SolverException e) {
       return BlockSummaryMessageProcessing.stopWith(
-          BlockSummaryMessage.newErrorMessage(block.getId(), pE));
+          BlockSummaryMessage.newErrorMessage(block.getId(), e));
     }
     unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);

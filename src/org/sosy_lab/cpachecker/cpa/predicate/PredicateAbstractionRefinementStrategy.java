@@ -99,7 +99,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     FUNCTION, // at all locations in the respective function
     LOCATION, // at all occurrences of the respective location
     LOCATION_INSTANCE, // at the n-th occurrence of the respective location in each path
-    ;
   }
 
   @Option(
@@ -509,59 +508,36 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       UnmodifiableReachedSet reached,
       ARGState refinementRoot,
       PredicatePrecision targetStatePrecision) {
-    PredicatePrecision basePrecision;
-    switch (predicateBasisStrategy) {
-      case ALL:
-        basePrecision = findAllPredicatesFromSubgraph((ARGState) reached.getFirstState(), reached);
-        break;
-      case SUBGRAPH:
-        basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
-        break;
-      case TARGET:
-        basePrecision = targetStatePrecision;
-        break;
-      case CUTPOINT:
-        basePrecision = extractPredicatePrecision(reached.getPrecision(refinementRoot));
-        break;
-      default:
-        throw new AssertionError("unknown strategy for predicate basis.");
-    }
+    PredicatePrecision basePrecision =
+        switch (predicateBasisStrategy) {
+          case ALL -> findAllPredicatesFromSubgraph((ARGState) reached.getFirstState(), reached);
+          case SUBGRAPH -> findAllPredicatesFromSubgraph(refinementRoot, reached);
+          case TARGET -> targetStatePrecision;
+          case CUTPOINT -> extractPredicatePrecision(reached.getPrecision(refinementRoot));
+        };
     return basePrecision;
   }
 
   protected PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
-    PredicatePrecision newPrecision;
-    switch (predicateSharing) {
-      case GLOBAL:
-        newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
-        break;
-      case SCOPE:
-        Set<AbstractionPredicate> globalPredicates = new HashSet<>();
-        ListMultimap<LocationInstance, AbstractionPredicate> localPredicates =
-            ArrayListMultimap.create();
-
-        splitInLocalAndGlobalPredicates(globalPredicates, localPredicates);
-
-        newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
-        newPrecision =
-            newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates.entries()));
-
-        break;
-      case FUNCTION:
-        newPrecision =
-            basePrecision.addFunctionPredicates(
-                mergePredicatesPerFunction(newPredicates.entries()));
-        break;
-      case LOCATION:
-        newPrecision =
-            basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates.entries()));
-        break;
-      case LOCATION_INSTANCE:
-        newPrecision = basePrecision.addLocationInstancePredicates(newPredicates.entries());
-        break;
-      default:
-        throw new AssertionError();
-    }
+    PredicatePrecision newPrecision =
+        switch (predicateSharing) {
+          case GLOBAL -> basePrecision.addGlobalPredicates(newPredicates.values());
+          case SCOPE -> {
+            Set<AbstractionPredicate> globalPredicates = new HashSet<>();
+            ListMultimap<LocationInstance, AbstractionPredicate> localPredicates =
+                ArrayListMultimap.create();
+            splitInLocalAndGlobalPredicates(globalPredicates, localPredicates);
+            newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
+            yield newPrecision.addLocalPredicates(
+                mergePredicatesPerLocation(localPredicates.entries()));
+          }
+          case FUNCTION -> basePrecision.addFunctionPredicates(
+              mergePredicatesPerFunction(newPredicates.entries()));
+          case LOCATION -> basePrecision.addLocalPredicates(
+              mergePredicatesPerLocation(newPredicates.entries()));
+          case LOCATION_INSTANCE -> basePrecision.addLocationInstancePredicates(
+              newPredicates.entries());
+        };
     return newPrecision;
   }
 

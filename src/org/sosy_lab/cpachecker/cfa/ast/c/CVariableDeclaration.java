@@ -123,13 +123,9 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
       return true;
     }
 
-    if (!(obj instanceof CVariableDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    CVariableDeclaration other = (CVariableDeclaration) obj;
-
-    return Objects.equals(other.cStorageClass, cStorageClass);
+    return obj instanceof CVariableDeclaration other
+        && super.equals(obj)
+        && Objects.equals(other.cStorageClass, cStorageClass);
   }
 
   public int hashCodeWithOutStorageClass() {

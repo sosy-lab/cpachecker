@@ -224,25 +224,15 @@ public class ValueAnalysisRefiner
       }
 
       List<Precision> precisions = new ArrayList<>(2);
-      VariableTrackingPrecision basePrecision;
-      switch (basisStrategy) {
-        case ALL:
-          basePrecision =
-              mergeValuePrecisionsForSubgraph((ARGState) reached.getFirstState(), reached);
-          break;
-        case SUBGRAPH:
-          basePrecision = mergeValuePrecisionsForSubgraph(root, reached);
-          break;
-        case TARGET:
-          basePrecision = extractValuePrecision(reached.getPrecision(reached.getLastState()));
-          break;
-        case CUTPOINT:
-          basePrecision = extractValuePrecision(reached.getPrecision(root));
-          break;
-        default:
-          throw new AssertionError("unknown strategy for predicate basis.");
-      }
-
+      VariableTrackingPrecision basePrecision =
+          switch (basisStrategy) {
+            case ALL -> mergeValuePrecisionsForSubgraph(
+                (ARGState) reached.getFirstState(), reached);
+            case SUBGRAPH -> mergeValuePrecisionsForSubgraph(root, reached);
+            case TARGET -> extractValuePrecision(reached.getPrecision(reached.getLastState()));
+            case CUTPOINT -> extractValuePrecision(reached.getPrecision(root));
+            default -> throw new AssertionError("unknown strategy for predicate basis.");
+          };
       // merge the value precisions of the subtree, and refine it
       precisions.add(
           basePrecision.withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));

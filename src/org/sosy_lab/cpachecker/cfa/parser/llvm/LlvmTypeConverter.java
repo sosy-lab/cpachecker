@@ -58,7 +58,7 @@ public class LlvmTypeConverter {
   }
 
   public @Nullable CType getCType(final TypeRef pLlvmType) {
-    return getCType(pLlvmType, /* isUnsigned = */ false);
+    return getCType(pLlvmType, /* isUnsigned= */ false);
   }
 
   public @Nullable CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
@@ -247,7 +247,7 @@ public class LlvmTypeConverter {
         if (machineModel.getSizeofDouble() * 8 == 64) {
           return getSimplestCType(CBasicType.DOUBLE, isUnsigned);
         } else if (machineModel.getSizeofLongDouble() * 8 == 64) {
-          return getSimplestCType(CBasicType.DOUBLE, isUnsigned, /* pIsLong = */ true);
+          return getSimplestCType(CBasicType.DOUBLE, isUnsigned, /* pIsLong= */ true);
 
         } else {
           throw new AssertionError(
@@ -268,7 +268,7 @@ public class LlvmTypeConverter {
   }
 
   private CType getSimplestCType(final CBasicType pBasicType, final boolean isUnsigned) {
-    return getSimplestCType(pBasicType, isUnsigned, /* pIsLong = */ false);
+    return getSimplestCType(pBasicType, isUnsigned, /* pIsLong= */ false);
   }
 
   private CType getSimplestCType(

@@ -291,9 +291,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
       if (originalEdge != null) {
         CFAEdgeType typeOfOriginalEdge = originalEdge.getEdgeType();
-        /*************************************/
-        /** assure that call stack is valid * */
-        /*************************************/
+        // assure that call stack is valid
         // when entering into a function, remember if call is relevant or not
         if (typeOfOriginalEdge == CFAEdgeType.FunctionCallEdge) {
           boolean isAbstractEdgeFunctionCall =
@@ -305,17 +303,16 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
         // when returning from a function, ...
         if (typeOfOriginalEdge == CFAEdgeType.FunctionReturnEdge) {
           Pair<FunctionCallEdge, Boolean> functionCallInfo = functionCalls.pop();
-          // ... if call is relevant and return edge is now a blank edge, restore the original
-          // return edge
           if (functionCallInfo.getSecond()
               && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
+            // ... if call is relevant and return edge is now a blank edge, restore the original
+            // return edge
             abstractEdges.set(iterator.getIndex(), originalEdge);
-          }
 
-          // ... if call is irrelevant and return edge is not sliced, restore the call edge
-          else if (!functionCallInfo.getSecond()
+          } else if (!functionCallInfo.getSecond()
               && abstractEdges.get(iterator.getIndex()).getEdgeType()
                   == CFAEdgeType.FunctionReturnEdge) {
+            // ... if call is irrelevant and return edge is not sliced, restore the call edge
             for (int j = iterator.getIndex(); j >= 0; j--) {
               if (functionCallInfo.getFirst() == abstractEdges.get(j)) {
                 abstractEdges.set(j, functionCallInfo.getFirst());

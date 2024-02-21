@@ -120,12 +120,12 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
-    return adjust(pOtherPrecision, (a, b) -> a.add(b));
+    return adjust(pOtherPrecision, AdjustablePrecision::add);
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
-    return adjust(pOtherPrecision, (a, b) -> a.subtract(b));
+    return adjust(pOtherPrecision, AdjustablePrecision::subtract);
   }
 
   private AdjustablePrecision adjust(
@@ -134,8 +134,7 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
 
     AdjustablePrecision thisWrappedPrecision = (AdjustablePrecision) wrappedPrecision;
     AdjustablePrecision wrappedOtherPrecision;
-    if (pOtherPrecision instanceof UsagePrecision) {
-      UsagePrecision otherPrecision = (UsagePrecision) pOtherPrecision;
+    if (pOtherPrecision instanceof UsagePrecision otherPrecision) {
       wrappedOtherPrecision = (AdjustablePrecision) otherPrecision.wrappedPrecision;
       // The precision is not modified
       assert localStatistics.equals(otherPrecision.localStatistics);

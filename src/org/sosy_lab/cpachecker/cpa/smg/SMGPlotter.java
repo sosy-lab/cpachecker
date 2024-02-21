@@ -328,14 +328,20 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    String str = "value_" + pEdge.getValue().asDotId() + " -> ";
+    StringBuilder str =
+        new StringBuilder("value_").append(pEdge.getValue().asDotId()).append(" -> ");
     SMGObjectNode oi = objectIndex.get(pEdge.getObject());
     if (oi != null) {
-      str += oi.getName();
+      str.append(oi.getName());
     } else {
-      str += "\"<invalid object reference>\"";
+      str.append("\"<invalid object reference>\"");
     }
-    return str + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
+    return str.append("[label=\"+")
+        .append(pEdge.getOffset())
+        .append("b, ")
+        .append(pEdge.getTargetSpecifier())
+        .append("\"];")
+        .toString();
   }
 
   private static String smgValueAsDot(
@@ -359,7 +365,8 @@ public final class SMGPlotter {
       SMGValue v1,
       SMGValue v2,
       PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
-    String toNodeStr, toNode;
+    String toNodeStr;
+    String toNode;
     if (v2.isZero()) {
       final String newLabel = newNullLabel();
       toNode = newLabel;

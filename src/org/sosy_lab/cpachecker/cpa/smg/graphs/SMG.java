@@ -14,6 +14,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
@@ -37,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
  * A graph-based representation of memory-structures. The most important part is the bipartite
  * directed graph of {@link SMGValue}s and {@link SMGObject}s connected by {@link SMGEdge}s.
  */
-public class SMG implements UnmodifiableSMG {
+public sealed class SMG implements UnmodifiableSMG permits CLangSMG {
   private PersistentSet<SMGObject> objects;
   private PersistentSet<SMGValue> values;
   private SMGHasValueEdges hv_edges;
@@ -118,10 +119,7 @@ public class SMG implements UnmodifiableSMG {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     SMG other = (SMG) obj;
@@ -164,6 +162,7 @@ public class SMG implements UnmodifiableSMG {
     errorPredicate.removeValue(pValue);
     assert !hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).iterator().hasNext();
   }
+
   /**
    * Remove pObj from the SMG. This method does not remove any edges leading from/to the removed
    * object.
@@ -257,6 +256,7 @@ public class SMG implements UnmodifiableSMG {
     // TODO: add values check
     hv_edges = hv_edges.addEdgesForObject(pEdgesSet);
   }
+
   /**
    * Remove pEdge Has-Value edge from the SMG.
    *
@@ -487,7 +487,7 @@ public class SMG implements UnmodifiableSMG {
    *     object to NULL value
    */
   @Override
-  public TreeMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
+  public NavigableMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
 
     SMGEdgeHasValueFilter nullValueFilter =
         SMGEdgeHasValueFilter.objectFilter(pObj)
@@ -533,7 +533,7 @@ public class SMG implements UnmodifiableSMG {
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, long size) {
     long expectedMinClear = pOffset + size;
 
-    TreeMap<Long, Long> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
+    NavigableMap<Long, Long> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
     Entry<Long, Long> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }

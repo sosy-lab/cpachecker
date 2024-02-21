@@ -12,6 +12,8 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -45,6 +48,9 @@ import org.sosy_lab.java_smt.api.SolverException;
  * from such ARGs.
  */
 public final class InterpolationHelper {
+
+  private InterpolationHelper() {}
+
   /**
    * A method to check whether the ARG has the required shape. The ARG must satisfy 1) no covered
    * states exist and 2) there is a unique stop state. If there are multiple stop states and the
@@ -222,6 +228,42 @@ public final class InterpolationHelper {
       PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
       predState.setAbstraction(
           pPredAbsMgr.asAbstraction(pFixedPoint, pPfmgr.makeEmptyPathFormula()));
+    }
+  }
+
+  static void recordInterpolantStats(
+      FormulaManagerView fmgr, BooleanFormula itp, BMCStatistics stats) {
+    final int numAtoms = fmgr.extractAtoms(itp, false).size();
+    final int numVars = fmgr.extractVariableNames(itp).size();
+    final BigInteger numOps = fmgr.countBooleanOperations(itp);
+    if (stats.numOfAtomsInInterpolants == -1) {
+      stats.numOfAtomsInInterpolants = numAtoms;
+      stats.minNumOfAtomsInInterpolants = numAtoms;
+      stats.maxNumOfAtomsInInterpolants = numAtoms;
+      stats.numOfVarsInInterpolants = numVars;
+      stats.minNumOfVarsInInterpolants = numVars;
+      stats.maxNumOfVarsInInterpolants = numVars;
+      stats.numOfBoolOpsInInterpolants = numOps;
+      stats.minNumOfBoolOpsInInterpolants = numOps;
+      stats.maxNumOfBoolOpsInInterpolants = numOps;
+    } else {
+      assert stats.numOfBoolOpsInInterpolants.compareTo(BigInteger.ZERO) >= 0;
+      stats.numOfAtomsInInterpolants += numAtoms;
+      stats.minNumOfAtomsInInterpolants = Math.min(numAtoms, stats.minNumOfAtomsInInterpolants);
+      stats.maxNumOfAtomsInInterpolants = Math.max(numAtoms, stats.maxNumOfAtomsInInterpolants);
+      stats.numOfVarsInInterpolants += numVars;
+      stats.minNumOfVarsInInterpolants = Math.min(numVars, stats.minNumOfVarsInInterpolants);
+      stats.maxNumOfVarsInInterpolants = Math.max(numVars, stats.maxNumOfVarsInInterpolants);
+      stats.numOfBoolOpsInInterpolants = stats.numOfBoolOpsInInterpolants.add(numOps);
+      stats.minNumOfBoolOpsInInterpolants = stats.minNumOfBoolOpsInInterpolants.min(numOps);
+      stats.maxNumOfBoolOpsInInterpolants = stats.maxNumOfBoolOpsInInterpolants.max(numOps);
+    }
+  }
+
+  static void recordInterpolantStats(
+      FormulaManagerView fmgr, ImmutableList<BooleanFormula> itps, BMCStatistics stats) {
+    for (BooleanFormula itp : itps) {
+      recordInterpolantStats(fmgr, itp, stats);
     }
   }
 }

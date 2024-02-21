@@ -220,7 +220,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
         String initialStateName = createStateName(pCfa.getMainFunction());
         ImmutableList.Builder<AutomatonInternalState> states = ImmutableList.builder();
         Set<CFANode> invariantCFANodes = extractCFANodes(pInvariants);
-        for (CFANode node : pCfa.getAllNodes()) {
+        for (CFANode node : pCfa.nodes()) {
           if (node.getNumLeavingEdges() > 0) {
             ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
             for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {

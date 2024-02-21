@@ -96,7 +96,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -219,10 +218,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
     FluentIterable<AutomatonInternalState> cycleHeadCandidates =
         from(witness.getStates())
-            .filter(
-                (AutomatonInternalState automState) -> {
-                  return automState.isNontrivialCycleStart();
-                });
+            .filter((AutomatonInternalState automState) -> automState.isNontrivialCycleStart());
 
     if (cycleHeadCandidates.isEmpty()) {
       throw new CPAException("Invalid witness. Witness is missing cycle start state.");
@@ -243,12 +239,10 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
 
           for (AbstractState state : AbstractStates.asIterable(stemSynState.orElseThrow())) {
-            if (state instanceof AutomatonState) {
-              AutomatonState automatonState = (AutomatonState) state;
-              if (automatonState.getOwningAutomaton() == witness) {
-                quasiInvariant = automatonState.getCandidateInvariants();
-                break;
-              }
+            if ((state instanceof AutomatonState automatonState)
+                && (automatonState.getOwningAutomaton() == witness)) {
+              quasiInvariant = automatonState.getCandidateInvariants();
+              break;
             }
           }
 
@@ -341,8 +335,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
       AbstractState initialState =
@@ -408,8 +400,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
-
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
@@ -568,8 +558,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
       ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
 
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
       shutdown.shutdownIfNecessary();
@@ -663,9 +651,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             }
 
             // check that when one iteration of infinite paths ends, it ends in the recurrent set
-          } else if (compState instanceof AutomatonState) {
-            AutomatonState amState = (AutomatonState) compState;
-
+          } else if (compState instanceof AutomatonState amState) {
             if (amState.getOwningAutomaton() == pAutomatonRedetectRecurrentSet) {
               if (amState.getInternalStateName().equals(SuccessorState.FINISHED.toString())) {
                 pNegInvCheck.getPredecessor().addLeavingEdge(pNegInvCheck);
@@ -833,8 +819,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
       AbstractState initialState =
@@ -952,7 +936,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     BREAK,
     ERROR,
     STOP,
-    FINISHED;
+    FINISHED,
   }
 
   private Automaton getSpecForErrorAt(

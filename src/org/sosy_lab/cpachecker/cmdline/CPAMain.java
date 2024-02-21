@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProp
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -321,7 +322,9 @@ public class CPAMain {
    * @return A Configuration object, the output directory, and the specification properties.
    */
   private static Config createConfiguration(String[] args)
-      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException,
+      throws InvalidConfigurationException,
+          InvalidCmdlineArgumentException,
+          IOException,
           InterruptedException {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
@@ -440,18 +443,12 @@ public class CPAMain {
     for (String program : pPrograms) {
       Language language;
       String suffix = program.substring(program.lastIndexOf(".") + 1);
-      switch (suffix) {
-        case "ll":
-        case "bc":
-          language = Language.LLVM;
-          break;
-        case "c":
-        case "i":
-        case "h":
-        default:
-          language = Language.C;
-          break;
-      }
+      language =
+          switch (suffix) {
+            case "ll", "bc" -> Language.LLVM;
+            case "c", "i", "h" -> Language.C;
+            default -> Language.C;
+          };
       Preconditions.checkNotNull(language);
       if (frontendLanguage == null) { // first iteration
         frontendLanguage = language;
@@ -673,7 +670,20 @@ public class CPAMain {
       validationConfigFile = options.correctnessWitnessValidationConfig;
       appendWitnessToSpecificationOption(options, overrideOptions);
     } else {
-      WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+      WitnessType witnessType;
+      Optional<WitnessType> optionalWitnessType =
+          AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
+      if (optionalWitnessType.isPresent()) {
+        witnessType = optionalWitnessType.orElseThrow();
+      } else {
+        optionalWitnessType = AutomatonYAMLParser.getWitnessTypeIfYAML(options.witness);
+        if (optionalWitnessType.isPresent()) {
+          witnessType = optionalWitnessType.orElseThrow();
+        } else {
+          throw new InvalidConfigurationException(
+              "The Witness format found for " + options.witness + " is currently not supported.");
+        }
+      }
       switch (witnessType) {
         case VIOLATION_WITNESS:
           validationConfigFile = options.violationWitnessValidationConfig;
@@ -698,6 +708,7 @@ public class CPAMain {
                   + " is not supported");
       }
     }
+
     if (validationConfigFile == null) {
       throw new InvalidConfigurationException(
           "Validating (violation|correctness) witnesses is not supported if option"

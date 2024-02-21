@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLBinaryTerm implements ACSLTerm {
+public final class ACSLBinaryTerm implements ACSLTerm {
 
   private final ACSLTerm left;
   private final ACSLTerm right;
@@ -63,14 +63,12 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLBinaryTerm) {
-      ACSLBinaryTerm other = (ACSLBinaryTerm) o;
-      if (operator.equals(other.operator)) {
-        return (left.equals(other.left) && right.equals(other.right))
-            || (ACSLBinaryOperator.isCommutative(operator)
-                && left.equals(other.right)
-                && right.equals(other.left));
-      }
+    if (o instanceof ACSLBinaryTerm other && operator.equals(other.operator)) {
+      // Some operators are commutative.
+      return (left.equals(other.left) && right.equals(other.right))
+          || (ACSLBinaryOperator.isCommutative(operator)
+              && left.equals(other.right)
+              && right.equals(other.left));
     }
     return false;
   }
@@ -94,29 +92,16 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   public ACSLBinaryTerm flipOperator() {
     assert ACSLBinaryOperator.isComparisonOperator(operator);
-    ACSLBinaryOperator op;
-    switch (operator) {
-      case EQ:
-        op = ACSLBinaryOperator.NEQ;
-        break;
-      case NEQ:
-        op = ACSLBinaryOperator.EQ;
-        break;
-      case LEQ:
-        op = ACSLBinaryOperator.GT;
-        break;
-      case GEQ:
-        op = ACSLBinaryOperator.LT;
-        break;
-      case LT:
-        op = ACSLBinaryOperator.GEQ;
-        break;
-      case GT:
-        op = ACSLBinaryOperator.LEQ;
-        break;
-      default:
-        throw new AssertionError("Unknown BinaryOperator: " + operator);
-    }
+    ACSLBinaryOperator op =
+        switch (operator) {
+          case EQ -> ACSLBinaryOperator.NEQ;
+          case NEQ -> ACSLBinaryOperator.EQ;
+          case LEQ -> ACSLBinaryOperator.GT;
+          case GEQ -> ACSLBinaryOperator.LT;
+          case LT -> ACSLBinaryOperator.GEQ;
+          case GT -> ACSLBinaryOperator.LEQ;
+          default -> throw new AssertionError("Unknown BinaryOperator: " + operator);
+        };
     return new ACSLBinaryTerm(left, right, op);
   }
 

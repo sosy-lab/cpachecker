@@ -58,10 +58,6 @@ public final class JExpressionStatement extends AExpressionStatement implements 
       return true;
     }
 
-    if (!(obj instanceof JExpressionStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JExpressionStatement && super.equals(obj);
   }
 }

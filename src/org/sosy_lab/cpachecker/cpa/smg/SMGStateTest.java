@@ -515,6 +515,7 @@ public class SMGStateTest {
     SMGState consistentState = consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
+
   /*
    * Test that no consistency violation is reported on:
    *   - consistent state

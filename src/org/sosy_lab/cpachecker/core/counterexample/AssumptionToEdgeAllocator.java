@@ -247,7 +247,7 @@ public class AssumptionToEdgeAllocator {
 
     String functionName = edge.getPredecessor().getFunctionName();
 
-    /* function name may be null*/
+    // function name may be null
     LModelValueVisitor v = new LModelValueVisitor(functionName, pConcreteState);
     Address address = v.getAddress(dcl);
 
@@ -305,9 +305,8 @@ public class AssumptionToEdgeAllocator {
     CExpression pCExpression = pCFAEdge.getExpression();
     String functionName = pCFAEdge.getPredecessor().getFunctionName();
 
-    if (pCExpression instanceof CBinaryExpression) {
+    if (pCExpression instanceof CBinaryExpression binExp) {
 
-      CBinaryExpression binExp = ((CBinaryExpression) pCExpression);
       String result1 = handleAssumeOp(pCFAEdge, binExp.getOperand1(), functionName, pConcreteState);
       String result2 = handleAssumeOp(pCFAEdge, binExp.getOperand2(), functionName, pConcreteState);
 
@@ -340,7 +339,7 @@ public class AssumptionToEdgeAllocator {
         return "";
       } else {
         return Joiner.on(System.lineSeparator())
-            .join(Iterables.transform(assignments, a -> a.toASTString()));
+            .join(Iterables.transform(assignments, AExpressionStatement::toASTString));
       }
 
     } else {
@@ -505,9 +504,8 @@ public class AssumptionToEdgeAllocator {
   private List<AExpressionStatement> handleDeclaration(
       ASimpleDeclaration dcl, String pFunctionName, ConcreteState pConcreteState) {
 
-    if (dcl instanceof CSimpleDeclaration) {
+    if (dcl instanceof CSimpleDeclaration cDcl) {
 
-      CSimpleDeclaration cDcl = (CSimpleDeclaration) dcl;
       CType dclType = cDcl.getType();
       @Nullable Object value = getValueObject(cDcl, pFunctionName, pConcreteState);
 
@@ -543,8 +541,8 @@ public class AssumptionToEdgeAllocator {
 
     for (SubExpressionValueLiteral subValueLiteral : subValues) {
 
-      CExpression leftSide = getLeftAssumptionFromLhs(subValueLiteral.getSubExpression());
-      CExpression rightSide = subValueLiteral.getValueLiteralAsCExpression();
+      CExpression leftSide = getLeftAssumptionFromLhs(subValueLiteral.subExpression());
+      CExpression rightSide = subValueLiteral.valueLiteralAsCExpression();
       AExpressionStatement statement =
           buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       statements.add(statement);
@@ -654,17 +652,12 @@ public class AssumptionToEdgeAllocator {
 
     rValueType = rValueType.getCanonicalType();
 
-    if (rValueType instanceof CElaboratedType) {
-      CElaboratedType type = (CElaboratedType) rValueType;
+    if (rValueType instanceof CElaboratedType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CCompositeType) {
-      CCompositeType type = (CCompositeType) rValueType;
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    return false;
+    return rValueType instanceof CCompositeType type
+        && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
   }
 
   // TODO Move to Utility?
@@ -681,9 +674,7 @@ public class AssumptionToEdgeAllocator {
       fieldNameList.add(FIRST, reference.getFieldName());
     }
 
-    if (reference.getFieldOwner() instanceof CIdExpression) {
-
-      CIdExpression idExpression = (CIdExpression) reference.getFieldOwner();
+    if (reference.getFieldOwner() instanceof CIdExpression idExpression) {
       if (ForwardingTransferRelation.isGlobal(idExpression)) {
         return new FieldReference(idExpression.getName(), fieldNameList);
       } else {
@@ -779,7 +770,7 @@ public class AssumptionToEdgeAllocator {
 
       CType type = pIastFieldReference.getExpressionType().getCanonicalType();
 
-      /* The evaluation of an array or a struct is its address */
+      // The evaluation of an array or a struct is its address
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         if (address.isSymbolic()) {
           return null;
@@ -809,7 +800,7 @@ public class AssumptionToEdgeAllocator {
       return null;
     }
 
-    private @Nullable Optional<BigInteger> getFieldOffset(CFieldReference fieldReference) {
+    private Optional<BigInteger> getFieldOffset(CFieldReference fieldReference) {
       CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
       return AssumptionToEdgeAllocator.getFieldOffset(
           fieldOwnerType, fieldReference.getFieldName(), machineModel);
@@ -828,7 +819,7 @@ public class AssumptionToEdgeAllocator {
 
       CType type = pCIdExpression.getExpressionType().getCanonicalType();
 
-      /* The evaluation of an array or a struct is its address */
+      // The evaluation of an array or a struct is its address
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         if (address.isSymbolic()) {
           return lookupVariable(dcl);
@@ -908,17 +899,12 @@ public class AssumptionToEdgeAllocator {
 
       rValueType = rValueType.getCanonicalType();
 
-      if (rValueType instanceof CElaboratedType) {
-        CElaboratedType type = (CElaboratedType) rValueType;
+      if (rValueType instanceof CElaboratedType type) {
         return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
       }
 
-      if (rValueType instanceof CCompositeType) {
-        CCompositeType type = (CCompositeType) rValueType;
-        return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-      }
-
-      return false;
+      return rValueType instanceof CCompositeType type
+          && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
     private class AddressValueVisitor implements CLeftHandSideVisitor<Address, NoException> {
@@ -944,7 +930,9 @@ public class AssumptionToEdgeAllocator {
         // This works because arrays and structs evaluate to their addresses
         Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
-        if (address.isUnknown() || address.isSymbolic()) {
+        if (address.isUnknown()
+            || address.isSymbolic()
+            || !pIastArraySubscriptExpression.getExpressionType().hasKnownConstantSize()) {
           return Address.getUnknownAddress();
         }
 
@@ -957,8 +945,7 @@ public class AssumptionToEdgeAllocator {
         }
 
         final BigDecimal subscriptValue;
-        if (subscriptValueNumber instanceof Rational) {
-          Rational rational = (Rational) subscriptValueNumber;
+        if (subscriptValueNumber instanceof Rational rational) {
           subscriptValue =
               new BigDecimal(rational.getNum()).divide(new BigDecimal(rational.getDen()));
         } else {
@@ -1709,6 +1696,16 @@ public class AssumptionToEdgeAllocator {
 
       @Override
       public @Nullable Void visit(CArrayType arrayType) {
+        if (!address.isConcrete()) {
+          return null;
+        }
+        // For the bound check in handleArraySubscript() we need a statically known size,
+        // otherwise we would loop infinitely.
+        // TODO in principle we could extract the runtime size from the state?
+        if (!arrayType.hasKnownConstantSize()) {
+          return null;
+        }
+
         CType expectedType = arrayType.getType().getCanonicalType();
         int subscript = 0;
         boolean memoryHasValue = true;
@@ -1721,20 +1718,11 @@ public class AssumptionToEdgeAllocator {
 
       private boolean handleArraySubscript(
           Address pArrayAddress, int pSubscript, CType pExpectedType, CArrayType pArrayType) {
-        if (!pArrayAddress.isConcrete()) {
-          return false;
-        }
-
         BigInteger typeSize = machineModel.getSizeof(pExpectedType);
         BigInteger subscriptOffset = BigInteger.valueOf(pSubscript).multiply(typeSize);
 
-        // Check if we are already out of array bound, if we have an array length.
-        // FIXME Imprecise due to imprecise getSizeOf method
-        if (!pArrayType.isIncomplete()
-            && machineModel.getSizeof(pArrayType).compareTo(subscriptOffset) <= 0) {
-          return false;
-        }
-        if (pArrayType.getLength() == null) {
+        // Check if we are already out of array bound
+        if (machineModel.getSizeof(pArrayType).compareTo(subscriptOffset) <= 0) {
           return false;
         }
 
@@ -2005,7 +1993,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private interface ValueLiteral {
+  private sealed interface ValueLiteral {
 
     CExpression getValueLiteral();
 
@@ -2014,14 +2002,11 @@ public class AssumptionToEdgeAllocator {
     ValueLiteral addCast(CSimpleType pType);
   }
 
-  private static class UnknownValueLiteral implements ValueLiteral {
-
-    private static final UnknownValueLiteral instance = new UnknownValueLiteral();
-
-    private UnknownValueLiteral() {}
+  private enum UnknownValueLiteral implements ValueLiteral {
+    INSTANCE;
 
     public static UnknownValueLiteral getInstance() {
-      return instance;
+      return INSTANCE;
     }
 
     @Override
@@ -2045,7 +2030,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private static class ExplicitValueLiteral implements ValueLiteral {
+  private static sealed class ExplicitValueLiteral implements ValueLiteral {
 
     private final CLiteralExpression explicitValueLiteral;
 
@@ -2122,22 +2107,10 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private static final class SubExpressionValueLiteral {
+  private record SubExpressionValueLiteral(ValueLiteral valueLiteral, CLeftHandSide subExpression) {
 
-    private final ValueLiteral valueLiteral;
-    private final CLeftHandSide subExpression;
-
-    private SubExpressionValueLiteral(ValueLiteral pValueLiteral, CLeftHandSide pSubExpression) {
-      valueLiteral = pValueLiteral;
-      subExpression = pSubExpression;
-    }
-
-    public CExpression getValueLiteralAsCExpression() {
-      return valueLiteral.getValueLiteral();
-    }
-
-    public CLeftHandSide getSubExpression() {
-      return subExpression;
+    public CExpression valueLiteralAsCExpression() {
+      return valueLiteral().getValueLiteral();
     }
   }
 

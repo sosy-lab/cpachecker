@@ -196,13 +196,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener =
-      new ShutdownRequestListener() {
-
-        @Override
-        public void shutdownRequested(String pReason) {
-          invariantGenerationFuture.cancel(true);
-        }
-      };
+      pReason -> invariantGenerationFuture.cancel(true);
 
   public static KInductionInvariantGenerator create(
       final Configuration pConfig,
@@ -277,9 +271,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
 
-    if (pCandidateGenerator instanceof StaticCandidateProvider) {
-      StaticCandidateProvider staticCandidateProvider =
-          (StaticCandidateProvider) pCandidateGenerator;
+    if (pCandidateGenerator instanceof StaticCandidateProvider staticCandidateProvider) {
       stats.totalNumberOfCandidates =
           FluentIterable.from(staticCandidateProvider.getAllCandidates())
               .filter(Predicates.not(Predicates.instanceOf(TargetLocationCandidateInvariant.class)))
@@ -540,10 +532,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
             @Override
             public void remove() {
-              if (candidate instanceof ExpressionTreeLocationInvariant) {
-                ExpressionTreeLocationInvariant expressionTreeLocationInvariant =
-                    (ExpressionTreeLocationInvariant) candidate;
-
+              if (candidate
+                  instanceof ExpressionTreeLocationInvariant expressionTreeLocationInvariant) {
                 // Remove the location from the group
                 String groupId = expressionTreeLocationInvariant.getGroupId();
                 Collection<CFANode> remainingLocations = candidateGroupLocations.get(groupId);
@@ -952,15 +942,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         }
         return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
       }
-    };
+    }
   }
 
   private static Iterable<CandidateInvariant> asNegatedCandidateInvariants(
       Iterable<AssumeEdge> pAssumeEdges, Set<CFANode> pLoopHeads) {
     return FluentIterable.from(pAssumeEdges)
         .transformAndConcat(
-            e -> {
-              return FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e));
-            });
+            e -> FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e)));
   }
 }

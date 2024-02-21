@@ -79,12 +79,8 @@ public final class JVariableRunTimeType extends AbstractExpression
       return true;
     }
 
-    if (!(obj instanceof JVariableRunTimeType) || !super.equals(obj)) {
-      return false;
-    }
-
-    JVariableRunTimeType other = (JVariableRunTimeType) obj;
-
-    return Objects.equals(other.referencedVariable, referencedVariable);
+    return obj instanceof JVariableRunTimeType other
+        && super.equals(obj)
+        && Objects.equals(other.referencedVariable, referencedVariable);
   }
 }

@@ -60,15 +60,11 @@ public class ProgramCounterState
   }
 
   @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (pO instanceof ProgramCounterState) {
-      ProgramCounterState other = (ProgramCounterState) pO;
-      return Objects.equals(values, other.values);
-    }
-    return false;
+    return pOther instanceof ProgramCounterState other && values == other.values;
   }
 
   @Override

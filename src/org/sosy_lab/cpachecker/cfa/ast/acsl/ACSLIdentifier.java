@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLIdentifier implements ACSLTerm {
+public final class ACSLIdentifier implements ACSLTerm {
 
   private final String name;
   private final String functionName;
@@ -25,11 +25,9 @@ public class ACSLIdentifier implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLIdentifier) {
-      ACSLIdentifier other = (ACSLIdentifier) o;
-      return name.equals(other.name) && functionName.equals(other.functionName);
-    }
-    return false;
+    return o instanceof ACSLIdentifier other
+        && name.equals(other.name)
+        && functionName.equals(other.functionName);
   }
 
   @Override

@@ -368,9 +368,8 @@ public class RankingRelationBuilder {
 
     } else {
       Term term = pRankVar.getTerm();
-      if (term instanceof ApplicationTerm
+      if (term instanceof ApplicationTerm uf
           && !((ApplicationTerm) term).getFunction().isInterpreted()) {
-        ApplicationTerm uf = ((ApplicationTerm) term);
         assert uf.getFunction().getParameterSorts().length == 1 : uf;
         assert uf.getFunction().getName().startsWith("*"); // dereference
 

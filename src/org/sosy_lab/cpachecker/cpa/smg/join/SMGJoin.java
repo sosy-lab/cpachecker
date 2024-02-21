@@ -134,7 +134,7 @@ public final class SMGJoin {
         }
       }
 
-      /* Don't forget to join the return object */
+      // Don't forget to join the return object
       if (frameInSMG1.getReturnObject() != null) {
         SMGObject returnObjectInSmg1 = frameInSMG1.getReturnObject();
         SMGObject returnObjectInSmg2 = frameInSMG2.getReturnObject();

@@ -36,11 +36,7 @@ public class InputState implements AbstractState {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof InputState) {
-      InputState other = (InputState) pOther;
-      return inputs.equals(other.inputs);
-    }
-    return false;
+    return pOther instanceof InputState other && inputs.equals(other.inputs);
   }
 
   @Override

@@ -91,11 +91,8 @@ class SourceLocationMatcher {
       if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof LineMatcher)) {
-        return false;
-      }
-      LineMatcher other = (LineMatcher) pObj;
-      return origin == other.origin
+      return pObj instanceof LineMatcher other
+          && origin == other.origin
           && startLineNumber == other.startLineNumber
           && endLineNumber == other.endLineNumber
           && Objects.equals(getOriginFileName(), other.getOriginFileName());
@@ -148,11 +145,8 @@ class SourceLocationMatcher {
       if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof OffsetMatcher)) {
-        return false;
-      }
-      OffsetMatcher other = (OffsetMatcher) pObj;
-      return Objects.equals(getOriginFileName(), other.getOriginFileName())
+      return pObj instanceof OffsetMatcher other
+          && Objects.equals(getOriginFileName(), other.getOriginFileName())
           && startOffset == other.startOffset
           && endOffset == other.endOffset;
     }

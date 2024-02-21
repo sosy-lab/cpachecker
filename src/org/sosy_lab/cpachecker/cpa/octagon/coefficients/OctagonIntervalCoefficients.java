@@ -368,13 +368,9 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
       return true;
     }
 
-    if (!(other instanceof OctagonIntervalCoefficients) || !super.equals(other)) {
-      return false;
-    }
-
-    OctagonIntervalCoefficients octCoefficients = (OctagonIntervalCoefficients) other;
-
-    return Arrays.equals(coefficients, octCoefficients.coefficients)
+    return other instanceof OctagonIntervalCoefficients octCoefficients
+        && super.equals(other)
+        && Arrays.equals(coefficients, octCoefficients.coefficients)
         && size == octCoefficients.size;
   }
 
@@ -383,12 +379,13 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
     StringBuilder builder = new StringBuilder();
 
     for (int i = 0; i < coefficients.length; i++) {
-      String a, b;
+      String a;
       if (coefficients[i].getLow().isInfinite()) {
         a = "INFINITY";
       } else {
         a = coefficients[i].getLow().toString();
       }
+      String b;
       if (coefficients[i].getHigh().isInfinite()) {
         b = "INFINITY";
       } else {

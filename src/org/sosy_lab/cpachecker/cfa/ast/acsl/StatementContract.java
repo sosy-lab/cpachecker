@@ -13,7 +13,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
-public class StatementContract implements ACSLAnnotation {
+public final class StatementContract implements ACSLAnnotation {
 
   private final RequiresClause requiresClause;
   private final EnsuresClause ensuresClause;
@@ -133,7 +133,7 @@ public class StatementContract implements ACSLAnnotation {
     if (!enclosingBehaviors.isEmpty()) {
       builder.append("for ");
       Joiner.on(", ")
-          .appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
+          .appendTo(builder, enclosingBehaviors.stream().map(Behavior::getName).iterator());
       builder.append(":\n");
     }
     builder.append(requiresClause.toString()).append('\n').append(ensuresClause.toString());
@@ -178,14 +178,11 @@ public class StatementContract implements ACSLAnnotation {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof StatementContract) {
-      StatementContract other = (StatementContract) obj;
-      return requiresClause.equals(other.requiresClause)
-          && ensuresClause.equals(other.ensuresClause)
-          && enclosingBehaviors.equals(other.enclosingBehaviors)
-          && ownBehaviors.equals(other.ownBehaviors)
-          && completenessClauses.equals(other.completenessClauses);
-    }
-    return false;
+    return obj instanceof StatementContract other
+        && requiresClause.equals(other.requiresClause)
+        && ensuresClause.equals(other.ensuresClause)
+        && enclosingBehaviors.equals(other.enclosingBehaviors)
+        && ownBehaviors.equals(other.ownBehaviors)
+        && completenessClauses.equals(other.completenessClauses);
   }
 }

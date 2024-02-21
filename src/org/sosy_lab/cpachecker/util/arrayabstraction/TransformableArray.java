@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -62,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -215,13 +216,10 @@ final class TransformableArray {
   }
 
   private static ImmutableSet<CDeclarationEdge> findArrayDeclarationEdges(CFA pCfa) {
-
-    return pCfa.getAllNodes().stream()
-        .flatMap(node -> CFAUtils.allLeavingEdges(node).stream())
-        .filter(edge -> edge instanceof CDeclarationEdge)
-        .map(edge -> (CDeclarationEdge) edge)
+    return FluentIterable.from(pCfa.edges())
+        .filter(CDeclarationEdge.class)
         .filter(TransformableArray::isArrayDeclarationEdge)
-        .collect(ImmutableSet.toImmutableSet());
+        .toSet();
   }
 
   private static boolean isRelevantArrayAccessOfArray(
@@ -234,9 +232,7 @@ final class TransformableArray {
       CSimpleDeclaration arrayExpressDeclaration =
           ((CIdExpression) arrayExpression).getDeclaration();
       if (arrayExpressDeclaration.equals(pArrayDeclaration)) {
-        if (subscriptExpression instanceof CIntegerLiteralExpression) {
-          CIntegerLiteralExpression integerExpression =
-              (CIntegerLiteralExpression) subscriptExpression;
+        if (subscriptExpression instanceof CIntegerLiteralExpression integerExpression) {
           // we don't consider arrays as relevant if they are only accessed at index 0
           // (these accesses could come from pointers that point to a single element)
           return !integerExpression.getValue().equals(BigInteger.ZERO);
@@ -255,34 +251,32 @@ final class TransformableArray {
         new LinkedHashSet<>(findArrayDeclarationEdges(pCfa));
     Set<CDeclarationEdge> relevantArrayDeclarationEdges = new LinkedHashSet<>();
 
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
 
-        Iterator<CDeclarationEdge> iterator = unproblematicArrayDeclarationEdges.iterator();
-        while (iterator.hasNext()) {
+      Iterator<CDeclarationEdge> iterator = unproblematicArrayDeclarationEdges.iterator();
+      while (iterator.hasNext()) {
 
-          CDeclarationEdge arrayDeclarationEdge = iterator.next();
-          CDeclaration declaration = arrayDeclarationEdge.getDeclaration();
+        CDeclarationEdge arrayDeclarationEdge = iterator.next();
+        CDeclaration declaration = arrayDeclarationEdge.getDeclaration();
 
-          // we skip the array declaration edge itself (it would otherwise be a problematic usage)
-          if (arrayDeclarationEdge.equals(edge)) {
-            continue;
-          }
+        // we skip the array declaration edge itself (it would otherwise be a problematic usage)
+        if (arrayDeclarationEdge.equals(edge)) {
+          continue;
+        }
 
-          if (ProblematicArrayUsageFinder.containsProblematicUsage(
-              edge, arrayDeclarationEdge.getDeclaration())) {
-            iterator.remove();
-          }
+        if (ProblematicArrayUsageFinder.containsProblematicUsage(
+            edge, arrayDeclarationEdge.getDeclaration())) {
+          iterator.remove();
+        }
 
-          // is array declaration already relevant?
-          if (relevantArrayDeclarationEdges.contains(arrayDeclarationEdge)) {
-            continue;
-          }
+        // is array declaration already relevant?
+        if (relevantArrayDeclarationEdges.contains(arrayDeclarationEdge)) {
+          continue;
+        }
 
-          for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
-            if (isRelevantArrayAccessOfArray(arrayAccess, declaration)) {
-              relevantArrayDeclarationEdges.add(arrayDeclarationEdge);
-            }
+        for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+          if (isRelevantArrayAccessOfArray(arrayAccess, declaration)) {
+            relevantArrayDeclarationEdges.add(arrayDeclarationEdge);
           }
         }
       }
@@ -306,12 +300,8 @@ final class TransformableArray {
       return true;
     }
 
-    if (!(pObject instanceof TransformableArray)) {
-      return false;
-    }
-
-    TransformableArray other = (TransformableArray) pObject;
-    return arrayDeclarationEdge.equals(other.arrayDeclarationEdge);
+    return pObject instanceof TransformableArray other
+        && arrayDeclarationEdge.equals(other.arrayDeclarationEdge);
   }
 
   @Override

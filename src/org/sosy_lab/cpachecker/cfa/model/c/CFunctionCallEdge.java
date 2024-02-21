@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
-public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
+public final class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -3203684033841624723L;
 
@@ -39,12 +39,12 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
   @Override
   public CFunctionSummaryEdge getSummaryEdge() {
-    return (CFunctionSummaryEdge) summaryEdge;
+    return (CFunctionSummaryEdge) super.getSummaryEdge();
   }
 
   @Override
   public CFunctionCall getFunctionCall() {
-    return (CFunctionCall) functionCall;
+    return (CFunctionCall) super.getFunctionCall();
   }
 
   @Override
@@ -59,7 +59,7 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
   @Override
   public String getCode() {
-    return functionCall.getFunctionCallExpression().toASTString();
+    return getFunctionCall().getFunctionCallExpression().toASTString();
   }
 
   @Override

@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -27,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -183,7 +183,7 @@ public class BDDVectorCExpressionVisitor
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).isUnsigned();
+      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
     }
 
     switch (op) {
@@ -228,7 +228,7 @@ public class BDDVectorCExpressionVisitor
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).isUnsigned();
+      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
     }
 
     switch (op) {
@@ -307,13 +307,8 @@ public class BDDVectorCExpressionVisitor
 
   @Override
   public Region[] visit(CIdExpression idExp) {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
-      if (enumerator.hasValue()) {
-        return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
-      } else {
-        return null;
-      }
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
+      return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
     }
 
     return predMgr.createPredicate(

@@ -77,17 +77,13 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
             // if we already know the value, we should use it.
             // TODO why does the visitor above create the symbolic value in the first place?
-            if (leftSideVal instanceof SMGKnownSymbolicValue) {
-              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) leftSideVal;
-              if (newState.isExplicit(expValue)) {
-                leftSideVal = newState.getExplicit(expValue);
-              }
+            if ((leftSideVal instanceof SMGKnownSymbolicValue expValue)
+                && newState.isExplicit(expValue)) {
+              leftSideVal = newState.getExplicit(expValue);
             }
-            if (rightSideVal instanceof SMGKnownSymbolicValue) {
-              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) rightSideVal;
-              if (newState.isExplicit(expValue)) {
-                rightSideVal = newState.getExplicit(expValue);
-              }
+            if ((rightSideVal instanceof SMGKnownSymbolicValue expValue)
+                && newState.isExplicit(expValue)) {
+              rightSideVal = newState.getExplicit(expValue);
             }
 
             for (SMGValueAndState resultValueAndState :

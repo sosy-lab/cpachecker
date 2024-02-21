@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options(prefix = "pcc")
 public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -73,7 +72,6 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
     configBuilder.copyOptionFrom(valConfig, "pcc.strategy");
 
     valCPA = instantiateCPA(pCfa, pSpecification);
-    GlobalInfo.getInstance().setUpInfoFromCPA(valCPA);
 
     checkingAlgorithm =
         new ProofCheckAlgorithm(

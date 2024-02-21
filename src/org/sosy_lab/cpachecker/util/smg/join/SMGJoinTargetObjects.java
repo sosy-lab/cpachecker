@@ -209,7 +209,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
       return true;
     }
     // step 5
-    if (!targetObject1.getClass().equals(targetObject2.getClass())
+    if (targetObject1.getClass() != targetObject2.getClass()
         && mapping1
             .getMappedObject(targetObject1)
             .equals(mapping2.getMappedObject(targetObject1))) {

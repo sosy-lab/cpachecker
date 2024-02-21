@@ -15,4 +15,5 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
  * inside another type declaration). This excludes for examples methods parameter declarations. It
  * includes variables, as well as methods.
  */
-public interface JDeclaration extends ADeclaration, JSimpleDeclaration {}
+public sealed interface JDeclaration extends ADeclaration, JSimpleDeclaration
+    permits JMethodDeclaration, JVariableDeclaration {}

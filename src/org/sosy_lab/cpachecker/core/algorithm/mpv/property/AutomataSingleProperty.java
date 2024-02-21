@@ -52,22 +52,16 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
       for (Precision wrappedPrecision : ((WrapperPrecision) precision).getWrappedPrecisions()) {
         builder.addAll(getAutomatonPrecision(wrappedPrecision));
       }
-    } else if (precision instanceof AutomatonPrecision) {
-      AutomatonPrecision automatonPrecision = (AutomatonPrecision) precision;
-      if (automata.contains(automatonPrecision.getAutomaton())) {
-        builder.add(automatonPrecision);
-      }
+    } else if ((precision instanceof AutomatonPrecision automatonPrecision)
+        && automata.contains(automatonPrecision.getAutomaton())) {
+      builder.add(automatonPrecision);
     }
     return builder.build();
   }
 
   @Override
   public boolean isTarget(AutomatonState pState) {
-    if (automata.contains(pState.getOwningAutomaton())) {
-      return true;
-    } else {
-      return false;
-    }
+    return automata.contains(pState.getOwningAutomaton());
   }
 
   @Override

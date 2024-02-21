@@ -92,7 +92,7 @@ public class AppliedCustomInstructionParser {
     cfa = pCfa;
 
     ImmutableMap.Builder<Integer, CFANode> nodeNumberToNode0 = ImmutableMap.builder();
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.nodes()) {
       nodeNumberToNode0.put(node.getNodeNumber(), node);
     }
     numberToCFANode = nodeNumberToNode0.buildOrThrow();
@@ -305,10 +305,7 @@ public class AppliedCustomInstructionParser {
                     + leavingEdge.getSuccessor().getFunctionName()
                     + " is not side effect free, uses global variables");
           }
-          nextPair =
-              Pair.of(
-                  ((CFunctionCallEdge) leavingEdge).getSummaryEdge().getSuccessor(),
-                  succOutputVars);
+          nextPair = Pair.of(((CFunctionCallEdge) leavingEdge).getReturnNode(), succOutputVars);
         } else {
           nextPair = Pair.of(leavingEdge.getSuccessor(), succOutputVars);
         }
@@ -423,7 +420,7 @@ public class AppliedCustomInstructionParser {
           ImmutableSet.of(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
 
     } else if (pLeavingEdge instanceof CFunctionCallEdge) {
-      CFunctionCall funCall = ((CFunctionCallEdge) pLeavingEdge).getSummaryEdge().getExpression();
+      CFunctionCall funCall = ((CFunctionCallEdge) pLeavingEdge).getFunctionCall();
       if (funCall instanceof CFunctionCallAssignmentStatement) {
         edgeOutputVariables =
             getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) funCall);
@@ -450,13 +447,12 @@ public class AppliedCustomInstructionParser {
       final Set<FunctionEntryNode> noGlobalVarUse, final FunctionEntryNode function) {
     Deque<CFANode> toVisit = new ArrayDeque<>();
     Collection<CFANode> visited = new HashSet<>();
-    CFANode visit, successor;
 
     toVisit.push(function);
     visited.add(function);
 
     while (!toVisit.isEmpty()) {
-      visit = toVisit.pop();
+      CFANode visit = toVisit.pop();
 
       if (visit instanceof FunctionExitNode) {
         continue;
@@ -471,7 +467,7 @@ public class AppliedCustomInstructionParser {
           return false;
         }
 
-        successor = leave.getSuccessor();
+        CFANode successor = leave.getSuccessor();
         if (visited.add(successor)) {
           toVisit.push(successor);
         }

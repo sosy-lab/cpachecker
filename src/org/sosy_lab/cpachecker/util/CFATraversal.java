@@ -84,7 +84,8 @@ public class CFATraversal {
 
   /**
    * Returns a default instance of this class, which iterates forward through the CFA, visiting all
-   * nodes and edges in a DFS-like strategy.
+   * nodes in a DFS-like strategy. For every visited node, all outgoing edges are visited
+   * immediately. Hence, edges are not visited in a DFS-like strategy.
    */
   public static CFATraversal dfs() {
     return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.alwaysFalse());

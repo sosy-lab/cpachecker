@@ -55,12 +55,7 @@ public final class DummyTargetState implements AbstractState, Targetable, Partit
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof DummyTargetState)) {
-      return false;
-    }
-
-    DummyTargetState other = (DummyTargetState) obj;
-    return properties.equals(other.properties);
+    return obj instanceof DummyTargetState other && properties.equals(other.properties);
   }
 
   @Override

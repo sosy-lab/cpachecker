@@ -89,13 +89,10 @@ final class CompositeField implements Comparable<CompositeField>, Serializable {
   public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
-    } else if (!(obj instanceof CompositeField)) {
-      return false;
-    } else {
-      CompositeField other = (CompositeField) obj;
-      return compositeTypeStr.equals(other.compositeTypeStr)
-          && getFieldName().equals(other.getFieldName());
     }
+    return obj instanceof CompositeField other
+        && compositeTypeStr.equals(other.compositeTypeStr)
+        && getFieldName().equals(other.getFieldName());
   }
 
   @Override

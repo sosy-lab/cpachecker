@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 
 /** Interface for all statements that contain function calls. */
-public interface CFunctionCall extends AFunctionCall, CStatement {
+public sealed interface CFunctionCall extends AFunctionCall, CStatement
+    permits CFunctionCallAssignmentStatement, CFunctionCallStatement {
 
   @Override
   CFunctionCallExpression getFunctionCallExpression();

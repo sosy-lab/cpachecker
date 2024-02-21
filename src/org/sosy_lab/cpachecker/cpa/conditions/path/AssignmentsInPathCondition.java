@@ -97,7 +97,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public String getName() {
-    return this.getClass().getSimpleName();
+    return getClass().getSimpleName();
   }
 
   @Override

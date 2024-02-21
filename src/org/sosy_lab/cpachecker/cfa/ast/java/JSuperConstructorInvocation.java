@@ -58,10 +58,6 @@ public final class JSuperConstructorInvocation extends JClassInstanceCreation {
       return true;
     }
 
-    if (!(obj instanceof JSuperConstructorInvocation)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JSuperConstructorInvocation && super.equals(obj);
   }
 }

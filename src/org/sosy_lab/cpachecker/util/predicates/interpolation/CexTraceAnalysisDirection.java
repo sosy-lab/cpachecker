@@ -112,7 +112,7 @@ enum CexTraceAnalysisDirection {
       ListMultimap<Integer, Integer> loopLevelsToIndexMap =
           MultimapBuilder.treeKeys().arrayListValues().build();
       createLoopDrivenStateOrdering(
-          abstractionStates, loopLevelsToIndexMap, new ArrayDeque<CFANode>(), pLoopStructure);
+          abstractionStates, loopLevelsToIndexMap, new ArrayDeque<>(), pLoopStructure);
 
       return ImmutableIntArray.copyOf(loopLevelsToIndexMap.values());
     }
@@ -202,7 +202,7 @@ enum CexTraceAnalysisDirection {
       ListMultimap<Integer, Integer> loopLevelsToIndexMap =
           MultimapBuilder.treeKeys().arrayListValues().build();
       createLoopDrivenStateOrdering(
-          abstractionStates, loopLevelsToIndexMap, new ArrayDeque<CFANode>(), pLoopStructure);
+          abstractionStates, loopLevelsToIndexMap, new ArrayDeque<>(), pLoopStructure);
 
       ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
       for (List<Integer> indices : Multimaps.asMap(loopLevelsToIndexMap).values()) {

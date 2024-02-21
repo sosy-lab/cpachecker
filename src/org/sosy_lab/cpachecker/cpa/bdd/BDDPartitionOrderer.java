@@ -91,8 +91,7 @@ public class BDDPartitionOrderer {
     // edges, that are reachable from both branches, are independent from the assumption
     SetView<CFAEdge> distinctEdges = Sets.symmetricDifference(reachable1, reachable2);
     for (CFAEdge edge : distinctEdges) {
-      if (edge instanceof FunctionCallEdge) {
-        final FunctionCallEdge funcCall = (FunctionCallEdge) edge;
+      if (edge instanceof FunctionCallEdge funcCall) {
         for (int i = 0; i < funcCall.getArguments().size(); i++) {
           final Partition part = varClass.getPartitionForParameterOfEdge(funcCall, i);
           if (part != null) {

@@ -27,6 +27,7 @@ class CProgramCounterValueAssignmentEdge extends CStatementEdge
     implements ProgramCounterValueAssignmentEdge {
 
   private static final long serialVersionUID = 3343680508515226739L;
+
   /** The program counter value. */
   private int pcValue;
 

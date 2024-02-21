@@ -42,11 +42,9 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof CompoundBitVectorIntervalManager) {
-      CompoundBitVectorIntervalManager other = (CompoundBitVectorIntervalManager) pOther;
-      return allowSignedWrapAround == other.allowSignedWrapAround && info.equals(other.info);
-    }
-    return false;
+    return pOther instanceof CompoundBitVectorIntervalManager other
+        && allowSignedWrapAround == other.allowSignedWrapAround
+        && info.equals(other.info);
   }
 
   @Override
