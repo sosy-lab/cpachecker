@@ -64,7 +64,7 @@ public abstract class CFloatUnitTest {
   }
 
   protected boolean isInTestClass(Float... pValues) {
-    return Arrays.stream(pValues).map(this::isInClass).reduce(Boolean::logicalAnd).get();
+    return Arrays.stream(pValues).map(this::isInClass).reduce(Boolean::logicalAnd).orElseThrow();
   }
 
   // Convert floating point value to its decimal representation
