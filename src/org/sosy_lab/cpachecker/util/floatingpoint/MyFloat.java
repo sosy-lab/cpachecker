@@ -22,8 +22,8 @@ public class MyFloat {
 
   // Defines the width of the significand and the exponent range
   public static class Format {
-    private final int expBits;
-    private final int sigBits;
+    private final Integer expBits;
+    private final Integer sigBits;
 
     public Format(int pExpBits, int pSigBits) {
       expBits = pExpBits;
@@ -38,10 +38,9 @@ public class MyFloat {
       if (this == other) {
         return true;
       }
-      if (other instanceof Format that) {
-        return this.expBits == that.expBits && this.sigBits == that.sigBits;
-      }
-      return false;
+      return other instanceof Format that
+          && expBits.equals(that.expBits)
+          && sigBits.equals(that.sigBits);
     }
 
     @Override
