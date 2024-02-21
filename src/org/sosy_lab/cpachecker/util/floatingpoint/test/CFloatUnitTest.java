@@ -32,6 +32,7 @@ public abstract class CFloatUnitTest {
   protected int floatType = CFloatNativeAPI.FP_TYPE_SINGLE; // TODO: Add other float types
 
   public enum Filter {
+    ZERO,
     NORMAL,
     SUBNORMAL,
     REGULAR, // Normal + Subnormal
@@ -52,9 +53,10 @@ public abstract class CFloatUnitTest {
 
   private boolean isInClass(Float pFloat) {
     return switch (testClass) {
-      case NORMAL -> Float.isFinite(pFloat) && (Float.MIN_NORMAL <= pFloat || pFloat == 0.0f);
+      case ZERO -> pFloat == 0.0f;
+      case NORMAL -> Float.isFinite(pFloat) && (Float.MIN_NORMAL <= pFloat);
       case SUBNORMAL -> Float.isFinite(pFloat) && (Float.MIN_NORMAL > pFloat && pFloat != 0.0f);
-      case REGULAR -> Float.isFinite(pFloat) && !Float.isNaN(pFloat);
+      case REGULAR -> Float.isFinite(pFloat);
       case INFINITIES -> Float.isInfinite(pFloat);
       case EXTENDED -> !Float.isNaN(pFloat);
       case NAN -> Float.isNaN(pFloat);
