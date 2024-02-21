@@ -30,8 +30,8 @@ public class MyFloat {
       sigBits = pSigBits;
     }
 
-    static Format FLOAT = new Format(8, 23);
-    static Format DOUBLE = new Format(11, 52);
+    public static Format FLOAT = new Format(8, 23);
+    public static Format DOUBLE = new Format(11, 52);
 
     @Override
     public boolean equals(Object other) {
