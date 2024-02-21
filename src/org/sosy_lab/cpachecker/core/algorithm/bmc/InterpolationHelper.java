@@ -235,7 +235,6 @@ public final class InterpolationHelper {
       FormulaManagerView fmgr, BooleanFormula itp, BMCStatistics stats) {
     final int numAtoms = fmgr.extractAtoms(itp, false).size();
     final int numVars = fmgr.extractVariableNames(itp).size();
-    final BigInteger numOps = fmgr.countBooleanOperations(itp);
     if (stats.numOfAtomsInInterpolants == -1) {
       stats.numOfAtomsInInterpolants = numAtoms;
       stats.minNumOfAtomsInInterpolants = numAtoms;
