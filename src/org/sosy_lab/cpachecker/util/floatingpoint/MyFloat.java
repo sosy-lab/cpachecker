@@ -173,7 +173,7 @@ public class MyFloat {
       return MyFloat.nan(format);
     }
     // (3) Only one argument is infinite
-    if (n.isInfinite()) { // No need to check m as it can't be larger and one is finite
+    if (n.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
       return n;
     }
     // (4) Both arguments are zero (or negative zero)
@@ -236,6 +236,7 @@ public class MyFloat {
       significand_ = significand_.shiftRight(1);
       exponent_ += 1;
     }
+
     // (2) Significand is too small: shift left unless the number is subnormal
     //     This can happen if digits have canceled out:
     //     f.ex 1.01001e2 + (-1.01e2) = 0.00001e2
@@ -279,7 +280,119 @@ public class MyFloat {
   }
 
   public MyFloat multiply(MyFloat number) {
-    throw new UnsupportedOperationException();
+    // Make sure the first argument has the larger (or equal) exponent
+    MyFloat n = number;
+    MyFloat m = this;
+    if (value.exponent >= number.value.exponent) {
+      n = this;
+      m = number;
+    }
+
+    // Handle special cases:
+    // (1) Either argument is NaN
+    if (n.isNan() || m.isNan()) {
+      return MyFloat.nan(format);
+    }
+    // (2) One of the argument is infinite
+    if (n.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
+      if (m.isZero()) {
+        // Return NaN if we're trying to multiply infinity by zero
+        return MyFloat.nan(format);
+      }
+      return (n.isNegative() ^ m.isNegative())
+          ? MyFloat.negativeInfinity(format)
+          : MyFloat.infinity(format);
+    }
+    // (3) One of the arguments is zero (or negative zero)
+    if (n.isZero() || m.isZero()) {
+      return (n.isNegative() ^ m.isNegative())
+          ? MyFloat.negativeZero(format)
+          : MyFloat.zero(format);
+    }
+
+    // Handle regular numbers in multiplyImpl
+    return n.multiplyImpl(m);
+  }
+
+  public MyFloat multiplyImpl(MyFloat number) {
+    // Calculate the sign of the result
+    boolean sign_ = value.sign ^ number.value.sign;
+
+    // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
+    // needs to be increased by one.
+    long exponent1 = Math.max(value.exponent, format.minExp());
+    long exponent2 = Math.max(number.value.exponent, format.minExp());
+
+    BigInteger significand1 = value.significand;
+    BigInteger significand2 = number.value.significand;
+
+    // Calculate the sum of the exponents. If the exponent gets too large we can skip the
+    // calculation and return infinity immediately.
+    long exponent_ = exponent1 + exponent2;
+    if (exponent_ > format.maxExp()) {
+      return sign_ ? negativeInfinity(format) : infinity(format);
+    }
+
+    // Multiply the significands
+    BigInteger result = value.significand.multiply(number.value.significand);
+
+    // Add guard, round and sticky bits
+    BigInteger significand_ = result.shiftLeft(3);
+
+    // Normalize
+    // (1) Significand is too large: shift to the right by one bit
+    //     This can happen if two numbers with significand greater 1 are multiplied:
+    //     f.ex 1.1e3 x 1.1e1 = 10.01e4
+    //     (here we normalize the result to 1.001e5)
+    if (significand_.testBit(2 * format.sigBits + 4)) {
+      significand_ = significand_.shiftRight(1);
+      exponent_ += 1;
+    }
+
+    // (2) Significand is too small: shift left unless the number is subnormal
+    //     This can happen if one of the numbers was subnormal:
+    //     f.ex 1.0e3 x 0.1e-1 = 0.10e2
+    //     (here we normalize to 1.0e1)
+    String bits = significand_.toString(2);
+    int shift = (2 * format.sigBits + 4) - bits.length();
+    if (shift > 0) {
+      significand_ = significand_.shiftLeft(shift);
+      exponent_ -= shift;
+    }
+
+    // Return zero if the exponent of the normalized result is even below the subnormal range
+    if (exponent_ < format.minExp() - (format.sigBits + 1)) {
+      return sign_ ? negativeZero(format) : zero(format);
+    }
+
+    // Otherwise use the lowest possible exponent and move the rest into the significand by shifting
+    // it to the right. Here we calculate haw many digits we need to shift:
+    int leading = 0;
+    if (exponent_ < format.minExp()) {
+      leading = (int) Math.abs(format.minExp() - exponent_);
+      exponent_ = format.minExp() - 1;
+    }
+
+    // Truncate the number while carrying over the grs bits.
+    // The significand now has length 2*|precision of the significand| + 3 where 3 are the grs bits
+    // at the end. We need to shift by at least |precision of the significand| bits. If one of the
+    // factors was subnormal the results may have leading zeroes as well, and we need to shift
+    // further by 'leading' bits.
+    for (int i = 0; i < format.sigBits + leading; i++) {
+      BigInteger carry = significand_.and(BigInteger.ONE);
+      significand_ = significand_.shiftRight(1);
+      significand_ = significand_.or(carry);
+    }
+
+    // Round the result according to the grs bits
+    long grs = significand_.and(new BigInteger("111", 2)).longValue();
+    significand_ = significand_.shiftRight(3);
+    if (grs == 4 && significand_.testBit(0) || grs > 4) {
+      significand_ = significand_.add(BigInteger.ONE);
+    }
+
+    // And return the number...
+    return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
   }
 
   public MyFloat divide(MyFloat number) {

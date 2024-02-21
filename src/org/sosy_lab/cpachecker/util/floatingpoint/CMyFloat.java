@@ -77,6 +77,9 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat multiply(CFloat pFactor) {
+    if (pFactor instanceof CMyFloat myFactor) {
+      return new CMyFloat(delegate.multiply(myFactor.delegate));
+    }
     throw new UnsupportedOperationException();
   }
 
@@ -87,8 +90,8 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat subtract(CFloat pSubtrahend) {
-    if (pSubtrahend instanceof CMyFloat mySummand) {
-      return new CMyFloat(delegate.subtract(mySummand.delegate));
+    if (pSubtrahend instanceof CMyFloat mySubtrahend) {
+      return new CMyFloat(delegate.subtract(mySubtrahend.delegate));
     }
     throw new UnsupportedOperationException();
   }
