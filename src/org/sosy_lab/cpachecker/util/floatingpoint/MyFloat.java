@@ -141,6 +141,13 @@ public class MyFloat {
     return value.sign;
   }
 
+  public MyFloat negate() {
+    if (isNan()) {
+      return MyFloat.nan(format);
+    }
+    return new MyFloat(format, new FpValue(!value.sign, value.exponent, value.significand));
+  }
+
   public MyFloat add(MyFloat number) {
     // Make sure the first argument has the larger (or equal) exponent
     MyFloat n = number;
@@ -263,7 +270,12 @@ public class MyFloat {
   }
 
   public MyFloat subtract(MyFloat number) {
-    throw new UnsupportedOperationException();
+    // We need to override the special case "0 - 0"
+    if (this.isZero() && number.isZero()) {
+      return MyFloat.zero(format);
+    }
+    // Everything else is just as for addition
+    return add(number.negate());
   }
 
   public MyFloat multiply(MyFloat number) {
