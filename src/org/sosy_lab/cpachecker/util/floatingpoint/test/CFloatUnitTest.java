@@ -58,7 +58,7 @@ public abstract class CFloatUnitTest {
       case INFINITIES -> Float.isInfinite(pFloat);
       case EXTENDED -> !Float.isNaN(pFloat);
       case NAN -> Float.isNaN(pFloat);
-      case FINITE -> Float.isFinite(pFloat);
+      case FINITE -> Float.isFinite(pFloat) || Float.isNaN(pFloat);
       case ALL -> true;
     };
   }
