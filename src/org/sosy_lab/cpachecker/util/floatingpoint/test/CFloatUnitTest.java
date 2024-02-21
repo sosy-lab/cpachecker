@@ -156,11 +156,11 @@ public abstract class CFloatUnitTest {
   }
 
   private String printTestHeader(String name, Float arg) {
-    return String.format("\n\nTestcase %s(%s): ", name, printValue(arg));
+    return String.format("%n%nTestcase %s(%s): ", name, printValue(arg));
   }
 
   private String printTestHeader(String name, Float arg1, Float arg2) {
-    return String.format("\n\nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
+    return String.format("%n%nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
   protected void testOperator(String name, UnaryOperator<CFloat> operator) {
