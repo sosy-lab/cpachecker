@@ -234,8 +234,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     for (int i = 1; i < pDualSequence.getSize(); i++) {
       BooleanFormula forwardFormula = pDualSequence.getForwardImageAt(i);
       BooleanFormula backwardFormula = pDualSequence.getBackwardImageAt(i);
-      if (solver.implies(forwardFormula, forwardImage)
-          || solver.implies(backwardFormula, backwardImage)) {
+      if ((solver.implies(forwardFormula, forwardImage)
+              || solver.implies(backwardFormula, backwardImage))
+          // The set that is represented by formula B_0 should not be empty.
+          // If it is, then the algorithm catches it sooner.
+          && !pDualSequence.getBackwardImageAt(0).equals(bfmgr.makeFalse())) {
         stats.fixedPointConvergenceLength = pDualSequence.getSize();
         logger.log(Level.INFO, "Fixed point reached");
         return true;
@@ -427,7 +430,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * Check if a target (error) state is reachable by BMC within current unrolling bound
+   * Check if a target (error) state is reachable by BMC within current unrolling bound This method
+   * is a slightly modified copy of {@link IMCAlgorithm#findCexByBMC}
    *
    * @return {@code true} if a counterexample is found, i.e., property is violated; {@code false}
    *     otherwise
@@ -484,7 +488,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return -1;
   }
 
-  /** Check the loop structure of the input program and adjust configurations accordingly */
+  /**
+   * Check the loop structure of the input program and adjust configurations accordingly. This
+   * method is an exact copy of {@link IMCAlgorithm#adjustConfigsAccordingToCFA}
+   */
   private void adjustConfigsAccordingToCFA() throws CPAException {
     if (!cfa.getAllLoopHeads().isPresent() || cfa.getAllLoopHeads().orElseThrow().size() > 1) {
       String reason =
@@ -501,7 +508,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /**
    * Determine if interpolation or forward-condition check is applicable with the current unrolled
-   * ARG and adjust configurations accordingly
+   * ARG and adjust configurations accordingly. This method is an exact copy of {@link
+   * IMCAlgorithm#adjustConfigsAccordingToARG}
    */
   private void adjustConfigsAccordingToARG(ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
@@ -525,7 +533,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
-  /** Check forward conditions, i.e. if the program can be further unrolled */
+  /**
+   * Check forward conditions, i.e. if the program can be further unrolled. This method is an exact
+   * copy of {@link IMCAlgorithm#isFurtherUnrollingPossible}
+   */
   private boolean isFurtherUnrollingPossible(ReachedSet pReachedSet)
       throws SolverException, InterruptedException {
     stats.assertionsCheck.start();
@@ -543,6 +554,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return !isStopStateUnreachable;
   }
 
+  /** This method is an exact copy of {@link IMCAlgorithm#unrollProgram} */
   private void unrollProgram(ReachedSet pReachedSet) throws InterruptedException, CPAException {
     stats.bmcPreparation.start();
     try {
@@ -643,6 +655,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         Level.ALL, "Updated forward reachability vector:", pDualSequence.getForwardReachVector());
   }
 
+  /** This method is an exact copy of IMCAlgorithm.getCurrentMaxLoopIterations() */
   private int getCurrentMaxLoopIterations() {
     return CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
   }
@@ -663,6 +676,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     checkForwardConditions = false;
   }
 
+  /** This method is an exact copy of {@link IMCAlgorithm#collectStatistics} */
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     super.collectStatistics(pStatsCollection);
@@ -681,6 +695,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         });
   }
 
+  /** This method is an exact copy of {@link IMCAlgorithm#getCandidateInvariants} */
   @Override
   protected CandidateGenerator getCandidateInvariants() {
     throw new AssertionError(

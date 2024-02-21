@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.math.IntMath;
 import java.io.PrintStream;
-import java.math.BigInteger;
 import java.math.RoundingMode;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -41,9 +40,6 @@ public class BMCStatistics implements Statistics {
   int numOfVarsInInterpolants = -1;
   int minNumOfVarsInInterpolants = -1;
   int maxNumOfVarsInInterpolants = -1;
-  BigInteger numOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
-  BigInteger minNumOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
-  BigInteger maxNumOfBoolOpsInInterpolants = BigInteger.valueOf(-1);
   int fixedPointConvergenceLength = -1;
   // DAR specific
   int numOfDARGlobalPhases = -1;
@@ -98,16 +94,6 @@ public class BMCStatistics implements Statistics {
               + IntMath.divide(numOfVarsInInterpolants, numOfInterpolants, RoundingMode.HALF_UP));
       out.println("  Min. #vars in itp:                             " + minNumOfVarsInInterpolants);
       out.println("  Max. #vars in itp:                             " + maxNumOfVarsInInterpolants);
-    }
-    if (numOfBoolOpsInInterpolants.compareTo(BigInteger.ZERO) >= 0) {
-      out.println("Total number of Boolean ops in interpolants:     " + numOfBoolOpsInInterpolants);
-      out.println(
-          "  Avg. #Boolean-ops in itp:                      "
-              + numOfBoolOpsInInterpolants.divide(BigInteger.valueOf(numOfInterpolants)));
-      out.println(
-          "  Min. #Boolean-ops in itp:                      " + minNumOfBoolOpsInInterpolants);
-      out.println(
-          "  Max. #Boolean-ops in itp:                      " + maxNumOfBoolOpsInInterpolants);
     }
     if (fixedPointConvergenceLength >= 0) {
       out.println(
