@@ -322,9 +322,6 @@ public class MyFloat {
     long exponent1 = Math.max(value.exponent, format.minExp());
     long exponent2 = Math.max(number.value.exponent, format.minExp());
 
-    BigInteger significand1 = value.significand;
-    BigInteger significand2 = number.value.significand;
-
     // Calculate the sum of the exponents. If the exponent gets too large we can skip the
     // calculation and return infinity immediately.
     long exponent_ = exponent1 + exponent2;
@@ -333,7 +330,10 @@ public class MyFloat {
     }
 
     // Multiply the significands
-    BigInteger result = value.significand.multiply(number.value.significand);
+    BigInteger significand1 = value.significand;
+    BigInteger significand2 = number.value.significand;
+
+    BigInteger result = significand1.multiply(significand2);
 
     // Add guard, round and sticky bits
     BigInteger significand_ = result.shiftLeft(3);
