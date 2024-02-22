@@ -129,11 +129,11 @@ public class MyFloat {
   }
 
   public boolean isInfinite() {
-    return (value.exponent == format.maxExp() + 1) && (value.significand.equals(BigInteger.ZERO));
+    return (value.exponent == format.maxExp() + 1) && value.significand.equals(BigInteger.ZERO);
   }
 
   public boolean isZero() {
-    return (value.exponent == format.minExp() - 1) && (value.significand.equals(BigInteger.ZERO));
+    return (value.exponent == format.minExp() - 1) && value.significand.equals(BigInteger.ZERO);
   }
 
   public boolean isNegative() {
@@ -251,7 +251,7 @@ public class MyFloat {
     // Round the result according to the grs bits
     long grs = significand_.and(new BigInteger("111", 2)).longValue();
     significand_ = significand_.shiftRight(3);
-    if (grs == 4 && significand_.testBit(0) || grs > 4) {
+    if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
       significand_ = significand_.add(BigInteger.ONE);
     }
 
@@ -386,7 +386,7 @@ public class MyFloat {
     // Round the result according to the grs bits
     long grs = significand_.and(new BigInteger("111", 2)).longValue();
     significand_ = significand_.shiftRight(3);
-    if (grs == 4 && significand_.testBit(0) || grs > 4) {
+    if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
       significand_ = significand_.add(BigInteger.ONE);
     }
 
