@@ -52,6 +52,7 @@ class CFABuilder extends ASTVisitor {
 
   private final Scope scope;
   private final ASTConverter astCreator;
+  private final JExceptionHelperVariableSupport exceptionHelper;
 
   private final LogManager logger;
 
@@ -59,6 +60,7 @@ class CFABuilder extends ASTVisitor {
     logger = pLogger;
     scope = pScope;
     astCreator = new ASTConverter(scope, logger);
+    exceptionHelper = new JExceptionHelperVariableSupport();
   }
 
   /**
@@ -96,11 +98,7 @@ class CFABuilder extends ASTVisitor {
     }
 
     // Add global static exception helper variable to CFA
-    result.add(
-        Pair.of(
-            (ADeclaration)
-                JExceptionHelperVariableSupport.getInstance().getHelperFieldDeclaration(),
-            "helper"));
+    result.add(Pair.of((ADeclaration) exceptionHelper.getHelperFieldDeclaration(), "helper"));
 
     return result;
   }
@@ -134,7 +132,8 @@ class CFABuilder extends ASTVisitor {
   }
 
   private void createConstructors(AnonymousClassDeclaration pClassDeclaration) {
-    CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger, scope, astCreator);
+    CFAMethodBuilder methodBuilder =
+        new CFAMethodBuilder(logger, scope, astCreator, exceptionHelper);
 
     methodBuilder.createConstructors(pClassDeclaration);
 
@@ -173,7 +172,8 @@ class CFABuilder extends ASTVisitor {
     // methodDeclarations.add(fd);
 
     // parse Method
-    CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger, scope, astCreator);
+    CFAMethodBuilder methodBuilder =
+        new CFAMethodBuilder(logger, scope, astCreator, exceptionHelper);
 
     md.accept(methodBuilder);
 
@@ -234,7 +234,8 @@ class CFABuilder extends ASTVisitor {
 
     if (hasDefaultConstructor) {
 
-      CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger, scope, astCreator);
+      CFAMethodBuilder methodBuilder =
+          new CFAMethodBuilder(logger, scope, astCreator, exceptionHelper);
 
       methodBuilder.createDefaultConstructor(classBinding);
 

@@ -36,12 +36,11 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
  */
 class JExceptionHelperVariableSupport {
 
-  private static JExceptionHelperVariableSupport instance = null;
   private JClassType currentType = JClassType.createUnresolvableType();
   private final JFieldDeclaration helperFieldDeclaration;
   private final JClassType throwableClassType;
 
-  private JExceptionHelperVariableSupport() {
+  JExceptionHelperVariableSupport() {
     throwableClassType = getThrowable();
     helperFieldDeclaration =
         new JFieldDeclaration(
@@ -54,13 +53,6 @@ class JExceptionHelperVariableSupport {
             false,
             false,
             VisibilityModifier.PUBLIC);
-  }
-
-  public static JExceptionHelperVariableSupport getInstance() {
-    if (instance == null) {
-      instance = new JExceptionHelperVariableSupport();
-    }
-    return instance;
   }
 
   private JClassType getThrowable() {

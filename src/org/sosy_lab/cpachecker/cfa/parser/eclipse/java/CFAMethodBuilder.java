@@ -151,11 +151,15 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private final LogManager logger;
 
-  public CFAMethodBuilder(LogManager pLogger, Scope pScope, ASTConverter pAstCreator) {
+  public CFAMethodBuilder(
+      LogManager pLogger,
+      Scope pScope,
+      ASTConverter pAstCreator,
+      JExceptionHelperVariableSupport pExceptionHelper) {
     logger = pLogger;
     scope = pScope;
     astCreator = pAstCreator;
-    exceptionHelperVariable = JExceptionHelperVariableSupport.getInstance();
+    exceptionHelperVariable = pExceptionHelper;
   }
 
   JMethodEntryNode getStartNode() {
