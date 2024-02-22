@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.Serializable;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -40,8 +41,8 @@ class JExceptionHelperVariableSupport {
   private final JFieldDeclaration helperFieldDeclaration;
   private final JClassType throwableClassType;
 
-  JExceptionHelperVariableSupport() {
-    throwableClassType = getThrowable();
+  JExceptionHelperVariableSupport(TypeHierarchy typeHierarchy) {
+    throwableClassType = getThrowable(typeHierarchy);
     helperFieldDeclaration =
         new JFieldDeclaration(
             FileLocation.DUMMY,
@@ -55,11 +56,22 @@ class JExceptionHelperVariableSupport {
             VisibilityModifier.PUBLIC);
   }
 
-  private JClassType getThrowable() {
-    JInterfaceType serializable =
-        JInterfaceType.valueOf(
-            "java.io.Serializable", "Serializable", VisibilityModifier.PUBLIC, ImmutableSet.of());
+  private JClassType getThrowable(TypeHierarchy typeHierarchy) {
+    if (typeHierarchy.containsClassType(Throwable.class.getCanonicalName())) {
+      return typeHierarchy.getClassType(Throwable.class.getCanonicalName());
+    }
 
+    JInterfaceType serializable;
+    if (typeHierarchy.containsInterfaceType(Serializable.class.getCanonicalName())) {
+      serializable = typeHierarchy.getInterfaceType(Serializable.class.getCanonicalName());
+    } else {
+      serializable =
+          JInterfaceType.valueOf(
+              "java.lang.Serializable",
+              "Serializable",
+              VisibilityModifier.PUBLIC,
+              ImmutableSet.of());
+    }
     Set<JInterfaceType> throwableInterfaces = ImmutableSet.of(serializable);
 
     JClassType throwableTemp =

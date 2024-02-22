@@ -60,7 +60,7 @@ class CFABuilder extends ASTVisitor {
     logger = pLogger;
     scope = pScope;
     astCreator = new ASTConverter(scope, logger);
-    exceptionHelper = new JExceptionHelperVariableSupport();
+    exceptionHelper = new JExceptionHelperVariableSupport(scope.getTypeHierarchy());
   }
 
   /**
