@@ -2950,11 +2950,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JExpressionAssignmentStatement exceptionDeclaration =
         setVariableRightSideExpression(
-            fileLoc,
-            type,
-            cc.getException().getName().toString(),
-            declaration,
-            exceptionHelperVariable.getCurrentHelperIdExpression());
+            fileLoc, type, declaration, exceptionHelperVariable.getCurrentHelperIdExpression());
 
     JStatementEdge assignmentEdge =
         new JStatementEdge(
@@ -3002,8 +2998,8 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   private JExpressionAssignmentStatement setVariableRightSideExpression(
-      FileLocation fileL, JType type, String name, JSimpleDeclaration dec, JExpression expression) {
-    JLeftHandSide helperLeft = new JIdExpression(fileL, type, name, dec);
+      FileLocation fileL, JType type, JSimpleDeclaration dec, JExpression expression) {
+    JLeftHandSide helperLeft = new JIdExpression(fileL, type, dec.getName(), dec);
 
     JExpressionAssignmentStatement helperExpression =
         new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
