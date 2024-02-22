@@ -7,8 +7,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 format_version: "1.0"
+
 input_files:
-  - MultipleExceptionsLateCatch/
+  - CorrectExceptionDeclaration/
+
 properties:
-  - property_file: ../../../../config/properties/assert.prp
+  - property_file: ../../../config/properties/assert.prp
     expected_verdict: true
