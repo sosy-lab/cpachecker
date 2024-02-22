@@ -6,12 +6,26 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.java;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JInstanceOfType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -20,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
  * Adds methods to support the exception variable, including setting the variable to zero or
  * assigning a value to the variable.
  */
-public class JExceptionHelperVariableSupport {
+class JExceptionHelperVariableSupport {
 
   private static JExceptionHelperVariableSupport instance = null;
   private JClassType currentType = JClassType.createUnresolvableType();

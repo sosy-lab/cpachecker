@@ -29,7 +29,6 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExceptionHelperVariableSupport;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
