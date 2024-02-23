@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
  */
 class JExceptionHelperVariableSupport {
 
-  private JClassType currentType = JClassType.createUnresolvableType();
   private final JFieldDeclaration helperFieldDeclaration;
   private final JClassType throwableClassType;
 
@@ -93,14 +92,14 @@ class JExceptionHelperVariableSupport {
     JIdExpression helperIdExpression =
         new JIdExpression(
             FileLocation.DUMMY,
-            currentType,
+            helperFieldDeclaration.getType(),
             helperFieldDeclaration.getName(),
             helperFieldDeclaration);
 
     JExpression helperFieldAccess =
         new JFieldAccess(
             FileLocation.DUMMY,
-            currentType,
+            helperFieldDeclaration.getType(),
             helperFieldDeclaration.getName(),
             helperFieldDeclaration,
             helperIdExpression);
@@ -133,7 +132,7 @@ class JExceptionHelperVariableSupport {
   public JIdExpression getCurrentHelperIdExpression() {
     return new JIdExpression(
         FileLocation.DUMMY,
-        currentType,
+        helperFieldDeclaration.getType(),
         helperFieldDeclaration.getName(),
         helperFieldDeclaration);
   }
@@ -150,7 +149,7 @@ class JExceptionHelperVariableSupport {
     JLeftHandSide helperLeft =
         new JIdExpression(
             FileLocation.DUMMY,
-            throwableClassType,
+            helperFieldDeclaration.getType(),
             helperFieldDeclaration.getName(),
             helperFieldDeclaration);
 
@@ -170,13 +169,5 @@ class JExceptionHelperVariableSupport {
 
   public JFieldDeclaration getHelperFieldDeclaration() {
     return helperFieldDeclaration;
-  }
-
-  public void setCurrentJClassType(JClassType type) {
-    currentType = type;
-  }
-
-  public JClassType getCurrentClassType() {
-    return currentType;
   }
 }
