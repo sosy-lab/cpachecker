@@ -3003,12 +3003,11 @@ class CFAMethodBuilder extends ASTVisitor {
       end = helperNotNullNodeList.get(helperNotNullNodeList.size() - 1);
     }
 
-    JStatement helperNotEqualsStatement = exceptionHelperVariable.helperNotEqualsNullStatement();
     JExpression helperNotEqualsExpression = exceptionHelperVariable.helperNotEqualsExpression();
 
     JAssumeEdge notEqualsNullFalse =
         new JAssumeEdge(
-            helperNotEqualsStatement.toString(),
+            helperNotEqualsExpression.toString(),
             FileLocation.DUMMY,
             start,
             nodeAfterStatement,
@@ -3019,7 +3018,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JAssumeEdge notEqualsNullTrue =
         new JAssumeEdge(
-            helperNotEqualsStatement.toString(),
+            helperNotEqualsExpression.toString(),
             FileLocation.DUMMY,
             start,
             end,

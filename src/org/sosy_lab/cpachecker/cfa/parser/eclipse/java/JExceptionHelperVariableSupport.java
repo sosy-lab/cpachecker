@@ -15,13 +15,11 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
@@ -113,15 +111,6 @@ class JExceptionHelperVariableSupport {
             BinaryOperator.NOT_EQUALS);
 
     return helperNotEqualsExpression;
-  }
-
-  /**
-   * Statement that contains a check if the helper variable is null
-   *
-   * @return JStatement with check if helper variable is null
-   */
-  public JStatement helperNotEqualsNullStatement() {
-    return new JExpressionStatement(FileLocation.DUMMY, helperNotEqualsExpression());
   }
 
   /**
