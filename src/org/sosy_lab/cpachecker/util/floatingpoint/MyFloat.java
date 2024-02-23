@@ -459,6 +459,81 @@ public class MyFloat {
     return new MyFloat(targetFormat, value.sign, exponent, significand);
   }
 
+  private BigInteger toInteger() {
+    if (value.exponent < -1) {
+      return BigInteger.ZERO;
+    }
+    BigInteger significand = value.significand.shiftRight((int) (format.sigBits - value.exponent));
+    if (value.sign) {
+      significand = significand.negate();
+    }
+    return significand;
+  }
+
+  public byte toByte() {
+    BigInteger integerValue = toInteger();
+    if (isNan()) {
+      return 0;
+    }
+    BigInteger maxPositive = BigInteger.valueOf(Byte.MAX_VALUE);
+    if ((isInfinite() && !isNegative()) || integerValue.compareTo(maxPositive) > 0) {
+      return -1;
+    }
+    BigInteger maxNegative = BigInteger.valueOf(Byte.MIN_VALUE);
+    if ((isInfinite() && isNegative()) || integerValue.compareTo(maxNegative) < 0) {
+      return 0;
+    }
+    return integerValue.byteValue();
+  }
+
+  public short toShort() {
+    BigInteger integerValue = toInteger();
+    if (isNan()) {
+      return 0;
+    }
+    BigInteger maxPositive = BigInteger.valueOf(Short.MAX_VALUE);
+    if ((isInfinite() && !isNegative()) || integerValue.compareTo(maxPositive) > 0) {
+      return -1;
+    }
+    BigInteger maxNegative = BigInteger.valueOf(Short.MIN_VALUE);
+    if ((isInfinite() && isNegative()) || integerValue.compareTo(maxNegative) < 0) {
+      return 0;
+    }
+    return integerValue.shortValue();
+  }
+
+  public int toInt() {
+    BigInteger integerValue = toInteger();
+    if (isNan()) {
+      return 0;
+    }
+    BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
+    if ((isInfinite() && !isNegative()) || integerValue.compareTo(maxPositive) > 0) {
+      return maxPositive.intValue();
+    }
+    BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
+    if ((isInfinite() && isNegative()) || integerValue.compareTo(maxNegative) < 0) {
+      return maxNegative.intValue();
+    }
+    return integerValue.intValue();
+  }
+
+  public long toLong() {
+    BigInteger integerValue = toInteger();
+    if (isNan()) {
+      return 0;
+    }
+    BigInteger maxPositive = BigInteger.valueOf(Long.MAX_VALUE);
+    if ((isInfinite() && !isNegative()) || integerValue.compareTo(maxPositive) > 0) {
+      return maxPositive.longValue();
+    }
+    BigInteger maxNegative = BigInteger.valueOf(Long.MIN_VALUE);
+    if ((isInfinite() && isNegative()) || integerValue.compareTo(maxNegative) < 0) {
+      return maxNegative.longValue();
+    }
+    return integerValue.longValue();
+  }
+
   public float toFloat() {
     Preconditions.checkState(format.expBits == 8 && format.sigBits == 23);
     if (isNan()) {

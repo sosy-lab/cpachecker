@@ -180,7 +180,16 @@ public class CMyFloat extends CFloat {
 
   @Override
   public Number castToOther(CNativeType toType) {
-    throw new UnsupportedOperationException();
+    return switch (toType) {
+      case CHAR -> delegate.toByte();
+      case SHORT -> delegate.toShort();
+      case INT -> delegate.toInt();
+      case LONG -> delegate.toLong();
+      case SINGLE -> throw new IllegalArgumentException();
+      case DOUBLE -> throw new IllegalArgumentException();
+      case LONG_DOUBLE -> throw new IllegalArgumentException();
+      default -> throw new UnsupportedOperationException();
+    };
   }
 
   @Override
