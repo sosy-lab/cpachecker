@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.primitives.Ints.max;
 
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+
 /**
  * This class is used to increase performance and debugging capabilities. Since <code>nan</code> and
  * <code>-nan</code> are special numbers, operations including them or performed on them, evaluate
@@ -146,12 +148,12 @@ public class CFloatNaN extends CFloat {
   }
 
   @Override
-  public CFloat castTo(int pToType) {
-    return new CFloatNaN(negative, pToType);
+  public CFloat castTo(CNativeType pToType) {
+    return new CFloatNaN(negative, pToType.getOrdinal());
   }
 
   @Override
-  public Number castToOther(int pToType) {
+  public Number castToOther(CNativeType pToType) {
     // TODO Determine behavior for other types than floating point
     // XXX: effectively return pToType.MIN-VALUE
     return null;

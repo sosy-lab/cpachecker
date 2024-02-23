@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+
 /* Implementation of the CFLoat interface that uses Java floats */
 public class JFloat extends CFloat {
   private final CFloatWrapper wrapper;
@@ -182,13 +184,13 @@ public class JFloat extends CFloat {
   }
 
   @Override
-  public CFloat castTo(int toType) {
+  public CFloat castTo(CNativeType toType) {
     // TODO: Implement casting
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Number castToOther(int toType) {
+  public Number castToOther(CNativeType toType) {
     // TODO: Implement casting
     throw new UnsupportedOperationException();
   }

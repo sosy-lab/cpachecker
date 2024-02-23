@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 @SuppressWarnings("deprecation")
 public class CFloatTest {
@@ -836,8 +837,8 @@ public class CFloatTest {
     CFloat b = new CFloatNative("893473.378465376", CFloatNativeAPI.FP_TYPE_SINGLE);
 
     assertThat(a.toString()).isEqualTo(b.toString());
-    a = a.castTo(CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    b = b.castTo(CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    a = a.castTo(CNativeType.LONG_DOUBLE);
+    b = b.castTo(CNativeType.LONG_DOUBLE);
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 }

@@ -401,6 +401,64 @@ public class MyFloat {
     throw new UnsupportedOperationException();
   }
 
+  public MyFloat withPrecision(Format targetFormat) {
+    long exponent = Math.max(value.exponent, format.minExp());
+    BigInteger significand = value.significand;
+
+    if (isNan()) {
+      return MyFloat.nan(targetFormat);
+    }
+    if (isInfinite()) {
+      return value.sign ? MyFloat.negativeInfinity(targetFormat) : MyFloat.infinity(targetFormat);
+    }
+
+    // Return infinity if the exponent is too large for the new encoding
+    if (exponent > targetFormat.maxExp()) {
+      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    }
+
+    // Normalize
+    String bits = significand.toString(2);
+    int shift = (format.sigBits + 1) - bits.length();
+    if (shift > 0) {
+      significand = significand.shiftLeft(shift);
+      exponent -= shift;
+    }
+
+    // Extend the significand
+    significand = significand.shiftLeft(targetFormat.sigBits + 3);
+
+    // Return zero if the exponent is below the subnormal range
+    if (exponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
+      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
+    }
+
+    // Use the lowest possible exponent and move the rest into the significand by shifting
+    // it to the right.
+    // Here we calculate haw many digits we need to shift:
+    int leading = 0;
+    if (exponent < targetFormat.minExp()) {
+      leading = (int) Math.abs(targetFormat.minExp() - exponent);
+      exponent = targetFormat.minExp();
+    }
+
+    // Truncate the number while carrying over the grs bits.
+    for (int i = 0; i < format.sigBits + leading; i++) {
+      BigInteger carry = significand.and(BigInteger.ONE);
+      significand = significand.shiftRight(1);
+      significand = significand.or(carry);
+    }
+
+    // Round the result according to the grs bits
+    long grs = significand.and(new BigInteger("111", 2)).longValue();
+    significand = significand.shiftRight(3);
+    if ((grs == 4 && significand.testBit(0)) || grs > 4) {
+      significand = significand.add(BigInteger.ONE);
+    }
+
+    return new MyFloat(targetFormat, value.sign, exponent, significand);
+  }
+
   public float toFloat() {
     Preconditions.checkState(format.expBits == 8 && format.sigBits == 23);
     if (isNan()) {

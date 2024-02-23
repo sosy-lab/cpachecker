@@ -13,6 +13,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 /**
  * This class implements {@link CFloat} to propose a bit-precise representation of different
@@ -183,8 +184,7 @@ public class CFloatImpl extends CFloat {
         CFloat nOne = new CFloatImpl("-1", pType);
         result = result.multiply(nOne);
       }
-
-      wrapper = result.castTo(pType).copyWrapper();
+      wrapper = result.castTo(CFloatNativeAPI.toNativeType(pType)).copyWrapper();
     }
   }
 
@@ -467,9 +467,9 @@ public class CFloatImpl extends CFloat {
     // cast to equal types to simplify operations
     if (tSummand.getType() != oSummand.getType()) {
       if (tSummand.getType() > oSummand.getType()) {
-        oSummand = oSummand.castTo(tSummand.getType());
+        oSummand = oSummand.castTo(CFloatNativeAPI.toNativeType(tSummand.getType()));
       } else {
-        tSummand = tSummand.castTo(oSummand.getType());
+        tSummand = tSummand.castTo(CFloatNativeAPI.toNativeType(oSummand.getType()));
       }
     }
 
@@ -662,9 +662,9 @@ public class CFloatImpl extends CFloat {
     // cast to resulting type
     if (tFactor.getType() != oFactor.getType()) {
       if (tFactor.getType() > oFactor.getType()) {
-        oFactor = oFactor.castTo(tFactor.getType());
+        oFactor = oFactor.castTo(CFloatNativeAPI.toNativeType(tFactor.getType()));
       } else {
-        tFactor = tFactor.castTo(oFactor.getType());
+        tFactor = tFactor.castTo(CFloatNativeAPI.toNativeType(oFactor.getType()));
       }
     }
 
@@ -836,9 +836,9 @@ public class CFloatImpl extends CFloat {
 
     if (tSubtrahend.getType() != oSubtrahend.getType()) {
       if (tSubtrahend.getType() > oSubtrahend.getType()) {
-        oSubtrahend = oSubtrahend.castTo(tSubtrahend.getType());
+        oSubtrahend = oSubtrahend.castTo(CFloatNativeAPI.toNativeType(tSubtrahend.getType()));
       } else {
-        tSubtrahend = tSubtrahend.castTo(oSubtrahend.getType());
+        tSubtrahend = tSubtrahend.castTo(CFloatNativeAPI.toNativeType(oSubtrahend.getType()));
       }
     }
 
@@ -980,9 +980,9 @@ public class CFloatImpl extends CFloat {
 
     if (tDividend.getType() != oDivisor.getType()) {
       if (tDividend.getType() > oDivisor.getType()) {
-        oDivisor = oDivisor.castTo(tDividend.getType());
+        oDivisor = oDivisor.castTo(CFloatNativeAPI.toNativeType(tDividend.getType()));
       } else {
-        tDividend = tDividend.castTo(oDivisor.getType());
+        tDividend = tDividend.castTo(CFloatNativeAPI.toNativeType(oDivisor.getType()));
       }
     }
 
@@ -1405,11 +1405,11 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat castTo(final int pToType) {
-    CFloat zero = new CFloatImpl("0", pToType);
+  public CFloat castTo(final CNativeType pToType) {
+    CFloat zero = new CFloatImpl("0", pToType.getOrdinal());
     if (isZero()) {
       if (isNegative()) {
-        return new CFloatImpl("-0", pToType);
+        return new CFloatImpl("-0", pToType.getOrdinal());
       } else {
         return zero;
       }
@@ -1425,11 +1425,11 @@ public class CFloatImpl extends CFloat {
     manDiff *= manDiff < 0 ? -1 : 1;
 
     if (type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-        && pToType != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
+        && pToType.getOrdinal() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
       rMan &= getMantissaMask();
       manDiff--;
     } else if (type != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-        && pToType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
+        && pToType.getOrdinal() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
       rMan |= getNormalizationMask();
       manDiff--;
     }
@@ -1440,7 +1440,7 @@ public class CFloatImpl extends CFloat {
       rExp ^= zero.getSignBitMask();
     }
 
-    if (type > pToType) {
+    if (type > pToType.getOrdinal()) {
       long overflowMask = (1L << manDiff) - 1;
       overflow = (rMan & overflowMask) << (64 - manDiff);
       rMan >>>= manDiff;
@@ -1451,11 +1451,11 @@ public class CFloatImpl extends CFloat {
     CFloatWrapper rWrapper = new CFloatWrapper(rExp, rMan);
     rWrapper = zero.round(rWrapper, overflow);
 
-    return new CFloatImpl(rWrapper, pToType);
+    return new CFloatImpl(rWrapper, pToType.getOrdinal());
   }
 
   @Override
-  public Number castToOther(final int pToType) {
+  public Number castToOther(final CNativeType pToType) {
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException();
   }
@@ -1480,9 +1480,9 @@ public class CFloatImpl extends CFloat {
     CFloat tFloat = this;
 
     if (oFloat.getType() > tFloat.getType()) {
-      tFloat = tFloat.castTo(oFloat.getType());
+      tFloat = tFloat.castTo(CFloatNativeAPI.toNativeType(oFloat.getType()));
     } else if (tFloat.getType() > oFloat.getType()) {
-      oFloat = oFloat.castTo(tFloat.getType());
+      oFloat = oFloat.castTo(CFloatNativeAPI.toNativeType(tFloat.getType()));
     }
 
     int oType = oFloat.getType();

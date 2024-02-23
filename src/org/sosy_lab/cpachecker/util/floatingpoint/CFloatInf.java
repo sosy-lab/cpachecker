@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.primitives.Ints.max;
 
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+
 /**
  * This class is used to increase performance and debugging capabilities. Since <code>inf</code> and
  * <code>-inf</code> are special numbers, some operations including them or performed on them,
@@ -28,8 +30,8 @@ public class CFloatInf extends CFloat {
     this(false, CFloatNativeAPI.FP_TYPE_SINGLE);
   }
 
-  public CFloatInf(int type) {
-    this(false, type);
+  public CFloatInf(int pType) {
+    this(false, pType);
   }
 
   public CFloatInf(boolean pNegative, int pType) {
@@ -175,12 +177,12 @@ public class CFloatInf extends CFloat {
   }
 
   @Override
-  public CFloat castTo(int pToType) {
-    return new CFloatInf(negative, pToType);
+  public CFloat castTo(CNativeType pToType) {
+    return new CFloatInf(negative, pToType.getOrdinal());
   }
 
   @Override
-  public Number castToOther(int pToType) {
+  public Number castToOther(CNativeType pToType) {
     // TODO Determine how to handle this
     // XXX: effectively return pToType.MIN_VALUE
     return null;

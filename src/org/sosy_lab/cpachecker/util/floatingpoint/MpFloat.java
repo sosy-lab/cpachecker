@@ -13,6 +13,7 @@ import java.math.RoundingMode;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 public class MpFloat extends CFloat {
   static {
@@ -237,13 +238,13 @@ public class MpFloat extends CFloat {
   }
 
   @Override
-  public CFloat castTo(int toType) {
+  public CFloat castTo(CNativeType toType) {
     // TODO: Add implementation
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Number castToOther(int toType) {
+  public Number castToOther(CNativeType toType) {
     // TODO: Add implementation
     throw new UnsupportedOperationException();
   }

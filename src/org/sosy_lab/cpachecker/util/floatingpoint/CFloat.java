@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 /**
  * This abstract class is used to implement classes which provide floating point arithmetic
@@ -242,7 +243,7 @@ public abstract class CFloat {
    * @return a new {@link CFloat} instance with the type <code>toType</code> and (approximately) the
    *     value of <code>this</code>
    */
-  public abstract CFloat castTo(final int toType);
+  public abstract CFloat castTo(final CNativeType toType);
 
   /**
    * Try to cast <code>this</code> to another number type, more precisely some implementation of the
@@ -251,7 +252,7 @@ public abstract class CFloat {
    * @param toType the target number type
    * @return a new {@link Number} instance with (approximately) the value of <code>this</code>
    */
-  public abstract Number castToOther(final int toType);
+  public abstract Number castToOther(final CNativeType toType);
 
   /**
    * Somehow create a {@link CFloatWrapper} instance holding an exponent and mantissa representing

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import com.google.common.base.Preconditions;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.Format;
 
 public class CMyFloat extends CFloat {
@@ -173,12 +174,12 @@ public class CMyFloat extends CFloat {
   }
 
   @Override
-  public CFloat castTo(int toType) {
+  public CFloat castTo(CNativeType toType) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Number castToOther(int toType) {
+  public Number castToOther(CNativeType toType) {
     throw new UnsupportedOperationException();
   }
 

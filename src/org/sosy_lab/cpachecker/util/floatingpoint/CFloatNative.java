@@ -11,20 +11,21 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 @Deprecated
 public class CFloatNative extends CFloat {
   private final CFloatWrapper wrapper;
   private final int type;
 
-  public CFloatNative(String rep, int type) {
-    wrapper = CFloatNativeAPI.createFp(rep, type);
-    this.type = type;
+  public CFloatNative(String rep, int pType) {
+    wrapper = CFloatNativeAPI.createFp(rep, pType);
+    type = pType;
   }
 
-  public CFloatNative(CFloatWrapper wrapper, int type) {
-    this.wrapper = wrapper;
-    this.type = type;
+  public CFloatNative(CFloatWrapper pWrapper, int pType) {
+    wrapper = pWrapper;
+    type = pType;
   }
 
   @Override
@@ -197,10 +198,10 @@ public class CFloatNative extends CFloat {
   }
 
   @Override
-  public CFloat castTo(int toType) {
-    CFloatWrapper newFloat = CFloatNativeAPI.castFpFromTo(wrapper, type, toType);
+  public CFloat castTo(CNativeType toType) {
+    CFloatWrapper newFloat = CFloatNativeAPI.castFpFromTo(wrapper, type, toType.getOrdinal());
 
-    return new CFloatNative(newFloat, toType);
+    return new CFloatNative(newFloat, toType.getOrdinal());
   }
 
   public static CFloat castOtherTo(Number value, int fromType, int toType) {
@@ -210,8 +211,8 @@ public class CFloatNative extends CFloat {
   }
 
   @Override
-  public Number castToOther(int toType) {
-    return CFloatNativeAPI.castFpToOther(wrapper, type, toType);
+  public Number castToOther(CNativeType toType) {
+    return CFloatNativeAPI.castFpToOther(wrapper, type, toType.getOrdinal());
   }
 
   private int constructParametersForMultiOperation(

@@ -51,6 +51,25 @@ public class CFloatNativeAPI {
     }
   }
 
+  public static CNativeType toNativeType(int pType) {
+    return switch (pType) {
+      case 0 -> CNativeType.SINGLE;
+      case 1 -> CNativeType.DOUBLE;
+      case 2 -> CNativeType.LONG_DOUBLE;
+      case 3 -> CNativeType.CHAR;
+      case 4 -> CNativeType.SHORT;
+      case 5 -> CNativeType.INT;
+      case 6 -> CNativeType.LONG;
+      case 7 -> CNativeType.LONG_LONG;
+      case 8 -> CNativeType.UCHAR;
+      case 9 -> CNativeType.USHORT;
+      case 10 -> CNativeType.UINT;
+      case 11 -> CNativeType.ULONG;
+      case 12 -> CNativeType.ULONG_LONG;
+      default -> throw new IllegalArgumentException();
+    };
+  }
+
   public static final CFloat ZERO_SINGLE;
   public static final CFloat ONE_SINGLE;
   public static final CFloat TEN_SINGLE;
