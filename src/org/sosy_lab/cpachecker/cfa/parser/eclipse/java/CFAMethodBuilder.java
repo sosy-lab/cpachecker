@@ -346,14 +346,12 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode lastNode = locStack.pop();
 
     for (CFANode excNotInstance : exceptionIsThrownButNotInstanceNodes) {
-      CFANode start = excNotInstance;
-      BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, start, lastNode, "");
+      BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, excNotInstance, lastNode, "");
       addToCFA(bEdge);
     }
     exceptionIsThrownButNotInstanceNodes.clear();
-    for (CFANode excNotInstance : exceptionEndOfFinallyNodes) {
-      CFANode start = excNotInstance;
-      BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, start, lastNode, "");
+    for (CFANode excEndOfFinally : exceptionEndOfFinallyNodes) {
+      BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, excEndOfFinally, lastNode, "");
       addToCFA(bEdge);
     }
     exceptionEndOfFinallyNodes.clear();
