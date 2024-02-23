@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JInstanceOfType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
@@ -499,27 +498,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
       return null;
     }
-
-    @Override
-    public String visit(JInstanceOfType pInstanceOfType) throws UnrecognizedCodeException {
-      JReferenceType assignableType = pInstanceOfType.getTypeDef();
-
-      String reference = pInstanceOfType.getRunTimeTypeExpression().accept(this);
-
-      if (reference == null) {
-        return null;
-      }
-
-      if (truthAssumption) {
-        if (assignableType instanceof JClassOrInterfaceType) {
-          newState.assignAssumptionType(reference, (JClassOrInterfaceType) assignableType);
-        } else {
-          // TODO
-        }
-      }
-
-      return null;
-    }
   }
 
   /** This visitor evaluates an expression and returns its content. */
@@ -564,6 +542,14 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     public String visit(JBinaryExpression binaryExpression) throws UnrecognizedCodeException {
       final JExpression leftOperand = binaryExpression.getOperand1();
       final JExpression rightOperand = binaryExpression.getOperand2();
+
+      if (binaryExpression.getOperator() == BinaryOperator.CONDITIONAL_OR) {
+        String leftResult = leftOperand.accept(this);
+        if (leftResult.equals(Boolean.toString(true))) {
+          return leftResult;
+        }
+        return rightOperand.accept(this);
+      }
 
       // The only binary Expressions on Class Types is String + which is not yet supported and
       // object comparison.
@@ -755,45 +741,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
           return null;
         }
       }
-    }
-
-    @Override
-    public String visit(JInstanceOfType jInstanceOfType) throws UnrecognizedCodeException {
-
-      String jrunTimeType = jInstanceOfType.getRunTimeTypeExpression().accept(this);
-
-      if (jrunTimeType == null) {
-        return null;
-      }
-
-      final JReferenceType typeDef = jInstanceOfType.getTypeDef();
-
-      return Boolean.toString(handleInstanceOf(jrunTimeType, typeDef));
-    }
-
-    private boolean handleInstanceOf(String runTimeType, JReferenceType typeDef) {
-      if (typeDef instanceof JArrayType) {
-        // TODO this needs to be tested
-        JArrayType typeDefArray = (JArrayType) typeDef;
-        if (runTimeType.equals(typeDefArray.toString())) {
-          return true;
-        }
-      } else {
-
-        JClassOrInterfaceType typeDefClass = (JClassOrInterfaceType) typeDef;
-        String name = typeDefClass.getName();
-
-        if (runTimeType.equals(name)) {
-          return true;
-        } else if (runTimeType.equals(JClassType.getTypeOfObject().getName())) {
-          return false;
-        } else {
-          for (JClassOrInterfaceType type : typeDefClass.getAllSubTypesOfType()) {
-            return handleInstanceOf(runTimeType, type);
-          }
-        }
-      }
-      return false;
     }
 
     @Override

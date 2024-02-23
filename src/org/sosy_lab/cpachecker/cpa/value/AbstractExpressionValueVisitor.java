@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JInstanceOfType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
@@ -2414,11 +2413,6 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
-    return UnknownValue.getInstance();
-  }
-
-  @Override
-  public Value visit(JInstanceOfType pJInstanceOfType) {
     return UnknownValue.getInstance();
   }
 

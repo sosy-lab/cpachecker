@@ -2880,9 +2880,10 @@ class CFAMethodBuilder extends ASTVisitor {
    */
   private void addExceptionInstanceOfEdgesToCFA(JClassType exceptionClassType) {
     JExpression catchException =
-        exceptionHelperVariable.getHelperRunTimeTypeEqualsExpression(exceptionClassType);
-
-    JStatement exception = exceptionHelperVariable.getInstanceOfStatement(exceptionClassType);
+        astCreator.createInstanceOfExpression(
+            exceptionHelperVariable.getCurrentHelperIdExpression(),
+            exceptionClassType,
+            FileLocation.DUMMY);
 
     CFANode start = exceptionIsThrownButNotInstanceNodes.pop();
 
@@ -2901,7 +2902,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JAssumeEdge exceptionIsNotInstanceEdge =
         new JAssumeEdge(
-            exception.toString(),
+            catchException.toString(),
             FileLocation.DUMMY,
             start,
             afterCurrentCatch,
@@ -2911,7 +2912,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JAssumeEdge exceptionIsInstanceEdge =
         new JAssumeEdge(
-            exception.toString(),
+            catchException.toString(),
             FileLocation.DUMMY,
             start,
             exceptionEqualsNode,

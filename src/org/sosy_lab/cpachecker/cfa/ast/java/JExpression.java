@@ -25,8 +25,7 @@ public sealed interface JExpression extends JRightHandSide, AExpression
         JLiteralExpression,
         JRunTimeTypeEqualsType,
         JRunTimeTypeExpression,
-        JUnaryExpression,
-        JInstanceOfType {
+        JUnaryExpression {
 
   <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
 

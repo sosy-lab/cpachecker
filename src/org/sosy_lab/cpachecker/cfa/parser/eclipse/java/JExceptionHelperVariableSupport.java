@@ -19,12 +19,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JInstanceOfType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
@@ -139,34 +136,6 @@ class JExceptionHelperVariableSupport {
         currentType,
         helperFieldDeclaration.getName(),
         helperFieldDeclaration);
-  }
-
-  /**
-   * Check if runtime type of exception is an instance of the classtype of another exception
-   *
-   * @param exception classtype of exception that is compared to the helper variable
-   * @return JInstanceOfType that includes check if runtime types are equal
-   */
-  public JInstanceOfType getHelperRunTimeTypeEqualsExpression(JClassType exception) {
-    JIdExpression helperIdExpression = getCurrentHelperIdExpression();
-
-    JRunTimeTypeExpression helperRunTimeType =
-        new JVariableRunTimeType(FileLocation.DUMMY, helperIdExpression);
-
-    return new JInstanceOfType(FileLocation.DUMMY, helperRunTimeType, exception);
-  }
-
-  /**
-   * Produce JStatement that includes the expression that checks if helper is an instance of the
-   * JClassType of an exception
-   *
-   * @param exception exception classtype that gets compare to helper
-   * @return JStatement with a JInstanceOfType that includes the helper and the classtype of another
-   *     exception
-   */
-  public JStatement getInstanceOfStatement(JClassType exception) {
-    JInstanceOfType runTimeTypeEquals = getHelperRunTimeTypeEqualsExpression(exception);
-    return new JExpressionStatement(FileLocation.DUMMY, runTimeTypeEquals);
   }
 
   /**
