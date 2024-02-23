@@ -322,11 +322,14 @@ public class MyFloat {
     long exponent1 = Math.max(value.exponent, format.minExp());
     long exponent2 = Math.max(number.value.exponent, format.minExp());
 
-    // Calculate the sum of the exponents. If the exponent gets too large we can skip the
-    // calculation and return infinity immediately.
+    // Calculate the exponent of the result by adding the exponents of the two arguments.
+    // If the calculated exponent is out of range we can return infinity (or zero) immediately.
     long exponent_ = exponent1 + exponent2;
     if (exponent_ > format.maxExp()) {
       return sign_ ? negativeInfinity(format) : infinity(format);
+    }
+    if (exponent_ < format.minExp() - format.sigBits - 2) {
+      return sign_ ? negativeZero(format) : zero(format);
     }
 
     // Multiply the significands
@@ -357,11 +360,6 @@ public class MyFloat {
     if (shift > 0) {
       significand_ = significand_.shiftLeft(shift);
       exponent_ -= shift;
-    }
-
-    // Return zero if the exponent of the normalized result is even below the subnormal range
-    if (exponent_ < format.minExp() - (format.sigBits + 1)) {
-      return sign_ ? negativeZero(format) : zero(format);
     }
 
     // Otherwise use the lowest possible exponent and move the rest into the significand by shifting
