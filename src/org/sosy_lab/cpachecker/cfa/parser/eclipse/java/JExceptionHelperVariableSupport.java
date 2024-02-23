@@ -84,6 +84,7 @@ class JExceptionHelperVariableSupport {
             false,
             JClassType.getTypeOfObject(),
             throwableInterfaces);
+    typeHierarchy.updateTypeHierarchy(throwableTemp);
     return throwableTemp;
   }
 
