@@ -2879,7 +2879,8 @@ class CFAMethodBuilder extends ASTVisitor {
    * @param exceptionClassType type of the exception
    */
   private void addExceptionInstanceOfEdgesToCFA(JClassType exceptionClassType) {
-    JExpression catchException = getExceptionInstanceOfExpression(exceptionClassType);
+    JExpression catchException =
+        exceptionHelperVariable.getHelperRunTimeTypeEqualsExpression(exceptionClassType);
 
     JStatement exception = exceptionHelperVariable.getInstanceOfStatement(exceptionClassType);
 
@@ -2961,16 +2962,6 @@ class CFAMethodBuilder extends ASTVisitor {
     addToCFA(assignmentEdge);
 
     locStack.push(afterDeclaration);
-  }
-
-  /**
-   * Get expression that represents instanceof between exception helper variable and a classtype
-   *
-   * @param exceptionClassType Right side in instanceof operation
-   * @return JInstanceOfType including the helperVariable and exceptionClassType
-   */
-  private JExpression getExceptionInstanceOfExpression(JClassType exceptionClassType) {
-    return exceptionHelperVariable.getHelperRunTimeTypeEqualsExpression(exceptionClassType);
   }
 
   private void setExceptionHelperNullInCFA() {
