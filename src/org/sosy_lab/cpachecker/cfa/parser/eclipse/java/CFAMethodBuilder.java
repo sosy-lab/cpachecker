@@ -345,20 +345,18 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode lastNode = locStack.pop();
 
-    if (!exceptionIsThrownButNotInstanceNodes.isEmpty() || !exceptionEndOfFinallyNodes.isEmpty()) {
-      for (CFANode excNotInstance : exceptionIsThrownButNotInstanceNodes) {
-        CFANode start = excNotInstance;
-        BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, start, lastNode, "");
-        addToCFA(bEdge);
-      }
-      exceptionIsThrownButNotInstanceNodes.clear();
-      for (CFANode excNotInstance : exceptionEndOfFinallyNodes) {
-        CFANode start = excNotInstance;
-        BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, start, lastNode, "");
-        addToCFA(bEdge);
-      }
-      exceptionEndOfFinallyNodes.clear();
+    for (CFANode excNotInstance : exceptionIsThrownButNotInstanceNodes) {
+      CFANode start = excNotInstance;
+      BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, start, lastNode, "");
+      addToCFA(bEdge);
     }
+    exceptionIsThrownButNotInstanceNodes.clear();
+    for (CFANode excNotInstance : exceptionEndOfFinallyNodes) {
+      CFANode start = excNotInstance;
+      BlankEdge bEdge = new BlankEdge("", FileLocation.DUMMY, start, lastNode, "");
+      addToCFA(bEdge);
+    }
+    exceptionEndOfFinallyNodes.clear();
 
     // During method CFA construction, every function entry node must have a function exit node
     // (unreachable function exit nodes have not been removed yet).
