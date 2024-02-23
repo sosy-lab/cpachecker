@@ -168,9 +168,9 @@ public abstract class CFloatUnitTest {
   protected void testOperator(String name, UnaryOperator<CFloat> operator) {
     ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
     for (Float arg : floatConsts()) {
-      CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
-      Float result = operator.apply(ref).toFloat();
-      if (isInTestClass(arg, result)) {
+      if (isInTestClass(arg)) {
+        CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
+        Float result = operator.apply(ref).toFloat();
         testBuilder.add(new TestValue<>(arg, result));
       }
     }
@@ -204,10 +204,10 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
     for (Float arg1 : floatConsts()) {
       for (Float arg2 : floatConsts()) {
-        CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
-        CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
-        Float result = operator.apply(ref1, ref2).toFloat();
-        if (isInTestClass(arg1, arg2, result)) {
+        if (isInTestClass(arg1, arg2)) {
+          CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
+          CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
+          Float result = operator.apply(ref1, ref2).toFloat();
           testBuilder.add(new TestValue<>(arg1, arg2, result));
         }
       }
@@ -243,9 +243,9 @@ public abstract class CFloatUnitTest {
   protected void testPredicate(String name, Predicate<CFloat> operator) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
     for (Float arg : floatConsts()) {
-      CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
-      boolean result = operator.test(ref);
       if (isInTestClass(arg)) {
+        CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
+        boolean result = operator.test(ref);
         testBuilder.add(new TestValue<>(arg, result));
       }
     }
@@ -280,10 +280,10 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
     for (Float arg1 : floatConsts()) {
       for (Float arg2 : floatConsts()) {
-        CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
-        CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
-        boolean result = operator.apply(ref1, ref2);
         if (isInTestClass(arg1, arg2)) {
+          CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
+          CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
+          boolean result = operator.apply(ref1, ref2);
           testBuilder.add(new TestValue<>(arg1, arg2, result));
         }
       }
