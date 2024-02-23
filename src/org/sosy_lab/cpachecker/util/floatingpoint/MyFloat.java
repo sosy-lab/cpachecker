@@ -398,7 +398,137 @@ public class MyFloat {
   }
 
   public MyFloat divide(MyFloat number) {
-    throw new UnsupportedOperationException();
+    MyFloat n = this;
+    MyFloat m = number;
+
+    // Handle special cases:
+    // (1) Either argument is NaN
+    if (n.isNan() || m.isNan()) {
+      return MyFloat.nan(format);
+    }
+    // (2) Dividend is zero
+    if (n.isZero()) {
+      if (m.isZero()) {
+        // Divisor is zero or infinite
+        return MyFloat.nan(format);
+      }
+      return (n.isNegative() ^ m.isNegative())
+          ? MyFloat.negativeZero(format)
+          : MyFloat.zero(format);
+    }
+    // (3) Dividend is infinite
+    if (n.isInfinite()) {
+      if (m.isInfinite()) {
+        // Divisor is infinite
+        return MyFloat.nan(format);
+      }
+      return (n.isNegative() ^ m.isNegative())
+          ? MyFloat.negativeInfinity(format)
+          : MyFloat.infinity(format);
+    }
+    // (4) Divisor is zero (and dividend is finite)
+    if (m.isZero()) {
+      return (n.isNegative() ^ m.isNegative())
+          ? MyFloat.negativeInfinity(format)
+          : MyFloat.infinity(format);
+    }
+    // (5) Divisor is infinite (and dividend is finite)
+    if (m.isInfinite()) {
+      return (n.isNegative() ^ m.isNegative())
+          ? MyFloat.negativeZero(format)
+          : MyFloat.zero(format);
+    }
+
+    // Handle regular numbers in divideImpl
+    return n.divideImpl(m);
+  }
+
+  private MyFloat divideImpl(MyFloat number) {
+    // Calculate the sign of the result
+    boolean sign_ = value.sign ^ number.value.sign;
+
+    // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
+    // needs to be increased by one.
+    long exponent1 = Math.max(value.exponent, format.minExp());
+    long exponent2 = Math.max(number.value.exponent, format.minExp());
+
+    // Normalize both arguments.
+    BigInteger significand1 = value.significand;
+    String bits1 = significand1.toString(2);
+    int shift1 = (format.sigBits + 1) - bits1.length();
+    if (shift1 > 0) {
+      significand1 = significand1.shiftLeft(shift1);
+      exponent1 -= shift1;
+    }
+
+    BigInteger significand2 = number.value.significand;
+    String bits2 = significand2.toString(2);
+    int shift2 = (format.sigBits + 1) - bits2.length();
+    if (shift2 > 0) {
+      significand2 = significand2.shiftLeft(shift2);
+      exponent2 -= shift2;
+    }
+
+    // Calculate the exponent of the result by subtracting the exponent of the divisor from the
+    // exponent of the dividend. If the result is beyond the exponent range, skip the calculation
+    // and return infinity immediately. If it is below the subnormal range, return zero immediately.
+    long exponent_ = exponent1 - exponent2;
+    if (exponent_ > format.maxExp()) {
+      return sign_ ? negativeInfinity(format) : infinity(format);
+    }
+    if (exponent_ < format.minExp() - (format.sigBits + 1)) {
+      return sign_ ? negativeZero(format) : zero(format);
+    }
+
+    // Calculate how many digits need to be calculated. If the result is <1 we need one additional
+    // digit to normalize it.
+    // TODO: Figure out how many digits we actually need
+    int hack = format.sigBits;
+    int digits = hack + (1 + format.sigBits) + 3; // last 3 is for grs bits
+    if (significand1.compareTo(significand2) < 0) {
+      digits += 1;
+      exponent_ -= 1;
+    }
+
+    // Divide the significands
+    BigInteger significand_ = BigInteger.ZERO;
+    for (int i = 0; i < digits; i++) {
+      // Calculate the next digit of the result
+      significand_ = significand_.shiftLeft(1);
+      if (significand1.compareTo(significand2) >= 0) {
+        significand1 = significand1.subtract(significand2);
+        significand_ = significand_.add(BigInteger.ONE);
+      }
+
+      // Shift the dividend
+      significand1 = significand1.shiftLeft(1);
+    }
+
+    // Fix the exponent if it is too small. Use the lowest possible exponent for the format and then
+    // move the rest into the significand by shifting it to the right.
+    // Here we calculate haw many digits we need to shift:
+    int leading = 0;
+    if (exponent_ < format.minExp()) {
+      leading = (int) Math.abs(format.minExp() - exponent_);
+      exponent_ = format.minExp() - 1;
+    }
+
+    // Truncate the number while carrying over the grs bits.
+    for (int i = 0; i < hack + leading; i++) {
+      BigInteger carry = significand_.and(BigInteger.ONE);
+      significand_ = significand_.shiftRight(1);
+      significand_ = significand_.or(carry);
+    }
+
+    // Round the result according to the grs bits
+    long grs = significand_.and(new BigInteger("111", 2)).longValue();
+    significand_ = significand_.shiftRight(3);
+    if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
+      significand_ = significand_.add(BigInteger.ONE);
+    }
+
+    // Return the number
+    return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
   }
 
   public MyFloat withPrecision(Format targetFormat) {

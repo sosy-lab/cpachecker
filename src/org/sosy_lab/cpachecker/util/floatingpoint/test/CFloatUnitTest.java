@@ -155,7 +155,7 @@ public abstract class CFloatUnitTest {
     return String.format("%s %s %s", repr.substring(0, 1), repr.substring(1, 9), repr.substring(9));
   }
 
-  private String printValue(Float value) {
+  protected String printValue(Float value) {
     return String.format("%s [%s]", toBits(value), value);
   }
 

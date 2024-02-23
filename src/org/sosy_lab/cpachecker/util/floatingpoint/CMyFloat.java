@@ -99,6 +99,9 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat divideBy(CFloat pDivisor) {
+    if (pDivisor instanceof CMyFloat myDivisor) {
+      return new CMyFloat(delegate.divide(myDivisor.delegate));
+    }
     throw new UnsupportedOperationException();
   }
 
