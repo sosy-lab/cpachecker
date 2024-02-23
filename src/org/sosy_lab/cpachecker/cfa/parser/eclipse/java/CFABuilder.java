@@ -98,7 +98,8 @@ class CFABuilder extends ASTVisitor {
     }
 
     // Add global static exception helper variable to CFA
-    result.add(Pair.of((ADeclaration) exceptionHelper.getHelperFieldDeclaration(), "helper"));
+    result.add(
+        Pair.<ADeclaration, String>of(exceptionHelper.getHelperFieldDeclaration(), "helper"));
 
     return result;
   }

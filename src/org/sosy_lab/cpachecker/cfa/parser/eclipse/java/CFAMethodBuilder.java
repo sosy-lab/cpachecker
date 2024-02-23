@@ -2888,7 +2888,7 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode exceptionEqualsNode = new CFANode(cfa.getFunction());
     cfaNodes.add(exceptionEqualsNode);
 
-    CFANode afterCurrentCatch = null;
+    CFANode afterCurrentCatch;
     if (!exceptionIsThrownButNotInstanceNodes.isEmpty()) {
       afterCurrentCatch = exceptionIsThrownButNotInstanceNodes.peek();
     } else {
@@ -2928,7 +2928,6 @@ class CFAMethodBuilder extends ASTVisitor {
    * @param cc CatchClause that includes CatchFormalParameter
    */
   private void declareCatchFormalParameter(JDeclaration declaration, CatchClause cc) {
-    JClassType type = (JClassType) declaration.getType();
     FileLocation fileLoc = declaration.getFileLocation();
 
     CFANode prevNode = locStack.pop();
@@ -2946,9 +2945,11 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode afterDeclaration = new CFANode(cfa.getFunction());
     cfaNodes.add(afterDeclaration);
 
+    JLeftHandSide helperVar =
+        new JIdExpression(fileLoc, declaration.getType(), declaration.getName(), declaration);
     JExpressionAssignmentStatement exceptionDeclaration =
-        setVariableRightSideExpression(
-            fileLoc, type, declaration, exceptionHelperVariable.getCurrentHelperIdExpression());
+        new JExpressionAssignmentStatement(
+            fileLoc, helperVar, exceptionHelperVariable.getCurrentHelperIdExpression());
 
     JStatementEdge assignmentEdge =
         new JStatementEdge(
@@ -2995,16 +2996,6 @@ class CFAMethodBuilder extends ASTVisitor {
     locStack.push(afterHelperNull);
   }
 
-  private JExpressionAssignmentStatement setVariableRightSideExpression(
-      FileLocation fileL, JType type, JSimpleDeclaration dec, JExpression expression) {
-    JLeftHandSide helperLeft = new JIdExpression(fileL, type, dec.getName(), dec);
-
-    JExpressionAssignmentStatement helperExpression =
-        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
-
-    return helperExpression;
-  }
-
   /**
    * Adds check conditional statements that check if exception occurred
    *
@@ -3012,9 +3003,7 @@ class CFAMethodBuilder extends ASTVisitor {
    * @param nodeAfterStatement Next node in normal execution flow
    */
   private void addExceptionCheck(CFANode start, CFANode nodeAfterStatement) {
-
-    CFANode end = null;
-
+    CFANode end;
     if (helperNotNullNodeList.isEmpty()) {
       end = new CFANode(cfa.getFunction());
       cfaNodes.add(end);
@@ -3022,11 +3011,8 @@ class CFAMethodBuilder extends ASTVisitor {
       end = helperNotNullNodeList.get(helperNotNullNodeList.size() - 1);
     }
 
-    JStatement helperNotEqualsStatement = null;
-    JExpression helperNotEqualsExpression = null;
-
-    helperNotEqualsStatement = exceptionHelperVariable.helperNotEqualsNullStatement();
-    helperNotEqualsExpression = exceptionHelperVariable.helperNotEqualsExpression();
+    JStatement helperNotEqualsStatement = exceptionHelperVariable.helperNotEqualsNullStatement();
+    JExpression helperNotEqualsExpression = exceptionHelperVariable.helperNotEqualsExpression();
 
     JAssumeEdge notEqualsNullFalse =
         new JAssumeEdge(

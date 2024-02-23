@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
@@ -72,7 +71,6 @@ class JExceptionHelperVariableSupport {
               VisibilityModifier.PUBLIC,
               ImmutableSet.of());
     }
-    Set<JInterfaceType> throwableInterfaces = ImmutableSet.of(serializable);
 
     JClassType throwableTemp =
         JClassType.valueOf(
@@ -83,7 +81,7 @@ class JExceptionHelperVariableSupport {
             false,
             false,
             JClassType.getTypeOfObject(),
-            throwableInterfaces);
+            ImmutableSet.of(serializable));
     typeHierarchy.updateTypeHierarchy(throwableTemp);
     return throwableTemp;
   }
@@ -127,13 +125,7 @@ class JExceptionHelperVariableSupport {
    * @return JStatement with check if helper variable is null
    */
   public JStatement helperNotEqualsNullStatement() {
-
-    JExpression helperNotEqualsExpression = helperNotEqualsExpression();
-
-    JStatement helperNotEqualsTemp =
-        new JExpressionStatement(FileLocation.DUMMY, helperNotEqualsExpression);
-
-    return helperNotEqualsTemp;
+    return new JExpressionStatement(FileLocation.DUMMY, helperNotEqualsExpression());
   }
 
   /**
@@ -142,14 +134,11 @@ class JExceptionHelperVariableSupport {
    * @return JIdExpression of helper variable with current type
    */
   public JIdExpression getCurrentHelperIdExpression() {
-    JIdExpression helperIdExpression =
-        new JIdExpression(
-            FileLocation.DUMMY,
-            currentType,
-            helperFieldDeclaration.getName(),
-            helperFieldDeclaration);
-
-    return helperIdExpression;
+    return new JIdExpression(
+        FileLocation.DUMMY,
+        currentType,
+        helperFieldDeclaration.getName(),
+        helperFieldDeclaration);
   }
 
   /**
@@ -176,7 +165,6 @@ class JExceptionHelperVariableSupport {
    *     exception
    */
   public JStatement getInstanceOfStatement(JClassType exception) {
-
     JInstanceOfType runTimeTypeEquals = getHelperRunTimeTypeEqualsExpression(exception);
     return new JExpressionStatement(FileLocation.DUMMY, runTimeTypeEquals);
   }
@@ -197,10 +185,7 @@ class JExceptionHelperVariableSupport {
             helperFieldDeclaration.getName(),
             helperFieldDeclaration);
 
-    JExpressionAssignmentStatement helperNull =
-        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, nullExpression);
-
-    return helperNull;
+    return new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, nullExpression);
   }
 
   /**
@@ -210,12 +195,8 @@ class JExceptionHelperVariableSupport {
    * @return JExpressionAssignmentStatement with helpervariable after value got assigned to it
    */
   public JExpressionAssignmentStatement setHelperRightSideExpression(JExpression expression) {
-    JLeftHandSide helperLeft = getCurrentHelperIdExpression();
-
-    JExpressionAssignmentStatement helperExpression =
-        new JExpressionAssignmentStatement(FileLocation.DUMMY, helperLeft, expression);
-
-    return helperExpression;
+    return new JExpressionAssignmentStatement(
+        FileLocation.DUMMY, getCurrentHelperIdExpression(), expression);
   }
 
   public JFieldDeclaration getHelperFieldDeclaration() {
