@@ -186,7 +186,7 @@ public class MyFloat {
     return n.addImpl(m);
   }
 
-  public MyFloat addImpl(MyFloat number) {
+  private MyFloat addImpl(MyFloat number) {
     // Get the exponents and add the bias to shift them above zero. Note that for subnormal numbers
     // the stored exponent needs to be increased by one.
     long exponent1 = Math.max(value.exponent, format.minExp()) + format.bias();
@@ -313,7 +313,7 @@ public class MyFloat {
     return n.multiplyImpl(m);
   }
 
-  public MyFloat multiplyImpl(MyFloat number) {
+  private MyFloat multiplyImpl(MyFloat number) {
     // Calculate the sign of the result
     boolean sign_ = value.sign ^ number.value.sign;
 
@@ -390,7 +390,12 @@ public class MyFloat {
       significand_ = significand_.add(BigInteger.ONE);
     }
 
-    // And return the number...
+    // Return infinity if there is an overflow.
+    if (exponent_ > format.bias()) {
+      return sign_ ? MyFloat.negativeInfinity(format) : MyFloat.infinity(format);
+    }
+
+    // Otherwise return the number
     return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
   }
 
