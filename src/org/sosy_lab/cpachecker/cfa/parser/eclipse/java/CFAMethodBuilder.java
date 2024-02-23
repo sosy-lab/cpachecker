@@ -131,11 +131,11 @@ class CFAMethodBuilder extends ASTVisitor {
   private boolean checkIfConditionalStatementForExceptionCheckAdded = true;
   private boolean inFinallyBlock = false;
 
-  private List<CFANode> helperNotNullNodeList = new ArrayList<>();
-  private Deque<CFANode> exceptionIsThrownButNotInstanceNodes = new ArrayDeque<>();
-  private Deque<CFANode> exceptionEndOfFinallyNodes = new ArrayDeque<>();
+  private final List<CFANode> helperNotNullNodeList = new ArrayList<>();
+  private final Deque<CFANode> exceptionIsThrownButNotInstanceNodes = new ArrayDeque<>();
+  private final Deque<CFANode> exceptionEndOfFinallyNodes = new ArrayDeque<>();
 
-  private JExceptionHelperVariableSupport exceptionHelperVariable;
+  private final JExceptionHelperVariableSupport exceptionHelperVariable;
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
