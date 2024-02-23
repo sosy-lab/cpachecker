@@ -185,14 +185,27 @@ public class JFloat extends CFloat {
 
   @Override
   public CFloat castTo(CNativeType toType) {
-    // TODO: Implement casting
-    throw new UnsupportedOperationException();
+    return switch (toType) {
+      case SINGLE -> this;
+      case DOUBLE -> throw new UnsupportedOperationException();
+      case LONG_DOUBLE -> throw new UnsupportedOperationException();
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   @Override
   public Number castToOther(CNativeType toType) {
-    // TODO: Implement casting
-    throw new UnsupportedOperationException();
+    Float floatValue = Float.valueOf(value);
+    return switch (toType) {
+      case CHAR -> floatValue.byteValue();
+      case SHORT -> floatValue.shortValue();
+      case INT -> floatValue.intValue();
+      case LONG -> floatValue.longValue();
+      case SINGLE -> throw new IllegalArgumentException();
+      case DOUBLE -> throw new IllegalArgumentException();
+      case LONG_DOUBLE -> throw new IllegalArgumentException();
+      default -> throw new UnsupportedOperationException();
+    };
   }
 
   @Override

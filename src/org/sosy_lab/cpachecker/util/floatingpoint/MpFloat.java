@@ -245,8 +245,16 @@ public class MpFloat extends CFloat {
 
   @Override
   public Number castToOther(CNativeType toType) {
-    // TODO: Add implementation
-    throw new UnsupportedOperationException();
+    return switch (toType) {
+      case CHAR -> value.byteValue();
+      case SHORT -> value.shortValue();
+      case INT -> value.intValue();
+      case LONG -> value.longValue();
+      case SINGLE -> throw new IllegalArgumentException();
+      case DOUBLE -> throw new IllegalArgumentException();
+      case LONG_DOUBLE -> throw new IllegalArgumentException();
+      default -> throw new UnsupportedOperationException();
+    };
   }
 
   @Override

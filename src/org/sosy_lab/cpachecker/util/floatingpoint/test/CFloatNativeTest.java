@@ -28,12 +28,36 @@ public class CFloatNativeTest extends CFloatUnitTest {
   @Ignore
   @Override
   public void powToIntegralTest() {
-    // FIXME: floatingPoints.c lacks support for negative  exponents in powToIntegral
+    // FIXME: floatingPoints.c lacks support for negative exponents in powToIntegral
   }
 
   @Ignore
   @Override
   public void greaterThanTest() {
     // FIXME: CFloatNative does not implement greaterThan()
+  }
+
+  @Ignore
+  @Override
+  public void castToByteTest() {
+    // FIXME: Native calls crashes
+  }
+
+  @Ignore
+  @Override
+  public void castToShortTest() {
+    // FIXME: Native calls crashes
+  }
+
+  @Ignore
+  @Override
+  public void castToIntTest() {
+    // FIXME: Native calls crashes
+  }
+
+  @Ignore
+  @Override
+  public void castToLongTest() {
+    // FIXME: Native calls crashes
   }
 }

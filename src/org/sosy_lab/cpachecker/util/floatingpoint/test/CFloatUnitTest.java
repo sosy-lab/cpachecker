@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import org.junit.Test;
@@ -26,6 +27,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 @RunWith(Parameterized.class)
 public abstract class CFloatUnitTest {
@@ -240,12 +242,12 @@ public abstract class CFloatUnitTest {
     }
   }
 
-  protected void testPredicate(String name, Predicate<CFloat> operator) {
+  protected void testPredicate(String name, Predicate<CFloat> predicate) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
     for (Float arg : floatConsts()) {
       if (isInTestClass(arg)) {
         CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
-        boolean result = operator.test(ref);
+        boolean result = predicate.test(ref);
         testBuilder.add(new TestValue<>(arg, result));
       }
     }
@@ -257,7 +259,7 @@ public abstract class CFloatUnitTest {
         CFloat tested = toTestedImpl(toPlainString(test.arg1()), floatType);
         boolean result = true;
         try {
-          result = operator.test(tested);
+          result = predicate.test(tested);
         } catch (Throwable t) {
           assertWithMessage(testHeader + t.getMessage()).fail();
         }
@@ -276,14 +278,14 @@ public abstract class CFloatUnitTest {
     }
   }
 
-  protected void testPredicate(String name, BinaryPredicate<CFloat, CFloat> operator) {
+  protected void testPredicate(String name, BinaryPredicate<CFloat, CFloat> predicate) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
     for (Float arg1 : floatConsts()) {
       for (Float arg2 : floatConsts()) {
         if (isInTestClass(arg1, arg2)) {
           CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
           CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
-          boolean result = operator.apply(ref1, ref2);
+          boolean result = predicate.apply(ref1, ref2);
           testBuilder.add(new TestValue<>(arg1, arg2, result));
         }
       }
@@ -297,7 +299,7 @@ public abstract class CFloatUnitTest {
         CFloat tested2 = toTestedImpl(toPlainString(test.arg2()), floatType);
         boolean result = true;
         try {
-          result = operator.apply(tested1, tested2);
+          result = predicate.apply(tested1, tested2);
         } catch (Throwable t) {
           String errorMessage = testHeader + t.getMessage();
           assertWithMessage(errorMessage).fail();
@@ -308,6 +310,42 @@ public abstract class CFloatUnitTest {
       }
     }
     ImmutableList<String> errorLog = logBuilder.build();
+    if (!errorLog.isEmpty()) {
+      assertWithMessage(
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
+          .fail();
+    }
+  }
+
+  protected void testIntegerFunction(String name, Function<CFloat, Number> function) {
+    ImmutableList.Builder<TestValue<Number>> testBuilder = ImmutableList.builder();
+    for (Float arg : floatConsts()) {
+      if (isInTestClass(arg)) {
+        CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
+        Number result = function.apply(ref);
+        testBuilder.add(new TestValue<>(arg, result));
+      }
+    }
+    ImmutableList<TestValue<Number>> testCases = testBuilder.build();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
+    for (TestValue<Number> test : testCases) {
+      try {
+        String testHeader = printTestHeader(name, test.arg1());
+        CFloat tested = toTestedImpl(toPlainString(test.arg1()), floatType);
+        Number result = null;
+        try {
+          result = function.apply(tested);
+        } catch (Throwable t) {
+          assertWithMessage(testHeader + t.getMessage()).fail();
+        }
+        assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+      } catch (AssertionError e) {
+        logBuilder.add(e.getMessage());
+      }
+    }
+    ImmutableList<String> errorLog = logBuilder.build();
+
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
@@ -432,4 +470,24 @@ public abstract class CFloatUnitTest {
     return null;
   }
   */
+
+  @Test
+  public void castToByteTest() {
+    testIntegerFunction("castToByteTest", (CFloat a) -> a.castToOther(CNativeType.CHAR));
+  }
+
+  @Test
+  public void castToShortTest() {
+    testIntegerFunction("castToShortTest", (CFloat a) -> a.castToOther(CNativeType.SHORT));
+  }
+
+  @Test
+  public void castToIntTest() {
+    testIntegerFunction("castToIntTest", (CFloat a) -> a.castToOther(CNativeType.INT));
+  }
+
+  @Test
+  public void castToLongTest() {
+    testIntegerFunction("castToLongTest", (CFloat a) -> a.castToOther(CNativeType.LONG));
+  }
 }
