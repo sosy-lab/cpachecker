@@ -2716,9 +2716,6 @@ class CFAMethodBuilder extends ASTVisitor {
     FileLocation throwLocation = astCreator.getFileLocation(throwStatement);
 
     CFANode prevNode = locStack.pop();
-    CFANode throwNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(throwNode);
-    locStack.push(throwNode);
 
     JExpression exceptionExpression =
         astCreator.convertExpressionWithoutSideEffects(throwStatement.getExpression());
@@ -2726,6 +2723,10 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode nextNode =
         handleSideassignments(prevNode, exceptionExpression.toASTString(), throwLocation);
     cfaNodes.add(nextNode);
+
+    CFANode throwNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(throwNode);
+    locStack.push(throwNode);
 
     JExpressionAssignmentStatement currentHelperAssignment =
         exceptionHelperVariable.setHelperRightSideExpression(exceptionExpression);
