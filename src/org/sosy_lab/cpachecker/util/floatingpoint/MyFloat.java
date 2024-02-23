@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.kframework.mpfr.BigFloat;
