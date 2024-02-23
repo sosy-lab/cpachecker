@@ -10,52 +10,52 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
-/* Implementation of the CFloat interface that uses Java floats */
-public class JFloat extends CFloat {
+/* Implementation of the CFloat interface that uses Java doubles */
+public class JDouble extends CFloat {
   private final CFloatWrapper wrapper;
-  private final float value;
+  private final double value;
 
-  public JFloat(float pValue) {
+  public JDouble(double pValue) {
     value = pValue;
     wrapper = fromFloat(value);
   }
 
-  public JFloat(String repr, int floatType) {
-    assert floatType == 0;
-    value = parseFloat(repr);
+  public JDouble(String repr, int floatType) {
+    assert floatType == 1;
+    value = parseDouble(repr);
     wrapper = fromFloat(value);
   }
 
-  public JFloat(CFloatWrapper pWrapper, int floatType) {
-    assert floatType == 0;
-    value = toFloat(pWrapper);
+  public JDouble(CFloatWrapper pWrapper, int floatType) {
+    assert floatType == 1;
+    value = toDouble(pWrapper);
     wrapper = pWrapper;
   }
 
-  private float toFloat(CFloatWrapper wfloat) {
-    long exponent = wfloat.getExponent();
-    long mantissa = wfloat.getMantissa();
-    return Float.intBitsToFloat((int) ((exponent << 23) + mantissa));
+  private double toDouble(CFloatWrapper pWrapper) {
+    long exponent = pWrapper.getExponent();
+    long mantissa = pWrapper.getMantissa();
+    return Double.longBitsToDouble((exponent << 52) + mantissa);
   }
 
-  private CFloatWrapper fromFloat(float jfloat) {
-    long bits = Float.floatToRawIntBits(jfloat);
-    long exponent = ((bits & 0xFF800000) >> 23) & 0x1FF;
-    long mantissa = bits & 0x007FFFFF;
+  private CFloatWrapper fromFloat(double pValue) {
+    long bits = Double.doubleToLongBits(pValue);
+    long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFF;
+    long mantissa = bits & 0xFFFFFFFFFFFFFL;
     return new CFloatWrapper(exponent, mantissa);
   }
 
-  private float parseFloat(String repr) {
+  private double parseDouble(String repr) {
     if ("nan".equals(repr)) {
-      return Float.NaN;
+      return Double.NaN;
     }
     if ("-inf".equals(repr)) {
-      return Float.NEGATIVE_INFINITY;
+      return Double.NEGATIVE_INFINITY;
     }
     if ("inf".equals(repr)) {
-      return Float.POSITIVE_INFINITY;
+      return Double.POSITIVE_INFINITY;
     }
-    return Float.parseFloat(repr);
+    return Double.parseDouble(repr);
   }
 
   @Override
@@ -69,125 +69,127 @@ public class JFloat extends CFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    return String.format("%.6e", value);
+    return String.format("%.6e", value); // TODO: Use more precision here?
   }
 
   @Override
   public CFloat add(CFloat pSummand) {
-    return new JFloat(value + toFloat(pSummand.getWrapper()));
+    return new JDouble(value + toDouble(pSummand.getWrapper()));
   }
 
   @Override
   public CFloat add(CFloat... pSummands) {
-    float result = 0.0f;
+    double result = 0.0d;
     for (CFloat f : pSummands) {
-      result += toFloat(f.getWrapper());
+      result += toDouble(f.getWrapper());
     }
-    return new JFloat(result);
+    return new JDouble(result);
   }
 
   @Override
   public CFloat multiply(CFloat pFactor) {
-    return new JFloat(value * toFloat(pFactor.getWrapper()));
+    return new JDouble(value * toDouble(pFactor.getWrapper()));
   }
 
   @Override
   public CFloat multiply(CFloat... pFactors) {
-    float result = 0.0f;
+    double result = 0.0d;
     for (CFloat f : pFactors) {
-      result *= toFloat(f.getWrapper());
+      result *= toDouble(f.getWrapper());
     }
-    return new JFloat(result);
+    return new JDouble(result);
   }
 
   @Override
   public CFloat subtract(CFloat pSubtrahend) {
-    return new JFloat(value - toFloat(pSubtrahend.getWrapper()));
+    return new JDouble(value - toDouble(pSubtrahend.getWrapper()));
   }
 
   @Override
   public CFloat divideBy(CFloat pDivisor) {
-    return new JFloat(value / toFloat(pDivisor.getWrapper()));
+    return new JDouble(value / toDouble(pDivisor.getWrapper()));
   }
 
   @Override
   public CFloat powTo(CFloat exponent) {
-    return new JFloat((float) Math.pow(value, toFloat(exponent.getWrapper())));
+    return new JDouble(Math.pow(value, toDouble(exponent.getWrapper())));
   }
 
   @Override
   public CFloat powToIntegral(int exponent) {
-    return new JFloat((float) Math.pow(value, exponent));
+    return new JDouble(Math.pow(value, exponent));
   }
 
   @Override
   public CFloat sqrt() {
-    return new JFloat((float) Math.sqrt(value));
+    return new JDouble(Math.sqrt(value));
   }
 
   @Override
   public CFloat round() {
-    float above = (float) Math.ceil(value);
-    float below = (float) Math.floor(value);
-    return new JFloat(above - value > value - below ? below : above);
+    double above = Math.ceil(value);
+    double below = Math.floor(value);
+    return new JDouble(above - value > value - below ? below : above);
   }
 
   @Override
   public CFloat trunc() {
-    return value <= 0.0f ? ceil() : floor();
+    return value <= 0.0d ? ceil() : floor();
   }
 
   @Override
   public CFloat ceil() {
-    return new JFloat((float) Math.ceil(value));
+    return new JDouble(Math.ceil(value));
   }
 
   @Override
   public CFloat floor() {
-    return new JFloat((float) Math.floor(value));
+    return new JDouble(Math.floor(value));
   }
 
   @Override
   public CFloat abs() {
-    return new JFloat(Math.abs(value));
+    return new JDouble(Math.abs(value));
   }
 
   @Override
   public boolean isZero() {
-    return value == 0.0f;
+    return value == 0.0d;
   }
 
   @Override
   public boolean isOne() {
-    return value == 1.0f;
+    return value == 1.0d;
   }
 
   @Override
   public boolean isNan() {
-    return Float.isNaN(value);
+    return Double.isNaN(value);
   }
 
   @Override
   public boolean isInfinity() {
-    return Float.isInfinite(value);
+    return Double.isInfinite(value);
   }
 
   @Override
   public boolean isNegative() {
-    return Float.compare(value, 0.0f) < 0;
+    return Double.compare(value, 0.0d) < 0;
   }
 
   @Override
   public CFloat copySignFrom(CFloat source) {
-    return new JFloat(
-        Float.compare(toFloat(source.getWrapper()), 0.0f) < 0 ? -Math.abs(value) : Math.abs(value));
+    return new JDouble(
+        Double.compare(toDouble(source.getWrapper()), 0.0d) < 0
+            ? -Math.abs(value)
+            : Math.abs(value));
   }
 
   @Override
   public CFloat castTo(CNativeType toType) {
     return switch (toType) {
-      case SINGLE -> this;
-      case DOUBLE -> new JDouble(value);
+      case SINGLE -> new JFloat((float) value);
+      case DOUBLE -> this;
       case LONG_DOUBLE -> throw new UnsupportedOperationException();
       default -> throw new IllegalArgumentException();
     };
@@ -195,12 +197,12 @@ public class JFloat extends CFloat {
 
   @Override
   public Number castToOther(CNativeType toType) {
-    Float floatValue = Float.valueOf(value);
+    Double doubleValue = Double.valueOf(value);
     return switch (toType) {
-      case CHAR -> floatValue.byteValue();
-      case SHORT -> floatValue.shortValue();
-      case INT -> floatValue.intValue();
-      case LONG -> floatValue.longValue();
+      case CHAR -> doubleValue.byteValue();
+      case SHORT -> doubleValue.shortValue();
+      case INT -> doubleValue.intValue();
+      case LONG -> doubleValue.longValue();
       case SINGLE -> throw new IllegalArgumentException();
       case DOUBLE -> throw new IllegalArgumentException();
       case LONG_DOUBLE -> throw new IllegalArgumentException();
@@ -225,6 +227,6 @@ public class JFloat extends CFloat {
 
   @Override
   public boolean greaterThan(CFloat other) {
-    return value > toFloat(other.getWrapper());
+    return value > toDouble(other.getWrapper());
   }
 }

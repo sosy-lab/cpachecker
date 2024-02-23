@@ -664,16 +664,15 @@ public class MyFloat {
     return integerValue.longValue();
   }
 
-  public float toFloat() {
-    Preconditions.checkState(format.expBits == 8 && format.sigBits == 23);
+  public double toDouble() {
     if (isNan()) {
       return Float.NaN;
     }
     if (isInfinite()) {
       return isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
     }
-    return new BigFloat(value.sign, value.significand, value.exponent, BinaryMathContext.BINARY32)
-        .floatValueExact();
+    return new BigFloat(value.sign, value.significand, value.exponent, BinaryMathContext.BINARY64)
+        .doubleValueExact();
   }
 
   @Override
@@ -687,6 +686,6 @@ public class MyFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    return String.format("%.6e", toFloat());
+    return String.format("%.6e", toDouble());
   }
 }

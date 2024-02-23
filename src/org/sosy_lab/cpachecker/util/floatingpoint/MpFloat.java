@@ -239,8 +239,12 @@ public class MpFloat extends CFloat {
 
   @Override
   public CFloat castTo(CNativeType toType) {
-    // TODO: Add implementation
-    throw new UnsupportedOperationException();
+    return switch (toType) {
+      case SINGLE -> new MpFloat(value.round(BinaryMathContext.BINARY32));
+      case DOUBLE -> new MpFloat(value.round(BinaryMathContext.BINARY64));
+      case LONG_DOUBLE -> new MpFloat(value.round(new BinaryMathContext(80, 15)));
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   @Override

@@ -320,10 +320,17 @@ public abstract class CFloat {
   }
 
   public Float toFloat() {
-    Preconditions.checkState(getType() == CFloatNativeAPI.FP_TYPE_SINGLE);
+    Preconditions.checkState(getType() == CNativeType.SINGLE.getOrdinal());
     long exponent = getExponent();
     long mantissa = getMantissa();
     return Float.intBitsToFloat((int) ((exponent << 23) + mantissa));
+  }
+
+  public Double toDouble() {
+    Preconditions.checkState(getType() == CNativeType.DOUBLE.getOrdinal());
+    long exponent = getExponent();
+    long mantissa = getMantissa();
+    return Double.longBitsToDouble((exponent << 52) + mantissa);
   }
 
   public Integer toInteger() {

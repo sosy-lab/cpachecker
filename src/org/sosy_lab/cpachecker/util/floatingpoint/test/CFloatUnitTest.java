@@ -460,16 +460,11 @@ public abstract class CFloatUnitTest {
     testOperator("copySignFrom", (CFloat a, CFloat b) -> a.copySignFrom(b));
   }
 
-  // FIXME: Implement castTo
-  /*
-  public CFloat castTo(int toType) {
-    return null;
+  @Test
+  public void castToTest() {
+    testOperator(
+        "castToTest", (CFloat a) -> a.castTo(CNativeType.DOUBLE).castTo(CNativeType.SINGLE));
   }
-
-  public Number castToOther(int toType) {
-    return null;
-  }
-  */
 
   @Test
   public void castToByteTest() {
