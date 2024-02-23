@@ -800,7 +800,6 @@ class CFAMethodBuilder extends ASTVisitor {
 
       handleConditionalStatement(prevNode, lastNode, statement);
       lastNode = handleSideassignments(lastNode, rawSignature, statement.getFileLocation());
-      locStack.push(lastNode);
 
     } else {
 
@@ -826,7 +825,6 @@ class CFAMethodBuilder extends ASTVisitor {
             booleanAssignmentExpression.getLeftHandSide(),
             nextNode,
             lastNode);
-        locStack.push(lastNode);
 
       } else {
 
@@ -834,7 +832,6 @@ class CFAMethodBuilder extends ASTVisitor {
             new JStatementEdge(
                 rawSignature, statement, statement.getFileLocation(), nextNode, lastNode);
         addToCFA(edge);
-        locStack.push(lastNode);
       }
 
       if (checkIfConditionalStatementForExceptionCheckAdded
@@ -843,15 +840,15 @@ class CFAMethodBuilder extends ASTVisitor {
               .getClass()
               .getSimpleName()
               .equals("MethodInvocation")) { // TODO rewrite with instanceof or similar
-        CFANode current = locStack.pop();
 
         CFANode nodeAfterStatement = new CFANode(cfa.getFunction());
         cfaNodes.add(nodeAfterStatement);
 
-        addExceptionCheck(current, nodeAfterStatement);
-
-        locStack.push(nodeAfterStatement);
+        addExceptionCheck(lastNode, nodeAfterStatement);
+        lastNode = nodeAfterStatement;
       }
+
+      locStack.push(lastNode);
     }
     return SKIP_CHILDREN;
   }
