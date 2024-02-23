@@ -2815,10 +2815,11 @@ class CFAMethodBuilder extends ASTVisitor {
 
   @Override
   public boolean visit(CatchClause cc) {
+    JDeclaration declaration = astCreator.convert(cc.getException());
 
-    addExceptionInstanceOfEdgesToCFA(cc);
+    addExceptionInstanceOfEdgesToCFA((JClassType) declaration.getType());
 
-    declareCatchFormalParameter(cc);
+    declareCatchFormalParameter(declaration, cc);
 
     setExceptionHelperNullInCFA();
 
@@ -2875,11 +2876,9 @@ class CFAMethodBuilder extends ASTVisitor {
   /**
    * Add conditional statements of the instanceof type to the CFA
    *
-   * @param cc CatchClause that has informations used for instanceof edge
+   * @param exceptionClassType type of the exception
    */
-  private void addExceptionInstanceOfEdgesToCFA(CatchClause cc) {
-    JClassType exceptionClassType = (JClassType) astCreator.convert(cc.getException()).getType();
-
+  private void addExceptionInstanceOfEdgesToCFA(JClassType exceptionClassType) {
     JExpression catchException = getExceptionInstanceOfExpression(exceptionClassType);
 
     JStatement exception = exceptionHelperVariable.getInstanceOfStatement(exceptionClassType);
@@ -2928,10 +2927,9 @@ class CFAMethodBuilder extends ASTVisitor {
    *
    * @param cc CatchClause that includes CatchFormalParameter
    */
-  private void declareCatchFormalParameter(CatchClause cc) {
-    JDeclaration declaration = astCreator.convert(cc.getException());
-    JClassType type = (JClassType) astCreator.convert(cc.getException().getType());
-    FileLocation fileLoc = astCreator.getFileLocation(cc.getException());
+  private void declareCatchFormalParameter(JDeclaration declaration, CatchClause cc) {
+    JClassType type = (JClassType) declaration.getType();
+    FileLocation fileLoc = declaration.getFileLocation();
 
     CFANode prevNode = locStack.pop();
 

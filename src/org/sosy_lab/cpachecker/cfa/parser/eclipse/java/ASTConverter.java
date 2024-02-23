@@ -310,7 +310,7 @@ class ASTConverter {
     return typeConverter.convert(pTypeBinding);
   }
 
-  public JType convert(Type pType) {
+  private JType convert(Type pType) {
     return typeConverter.convert(pType);
   }
 
