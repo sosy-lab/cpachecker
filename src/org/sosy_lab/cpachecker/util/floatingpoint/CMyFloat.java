@@ -150,7 +150,10 @@ public class CMyFloat extends CFloat {
   }
 
   @Override
-  public CFloat powTo(CFloat exponent) {
+  public CFloat powTo(CFloat pExponent) {
+    if (pExponent instanceof CMyFloat myExponent) {
+      return new CMyFloat(delegate.pow(myExponent.delegate));
+    }
     throw new UnsupportedOperationException();
   }
 

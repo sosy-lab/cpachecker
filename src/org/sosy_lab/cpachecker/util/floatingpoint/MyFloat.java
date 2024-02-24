@@ -737,7 +737,7 @@ public class MyFloat {
     MyFloat xs = MyFloat.one(Format.DOUBLE); // x^k (1 for k=0)
 
     MyFloat r = MyFloat.zero(Format.DOUBLE);
-    for (int k = 1; k < 100; k++) { // TODO: Find a proper bound for the number of iterations
+    for (int k = 1; k < 20; k++) { // TODO: Find a proper bound for the number of iterations
       // Calculate x^n/k!
       xs = xs.multiply(x);
 
@@ -746,6 +746,11 @@ public class MyFloat {
       r = r.add(k % 2 == 0 ? term.negate() : term);
     }
     return r.withPrecision(Format.FLOAT);
+  }
+
+  public MyFloat pow(MyFloat exponent) {
+    // x^y = e^(y * ln x)
+    return exponent.multiply(this.ln()).exp();
   }
 
   private FpValue fromInteger(BigInteger number) {
