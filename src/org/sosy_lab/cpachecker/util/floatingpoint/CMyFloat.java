@@ -140,6 +140,11 @@ public class CMyFloat extends CFloat {
   }
 
   @Override
+  public CFloat ln() {
+    return new CMyFloat(delegate.ln());
+  }
+
+  @Override
   public CFloat exp() {
     return new CMyFloat(delegate.exp());
   }

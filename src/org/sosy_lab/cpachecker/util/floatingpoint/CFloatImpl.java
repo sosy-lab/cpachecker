@@ -1068,6 +1068,11 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
+  public CFloat ln() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public CFloat exp() {
     throw new UnsupportedOperationException();
   }

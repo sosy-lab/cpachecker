@@ -64,6 +64,14 @@ public class CMyFloatTest extends CFloatUnitTest {
     assertThat(myfloat.exp()).isEqualTo(jfloat.exp());
   }
 
+  @Test
+  public void ln_eTest() {
+    String val = String.valueOf(Math.E);
+    CFloat myfloat = toTestedImpl(val, 0);
+    CFloat jfloat = toReferenceImpl(val, 0);
+    assertThat(myfloat.ln()).isEqualTo(jfloat.ln());
+  }
+
   @Ignore
   @Test
   @Override

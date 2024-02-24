@@ -111,6 +111,11 @@ public class JDouble extends CFloat {
   }
 
   @Override
+  public CFloat ln() {
+    return new JDouble(Math.log(toDouble()));
+  }
+
+  @Override
   public CFloat exp() {
     return new JDouble(Math.exp(toDouble()));
   }

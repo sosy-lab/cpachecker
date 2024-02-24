@@ -111,6 +111,11 @@ public class JFloat extends CFloat {
   }
 
   @Override
+  public CFloat ln() {
+    return new JFloat((float) Math.log(toFloat()));
+  }
+
+  @Override
   public CFloat exp() {
     return new JFloat((float) Math.exp(toFloat()));
   }

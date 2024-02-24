@@ -95,6 +95,9 @@ public abstract class CFloat {
    */
   public abstract CFloat divideBy(final CFloat pDivisor);
 
+  /** The natural logorithm ln(x) */
+  public abstract CFloat ln();
+
   /** The exponential function e^x */
   public abstract CFloat exp();
 

@@ -162,6 +162,11 @@ public class MpFloat extends CFloat {
   }
 
   @Override
+  public CFloat ln() {
+    return new MpFloat(value.log(format));
+  }
+
+  @Override
   public CFloat exp() {
     return new MpFloat(value.exp(format));
   }
