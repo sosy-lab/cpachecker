@@ -159,6 +159,17 @@ public abstract class CFloatUnitTest {
     return String.format("%s [%s]", toBits(value), value);
   }
 
+  private String toBits(Double value) {
+    String repr = Long.toUnsignedString(Double.doubleToLongBits(value), 2);
+    repr = "0".repeat(64 - repr.length()) + repr;
+    return String.format(
+        "%s %s %s", repr.substring(0, 1), repr.substring(1, 12), repr.substring(12));
+  }
+
+  protected String printValue(Double value) {
+    return String.format("%s [%s]", toBits(value), value);
+  }
+
   private String printTestHeader(String name, Float arg) {
     return String.format("%n%nTestcase %s(%s): ", name, printValue(arg));
   }

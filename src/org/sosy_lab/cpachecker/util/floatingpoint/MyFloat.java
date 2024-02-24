@@ -591,6 +591,12 @@ public class MyFloat {
       significand = significand.add(BigInteger.ONE);
     }
 
+    // Normalize if rounding caused an overflow
+    if (significand.testBit(targetFormat.sigBits + 1)) {
+      significand = significand.shiftRight(1); // The last bit is zero
+      exponent += 1;
+    }
+
     return new MyFloat(targetFormat, value.sign, exponent, significand);
   }
 
@@ -612,26 +618,52 @@ public class MyFloat {
   }
 
   private MyFloat sqrtImpl() {
+    // Declare some constants
     MyFloat const1_5 =
-        new MyFloat(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
-    MyFloat const0_5 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
+        new MyFloat(
+            Format.DOUBLE, false, 0, BigInteger.valueOf(3).shiftLeft(Format.DOUBLE.sigBits - 1));
+    MyFloat const0_5 =
+        new MyFloat(Format.DOUBLE, false, -1, BigInteger.ONE.shiftLeft(Format.DOUBLE.sigBits));
 
+    // Get the exponent and the significand of the argument
     long exponent = Math.max(value.exponent, format.minExp());
     BigInteger significand = value.significand;
 
+    // Normalize the argument
+    String bits = significand.toString(2);
+    int shift = (format.sigBits + 1) - bits.length();
+    if (shift > 0) {
+      significand = significand.shiftLeft(shift);
+      exponent -= shift;
+    }
+
+    // Convert the significand from float to double
+    // All intermediate results have to be calculated in double precision to avoid rounding errors
+    significand = significand.shiftLeft(Format.DOUBLE.sigBits - format.sigBits);
+
+    // Pull the exponent part from the square root
     long exponent_f = exponent % 2;
     long exponent_r = exponent / 2;
 
-    MyFloat f = new MyFloat(format, value.sign, exponent_f, significand);
+    // Define f (the transformed argument) and x, the initial value for the inverse square root
+    MyFloat f = new MyFloat(Format.DOUBLE, value.sign, exponent_f, significand);
     MyFloat x = const0_5; // Will converge, but might be slow. TODO: Find a better initial value.
 
-    for (int i = 0; i < 12; i++) {
+    // Repeat the approximation until we have enough precision
+    // TODO: Figure out a bound for the number of iterations
+    for (int i = 0; i < 7; i++) {
       // x_n+1 = x_n * (3/2 - 1/2 * x_n^2)
       x = x.multiply(const1_5.subtract(const0_5.multiply(f).multiply(x.squared())));
     }
 
-    MyFloat r = new MyFloat(format, false, exponent_r, BigInteger.ONE.shiftLeft(format.sigBits));
-    return x.multiply(f).multiply(r);
+    // r is the exponent part that we pulled out of sqrt()
+    MyFloat r =
+        new MyFloat(
+            Format.DOUBLE, false, exponent_r, BigInteger.ONE.shiftLeft(Format.DOUBLE.sigBits));
+
+    // Multiply the inverse square root with f again to get the square root. Then convert the result
+    // back to single precision.
+    return x.multiply(f).multiply(r).withPrecision(Format.FLOAT);
   }
 
   private BigInteger toInteger() {

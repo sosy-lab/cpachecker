@@ -20,7 +20,7 @@ public class CMyFloat extends CFloat {
 
   public CMyFloat(String repr, int pFloatType) {
     Preconditions.checkArgument(pFloatType < 2);
-    delegate = parseString(repr);
+    delegate = pFloatType == CNativeType.SINGLE.getOrdinal() ? parseFloat(repr) : parseDouble(repr);
     wrapper = fromImpl(delegate);
   }
 
@@ -45,7 +45,7 @@ public class CMyFloat extends CFloat {
     throw new IllegalArgumentException();
   }
 
-  private MyFloat parseString(String repr) {
+  private MyFloat parseFloat(String repr) {
     if ("nan".equals(repr)) {
       return MyFloat.nan(Format.FLOAT);
     }
@@ -69,6 +69,32 @@ public class CMyFloat extends CFloat {
         floatValue.sign(),
         floatValue.exponent(min, max),
         floatValue.significand(min, max));
+  }
+
+  private MyFloat parseDouble(String repr) {
+    if ("nan".equals(repr)) {
+      return MyFloat.nan(Format.DOUBLE);
+    }
+    if ("-inf".equals(repr)) {
+      return MyFloat.negativeInfinity(Format.DOUBLE);
+    }
+    if ("inf".equals(repr)) {
+      return MyFloat.infinity(Format.DOUBLE);
+    }
+    if ("-0.0".equals(repr)) {
+      return MyFloat.negativeZero(Format.DOUBLE);
+    }
+    if ("0.0".equals(repr)) {
+      return MyFloat.zero(Format.DOUBLE);
+    }
+    BigFloat doubleValue = new BigFloat(repr, BinaryMathContext.BINARY64);
+    long min = BinaryMathContext.BINARY64.minExponent;
+    long max = BinaryMathContext.BINARY64.maxExponent;
+    return new MyFloat(
+        Format.DOUBLE,
+        doubleValue.sign(),
+        doubleValue.exponent(min, max),
+        doubleValue.significand(min, max));
   }
 
   @Override
@@ -160,7 +186,8 @@ public class CMyFloat extends CFloat {
 
   @Override
   public boolean isOne() {
-    MyFloat one = parseString("1.0");
+    MyFloat one =
+        Format.FLOAT.equals(delegate.getFormat()) ? parseFloat("1.0") : parseDouble("1.ß");
     return one.equals(delegate);
   }
 
@@ -218,9 +245,19 @@ public class CMyFloat extends CFloat {
     return wrapper;
   }
 
+  public MyFloat getValue() {
+    return delegate;
+  }
+
   @Override
   public int getType() {
-    return 0;
+    if (Format.FLOAT.equals(delegate.getFormat())) {
+      return CNativeType.SINGLE.getOrdinal();
+    }
+    if (Format.DOUBLE.equals(delegate.getFormat())) {
+      return CNativeType.DOUBLE.getOrdinal();
+    }
+    throw new IllegalStateException();
   }
 
   @Override

@@ -222,7 +222,7 @@ public class JDouble extends CFloat {
 
   @Override
   public int getType() {
-    return 0;
+    return CNativeType.DOUBLE.getOrdinal();
   }
 
   @Override

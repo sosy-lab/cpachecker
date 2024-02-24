@@ -220,7 +220,7 @@ public class JFloat extends CFloat {
 
   @Override
   public int getType() {
-    return 0;
+    return CNativeType.SINGLE.getOrdinal();
   }
 
   @Override
