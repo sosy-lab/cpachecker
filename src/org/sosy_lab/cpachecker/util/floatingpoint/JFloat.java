@@ -40,7 +40,7 @@ public class JFloat extends CFloat {
 
   private CFloatWrapper fromFloat(float jfloat) {
     long bits = Float.floatToRawIntBits(jfloat);
-    long exponent = ((bits & 0xFF800000) >> 23) & 0x1FF;
+    long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
     long mantissa = bits & 0x007FFFFF;
     return new CFloatWrapper(exponent, mantissa);
   }

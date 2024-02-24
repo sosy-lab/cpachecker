@@ -531,9 +531,6 @@ public class MyFloat {
   }
 
   public MyFloat withPrecision(Format targetFormat) {
-    long exponent = Math.max(value.exponent, format.minExp());
-    BigInteger significand = value.significand;
-
     if (isNan()) {
       return MyFloat.nan(targetFormat);
     }
@@ -541,12 +538,11 @@ public class MyFloat {
       return value.sign ? MyFloat.negativeInfinity(targetFormat) : MyFloat.infinity(targetFormat);
     }
 
-    // Return infinity if the exponent is too large for the new encoding
-    if (exponent > targetFormat.maxExp()) {
-      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
-    }
+    long exponent = Math.max(value.exponent, format.minExp());
+    BigInteger significand = value.significand;
 
-    // Normalize
+    // Normalization
+    // If the number is subnormal shift it upward and adjust the exponent
     String bits = significand.toString(2);
     int shift = (format.sigBits + 1) - bits.length();
     if (shift > 0) {
@@ -554,13 +550,18 @@ public class MyFloat {
       exponent -= shift;
     }
 
-    // Extend the significand
-    significand = significand.shiftLeft(targetFormat.sigBits + 3);
+    // Return infinity if the exponent is too large for the new encoding
+    if (exponent > targetFormat.maxExp()) {
+      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    }
 
     // Return zero if the exponent is below the subnormal range
     if (exponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
       return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
     }
+
+    // Extend the significand
+    significand = significand.shiftLeft(targetFormat.sigBits + 3);
 
     // Use the lowest possible exponent and move the rest into the significand by shifting
     // it to the right.
@@ -568,7 +569,7 @@ public class MyFloat {
     int leading = 0;
     if (exponent < targetFormat.minExp()) {
       leading = (int) Math.abs(targetFormat.minExp() - exponent);
-      exponent = targetFormat.minExp();
+      exponent = targetFormat.minExp() - 1;
     }
 
     // Truncate the number while carrying over the grs bits.
@@ -663,7 +664,20 @@ public class MyFloat {
     return integerValue.longValue();
   }
 
+  public float toFloat() {
+    Preconditions.checkState(format.equals(Format.FLOAT));
+    if (isNan()) {
+      return Float.NaN;
+    }
+    if (isInfinite()) {
+      return isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
+    }
+    return new BigFloat(value.sign, value.significand, value.exponent, BinaryMathContext.BINARY32)
+        .floatValueExact();
+  }
+
   public double toDouble() {
+    Preconditions.checkState(format.equals(Format.DOUBLE));
     if (isNan()) {
       return Double.NaN;
     }
@@ -685,6 +699,6 @@ public class MyFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    return String.format("%.6e", toDouble());
+    return String.format("%.6e", format.equals(Format.FLOAT) ? toFloat() : toDouble());
   }
 }

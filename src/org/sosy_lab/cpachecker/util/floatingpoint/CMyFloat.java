@@ -30,11 +30,19 @@ public class CMyFloat extends CFloat {
   }
 
   private CFloatWrapper fromImpl(MyFloat floatValue) {
-    // copied from JFloat class
-    long bits = Double.doubleToRawLongBits(floatValue.toDouble());
-    long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFF;
-    long mantissa = bits & 0xFFFFFFFFFFFFFL;
-    return new CFloatWrapper(exponent, mantissa);
+    if (Format.FLOAT.equals(floatValue.getFormat())) {
+      long bits = Float.floatToRawIntBits(floatValue.toFloat());
+      long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
+      long mantissa = bits & 0x007FFFFF;
+      return new CFloatWrapper(exponent, mantissa);
+    }
+    if (Format.DOUBLE.equals(floatValue.getFormat())) {
+      long bits = Double.doubleToRawLongBits(floatValue.toDouble());
+      long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFFL;
+      long mantissa = bits & 0xFFFFFFFFFFFFFL;
+      return new CFloatWrapper(exponent, mantissa);
+    }
+    throw new IllegalArgumentException();
   }
 
   private MyFloat parseString(String repr) {
