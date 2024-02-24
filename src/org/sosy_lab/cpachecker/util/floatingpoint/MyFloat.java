@@ -665,10 +665,10 @@ public class MyFloat {
 
   public double toDouble() {
     if (isNan()) {
-      return Float.NaN;
+      return Double.NaN;
     }
     if (isInfinite()) {
-      return isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
+      return isNegative() ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
     }
     return new BigFloat(value.sign, value.significand, value.exponent, BinaryMathContext.BINARY64)
         .doubleValueExact();

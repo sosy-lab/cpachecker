@@ -19,7 +19,7 @@ public class CMyFloat extends CFloat {
   private final MyFloat delegate;
 
   public CMyFloat(String repr, int pFloatType) {
-    Preconditions.checkArgument(pFloatType == 0);
+    Preconditions.checkArgument(pFloatType < 2);
     delegate = parseString(repr);
     wrapper = fromImpl(delegate);
   }
