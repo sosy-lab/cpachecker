@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.kframework.mpfr.BigFloat;
@@ -93,6 +94,10 @@ public class MyFloat {
   public MyFloat(Format pFormat, boolean pSign, long pExponent, BigInteger pSignificand) {
     format = pFormat;
     value = new FpValue(pSign, pExponent, pSignificand);
+  }
+
+  public Format getFormat() {
+    return format;
   }
 
   public static MyFloat nan(Format pFormat) {
@@ -587,6 +592,46 @@ public class MyFloat {
     }
 
     return new MyFloat(targetFormat, value.sign, exponent, significand);
+  }
+
+  public MyFloat squared() {
+    return multiply(this);
+  }
+
+  public MyFloat sqrt() {
+    if (isZero()) {
+      return MyFloat.negativeZero(format);
+    }
+    if (isNan() || isNegative()) {
+      return MyFloat.nan(format);
+    }
+    if (isInfinite()) {
+      return MyFloat.infinity(format);
+    }
+    return sqrtImpl();
+  }
+
+  private MyFloat sqrtImpl() {
+    MyFloat const1_5 =
+        new MyFloat(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
+    MyFloat const0_5 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
+
+    long exponent = Math.max(value.exponent, format.minExp());
+    BigInteger significand = value.significand;
+
+    long exponent_f = exponent % 2;
+    long exponent_r = exponent / 2;
+
+    MyFloat f = new MyFloat(format, value.sign, exponent_f, significand);
+    MyFloat x = const0_5; // Will converge, but might be slow. TODO: Find a better initial value.
+
+    for (int i = 0; i < 12; i++) {
+      // x_n+1 = x_n * (3/2 - 1/2 * x_n^2)
+      x = x.multiply(const1_5.subtract(const0_5.multiply(f).multiply(x.squared())));
+    }
+
+    MyFloat r = new MyFloat(format, false, exponent_r, BigInteger.ONE.shiftLeft(format.sigBits));
+    return x.multiply(f).multiply(r);
   }
 
   private BigInteger toInteger() {

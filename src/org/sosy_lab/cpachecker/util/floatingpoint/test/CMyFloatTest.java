@@ -48,6 +48,14 @@ public class CMyFloatTest extends CFloatUnitTest {
     assertThat(myfloat1.multiply(myfloat2)).isEqualTo(jfloat1.multiply(jfloat2));
   }
 
+  @Test
+  public void sqrt2Test() {
+    String val = "2.0";
+    CFloat myfloat = toTestedImpl(val, 0);
+    CFloat jfloat = toReferenceImpl(val, 0);
+    assertThat(myfloat.sqrt()).isEqualTo(jfloat.sqrt());
+  }
+
   @Ignore
   @Test
   @Override
@@ -59,13 +67,6 @@ public class CMyFloatTest extends CFloatUnitTest {
   @Test
   @Override
   public void powToIntegralTest() {
-    // FIXME: Not implemented
-  }
-
-  @Ignore
-  @Test
-  @Override
-  public void sqrtTest() {
     // FIXME: Not implemented
   }
 

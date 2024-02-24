@@ -125,7 +125,7 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat sqrt() {
-    throw new UnsupportedOperationException();
+    return new CMyFloat(delegate.sqrt());
   }
 
   @Override
