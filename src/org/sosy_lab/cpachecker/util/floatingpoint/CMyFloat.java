@@ -189,7 +189,7 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat abs() {
-    throw new UnsupportedOperationException();
+    return new CMyFloat(delegate.abs());
   }
 
   @Override
@@ -221,6 +221,9 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat copySignFrom(CFloat source) {
+    if (source instanceof CMyFloat mySource) {
+      return new CMyFloat(mySource.isNegative() ? delegate.abs().negate() : delegate.abs());
+    }
     throw new UnsupportedOperationException();
   }
 
@@ -275,6 +278,9 @@ public class CMyFloat extends CFloat {
 
   @Override
   public boolean greaterThan(CFloat other) {
+    if (other instanceof CMyFloat myOther) {
+      return delegate.greaterThan(myOther.delegate);
+    }
     throw new UnsupportedOperationException();
   }
 

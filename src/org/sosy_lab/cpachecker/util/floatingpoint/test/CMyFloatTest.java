@@ -106,25 +106,4 @@ public class CMyFloatTest extends CFloatUnitTest {
   public void floorTest() {
     // FIXME: Not implemented
   }
-
-  @Ignore
-  @Test
-  @Override
-  public void absTest() {
-    // FIXME: Not implemented
-  }
-
-  @Ignore
-  @Test
-  @Override
-  public void greaterThanTest() {
-    // FIXME: Not implemented
-  }
-
-  @Ignore
-  @Test
-  @Override
-  public void copySignFromTest() {
-    // FIXME: Not implemented
-  }
 }

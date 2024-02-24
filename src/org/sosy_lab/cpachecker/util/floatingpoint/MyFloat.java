@@ -753,6 +753,30 @@ public class MyFloat {
     return exponent.multiply(this.ln()).exp();
   }
 
+  public MyFloat abs() {
+    return new MyFloat(format, false, value.exponent, value.significand);
+  }
+
+  public boolean greaterThan(MyFloat number) {
+    if (this.isNan() || number.isNan()) {
+      return false;
+    }
+    if (this.isInfinite() && !this.isNegative()) {
+      if (number.isInfinite() && !number.isNegative()) {
+        return false;
+      }
+      return true;
+    }
+    if (this.isInfinite() && this.isNegative() && number.isInfinite() && number.isNegative()) {
+      return false;
+    }
+    MyFloat r = this.subtract(number);
+    if (r.isZero()) {
+      return false;
+    }
+    return !r.isNegative();
+  }
+
   private FpValue fromInteger(BigInteger number) {
     if (number.equals(BigInteger.ZERO)) {
       return new FpValue(false, 0, BigInteger.ZERO);
