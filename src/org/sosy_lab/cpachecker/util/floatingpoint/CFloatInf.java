@@ -103,6 +103,11 @@ public class CFloatInf extends CFloat {
   }
 
   @Override
+  public CFloat exp() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public CFloat powTo(CFloat pExponent) {
     return new CFloatInf(negative, type);
   }

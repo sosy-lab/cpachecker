@@ -162,6 +162,11 @@ public class MpFloat extends CFloat {
   }
 
   @Override
+  public CFloat exp() {
+    return new MpFloat(value.exp(format));
+  }
+
+  @Override
   public CFloat powTo(CFloat exponent) {
     return new MpFloat(value.pow(toBigFloat(exponent.getWrapper()), format));
   }

@@ -91,6 +91,11 @@ public class MyFloat {
     value = pValue;
   }
 
+  public MyFloat(Format pFormat, BigInteger pValue) {
+    format = pFormat;
+    value = fromInteger(pValue);
+  }
+
   public MyFloat(Format pFormat, boolean pSign, long pExponent, BigInteger pSignificand) {
     format = pFormat;
     value = new FpValue(pSign, pExponent, pSignificand);
@@ -124,6 +129,15 @@ public class MyFloat {
   public static MyFloat negativeZero(Format pFormat) {
     FpValue value = new FpValue(true, pFormat.minExp() - 1, BigInteger.ZERO);
     return new MyFloat(pFormat, value);
+  }
+
+  public static MyFloat one(Format pFormat) {
+    FpValue value = new FpValue(false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
+    return new MyFloat(pFormat, value);
+  }
+
+  public static MyFloat constant(Format pFormat, BigInteger number) {
+    return new MyFloat(pFormat, number);
   }
 
   public boolean isNan() {
@@ -664,6 +678,62 @@ public class MyFloat {
     // Multiply the inverse square root with f again to get the square root. Then convert the result
     // back to single precision.
     return x.multiply(f).multiply(r).withPrecision(Format.FLOAT);
+  }
+
+  public MyFloat exp() {
+    if (isNan()) {
+      return MyFloat.nan(format);
+    }
+    if (isInfinite()) {
+      return isNegative() ? MyFloat.zero(format) : MyFloat.infinity(format);
+    }
+    MyFloat result = expImpl();
+    // Filter out NaN results that we seem to be getting for large negative x
+    // TODO: Return zero immediately if the result would be too small
+    return result.isNan() ? MyFloat.zero(format) : result;
+  }
+
+  private MyFloat expImpl() {
+    MyFloat one = MyFloat.one(Format.DOUBLE);
+    MyFloat x = this.withPrecision(Format.DOUBLE);
+
+    MyFloat xs = one; // x^k (1 for k=0)
+    MyFloat fs = one; // k!  (1 for k=0)
+
+    MyFloat r = one;
+    for (int k = 1; k < 100; k++) { // TODO: Find a proper bound for the number of iterations
+      // Calculate x^n/k!
+      xs = xs.multiply(x);
+      fs = fs.multiply(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
+
+      // Add it to the sum
+      r = r.add(xs.divide(fs));
+    }
+    return r.withPrecision(Format.FLOAT);
+  }
+
+  private FpValue fromInteger(BigInteger number) {
+    if (number.equals(BigInteger.ZERO)) {
+      return new FpValue(false, 0, BigInteger.ZERO);
+    }
+    long exponent = number.toString(2).length() - 1;
+    BigInteger significand = number.abs().shiftLeft(format.sigBits + 3);
+
+    // Truncate the number while carrying over the grs bits.
+    for (int i = 0; i < exponent; i++) {
+      BigInteger carry = significand.and(BigInteger.ONE);
+      significand = significand.shiftRight(1);
+      significand = significand.or(carry);
+    }
+
+    // Round the result according to the grs bits
+    long grs = significand.and(new BigInteger("111", 2)).longValue();
+    significand = significand.shiftRight(3);
+    if ((grs == 4 && significand.testBit(0)) || grs > 4) {
+      significand = significand.add(BigInteger.ONE);
+    }
+
+    return new FpValue(number.signum() < 0, exponent, significand);
   }
 
   private BigInteger toInteger() {

@@ -99,6 +99,11 @@ public class CFloatNative extends CFloat {
   }
 
   @Override
+  public CFloat exp() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public CFloat powTo(CFloat exponent) {
     CFloatWrapper newFloat =
         CFloatNativeAPI.powFp(wrapper, type, exponent.copyWrapper(), exponent.getType());

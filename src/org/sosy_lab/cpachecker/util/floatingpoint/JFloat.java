@@ -111,6 +111,11 @@ public class JFloat extends CFloat {
   }
 
   @Override
+  public CFloat exp() {
+    return new JFloat((float) Math.exp(toFloat()));
+  }
+
+  @Override
   public CFloat powTo(CFloat exponent) {
     return new JFloat((float) Math.pow(value, toFloat(exponent.getWrapper())));
   }

@@ -1067,6 +1067,11 @@ public class CFloatImpl extends CFloat {
     return new CFloatImpl(rWrapper, tDividend.getType());
   }
 
+  @Override
+  public CFloat exp() {
+    throw new UnsupportedOperationException();
+  }
+
   /**
    * Implement bitwise division to keep track of overflowing (underflowing respectively) bits for
    * rounding.

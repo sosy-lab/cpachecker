@@ -56,6 +56,14 @@ public class CMyFloatTest extends CFloatUnitTest {
     assertThat(myfloat.sqrt()).isEqualTo(jfloat.sqrt());
   }
 
+  @Test
+  public void exp1Test() {
+    String val = "-10.0";
+    CFloat myfloat = toTestedImpl(val, 0);
+    CFloat jfloat = toReferenceImpl(val, 0);
+    assertThat(myfloat.exp()).isEqualTo(jfloat.exp());
+  }
+
   @Ignore
   @Test
   @Override

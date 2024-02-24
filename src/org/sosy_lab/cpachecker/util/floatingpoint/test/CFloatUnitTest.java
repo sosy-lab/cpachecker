@@ -397,6 +397,11 @@ public abstract class CFloatUnitTest {
   }
 
   @Test
+  public void expTest() {
+    testOperator("exp", (CFloat a) -> a.exp());
+  }
+
+  @Test
   public void powToTest() {
     testOperator("powTo", (CFloat a, CFloat b) -> a.powTo(b));
   }

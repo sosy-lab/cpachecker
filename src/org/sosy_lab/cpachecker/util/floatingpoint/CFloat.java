@@ -95,6 +95,9 @@ public abstract class CFloat {
    */
   public abstract CFloat divideBy(final CFloat pDivisor);
 
+  /** The exponential function e^x */
+  public abstract CFloat exp();
+
   /**
    * Compute the power of <code>this</code> to another {@link CFloat} instance.
    *
