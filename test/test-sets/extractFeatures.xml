@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<benchmark tool="cpachecker" timelimit="15 min" memlimit="15 GB" cpuCores="2">
+
+  <!-- required for benchmarking but not for feature extraction-->
+  <!--
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/> 
+  -->
+
+  <option name="-benchmark"/>
+  <option name="-heap">10000M</option>
+
+  <rundefinition name="Feature-Extraction">
+     <option name="-featureExtraction"/>
+  </rundefinition>
+ <!--
+<tasks>
+
+ <include>program-path</include>
+ <includefiles>path to task set</includefiles>
+
+</tasks>
+-->
+
+ <tasks name="32bit">
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-ECA.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-Floats.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-Heap.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-Loops.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>-->
+<!--    <include>../sv-benchmarks/c/pthread-atomic/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/array-memsafety/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/array-memsafety-realloc/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/memsafety/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/memsafety-ext/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/memsafety-ext2/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/memory-alloca/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/ldv-memsafety/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/ldv-memsafety-bitfields/*.yml</include>-->
+<!--    <include>../sv-benchmarks/c/memsafety-ext3/*.yml</include>-->
+    <include>../sv-benchmarks/c/pthread-memsafety/*.yml</include>
+  </tasks>
+
+
+  <tasks name="64bit">
+    <option name="-64"/>
+<!--    <includesfile>../sv-benchmarks/c/Termination-MainControlFlow.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/Termination-MainHeap.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>-->
+<!--    <includesfile>../sv-benchmarks/c/Systems_BusyBox_NoOverflows.set</includesfile>-->
+    <include>../sv-benchmarks/c/signedintegeroverflow-regression/*.yml</include>
+  </tasks>
+
+<columns>
+<column title="hasLoop">Requires loop handling</column>
+<column title="hasFloat">Requires float handling</column>
+<column title="hasArray">Requires array handling</column>
+<column title="hasComposite">Requires composite-type handling</column>
+
+<!-- additional features -->
+<!--
+<column title="hasRecursion">Requires recursion handling</column>
+<column title="hasSingleLoop">Has a single loop</column>
+<column title="hasOnlyBooleans">Program containing only relevant bools</column>
+<column title="hasAliasing">Requires alias handling</column>
+-->
+
+</columns>
+</benchmark>

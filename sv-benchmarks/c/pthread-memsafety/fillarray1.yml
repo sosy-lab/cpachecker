@@ -1,0 +1,9 @@
+format_version: '1.0'
+
+# old file name: fillarray1_false-valid-deref.i
+input_files: 'fillarray1.i'
+
+properties:
+  - property_file: ../properties/valid-memsafety.prp
+    expected_verdict: false
+    subproperty: valid-deref

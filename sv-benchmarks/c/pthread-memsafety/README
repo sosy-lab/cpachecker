@@ -1,0 +1,2 @@
+The tasks contain concurrent access to shared data.
+We assume atomic statements.

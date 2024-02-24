@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: UnaryMinus_false-no-overflow.c.i
+input_files: 'UnaryMinus.i'
+
+properties:
+  - property_file: ../properties/no-overflow.prp
+    expected_verdict: false

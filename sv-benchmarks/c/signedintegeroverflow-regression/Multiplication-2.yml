@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: Multiplication_false-no-overflow.c.i
+input_files: 'Multiplication-2.i'
+
+properties:
+  - property_file: ../properties/no-overflow.prp
+    expected_verdict: false

@@ -1,0 +1,10 @@
+format_version: '1.0'
+
+# old file name: IntegerPromotion_true-no-overflow_true-termination.c.i
+input_files: 'IntegerPromotion-1.i'
+
+properties:
+  - property_file: ../properties/no-overflow.prp
+    expected_verdict: true
+  - property_file: ../properties/termination.prp
+    expected_verdict: true

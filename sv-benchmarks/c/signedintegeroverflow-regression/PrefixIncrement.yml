@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: PrefixIncrement_false-no-overflow.c.i
+input_files: 'PrefixIncrement.i'
+
+properties:
+  - property_file: ../properties/no-overflow.prp
+    expected_verdict: false
