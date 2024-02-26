@@ -846,7 +846,7 @@ public class MyFloat {
     CEILING, // Round toward +∞
     FLOOR, // Round toward -∞
     TRUNCATE // Round toward 0
-  };
+  }
 
   private BigInteger applyRounding(
       RoundingMode rm, boolean negative, BigInteger significand, long grs) {
@@ -884,10 +884,10 @@ public class MyFloat {
     significand = applyRounding(rm, value.sign, significand, grs);
 
     // Calculate exponent and normalize the significand
-    long exponent = significand.toString(2).length() - 1;
+    int exponent = significand.toString(2).length() - 1;
     // (May shift one bit to the right if rounding caused an overflow. This is safe as the last bit
     // is then always zero.)
-    significand = significand.shiftLeft((int) (format.sigBits - exponent));
+    significand = significand.shiftLeft(format.sigBits - exponent);
 
     return new MyFloat(format, value.sign, exponent, significand);
   }
@@ -896,7 +896,7 @@ public class MyFloat {
     if (number.equals(BigInteger.ZERO)) {
       return new FpValue(false, 0, BigInteger.ZERO);
     }
-    long exponent = number.toString(2).length() - 1;
+    int exponent = number.toString(2).length() - 1;
     BigInteger significand = number.abs().shiftLeft(format.sigBits + 3);
 
     // Truncate the number while carrying over the grs bits.
