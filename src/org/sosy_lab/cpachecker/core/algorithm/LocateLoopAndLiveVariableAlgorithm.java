@@ -68,14 +68,14 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     List<LoopInfo> allLoopInfos = new ArrayList<>();
 
     for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      // Determine loop location
+      // Determine the loop location
       int loopLocation =
           loop.getIncomingEdges().stream()
               .mapToInt(e -> e.getFileLocation().getStartingLineInOrigin())
               .findAny()
               .orElseThrow();
 
-      // Determine names of all variables used in the loop
+      // Determine the names of all variables used in the loop
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
@@ -92,7 +92,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       liveVariables.removeAll(variablesDeclaredInsideLoop);
       liveVariables.removeIf(e -> e.contains("::") && e.split("::")[1].startsWith("__CPAchecker_TMP_"));
 
-      // Determine type for each variable
+      // Determine the type of each variable
       for (String variable : liveVariables) {
         String type = cProgramScope.lookupVariable(variable).getType().toString();
         liveVariablesAndTypes.put(
@@ -151,7 +151,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 /**
  * Represents a container for loop information, including a loop location and a mapping from
  * variable names used in the loop to their types.
- * <p>A loop location refers to the line number where the loop condition is located.
+ * <p>A loop location refers to the line number where the loop head is located.
  */
 record LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
   LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
