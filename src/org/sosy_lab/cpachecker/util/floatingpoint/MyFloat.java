@@ -778,10 +778,10 @@ public class MyFloat {
   }
 
   public enum RoundingMode {
-    NEAREST,
-    CEILING,
-    FLOOR,
-    TRUNCATE
+    NEAREST, // Round to nearest, ties to even
+    CEILING, // Round toward +∞
+    FLOOR, // Round toward -∞
+    TRUNCATE // Round toward 0
   };
 
   private BigInteger applyRounding(
