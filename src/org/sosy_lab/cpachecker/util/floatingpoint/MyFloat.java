@@ -777,6 +777,57 @@ public class MyFloat {
     return !r.isNegative();
   }
 
+  public enum RoundingMode {
+    NEAREST,
+    CEILING,
+    FLOOR,
+    TRUNCATE
+  };
+
+  private BigInteger applyRounding(
+      RoundingMode rm, boolean negative, BigInteger significand, long grs) {
+    BigInteger plusOne = significand.add(BigInteger.ONE);
+    return switch (rm) {
+      case NEAREST -> ((grs == 4 && significand.testBit(0)) || grs > 4) ? plusOne : significand;
+      case CEILING -> (grs > 0 && !negative) ? plusOne : significand;
+      case FLOOR -> (grs > 0 && negative) ? plusOne : significand;
+      case TRUNCATE -> significand;
+    };
+  }
+
+  public MyFloat roundToInteger(RoundingMode rm) {
+    // If exponent is too large to leave any fractional part, return immediately
+    if (value.exponent > format.sigBits) {
+      return this;
+    }
+
+    // Extract significand and apply the sign, then add grs bits
+    BigInteger significand =
+        value.significand; // value.sign ? value.significand.negate() : value.significand;
+    significand = significand.shiftLeft(3);
+
+    // Shift away the fractional part
+    int shift = (int) (format.sigBits - value.exponent);
+    for (int i = 0; i < shift; i++) {
+      BigInteger carry = significand.and(BigInteger.ONE);
+      significand = significand.shiftRight(1);
+      significand = significand.or(carry);
+    }
+
+    // Drop the grs bits and round the result according to the selected rounding mode
+    long grs = significand.abs().and(new BigInteger("111", 2)).longValue();
+    significand = significand.shiftRight(3);
+    significand = applyRounding(rm, value.sign, significand, grs);
+
+    // Calculate exponent and normalize the significand
+    long exponent = significand.toString(2).length() - 1;
+    // (May shift one bit to the right if rounding caused an overflow. This is safe as the last bit
+    // is then always zero.)
+    significand = significand.shiftLeft((int) (format.sigBits - exponent));
+
+    return new MyFloat(format, value.sign, exponent, significand);
+  }
+
   private FpValue fromInteger(BigInteger number) {
     if (number.equals(BigInteger.ZERO)) {
       return new FpValue(false, 0, BigInteger.ZERO);
@@ -805,6 +856,9 @@ public class MyFloat {
     if (value.exponent < -1) {
       return BigInteger.ZERO;
     }
+    // Shift the significand to truncate the fractional part. For large exponents the expression
+    // 'format.sigBits - value.exponent' will become negative, and the shift is to the left, adding
+    // additional zeroes.
     BigInteger significand = value.significand.shiftRight((int) (format.sigBits - value.exponent));
     if (value.sign) {
       significand = significand.negate();

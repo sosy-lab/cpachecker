@@ -13,6 +13,7 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.RoundingMode;
 
 public class CMyFloat extends CFloat {
   private final CFloatWrapper wrapper;
@@ -169,22 +170,22 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat round() {
-    throw new UnsupportedOperationException();
+    return new CMyFloat(delegate.roundToInteger(RoundingMode.NEAREST));
   }
 
   @Override
   public CFloat trunc() {
-    throw new UnsupportedOperationException();
+    return new CMyFloat(delegate.roundToInteger(RoundingMode.TRUNCATE));
   }
 
   @Override
   public CFloat ceil() {
-    throw new UnsupportedOperationException();
+    return new CMyFloat(delegate.roundToInteger(RoundingMode.CEILING));
   }
 
   @Override
   public CFloat floor() {
-    throw new UnsupportedOperationException();
+    return new CMyFloat(delegate.roundToInteger(RoundingMode.FLOOR));
   }
 
   @Override

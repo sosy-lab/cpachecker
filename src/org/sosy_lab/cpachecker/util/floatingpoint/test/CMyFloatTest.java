@@ -78,32 +78,4 @@ public class CMyFloatTest extends CFloatUnitTest {
   public void powToIntegralTest() {
     // FIXME: Not implemented
   }
-
-  @Ignore
-  @Test
-  @Override
-  public void roundTest() {
-    // FIXME: Not implemented
-  }
-
-  @Ignore
-  @Test
-  @Override
-  public void truncTest() {
-    // FIXME: Not implemented
-  }
-
-  @Ignore
-  @Test
-  @Override
-  public void ceilTest() {
-    // FIXME: Not implemented
-  }
-
-  @Ignore
-  @Test
-  @Override
-  public void floorTest() {
-    // FIXME: Not implemented
-  }
 }
