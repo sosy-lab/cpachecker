@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
+import java.util.Map;
 import java.util.Objects;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
@@ -761,21 +763,43 @@ public class MyFloat {
     return result.isNan() ? MyFloat.zero(format) : result;
   }
 
+  private MyFloat fac(int k) {
+    BigInteger r = BigInteger.ONE;
+    for (int i = 1; i <= k; k++) {
+      r = r.multiply(BigInteger.valueOf(k));
+    }
+    return MyFloat.constant(Format.DOUBLE, r);
+  }
+
+  private static Map<Integer, MyFloat> mkTable(Format pFormat) {
+    ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
+    MyFloat fs = MyFloat.one(pFormat);
+    builder.put(0, fs);
+    for (int k = 1; k < 100; k++) {
+      // Calculate k! and store the values in the table
+      fs = fs.multiply(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
+      builder.put(k, MyFloat.one(pFormat).divide(fs));
+    }
+    return builder.build();
+  }
+
+  // Table contains terms 1/k! for 0..100
+  private static Map<Integer, MyFloat> fac_fractions = mkTable(Format.DOUBLE);
+
   private MyFloat expImpl() {
     MyFloat one = MyFloat.one(Format.DOUBLE);
-    MyFloat x = this.withPrecision(Format.DOUBLE);
 
+    MyFloat x = this.withPrecision(Format.DOUBLE);
     MyFloat xs = one; // x^k (1 for k=0)
-    MyFloat fs = one; // k!  (1 for k=0)
 
     MyFloat r = one;
     for (int k = 1; k < 100; k++) { // TODO: Find a proper bound for the number of iterations
-      // Calculate x^n/k!
+      // Calculate x^n and look up the factorial term
       xs = xs.multiply(x);
-      fs = fs.multiply(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
+      MyFloat divisor = fac_fractions.get(k);
 
       // Add it to the sum
-      r = r.add(xs.divide(fs));
+      r = r.add(xs.multiply(divisor));
     }
     return r.withPrecision(format);
   }
