@@ -790,30 +790,32 @@ public class MyFloat {
     if (isInfinite()) {
       return infinity(format);
     }
-    MyFloat x = this;
-    int preprocess = 10;
-    for (int i = 0; i < preprocess; i++) {
-      x = x.sqrt();
-    }
-    MyFloat r = x.subtract(MyFloat.one(format)).lnImpl();
-    return r.multiply(
-        new MyFloat(format, false, preprocess, BigInteger.ONE.shiftLeft(format.sigBits)));
+    return lnImpl();
   }
 
   public MyFloat lnImpl() {
     MyFloat x = this.withPrecision(Format.DOUBLE);
-    MyFloat xs = MyFloat.one(Format.DOUBLE); // x^k (1 for k=0)
+    int preprocess = 10;
+    for (int i = 0; i < preprocess; i++) {
+      x = x.sqrt();
+    }
+    x = x.subtract(MyFloat.one(Format.DOUBLE));
 
+    MyFloat xs = MyFloat.one(Format.DOUBLE); // x^k (1 for k=0)
     MyFloat r = MyFloat.zero(Format.DOUBLE);
+
     for (int k = 1; k < 20; k++) { // TODO: Find a proper bound for the number of iterations
-      // Calculate x^n/k!
+      // Calculate x^n/k
       xs = xs.multiply(x);
+      MyFloat term = xs.divide(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
 
       // Add the sign and then build the sum
-      MyFloat term = xs.divide(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
       r = r.add(k % 2 == 0 ? term.negate() : term);
     }
-    return r.withPrecision(Format.FLOAT);
+    MyFloat p =
+        new MyFloat(
+            Format.DOUBLE, r.value.sign, r.value.exponent + preprocess, r.value.significand);
+    return p.withPrecision(format);
   }
 
   public MyFloat pow(MyFloat exponent) {
