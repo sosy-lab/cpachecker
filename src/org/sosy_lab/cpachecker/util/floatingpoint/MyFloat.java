@@ -819,8 +819,35 @@ public class MyFloat {
   }
 
   public MyFloat pow(MyFloat exponent) {
-    // x^y = e^(y * ln x)
-    return exponent.multiply(this.ln()).exp();
+    if (exponent.isZero()) {
+      return MyFloat.one(format);
+    }
+    if (isNan() || exponent.isNan()) {
+      return MyFloat.nan(format);
+    }
+    if (isZero()) {
+      return exponent.isNegative() ? MyFloat.infinity(format) : MyFloat.zero(format);
+    }
+    if (isInfinite() && isNegative()) {
+      return exponent.isNegative() ? MyFloat.zero(format) : MyFloat.infinity(format);
+    }
+    if (exponent.isInfinite()) {
+      boolean negativePower = exponent.isNegative();
+      boolean lessThanOne =
+          MyFloat.zero(format).greaterThan(this.abs().subtract(MyFloat.one(format)));
+
+      return negativePower ^ lessThanOne ? MyFloat.zero(format) : MyFloat.infinity(format);
+    }
+    return powImpl(exponent);
+  }
+
+  private MyFloat powImpl(MyFloat exponent) {
+    MyFloat a = this.withPrecision(Format.DOUBLE);
+    MyFloat x = exponent.withPrecision(Format.DOUBLE);
+
+    // a^x = e^(x * ln a)
+    MyFloat r = x.multiply(a.ln()).exp();
+    return r.withPrecision(format);
   }
 
   public MyFloat abs() {
