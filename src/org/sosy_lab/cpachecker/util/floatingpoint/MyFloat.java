@@ -15,6 +15,10 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 
+// Several functions here require higher precision variables for their intermediate results.
+// Currently, we assume the arguments are float and then use double precision for these variables.
+// TODO: Rewrite for arbitrary precision.
+
 public class MyFloat {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
@@ -741,7 +745,7 @@ public class MyFloat {
 
     // Multiply the inverse square root with f again to get the square root. Then convert the result
     // back to single precision.
-    return x.multiply(f).multiply(r).withPrecision(Format.FLOAT);
+    return x.multiply(f).multiply(r).withPrecision(format);
   }
 
   public MyFloat exp() {
@@ -773,7 +777,7 @@ public class MyFloat {
       // Add it to the sum
       r = r.add(xs.divide(fs));
     }
-    return r.withPrecision(Format.FLOAT);
+    return r.withPrecision(format);
   }
 
   public MyFloat ln() {
