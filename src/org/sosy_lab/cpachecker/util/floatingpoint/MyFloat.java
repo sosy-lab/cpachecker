@@ -458,7 +458,7 @@ public class MyFloat {
     }
 
     // Handle regular numbers in divideImpl
-    return n.divideImpl(m);
+    return n.divideNewton(m);
   }
 
   private MyFloat divideImpl(MyFloat number) {
@@ -547,6 +547,70 @@ public class MyFloat {
 
     // Return the number
     return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
+  }
+
+  private double lb(double number) {
+    return Math.log(number) / Math.log(2);
+  }
+
+  private MyFloat divideNewton(MyFloat number) {
+    // TODO: Calculate these constants only once for each floating point precision
+    MyFloat c48 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(48));
+    MyFloat c32 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(32));
+    MyFloat c17 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(17));
+
+    // Define constants t1 and t2 for the calculation of the initial value
+    MyFloat t1 = c48.divideImpl(c17);
+    MyFloat t2 = c32.divideImpl(c17);
+
+    // Extract exponents and significand bits
+    int exponent1 = (int) Math.max(value.exponent, Format.FLOAT.minExp());
+    int exponent2 = (int) Math.max(number.value.exponent, Format.FLOAT.minExp());
+
+    // Normalize both arguments
+    BigInteger significand1 = value.significand;
+    String bits1 = significand1.toString(2);
+    int shift1 = (format.sigBits + 1) - bits1.length();
+    if (shift1 > 0) {
+      significand1 = significand1.shiftLeft(shift1);
+      exponent1 -= shift1;
+    }
+
+    BigInteger significand2 = number.value.significand;
+    String bits2 = significand2.toString(2);
+    int shift2 = (format.sigBits + 1) - bits2.length();
+    if (shift2 > 0) {
+      significand2 = significand2.shiftLeft(shift2);
+      exponent2 -= shift2;
+    }
+
+    // Extend the significands to double precision
+    significand1 = significand1.shiftLeft(Format.DOUBLE.sigBits - format.sigBits);
+    significand2 = significand2.shiftLeft(Format.DOUBLE.sigBits - format.sigBits);
+
+    // Shift numerator and divisor by pulling out common factors in the exponent.
+    // This will put the divisor in the range of 0.5 to 1.0
+    MyFloat n = new MyFloat(Format.DOUBLE, false, exponent1 - (exponent2 + 1), significand1);
+    MyFloat d = new MyFloat(Format.DOUBLE, false, -1, significand2);
+
+    // Calculate how many iterations are needed
+    int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
+
+    // Set the initial value to 48/32 - 32/17*D
+    MyFloat x = t1.subtract(t2.multiply(d));
+    for (int i = 0; i < bound; i++) {
+      // X(i+1) = X(i)*(2 - D*X(i))
+      x =
+          x.multiply(
+              MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(2)).subtract(d.multiply(x)));
+    }
+
+    // Multiply 1/D with N and round down to single precision
+    MyFloat r = x.multiply(n).withPrecision(Format.FLOAT);
+
+    // Set the sign bit and return the result
+    return new MyFloat(
+        Format.FLOAT, value.sign ^ number.value.sign, r.value.exponent, r.value.significand);
   }
 
   public MyFloat withPrecision(Format targetFormat) {
