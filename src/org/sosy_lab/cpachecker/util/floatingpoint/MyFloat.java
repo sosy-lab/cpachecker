@@ -564,8 +564,8 @@ public class MyFloat {
     MyFloat t2 = c32.divideImpl(c17);
 
     // Extract exponents and significand bits
-    int exponent1 = (int) Math.max(value.exponent, Format.FLOAT.minExp());
-    int exponent2 = (int) Math.max(number.value.exponent, Format.FLOAT.minExp());
+    int exponent1 = (int) Math.max(value.exponent, format.minExp());
+    int exponent2 = (int) Math.max(number.value.exponent, format.minExp());
 
     // Normalize both arguments
     BigInteger significand1 = value.significand;
@@ -606,11 +606,11 @@ public class MyFloat {
     }
 
     // Multiply 1/D with N and round down to single precision
-    MyFloat r = x.multiply(n).withPrecision(Format.FLOAT);
+    MyFloat r = x.multiply(n).withPrecision(format);
 
     // Set the sign bit and return the result
     return new MyFloat(
-        Format.FLOAT, value.sign ^ number.value.sign, r.value.exponent, r.value.significand);
+        format, value.sign ^ number.value.sign, r.value.exponent, r.value.significand);
   }
 
   public MyFloat withPrecision(Format targetFormat) {
