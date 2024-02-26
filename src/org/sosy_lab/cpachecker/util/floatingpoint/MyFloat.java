@@ -794,14 +794,6 @@ public class MyFloat {
     return result.isNan() ? MyFloat.zero(format) : result;
   }
 
-  private MyFloat fac(int k) {
-    BigInteger r = BigInteger.ONE;
-    for (int i = 1; i <= k; k++) {
-      r = r.multiply(BigInteger.valueOf(k));
-    }
-    return MyFloat.constant(Format.DOUBLE, r);
-  }
-
   private static Map<Integer, MyFloat> mkTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
     MyFloat fs = MyFloat.one(pFormat);
