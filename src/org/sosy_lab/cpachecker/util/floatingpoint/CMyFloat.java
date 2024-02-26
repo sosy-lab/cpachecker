@@ -200,9 +200,7 @@ public class CMyFloat extends CFloat {
 
   @Override
   public boolean isOne() {
-    MyFloat one =
-        Format.FLOAT.equals(delegate.getFormat()) ? parseFloat("1.0") : parseDouble("1.ß");
-    return one.equals(delegate);
+    return delegate.equals(MyFloat.one(delegate.getFormat()));
   }
 
   @Override

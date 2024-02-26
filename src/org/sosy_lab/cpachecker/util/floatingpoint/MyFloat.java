@@ -87,6 +87,22 @@ public class MyFloat {
       exponent = pExponent;
       significand = pSignificand;
     }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      return pOther instanceof FpValue other
+          && sign == other.sign
+          && exponent == other.exponent
+          && significand.equals(other.significand);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(sign, exponent, significand);
+    }
   }
 
   private final Format format;
@@ -162,6 +178,21 @@ public class MyFloat {
 
   public boolean isNegative() {
     return value.sign;
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof MyFloat other
+        && format.equals(other.format)
+        && value.equals(other.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(format, value);
   }
 
   public MyFloat negate() {
