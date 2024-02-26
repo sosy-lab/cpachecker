@@ -811,7 +811,7 @@ public class MyFloat {
       fs = fs.multiply(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
       builder.put(k, MyFloat.one(pFormat).divide(fs));
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   // Table contains terms 1/k! for 0..100
