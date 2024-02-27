@@ -195,6 +195,14 @@ public class MyFloat {
     return Objects.hash(format, value);
   }
 
+  // Shift the significand to the right while preserving the sticky bit
+  private BigInteger truncate(BigInteger significand, int bits) {
+    BigInteger mask = BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE);
+    BigInteger carry =
+        significand.and(mask).equals(BigInteger.ZERO) ? BigInteger.ZERO : BigInteger.ONE;
+    return significand.shiftRight(bits).or(carry);
+  }
+
   public MyFloat negate() {
     if (isNan()) {
       return MyFloat.nan(format);
@@ -249,7 +257,7 @@ public class MyFloat {
 
     // Calculate the difference between the exponents. If it is larger than the mantissa size we can
     // skip the add and return immediately.
-    long exp_diff = exponent1 - exponent2;
+    int exp_diff = (int) (exponent1 - exponent2);
     if (Math.abs(exp_diff) > format.sigBits + 1) {
       return this;
     }
@@ -265,11 +273,7 @@ public class MyFloat {
 
     // Shift the number with the smaller exponent to the exponent of the other number.
     // Update the grs bits during the shift.
-    for (int i = 0; i < exp_diff; i++) {
-      BigInteger carry = significand2.and(BigInteger.ONE);
-      significand2 = significand2.shiftRight(1);
-      significand2 = significand2.or(carry);
-    }
+    significand2 = truncate(significand2, exp_diff);
 
     // Add the two significands
     BigInteger result = significand1.add(significand2);
@@ -295,9 +299,8 @@ public class MyFloat {
     //     This can happen if digits have canceled out:
     //     f.ex 1.01001e2 + (-1.01e2) = 0.00001e2
     //     (here we normalize to 1.0e-3)
-    String bits = significand_.toString(2);
     // FIXME: Handle subnormals
-    int offset = (format.sigBits + 4) - bits.length();
+    int offset = (format.sigBits + 4) - significand_.bitLength();
     if (offset > 0 && exponent_ > format.minExp()) {
       significand_ = significand_.shiftLeft(offset);
       exponent_ -= offset;
@@ -410,8 +413,7 @@ public class MyFloat {
     //     This can happen if one of the numbers was subnormal:
     //     f.ex 1.0e3 x 0.1e-1 = 0.10e2
     //     (here we normalize to 1.0e1)
-    String bits = significand_.toString(2);
-    int shift = (2 * format.sigBits + 4) - bits.length();
+    int shift = (2 * format.sigBits + 4) - significand_.bitLength();
     if (shift > 0) {
       significand_ = significand_.shiftLeft(shift);
       exponent_ -= shift;
@@ -425,16 +427,12 @@ public class MyFloat {
       exponent_ = format.minExp() - 1;
     }
 
-    // Truncate the number while carrying over the grs bits.
+    // Truncate the value
     // The significand now has length 2*|precision of the significand| + 3 where 3 are the grs bits
     // at the end. We need to shift by at least |precision of the significand| bits. If one of the
     // factors was subnormal the results may have leading zeroes as well, and we need to shift
     // further by 'leading' bits.
-    for (int i = 0; i < format.sigBits + leading; i++) {
-      BigInteger carry = significand_.and(BigInteger.ONE);
-      significand_ = significand_.shiftRight(1);
-      significand_ = significand_.or(carry);
-    }
+    significand_ = truncate(significand_, format.sigBits + leading);
 
     // Round the result according to the grs bits
     long grs = significand_.and(new BigInteger("111", 2)).longValue();
@@ -509,16 +507,14 @@ public class MyFloat {
 
     // Normalize both arguments.
     BigInteger significand1 = value.significand;
-    String bits1 = significand1.toString(2);
-    int shift1 = (format.sigBits + 1) - bits1.length();
+    int shift1 = (format.sigBits + 1) - significand1.bitLength();
     if (shift1 > 0) {
       significand1 = significand1.shiftLeft(shift1);
       exponent1 -= shift1;
     }
 
     BigInteger significand2 = number.value.significand;
-    String bits2 = significand2.toString(2);
-    int shift2 = (format.sigBits + 1) - bits2.length();
+    int shift2 = (format.sigBits + 1) - significand2.bitLength();
     if (shift2 > 0) {
       significand2 = significand2.shiftLeft(shift2);
       exponent2 -= shift2;
@@ -568,12 +564,8 @@ public class MyFloat {
       exponent_ = format.minExp() - 1;
     }
 
-    // Truncate the number while carrying over the grs bits.
-    for (int i = 0; i < hack + leading; i++) {
-      BigInteger carry = significand_.and(BigInteger.ONE);
-      significand_ = significand_.shiftRight(1);
-      significand_ = significand_.or(carry);
-    }
+    // Truncate the value while carrying over the grs bits.
+    significand_ = truncate(significand_, hack + leading);
 
     // Round the result according to the grs bits
     long grs = significand_.and(new BigInteger("111", 2)).longValue();
@@ -590,32 +582,30 @@ public class MyFloat {
     return Math.log(number) / Math.log(2);
   }
 
+  // TODO: Calculate these constants only once for each floating point precision
+  private static final MyFloat c48 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(48));
+  private static final MyFloat c32 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(32));
+  private static final MyFloat c17 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(17));
+  private static final MyFloat c2 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(2));
+
+  private static final MyFloat c48d17 = c48.divideImpl(c17);
+  private static final MyFloat c32d17 = c32.divideImpl(c17);
+
   private MyFloat divideNewton(MyFloat number) {
-    // TODO: Calculate these constants only once for each floating point precision
-    MyFloat c48 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(48));
-    MyFloat c32 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(32));
-    MyFloat c17 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(17));
-
-    // Define constants t1 and t2 for the calculation of the initial value
-    MyFloat t1 = c48.divideImpl(c17);
-    MyFloat t2 = c32.divideImpl(c17);
-
     // Extract exponents and significand bits
     int exponent1 = (int) Math.max(value.exponent, format.minExp());
     int exponent2 = (int) Math.max(number.value.exponent, format.minExp());
 
     // Normalize both arguments
     BigInteger significand1 = value.significand;
-    String bits1 = significand1.toString(2);
-    int shift1 = (format.sigBits + 1) - bits1.length();
+    int shift1 = (format.sigBits + 1) - significand1.bitLength();
     if (shift1 > 0) {
       significand1 = significand1.shiftLeft(shift1);
       exponent1 -= shift1;
     }
 
     BigInteger significand2 = number.value.significand;
-    String bits2 = significand2.toString(2);
-    int shift2 = (format.sigBits + 1) - bits2.length();
+    int shift2 = (format.sigBits + 1) - significand2.bitLength();
     if (shift2 > 0) {
       significand2 = significand2.shiftLeft(shift2);
       exponent2 -= shift2;
@@ -634,12 +624,10 @@ public class MyFloat {
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
 
     // Set the initial value to 48/32 - 32/17*D
-    MyFloat x = t1.subtract(t2.multiply(d));
+    MyFloat x = c48d17.subtract(c32d17.multiply(d));
     for (int i = 0; i < bound; i++) {
       // X(i+1) = X(i)*(2 - D*X(i))
-      x =
-          x.multiply(
-              MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(2)).subtract(d.multiply(x)));
+      x = x.multiply(c2.subtract(d.multiply(x)));
     }
 
     // Multiply 1/D with N and round down to single precision
@@ -650,72 +638,7 @@ public class MyFloat {
         format, value.sign ^ number.value.sign, r.value.exponent, r.value.significand);
   }
 
-  public MyFloat withPrecision(Format targetFormat) {
-    if (isNan()) {
-      return MyFloat.nan(targetFormat);
-    }
-    if (isInfinite()) {
-      return value.sign ? MyFloat.negativeInfinity(targetFormat) : MyFloat.infinity(targetFormat);
-    }
-
-    long exponent = Math.max(value.exponent, format.minExp());
-    BigInteger significand = value.significand;
-
-    // Normalization
-    // If the number is subnormal shift it upward and adjust the exponent
-    String bits = significand.toString(2);
-    int shift = (format.sigBits + 1) - bits.length();
-    if (shift > 0) {
-      significand = significand.shiftLeft(shift);
-      exponent -= shift;
-    }
-
-    // Return infinity if the exponent is too large for the new encoding
-    if (exponent > targetFormat.maxExp()) {
-      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
-    }
-
-    // Return zero if the exponent is below the subnormal range
-    if (exponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
-      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
-    }
-
-    // Extend the significand
-    significand = significand.shiftLeft(targetFormat.sigBits + 3);
-
-    // Use the lowest possible exponent and move the rest into the significand by shifting
-    // it to the right.
-    // Here we calculate haw many digits we need to shift:
-    int leading = 0;
-    if (exponent < targetFormat.minExp()) {
-      leading = (int) Math.abs(targetFormat.minExp() - exponent);
-      exponent = targetFormat.minExp() - 1;
-    }
-
-    // Truncate the number while carrying over the grs bits.
-    for (int i = 0; i < format.sigBits + leading; i++) {
-      BigInteger carry = significand.and(BigInteger.ONE);
-      significand = significand.shiftRight(1);
-      significand = significand.or(carry);
-    }
-
-    // Round the result according to the grs bits
-    long grs = significand.and(new BigInteger("111", 2)).longValue();
-    significand = significand.shiftRight(3);
-    if ((grs == 4 && significand.testBit(0)) || grs > 4) {
-      significand = significand.add(BigInteger.ONE);
-    }
-
-    // Normalize if rounding caused an overflow
-    if (significand.testBit(targetFormat.sigBits + 1)) {
-      significand = significand.shiftRight(1); // The last bit is zero
-      exponent += 1;
-    }
-
-    return new MyFloat(targetFormat, value.sign, exponent, significand);
-  }
-
-  public MyFloat squared() {
+  private MyFloat squared() {
     return multiply(this);
   }
 
@@ -745,8 +668,7 @@ public class MyFloat {
     BigInteger significand = value.significand;
 
     // Normalize the argument
-    String bits = significand.toString(2);
-    int shift = (format.sigBits + 1) - bits.length();
+    int shift = (format.sigBits + 1) - significand.bitLength();
     if (shift > 0) {
       significand = significand.shiftLeft(shift);
       exponent -= shift;
@@ -942,6 +864,66 @@ public class MyFloat {
     return !r.isNegative();
   }
 
+  public MyFloat withPrecision(Format targetFormat) {
+    if (isNan()) {
+      return MyFloat.nan(targetFormat);
+    }
+    if (isInfinite()) {
+      return value.sign ? MyFloat.negativeInfinity(targetFormat) : MyFloat.infinity(targetFormat);
+    }
+
+    long exponent = Math.max(value.exponent, format.minExp());
+    BigInteger significand = value.significand;
+
+    // Normalization
+    // If the number is subnormal shift it upward and adjust the exponent
+    int shift = (format.sigBits + 1) - significand.bitLength();
+    if (shift > 0) {
+      significand = significand.shiftLeft(shift);
+      exponent -= shift;
+    }
+
+    // Return infinity if the exponent is too large for the new encoding
+    if (exponent > targetFormat.maxExp()) {
+      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    }
+
+    // Return zero if the exponent is below the subnormal range
+    if (exponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
+      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
+    }
+
+    // Extend the significand
+    significand = significand.shiftLeft(targetFormat.sigBits + 3);
+
+    // Use the lowest possible exponent and move the rest into the significand by shifting
+    // it to the right.
+    // Here we calculate haw many digits we need to shift:
+    int leading = 0;
+    if (exponent < targetFormat.minExp()) {
+      leading = (int) Math.abs(targetFormat.minExp() - exponent);
+      exponent = targetFormat.minExp() - 1;
+    }
+
+    // Truncate the value while carrying over the grs bits.
+    significand = truncate(significand, format.sigBits + leading);
+
+    // Round the result according to the grs bits
+    long grs = significand.and(new BigInteger("111", 2)).longValue();
+    significand = significand.shiftRight(3);
+    if ((grs == 4 && significand.testBit(0)) || grs > 4) {
+      significand = significand.add(BigInteger.ONE);
+    }
+
+    // Normalize if rounding caused an overflow
+    if (significand.testBit(targetFormat.sigBits + 1)) {
+      significand = significand.shiftRight(1); // The last bit is zero
+      exponent += 1;
+    }
+
+    return new MyFloat(targetFormat, value.sign, exponent, significand);
+  }
+
   public enum RoundingMode {
     NEAREST, // Round to nearest, ties to even
     CEILING, // Round toward +∞
@@ -985,7 +967,7 @@ public class MyFloat {
     significand = applyRounding(rm, value.sign, significand, grs);
 
     // Calculate exponent and normalize the significand
-    int exponent = significand.toString(2).length() - 1;
+    int exponent = significand.bitLength() - 1;
     // (May shift one bit to the right if rounding caused an overflow. This is safe as the last bit
     // is then always zero.)
     significand = significand.shiftLeft(format.sigBits - exponent);
@@ -997,15 +979,11 @@ public class MyFloat {
     if (number.equals(BigInteger.ZERO)) {
       return new FpValue(false, 0, BigInteger.ZERO);
     }
-    int exponent = number.toString(2).length() - 1;
+    int exponent = number.bitLength() - 1;
     BigInteger significand = number.abs().shiftLeft(format.sigBits + 3);
 
     // Truncate the number while carrying over the grs bits.
-    for (int i = 0; i < exponent; i++) {
-      BigInteger carry = significand.and(BigInteger.ONE);
-      significand = significand.shiftRight(1);
-      significand = significand.or(carry);
-    }
+    significand = truncate(significand, exponent);
 
     // Round the result according to the grs bits
     long grs = significand.and(new BigInteger("111", 2)).longValue();
