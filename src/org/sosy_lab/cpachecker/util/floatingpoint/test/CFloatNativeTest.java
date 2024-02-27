@@ -39,6 +39,18 @@ public class CFloatNativeTest extends CFloatUnitTest {
 
   @Ignore
   @Override
+  public void expTest() {
+    // FIXME: Not implemented
+  }
+
+  @Ignore
+  @Override
+  public void lnTest() {
+    // FIXME: Not implemented
+  }
+
+  @Ignore
+  @Override
   public void castToByteTest() {
     // FIXME: Native calls crashes
   }
