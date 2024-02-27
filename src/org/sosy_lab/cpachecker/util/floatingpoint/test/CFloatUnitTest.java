@@ -85,12 +85,15 @@ public abstract class CFloatUnitTest {
     return new BigDecimal(fpVal).toPlainString();
   }
 
-  // Generate test values
+  // Generate a list of floating point constants that cover all special case values
   protected static List<Float> floatConsts() {
     ImmutableList.Builder<Float> builder = ImmutableList.builder();
     builder.add(
         Float.NEGATIVE_INFINITY,
         -Float.MAX_VALUE,
+        -17.0f,
+        -1.0f,
+        -0.1f,
         -Float.MIN_NORMAL,
         -Float.MIN_VALUE,
         -0.0f,
@@ -98,26 +101,56 @@ public abstract class CFloatUnitTest {
         0.0f,
         Float.MIN_VALUE,
         Float.MIN_NORMAL,
+        0.1f,
+        1.0f,
+        17.0f,
         Float.MAX_VALUE,
         Float.POSITIVE_INFINITY);
+    return builder.build();
+  }
 
-    for (int c = 1; c <= 3; c++) {
-      for (int e = 1; e <= 5; e++) {
-        builder.add((float) Math.pow(c * 0.1f, e));
-      }
-    }
-
-    Random randomNumbers = new Random(0);
-    int i = 0;
-    while (i < 10) {
-      float flt = Float.intBitsToFloat(randomNumbers.nextInt());
-      if (!Float.isNaN(flt) && !Float.isInfinite(flt)) {
-        if (!builder.build().contains(flt)) {
-          builder.add(flt);
-          i++;
+  // Generate a list of powers ca^px where c,p are incremented starting from 1 and a,x are constants
+  protected static List<Float> floatPowers(int c, float a, int p, float x) {
+    ImmutableList.Builder<Float> builder = ImmutableList.builder();
+    for (int i = 1; i <= c; i++) {
+      for (int j = -p; j <= p; j++) {
+        float val = (float) Math.pow(i * a, j * x);
+        if (val != 1.0f) {
+          builder.add(val);
         }
       }
     }
+    return builder.build();
+  }
+
+  // Generate n random floating point values
+  protected static List<Float> floatRandom(int n) {
+    ImmutableList.Builder<Float> builder = ImmutableList.builder();
+    Random randomNumbers = new Random(0);
+    int i = 0;
+    while (i < n) {
+      float flt = Float.intBitsToFloat(randomNumbers.nextInt());
+      if (!Float.isNaN(flt) && !Float.isInfinite(flt)) {
+        builder.add(flt);
+        i++;
+      }
+    }
+    return builder.build();
+  }
+
+  protected static List<Float> binaryTestValues() {
+    ImmutableList.Builder<Float> builder = ImmutableList.builder();
+    builder.addAll(floatConsts());
+    builder.addAll(floatPowers(3, 0.5f, 3, 0.5f));
+    builder.addAll(floatRandom(10));
+    return builder.build();
+  }
+
+  protected static List<Float> unaryTestValues() {
+    ImmutableList.Builder<Float> builder = ImmutableList.builder();
+    builder.addAll(floatConsts());
+    builder.addAll(floatPowers(14, 0.5f, 20, 0.5f));
+    builder.addAll(floatRandom(1000));
     return builder.build();
   }
 
@@ -180,7 +213,7 @@ public abstract class CFloatUnitTest {
 
   protected void testOperator(String name, UnaryOperator<CFloat> operator) {
     ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
-    for (Float arg : floatConsts()) {
+    for (Float arg : unaryTestValues()) {
       if (isInTestClass(arg)) {
         CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
         Float result = operator.apply(ref).toFloat();
@@ -215,8 +248,8 @@ public abstract class CFloatUnitTest {
 
   protected void testOperator(String name, BinaryOperator<CFloat> operator) {
     ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
-    for (Float arg1 : floatConsts()) {
-      for (Float arg2 : floatConsts()) {
+    for (Float arg1 : binaryTestValues()) {
+      for (Float arg2 : binaryTestValues()) {
         if (isInTestClass(arg1, arg2)) {
           CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
           CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
@@ -255,7 +288,7 @@ public abstract class CFloatUnitTest {
 
   protected void testPredicate(String name, Predicate<CFloat> predicate) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
-    for (Float arg : floatConsts()) {
+    for (Float arg : unaryTestValues()) {
       if (isInTestClass(arg)) {
         CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
         boolean result = predicate.test(ref);
@@ -291,8 +324,8 @@ public abstract class CFloatUnitTest {
 
   protected void testPredicate(String name, BinaryPredicate<CFloat, CFloat> predicate) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
-    for (Float arg1 : floatConsts()) {
-      for (Float arg2 : floatConsts()) {
+    for (Float arg1 : binaryTestValues()) {
+      for (Float arg2 : binaryTestValues()) {
         if (isInTestClass(arg1, arg2)) {
           CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
           CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
@@ -331,7 +364,7 @@ public abstract class CFloatUnitTest {
 
   protected void testIntegerFunction(String name, Function<CFloat, Number> function) {
     ImmutableList.Builder<TestValue<Number>> testBuilder = ImmutableList.builder();
-    for (Float arg : floatConsts()) {
+    for (Float arg : unaryTestValues()) {
       if (isInTestClass(arg)) {
         CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
         Number result = function.apply(ref);
