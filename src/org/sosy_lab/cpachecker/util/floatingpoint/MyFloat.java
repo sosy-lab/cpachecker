@@ -788,17 +788,14 @@ public class MyFloat {
     if (isInfinite()) {
       return isNegative() ? MyFloat.zero(format) : MyFloat.infinity(format);
     }
-    MyFloat result = expImpl();
-    // Filter out NaN results that we seem to be getting for large negative x
-    // TODO: Return zero immediately if the result would be too small
-    return result.isNan() ? MyFloat.zero(format) : result;
+    return expImpl();
   }
 
   private static Map<Integer, MyFloat> mkTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
     MyFloat fs = MyFloat.one(pFormat);
     builder.put(0, fs);
-    for (int k = 1; k < 100; k++) {
+    for (int k = 1; k < 20; k++) {
       // Calculate k! and store the values in the table
       fs = fs.multiply(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
       builder.put(k, MyFloat.one(pFormat).divide(fs));
@@ -815,14 +812,24 @@ public class MyFloat {
     MyFloat x = this.withPrecision(Format.DOUBLE);
     MyFloat xs = one; // x^k (1 for k=0)
 
+    // Pull out the exponent to reduce the argument
+    if (value.exponent > 0) {
+      x = new MyFloat(Format.DOUBLE, x.value.sign, 0, x.value.significand);
+    }
+
     MyFloat r = one;
-    for (int k = 1; k < 100; k++) { // TODO: Find a proper bound for the number of iterations
+    for (int k = 1; k < 20; k++) { // TODO: Find a proper bound for the number of iterations
       // Calculate x^n and look up the factorial term
       xs = xs.multiply(x);
       MyFloat divisor = fac_fractions.get(k);
 
       // Add it to the sum
       r = r.add(xs.multiply(divisor));
+    }
+
+    // Square the result to recover the exponent
+    for (int i = 0; i < value.exponent; i++) {
+      r = r.squared();
     }
     return r.withPrecision(format);
   }
@@ -885,7 +892,21 @@ public class MyFloat {
 
       return negativePower ^ lessThanOne ? MyFloat.zero(format) : MyFloat.infinity(format);
     }
-    return powImpl(exponent);
+    MyFloat r = powImpl(exponent);
+    if (r.isNan()) {
+      boolean alessThanOne =
+          MyFloat.zero(format).greaterThan(this.abs().subtract(MyFloat.one(format)));
+      boolean xlessThanOne =
+          MyFloat.zero(format).greaterThan(exponent.abs().subtract(MyFloat.one(format)));
+
+      if (isNegative() && !alessThanOne && !xlessThanOne) {
+        return exponent.isNegative() ? MyFloat.zero(format) : MyFloat.infinity(format);
+      }
+      if (isNegative() && alessThanOne && !xlessThanOne) {
+        return exponent.isNegative() ? MyFloat.infinity(format) : MyFloat.zero(format);
+      }
+    }
+    return r;
   }
 
   private MyFloat powImpl(MyFloat exponent) {
