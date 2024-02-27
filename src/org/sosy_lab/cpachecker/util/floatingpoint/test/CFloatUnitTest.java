@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Correspondence.BinaryPredicate;
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.BinaryOperator;
@@ -21,55 +20,12 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
-@RunWith(Parameterized.class)
 public abstract class CFloatUnitTest {
   protected int floatType = CFloatNativeAPI.FP_TYPE_SINGLE; // TODO: Add other float types
-
-  public enum Filter {
-    ZERO,
-    NORMAL,
-    SUBNORMAL,
-    REGULAR, // Normal + Subnormal
-    INFINITIES,
-    EXTENDED, // Regular with infinities
-    NAN,
-    FINITE, // Regular and NaN
-    ALL // Regular, infinities and NaN
-  }
-
-  @Parameters(name = "{0}")
-  public static Filter[] testClasses() {
-    return Filter.values();
-  }
-
-  @Parameter(0)
-  public Filter testClass;
-
-  private boolean isInClass(Float pFloat) {
-    return switch (testClass) {
-      case ZERO -> pFloat == 0.0f;
-      case NORMAL -> Float.isFinite(pFloat) && (Float.MIN_NORMAL <= pFloat);
-      case SUBNORMAL -> Float.isFinite(pFloat) && (Float.MIN_NORMAL > pFloat && pFloat != 0.0f);
-      case REGULAR -> Float.isFinite(pFloat);
-      case INFINITIES -> Float.isInfinite(pFloat);
-      case EXTENDED -> !Float.isNaN(pFloat);
-      case NAN -> Float.isNaN(pFloat);
-      case FINITE -> Float.isFinite(pFloat) || Float.isNaN(pFloat);
-      case ALL -> true;
-    };
-  }
-
-  protected boolean isInTestClass(Float... pValues) {
-    return Arrays.stream(pValues).map(this::isInClass).reduce(Boolean::logicalAnd).orElseThrow();
-  }
 
   // Convert floating point value to its decimal representation
   private static String toPlainString(float fpVal) {
@@ -214,11 +170,9 @@ public abstract class CFloatUnitTest {
   protected void testOperator(String name, UnaryOperator<CFloat> operator) {
     ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
     for (Float arg : unaryTestValues()) {
-      if (isInTestClass(arg)) {
-        CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
-        Float result = operator.apply(ref).toFloat();
-        testBuilder.add(new TestValue<>(arg, result));
-      }
+      CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
+      Float result = operator.apply(ref).toFloat();
+      testBuilder.add(new TestValue<>(arg, result));
     }
     ImmutableList<TestValue<Float>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
@@ -250,12 +204,10 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
     for (Float arg1 : binaryTestValues()) {
       for (Float arg2 : binaryTestValues()) {
-        if (isInTestClass(arg1, arg2)) {
-          CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
-          CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
-          Float result = operator.apply(ref1, ref2).toFloat();
-          testBuilder.add(new TestValue<>(arg1, arg2, result));
-        }
+        CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
+        CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
+        Float result = operator.apply(ref1, ref2).toFloat();
+        testBuilder.add(new TestValue<>(arg1, arg2, result));
       }
     }
     ImmutableList<TestValue<Float>> testCases = testBuilder.build();
@@ -289,11 +241,9 @@ public abstract class CFloatUnitTest {
   protected void testPredicate(String name, Predicate<CFloat> predicate) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
     for (Float arg : unaryTestValues()) {
-      if (isInTestClass(arg)) {
-        CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
-        boolean result = predicate.test(ref);
-        testBuilder.add(new TestValue<>(arg, result));
-      }
+      CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
+      boolean result = predicate.test(ref);
+      testBuilder.add(new TestValue<>(arg, result));
     }
     ImmutableList<TestValue<Boolean>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
@@ -326,12 +276,10 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
     for (Float arg1 : binaryTestValues()) {
       for (Float arg2 : binaryTestValues()) {
-        if (isInTestClass(arg1, arg2)) {
-          CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
-          CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
-          boolean result = predicate.apply(ref1, ref2);
-          testBuilder.add(new TestValue<>(arg1, arg2, result));
-        }
+        CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
+        CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
+        boolean result = predicate.apply(ref1, ref2);
+        testBuilder.add(new TestValue<>(arg1, arg2, result));
       }
     }
     ImmutableList<TestValue<Boolean>> testCases = testBuilder.build();
@@ -365,11 +313,9 @@ public abstract class CFloatUnitTest {
   protected void testIntegerFunction(String name, Function<CFloat, Number> function) {
     ImmutableList.Builder<TestValue<Number>> testBuilder = ImmutableList.builder();
     for (Float arg : unaryTestValues()) {
-      if (isInTestClass(arg)) {
-        CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
-        Number result = function.apply(ref);
-        testBuilder.add(new TestValue<>(arg, result));
-      }
+      CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
+      Number result = function.apply(ref);
+      testBuilder.add(new TestValue<>(arg, result));
     }
     ImmutableList<TestValue<Number>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
