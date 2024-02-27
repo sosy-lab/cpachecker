@@ -68,14 +68,14 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     List<LoopInfo> allLoopInfos = new ArrayList<>();
 
     for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      // Determine the loop location
+      // Determine loop location
       int loopLocation =
           loop.getIncomingEdges().stream()
               .mapToInt(e -> e.getFileLocation().getStartingLineInOrigin())
               .findAny()
               .orElseThrow();
 
-      // Determine the names of all variables used in the loop
+      // Determine names of all variables used in the loop
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
@@ -92,7 +92,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       liveVariables.removeAll(variablesDeclaredInsideLoop);
       liveVariables.removeIf(e -> e.contains("::") && e.split("::")[1].startsWith("__CPAchecker_TMP_"));
 
-      // Determine the type of each variable
+      // Determine type of each variable
       for (String variable : liveVariables) {
         String type = cProgramScope.lookupVariable(variable).getType().toString();
         liveVariablesAndTypes.put(
