@@ -494,9 +494,6 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
-# add AST structure information to CFA.
-analysis.useASTStructure = false
-
 # Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
@@ -875,6 +872,9 @@ cfa.threads.threadSelfCreate = "pthread_create_N"
 
 # A name of thread_join_N function
 cfa.threads.threadSelfJoin = "pthread_join_N"
+
+# add AST structure information to CFA.
+cfa.useASTStructure = false
 
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.

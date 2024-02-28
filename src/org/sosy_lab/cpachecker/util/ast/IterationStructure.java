@@ -22,7 +22,7 @@ public class IterationStructure extends BranchingStructure {
   private final Optional<ASTElement> initClause;
   private final Optional<ASTElement> iterationExpression;
 
-  IterationStructure(
+  public IterationStructure(
       FileLocation pIterationStatementLocation,
       Optional<FileLocation> pClauseLocation,
       Optional<FileLocation> pControllingExpression,

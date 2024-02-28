@@ -106,8 +106,8 @@ public class CSourceOriginMapping {
     }
 
     // Since the offsets start at 0 there is a one-off difference between the column and the offset
-    return lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1)
-        + pOffset
+    return pOffset
+        - lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1)
         + 1;
   }
 

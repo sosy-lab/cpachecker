@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 
 /** Parser based on Eclipse CDT */
 class EclipseCParser implements CParser {
@@ -127,7 +129,7 @@ class EclipseCParser implements CParser {
       }
     }
 
-    return buildCFA(astUnits, parseContext, scope);
+    return buildCFA(astUnits, parseContext, scope, pSourceOriginMapping);
   }
 
   @Override
@@ -308,7 +310,10 @@ class EclipseCParser implements CParser {
    *     variables
    */
   private ParseResult buildCFA(
-      List<IASTTranslationUnit> asts, ParseContext parseContext, Scope pScope)
+      List<IASTTranslationUnit> asts,
+      ParseContext parseContext,
+      Scope pScope,
+      CSourceOriginMapping pSourceOriginMapping)
       throws CParserException, InterruptedException {
 
     checkArgument(!asts.isEmpty());
@@ -335,7 +340,17 @@ class EclipseCParser implements CParser {
         }
       }
 
-      return builder.createCFA();
+      Optional<ASTStructure> astStructure = Optional.empty();
+      if (options.useASTStructure()) {
+        ASTStructureBuilder builderASTStructure = new ASTStructureBuilder(pSourceOriginMapping);
+        for (IASTTranslationUnit ast : asts) {
+          builderASTStructure.analyze(ast);
+        }
+        builderASTStructure.updateStructures(builder.getEdges());
+        astStructure = Optional.of(builderASTStructure.getASTStructure());
+      }
+
+      return builder.createCFA(astStructure);
 
     } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);
@@ -434,6 +449,11 @@ class EclipseCParser implements CParser {
     @Override
     public boolean isMappingToIdenticalLineNumbers() {
       return delegate.isMappingToIdenticalLineNumbers();
+    }
+
+    @Override
+    public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
+      return delegate.getStartColumn(pAnalysisFileName, pAnalysisCodeLine, pOffset);
     }
   }
 }

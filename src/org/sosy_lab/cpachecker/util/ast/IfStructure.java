@@ -34,7 +34,7 @@ public class IfStructure extends StatementStructure {
   private ImmutableSet<CFANode> nodesBetweenConditionAndThenBranch = null;
   private ImmutableSet<CFANode> nodesBetweenConditionAndElseBranch = null;
 
-  IfStructure(
+  public IfStructure(
       FileLocation pIfLocation,
       FileLocation pConditionLocation,
       FileLocation pThenLocation,

@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.ast;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
@@ -31,6 +31,7 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.util.ast.FileLocationUtils;
 
 class ASTLocationClassifier extends ASTVisitor {
   final Map<Integer, FileLocation> statementOffsetsToLocations = new HashMap<>();
@@ -54,16 +55,11 @@ class ASTLocationClassifier extends ASTVisitor {
 
   private final Map<String, Path> fileNames = new HashMap<>();
 
-  public final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+  public final CSourceOriginMapping sourceOriginMapping;
 
-  public ASTLocationClassifier() {
+  public ASTLocationClassifier(CSourceOriginMapping pSourceOriginMapping) {
     super(true);
-  }
-
-  @SuppressWarnings("unused")
-  public ASTLocationClassifier(List<Path> pFileNames) {
-    super(true);
-    indexFileNames(pFileNames);
+    sourceOriginMapping = pSourceOriginMapping;
   }
 
   public void update() {
@@ -113,14 +109,8 @@ class ASTLocationClassifier extends ASTVisitor {
             iloc.getNodeLength(),
             iloc.getStartingLineNumber(),
             iloc.getEndingLineNumber(),
-            // The column cannot be easily computed only from the node. Since the FileLocation is a
-            // CPAchecker internal class, we can ignore it, since the equality comparison for a
-            // FileLocation should only consider the offset, length and file path, since
-            // everything else can be computed using this information.
-            //
-            // Related:
-            // https://stackoverflow.com/questions/20326095/cdt-iastfilelocation-column-number
-            -1);
+            sourceOriginMapping.getStartColumn(
+                path, iloc.getStartingLineNumber(), iloc.getNodeOffset()));
     return loc;
   }
 

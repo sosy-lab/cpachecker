@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 

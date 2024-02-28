@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -38,6 +41,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ParseResultWithASTStructure;
 import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -51,20 +55,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 
 /**
  * Builder to traverse AST.
  *
  * <p>After instantiating this class, call {@link #analyzeTranslationUnit(IASTTranslationUnit,
  * String, Scope)} once for each translation unit that should be used and finally call {@link
- * #createCFA()}.
+ * #createCFA(Optional<ASTStructure>)} with an ASTStructure if desired.
  */
 class CFABuilder extends ASTVisitor {
 
@@ -329,7 +336,8 @@ class CFABuilder extends ASTVisitor {
     throw parseContext.parseError(problem);
   }
 
-  public ParseResult createCFA() throws CParserException, InterruptedException {
+  public ParseResult createCFA(Optional<ASTStructure> pASTStructure)
+      throws CParserException, InterruptedException {
     // in case we
     if (functionDeclarations.size() > 1) {
       programDeclarations.completeUncompletedElaboratedTypes();
@@ -372,12 +380,16 @@ class CFABuilder extends ASTVisitor {
           "Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    if (acslCommentPositions.isEmpty()) {
+    // TODO: We probably also want the combination of ASTStructure and ACSL comments
+    if (acslCommentPositions.isEmpty() && pASTStructure.isEmpty()) {
       return new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+    } else if (pASTStructure.isPresent()) {
+      return new ParseResultWithASTStructure(
+          cfas, cfaNodes, globalDecls, parsedFiles, pASTStructure.orElseThrow());
+    } else {
+      return new ParseResultWithCommentLocations(
+          cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
     }
-
-    return new ParseResultWithCommentLocations(
-        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
   }
 
   private void handleFunctionDefinition(
@@ -441,5 +453,11 @@ class CFABuilder extends ASTVisitor {
     }
 
     return PROCESS_CONTINUE;
+  }
+
+  public ImmutableSet<CFAEdge> getEdges() {
+    return FluentIterable.from(cfaNodes.values())
+        .transformAndConcat(CFAUtils::allLeavingEdges)
+        .toSet();
   }
 }
