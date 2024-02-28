@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.Pair;
 
+/** Contains information relating the CFA to the AST of the program. */
 public class ASTStructure {
 
   private final ImmutableSet<IfStructure> ifStructures;
@@ -43,6 +44,12 @@ public class ASTStructure {
     statementOffsetsToLocations = pStatementOffsetsToLocations;
   }
 
+  /**
+   * Returns the next location after the given offset at which a statement starts.
+   *
+   * @param offset the offset to start from
+   * @return the next location at which a statement starts after the given offset
+   */
   public FileLocation nextStartStatementLocation(Integer offset) {
     for (int counter = offset;
         counter < Collections.max(statementOffsetsToLocations.keySet());
@@ -67,6 +74,12 @@ public class ASTStructure {
     conditionEdgesToIfStructure = builder.buildOrThrow();
   }
 
+  /**
+   * Returns the IfStructure that contains the given edge as a condition.
+   *
+   * @param pEdge the edge to look for
+   * @return the IfStructure that contains the given edge as a condition
+   */
   public IfStructure getIfStructureForConditionEdge(CFAEdge pEdge) {
     if (conditionEdgesToIfStructure == null) {
       initializeMapFromConditionEdgesToIfStructures();
@@ -74,6 +87,17 @@ public class ASTStructure {
     return conditionEdgesToIfStructure.getOrDefault(pEdge, null);
   }
 
+  /**
+   * Returns the tightest iteration structure that contains the given node. This means that if two
+   * loops contain the same node and one contains a subset of the edges of the other, then the
+   * subset loop is returned.
+   *
+   * <p>There is no guarantee what happens when more than one loop contains the given node and their
+   * edges are not in a strict subset relation.
+   *
+   * @param pNode the node to look for
+   * @return the tightest iteration structure that contains the given node
+   */
   public Optional<IterationStructure> getTightestIterationStructureForNode(CFANode pNode) {
     Optional<IterationStructure> result = Optional.empty();
     for (IterationStructure structure : iterationStructures) {
@@ -95,6 +119,13 @@ public class ASTStructure {
     return result;
   }
 
+  /**
+   * Returns the IfStructure that starts at the given column and line.
+   *
+   * @param pColumn the column to look for
+   * @param pLine the line to look for
+   * @return the IfStructure that starts at the given column and line
+   */
   public IfStructure getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
     Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
     if (lineAndStartColumnToIfStructure.containsKey(key)) {

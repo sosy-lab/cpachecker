@@ -148,6 +148,11 @@ public class IfStructure extends StatementStructure {
         ImmutableSet.copyOf(collectorNodesBetweenConditionAndThenBranch);
   }
 
+  /**
+   * Returns the nodes between the condition and the then branch.
+   *
+   * @return the nodes between the condition and the then branch
+   */
   public ImmutableSet<CFANode> getNodesBetweenConditionAndThenBranch() {
     if (nodesBetweenConditionAndThenBranch == null) {
       computeNodesBetweenConditionAndBranches();
@@ -155,6 +160,11 @@ public class IfStructure extends StatementStructure {
     return nodesBetweenConditionAndThenBranch;
   }
 
+  /**
+   * Returns the nodes between the condition and the else branch.
+   *
+   * @return the nodes between the condition and the else branch
+   */
   public ImmutableSet<CFANode> getNodesBetweenConditionAndElseBranch() {
     if (nodesBetweenConditionAndElseBranch == null) {
       computeNodesBetweenConditionAndBranches();
