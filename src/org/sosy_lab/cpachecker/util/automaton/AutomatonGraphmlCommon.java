@@ -673,6 +673,7 @@ public final class AutomatonGraphmlCommon {
                 location.getStartingLineNumber(),
                 location.getStartingLineNumber(),
                 location.getStartColumnInLine(),
+                location.getEndColumnInLine(),
                 location.getStartingLineInOrigin(),
                 location.getStartingLineInOrigin(),
                 location.isOffsetRelatedToOrigin());

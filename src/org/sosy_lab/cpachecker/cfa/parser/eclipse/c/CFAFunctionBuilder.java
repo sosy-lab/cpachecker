@@ -1448,6 +1448,7 @@ class CFAFunctionBuilder extends ASTVisitor {
               fileLocation.getStartingLineNumber(),
               loc.getEndingLineNumber(),
               loc.getStartColumnInLine(),
+              loc.getEndColumnInLine(),
               fileLocation.getStartingLineInOrigin(),
               loc.getEndingLineInOrigin(),
               fileLocation.isOffsetRelatedToOrigin() && loc.isOffsetRelatedToOrigin());
@@ -1809,6 +1810,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         f.getStartingLineNumber(),
         f.getStartingLineNumber(),
         f.getStartColumnInLine(),
+        f.getEndColumnInLine(),
         f.getStartingLineInOrigin(),
         f.getStartingLineInOrigin(),
         f.isOffsetRelatedToOrigin());

@@ -154,9 +154,12 @@ public class InvariantExchangeFormatTransformer {
                   // offset, which is currently only available during parsing. Since the line number
                   // and column are unique for a given file, we can rescind the use of the offset.
                   -1,
-                  invariantString.length(),
+                  // An invariant is not a real statement, it is only considered at the segment
+                  // point at which it is valid
+                  0,
                   line,
                   line,
+                  invariantEntry.getLocation().getColumn(),
                   invariantEntry.getLocation().getColumn());
           invariants.add(
               new Invariant(

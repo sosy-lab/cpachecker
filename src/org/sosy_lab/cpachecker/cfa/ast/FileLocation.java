@@ -36,8 +36,12 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   private final int startingLine;
   private final int endingLine;
 
+  // The column in the starting line at which the location starts
   private final int startColumnInLine;
   private final int startingLineInOrigin;
+
+  // The column in the ending line at which the location ends
+  private final int endColumnInLine;
   private final int endingLineInOrigin;
 
   private final boolean offsetRelatedToOrigin;
@@ -48,7 +52,8 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       int pLength,
       int pStartingLine,
       int pEndingLine,
-      int pStartColumnInLine) {
+      int pStartColumnInLine,
+      int pEndColumnInLine) {
     this(
         pFileName,
         pFileName.toString(),
@@ -57,6 +62,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         pStartingLine,
         pEndingLine,
         pStartColumnInLine,
+        pEndColumnInLine,
         pStartingLine,
         pEndingLine,
         true);
@@ -70,6 +76,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       int pStartingLine,
       int pEndingLine,
       int pStartColumnInLine,
+      int pEndColumnInLine,
       int pStartingLineInOrigin,
       int pEndingLineInOrigin,
       boolean pOffsetRelatedToOrigin) {
@@ -84,10 +91,11 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     startingLineInOrigin = pStartingLineInOrigin;
     endingLineInOrigin = pEndingLineInOrigin;
     offsetRelatedToOrigin = pOffsetRelatedToOrigin;
+    endColumnInLine = pEndColumnInLine;
   }
 
   public static final FileLocation DUMMY =
-      new FileLocation(Path.of("#none#"), 0, 0, 0, 0, 0) {
+      new FileLocation(Path.of("#none#"), 0, 0, 0, 0, 0, 0) {
         private static final long serialVersionUID = -3012034075570811723L;
 
         @Override
@@ -102,7 +110,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       };
 
   public static final FileLocation MULTIPLE_FILES =
-      new FileLocation(Path.of("#multiple files#"), 0, 0, 0, 0, 0) {
+      new FileLocation(Path.of("#multiple files#"), 0, 0, 0, 0, 0, 0) {
         private static final long serialVersionUID = -1725179775900132985L;
 
         @Override
@@ -128,6 +136,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     int endingLineInOrigin = Integer.MIN_VALUE;
     int endOffset = Integer.MIN_VALUE;
     int startColumnInLine = Integer.MAX_VALUE;
+    int endColumnInLine = Integer.MIN_VALUE;
     boolean offsetRelatedToOrigin = true;
     for (FileLocation loc : locations) {
       if (DUMMY.equals(loc)) {
@@ -156,6 +165,14 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         // The starting line is less than the one before
         startColumnInLine = loc.getStartColumnInLine();
       }
+
+      if (endingLine == loc.getEndingLineNumber()) {
+        // The starting line is the same as before
+        endColumnInLine = Math.max(endColumnInLine, loc.getEndColumnInLine());
+      } else {
+        // The starting line is less than the one before
+        endColumnInLine = loc.getEndColumnInLine();
+      }
     }
 
     if (fileName == null) {
@@ -170,6 +187,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         startingLine,
         endingLine,
         startColumnInLine,
+        endColumnInLine,
         startingLineInOrigin,
         endingLineInOrigin,
         offsetRelatedToOrigin);
@@ -207,6 +225,10 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   public int getStartColumnInLine() {
     return startColumnInLine;
+  }
+
+  public int getEndColumnInLine() {
+    return endColumnInLine;
   }
 
   public int getStartingLineInOrigin() {
@@ -285,6 +307,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     private final int startingLine;
     private final int endingLine;
     private final int startColumnInLine;
+    private final int endColumnInLine;
     private final int startingLineInOrigin;
     private final int endingLineInOrigin;
     private final boolean offsetRelatedToOrigin;
@@ -300,6 +323,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       endingLineInOrigin = loc.endingLineInOrigin;
       offsetRelatedToOrigin = loc.offsetRelatedToOrigin;
       startColumnInLine = loc.startColumnInLine;
+      endColumnInLine = loc.endColumnInLine;
     }
 
     private Object readResolve() {
@@ -312,6 +336,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
               startingLine,
               endingLine,
               startColumnInLine,
+              endColumnInLine,
               startingLineInOrigin,
               endingLineInOrigin,
               offsetRelatedToOrigin);

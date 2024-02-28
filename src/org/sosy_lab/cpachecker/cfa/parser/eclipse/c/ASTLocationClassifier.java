@@ -118,6 +118,8 @@ class ASTLocationClassifier extends ASTVisitor {
             iloc.getEndingLineNumber(),
             sourceOriginMapping.getStartColumn(
                 path, iloc.getStartingLineNumber(), iloc.getNodeOffset()),
+            sourceOriginMapping.getStartColumn(
+                path, iloc.getEndingLineNumber(), iloc.getNodeOffset() + iloc.getNodeLength()),
             sourceOriginMapping
                 .getOriginLineFromAnalysisCodeLine(path, iloc.getStartingLineNumber())
                 .getLineNumber(),
