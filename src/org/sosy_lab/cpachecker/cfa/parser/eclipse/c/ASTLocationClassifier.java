@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,8 +35,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.util.ast.FileLocationUtils;
 
 class ASTLocationClassifier extends ASTVisitor {
-  final Map<Integer, FileLocation> statementOffsetsToLocations = new HashMap<>();
-  final Set<FileLocation> compoundLocations = new HashSet<>();
+  private final ImmutableMap.Builder<Integer, FileLocation> statementOffsetsToLocations =
+      new ImmutableMap.Builder<>();
+  private final Set<FileLocation> compoundLocations = new HashSet<>();
 
   private final Set<FileLocation> labelLocations = new HashSet<>();
   private final Set<FileLocation> declarationLocations = new HashSet<>();
@@ -65,6 +67,10 @@ class ASTLocationClassifier extends ASTVisitor {
   public void update() {
     declarationStartOffsets =
         transformedImmutableSetCopy(declarationLocations, x -> x.getNodeOffset());
+  }
+
+  public ImmutableMap<Integer, FileLocation> getStatementOffsetsToLocations() {
+    return statementOffsetsToLocations.build();
   }
 
   public void indexFileNames(List<Path> pFileNames) {

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -16,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public class ASTElement {
   private final FileLocation location;
   private ImmutableSet<CFAEdge> allEdges;
-  private Set<CFAEdge> edges = null;
+  @LazyInit private Set<CFAEdge> edges = null;
 
   public ASTElement(FileLocation pLocation, ImmutableSet<CFAEdge> pAllEdges) {
     location = pLocation;

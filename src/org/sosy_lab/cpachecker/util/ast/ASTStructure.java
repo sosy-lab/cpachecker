@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -22,19 +23,21 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class ASTStructure {
 
-  private final Set<IfStructure> ifStructures;
-  private final Set<IterationStructure> iterationStructures;
-  private ImmutableMap<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
+  private final ImmutableSet<IfStructure> ifStructures;
 
-  private Map<Pair<Integer, Integer>, IfStructure> lineAndStartColumnToIfStructure =
+  private final ImmutableSet<IterationStructure> iterationStructures;
+
+  private final ImmutableMap<Integer, FileLocation> statementOffsetsToLocations;
+
+  @LazyInit private ImmutableMap<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
+
+  private final Map<Pair<Integer, Integer>, IfStructure> lineAndStartColumnToIfStructure =
       new HashMap<>();
 
-  private final Map<Integer, FileLocation> statementOffsetsToLocations;
-
   public ASTStructure(
-      Set<IfStructure> pIfStructures,
-      Set<IterationStructure> pIterationStructures,
-      Map<Integer, FileLocation> pStatementOffsetsToLocations) {
+      ImmutableSet<IfStructure> pIfStructures,
+      ImmutableSet<IterationStructure> pIterationStructures,
+      ImmutableMap<Integer, FileLocation> pStatementOffsetsToLocations) {
     ifStructures = pIfStructures;
     iterationStructures = pIterationStructures;
     statementOffsetsToLocations = pStatementOffsetsToLocations;
@@ -56,7 +59,7 @@ public class ASTStructure {
       return;
     }
     Builder<CFAEdge, IfStructure> builder = new Builder<>();
-    for (IfStructure structure : getIfStructures()) {
+    for (IfStructure structure : ifStructures) {
       for (CFAEdge edge : structure.getConditionElement().edges()) {
         builder.put(edge, structure);
       }
@@ -73,7 +76,7 @@ public class ASTStructure {
 
   public Optional<IterationStructure> getTightestIterationStructureForNode(CFANode pNode) {
     Optional<IterationStructure> result = Optional.empty();
-    for (IterationStructure structure : getIterationStructures()) {
+    for (IterationStructure structure : iterationStructures) {
       if (structure.getCompleteElement().edges().stream()
           .anyMatch(pEdge -> pEdge.getPredecessor() == pNode || pEdge.getSuccessor() == pNode)) {
         if (result.isPresent()) {
@@ -92,26 +95,13 @@ public class ASTStructure {
     return result;
   }
 
-  /*
-   * a regular if only has one branching; a irregular if has a disjunction or conjunction or side
-   * effects in the condition and thus has more complicated branching structure
-   */
-  @SuppressWarnings("unused")
-  public boolean isRegularIf(CFAEdge edge) {
-    return false;
-  }
-
-  public Set<IfStructure> getIfStructures() {
-    return ifStructures;
-  }
-
   public IfStructure getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
     Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
     if (lineAndStartColumnToIfStructure.containsKey(key)) {
       return lineAndStartColumnToIfStructure.get(key);
     }
 
-    for (IfStructure structure : getIfStructures()) {
+    for (IfStructure structure : ifStructures) {
       FileLocation location = structure.getCompleteElement().location();
       if (location.getStartColumnInLine() == pColumn && location.getStartingLineNumber() == pLine) {
         lineAndStartColumnToIfStructure.put(key, structure);
@@ -120,9 +110,5 @@ public class ASTStructure {
     }
 
     return null;
-  }
-
-  public Set<IterationStructure> getIterationStructures() {
-    return iterationStructures;
   }
 }

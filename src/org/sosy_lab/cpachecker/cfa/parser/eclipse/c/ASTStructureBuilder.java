@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -24,8 +22,8 @@ public class ASTStructureBuilder {
 
   private final ASTLocationClassifier classifier;
 
-  final Set<IfStructure> ifStructures = new HashSet<>();
-  final Set<IterationStructure> iterationStructures = new HashSet<>();
+  final ImmutableSet.Builder<IfStructure> ifStructures = new ImmutableSet.Builder<>();
+  final ImmutableSet.Builder<IterationStructure> iterationStructures = new ImmutableSet.Builder<>();
 
   public ASTStructureBuilder(CSourceOriginMapping pSourceOriginMapping) {
     classifier = new ASTLocationClassifier(pSourceOriginMapping);
@@ -33,7 +31,9 @@ public class ASTStructureBuilder {
 
   public ASTStructure getASTStructure() {
     return new ASTStructure(
-        ifStructures, iterationStructures, classifier.statementOffsetsToLocations);
+        ifStructures.build(),
+        iterationStructures.build(),
+        classifier.getStatementOffsetsToLocations());
   }
 
   public void analyze(IASTTranslationUnit pTranslationUnit) {

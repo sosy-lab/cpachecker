@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -27,12 +28,11 @@ public class IfStructure extends StatementStructure {
   private final ASTElement thenElement;
   private final Optional<ASTElement> maybeElseElement;
 
-  private ImmutableSet<CFAEdge> thenEdges = null;
-  private ImmutableSet<CFAEdge> elseEdges = null;
-  private ImmutableSet<CFAEdge> conditionEdges = null;
-
-  private ImmutableSet<CFANode> nodesBetweenConditionAndThenBranch = null;
-  private ImmutableSet<CFANode> nodesBetweenConditionAndElseBranch = null;
+  @LazyInit private ImmutableSet<CFAEdge> thenEdges = null;
+  @LazyInit private ImmutableSet<CFAEdge> elseEdges = null;
+  @LazyInit private ImmutableSet<CFAEdge> conditionEdges = null;
+  @LazyInit private ImmutableSet<CFANode> nodesBetweenConditionAndThenBranch = null;
+  @LazyInit private ImmutableSet<CFANode> nodesBetweenConditionAndElseBranch = null;
 
   public IfStructure(
       FileLocation pIfLocation,

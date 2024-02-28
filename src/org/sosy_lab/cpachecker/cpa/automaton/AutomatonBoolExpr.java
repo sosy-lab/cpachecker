@@ -266,6 +266,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       FileLocation edgeLocation = edge.getFileLocation();
       int edgeNodeColumn = edgeLocation.getStartColumnInLine();
 
+      // TODO: This check is wrong since this only works for the offset, the column needs to be
+      //  treated differently. To do this correctly, we need the column at the end line.
       if (edgeLocation.getStartingLineInOrigin() == lineNumber
           || edgeLocation.getEndingLineInOrigin() == lineNumber) {
         if (edgeNodeColumn <= columnToReach
