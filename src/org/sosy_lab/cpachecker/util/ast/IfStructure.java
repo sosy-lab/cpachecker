@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.util.ast;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -84,37 +84,68 @@ public class IfStructure extends StatementStructure {
     return elseEdges;
   }
 
+  /**
+   * This method computes the nodes which are at the boundary between the condition of an if
+   * statement and the nodes inside each of the branches. This information can be used to determine
+   * which branch is being taken based only a {@link CFANode}.
+   *
+   * <p>To do this, first every node in the boundary of the condition is computed. These are all
+   * nodes which are successors of edges in the condition but not predecessors, we call these
+   * boundary condition nodes. If the then branch contains at least one node, the
+   * intersection/difference of nodes which are a predecessor of an edge in the then branch with the
+   * boundary condition nodes is taken to get the nodes between the condition and the then/else
+   * branch. If the then branch is empty, the intersection/difference of the boundary condition
+   * nodes with the nodes which are a predecessor of an edge in the else branch is taken to get the
+   * nodes between the condition and the else/then branch.
+   *
+   * <p>For example, consider the following graph for an if condition, where node 6 and 5 are the
+   * first nodes in the 'if' and 'else' branches respectively. Then the nodes at the boundary are 3
+   * and 4, where 3 is at the boundary for the 'if' branch and 4 is at the boundary to the 'else'
+   * branch.
+   *
+   * <pre>
+   *    1
+   *   / \
+   *  2---3
+   *  |   |
+   *  4   5
+   *  |
+   *  6
+   *  </pre>
+   */
   private void computeNodesBetweenConditionAndBranches() {
-    Set<CFANode> nodesThenBranch =
-        transformedImmutableSetCopy(thenElement.edges(), CFAEdge::getPredecessor);
     Set<CFANode> nodesBoundaryCondition =
-        transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getSuccessor);
-    nodesBoundaryCondition = new HashSet<>(nodesBoundaryCondition);
-    nodesBoundaryCondition.removeAll(
-        transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getPredecessor));
-    Set<CFANode> collectorNodesBetweenConditionAndElseBranch =
-        new HashSet<>(nodesBoundaryCondition);
-    Set<CFANode> collectorNnodesBetweenConditionAndThenBranch =
-        new HashSet<>(nodesBoundaryCondition);
+        Sets.difference(
+            transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getSuccessor),
+            transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getPredecessor));
+    Set<CFANode> collectorNodesBetweenConditionAndElseBranch = nodesBoundaryCondition;
+    Set<CFANode> collectorNodesBetweenConditionAndThenBranch = nodesBoundaryCondition;
 
     // TODO: Currently we over-approximate by taking both branches when there are no edges
     //  in both branches
+    Set<CFANode> nodesThenBranch =
+        transformedImmutableSetCopy(thenElement.edges(), CFAEdge::getPredecessor);
+
     if (nodesThenBranch.isEmpty()) {
       if (maybeElseElement.isPresent()) {
         Set<CFANode> nodesElseBranch =
             transformedImmutableSetCopy(
                 maybeElseElement.orElseThrow().edges(), CFAEdge::getPredecessor);
-        collectorNnodesBetweenConditionAndThenBranch.removeAll(nodesElseBranch);
-        collectorNodesBetweenConditionAndElseBranch.retainAll(nodesElseBranch);
+        collectorNodesBetweenConditionAndThenBranch =
+            Sets.difference(nodesBoundaryCondition, nodesElseBranch);
+        collectorNodesBetweenConditionAndElseBranch =
+            Sets.intersection(nodesBoundaryCondition, nodesElseBranch);
       }
     } else {
-      collectorNnodesBetweenConditionAndThenBranch.retainAll(nodesThenBranch);
-      collectorNodesBetweenConditionAndElseBranch.removeAll(nodesThenBranch);
+      collectorNodesBetweenConditionAndThenBranch =
+          Sets.intersection(nodesBoundaryCondition, nodesThenBranch);
+      collectorNodesBetweenConditionAndElseBranch =
+          Sets.difference(nodesBoundaryCondition, nodesThenBranch);
     }
     nodesBetweenConditionAndElseBranch =
         ImmutableSet.copyOf(collectorNodesBetweenConditionAndElseBranch);
     nodesBetweenConditionAndThenBranch =
-        ImmutableSet.copyOf(collectorNnodesBetweenConditionAndThenBranch);
+        ImmutableSet.copyOf(collectorNodesBetweenConditionAndThenBranch);
   }
 
   public ImmutableSet<CFANode> getNodesBetweenConditionAndThenBranch() {
