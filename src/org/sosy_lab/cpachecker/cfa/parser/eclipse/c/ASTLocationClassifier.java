@@ -70,7 +70,7 @@ class ASTLocationClassifier extends ASTVisitor {
   }
 
   public ImmutableMap<Integer, FileLocation> getStatementOffsetsToLocations() {
-    return statementOffsetsToLocations.build();
+    return statementOffsetsToLocations.buildOrThrow();
   }
 
   public void indexFileNames(List<Path> pFileNames) {
