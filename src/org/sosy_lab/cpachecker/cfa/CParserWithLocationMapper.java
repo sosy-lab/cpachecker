@@ -201,15 +201,18 @@ public class CParserWithLocationMapper implements CParser {
   @Override
   public ParseResult parseFiles(List<String> pFilenames)
       throws CParserException, IOException, InterruptedException {
+
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {
       Path path = Path.of(f);
       String programCode = tokenizeSourcefile(path, sourceOriginMapping);
+
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
+      sourceOriginMapping.addPreprocessedFileInformation(path, programCode);
       programFragments.add(new FileContentToParse(path, programCode));
     }
     return realParser.parseString(programFragments, sourceOriginMapping);

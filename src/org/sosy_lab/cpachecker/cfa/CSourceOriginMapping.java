@@ -11,15 +11,11 @@ package org.sosy_lab.cpachecker.cfa;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,35 +49,25 @@ public class CSourceOriginMapping {
   }
 
   /**
-   * Returns a map that contains an entry for each given file, where an entry is a list that maps
-   * each line to its starting offset in the file. The lines are indexed starting with 0. The method
-   * reads the given files from disk. So be aware of IO operations and potential failure when the
-   * files can not be accessed.
+   * Returns a list where for entry i the starting offset of line i in the file is stored.
    *
-   * <p>For example, the first line has offset 0. If the length of the first line is 5 symbols, then
-   * the second line has offset 5.
-   *
-   * @param filePaths Paths of the file to process
-   * @return Immutable map
-   * @throws IOException if the files can not be accessed.
+   * @param pProgramCode code for the file whose line starting offsets should be computed
+   * @return Immutable List
    */
-  public static ListMultimap<Path, Integer> getLineOffsetsByFile(Collection<Path> filePaths)
-      throws IOException {
-    ImmutableListMultimap.Builder<Path, Integer> result = ImmutableListMultimap.builder();
+  public static ImmutableList<Integer> getLineOffsets(String pProgramCode) {
+    ImmutableList.Builder<Integer> result = ImmutableList.builder();
 
-    for (Path filePath : filePaths) {
-      if (Files.isRegularFile(filePath)) {
-        String fileContent = Files.readString(filePath);
-
-        int currentOffset = 0;
-        List<String> sourceLines = Splitter.onPattern("\\n").splitToList(fileContent);
-        for (String sourceLine : sourceLines) {
-          result.put(filePath, currentOffset);
-          currentOffset += sourceLine.length() + 1;
-        }
-      }
+    int currentOffset = 0;
+    List<String> sourceLines = Splitter.onPattern("\\n").splitToList(pProgramCode);
+    for (String sourceLine : sourceLines) {
+      result.add(currentOffset);
+      currentOffset += sourceLine.length() + 1;
     }
     return result.build();
+  }
+
+  public void addPreprocessedFileInformation(Path pPath, String pProgramCode) {
+    lineNumberToStartingColumn.putAll(pPath, getLineOffsets(pProgramCode));
   }
 
   /**
@@ -107,21 +93,22 @@ public class CSourceOriginMapping {
     return CodePosition.of(pAnalysisFileName, pAnalysisCodeLine);
   }
 
-  public int getStartingOffsetForLine(Path pAnalysisFileName, int pAnalysisCodeLine) {
+  public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
+    // This should only happen when parsing an automaton file. In those cases the file is called
+    // 'fragment' since usually only a fragment of the automaton contains C-code.
     if (!lineNumberToStartingColumn.containsKey(pAnalysisFileName)) {
-      try {
-        lineNumberToStartingColumn.putAll(
-            pAnalysisFileName,
-            getLineOffsetsByFile(ImmutableList.of(pAnalysisFileName)).get(pAnalysisFileName));
-      } catch (IOException e) {
-        return -1;
-      }
+      return -1;
     }
+
+    // This should never happen, but in order to not completely fail we check for this case.
     if (lineNumberToStartingColumn.get(pAnalysisFileName).size() <= pAnalysisCodeLine) {
       return -2;
     }
 
-    return lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1);
+    // Since the offsets start at 0 there is a one-off difference between the column and the offset
+    return lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1)
+        + pOffset
+        + 1;
   }
 
   /**

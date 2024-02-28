@@ -74,6 +74,8 @@ public class ASTStructure {
     for (Path filename : cfa.getFileNames()) {
       final IASTTranslationUnit astUnit =
           cdt.getASTTranslationUnit(EclipseCdtWrapper.wrapFile(filename));
+      // TODO: Fix, since here we need the preprocessed file
+      classifier.sourceOriginMapping.addPreprocessedFileInformation(filename, null);
       astUnit.accept(classifier);
     }
     classifier.update();

@@ -10,10 +10,6 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ListMultimap;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,7 +54,7 @@ class ASTLocationClassifier extends ASTVisitor {
 
   private final Map<String, Path> fileNames = new HashMap<>();
 
-  private final ListMultimap<Path, Integer> lineNumberToStartingColumn = ArrayListMultimap.create();
+  public final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
   public ASTLocationClassifier() {
     super(true);
@@ -79,24 +75,6 @@ class ASTLocationClassifier extends ASTVisitor {
     for (Path path : pFileNames) {
       fileNames.put(path.getFileName().toString(), path);
     }
-  }
-
-  public int getStartingOffsetForLine(Path pAnalysisFileName, int pAnalysisCodeLine) {
-    if (!lineNumberToStartingColumn.containsKey(pAnalysisFileName)) {
-      try {
-        lineNumberToStartingColumn.putAll(
-            pAnalysisFileName,
-            CSourceOriginMapping.getLineOffsetsByFile(ImmutableList.of(pAnalysisFileName))
-                .get(pAnalysisFileName));
-      } catch (IOException e) {
-        return -3;
-      }
-    }
-    if (lineNumberToStartingColumn.get(pAnalysisFileName).size() <= pAnalysisCodeLine) {
-      return -4;
-    }
-
-    return lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1);
   }
 
   @Override
@@ -135,9 +113,14 @@ class ASTLocationClassifier extends ASTVisitor {
             iloc.getNodeLength(),
             iloc.getStartingLineNumber(),
             iloc.getEndingLineNumber(),
-            iloc.getNodeOffset()
-                - getStartingOffsetForLine(path, iloc.getStartingLineNumber())
-                + 1);
+            // The column cannot be easily computed only from the node. Since the FileLocation is a
+            // CPAchecker internal class, we can ignore it, since the equality comparison for a
+            // FileLocation should only consider the offset, length and file path, since
+            // everything else can be computed using this information.
+            //
+            // Related:
+            // https://stackoverflow.com/questions/20326095/cdt-iastfilelocation-column-number
+            -1);
     return loc;
   }
 
