@@ -134,7 +134,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     IfStructure ifStructure = astStructure.getIfStructureStartingAtColumn(followColumn, followLine);
     if (ifStructure == null) {
       logger.log(
-          Level.INFO, "Could not find IfStructure corresponding to the waypoint, skipping it");
+          Level.FINE, "Could not find IfStructure corresponding to the waypoint, skipping it");
       return null;
     }
 
@@ -142,7 +142,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         .getNodesBetweenConditionAndElseBranch()
         .equals(ifStructure.getNodesBetweenConditionAndThenBranch())) {
       logger.log(
-          Level.INFO,
+          Level.FINE,
           "Skipping branching waypoint at if statement since the"
               + " then and else branch are both empty,"
               + " and currently there is no way to distinguish them.");
@@ -219,7 +219,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                   cfa.getMachineModel(),
                   logger);
         } catch (InvalidAutomatonException e) {
-          logger.log(Level.INFO, "Could not generate automaton assumption.");
+          logger.log(Level.FINEST, "Could not generate automaton assumption.");
           continue;
         }
         builder.withAssumptions(expressions);
