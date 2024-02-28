@@ -150,12 +150,9 @@ public class InvariantExchangeFormatTransformer {
           FileLocation loc =
               new FileLocation(
                   Path.of(invariantEntry.getLocation().getFileName()),
-                  // The offset cannot be computed since we don't have the mapping from line to
-                  // offset, which is currently only available during parsing. Since the line number
-                  // and column are unique for a given file, we can rescind the use of the offset.
+                  // dummy offset is ok because not used for matching invariants to their position
                   -1,
-                  // An invariant is not a real statement, it is only considered at the segment
-                  // point at which it is valid
+                  // length 0 because invariants only refers to a particular point in the program
                   0,
                   line,
                   line,
