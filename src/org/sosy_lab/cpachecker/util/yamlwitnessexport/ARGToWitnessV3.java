@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntryV3;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.RequiresRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetEntry;
 
 class ARGToWitnessV3 extends ARGToYAMLWitness {
   protected ARGToWitnessV3(
@@ -137,6 +137,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
         handleFunctionContract(
             statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
 
-    exportEntries(new SetEntry(getMetadata(YAMLWitnessVersion.V3), entries), pOutputFile);
+    exportEntries(
+        new CorrectnessWitnessSetEntry(getMetadata(YAMLWitnessVersion.V3), entries), pOutputFile);
   }
 }

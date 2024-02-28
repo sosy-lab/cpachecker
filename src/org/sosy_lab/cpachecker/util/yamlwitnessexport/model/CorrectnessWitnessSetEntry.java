@@ -12,8 +12,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.List;
 
+/**
+ * Currently a correctness witness is composed of a list of sets of entries. Each entry contains
+ * some information about the proof of the program, currently these are invariants and function
+ * contracts. This class represents one set of entries in a correctness witness.
+ */
 @JsonPropertyOrder({"entry_type", "metadata", "content"})
-public class SetEntry extends AbstractEntry {
+public class CorrectnessWitnessSetEntry extends AbstractEntry {
 
   private static final String SET_ENTRY_IDENTIFIER = "entry_set";
 
@@ -23,7 +28,7 @@ public class SetEntry extends AbstractEntry {
   @JsonProperty("content")
   private final List<CorrectnessWitnessSetElementEntry> content;
 
-  public SetEntry(
+  public CorrectnessWitnessSetEntry(
       @JsonProperty("metadata") MetadataRecord pMetadata,
       @JsonProperty("content") List<CorrectnessWitnessSetElementEntry> pContent) {
     super(SET_ENTRY_IDENTIFIER);
