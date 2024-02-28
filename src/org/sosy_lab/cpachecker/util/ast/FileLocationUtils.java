@@ -35,7 +35,16 @@ public class FileLocationUtils {
     int length = endOffset - startOffset;
     int startLine = Math.min(a.getStartingLineNumber(), b.getStartingLineNumber());
     int endLine = Math.max(a.getEndingLineNumber(), b.getEndingLineNumber());
-    int startColumn = Math.min(a.getNodeOffset(), b.getNodeOffset());
+    int startColumn;
+
+    if (a.getStartingLineNumber() < b.getStartingLineNumber()) {
+      startColumn = a.getStartColumnInLine();
+    } else if (a.getStartingLineNumber() > b.getStartingLineNumber()) {
+      startColumn = b.getStartColumnInLine();
+    } else {
+      startColumn = Math.min(a.getStartColumnInLine(), b.getStartColumnInLine());
+    }
+
     return new FileLocation(a.getFileName(), startOffset, length, startLine, endLine, startColumn);
   }
 }
