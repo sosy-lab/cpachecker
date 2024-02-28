@@ -63,8 +63,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     public Multimap<FunctionExitNode, ARGState> functionContractEnsures = HashMultimap.create();
   }
 
-  private static class CollectRelevantARGStates
-      extends GraphTraverser<ARGState, YamlWitnessExportException> {
+  private static class CollectRelevantARGStates extends GraphTraverser<ARGState> {
 
     private final CollectedARGStates collectedStates = new CollectedARGStates();
 
@@ -99,7 +98,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
   }
 
-  CollectedARGStates getRelevantStates(ARGState pRootState) throws YamlWitnessExportException {
+  CollectedARGStates getRelevantStates(ARGState pRootState) {
     if (!stateToStatesCollector.containsKey(pRootState)) {
       CollectRelevantARGStates statesCollector = new CollectRelevantARGStates(pRootState);
       statesCollector.traverse();

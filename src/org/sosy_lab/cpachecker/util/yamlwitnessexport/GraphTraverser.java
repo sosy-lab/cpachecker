@@ -20,9 +20,8 @@ import java.util.Set;
  * the successors of a given node. The graph is traversed by calling the method {@link #traverse()}.
  *
  * @param <NodeType> the type of the nodes in the graph
- * @param <E> the type of the exception that can be thrown during the traversal
  */
-public abstract class GraphTraverser<NodeType, E extends Throwable> {
+public abstract class GraphTraverser<NodeType> {
 
   private List<NodeType> waitlist;
   private Set<NodeType> reached;
@@ -40,7 +39,7 @@ public abstract class GraphTraverser<NodeType, E extends Throwable> {
     return reached;
   }
 
-  public void traverse() throws E {
+  public void traverse() {
     while (!waitlist.isEmpty()) {
       NodeType current = waitlist.remove(0);
       for (NodeType successor : getSuccessors(current)) {
@@ -59,11 +58,11 @@ public abstract class GraphTraverser<NodeType, E extends Throwable> {
    *
    * @throws E in an exceptional state needs to be communicated to the caller
    */
-  protected boolean stop(NodeType successor) throws E {
+  protected boolean stop(NodeType successor) {
     return reached.contains(successor);
   }
 
-  protected abstract NodeType visit(NodeType pSuccessor) throws E;
+  protected abstract NodeType visit(NodeType pSuccessor);
 
-  protected abstract Iterable<NodeType> getSuccessors(NodeType pCurrent) throws E;
+  protected abstract Iterable<NodeType> getSuccessors(NodeType pCurrent);
 }
