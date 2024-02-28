@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,7 +33,6 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.util.ast.FileLocationUtils;
 
 class ASTLocationClassifier extends ASTVisitor {
   private final ImmutableMap.Builder<Integer, FileLocation> statementOffsetsToLocations =
@@ -111,12 +111,20 @@ class ASTLocationClassifier extends ASTVisitor {
     FileLocation loc =
         new FileLocation(
             path,
+            path.getFileName().toString(),
             iloc.getNodeOffset(),
             iloc.getNodeLength(),
             iloc.getStartingLineNumber(),
             iloc.getEndingLineNumber(),
             sourceOriginMapping.getStartColumn(
-                path, iloc.getStartingLineNumber(), iloc.getNodeOffset()));
+                path, iloc.getStartingLineNumber(), iloc.getNodeOffset()),
+            sourceOriginMapping
+                .getOriginLineFromAnalysisCodeLine(path, iloc.getStartingLineNumber())
+                .getLineNumber(),
+            sourceOriginMapping
+                .getOriginLineFromAnalysisCodeLine(path, iloc.getEndingLineNumber())
+                .getLineNumber(),
+            sourceOriginMapping.isMappingToIdenticalLineNumbers());
     return loc;
   }
 
@@ -161,12 +169,14 @@ class ASTLocationClassifier extends ASTVisitor {
     }
     if (initializer.isPresent()) {
       parenthesesBlockLocation =
-          FileLocationUtils.merge(parenthesesBlockLocation, getLocation(initializer.orElseThrow()));
+          FileLocation.merge(
+              Lists.newArrayList(parenthesesBlockLocation, getLocation(initializer.orElseThrow())));
       loopInitializer.put(loc, getLocation(initializer.orElseThrow()));
     }
     if (iteration.isPresent()) {
       parenthesesBlockLocation =
-          FileLocationUtils.merge(parenthesesBlockLocation, getLocation(iteration.orElseThrow()));
+          FileLocation.merge(
+              Lists.newArrayList(parenthesesBlockLocation, getLocation(iteration.orElseThrow())));
       loopIterationStatement.put(loc, getLocation(iteration.orElseThrow()));
     }
     if (parenthesesBlockLocation != null) {

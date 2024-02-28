@@ -24,27 +24,4 @@ public class FileLocationUtils {
     return nodeOffset <= loc.getNodeOffset() + loc.getNodeLength()
         && nodeOffset >= loc.getNodeOffset();
   }
-
-  public static FileLocation merge(FileLocation a, FileLocation b) {
-    if (a == null) {
-      return b;
-    }
-    int startOffset = Math.min(a.getNodeOffset(), b.getNodeOffset());
-    int endOffset =
-        Math.max(a.getNodeOffset() + a.getNodeLength(), b.getNodeOffset() + b.getNodeLength());
-    int length = endOffset - startOffset;
-    int startLine = Math.min(a.getStartingLineNumber(), b.getStartingLineNumber());
-    int endLine = Math.max(a.getEndingLineNumber(), b.getEndingLineNumber());
-    int startColumn;
-
-    if (a.getStartingLineNumber() < b.getStartingLineNumber()) {
-      startColumn = a.getStartColumnInLine();
-    } else if (a.getStartingLineNumber() > b.getStartingLineNumber()) {
-      startColumn = b.getStartColumnInLine();
-    } else {
-      startColumn = Math.min(a.getStartColumnInLine(), b.getStartColumnInLine());
-    }
-
-    return new FileLocation(a.getFileName(), startOffset, length, startLine, endLine, startColumn);
-  }
 }
