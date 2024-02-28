@@ -88,7 +88,9 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // any successors in the ARG, since the verification stops there. Therefore handling targets
     // the same way as with assumptions would not work. As an overapproximation we use the
     // covers to present the desired functionality.
-    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine);
+    AutomatonBoolExpr expr =
+        CheckCoversColumnAndLine.newCheckCoversColumnAndLineForStatementEdges(
+            followColumn, followLine);
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);
@@ -112,7 +114,9 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // "An assumption waypoint is evaluated at the sequence point immediately before the
     // waypoint location. The waypoint is passed if the given constraint evaluates to true."
     // Therefore, we need the Reaches Offset guard.
-    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine);
+    AutomatonBoolExpr expr =
+        CheckCoversColumnAndLine.newCheckCoversColumnAndLineForStatementEdges(
+            followColumn, followLine);
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);
@@ -174,7 +178,9 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       Multimap<Integer, CFAEdge> startLineToCFAEdge)
       throws InterruptedException {
 
-    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine, true);
+    AutomatonBoolExpr expr =
+        CheckCoversColumnAndLine.newCheckCoversColumnAndLineForStatementEdges(
+            followColumn, followLine);
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);

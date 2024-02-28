@@ -224,13 +224,18 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final int lineNumber;
     private final boolean expectStatementEdge;
 
-    public CheckCoversColumnAndLine(int pColumn, int pLineNumber) {
-      columnToReach = pColumn;
-      lineNumber = pLineNumber;
-      expectStatementEdge = false;
+    public static CheckCoversColumnAndLine newCheckCoversColumnAndLineForStatementEdges(
+        int pColumn, int pLineNumber) {
+      return new CheckCoversColumnAndLine(pColumn, pLineNumber, true);
     }
 
-    public CheckCoversColumnAndLine(int pColumn, int pLineNumber, boolean pExpectStatementEdge) {
+    @SuppressWarnings("unused")
+    public static CheckCoversColumnAndLine newCheckCoversColumnAndLineForAllCFAEdges(
+        int pColumn, int pLineNumber) {
+      return new CheckCoversColumnAndLine(pColumn, pLineNumber, false);
+    }
+
+    private CheckCoversColumnAndLine(int pColumn, int pLineNumber, boolean pExpectStatementEdge) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
       expectStatementEdge = pExpectStatementEdge;
