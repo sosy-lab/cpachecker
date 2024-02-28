@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.yamlwitnessexport.model.test;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -23,11 +23,8 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
-public class InvariantWitnessTest {
+public class YAMLWitnessModelTest {
 
   public static final String TEST_DIR_PATH = "test/witness/";
 
