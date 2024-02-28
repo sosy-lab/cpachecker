@@ -13,10 +13,14 @@ import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 
 /**
  * Class representing the result of parsing a C file before function calls are bound to their
@@ -29,6 +33,11 @@ import org.sosy_lab.cpachecker.util.Pair;
  * to use it only as a "transport" data class, not for permanent storage.
  */
 public class ParseResult {
+
+  private Optional<ASTStructure> astStructure = Optional.empty();
+
+  private Optional<List<FileLocation>> commentLocations = Optional.empty();
+  private Optional<List<SyntacticBlock>> blocks = Optional.empty();
 
   private final NavigableMap<String, FunctionEntryNode> functions;
 
@@ -67,5 +76,29 @@ public class ParseResult {
 
   public List<Path> getFileNames() {
     return fileNames;
+  }
+
+  public Optional<ASTStructure> getASTStructure() {
+    return astStructure;
+  }
+
+  public void setASTStructure(ASTStructure pAstStructure) {
+    astStructure = Optional.of(pAstStructure);
+  }
+
+  public Optional<List<FileLocation>> getCommentLocations() {
+    return commentLocations;
+  }
+
+  public void setCommentLocations(List<FileLocation> pCommentLocations) {
+    commentLocations = Optional.of(pCommentLocations);
+  }
+
+  public Optional<List<SyntacticBlock>> getBlocks() {
+    return blocks;
+  }
+
+  public void setBlocks(List<SyntacticBlock> pBlocks) {
+    blocks = Optional.of(pBlocks);
   }
 }

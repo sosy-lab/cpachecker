@@ -661,15 +661,15 @@ public class CFACreator {
 
     stats.processingTime.stop();
 
-    if (pParseResult instanceof ParseResultWithASTStructure parseResultWithASTStructure) {
-      cfa.setASTStructure(parseResultWithASTStructure.getASTStructure());
+    if (pParseResult.getASTStructure().isPresent()) {
+      cfa.setASTStructure(pParseResult.getASTStructure().orElseThrow());
     }
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
-    if (pParseResult instanceof ParseResultWithCommentLocations withCommentLocations) {
-      commentPositions.addAll(withCommentLocations.getCommentLocations());
-      blocks.addAll(withCommentLocations.getBlocks());
+    if (pParseResult.getBlocks().isPresent() && pParseResult.getCommentLocations().isPresent()) {
+      commentPositions.addAll(pParseResult.getCommentLocations().orElseThrow());
+      blocks.addAll(pParseResult.getBlocks().orElseThrow());
     }
 
     // check the super CFA starting at the main function

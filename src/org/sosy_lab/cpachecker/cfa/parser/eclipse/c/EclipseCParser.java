@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -52,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 
 /** Parser based on Eclipse CDT */
 class EclipseCParser implements CParser {
@@ -340,18 +338,18 @@ class EclipseCParser implements CParser {
         }
       }
 
-      Optional<ASTStructure> astStructure = Optional.empty();
+      ParseResult result = builder.createCFA();
+
       if (options.useASTStructure()) {
         ASTStructureBuilder builderASTStructure = new ASTStructureBuilder(pSourceOriginMapping);
         for (IASTTranslationUnit ast : asts) {
           builderASTStructure.analyze(ast);
         }
         builderASTStructure.updateStructures(builder.getEdges());
-        astStructure = Optional.of(builderASTStructure.getASTStructure());
+        result.setASTStructure(builderASTStructure.getASTStructure());
       }
 
-      return builder.createCFA(astStructure);
-
+      return result;
     } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);
     } finally {

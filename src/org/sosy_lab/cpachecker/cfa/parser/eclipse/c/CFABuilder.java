@@ -41,8 +41,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ParseResultWithASTStructure;
-import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
@@ -336,8 +334,7 @@ class CFABuilder extends ASTVisitor {
     throw parseContext.parseError(problem);
   }
 
-  public ParseResult createCFA(Optional<ASTStructure> pASTStructure)
-      throws CParserException, InterruptedException {
+  public ParseResult createCFA() throws CParserException, InterruptedException {
     // in case we
     if (functionDeclarations.size() > 1) {
       programDeclarations.completeUncompletedElaboratedTypes();
@@ -380,16 +377,14 @@ class CFABuilder extends ASTVisitor {
           "Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    // TODO: We probably also want the combination of ASTStructure and ACSL comments
-    if (acslCommentPositions.isEmpty() && pASTStructure.isEmpty()) {
-      return new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
-    } else if (pASTStructure.isPresent()) {
-      return new ParseResultWithASTStructure(
-          cfas, cfaNodes, globalDecls, parsedFiles, pASTStructure.orElseThrow());
-    } else {
-      return new ParseResultWithCommentLocations(
-          cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
+    ParseResult result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+
+    if (!acslCommentPositions.isEmpty()) {
+      result.setCommentLocations(acslCommentPositions);
+      result.setBlocks(blocks);
     }
+
+    return result;
   }
 
   private void handleFunctionDefinition(
