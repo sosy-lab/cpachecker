@@ -21,9 +21,11 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 public interface ExpressionTreeReportingState extends AbstractState {
 
   /**
-   * Returns an ExpressionTree over-approximating the state. The expressions which represent the
-   * return from a function are replaced by the given variable. This is particularly useful in order
-   * to export function contracts.
+   * Returns an ExpressionTree over-approximating the state. If the state is a return node from a
+   * function, then, if the pFunctionReturnVariable is given, the return value should be assigned to
+   * this variable. This means that, in ACSL notation, every expression should have the keyword
+   * \return replaced with the given variable i.e. \return > 0 becomes result > 0 if the given
+   * variable is result. This is particularly useful in order to export function contracts.
    *
    * @param pFunctionScope the function scope as a function entry node.
    * @param pLocation the formula should at least try to approximate variables referenced by
