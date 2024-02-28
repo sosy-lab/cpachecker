@@ -24,7 +24,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -65,14 +64,6 @@ abstract class AbstractYAMLWitnessExporter {
   protected MetadataRecord getMetadata(YAMLWitnessVersion version) throws IOException {
     return YAMLWitnessesExportUtils.createMetadataRecord(
         producerRecord, YAMLWitnessesExportUtils.getTaskDescription(cfa, specification), version);
-  }
-
-  protected static Path getOutputFile(YAMLWitnessVersion version, PathTemplate pPathTemplate) {
-    if (pPathTemplate == null) {
-      return null;
-    }
-
-    return pPathTemplate.getPath(version.toString());
   }
 
   protected ASTStructure getASTStructure() throws YamlWitnessExportException {

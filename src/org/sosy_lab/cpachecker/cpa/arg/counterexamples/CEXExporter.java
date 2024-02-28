@@ -31,7 +31,6 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -85,18 +84,6 @@ public class CEXExporter {
       description =
           "exports a JSON file describing found faults, if fault localization is activated")
   private boolean exportFaults = true;
-
-  @Option(
-      secure = true,
-      name = "yaml",
-      description =
-          "The template from which the different "
-              + "versions of the violation witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate yamlWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("witness-%s.yml");
 
   @Option(
       secure = true,
@@ -324,7 +311,7 @@ public class CEXExporter {
 
     if (options.getWitnessFile() != null
         || options.getWitnessDotFile() != null
-        || options.getYamlWitnessFile() != null) {
+        || options.getYamlWitnessPathTemplate() != null) {
       try {
         final Witness witness =
             witnessExporter.generateErrorWitness(
@@ -342,9 +329,9 @@ public class CEXExporter {
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
 
-        if (yamlWitnessOutputFileTemplate != null) {
+        if (options.getYamlWitnessPathTemplate() != null) {
           try {
-            cexToWitness.export(counterexample, yamlWitnessOutputFileTemplate);
+            cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
           } catch (YamlWitnessExportException | IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
           }

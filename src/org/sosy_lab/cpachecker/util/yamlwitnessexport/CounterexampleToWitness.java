@@ -234,17 +234,18 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * Currently only Version 2 exists for Violation Witnesses.
    *
    * @param pCex The counterexample to export.
-   * @param pPathTemplate The template for the output file. The template will be used to * generate
-   *     unique names for each witness version by replacing the string '%s' with the * version.
+   * @param pOutputFileTemplate The template for the output file. The template will be used to *
+   *     generate unique names for each witness version by replacing the string '%s' with the *
+   *     version.
    * @throws YamlWitnessExportException If the witness could not be exported.
    * @throws IOException If the witness could not be written to the file.
    */
-  public void export(CounterexampleInfo pCex, PathTemplate pPathTemplate)
+  public void export(CounterexampleInfo pCex, PathTemplate pOutputFileTemplate, int uniqueId)
       throws YamlWitnessExportException, IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
-      Path outputPath = getOutputFile(YAMLWitnessVersion.V2, pPathTemplate);
+      Path outputFile = pOutputFileTemplate.getPath(YAMLWitnessVersion.V2.toString(), uniqueId);
       switch (witnessVersion) {
-        case V2 -> exportWitnessVersion2(pCex, outputPath);
+        case V2 -> exportWitnessVersion2(pCex, outputFile);
         case V3 ->
             logger.log(Level.INFO, "There is currently no version 3 for Violation Witnesses.");
       }
