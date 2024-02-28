@@ -38,8 +38,10 @@ void main() {
   // curr = old;
   // int length = 0;
   while (curr->prev != 0) {
-    //length++;
+    List tmp = curr;
     curr = curr->prev;
+    free(tmp);
   }
   assert(curr->data == -3);
+  free(curr);
 }

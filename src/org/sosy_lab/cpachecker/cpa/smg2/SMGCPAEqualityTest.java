@@ -14,12 +14,11 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -34,7 +33,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 public class SMGCPAEqualityTest extends SMGCPATest0 {
 
   // 8 seems like a reasonable compromise that tests everything and is not too slow
-  private int listLength = 8;
+  private static final int listLength = 8;
 
   /**
    * Compare 2 lists that are equal, but one is abstracted, the other is not.
@@ -42,9 +41,10 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * @throws SMGException never thrown
    */
   @Test
-  public void concreteAndAbstractedListLessOrEqualTest() throws SMGException {
+  public void concreteAndAbstractedListLessOrEqualTest() throws SMGException, SMGSolverException {
     Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     SMGObject abstractedObj =
         currentState
@@ -133,10 +133,12 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * @throws SMGException never thrown.
    */
   @Test
-  public void concreteAndAbstractedListWSublistLessOrEqualTest() throws SMGException {
+  public void concreteAndAbstractedListWSublistLessOrEqualTest()
+      throws SMGException, SMGSolverException {
     Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
     addSubListsToList(listLength, pointersAbstractedList, false);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     SMGObject abstractedObj =
         currentState
@@ -182,10 +184,11 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * @throws SMGException never thrown
    */
   @Test
-  public void abstractedListWSublistLessOrEqualTest() throws SMGException {
+  public void abstractedListWSublistLessOrEqualTest() throws SMGException, SMGSolverException {
     Value[] pointersSmallerAbstractedList = buildConcreteList(false, sllSize, listLength - 1);
     addSubListsToList(listLength, pointersSmallerAbstractedList, false);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     SMGObject smallerAbstractedListObj =
         currentState
@@ -195,7 +198,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
 
     Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
     addSubListsToList(listLength, pointersAbstractedList, false);
-    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     SMGObject abstractedListObj =
         currentState
@@ -205,7 +208,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
 
     Value[] pointersAbstractedList2 = buildConcreteList(false, sllSize, listLength);
     addSubListsToList(listLength, pointersAbstractedList2, false);
-    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     SMGObject abstractedListObj2 =
         currentState
@@ -280,7 +283,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * @throws SMGException never thrown
    */
   @Test
-  public void abstractedListWSublistNotLessOrEqualTest() throws SMGException {
+  public void abstractedListWSublistNotLessOrEqualTest() throws SMGException, SMGSolverException {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersAbstractedShortList = buildConcreteList(false, sllSize, listLength);
@@ -300,7 +303,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         currentState = topListSegmentAndState.getSMGState();
         SMGObject topListSegment = topListSegmentAndState.getSMGObject();
         currentState =
-            currentState.writeValue(
+            currentState.writeValueWithoutChecks(
                 topListSegment,
                 hfo,
                 pointerSizeInBits,
@@ -310,7 +313,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     .orElseThrow());
         counter++;
       }
-      SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength);
+      SMGCPAAbstractionManager absFinder =
+          new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       SMGObject abstractedObjShort =
           currentState
@@ -324,7 +328,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       // Abstracted complete list
       Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
       addSubListsToList(listLength, pointersAbstractedList, false);
-      absFinder = new SMGCPAAbstractionManager(currentState, listLength);
+      absFinder = new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       SMGObject abstractedObj =
           currentState
@@ -335,7 +339,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       // Concrete complete list
       Value[] pointersOtherList = buildConcreteList(false, sllSize, listLength);
       addSubListsToList(listLength, pointersOtherList, false);
-      absFinder = new SMGCPAAbstractionManager(currentState, listLength);
+      absFinder = new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       SMGObject concreteObjBeginning =
           currentState
@@ -375,7 +379,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * @throws SMGException never thrown
    */
   @Test
-  public void abstractedListWSublistNotLessOrEqualTest2() throws SMGException {
+  public void abstractedListWSublistNotLessOrEqualTest2() throws SMGException, SMGSolverException {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersConcreteDifferentList = buildConcreteList(false, sllSize, listLength);
@@ -387,11 +391,16 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               .orElseThrow()
               .getSMGObject();
       currentState =
-          currentState.writeValueTo(
-              ithObj, BigInteger.ZERO, pointerSizeInBits, new NumericValue(-1), null, dummyCDAEdge);
+          currentState.writeValueWithChecks(
+              ithObj,
+              new NumericValue(BigInteger.ZERO),
+              pointerSizeInBits,
+              new NumericValue(-1),
+              null,
+              dummyCDAEdge);
 
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, listLength - 1);
+          new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       SMGObject notAbstractedListDifferentObj =
           currentState
@@ -405,7 +414,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       // Abstracted complete list
       Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
       addSubListsToList(listLength, pointersAbstractedList, false);
-      absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+      absFinder =
+          new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       SMGObject abstractedObj =
           currentState
@@ -416,7 +426,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       // Concrete complete list
       Value[] pointersConcreteList = buildConcreteList(false, sllSize, listLength);
       addSubListsToList(listLength, pointersConcreteList, false);
-      absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+      absFinder =
+          new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
       SMGObject concreteObjBeginning =
           currentState
@@ -472,13 +483,11 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   @Test
   public void testFreeLoopEquality() throws CPAException, InterruptedException {
     Value[] pointersConcreteDifferentList = buildConcreteList(true, dllSize, listLength);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
     // "free" list except for last segment
     // We explicitly deref the current segment and read the next pointer beforehand
-    SMGCPAExportOptions exportOptions = new SMGCPAExportOptions(null, SMGExportLevel.NEVER);
-    SMGCPAExpressionEvaluator evaluator =
-        new SMGCPAExpressionEvaluator(machineModel, logger, exportOptions, smgOptions);
     Value lastNextPointer = null;
     for (int i = 0; i < listLength; i++) {
       List<SMGStateAndOptionalSMGObjectAndOffset> deref =
@@ -487,10 +496,15 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(deref).hasSize(1);
       currentState = deref.get(0).getSMGState();
       assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
-      assertThat(deref.get(0).getOffsetForObject()).isEqualTo(BigInteger.ZERO);
+      assertThat(deref.get(0).getOffsetForObject().asNumericValue().bigIntegerValue())
+          .isEqualTo(BigInteger.ZERO);
       List<ValueAndSMGState> readNexts =
           evaluator.readValueWithPointerDereference(
-              currentState, pointersConcreteDifferentList[i], nfo, pointerSizeInBits, null);
+              currentState,
+              pointersConcreteDifferentList[i],
+              new NumericValue(nfo),
+              pointerSizeInBits,
+              null);
       ValueAndSMGState readNext;
       if (i < listLength - 1) {
         // Should only be 1 list element
@@ -545,10 +559,11 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(deref).hasSize(1);
     currentState = deref.get(0).getSMGState();
     assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.get(0).getOffsetForObject()).isEqualTo(BigInteger.ZERO);
+    assertThat(deref.get(0).getOffsetForObject().asNumericValue().bigIntegerValue())
+        .isEqualTo(BigInteger.ZERO);
     List<ValueAndSMGState> readNextsInLast =
         evaluator.readValueWithPointerDereference(
-            currentState, lastNextPointer, nfo, pointerSizeInBits, null);
+            currentState, lastNextPointer, new NumericValue(nfo), pointerSizeInBits, null);
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0

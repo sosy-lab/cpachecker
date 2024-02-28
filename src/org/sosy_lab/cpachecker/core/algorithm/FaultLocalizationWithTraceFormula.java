@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -314,14 +313,17 @@ public class FaultLocalizationWithTraceFormula
   private FaultScoring getScoring(TraceFormula pTraceFormula) {
     return switch (algorithmType) {
         // fall-through
-      case MAXORG, MAXSAT -> FaultRankingUtils.concatHeuristics(
-          new VariableCountScoring(),
-          new SetSizeScoring(),
-          new MinimalLineDistanceScoring(
-              pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
+      case MAXORG, MAXSAT ->
+          FaultRankingUtils.concatHeuristics(
+              new VariableCountScoring(),
+              new SetSizeScoring(),
+              new MinimalLineDistanceScoring(
+                  pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
         // fall-through
-      case ERRINV, UNSAT -> FaultRankingUtils.concatHeuristics(
-          new EdgeTypeScoring(), new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
+      case ERRINV, UNSAT ->
+          FaultRankingUtils.concatHeuristics(
+              new EdgeTypeScoring(),
+              new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
       default -> throw new AssertionError("The specified algorithm type does not exist");
     };
   }
@@ -412,29 +414,24 @@ public class FaultLocalizationWithTraceFormula
   }
 
   private PostConditionComposer getPostConditionExtractor() {
-    switch (postConditionType) {
-      case LAST_ASSUME_EDGE:
-        return new FinalAssumeEdgePostConditionComposer(context);
-      case LAST_ASSUME_EDGES_ON_SAME_LINE:
-        return new FinalAssumeEdgesOnSameLinePostConditionComposer(context);
-      case LAST_ASSUME_EDGE_CLUSTER:
-        return new FinalAssumeClusterPostConditionComposer(context);
-      default:
-        throw new AssertionError("Unknown post-condition type");
-    }
+    return switch (postConditionType) {
+      case LAST_ASSUME_EDGE -> new FinalAssumeEdgePostConditionComposer(context);
+      case LAST_ASSUME_EDGES_ON_SAME_LINE ->
+          new FinalAssumeEdgesOnSameLinePostConditionComposer(context);
+      case LAST_ASSUME_EDGE_CLUSTER -> new FinalAssumeClusterPostConditionComposer(context);
+      default -> throw new AssertionError("Unknown post-condition type");
+    };
   }
 
   private PreConditionComposer getPreConditionExtractor() {
-    switch (preconditionType) {
-      case NONDETERMINISTIC_VARIABLES_ONLY:
-        return new VariableAssignmentPreConditionComposer(context, options, false, includeDeclared);
-      case INITIAL_ASSIGNMENT:
-        return new VariableAssignmentPreConditionComposer(context, options, true, includeDeclared);
-      case ALWAYS_TRUE:
-        return new TruePreConditionComposer(context);
-      default:
-        throw new AssertionError("Unknown precondition type: " + preconditionType);
-    }
+    return switch (preconditionType) {
+      case NONDETERMINISTIC_VARIABLES_ONLY ->
+          new VariableAssignmentPreConditionComposer(context, options, false, includeDeclared);
+      case INITIAL_ASSIGNMENT ->
+          new VariableAssignmentPreConditionComposer(context, options, true, includeDeclared);
+      case ALWAYS_TRUE -> new TruePreConditionComposer(context);
+      default -> throw new AssertionError("Unknown precondition type: " + preconditionType);
+    };
   }
 
   @Override
@@ -460,7 +457,7 @@ public class FaultLocalizationWithTraceFormula
   }
 
   @Override
-  public @Nullable String getName() {
+  public String getName() {
     return getClass().getSimpleName();
   }
 }

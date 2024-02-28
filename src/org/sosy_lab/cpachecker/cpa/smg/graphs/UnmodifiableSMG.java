@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
  *
  * <p>All returned Collections are unmodifiable.
  */
-public interface UnmodifiableSMG {
+public sealed interface UnmodifiableSMG permits SMG, UnmodifiableCLangSMG {
 
   /**
    * Returns mutable instance of subclass. Changes to the returned instance are independent of this

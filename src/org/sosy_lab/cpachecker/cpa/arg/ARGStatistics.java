@@ -69,6 +69,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter.YamlWitnessExportException;
+import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -115,6 +118,18 @@ public class ARGStatistics implements Statistics {
       name = "compressWitness",
       description = "compress the produced correctness-witness automata using GZIP compression.")
   private boolean compressWitness = true;
+
+  @Option(secure = true, name = "yamlProofWitness", description = "export a proof as .yaml file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path yamlProofWitness = null;
+
+  @Option(secure = true, description = "enable witness generation in the new yaml format.")
+  private boolean enableYamlWitnesses = false;
+
+  @Option(
+      secure = true,
+      description = "export the yaml Correctness Witnesses directly from the ARG.")
+  private boolean exportYAMLCorrectnessWitnessesDirectlyFromARG = false;
 
   @Option(
       secure = true,
@@ -189,13 +204,14 @@ public class ARGStatistics implements Statistics {
   protected final ConfigurableProgramAnalysis cpa;
 
   private final CEXExportOptions counterexampleOptions;
+  private final PixelsWriterOptions argToBitmapExporterOptions;
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
+  private final InvariantWitnessWriter invariantWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
-  private final ARGToPixelsWriter argToBitmapExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
   protected final LogManager logger;
 
@@ -209,7 +225,7 @@ public class ARGStatistics implements Statistics {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
     counterexampleOptions = new CEXExportOptions(config);
-    argToBitmapExporter = new ARGToPixelsWriter(config);
+    argToBitmapExporterOptions = new PixelsWriterOptions(config);
     logger = pLogger;
     cpa = pCpa;
     assumptionToEdgeAllocator =
@@ -227,6 +243,15 @@ public class ARGStatistics implements Statistics {
 
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
 
+    try {
+      invariantWitnessWriter =
+          enableYamlWitnesses
+              ? InvariantWitnessWriter.getWriter(config, cfa, pSpecification, pLogger)
+              : null;
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("InvariantWitnessWriter could not be created", e);
+    }
+
     if (counterexampleOptions.disabledCompletely()) {
       cexExporter = null;
     } else {
@@ -240,7 +265,8 @@ public class ARGStatistics implements Statistics {
               cfa,
               cpa,
               argWitnessExporter,
-              extendedWitnessExporter);
+              extendedWitnessExporter,
+              invariantWitnessWriter);
     }
 
     argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());
@@ -395,6 +421,26 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
+        if (exportYAMLCorrectnessWitnessesDirectlyFromARG) {
+          if (yamlProofWitness != null && invariantWitnessWriter != null) {
+            try {
+              invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(
+                  rootState, yamlProofWitness);
+            } catch (YamlWitnessExportException e) {
+              logger.logUserException(
+                  Level.WARNING,
+                  e,
+                  "Could not export the YAML correctness witness directly from the ARG. Therefore"
+                      + " no YAML witness will be exported.");
+            }
+          }
+        } else {
+          if (witness != null && yamlProofWitness != null && invariantWitnessWriter != null) {
+            invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(
+                witness, yamlProofWitness);
+          }
+        }
+
         if (proofWitness != null) {
           Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
           WitnessToOutputFormatsUtils.writeWitness(
@@ -431,6 +477,9 @@ public class ARGStatistics implements Statistics {
     }
 
     if (pixelGraphicFile != null) {
+      // Initialize lazily so that we do not have a hard dependency on java.awt.
+      // This is used in the pixels writer SVG output.
+      ARGToPixelsWriter argToBitmapExporter = new ARGToPixelsWriter(argToBitmapExporterOptions);
       try {
         Path adjustedBitmapFileName = adjustPathNameForPartitioning(rootState, pixelGraphicFile);
         argToBitmapExporter.write(rootState, adjustedBitmapFileName);

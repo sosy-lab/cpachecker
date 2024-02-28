@@ -15,12 +15,14 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
@@ -291,6 +293,12 @@ public final class LoopStructure implements Serializable {
   private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
   private transient @Nullable ImmutableSet<String> loopIncDecVariables;
 
+  // computed lazily
+  private transient @Nullable Multimap<CFANode, Loop> nodeToLoops = null;
+
+  // computed lazily on demand per edge
+  private Map<CFAEdge, List<Loop>> loopsContainingEdge = new HashMap<>();
+
   private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
     loops = pLoops;
   }
@@ -323,6 +331,19 @@ public final class LoopStructure implements Serializable {
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
     return from(loops.values()).filter(loop -> loop.getLoopHeads().contains(loopHead)).toSet();
+  }
+
+  /** Get all loops containing this edge */
+  public List<Loop> getLoopsForEdge(CFAEdge pEdge) {
+    if (!loopsContainingEdge.containsKey(pEdge)) {
+      loopsContainingEdge.put(
+          pEdge,
+          FluentIterable.from(getAllLoops())
+              .filter(loop -> loop.getInnerLoopEdges().contains(pEdge))
+              .toList());
+    }
+
+    return loopsContainingEdge.get(pEdge);
   }
 
   /**

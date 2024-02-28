@@ -111,20 +111,11 @@ public final class ArrayValue implements Value {
       return NullValue.getInstance();
 
     } else if (pType instanceof JSimpleType) {
-      switch (((JSimpleType) pType).getType()) {
-        case BOOLEAN:
-          return BooleanValue.valueOf(false);
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
-          return new NumericValue(0L);
-        default:
-          throw new AssertionError("Unhandled type " + pType.getClass());
-      }
+      return switch (((JSimpleType) pType).getType()) {
+        case BOOLEAN -> BooleanValue.valueOf(false);
+        case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(0L);
+        default -> throw new AssertionError("Unhandled type " + pType.getClass());
+      };
     } else {
       throw new AssertionError("Unhandled type " + pType.getClass());
     }

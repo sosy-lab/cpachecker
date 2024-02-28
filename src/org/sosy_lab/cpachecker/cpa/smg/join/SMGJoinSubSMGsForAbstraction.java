@@ -275,18 +275,13 @@ public final class SMGJoinSubSMGsForAbstraction {
 
   private int getMinLength(SMGObject pObj) {
 
-    switch (pObj.getKind()) {
-      case REG:
-        return 1;
-      case DLL:
-        return ((SMGDoublyLinkedList) pObj).getMinimumLength();
-      case SLL:
-        return ((SMGSingleLinkedList) pObj).getMinimumLength();
-      case OPTIONAL:
-        return 0;
-      default:
-        throw new AssertionError();
-    }
+    return switch (pObj.getKind()) {
+      case REG -> 1;
+      case DLL -> ((SMGDoublyLinkedList) pObj).getMinimumLength();
+      case SLL -> ((SMGSingleLinkedList) pObj).getMinimumLength();
+      case OPTIONAL -> 0;
+      default -> throw new AssertionError();
+    };
   }
 
   public boolean isDefined() {

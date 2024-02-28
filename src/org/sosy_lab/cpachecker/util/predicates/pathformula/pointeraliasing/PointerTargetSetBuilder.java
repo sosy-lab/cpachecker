@@ -202,7 +202,7 @@ public interface PointerTargetSetBuilder {
 
       // Add base to prevent adding spurious targets when merging.
       // If size is not known, we can use a dummy size because it is only used for the fake base.
-      long size = type.hasKnownConstantSize() ? typeHandler.getSizeof(type) : 0;
+      long size = type.hasKnownConstantSize() ? typeHandler.getExactSizeof(type) : 0;
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
     }
 
@@ -334,7 +334,7 @@ public interface PointerTargetSetBuilder {
         long offset = 0;
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset, field);
-          offset += typeHandler.getSizeof(arrayType.getType());
+          offset += typeHandler.getExactSizeof(arrayType.getType());
         }
       } else if (cType instanceof CCompositeType compositeType) {
         assert compositeType.getKind() != ComplexTypeKind.ENUM

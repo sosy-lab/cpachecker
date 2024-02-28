@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProp
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -669,7 +671,28 @@ public class CPAMain {
       validationConfigFile = options.correctnessWitnessValidationConfig;
       appendWitnessToSpecificationOption(options, overrideOptions);
     } else {
-      WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+      WitnessType witnessType;
+      try {
+        Optional<WitnessType> optionalWitnessType =
+            AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
+        if (optionalWitnessType.isPresent()) {
+          witnessType = optionalWitnessType.orElseThrow();
+        } else {
+          optionalWitnessType = AutomatonYAMLParser.getWitnessTypeIfYAML(options.witness);
+          if (optionalWitnessType.isPresent()) {
+            witnessType = optionalWitnessType.orElseThrow();
+          } else {
+            throw new InvalidConfigurationException(
+                "The Witness format found for " + options.witness + " is currently not supported.");
+          }
+        }
+      } catch (NoSuchFileException e) {
+        throw new InvalidConfigurationException(
+            "Cannot parse witness: " + e.getFile() + " does not exist.", e);
+
+      } catch (IOException e) {
+        throw new InvalidConfigurationException("Cannot parse witness: " + e.getMessage(), e);
+      }
       switch (witnessType) {
         case VIOLATION_WITNESS:
           validationConfigFile = options.violationWitnessValidationConfig;
@@ -694,6 +717,7 @@ public class CPAMain {
                   + " is not supported");
       }
     }
+
     if (validationConfigFile == null) {
       throw new InvalidConfigurationException(
           "Validating (violation|correctness) witnesses is not supported if option"

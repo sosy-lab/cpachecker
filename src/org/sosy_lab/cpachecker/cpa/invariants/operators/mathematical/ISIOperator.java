@@ -331,7 +331,7 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
       }
       // Negative left shifts are right shifts.
       if (pSecondOperand.signum() < 0) {
-        return apply(pFirstOperand, pSecondOperand.negate());
+        return ISIOperator.SHIFT_RIGHT.apply(pFirstOperand, pSecondOperand.negate());
       }
       /*
        * BigInteger supports shifting only for integer values. If the shift

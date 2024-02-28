@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -21,7 +20,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
@@ -40,21 +42,28 @@ import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SMGState> {
 
   // this analysis puts every object in the same heap
   private static final String MEMORY_NAME = "SMGv2_Analysis_Heap";
 
-  protected SMGConcreteErrorPathAllocator(AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
-    super(SMGState.class, pAssumptionToEdgeAllocator);
+  // Map Object <-> some address distinct from 0
+  private Map<SMGObject, Address> addressOfObjectMap = new HashMap<>();
+  private Address nextAlloc = Address.valueOf(BigInteger.valueOf(100));
+  private Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
+
+  protected SMGConcreteErrorPathAllocator(
+      Configuration pConfig, LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+    super(SMGState.class, AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel));
   }
 
   @Override
@@ -89,14 +98,13 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
         // a normal edge, no special handling required
       } else {
-        Map<LeftHandSide, Address> variableAddresses = new HashMap<>();
         result.add(
             new SingleConcreteState(
                 Iterables.getOnlyElement(edges),
                 new ConcreteState(
                     ImmutableMap.of(),
-                    allocateAddresses(valueState, variableAddresses),
-                    variableAddresses,
+                    allocateAddresses(valueState),
+                    ImmutableMap.copyOf(variableAddressMap),
                     exp -> MEMORY_NAME)));
       }
     }
@@ -110,7 +118,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
     // We know only values for LeftHandSides that have not yet been assigned.
     if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
-      state = createConcreteState(pValueState);
+      state = createConcreteState(pValueState, alreadyAssigned, innerEdge);
     } else {
       state = ConcreteState.empty();
     }
@@ -128,14 +136,33 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     return state;
   }
 
-  public ConcreteState createConcreteState(SMGState pValueState) {
-    Map<LeftHandSide, Address> variableAddresses = new HashMap<>();
-    // We assign every variable to the heap, thats why the variable map is empty.
-    return new ConcreteState(
-        ImmutableMap.of(),
-        allocateAddresses(pValueState, variableAddresses),
-        variableAddresses,
-        exp -> MEMORY_NAME);
+  private ConcreteState createConcreteState(
+      SMGState pSMGState, Set<CLeftHandSide> alreadyAssigned, CFAEdge innerEdge) {
+    ConcreteState state;
+
+    // We know only values for LeftHandSides that have not yet been assigned.
+    if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
+      state =
+          new ConcreteState(
+              ImmutableMap.of(),
+              allocateAddresses(pSMGState),
+              ImmutableMap.copyOf(variableAddressMap),
+              exp -> MEMORY_NAME);
+    } else {
+      state = ConcreteState.empty();
+    }
+
+    // add handled edges to alreadyAssigned list if necessary
+    if (innerEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      CStatement stmt = ((CStatementEdge) innerEdge).getStatement();
+
+      if (stmt instanceof CAssignment) {
+        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+        alreadyAssigned.add(lhs);
+      }
+    }
+
+    return state;
   }
 
   private boolean allValuesForLeftHandSideKnown(
@@ -164,124 +191,106 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     return true;
   }
 
-  private Map<String, Memory> allocateAddresses(
-      SMGState pValueState, Map<LeftHandSide, Address> pVariableAddressMap) {
-    Map<Address, Object> values = new HashMap<>();
-    fillAddressAndValueMaps(pValueState, pVariableAddressMap, values);
+  private Map<String, Memory> allocateAddresses(SMGState pValueState) {
+    Map<Address, Object> values = createHeapValues(pValueState);
     return ImmutableMap.of(MEMORY_NAME, new Memory(MEMORY_NAME, values));
   }
 
-  /*
-   * Map<Address, Object> with below Addresses
-   * Map<LeftHandSide, Address> with IDExpression as LeftHandSide
-   */
-  private void fillAddressAndValueMaps(
-      SMGState state, Map<LeftHandSide, Address> lfhsToAddressMap, Map<Address, Object> valuesMap) {
-    @SuppressWarnings("unused")
-    Set<SMGObject> todo = new HashSet<>();
-    @SuppressWarnings("unused")
-    Set<SMGObject> alreadyVisited = new HashSet<>();
+  private Map<Address, Object> createHeapValues(SMGState pSMGState) {
 
-    StackFrame currentStackFrame = state.getMemoryModel().getStackFrames().peek();
-    String functionName = currentStackFrame.getFunctionDefinition().getName();
-    // Start with Address 0
-    Address nextAddressToBeAssigned = Address.valueOf(BigInteger.ZERO);
-    // Value and the old SMG analysis put some random values here. I have the feeling that this
-    // system is either not explained well or broken
-    long spaceForLastValue = 64;
-    // Stack variables
-    for (Entry<String, SMGObject> var : currentStackFrame.getVariables().entrySet()) {
-      // This is the qualified name -> reduce by functionName
-      String variableName = var.getKey().replace(functionName + "::", "");
-      IDExpression idExp = new IDExpression(variableName, functionName);
+    Map<Address, Object> result = new HashMap<>();
 
-      lfhsToAddressMap.put(idExp, nextAddressToBeAssigned);
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry :
+        pSMGState.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges().entrySet()) {
+      for (SMGHasValueEdge hvEdge : entry.getValue()) {
 
-      SMGObject objectForVar = var.getValue();
-      // These values are either alone (i.e. int bla = 5;) or there are multiple for arrays etc.
-      long biggestOffset =
-          putValuesIntoMap(
-              nextAddressToBeAssigned, state, valuesMap, objectForVar, alreadyVisited, todo);
-      // Make a new Address for the next variable
-      BigInteger offset = BigInteger.valueOf(biggestOffset + spaceForLastValue);
+        BigInteger value = null;
+        SMGValue smgValue = hvEdge.hasValue();
+        Optional<Value> valueForSMGValue =
+            pSMGState.getMemoryModel().getValueFromSMGValue(smgValue);
+        if (smgValue.isZero()) {
+          value = BigInteger.ZERO;
+        } else if (valueForSMGValue.isPresent()) {
+          Value valueFromSMGValue = valueForSMGValue.orElseThrow();
+          if (valueFromSMGValue.isNumericValue()) {
+            value = valueForSMGValue.orElseThrow().asNumericValue().bigIntegerValue();
+          } else if (pSMGState.getMemoryModel().isPointer(valueFromSMGValue)) {
+            Optional<SMGStateAndOptionalSMGObjectAndOffset> target =
+                pSMGState.dereferencePointerWithoutMaterilization(valueFromSMGValue);
+            if (target.isEmpty()) {
+              continue;
+            }
+            SMGObject targetObject = target.orElseThrow().getSMGObject();
+            Value targetOffset = target.orElseThrow().getOffsetForObject();
+            if (!targetOffset.isNumericValue()) {
+              continue;
+            }
 
-      nextAddressToBeAssigned = nextAddressToBeAssigned.addOffset(offset);
+            // Pointer to some other obj
+            value =
+                calculateAddress(
+                        targetObject, targetOffset.asNumericValue().bigIntegerValue(), pSMGState)
+                    .getAddressValue();
+
+          } else {
+            continue;
+          }
+        } else {
+          continue;
+        }
+
+        // Value and the obj it is saved in
+        Address address = calculateAddress(entry.getKey(), hvEdge.getOffset(), pSMGState);
+        result.put(address, value);
+      }
     }
-    // Global vars
-    PersistentMap<String, SMGObject> globalVarMapping =
-        state.getMemoryModel().getGlobalVariableToSmgObjectMap();
-    for (Entry<String, SMGObject> var : globalVarMapping.entrySet()) {
-      String variableName = var.getKey();
-      IDExpression idExp = new IDExpression(variableName);
 
-      lfhsToAddressMap.put(idExp, nextAddressToBeAssigned);
-
-      SMGObject objectForVar = var.getValue();
-      // These values are either alone (i.e. int bla = 5;) or there are multiple for arrays etc.
-      long biggestOffset =
-          putValuesIntoMap(
-              nextAddressToBeAssigned, state, valuesMap, objectForVar, alreadyVisited, todo);
-      // Make a new Address for the next variable
-      BigInteger offset = BigInteger.valueOf(biggestOffset + spaceForLastValue);
-
-      nextAddressToBeAssigned = nextAddressToBeAssigned.addOffset(offset);
-    }
+    return result;
   }
 
-  private long putValuesIntoMap(
-      Address baseAddress,
-      SMGState state,
-      Map<Address, Object> valuesMap,
-      SMGObject objectForVar,
-      Set<SMGObject> alreadyVisited,
-      Set<SMGObject> todo) {
-    alreadyVisited.add(objectForVar);
-    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> valuesByObject =
-        state.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges();
-    PersistentSet<SMGHasValueEdge> valuesInObject = valuesByObject.get(objectForVar);
-    if (valuesInObject == null || valuesInObject.isEmpty()) {
-      return 0;
-    }
-    long biggestOffset = 0;
-    for (SMGHasValueEdge hve : valuesInObject) {
-      if (hve.getOffset().longValue() > biggestOffset) {
-        biggestOffset = hve.getOffset().longValue();
-      }
-      BigInteger offset = hve.getOffset();
-      Optional<Value> value = state.getMemoryModel().getValueFromSMGValue(hve.hasValue());
+  public Address calculateAddress(SMGObject pObject, BigInteger pOffset, SMGState pSMGState) {
 
-      if (!value.orElseThrow().isNumericValue()) {
-        // This is either a symbolic/unknown value or a pointer
-        if (state.getMemoryModel().isPointer(value.orElseThrow())) {
-          SMGStateAndOptionalSMGObjectAndOffset target;
-          try {
-            // We want to use the minimal state (list abstraction might split into 2 states when
-            // materializing, we use the shortest)
-            List<SMGStateAndOptionalSMGObjectAndOffset> listOfTargets =
-                state.dereferencePointer(value.orElseThrow());
-            if (listOfTargets.size() == 1) {
-              target = listOfTargets.get(0);
-            } else {
-              Preconditions.checkArgument(
-                  listOfTargets.get(0).hasSMGObjectAndOffset()
-                      && !alreadyVisited.contains(listOfTargets.get(0).getSMGObject())
-                      && !state.getMemoryModel().pointsToZeroPlus(value.orElseThrow()));
-              // the first element is the minimal list
-              target = listOfTargets.get(0);
-            }
-            if (target.hasSMGObjectAndOffset() && !alreadyVisited.contains(target.getSMGObject())) {
-              todo.add(target.getSMGObject());
-            }
-          } catch (SMGException e) {
-            // Do nothing, should not happen
-            throw new AssertionError("Failed to create a concrete error path.");
+    // Create a new base address for the object if necessary
+    if (!addressOfObjectMap.containsKey(pObject)) {
+      addressOfObjectMap.put(pObject, nextAlloc);
+      IDExpression lhs = createIDExpression(pSMGState, pObject);
+      if (lhs != null) {
+        variableAddressMap.put(lhs, nextAlloc);
+      }
+      BigInteger objectSize = pObject.getSize();
+
+      BigInteger nextAllocOffset = nextAlloc.getAddressValue().add(objectSize).add(BigInteger.TEN);
+
+      nextAlloc = nextAlloc.addOffset(nextAllocOffset);
+    }
+
+    return addressOfObjectMap.get(pObject).addOffset(pOffset);
+  }
+
+  // Finds the variable names of objects if present
+  private static IDExpression createIDExpression(SMGState state, SMGObject pObject) {
+
+    if (state.getMemoryModel().getGlobalVariableToSmgObjectMap().containsValue(pObject)) {
+      for (Entry<String, SMGObject> entry :
+          state.getMemoryModel().getGlobalVariableToSmgObjectMap().entrySet()) {
+        if (entry.getValue().equals(pObject)) {
+          return new IDExpression(entry.getKey());
+        }
+      }
+      // TODO Breaks if label is changed
+    }
+
+    for (StackFrame frame : state.getMemoryModel().getStackFrames()) {
+      if (frame.getVariables().containsValue(pObject)) {
+        for (Entry<String, SMGObject> entry : frame.getVariables().entrySet()) {
+          if (entry.getValue().equals(pObject)) {
+            return new IDExpression(entry.getKey(), frame.getFunctionDefinition().getName());
           }
         }
-        continue;
+        // TODO Breaks if label is changed
       }
-      valuesMap.put(
-          baseAddress.addOffset(offset), value.orElseThrow().asNumericValue().bigIntegerValue());
     }
-    return biggestOffset;
+
+    return null;
   }
 }

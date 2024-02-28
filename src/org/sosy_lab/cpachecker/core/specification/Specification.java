@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
@@ -229,9 +230,13 @@ public final class Specification {
       }
       AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
       assert acslParser.areIsomorphicCFAs(cfa)
-          : "CFAs of task program and annotated program differ, "
+          : "CFAs of task program and annotated progra m differ, "
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
+    } else if (AutomatonYAMLParser.isYAMLWitness(specFile)) {
+      AutomatonYAMLParser yamlParser =
+          new AutomatonYAMLParser(config, logger, pShutdownNotifier, cfa, scope);
+      automata = ImmutableList.of(yamlParser.parseAutomatonFile(specFile));
     } else {
       automata =
           AutomatonParser.parseAutomatonFile(

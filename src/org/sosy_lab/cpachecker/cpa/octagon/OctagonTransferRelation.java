@@ -184,20 +184,11 @@ public class OctagonTransferRelation
 
       // Unary operation
     } else if (expression instanceof CUnaryExpression unaryExp) {
-      switch (unaryExp.getOperator()) {
-          // do not change anything besides the expression, minus has no effect
-          // on the == 0 equality check
-        case MINUS:
-          return handleAssumption(cfaEdge, unaryExp.getOperand(), truthAssumption);
-
-          // TODO check if some cases could be handled
-        case SIZEOF:
-        case TILDE:
-        case AMPER:
-          return Collections.singleton(state);
-        default:
-          throw new CPATransferException("Unhandled case: " + unaryExp.getOperator());
-      }
+      return switch (unaryExp.getOperator()) {
+        case MINUS -> handleAssumption(cfaEdge, unaryExp.getOperand(), truthAssumption);
+        case SIZEOF, TILDE, AMPER -> Collections.singleton(state);
+        default -> throw new CPATransferException("Unhandled case: " + unaryExp.getOperator());
+      };
 
       // An expression which cannot be simplified anymore
     } else if (expression instanceof CIdExpression
@@ -598,22 +589,15 @@ public class OctagonTransferRelation
       final BinaryOperator op,
       final OctagonNumericValue leftVal,
       final OctagonNumericValue rightVal) {
-    switch (op) {
-      case EQUALS:
-        return leftVal.isEqual(rightVal);
-      case GREATER_EQUAL:
-        return leftVal.greaterEqual(rightVal);
-      case GREATER_THAN:
-        return leftVal.greaterThan(rightVal);
-      case LESS_EQUAL:
-        return leftVal.lessEqual(rightVal);
-      case LESS_THAN:
-        return leftVal.lessThan(rightVal);
-      case NOT_EQUALS:
-        return !leftVal.isEqual(rightVal);
-      default:
-        throw new AssertionError("Unhandled case: " + op);
-    }
+    return switch (op) {
+      case EQUALS -> leftVal.isEqual(rightVal);
+      case GREATER_EQUAL -> leftVal.greaterEqual(rightVal);
+      case GREATER_THAN -> leftVal.greaterThan(rightVal);
+      case LESS_EQUAL -> leftVal.lessEqual(rightVal);
+      case LESS_THAN -> leftVal.lessThan(rightVal);
+      case NOT_EQUALS -> !leftVal.isEqual(rightVal);
+      default -> throw new AssertionError("Unhandled case: " + op);
+    };
   }
 
   /** This method handles all binary assumptions without literals (p.e. a < b) */

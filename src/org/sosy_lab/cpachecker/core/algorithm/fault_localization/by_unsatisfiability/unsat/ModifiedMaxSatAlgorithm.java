@@ -61,20 +61,27 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     stats.totalTime.start();
     // loop as long as new unsat cores are found.
     // if the newly found unsat core has the size of all left selectors break.
-    while (minUnsatCore.size() != initSize) {
-      minUnsatCore = getMinUnsatCore(soft, hard, booleanTraceFormula, pContext);
-      if (minUnsatCore.size() == 1) {
-        soft.removeAll(minUnsatCore);
-        initSize = soft.size();
-      }
-      // adding all possible selectors yields no information because the user knows that the program
-      // has bugs
-      if (minUnsatCore.size() != initSize) {
-        hard.add(minUnsatCore);
-        if (stopAfterFirstFault) {
-          break;
+    try {
+      while (minUnsatCore.size() != initSize) {
+        minUnsatCore = getMinUnsatCore(soft, hard, booleanTraceFormula, pContext);
+        if (minUnsatCore.size() == 1) {
+          soft.removeAll(minUnsatCore);
+          initSize = soft.size();
+        }
+        // adding all possible selectors yields no information because the user knows that the
+        // program
+        // has bugs
+        if (minUnsatCore.size() != initSize) {
+          hard.add(minUnsatCore);
+          if (stopAfterFirstFault) {
+            break;
+          }
         }
       }
+    } catch (InterruptedException e) {
+      pContext
+          .getLogger()
+          .logfException(Level.WARNING, e, "Stopping fault localization after interruption.");
     }
     stats.totalTime.stop();
     pContext

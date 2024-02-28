@@ -449,14 +449,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean isBitwiseBinaryOperation(BinaryOperator pOperator) {
-    switch (pOperator) {
-      case BINARY_AND:
-      case BINARY_XOR:
-      case BINARY_OR:
-        return true;
-      default:
-        return false;
-    }
+    return switch (pOperator) {
+      case BINARY_AND, BINARY_XOR, BINARY_OR -> true;
+      default -> false;
+    };
   }
 
   /**

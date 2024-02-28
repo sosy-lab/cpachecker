@@ -480,17 +480,13 @@ public final class SMGIntersectStates {
       }
     }
 
-    switch (pObj1.getKind()) {
-      case DLL:
-        return ((SMGDoublyLinkedList) pObj1).matchSpecificShape((SMGDoublyLinkedList) pObj2);
-      case SLL:
-        return ((SMGSingleLinkedList) pObj1).matchSpecificShape((SMGSingleLinkedList) pObj2);
-      case GENERIC:
-        // TODO match generic
-        return pObj1.equals(pObj2);
-      default:
-        return true;
-    }
+    return switch (pObj1.getKind()) {
+      case DLL -> ((SMGDoublyLinkedList) pObj1).matchSpecificShape((SMGDoublyLinkedList) pObj2);
+      case SLL -> ((SMGSingleLinkedList) pObj1).matchSpecificShape((SMGSingleLinkedList) pObj2);
+      case GENERIC -> // TODO match generic
+          pObj1.equals(pObj2);
+      default -> true;
+    };
   }
 
   private static SMGObject getConcretestObject(SMGObject pObj1, SMGObject pObj2) {

@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -320,10 +319,9 @@ public final class BMCHelper {
     return from(AbstractStates.extractLocations(state)).anyMatch(pLocations::contains);
   }
 
-  public static Set<ARGState> filterAncestors(
-      Iterable<ARGState> pStates, Predicate<? super AbstractState> pDescendant) {
+  public static Set<ARGState> filterAncestors(Iterable<ARGState> pStates) {
     Multimap<ARGState, ARGState> parentToTarget = HashMultimap.create();
-    for (ARGState state : FluentIterable.from(pStates).filter(pDescendant::test)) {
+    for (ARGState state : FluentIterable.from(pStates)) {
       if (state.getChildren().isEmpty()) {
         Collection<ARGState> parents = state.getParents();
         for (ARGState parent : parents) {

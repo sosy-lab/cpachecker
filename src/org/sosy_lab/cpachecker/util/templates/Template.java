@@ -65,7 +65,7 @@ public final class Template {
     for (Entry<CIdExpression, Rational> e : linearExpression) {
       CIdExpression expr = e.getKey();
       CSimpleType type = (CSimpleType) expr.getExpressionType();
-      if (!type.isUnsigned()) {
+      if (!type.hasUnsignedSpecifier()) {
         return false;
       }
     }

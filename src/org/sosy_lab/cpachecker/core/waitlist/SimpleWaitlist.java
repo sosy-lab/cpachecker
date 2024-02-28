@@ -30,15 +30,10 @@ public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractState>> {
 
   @Override
   public AbstractState pop() {
-    switch (traversal) {
-      case BFS:
-        return waitlist.removeFirst();
-
-      case DFS:
-        return waitlist.removeLast();
-
-      default:
-        throw new AssertionError();
-    }
+    return switch (traversal) {
+      case BFS -> waitlist.removeFirst();
+      case DFS -> waitlist.removeLast();
+      default -> throw new AssertionError();
+    };
   }
 }

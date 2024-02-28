@@ -49,10 +49,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -202,7 +202,7 @@ final class VariableAndFieldRelevancyComputer {
         if (rhs.isVariable()) {
           final VarFieldDependencies singleVariable =
               new VarFieldDependencies(
-                  ImmutableSet.of(rhs.asVariable().getScopedName()),
+                  ImmutableSet.of(rhs.asVariable().scopedName()),
                   ImmutableListMultimap.of(),
                   ImmutableListMultimap.of(),
                   ImmutableSet.of(),
@@ -224,7 +224,7 @@ final class VariableAndFieldRelevancyComputer {
           final VarFieldDependencies singleField =
               new VarFieldDependencies(
                   ImmutableSet.of(),
-                  ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+                  ImmutableListMultimap.of(field.compositeType(), field.name()),
                   ImmutableListMultimap.of(),
                   ImmutableSet.of(),
                   ImmutableListMultimap.of(),
@@ -254,7 +254,7 @@ final class VariableAndFieldRelevancyComputer {
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
               ImmutableListMultimap.of(),
-              ImmutableSet.of(variable.getScopedName()),
+              ImmutableSet.of(variable.scopedName()),
               ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
               1,
@@ -275,7 +275,7 @@ final class VariableAndFieldRelevancyComputer {
           new VarFieldDependencies(
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
-              ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+              ImmutableListMultimap.of(field.compositeType(), field.name()),
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
@@ -380,12 +380,12 @@ final class VariableAndFieldRelevancyComputer {
               : "Match failure: neither variable nor field!";
           if (variableOrField.isVariable()) {
             final VariableOrField.Variable variable = variableOrField.asVariable();
-            if (currentRelevantVariables.add(variable.getScopedName())) {
+            if (currentRelevantVariables.add(variable.scopedName())) {
               queue.add(variable);
             }
           } else { // Field
             final VariableOrField.Field field = variableOrField.asField();
-            if (currentRelevantFields.put(field.getCompositeType(), field.getName())) {
+            if (currentRelevantFields.put(field.compositeType(), field.name())) {
               queue.add(field);
             }
           }
@@ -472,17 +472,14 @@ final class VariableAndFieldRelevancyComputer {
           if (!(decl instanceof CVariableDeclaration)) {
             break;
           }
-          CType declType = decl.getType().getCanonicalType();
-          if (declType instanceof CArrayType) {
-            CExpression length = ((CArrayType) declType).getLength();
-            if (length != null) {
-              result =
-                  result.withDependencies(
-                      length.accept(
-                          CollectingRHSVisitor.create(
-                              pCfa, VariableOrField.newVariable(decl.getQualifiedName()))));
-            }
+          for (CExpression exp : CTypes.getArrayLengthExpressions(decl.getType())) {
+            result =
+                result.withDependencies(
+                    exp.accept(
+                        CollectingRHSVisitor.create(
+                            pCfa, VariableOrField.newVariable(decl.getQualifiedName()))));
           }
+
           CollectingLHSVisitor collectingLHSVisitor = CollectingLHSVisitor.create(pCfa);
           for (CExpressionAssignmentStatement init :
               CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {

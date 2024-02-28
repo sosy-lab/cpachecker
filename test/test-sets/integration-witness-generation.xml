@@ -25,7 +25,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
   <rundefinition>
-    <option name="-svcomp23"/>
+    <option name="-svcomp24"/>
   </rundefinition>
 
   <tasks name="ConcurrencySafety-Main">

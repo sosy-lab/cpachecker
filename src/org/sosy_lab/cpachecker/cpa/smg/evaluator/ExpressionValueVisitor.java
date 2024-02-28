@@ -292,7 +292,7 @@ class ExpressionValueVisitor
 
   @Override
   public List<? extends SMGValueAndState> visit(CTypeIdExpression typeIdExp)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
 
     TypeIdOperator typeOperator = typeIdExp.getOperator();
     CType type = typeIdExp.getType();

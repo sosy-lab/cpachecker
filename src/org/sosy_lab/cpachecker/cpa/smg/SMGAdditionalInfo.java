@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 public class SMGAdditionalInfo {
-  enum Level {
+  public enum Level {
     ERROR,
     WARNING,
     NOTE,

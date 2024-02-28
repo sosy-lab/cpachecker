@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class ReturnIdentifier extends VariableIdentifier implements GeneralIdentifier {
+public final class ReturnIdentifier extends VariableIdentifier implements GeneralIdentifier {
 
   private static Map<Integer, ReturnIdentifier> instances;
 
@@ -50,6 +50,7 @@ public class ReturnIdentifier extends VariableIdentifier implements GeneralIdent
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (this == pO) {
       return 0;
     } else {

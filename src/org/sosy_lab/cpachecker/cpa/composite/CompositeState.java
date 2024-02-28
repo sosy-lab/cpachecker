@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
@@ -250,11 +249,7 @@ public class CompositeState
     @Override
     public int compareTo(CompositePseudoPartitionKey other) {
       Preconditions.checkArgument(keys.length == other.keys.length);
-      ComparisonChain c = ComparisonChain.start();
-      for (int i = 0; i < keys.length; i++) {
-        c = c.compare(keys[i], other.keys[i], Ordering.natural().nullsFirst());
-      }
-      return c.result();
+      return Arrays.compare(keys, other.keys, Ordering.natural().nullsFirst());
     }
   }
 

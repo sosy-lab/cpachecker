@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cmdline;
 
-import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
@@ -141,6 +140,8 @@ public class ConfigurationFileChecks {
           "pcc.strategy",
           "pcc.cmc.configFiles",
           "pcc.cmc.file",
+          // only handled if a witness in witness format 2.0 (YAML) is provided with -witness
+          "witness.matchOffsetsWhenCreatingViolationAutomatonFromYAML",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "cpa.automaton.treatErrorsAsTargets",
@@ -390,7 +391,9 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String cpaBelowArgCpa = Objects.requireNonNullElse(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
-    final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
+    final boolean isTestGenerationConfig =
+        basePath.toString().contains("testCaseGeneration")
+            || basePath.toString().contains("testcomp");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
@@ -403,7 +406,7 @@ public class ConfigurationFileChecks {
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
         || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
         || basePath.toString().contains("validation-termination")) {
-      assertThat(spec).isEmpty();
+      assertThat(Strings.nullToEmpty(spec)).isEmpty();
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
         assertThat(spec).endsWith("specification/sv-comp-overflow.spc");
@@ -428,6 +431,18 @@ public class ConfigurationFileChecks {
         assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
       } else {
         if (!spec.contains("specification/sv-comp-memorycleanup.spc")) {
+          assertThat(spec).contains("specification/memorysafety.spc");
+        }
+      }
+    } else if (cpas.contains("cpa.smg2.SMGCPA")) {
+      if (isSvcompConfig) {
+        assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
+      } else {
+        if (spec.contains("sv-comp-memorycleanup")) {
+          assertThat(spec).contains("specification/sv-comp-memorycleanup.spc");
+        } else if (spec.contains("memorycleanup")) {
+          assertThat(spec).contains("specification/memorycleanup.spc");
+        } else if (spec.contains("memorysafety")) {
           assertThat(spec).contains("specification/memorysafety.spc");
         }
       }
@@ -511,13 +526,11 @@ public class ConfigurationFileChecks {
         .withMessage(
             "Failure in CPAchecker run with following log\n%s\n\nlog with level WARNING or higher",
             formatLogRecords(logHandler.getStoredLogRecords()))
-        .about(streams())
         .that(getSevereMessages(options, logHandler))
         .isEmpty();
 
     assume()
         .withMessage("messages indicating missing input files")
-        .about(streams())
         .that(
             logHandler.getStoredLogRecords().stream()
                 .map(LogRecord::getMessage)

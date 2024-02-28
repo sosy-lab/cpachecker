@@ -126,8 +126,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 class WitnessFactory implements EdgeAppender {
 
-  private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
-      EnumSet.of(
+  private static final ImmutableSet<KeyDef> INSUFFICIENT_KEYS =
+      Sets.immutableEnumSet(
           KeyDef.SOURCECODE,
           KeyDef.STARTLINE,
           KeyDef.ENDLINE,
@@ -1102,8 +1102,10 @@ class WitnessFactory implements EdgeAppender {
 
     // Merge nodes with empty or repeated edges
     int sizeBeforeMerging = edgeToCFAEdges.size();
-    mergeEdges(entryStateNodeId, true, this::isEdgeIrrelevant, backwardARG);
-    mergeEdges(entryStateNodeId, false, this::isEdgeIrrelevantByFaultLocalization, backwardARG);
+    if (witnessOptions.minimizeARG()) {
+      mergeEdges(entryStateNodeId, true, this::isEdgeIrrelevant);
+      mergeEdges(entryStateNodeId, false, this::isEdgeIrrelevantByFaultLocalization);
+    }
     int sizeAfterMerging = edgeToCFAEdges.size();
     logger.logf(
         Level.ALL,
@@ -1111,8 +1113,10 @@ class WitnessFactory implements EdgeAppender {
         sizeBeforeMerging,
         sizeAfterMerging);
 
-    // merge redundant sibling edges leading to the sink together, if possible
-    mergeRedundantSinkEdges();
+    if (witnessOptions.minimizeARG()) {
+      // merge redundant sibling edges leading to the sink together, if possible
+      mergeRedundantSinkEdges();
+    }
 
     return new Witness(
         graphType,

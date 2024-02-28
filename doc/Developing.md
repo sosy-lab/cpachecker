@@ -208,11 +208,17 @@ Offline Development
 
 Dependencies for CPAchecker are downloaded from an Ivy repository
 hosted at sosy-lab.org during build.
-It is possible to override the path to the Ivy repository
-and also to use a fully local copy of the Ivy repository.
+Once all dependencies are cached locally, builds work offline.
+
+It is also possible to override the path to the Ivy repository
+and to use a fully local copy of the Ivy repository.
 Instructions for doing so can be found in our cross-project
 [wiki](https://gitlab.com/sosy-lab/doc/-/wikis/Using-a-Different-Ivy-Repository-for-Development).
 
+As a last resort for offline builds even if not all dependencies are available,
+one can disable Ivy with `ant -Divy.disable=true`.
+But of course, as soon as a missing dependency is required,
+this may not work.
 
 Releasing a New Version
 -----------------------

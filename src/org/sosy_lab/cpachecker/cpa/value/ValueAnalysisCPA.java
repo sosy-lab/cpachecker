@@ -164,14 +164,11 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private MemoryLocationValueHandler createUnknownValueHandler()
       throws InvalidConfigurationException {
-    switch (unknownValueStrategy) {
-      case DISCARD:
-        return new UnknownValueAssigner();
-      case INTRODUCE_SYMBOLIC:
-        return new SymbolicValueAssigner(config);
-      default:
-        throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
-    }
+    return switch (unknownValueStrategy) {
+      case DISCARD -> new UnknownValueAssigner();
+      case INTRODUCE_SYMBOLIC -> new SymbolicValueAssigner(config);
+      default -> throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
+    };
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)

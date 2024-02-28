@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isIntegerType;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isSignedIntegerType;
-import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
@@ -1148,11 +1146,6 @@ public class CFABuilder {
         // operand2 should always be treated as an unsigned value
         op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned= */ true);
         operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
-
-        // GNU C performs an arithmetic shift for signed types
-        // op1type is signed by default for integer types
-        assert pOpCode != AShr || isSignedIntegerType(op1type)
-            : "First operand of right shift wasn't signed in the case of an arithmetic right shift";
 
         // calculate the shift with the signedness of op1type
         internalExpressionType = machineModel.applyIntegerPromotion(op1type);

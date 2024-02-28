@@ -310,9 +310,12 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long typeSize = evv.getMachineModel().getSizeof(elementType).longValueExact();
-
-      long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
+      Value typeSize = evv.sizeof(elementType);
+      if (!typeSize.isExplicitlyKnown() || !typeSize.isNumericValue()) {
+        return null;
+      }
+      long subscriptOffset =
+          subscriptValue.asNumericValue().longValue() * typeSize.asNumericValue().longValue();
 
       return arrayLoc.withAddedOffset(subscriptOffset);
     }

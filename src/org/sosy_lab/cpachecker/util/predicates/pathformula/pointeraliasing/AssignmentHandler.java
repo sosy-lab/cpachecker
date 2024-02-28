@@ -24,9 +24,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.logging.Level;
 import java.util.stream.Stream;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -265,14 +263,38 @@ class AssignmentHandler {
       // construct the partial assignment as if it is a full assignment from RHS (converted to
       // target type) to LHS
       final PartialAssignmentLhs partialLhs = new PartialAssignmentLhs(assignment.lhs, targetType);
-      final long targetBitSize = typeHandler.getBitSizeof(targetType);
+      final long targetBitSize = typeHandler.getApproximatedBitSizeof(targetType);
+      if (targetBitSize == 0) {
+        // e.g., zero-width bit field, ignore
+        continue;
+      }
       final PartialAssignmentRhs partialRhs =
           new PartialAssignmentRhs(new PartialSpan(0, 0, targetBitSize), assignment.rhs);
       final SingleRhsPartialAssignment partialAssignment =
           new SingleRhsPartialAssignment(partialLhs, partialRhs);
 
-      // convert span assignment to progenitor; this will retain the meaning of the assignment, but
-      // the LHS type will be the coarsest possible
+      if (options.useByteArrayForHeap()) {
+        // we do not need to convert to progenitor if we are assigning to the byte array, as all
+        // types will read and write from the same array
+        // however, that does not apply to unaliased locations, so we need to make sure that there
+        // are no assignments to them if we want to skip the conversion to progenitor
+
+        boolean assignmentToUnaliasedExists = false;
+        for (ResolvedSlice lhsResolvedBase : lhsBaseResolutionMap.values()) {
+          assignmentToUnaliasedExists =
+              assignmentToUnaliasedExists || lhsResolvedBase.expression().isUnaliasedLocation();
+        }
+
+        if (!assignmentToUnaliasedExists) {
+          // we do not need to convert to progenitor, unions are resolved implicitly by the byte
+          // array
+          partialAssignments.add(partialAssignment);
+          continue;
+        }
+      }
+
+      // convert span assignment to progenitor; this will retain the meaning of the assignment,
+      // but the LHS type will be the coarsest possible
       final SingleRhsPartialAssignment progenitorPartialAssignment =
           convertPartialAssignmentToProgenitor(partialAssignment);
 
@@ -488,7 +510,8 @@ class AssignmentHandler {
       // modifiers in assignments
       // so we can substitute resolvedRhsBase.expression()
       final DynamicMemoryHandler memoryHandler =
-          new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+          new DynamicMemoryHandler(
+              conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       memoryHandler.handleDeferredAllocationsInAssignment(
           (CLeftHandSide) lhsDummy,
           rhsDummy,
@@ -642,19 +665,20 @@ class AssignmentHandler {
       CArrayType lhsArrayType,
       CType rhsType) {
 
-    final @Nullable CExpression lhsArrayLength = lhsArrayType.getLength();
-    if (lhsArrayLength == null) {
-      // we currently do not assign to flexible array members as it is complex to implement
+    if (lhsArrayType.getLength() == null) {
+      // This is either a function parameter or a flexible array member of a struct,
+      // but function parameters with array types are actually pointers and we let it decay before.
+      // Flexible array members effectively have length zero, so nothing to copy.
+      return;
+    }
+    if (!lhsArrayType.hasKnownConstantSize()) {
       conv.logger.logfOnce(
           Level.WARNING,
-          "%s: Ignoring assignment to flexible array member %s as they are not well-supported",
+          "%s: Ignoring assignment to array type %s with variable length",
           edge.getFileLocation(),
           lhsArrayType);
       return;
     }
-
-    final PartialSpan originalSpan = assignment.rhs().span();
-
     if (!lhsArrayType.equals(rhsType)) {
       // we currently do not assign to array types from different types as that would ideally
       // require spans to support quantification, which would be problematic
@@ -667,9 +691,10 @@ class AssignmentHandler {
           rhsType);
       return;
     }
+    final PartialSpan originalSpan = assignment.rhs().span();
     if (originalSpan.lhsBitOffset() != 0
         || originalSpan.rhsTargetBitOffset() != 0
-        || originalSpan.bitSize() != typeHandler.getBitSizeof(lhsArrayType)) {
+        || originalSpan.bitSize() != typeHandler.getExactBitSizeof(lhsArrayType)) {
       // we currently do not assign for incomplete spans as it would not be trivial
       conv.logger.logfOnce(
           Level.WARNING,
@@ -687,7 +712,8 @@ class AssignmentHandler {
 
     // full span
     final CType elementType = typeHandler.simplifyType(lhsArrayType.getType());
-    final PartialSpan elementSpan = new PartialSpan(0, 0, typeHandler.getBitSizeof(elementType));
+    final PartialSpan elementSpan =
+        new PartialSpan(0, 0, typeHandler.getExactBitSizeof(elementType));
     final PartialAssignmentRhs elementSpanRhs = new PartialAssignmentRhs(elementSpan, elementRhs);
 
     // target type is now element type
@@ -720,7 +746,7 @@ class AssignmentHandler {
     final PartialSpan originalSpan = assignment.rhs().span();
 
     final long lhsMemberBitOffset = typeHandler.getBitOffset(lhsCompositeType, lhsMember);
-    final long lhsMemberBitSize = typeHandler.getBitSizeof(lhsMember.getType());
+    final long lhsMemberBitSize = typeHandler.getApproximatedBitSizeof(lhsMember.getType());
     final SliceExpression lhsMemberSlice = assignment.lhs().actual().withFieldAccess(lhsMember);
 
     // compare LHS assignment range with member range

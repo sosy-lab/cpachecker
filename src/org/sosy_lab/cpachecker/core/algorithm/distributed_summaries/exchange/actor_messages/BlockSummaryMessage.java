@@ -415,23 +415,19 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
               .buildPayload();
       Instant timestamp = Instant.parse(node.get("timestamp").asText());
 
-      switch (type) {
-        case FOUND_RESULT:
-          return new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR:
-          return new BlockSummaryErrorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR_CONDITION_UNREACHABLE:
-          return new BlockSummaryErrorConditionUnreachableMessage(
-              uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR_CONDITION:
-          return new BlockSummaryErrorConditionMessage(
-              uniqueBlockId, nodeNumber, payload, timestamp);
-        case BLOCK_POSTCONDITION:
-          return new BlockSummaryPostConditionMessage(
-              uniqueBlockId, nodeNumber, payload, timestamp);
-        default:
-          throw new AssertionError("Unknown MessageType " + type);
-      }
+      return switch (type) {
+        case FOUND_RESULT ->
+            new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR -> new BlockSummaryErrorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR_CONDITION_UNREACHABLE ->
+            new BlockSummaryErrorConditionUnreachableMessage(
+                uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR_CONDITION ->
+            new BlockSummaryErrorConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case BLOCK_POSTCONDITION ->
+            new BlockSummaryPostConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        default -> throw new AssertionError("Unknown MessageType " + type);
+      };
     }
   }
 

@@ -305,7 +305,7 @@ public class UndefinedFunctionCollectorAlgorithm
     if (bt == CBasicType.BOOL) {
       return Pair.of("bool", "bool");
     } else if (bt == CBasicType.CHAR) {
-      if (ct.isUnsigned()) {
+      if (ct.hasUnsignedSpecifier()) {
         return Pair.of("unsigned char", "uchar");
       } else {
         return Pair.of("char", "char");
@@ -315,20 +315,20 @@ public class UndefinedFunctionCollectorAlgorithm
     } else if (bt == CBasicType.FLOAT) {
       return Pair.of("float", "float");
     } else if (bt == CBasicType.INT || bt == CBasicType.UNSPECIFIED) {
-      if (ct.isShort()) {
-        if (ct.isUnsigned()) {
+      if (ct.hasShortSpecifier()) {
+        if (ct.hasUnsignedSpecifier()) {
           return Pair.of("unsigned short", "ushort");
         } else {
           return Pair.of("short", "short");
         }
-      } else if (ct.isLong() || ct.isLongLong()) {
-        if (ct.isUnsigned()) {
+      } else if (ct.hasLongSpecifier() || ct.hasLongLongSpecifier()) {
+        if (ct.hasUnsignedSpecifier()) {
           return Pair.of("unsigned long", "ulong");
         } else {
           return Pair.of("long", "long");
         }
       } else {
-        if (ct.isUnsigned()) {
+        if (ct.hasUnsignedSpecifier()) {
           return Pair.of("unsigned int", "uint");
         } else {
           return Pair.of("int", "int");

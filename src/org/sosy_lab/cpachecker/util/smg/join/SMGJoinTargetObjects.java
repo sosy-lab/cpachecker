@@ -262,7 +262,8 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
       SMGValue pValue1,
       SMGValue pValue2,
       int pNestingLevelDiff) {
-    if (pValue1.getNestingLevel() - pValue2.getNestingLevel() != pNestingLevelDiff) {
+    if (inputSMG1.getNestingLevel(pValue1) - inputSMG2.getNestingLevel(pValue2)
+        != pNestingLevelDiff) {
       return false;
     }
 

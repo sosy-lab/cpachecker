@@ -2431,21 +2431,11 @@ class ASTConverter {
       return null;
 
     } else if (basicType != null) {
-      switch (basicType) {
-        case BOOLEAN:
-          return convertBooleanOperator(op); // might throw CFAGenerationRuntimeException
-
-        case BYTE:
-        case SHORT:
-        case INT:
-        case LONG:
-        case DOUBLE:
-        case FLOAT:
-          return convertNumberOperator(op); // might throw CFAGenerationRuntimeException
-
-        default:
-          throw new CFAGenerationRuntimeException(invalidTypeMsg);
-      }
+      return switch (basicType) {
+        case BOOLEAN -> convertBooleanOperator(op);
+        case BYTE, SHORT, INT, LONG, DOUBLE, FLOAT -> convertNumberOperator(op);
+        default -> throw new CFAGenerationRuntimeException(invalidTypeMsg);
+      };
 
     } else {
       throw new CFAGenerationRuntimeException(invalidTypeMsg);

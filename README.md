@@ -118,6 +118,8 @@ There are also additional output files in the directory `output/`:
        `genhtml output/coverage.info --output-directory output --legend`
  - `Counterexample.*.txt`: A path through the program that leads to an error
  - `Counterexample.*.assignment.txt`: Assignments for all variables on the error path.
+ - `Counterexample.*.harness.c`: A test harness that can reproduce the error path through test execution.
+       See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
  - `predmap.txt`: Predicates used by predicate analysis to prove program safety
  - `reached.txt`: Dump of all reached abstract states
  - `Statistics.txt`: Time statistics (can also be printed to console with `-stats`)

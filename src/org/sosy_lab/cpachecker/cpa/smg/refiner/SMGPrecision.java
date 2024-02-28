@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -25,6 +26,8 @@ public abstract class SMGPrecision implements Precision {
 
   private final SMGPrecisionAbstractionOptions options;
   private final int maxLength;
+
+  @SuppressFBWarnings("SS_SHOULD_BE_STATIC") // TODO
   private final int threshold = 0; // TODO always zero??
 
   protected SMGPrecision(SMGPrecisionAbstractionOptions pOptions) {

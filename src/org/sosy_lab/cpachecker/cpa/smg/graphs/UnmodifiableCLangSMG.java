@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
  *
  * <p>All returned Collections are unmodifiable.
  */
-public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
+public sealed interface UnmodifiableCLangSMG extends UnmodifiableSMG permits CLangSMG {
 
   @Override
   CLangSMG copyOf();

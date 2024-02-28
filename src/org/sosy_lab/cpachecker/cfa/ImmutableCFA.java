@@ -39,6 +39,7 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
 
   private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
+  private final ImmutableSet<CFAEdge> allEdges;
 
   private final CfaMetadata metadata;
 
@@ -60,6 +61,12 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
             new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+    allEdges = ImmutableSet.copyOf(super.edges());
+  }
+
+  @Override
+  public Set<CFAEdge> edges() {
+    return allEdges;
   }
 
   @Override

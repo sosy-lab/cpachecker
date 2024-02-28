@@ -23,7 +23,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantEntry;
 
 /** Represents an invariant witness source. */
 public final class InvariantWitnessProvider implements AutoCloseable {
@@ -87,7 +87,7 @@ public final class InvariantWitnessProvider implements AutoCloseable {
   public synchronized Collection<InvariantWitness> getCurrentWitnesses()
       throws InterruptedException, IOException {
     ImmutableSet.Builder<InvariantWitness> newWitnesses = ImmutableSet.builder();
-    Optional<LoopInvariantEntry> newEntry = entryProvider.getNext();
+    Optional<InvariantEntry> newEntry = entryProvider.getNext();
 
     while (newEntry.isPresent()) {
       newWitnesses.addAll(parser.parseStoreEntry(newEntry.orElseThrow()));

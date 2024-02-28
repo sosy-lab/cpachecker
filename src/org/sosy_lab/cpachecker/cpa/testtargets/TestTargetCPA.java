@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -26,12 +28,14 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetAdaption;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options(prefix = "testcase")
-public class TestTargetCPA extends AbstractCPA {
+public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
 
   private final TestTargetPrecisionAdjustment precisionAdjustment;
   private final TransferRelation transferRelation;
@@ -57,8 +61,21 @@ public class TestTargetCPA extends AbstractCPA {
   @Option(
       secure = true,
       name = "targets.optimization.strategy",
-      description = "Which strategy to use to optimize set of test target edges")
-  private TestTargetAdaption targetOptimization = TestTargetAdaption.NONE;
+      description =
+          "Which strategy or which strategies (comma separated list of strategies)"
+              + " to use to optimize set of test target edges. "
+              + "If more than one strategy is provided, "
+              + "all strategies are applied and if targets.optimization.nested "
+              + "is disabled the smallest result is taken "
+              + "otherwise see description of option targets.optimization.nested."
+              + "If no strategy is provided, no optimization is performed. ")
+  private List<TestTargetAdaption> targetOptimization = ImmutableList.of();
+
+  @Option(
+      secure = true,
+      name = "targets.optimization.nested",
+      description = "Set to enable optimizations to be applied to result of previous optimizations")
+  private boolean applyOptimizationsNested = false;
 
   @Option(
       secure = true,
@@ -77,7 +94,7 @@ public class TestTargetCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
   }
 
-  public TestTargetCPA(final CFA pCfa, final Configuration pConfig)
+  public TestTargetCPA(final CFA pCfa, final Configuration pConfig, final LogManager pLogger)
       throws InvalidConfigurationException {
     super("sep", "sep", DelegateAbstractDomain.<TestTargetState>getInstance(), null);
 
@@ -97,7 +114,9 @@ public class TestTargetCPA extends AbstractCPA {
                     targetType,
                     targetFun,
                     targetOptimization,
-                    trackRedundantTargets)
+                    applyOptimizationsNested,
+                    trackRedundantTargets,
+                    pLogger)
                 : findTargetEdge(pCfa));
   }
 

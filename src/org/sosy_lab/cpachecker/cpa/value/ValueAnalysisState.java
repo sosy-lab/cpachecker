@@ -649,8 +649,8 @@ public final class ValueAnalysisState
                 switch (simpleType.getType()) {
                   case FLOAT -> FormulaType.getSinglePrecisionFloatingPointType();
                   case DOUBLE -> FormulaType.getDoublePrecisionFloatingPointType();
-                  default -> throw new AssertionError(
-                      "Unsupported floating point type: " + simpleType);
+                  default ->
+                      throw new AssertionError("Unsupported floating point type: " + simpleType);
                 };
             FloatingPointFormula var =
                 floatFMGR.makeVariable(entry.getKey().getExtendedQualifiedName(), fpType);

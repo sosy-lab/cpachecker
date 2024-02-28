@@ -408,6 +408,10 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                   + stats.noOfRuns
                   + " not completed.");
 
+          if (e.getMessage().contains("recursion")) {
+            selectionStrategy.setRecursionFound();
+          }
+
         } catch (InterruptedException e) {
           logger.logUserException(
               Level.FINE,
@@ -713,7 +717,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     if (constrPrec != null) {
       try {
         if (!(constrPrec instanceof RefinableConstraintsPrecision)) {
-
           constrPrec = new RefinableConstraintsPrecision(pConfig, cfa, logger);
         }
         ConstraintsPrecision constrPrecInter;

@@ -195,6 +195,11 @@ enum IIIOperatorFactory {
           result = result == null ? posResult : BitVectorInterval.span(result, posResult);
         }
 
+        if (pFirstOperand.containsZero()) {
+          BitVectorInterval zeroResult = BitVectorInterval.singleton(info, BigInteger.ZERO);
+          result = result == null ? zeroResult : BitVectorInterval.span(result, zeroResult);
+        }
+
         assert result != null;
         return result;
       }

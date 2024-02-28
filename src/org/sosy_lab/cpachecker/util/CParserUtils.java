@@ -623,8 +623,8 @@ public class CParserUtils {
       if (canonicalType instanceof CSimpleType simpleType) {
         CBasicType basicType = simpleType.getType();
         if (basicType.equals(CBasicType.CHAR)
-            && !simpleType.isSigned()
-            && !simpleType.isUnsigned()) {
+            && !simpleType.hasSignedSpecifier()
+            && !simpleType.hasUnsignedSpecifier()) {
           CExpression rightHandSide = statement.getRightHandSide();
           CExpression castedRightHandSide =
               new CCastExpression(rightHandSide.getFileLocation(), canonicalType, rightHandSide);

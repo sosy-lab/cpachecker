@@ -68,6 +68,7 @@ class DynamicMemoryHandler {
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
+  private final String contextFunction;
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
@@ -87,6 +88,7 @@ class DynamicMemoryHandler {
   DynamicMemoryHandler(
       CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge,
+      String pFunction,
       SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
@@ -95,6 +97,7 @@ class DynamicMemoryHandler {
     conv = pConv;
     typeHandler = pConv.typeHandler;
     edge = pEdge;
+    contextFunction = pFunction;
     ssa = pSsa;
     pts = pPts;
     constraints = pConstraints;
@@ -390,7 +393,7 @@ class DynamicMemoryHandler {
       // TODO: rewrite dynamic memory handler to use high-level slice assignments and memset
       AssignmentFormulaHandler assignmentFormulaHandler =
           new AssignmentFormulaHandler(
-              conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+              conv, edge, contextFunction, ssa, pts, constraints, errorConditions, regionMgr);
       @SuppressWarnings("deprecation")
       final BooleanFormula initialization =
           assignmentFormulaHandler.makeDestructiveAssignment(
@@ -537,7 +540,7 @@ class DynamicMemoryHandler {
     assert sizeLiteral.getValue() != null;
 
     final long size = sizeLiteral.getValue().longValueExact();
-    final long typeSize = conv.getSizeof(type);
+    final long typeSize = typeHandler.getExactSizeof(type);
     if (type instanceof CArrayType) {
       // An array type is used in the cast or assignment, so its size should likely match the
       // allocated size.

@@ -52,6 +52,17 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           FunctionDeclarationKind.BV_NOT,
           FunctionDeclarationKind.BV_NEG);
 
+  private static final ImmutableSet<FunctionDeclarationKind> N_ARY_OPS =
+      Sets.immutableEnumSet(
+          FunctionDeclarationKind.AND,
+          FunctionDeclarationKind.OR,
+          FunctionDeclarationKind.ADD,
+          FunctionDeclarationKind.BV_ADD,
+          FunctionDeclarationKind.FP_ADD,
+          FunctionDeclarationKind.MUL,
+          FunctionDeclarationKind.BV_MUL,
+          FunctionDeclarationKind.FP_MUL);
+
   public FormulaToCVisitor(FormulaManagerView fmgr) {
     this.fmgr = fmgr;
   }
@@ -281,7 +292,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       if (!fmgr.visit(pArgs.get(0), this)) {
         return Boolean.FALSE;
       }
-    } else if (kind == FunctionDeclarationKind.AND || kind == FunctionDeclarationKind.OR) {
+    } else if (N_ARY_OPS.contains(kind)) {
       for (int i = 0; i < pArgs.size(); i++) {
         if (!fmgr.visit(pArgs.get(i), this)) {
           return Boolean.FALSE;

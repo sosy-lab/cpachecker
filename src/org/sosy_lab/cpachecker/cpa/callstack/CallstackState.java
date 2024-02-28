@@ -102,7 +102,7 @@ public class CallstackState
         + ", stack depth "
         + getDepth()
         + " ["
-        + Integer.toHexString(super.hashCode())
+        + Integer.toHexString(System.identityHashCode(this))
         + "], stack "
         + getStack();
   }

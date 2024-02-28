@@ -100,7 +100,7 @@ public class BuiltinOverflowFunctions {
         return "";
       }
 
-      if (pType.isSigned()) {
+      if (pType.hasSignedSpecifier()) {
         return "s";
       }
 
@@ -112,9 +112,9 @@ public class BuiltinOverflowFunctions {
         return "";
       }
 
-      if (pType.isLong()) {
+      if (pType.hasLongSpecifier()) {
         return "l";
-      } else if (pType.isLongLong()) {
+      } else if (pType.hasLongLongSpecifier()) {
         return "ll";
       }
 
@@ -293,8 +293,9 @@ public class BuiltinOverflowFunctions {
                   case PLUS -> p1.add(p2);
                   case MINUS -> p1.subtract(p2);
                   case MULTIPLY -> p1.multiply(p2);
-                  default -> throw new UnrecognizedCodeException(
-                      "Can not determine operator of function " + nameOfCalledFunc, null, null);
+                  default ->
+                      throw new UnrecognizedCodeException(
+                          "Can not determine operator of function " + nameOfCalledFunc, null, null);
                 };
 
             // cast result type of third parameter
