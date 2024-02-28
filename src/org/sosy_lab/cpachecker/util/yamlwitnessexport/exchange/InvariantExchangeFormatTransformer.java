@@ -146,11 +146,15 @@ public class InvariantExchangeFormatTransformer {
 
           ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
 
+          // This is the position at which the invariant should be valid.
           FileLocation loc =
               new FileLocation(
                   Path.of(invariantEntry.getLocation().getFileName()),
+                  // The offset cannot be computed since we don't have the mapping from line to
+                  // offset, which is currently only available during parsing. Since the line number
+                  // and column are unique for a given file, we can rescind the use of the offset.
                   -1,
-                  -1, // The length is currently not important enough to warrant computing it
+                  invariantString.length(),
                   line,
                   line,
                   invariantEntry.getLocation().getColumn());
