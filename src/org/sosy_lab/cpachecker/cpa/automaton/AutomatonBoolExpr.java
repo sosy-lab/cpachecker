@@ -120,8 +120,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckCoversLines
-          && linesToCover.equals(((CheckCoversLines) o).linesToCover);
+      return o instanceof CheckCoversLines c && linesToCover.equals(c.linesToCover);
     }
   }
 
@@ -158,7 +157,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckReachesLine && lineToReach == ((CheckReachesLine) o).lineToReach;
+      return o instanceof CheckReachesLine c && lineToReach == c.lineToReach;
     }
   }
 
@@ -211,13 +210,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public int hashCode() {
-      return offsetToReach.hashCode();
+      return offsetToReach;
     }
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckCoversOffsetAndLine
-          && offsetToReach == (((CheckCoversOffsetAndLine) o).offsetToReach);
+      return o instanceof CheckCoversOffsetAndLine c && offsetToReach == c.offsetToReach;
     }
   }
 
@@ -274,9 +272,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckCoversColumnAndLine
-          && columnToReach == (((CheckCoversColumnAndLine) o).columnToReach)
-          && lineNumber == (((CheckCoversColumnAndLine) o).lineNumber);
+      return o instanceof CheckCoversColumnAndLine c
+          && columnToReach == c.columnToReach
+          && lineNumber == c.lineNumber;
     }
   }
 
@@ -342,8 +340,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckReachesOffsetAndLine
-          && offsetToReach == ((CheckReachesOffsetAndLine) o).offsetToReach);
+      return o instanceof CheckReachesOffsetAndLine c && offsetToReach == c.offsetToReach;
     }
   }
 
