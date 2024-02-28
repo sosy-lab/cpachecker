@@ -244,11 +244,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (expectStatementEdge && !(edge instanceof AStatementEdge)) {
-        return CONST_FALSE;
-      }
 
-      if (!CoverageData.coversLine(edge)) {
+      // Edges which correspond to blocks in the code, like function declaration edges and iteration
+      // statement edges may fulfill the condition, but are not always desired.
+      if (expectStatementEdge && !(edge instanceof AStatementEdge)) {
         return CONST_FALSE;
       }
 
