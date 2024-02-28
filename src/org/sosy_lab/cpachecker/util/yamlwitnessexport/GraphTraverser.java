@@ -55,8 +55,6 @@ public abstract class GraphTraverser<NodeType> {
   /**
    * This method returns true whenever a node's successors shall not be explored any further. The
    * default behavior is to return true if the successor is already in the set of reached nodes.
-   *
-   * @throws E in an exceptional state needs to be communicated to the caller
    */
   protected boolean stop(NodeType successor) {
     return reached.contains(successor);
