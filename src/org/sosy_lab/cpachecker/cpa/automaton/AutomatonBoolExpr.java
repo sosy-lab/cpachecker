@@ -124,6 +124,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  /**
+   * Checks if any successor edge of the current edge covers a given line. In other words it checks
+   * if any of the leaving edges of the current edge fulfill the check {@link CheckCoversLines}.
+   */
   public static class CheckReachesLine implements AutomatonBoolExpr {
     private final int lineToReach;
 
@@ -161,6 +165,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  /**
+   * Checks if the current edge begins or ends at the given line and the given offset lies between
+   * the beginning and the end of the statement the edge represents.
+   */
   class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
     private final int offsetToReach;
     private final int lineNumber;
@@ -219,6 +227,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  /**
+   * Checks if the current edge begins or ends at the given line and the column lies between the
+   * starting column of the edge and the column at which the edge ends.
+   */
   public static class CheckCoversColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
@@ -282,6 +294,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  /**
+   * The check succeeds if any of the successors of the current edge fulfil {@link
+   * CheckCoversOffsetAndLine}.
+   */
   public static class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
     private final int offsetToReach;
     private final int lineNumber;
@@ -348,6 +364,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  /**
+   * Checks if the given edge leaves the condition of an if statement to enter the provided branch
+   * of it
+   */
   class CheckEntersIfBranch implements AutomatonBoolExpr {
 
     private final boolean takeThenBranch;
