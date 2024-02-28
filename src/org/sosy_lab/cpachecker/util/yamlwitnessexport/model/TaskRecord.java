@@ -12,9 +12,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 @Immutable
 public class TaskRecord {
@@ -44,6 +53,27 @@ public class TaskRecord {
     specification = pSpecification;
     dataModel = pDataModel;
     language = pLanguage;
+  }
+
+  public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
+      throws IOException {
+    List<Path> inputFiles = pCFA.getFileNames();
+    ImmutableMap.Builder<String, String> inputFileHashes = ImmutableMap.builder();
+    for (Path inputFile : inputFiles) {
+      inputFileHashes.put(inputFile.toString(), AutomatonGraphmlCommon.computeHash(inputFile));
+    }
+
+    String specification =
+        pSpecification.getProperties().stream()
+            .map(Property::toString)
+            .collect(Collectors.joining(" && "));
+
+    return new TaskRecord(
+        Collections3.transformedImmutableListCopy(inputFiles, Path::toString),
+        inputFileHashes.buildOrThrow(),
+        specification,
+        MachineModel.getMachineModelAsString(pCFA.getMachineModel()),
+        pCFA.getLanguage().toString());
   }
 
   public List<String> getInputFiles() {

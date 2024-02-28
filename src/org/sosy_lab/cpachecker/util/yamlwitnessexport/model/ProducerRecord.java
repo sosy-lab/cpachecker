@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 
 @Immutable
 public class ProducerRecord {
@@ -40,6 +42,15 @@ public class ProducerRecord {
     configuration = pConfiguration;
     description = pDescription;
     commandLine = pCommandLine;
+  }
+
+  public static ProducerRecord getProducerRecord(Configuration pConfig) {
+    return new ProducerRecord(
+        "CPAchecker",
+        CPAchecker.getPlainVersion(),
+        CPAchecker.getApproachName(pConfig),
+        null,
+        null);
   }
 
   public String getName() {

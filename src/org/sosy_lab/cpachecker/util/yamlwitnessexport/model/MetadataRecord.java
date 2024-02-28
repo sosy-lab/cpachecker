@@ -11,7 +11,13 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.errorprone.annotations.Immutable;
+import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
+import java.util.UUID;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 
 @Immutable
 @JsonPropertyOrder({"format_version", "uuid", "creation_time", "producer", "task"})
@@ -43,6 +49,25 @@ public class MetadataRecord {
     creationTime = pCreationTime;
     producer = pProducer;
     task = pTask;
+  }
+
+  public static MetadataRecord createMetadataRecord(
+      ProducerRecord producerDescription, TaskRecord taskDescription, YAMLWitnessVersion pVersion) {
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
+    String creationTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+    return new MetadataRecord(
+        pVersion.toString(),
+        // To generate a unique UUID which is also deterministic and reproducible, we use the
+        // input files and the Version to generate a UUID.
+        MetadataRecord.getUUID(taskDescription.getInputFiles().toString() + pVersion).toString(),
+        creationTime,
+        producerDescription,
+        taskDescription);
+  }
+
+  private static UUID getUUID(String pSeed) {
+    return UUID.nameUUIDFromBytes(pSeed.getBytes(StandardCharsets.UTF_8));
   }
 
   public String getFormatVersion() {

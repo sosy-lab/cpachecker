@@ -752,4 +752,12 @@ public enum MachineModel {
     }
     return BigInteger.ZERO;
   }
+
+  public static String getMachineModelAsString(MachineModel pMachineModel) {
+    return switch (pMachineModel) {
+      case LINUX32 -> "ILP32";
+      case LINUX64 -> "LP64";
+      default -> throw new AssertionError("Unknown architecture: " + pMachineModel);
+    };
+  }
 }

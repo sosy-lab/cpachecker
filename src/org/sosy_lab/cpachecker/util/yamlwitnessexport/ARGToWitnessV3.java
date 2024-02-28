@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetElementEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.EnsuresRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntryV3;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.RequiresRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetEntry;
 
 class ARGToWitnessV3 extends ARGToYAMLWitness {
   protected ARGToWitnessV3(
@@ -59,7 +59,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
     FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
     ExpressionTree<Object> invariant = getOverapproximationOfStates(argStates, node);
     LocationRecord locationRecord =
-        YAMLWitnessesExportUtils.createLocationRecordAtStart(
+        LocationRecord.createLocationRecordAtStart(
             fileLocation,
             node.getFunction().getFileLocation().getFileName().toString(),
             node.getFunctionName());
@@ -94,8 +94,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
               new EnsuresRecord(ImmutableList.of(ensuresClause)),
               new RequiresRecord(ImmutableList.of(requiresClause)),
               YAMLWitnessExpressionType.C,
-              YAMLWitnessesExportUtils.createLocationRecordAtStart(
-                  location, node.getFunctionName())));
+              LocationRecord.createLocationRecordAtStart(location, node.getFunctionName())));
     }
 
     return functionContractRecords;

@@ -73,7 +73,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     InformationRecord informationRecord =
         new InformationRecord(statement, null, YAMLWitnessExpressionType.C.toString());
     LocationRecord location =
-        YAMLWitnessesExportUtils.createLocationRecordAfterLocation(
+        LocationRecord.createLocationRecordAfterLocation(
             edge.getFileLocation(), edge.getPredecessor().getFunctionName(), astStructure);
     return new WaypointRecord(
         WaypointRecord.WaypointType.ASSUMPTION,
@@ -92,7 +92,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         WaypointRecord.WaypointType.BRANCHING,
         WaypointRecord.WaypointAction.FOLLOW,
         new InformationRecord(branchToFollow, null, null),
-        YAMLWitnessesExportUtils.createLocationRecordAtStart(
+        LocationRecord.createLocationRecordAtStart(
             ifStructure.getCompleteElement().location(),
             assumeEdge.getFileLocation().getFileName().toString(),
             assumeEdge.getPredecessor().getFunctionName()));
@@ -221,7 +221,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                 WaypointRecord.WaypointType.TARGET,
                 WaypointRecord.WaypointAction.FOLLOW,
                 null,
-                YAMLWitnessesExportUtils.createLocationRecordAtStart(
+                LocationRecord.createLocationRecordAtStart(
                     lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
 
     exportEntries(

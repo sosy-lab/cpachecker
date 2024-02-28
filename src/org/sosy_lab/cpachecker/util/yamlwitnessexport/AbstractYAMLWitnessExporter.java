@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ProducerRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 
 @Options(prefix = "witness.yamlexporter")
 abstract class AbstractYAMLWitnessExporter {
@@ -58,12 +59,12 @@ abstract class AbstractYAMLWitnessExporter {
                 .disable(Feature.WRITE_DOC_START_MARKER, Feature.SPLIT_LINES)
                 .build());
     mapper.setSerializationInclusion(Include.NON_NULL);
-    producerRecord = YAMLWitnessesExportUtils.getProducerRecord(pConfig);
+    producerRecord = ProducerRecord.getProducerRecord(pConfig);
   }
 
   protected MetadataRecord getMetadata(YAMLWitnessVersion version) throws IOException {
-    return YAMLWitnessesExportUtils.createMetadataRecord(
-        producerRecord, YAMLWitnessesExportUtils.getTaskDescription(cfa, specification), version);
+    return MetadataRecord.createMetadataRecord(
+        producerRecord, TaskRecord.getTaskDescription(cfa, specification), version);
   }
 
   protected ASTStructure getASTStructure() throws YamlWitnessExportException {

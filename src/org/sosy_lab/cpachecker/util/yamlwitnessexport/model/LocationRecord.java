@@ -12,6 +12,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 
 @Immutable
 public class LocationRecord {
@@ -43,6 +45,29 @@ public class LocationRecord {
     this.line = line;
     this.column = column;
     this.function = function;
+  }
+
+  public static LocationRecord createLocationRecordAtStart(
+      FileLocation location, String functionName) {
+    return createLocationRecordAtStart(location, location.getFileName().toString(), functionName);
+  }
+
+  public static LocationRecord createLocationRecordAtStart(
+      FileLocation location, String fileName, String functionName) {
+    final int lineNumber = location.getStartingLineInOrigin();
+
+    return new LocationRecord(
+        fileName, "file_hash", lineNumber, location.getStartColumnInLine(), functionName);
+  }
+
+  public static LocationRecord createLocationRecordAfterLocation(
+      FileLocation fLoc, String functionName, ASTStructure astStructure) {
+    final String fileName = fLoc.getFileName().toString();
+    FileLocation nextStatementFileLocation =
+        astStructure.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
+
+    return LocationRecord.createLocationRecordAtStart(
+        nextStatementFileLocation, fileName, functionName);
   }
 
   public String getFileName() {

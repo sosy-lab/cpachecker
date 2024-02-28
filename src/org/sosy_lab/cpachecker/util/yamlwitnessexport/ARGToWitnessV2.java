@@ -50,7 +50,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
     ExpressionTree<Object> invariant = getOverapproximationOfStates(argStates, node);
     LocationRecord locationRecord =
-        YAMLWitnessesExportUtils.createLocationRecordAtStart(
+        LocationRecord.createLocationRecordAtStart(
             fileLocation,
             node.getFunction().getFileLocation().getFileName().toString(),
             node.getFunctionName());
