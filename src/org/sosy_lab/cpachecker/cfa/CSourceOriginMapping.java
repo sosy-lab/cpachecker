@@ -66,7 +66,7 @@ public class CSourceOriginMapping {
     return result.build();
   }
 
-  public void addPreprocessedFileInformation(Path pPath, String pProgramCode) {
+  public void addFileInformation(Path pPath, String pProgramCode) {
     lineNumberToStartingColumn.putAll(pPath, getLineOffsets(pProgramCode));
   }
 
