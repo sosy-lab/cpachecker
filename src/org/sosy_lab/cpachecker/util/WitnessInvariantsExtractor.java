@@ -256,9 +256,10 @@ public class WitnessInvariantsExtractor {
                   == invariant.getLocation().getEndingLineInOrigin()
               && e.getFileLocation().getStartingLineInOrigin()
                   == invariant.getLocation().getStartingLineInOrigin()
-              && (e.getFileLocation().isOffsetRelatedToOrigin()
-                  ? e.getFileLocation().getNodeOffset() == invariant.getLocation().getNodeOffset()
-                  : true)) {
+              && e.getFileLocation().getStartColumnInLine()
+                  <= invariant.getLocation().getStartColumnInLine()
+              && e.getFileLocation().getEndColumnInLine()
+                  >= invariant.getLocation().getEndColumnInLine()) {
             if (e instanceof FunctionCallEdge) {
               node = e.getPredecessor();
             }
