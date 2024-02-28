@@ -54,6 +54,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
           logger.log(Level.INFO, "Exporting witnesses in Version 3 is currently WIP.");
           argToWitnessV3.exportWitness(pRootState, outputFile);
         }
+        default -> throw new AssertionError("Unknown witness version: " + witnessVersion);
       }
     }
   }
