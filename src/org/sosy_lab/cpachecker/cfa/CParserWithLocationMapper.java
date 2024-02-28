@@ -229,6 +229,7 @@ public class CParserWithLocationMapper implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
+      sourceOriginMapping.addPreprocessedFileInformation(f.getFileName(), programCode);
       tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode));
     }
 
