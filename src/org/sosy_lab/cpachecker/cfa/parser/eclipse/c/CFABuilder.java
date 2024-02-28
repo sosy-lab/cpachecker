@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -62,14 +61,13 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 
 /**
  * Builder to traverse AST.
  *
  * <p>After instantiating this class, call {@link #analyzeTranslationUnit(IASTTranslationUnit,
  * String, Scope)} once for each translation unit that should be used and finally call {@link
- * #createCFA(Optional<ASTStructure>)} with an ASTStructure if desired.
+ * #createCFA()}.
  */
 class CFABuilder extends ASTVisitor {
 
