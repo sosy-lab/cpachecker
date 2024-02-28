@@ -57,17 +57,11 @@ class YAMLWitnessesExportUtils {
   }
 
   static String getArchitecture(MachineModel pMachineModel) {
-    final String architecture =
-        switch (pMachineModel) {
-          case LINUX32 -> "ILP32";
-          case LINUX64 -> "LP64";
-          default -> null;
-        };
-    if (architecture == null) {
-      throw new AssertionError("Unknown architecture: " + pMachineModel);
-    }
-
-    return architecture;
+    return switch (pMachineModel) {
+      case LINUX32 -> "ILP32";
+      case LINUX64 -> "LP64";
+      default -> throw new AssertionError("Unknown architecture: " + pMachineModel);
+    };
   }
 
   static ProducerRecord getProducerRecord(Configuration pConfig) {
