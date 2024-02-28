@@ -264,17 +264,27 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       }
 
       FileLocation edgeLocation = edge.getFileLocation();
-      int edgeNodeColumn = edgeLocation.getStartColumnInLine();
+      int edgeNodeStartingColumn = edgeLocation.getStartColumnInLine();
+      int edgeNodeEndColumn = edgeLocation.getEndColumnInLine();
 
-      // TODO: This check is wrong since this only works for the offset, the column needs to be
-      //  treated differently. To do this correctly, we need the column at the end line.
       if (edgeLocation.getStartingLineInOrigin() == lineNumber
-          || edgeLocation.getEndingLineInOrigin() == lineNumber) {
-        if (edgeNodeColumn <= columnToReach
-            && columnToReach <= edgeNodeColumn + edgeLocation.getNodeLength()) {
-          return CONST_TRUE;
-        }
+          && edgeLocation.getEndingLineNumber() > lineNumber
+          && edgeNodeStartingColumn <= columnToReach) {
+        return CONST_TRUE;
+      } else if (edgeLocation.getEndingLineInOrigin() == lineNumber
+          && edgeLocation.getStartingLineNumber() < lineNumber
+          && edgeNodeEndColumn >= columnToReach) {
+        return CONST_TRUE;
+      } else if (edgeLocation.getStartingLineInOrigin() == lineNumber
+          && edgeLocation.getEndingLineNumber() == lineNumber
+          && edgeNodeStartingColumn <= columnToReach
+          && edgeNodeEndColumn >= columnToReach) {
+        return CONST_TRUE;
+      } else if (edgeLocation.getStartingLineInOrigin() < lineNumber
+          && edgeLocation.getEndingLineNumber() > lineNumber) {
+        return CONST_TRUE;
       }
+
       return CONST_FALSE;
     }
 
