@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -90,7 +89,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         }
       }
       liveVariables.removeAll(variablesDeclaredInsideLoop);
-      liveVariables.removeIf(e -> e.contains("::") && e.split("::")[1].startsWith("__CPAchecker_TMP_"));
+      liveVariables.removeIf(
+          e -> e.contains("::") && e.split("::")[1].startsWith("__CPAchecker_TMP_"));
 
       // Determine type of each variable
       for (String variable : liveVariables) {
@@ -151,6 +151,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 /**
  * Represents a container for loop information, including a loop location and a mapping from
  * variable names used in the loop to their types.
+ *
  * <p>A loop location refers to the line number where the loop head is located.
  */
 record LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
