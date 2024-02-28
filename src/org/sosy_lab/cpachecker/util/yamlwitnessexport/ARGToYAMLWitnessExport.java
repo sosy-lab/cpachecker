@@ -47,7 +47,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
   public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
       throws YamlWitnessExportException, InterruptedException, IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
-      Path outputFile = pOutputFileTemplate.getPath(pRootState, witnessVersion);
+      Path outputFile = getOutputFile(witnessVersion, pOutputFileTemplate);
       switch (witnessVersion) {
         case V2 -> argToWitnessV2.exportWitnesses(pRootState, outputFile);
         case V3 -> {
