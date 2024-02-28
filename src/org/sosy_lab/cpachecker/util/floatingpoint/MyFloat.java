@@ -450,6 +450,31 @@ public class MyFloat {
     return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
   }
 
+  private MyFloat squared() {
+    return this.multiply(this);
+  }
+
+  public MyFloat powInt(int exp) {
+    MyFloat t = this.withPrecision(Format.DOUBLE);
+    MyFloat r = t.powFast(Math.abs(exp));
+    if (exp < 0) {
+      r = MyFloat.one(Format.DOUBLE).divide(r);
+    }
+    return r.withPrecision(format);
+  }
+
+  public MyFloat powFast(int exp) {
+    if (exp == 0) {
+      return MyFloat.one(Format.DOUBLE);
+    }
+    if (exp == 1) {
+      return this;
+    }
+    MyFloat r = powFast(exp / 2).squared();
+    MyFloat p = exp % 2 == 0 ? MyFloat.one(Format.DOUBLE) : this;
+    return p.multiply(r);
+  }
+
   public MyFloat divide(MyFloat number) {
     MyFloat n = this;
     MyFloat m = number;
@@ -638,10 +663,6 @@ public class MyFloat {
         format, value.sign ^ number.value.sign, r.value.exponent, r.value.significand);
   }
 
-  private MyFloat squared() {
-    return multiply(this);
-  }
-
   public MyFloat sqrt() {
     if (isZero()) {
       return MyFloat.negativeZero(format);
@@ -690,7 +711,7 @@ public class MyFloat {
     // TODO: Figure out a bound for the number of iterations
     for (int i = 0; i < 7; i++) {
       // x_n+1 = x_n * (3/2 - 1/2 * x_n^2)
-      x = x.multiply(const1_5.subtract(const0_5.multiply(f).multiply(x.squared())));
+      x = x.multiply(const1_5.subtract(const0_5.multiply(f).multiply(x.powInt(2))));
     }
 
     // r is the exponent part that we pulled out of sqrt()
@@ -751,7 +772,7 @@ public class MyFloat {
 
     // Square the result to recover the exponent
     for (int i = 0; i < value.exponent; i++) {
-      r = r.squared();
+      r = r.powInt(2);
     }
     return r.withPrecision(format);
   }

@@ -160,7 +160,7 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat powToIntegral(int exponent) {
-    throw new UnsupportedOperationException();
+    return new CMyFloat(delegate.powInt(exponent));
   }
 
   @Override

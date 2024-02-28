@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
@@ -70,12 +69,5 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat myfloat = toTestedImpl(val, 0);
     CFloat jfloat = toReferenceImpl(val, 0);
     assertThat(myfloat.ln()).isEqualTo(jfloat.ln());
-  }
-
-  @Ignore
-  @Test
-  @Override
-  public void powToIntegralTest() {
-    // FIXME: Not implemented
   }
 }
