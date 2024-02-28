@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntr
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)
 @JsonSerialize(using = FunctionContractRecordSerializer.class)
-public non-sealed class FunctionContractEntry implements SetElementEntry {
+public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetElementEntry {
 
   @SuppressWarnings("unused")
   private static final String FUNCTION_CONTRACT_IDENTIFIER = "function_contract";
