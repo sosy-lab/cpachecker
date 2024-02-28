@@ -31,6 +31,13 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+/**
+ * This algorithm extracts loop information from a C program.
+ * 
+ * <p> Specifically, we derive from each loop its loop location and the names of all variables used
+ * except those declared inside the loop. A loop location refers to the line number where the loop 
+ * head(the keyword while, the condition, and the opening bracket) is located.
+ */
 public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private final CFA cfa;
   private final LogManager logger;
@@ -67,14 +74,14 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     List<LoopInfo> allLoopInfos = new ArrayList<>();
 
     for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      // Determine loop location
+      // Determine loop location 
       int loopLocation =
           loop.getIncomingEdges().stream()
               .mapToInt(e -> e.getFileLocation().getStartingLineInOrigin())
               .findAny()
               .orElseThrow();
 
-      // Determine names of all variables used in the loop
+      // Determine the names of all variables used except those declared inside the loop
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
@@ -151,8 +158,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 /**
  * Represents a container for loop information, including a loop location and a mapping from
  * variable names used in the loop to their types.
- *
- * <p>A loop location refers to the line number where the loop head is located.
  */
 record LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
   LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
