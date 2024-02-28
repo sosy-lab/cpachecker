@@ -49,19 +49,11 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(pRootState, witnessVersion);
       switch (witnessVersion) {
-        case V2:
-          argToWitnessV2.exportWitnesses(pRootState, outputFile);
-          break;
-        case V3:
+        case V2 -> argToWitnessV2.exportWitnesses(pRootState, outputFile);
+        case V3 -> {
           logger.log(Level.INFO, "Exporting witnesses in Version 3 is currently WIP.");
           argToWitnessV3.exportWitness(pRootState, outputFile);
-          break;
-        default:
-          logger.log(
-              Level.WARNING,
-              "Witness could not be exported "
-                  + "due to unknown witness version "
-                  + witnessVersion);
+        }
       }
     }
   }

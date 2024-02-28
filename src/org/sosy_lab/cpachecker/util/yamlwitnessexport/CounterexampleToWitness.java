@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
@@ -243,13 +244,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputPath = getOutputFile(YAMLWitnessVersion.V2, pPathTemplate);
       switch (witnessVersion) {
-        case V2:
-          exportWitnessVersion2(pCex, outputPath);
-          break;
-        case V3:
-          break;
-        default:
-          throw new YamlWitnessExportException("Unknown witness version: " + witnessVersion);
+        case V2 -> exportWitnessVersion2(pCex, outputPath);
+        case V3 ->
+            logger.log(Level.INFO, "There is currently no version 3 for Violation Witnesses.");
       }
     }
   }
