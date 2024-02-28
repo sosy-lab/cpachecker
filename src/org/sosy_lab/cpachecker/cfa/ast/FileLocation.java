@@ -144,10 +144,18 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       startingLineInOrigin = Math.min(startingLineInOrigin, loc.getStartingLineInOrigin());
       startOffset = Math.min(startOffset, loc.getNodeOffset());
       endingLine = Math.max(endingLine, loc.getEndingLineNumber());
-      startColumnInLine = Math.min(startColumnInLine, loc.startColumnInLine);
+
       endingLineInOrigin = Math.max(endingLineInOrigin, loc.getEndingLineInOrigin());
       endOffset = Math.max(endOffset, loc.getNodeOffset() + loc.getNodeLength());
       offsetRelatedToOrigin &= loc.offsetRelatedToOrigin;
+
+      if (startingLine == loc.getStartingLineNumber()) {
+        // The starting line is the same as before
+        startColumnInLine = Math.min(startColumnInLine, loc.getStartColumnInLine());
+      } else {
+        // The starting line is less than the one before
+        startColumnInLine = loc.getStartColumnInLine();
+      }
     }
 
     if (fileName == null) {
