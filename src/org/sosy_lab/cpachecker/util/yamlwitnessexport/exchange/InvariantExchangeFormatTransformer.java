@@ -150,8 +150,8 @@ public class InvariantExchangeFormatTransformer {
               new FileLocation(
                   Path.of(invariantEntry.getLocation().getFileName()),
                   -1,
-                  -1,
-                  line, // The length is currently not important enough to warrant computing it
+                  -1, // The length is currently not important enough to warrant computing it
+                  line,
                   line,
                   invariantEntry.getLocation().getColumn());
           invariants.add(
