@@ -8,15 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
-public record EnsuresRecord(ImmutableList<String> clauses) {
-
-  @JsonValue
-  public ImmutableList<String> getClauses() {
-    return clauses;
-  }
-}
+public record EnsuresRecord(ImmutableList<String> clauses) {}

@@ -13,10 +13,4 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
-public record RequiresRecord(ImmutableList<String> clauses) {
-
-  @JsonValue
-  public ImmutableList<String> getClauses() {
-    return clauses;
-  }
-}
+public record RequiresRecord(ImmutableList<String> clauses) {}
