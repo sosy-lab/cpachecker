@@ -126,9 +126,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   public static class CheckReachesLine implements AutomatonBoolExpr {
-    private final Integer lineToReach;
+    private final int lineToReach;
 
-    public CheckReachesLine(Integer pLine) {
+    public CheckReachesLine(int pLine) {
       lineToReach = pLine;
     }
 
@@ -153,22 +153,21 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public int hashCode() {
-      return lineToReach.hashCode();
+      return lineToReach;
     }
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckReachesLine
-          && lineToReach.equals(((CheckReachesLine) o).lineToReach);
+      return o instanceof CheckReachesLine && lineToReach == ((CheckReachesLine) o).lineToReach;
     }
   }
 
-  public static class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
-    private final Integer offsetToReach;
-    private final Integer lineNumber;
+  class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
+    private final int offsetToReach;
+    private final int lineNumber;
     private final boolean expectStatementEdge;
 
-    public CheckCoversOffsetAndLine(Integer pOffset, Integer pLineNumber) {
+    public CheckCoversOffsetAndLine(int pOffset, int pLineNumber) {
       offsetToReach = pOffset;
       lineNumber = pLineNumber;
       expectStatementEdge = false;
@@ -218,23 +217,22 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public boolean equals(Object o) {
       return o instanceof CheckCoversOffsetAndLine
-          && offsetToReach.equals(((CheckCoversOffsetAndLine) o).offsetToReach);
+          && offsetToReach == (((CheckCoversOffsetAndLine) o).offsetToReach);
     }
   }
 
   public static class CheckCoversColumnAndLine implements AutomatonBoolExpr {
-    private final Integer columnToReach;
-    private final Integer lineNumber;
+    private final int columnToReach;
+    private final int lineNumber;
     private final boolean expectStatementEdge;
 
-    public CheckCoversColumnAndLine(Integer pColumn, Integer pLineNumber) {
+    public CheckCoversColumnAndLine(int pColumn, int pLineNumber) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
       expectStatementEdge = false;
     }
 
-    public CheckCoversColumnAndLine(
-        Integer pColumn, Integer pLineNumber, boolean pExpectStatementEdge) {
+    public CheckCoversColumnAndLine(int pColumn, int pLineNumber, boolean pExpectStatementEdge) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
       expectStatementEdge = pExpectStatementEdge;
@@ -271,22 +269,22 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public int hashCode() {
-      return columnToReach.hashCode();
+      return columnToReach;
     }
 
     @Override
     public boolean equals(Object o) {
       return o instanceof CheckCoversColumnAndLine
-          && columnToReach.equals(((CheckCoversColumnAndLine) o).columnToReach)
-          && lineNumber.equals(((CheckCoversColumnAndLine) o).lineNumber);
+          && columnToReach == (((CheckCoversColumnAndLine) o).columnToReach)
+          && lineNumber == (((CheckCoversColumnAndLine) o).lineNumber);
     }
   }
 
   public static class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
-    private final Integer offsetToReach;
-    private final Integer lineNumber;
+    private final int offsetToReach;
+    private final int lineNumber;
 
-    public CheckReachesOffsetAndLine(Integer pOffset, Integer pLineNumber) {
+    public CheckReachesOffsetAndLine(int pOffset, int pLineNumber) {
       offsetToReach = pOffset;
       lineNumber = pLineNumber;
     }
@@ -339,13 +337,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public int hashCode() {
-      return offsetToReach.hashCode();
+      return offsetToReach;
     }
 
     @Override
     public boolean equals(Object o) {
       return o instanceof CheckReachesOffsetAndLine
-          && offsetToReach.equals(((CheckReachesOffsetAndLine) o).offsetToReach);
+          && offsetToReach == ((CheckReachesOffsetAndLine) o).offsetToReach);
     }
   }
 
