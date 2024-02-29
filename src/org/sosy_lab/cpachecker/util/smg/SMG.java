@@ -1596,6 +1596,52 @@ public class SMG {
   }
 
   /**
+   * Search for all pointers towards the object old and replaces them with pointers pointing towards
+   * the new object. Also decrements the nesting level of all pointers switched by 1. If the
+   * newTarget is a region, specifiers are set to region. All other specifiers are retained.
+   *
+   * @param oldObj old object.
+   * @param newTarget new target object.
+   * @return a new SMG with the replacement.
+   */
+  public SMG replaceAllPointersTowardsWithAndDecrementNestingLevel(
+      SMGObject oldObj, SMGObject newTarget) {
+    SMG newSMG = this;
+    if (newTarget.isZero() || oldObj.isZero()) {
+      throw new AssertionError("Can't replace a 0 value!");
+    }
+
+    for (Entry<SMGValue, Integer> pointerValueAndNum :
+        objectsAndPointersPointingAtThem
+            .getOrDefault(oldObj, PathCopyingPersistentTreeMap.of())
+            .entrySet()) {
+      // Replace the PTEdge for the value
+      SMGValue pointerValue = pointerValueAndNum.getKey();
+      SMGPointsToEdge pointsToEdge = pointsToEdges.get(pointerValue);
+      assert pointsToEdge.pointsTo().equals(oldObj);
+      SMGTargetSpecifier specifier = pointsToEdge.targetSpecifier();
+      // If the new target is an abstracted list we switch to all
+      if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
+        specifier = SMGTargetSpecifier.IS_REGION;
+      }
+      newSMG =
+          newSMG.copyAndSetPTEdges(
+              new SMGPointsToEdge(newTarget, pointsToEdge.getOffset(), specifier), pointerValue);
+
+      // Update the nesting level
+      // The nesting always needs to be >= 0
+      int newNestingLvl = Integer.max(smgValuesAndNestingLvl.get(pointerValue) - 1, 0);
+
+      newSMG =
+          newSMG.copyWithNewValuesAndNestingLvl(
+              newSMG.smgValuesAndNestingLvl.putAndCopy(pointerValue, newNestingLvl));
+    }
+
+    assert newSMG.checkSMGSanity();
+    return newSMG;
+  }
+
+  /**
    * ONLY modifies pointersTowardsObjectsMap and swaps all pointers towards oldObj towards
    * newTarget.
    *

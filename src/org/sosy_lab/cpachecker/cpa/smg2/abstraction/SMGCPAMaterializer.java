@@ -68,40 +68,24 @@ public class SMGCPAMaterializer {
     // Materialize from the left ( CE -> 3+ -> 0 => CE -> CE -> 2+ -> 0) for first ptrs and all next
     // ptrs.
     // Materialize from the right for all last ptrs and prevs.
-    SMGTargetSpecifier pointerSpecifier =
-        state
-            .getMemoryModel()
-            .getSmg()
-            .getPTEdge(valueToPointerToAbstractObject)
-            .orElseThrow()
-            .targetSpecifier();
     if (pAbstractObject.getMinLength() == MINIMUM_LIST_LENGTH) {
       // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
-      // gone
-      if (pointerSpecifier.equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
-        return handleLeftSidedZeroPlusLLS(pAbstractObject, valueToPointerToAbstractObject, state);
-      } else {
-        return handleLeftSidedZeroPlusLLS(pAbstractObject, valueToPointerToAbstractObject, state);
-      }
+      // removed
+      return handleZeroPlusLLS(pAbstractObject, valueToPointerToAbstractObject, state);
     } else {
-      if (pointerSpecifier.equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
-        return ImmutableList.of(
-            materialiseLLSFromTheLeft(pAbstractObject, valueToPointerToAbstractObject, state));
-      } else {
-        return ImmutableList.of(
-            materialiseLLSFromTheLeft(pAbstractObject, valueToPointerToAbstractObject, state));
-      }
+      return ImmutableList.of(
+          materialiseLLS(pAbstractObject, valueToPointerToAbstractObject, state));
     }
   }
 
   /*
    * This generates 2 states.
-   * One where we materialize the list once more to the left of the 0+
-   * (the 0+ is to the right of the new concrete), and one where the 0+ is deleted.
-   * For the remove state, the last pointer now points to the last concrete obj (prev),
-   * while the next pointer points to the next of the 0+.
+   * One where we materialize the list once more
+   * (we decide which way in the end), and one where the 0+ is deleted.
+   * For the remove state, the last pointer now points to the prev obj (to the left),
+   * while the next pointer points to the next of the 0+ (to the right).
    */
-  private List<SMGValueAndSMGState> handleLeftSidedZeroPlusLLS(
+  private List<SMGValueAndSMGState> handleZeroPlusLLS(
       SMGSinglyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
       throws SMGException {
 
@@ -183,90 +167,31 @@ public class SMGCPAMaterializer {
     returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
     statistics.stopTotalZeroPlusMaterializationTime();
     return returnStates
-        .add(materialiseLLSFromTheLeft(pListSeg, pointerValueTowardsThisSegment, state))
+        .add(materialiseLLS(pListSeg, pointerValueTowardsThisSegment, state))
         .build();
   }
 
-  /**
-   * Decrements the Abstracted list segment by creating a new abstracted list segment with min
-   * length - 1, then copies all values from the old to the new, then replaces all pointers towards
-   * the old segment with the new one as the new target.
-   *
-   * @param pListSeg the old {@link SMGSinglyLinkedListSegment} or {@link
-   *     SMGDoublyLinkedListSegment}.
-   * @param pState the current {@link SMGState}
-   * @return the new {@link SMGState} and the new abstract list segment.
-   */
-  private SMGObjectAndSMGState decrementAbstrLSAndCopyValuesAndSwitchPointers(
-      SMGSinglyLinkedListSegment pListSeg, SMGState pState) {
-    // Create the now smaller abstracted list
-    SMGSinglyLinkedListSegment newAbsListSeg =
-        (SMGSinglyLinkedListSegment) pListSeg.decrementLengthAndCopy();
-    SMGState currentState = pState.copyAndAddObjectToHeap(newAbsListSeg);
-    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
-    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
-
-    // Switch all remaining pointers from the old abstract object to the new    currentState =
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState.getMemoryModel().replaceAllPointersTowardsWith(pListSeg, newAbsListSeg));
-    return SMGObjectAndSMGState.of(newAbsListSeg, currentState);
-  }
-
-  /**
-   * Creates a new concrete region, adds it as heap object, copies all values of the abstracted list
-   * segment to it, and switches the pointers with the nesting level given to the new object.
-   *
-   * @param pListSeg the abstracted list segment, either {@link SMGSinglyLinkedListSegment} or
-   *     {@link SMGDoublyLinkedListSegment}.
-   * @param pState current {@link SMGState}
-   * @param nestingLevelToSwitch the nesting level whose pointers are supposed to switch to the new
-   *     segment. Typically, pListSeg.getMinLength() - 1 for the leftmost element, or 0 for the
-   *     rightmost.
-   * @return the new concrete region and the current state
-   */
-  private SMGObjectAndSMGState createNewConcreteRegionAndCopyValuesAndSwitchPointers(
+  private SMGValueAndSMGState materialiseLLS(
       SMGSinglyLinkedListSegment pListSeg,
-      SMGState pState,
-      int nestingLevelToSwitch,
-      Set<SMGTargetSpecifier> specifierToSwitch) {
-    // Add new concrete memory region
-    SMGObjectAndSMGState newConcreteRegionAndState =
-        pState.copyAndAddHeapObject(pListSeg.getSize());
-    SMGState currentState = newConcreteRegionAndState.getState();
-    SMGObject newConcreteRegion = newConcreteRegionAndState.getSMGObject();
-
-    // Add all values. next pointer is wrong here!
-    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newConcreteRegion);
-    // TODO: Check all not nfo values if they are pointers, if they are, we need to copy their
-    // targets and
-    // insert a new pointer to the copy
-    // -2 in the nesting lvl as we have not decremented the sll yet
-    /*
-    currentState =
-        currentState.copyMemoryNotOriginatingFrom(
-            newConcreteRegion,
-            ImmutableSet.of(nfo),
-            Integer.max(pListSeg.getMinLength() - 2, MINIMUM_LIST_LENGTH));
-            */
-
-    // --------------------------------------------------- 1
-
-    // Replace the pointer behind the value pointing to the abstract region with a pointer to the
-    // new object.
-    // We don't change the nesting level of the pointers! We switch only those with new nesting
-    // level == current minLength to the new concrete region and set that one to 0.
-    // This saves us a lookup compared to the SMG paper!
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState
-                .getMemoryModel()
-                .replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-                    pListSeg,
-                    newConcreteRegion,
-                    Integer.max(nestingLevelToSwitch, MINIMUM_LIST_LENGTH),
-                    specifierToSwitch));
-    return SMGObjectAndSMGState.of(newConcreteRegion, currentState);
+      SMGValue pPointerValueTowardsThisSegment,
+      SMGState pState)
+      throws SMGException {
+    // Materialize from the left ( CE -> 3+ -> 0 => CE -> CE -> 2+ -> 0) for first ptrs and all next
+    // ptrs.
+    // Materialize from the right for all last ptrs and prevs.
+    // ( CE -> 3+ -> CE => CE -> 2+ -> CE -> CE)
+    SMGTargetSpecifier pointerSpecifier =
+        pState
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(pPointerValueTowardsThisSegment)
+            .orElseThrow()
+            .targetSpecifier();
+    if (pointerSpecifier.equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
+      return materialiseLLSFromTheRight(pListSeg, pPointerValueTowardsThisSegment, pState);
+    } else {
+      return materialiseLLSFromTheLeft(pListSeg, pPointerValueTowardsThisSegment, pState);
+    }
   }
 
   /**
@@ -278,11 +203,11 @@ public class SMGCPAMaterializer {
    * @return the initial pointer + the state with the materialized list.
    * @throws SMGException only for critical internal errors. Should NEVER be thrown.
    */
-  @SuppressWarnings("unused")
   private SMGValueAndSMGState materialiseLLSFromTheRight(
       SMGSinglyLinkedListSegment pListSeg, SMGValue pInitialPointer, SMGState state)
       throws SMGException {
-
+    statistics.startTotalMaterializationTime();
+    statistics.incrementListMaterializations();
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMGException(
           "Error when materializing a "
@@ -294,7 +219,7 @@ public class SMGCPAMaterializer {
     Preconditions.checkArgument(pListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
 
     logger.log(Level.FINE, "Materialise " + pListSeg.getClass().getSimpleName() + ": ", pListSeg);
-    // TODO:
+
     BigInteger nfo = pListSeg.getNextOffset();
     BigInteger pfo = null;
     if (pListSeg instanceof SMGDoublyLinkedListSegment doublyLLS) {
@@ -304,7 +229,6 @@ public class SMGCPAMaterializer {
 
     // Add new concrete memory region, copy all values from the abstracted and switch pointers
     // We switch all and last pointers only.
-    // TODO: A new last ptr needs to be created towards the list element to the left afterwards!
     SMGObjectAndSMGState newConcreteRegionAndState =
         createNewConcreteRegionAndCopyValuesAndSwitchPointers(
             pListSeg,
@@ -330,11 +254,17 @@ public class SMGCPAMaterializer {
       Preconditions.checkArgument(maybePointsToEdgeToConcreteRegion.isPresent());
       Preconditions.checkArgument(
           maybePointsToEdgeToConcreteRegion.orElseThrow().pointsTo().equals(newConcreteRegion));
+      Preconditions.checkArgument(
+          maybePointsToEdgeToConcreteRegion
+              .orElseThrow()
+              .targetSpecifier()
+              .equals(SMGTargetSpecifier.IS_REGION));
     }
 
     // Create the now smaller abstracted list
     SMGObjectAndSMGState newAbsListSegAndState =
-        decrementAbstrLSAndCopyValuesAndSwitchPointers(pListSeg, currentState);
+        decrementAbstrLSAndPointersAndCopyValuesAndSwitchPointers(pListSeg, currentState);
+
     SMGSinglyLinkedListSegment newAbsListSeg =
         (SMGSinglyLinkedListSegment) newAbsListSegAndState.getSMGObject();
     currentState = newAbsListSegAndState.getState();
@@ -342,29 +272,40 @@ public class SMGCPAMaterializer {
     // Create the new pointer to the new abstract list segment with the correct nesting level
     // Only needed by DLLs
     if (pListSeg instanceof SMGDoublyLinkedListSegment) {
-      int newNestingLevel = MINIMUM_LIST_LENGTH;
-      ValueAndSMGState pointerAndState =
-          currentState.searchOrCreateAddress(newAbsListSeg, BigInteger.ZERO, newNestingLevel);
-      currentState = pointerAndState.getState();
-      Value newPointerValue = pointerAndState.getValue();
+      // TODO: Is it correct that we switch the all ptrs to last? Don't we need to copy the all
+      // memory beforehand?
+      ValueAndSMGState lastPointerToAbstrAndState =
+          currentState.searchOrCreateAddress(
+              newAbsListSeg,
+              BigInteger.ZERO,
+              MINIMUM_LIST_LENGTH,
+              SMGTargetSpecifier.IS_LAST_POINTER,
+              ImmutableSet.of(SMGTargetSpecifier.IS_ALL_POINTER));
+      currentState = lastPointerToAbstrAndState.getState();
+      Value newLastPointerToAbstrValue = lastPointerToAbstrAndState.getValue();
       Preconditions.checkArgument(
-          currentState.getMemoryModel().getNestingLevel(newPointerValue) == newNestingLevel);
+          currentState.getMemoryModel().getNestingLevel(newLastPointerToAbstrValue)
+              == MINIMUM_LIST_LENGTH);
 
-      // Create a new value and map the old pointer towards the abstract region on it
-      // Create a Value mapping for the new Value representing a pointer
-      SMGValueAndSMGState newValuePointingToWardsAbstractListAndState =
-          currentState.copyAndAddValue(newPointerValue, newNestingLevel);
-
-      SMGValue newValuePointingToWardsAbstractList =
-          newValuePointingToWardsAbstractListAndState.getSMGValue();
-      currentState = newValuePointingToWardsAbstractListAndState.getSMGState();
+      SMGValue smgPtrToAbstr =
+          currentState
+              .getMemoryModel()
+              .getSMGValueFromValue(newLastPointerToAbstrValue)
+              .orElseThrow();
+      Preconditions.checkArgument(
+          currentState
+                  .getMemoryModel()
+                  .getSmg()
+                  .getPTEdge(smgPtrToAbstr)
+                  .orElseThrow()
+                  .targetSpecifier()
+              == SMGTargetSpecifier.IS_LAST_POINTER);
 
       // Write the new value w pointer towards the new abstract region to new concrete region as
       // prev
       // pointer
       currentState =
-          currentState.writeValueWithoutChecks(
-              newConcreteRegion, pfo, pointerSize, newValuePointingToWardsAbstractList);
+          currentState.writeValueWithoutChecks(newConcreteRegion, pfo, pointerSize, smgPtrToAbstr);
     }
 
     // Set the next pointer of the new abstract segment to the new concrete segment
@@ -373,16 +314,19 @@ public class SMGCPAMaterializer {
             newAbsListSeg, nfo, pointerSize, valueOfPointerToConcreteObject);
 
     // Remove the old abstract list segment
-    currentState = currentState.copyAndRemoveAbstractedObjectFromHeap(pListSeg);
+    currentState =
+        currentState.copyAndReplaceMemoryModel(
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
     Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
-    assert checkPointersOfMaterializedList(newConcreteRegion, nfo, pfo, currentState);
+    assert checkPointersOfRightHandSideMaterializedList(newConcreteRegion, nfo, pfo, currentState);
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     // pInitialPointer might now point to the materialized object!
     if (pInitialPointer.equals(valueOfPointerToConcreteObject)) {
       // The nesting level of the initial pointer should be 0
       assert currentState.getMemoryModel().getNestingLevel(pInitialPointer) == 0;
     }
+    statistics.stopTotalMaterializationTime();
     return SMGValueAndSMGState.of(currentState, pInitialPointer);
   }
 
@@ -531,7 +475,9 @@ public class SMGCPAMaterializer {
     }
 
     // Remove the old abstract list segment
-    currentState = currentState.copyAndRemoveAbstractedObjectFromHeap(pListSeg);
+    currentState =
+        currentState.copyAndReplaceMemoryModel(
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
     Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
     assert checkPointersOfMaterializedList(newConcreteRegion, nfo, pfo, currentState);
@@ -543,6 +489,116 @@ public class SMGCPAMaterializer {
     }
     statistics.stopTotalMaterializationTime();
     return SMGValueAndSMGState.of(currentState, pInitialPointer);
+  }
+
+  /**
+   * Decrements the Abstracted list segment by creating a new abstracted list segment with min
+   * length - 1, then copies all values from the old to the new, then replaces all pointers towards
+   * the old segment with the new one as the new target and decrements their nesting level by 1.
+   *
+   * @param pListSeg the old {@link SMGSinglyLinkedListSegment} or {@link
+   *     SMGDoublyLinkedListSegment}.
+   * @param pState the current {@link SMGState}
+   * @return the new {@link SMGState} and the new abstract list segment.
+   */
+  private SMGObjectAndSMGState decrementAbstrLSAndPointersAndCopyValuesAndSwitchPointers(
+      SMGSinglyLinkedListSegment pListSeg, SMGState pState) {
+    // Create the now smaller abstracted list
+    SMGSinglyLinkedListSegment newAbsListSeg =
+        (SMGSinglyLinkedListSegment) pListSeg.decrementLengthAndCopy();
+    SMGState currentState = pState.copyAndAddObjectToHeap(newAbsListSeg);
+    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
+    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
+
+    // Switch all remaining pointers from the old abstract object to the new    currentState =
+    currentState =
+        currentState.copyAndReplaceMemoryModel(
+            currentState
+                .getMemoryModel()
+                .replaceAllPointersTowardsWithAndDecrementNestingLevel(pListSeg, newAbsListSeg));
+    return SMGObjectAndSMGState.of(newAbsListSeg, currentState);
+  }
+
+  /**
+   * Decrements the Abstracted list segment by creating a new abstracted list segment with min
+   * length - 1, then copies all values from the old to the new, then replaces all pointers towards
+   * the old segment with the new one as the new target.
+   *
+   * @param pListSeg the old {@link SMGSinglyLinkedListSegment} or {@link
+   *     SMGDoublyLinkedListSegment}.
+   * @param pState the current {@link SMGState}
+   * @return the new {@link SMGState} and the new abstract list segment.
+   */
+  private SMGObjectAndSMGState decrementAbstrLSAndCopyValuesAndSwitchPointers(
+      SMGSinglyLinkedListSegment pListSeg, SMGState pState) {
+    // Create the now smaller abstracted list
+    SMGSinglyLinkedListSegment newAbsListSeg =
+        (SMGSinglyLinkedListSegment) pListSeg.decrementLengthAndCopy();
+    SMGState currentState = pState.copyAndAddObjectToHeap(newAbsListSeg);
+    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
+    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
+
+    // Switch all remaining pointers from the old abstract object to the new    currentState =
+    currentState =
+        currentState.copyAndReplaceMemoryModel(
+            currentState.getMemoryModel().replaceAllPointersTowardsWith(pListSeg, newAbsListSeg));
+    return SMGObjectAndSMGState.of(newAbsListSeg, currentState);
+  }
+
+  /**
+   * Creates a new concrete region, adds it as heap object, copies all values of the abstracted list
+   * segment to it, and switches the pointers with the nesting level given to the new object.
+   *
+   * @param pListSeg the abstracted list segment, either {@link SMGSinglyLinkedListSegment} or
+   *     {@link SMGDoublyLinkedListSegment}.
+   * @param pState current {@link SMGState}
+   * @param nestingLevelToSwitch the nesting level whose pointers are supposed to switch to the new
+   *     segment. Typically, pListSeg.getMinLength() - 1 for the leftmost element, or 0 for the
+   *     rightmost.
+   * @return the new concrete region and the current state
+   */
+  private SMGObjectAndSMGState createNewConcreteRegionAndCopyValuesAndSwitchPointers(
+      SMGSinglyLinkedListSegment pListSeg,
+      SMGState pState,
+      int nestingLevelToSwitch,
+      Set<SMGTargetSpecifier> specifierToSwitch) {
+    // Add new concrete memory region
+    SMGObjectAndSMGState newConcreteRegionAndState =
+        pState.copyAndAddHeapObject(pListSeg.getSize());
+    SMGState currentState = newConcreteRegionAndState.getState();
+    SMGObject newConcreteRegion = newConcreteRegionAndState.getSMGObject();
+
+    // Add all values. next pointer is wrong here!
+    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newConcreteRegion);
+    // TODO: Check all not nfo values if they are pointers, if they are, we need to copy their
+    // targets and
+    // insert a new pointer to the copy
+    // -2 in the nesting lvl as we have not decremented the sll yet
+    /*
+    currentState =
+        currentState.copyMemoryNotOriginatingFrom(
+            newConcreteRegion,
+            ImmutableSet.of(nfo),
+            Integer.max(pListSeg.getMinLength() - 2, MINIMUM_LIST_LENGTH));
+            */
+
+    // --------------------------------------------------- 1
+
+    // Replace the pointer behind the value pointing to the abstract region with a pointer to the
+    // new object.
+    // We don't change the nesting level of the pointers! We switch only those with new nesting
+    // level == current minLength to the new concrete region and set that one to 0.
+    // This saves us a lookup compared to the SMG paper!
+    currentState =
+        currentState.copyAndReplaceMemoryModel(
+            currentState
+                .getMemoryModel()
+                .replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
+                    pListSeg,
+                    newConcreteRegion,
+                    Integer.max(nestingLevelToSwitch, MINIMUM_LIST_LENGTH),
+                    specifierToSwitch));
+    return SMGObjectAndSMGState.of(newConcreteRegion, currentState);
   }
 
   /**
@@ -602,6 +658,17 @@ public class SMGCPAMaterializer {
       return checkPointersOfMaterializedSLL(pNewConcreteRegion, pNfo, pCurrentState);
     } else {
       return checkPointersOfMaterializedDLL(pNewConcreteRegion, pNfo, pPfo, pCurrentState);
+    }
+  }
+
+  private boolean checkPointersOfRightHandSideMaterializedList(
+      SMGObject pNewConcreteRegion, BigInteger pNfo, BigInteger pPfo, SMGState pCurrentState)
+      throws SMGException {
+    if (pPfo != null) {
+      return checkPointersOfRightHandSideMaterializedDLL(
+          pNewConcreteRegion, pNfo, pPfo, pCurrentState);
+    } else {
+      return checkPointersOfRightHandSideMaterializedSLL(pNewConcreteRegion, pNfo, pCurrentState);
     }
   }
 
@@ -666,6 +733,140 @@ public class SMGCPAMaterializer {
     }
     Collections.reverse(listOfObjects);
     return checkList(listOfObjects.get(0), pfo, listOfObjects, currentState);
+  }
+
+  // Check that the pointers of a list are correct for last pointer materialization
+  private boolean checkPointersOfRightHandSideMaterializedDLL(
+      SMGObject newConcreteRegion, BigInteger nfo, BigInteger pfo, SMGState state)
+      throws SMGException {
+    BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
+    SMGValueAndSMGState nextPointerAndState =
+        state.readSMGValue(newConcreteRegion, nfo, pointerSize);
+    SMGState currentState = nextPointerAndState.getSMGState();
+    SMGValueAndSMGState prevPointerAndState =
+        currentState.readSMGValue(newConcreteRegion, pfo, pointerSize);
+    currentState = prevPointerAndState.getSMGState();
+    SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
+    SMGValue prevPointerValue = prevPointerAndState.getSMGValue();
+
+    Optional<SMGPointsToEdge> prevPointerEdge =
+        currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
+    SMGObject currentObj = newConcreteRegion;
+    List<SMGObject> listOfObjectsVisited = new ArrayList<>();
+    if (prevPointerEdge.isEmpty()) {
+      return false;
+    }
+
+    SMGObject prevObj = prevPointerEdge.orElseThrow().pointsTo();
+    if (!(prevObj instanceof SMGSinglyLinkedListSegment)) {
+      return false;
+    } else if (!prevPointerEdge
+        .orElseThrow()
+        .targetSpecifier()
+        .equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
+      return false;
+    }
+
+    // There is at least 1 object before the new materialized if it is a valid list.
+    // Note: there might be objects before that one! Or the prev object might look like a list
+    // segment, without being one, i.e. the nfo does not point back to the start object.
+    while (state.getMemoryModel().isObjectValid(prevObj)
+        && prevObj.getSize().compareTo(currentObj.getSize()) == 0
+        && !currentObj.equals(prevObj)
+        && !listOfObjectsVisited.contains(currentObj)) {
+      SMGValueAndSMGState nextOfPrevPointerAndState = state.readSMGValue(prevObj, nfo, pointerSize);
+      SMGValue nextOfPrevPointerValue = nextOfPrevPointerAndState.getSMGValue();
+      Optional<SMGPointsToEdge> nextOfPrevPointerEdge =
+          currentState.getMemoryModel().getSmg().getPTEdge(nextOfPrevPointerValue);
+      if (nextOfPrevPointerEdge.isEmpty()
+          || !nextOfPrevPointerEdge.orElseThrow().pointsTo().equals(currentObj)) {
+        return false;
+      }
+
+      if (currentObj instanceof SMGSinglyLinkedListSegment) {
+        if (!nextOfPrevPointerEdge
+            .orElseThrow()
+            .targetSpecifier()
+            .equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
+          return false;
+        }
+      } else {
+        if (!nextOfPrevPointerEdge
+            .orElseThrow()
+            .targetSpecifier()
+            .equals(SMGTargetSpecifier.IS_REGION)) {
+          return false;
+        }
+      }
+      // prevPointerEdge points to prevObj
+      if (prevObj instanceof SMGSinglyLinkedListSegment) {
+        if (!prevPointerEdge
+            .orElseThrow()
+            .targetSpecifier()
+            .equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
+          return false;
+        }
+      } else {
+        if (!prevPointerEdge.orElseThrow().targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
+          return false;
+        }
+      }
+      listOfObjectsVisited.add(currentObj);
+      currentObj = prevObj;
+
+      prevPointerAndState = state.readSMGValue(currentObj, pfo, pointerSize);
+      prevPointerValue = prevPointerAndState.getSMGValue();
+      prevPointerEdge = currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
+      if (prevPointerEdge.isEmpty()) {
+        // No more list segments to the left
+        break;
+      }
+      prevObj = prevPointerEdge.orElseThrow().pointsTo();
+    }
+
+    nextPointerAndState = state.readSMGValue(newConcreteRegion, nfo, pointerSize);
+    nextPointerValue = nextPointerAndState.getSMGValue();
+    Optional<SMGPointsToEdge> nextPointerEdge =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
+
+    if (nextPointerEdge.isPresent() && !nextPointerValue.isZero()) {
+      SMGObject nextObj = nextPointerEdge.orElseThrow().pointsTo();
+      // the next obj might have a prev pointer that is region to the new concrete
+      prevPointerAndState = state.readSMGValue(nextObj, pfo, pointerSize);
+      prevPointerValue = prevPointerAndState.getSMGValue();
+      prevPointerEdge = currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
+      if (prevPointerEdge.isPresent()
+          && prevPointerEdge.orElseThrow().pointsTo().equals(currentObj)
+          && !prevPointerEdge
+              .orElseThrow()
+              .targetSpecifier()
+              .equals(SMGTargetSpecifier.IS_REGION)) {
+        return false;
+      }
+      if (nextObj instanceof SMGSinglyLinkedListSegment) {
+        // the new concrete has a next ptr that is first
+        if (!nextPointerEdge
+            .orElseThrow()
+            .targetSpecifier()
+            .equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
+          return false;
+        }
+      } else {
+        // the new concrete has a next ptr that is region
+        if (!nextPointerEdge.orElseThrow().targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  @SuppressWarnings("unused")
+  private boolean checkPointersOfRightHandSideMaterializedSLL(
+      SMGObject newConcreteRegion, BigInteger nfo, SMGState state) {
+    // TODO:
+    return true;
   }
 
   private boolean checkPointersOfMaterializedSLL(

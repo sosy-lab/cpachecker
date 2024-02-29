@@ -779,7 +779,8 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndRemoveObjectAndAssociatedSubSMG(SMGObject object) {
     // TODO: rework urgently
     Preconditions.checkArgument(object instanceof SMGSinglyLinkedListSegment);
-    Preconditions.checkArgument(((SMGSinglyLinkedListSegment) object).getMinLength() == 0);
+    // The following condition is obviously wrong! Better: check that "not-all" ptrs exist
+    Preconditions.checkArgument(getAllSourcesForPointersPointingTowards(object).isEmpty());
     SMGAndSMGObjects newSMGAndToRemoveObjects = smg.copyAndRemoveObjectAndSubSMG(object);
     SMG newSMG = newSMGAndToRemoveObjects.getSMG();
     PersistentSet<SMGObject> newHeapObject = heapObjects.removeAndCopy(object);
@@ -1683,6 +1684,29 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Search for all pointers towards the object old and replaces them with pointers pointing towards
+   * the new object. All pointer nesting levels are decremented by 1. If the newTarget is a region,
+   * specifiers are set to region. All other specifiers are retained.
+   *
+   * @param oldObj old object.
+   * @param newObject new target object.
+   * @return a new SPC with the replacement.
+   */
+  public SymbolicProgramConfiguration replaceAllPointersTowardsWithAndDecrementNestingLevel(
+      SMGObject oldObj, SMGObject newObject) {
+    return new SymbolicProgramConfiguration(
+        smg.replaceAllPointersTowardsWithAndDecrementNestingLevel(oldObj, newObject),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
+  }
+
+  /**
    * Search for all pointers towards the oldObj and switch them to newTarget. Then increments the
    * nesting level of the values of the changed pointers by 1. We expect that the newTarget does not
    * have any pointers towards it. Sets the specifiers for pointers so that if oldObj is not
@@ -1709,12 +1733,14 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Search for all pointers towards the object old and replaces them with pointers pointing towards
-   * the new object only if their nesting level is equal to the given. Then switches the nesting
-   * level of the switched to 0.
+   * the new object only if their nesting level and specifier is equal to the given. Then switches
+   * the nesting level of the switched to 0.
    *
    * @param oldObj old object.
    * @param newObject new target object.
    * @param replacementLevel the level to switch
+   * @param specifierToSwitch the specifiers that are allowed to be switched to the new object. All
+   *     others remain on old obj.
    * @return a new SMG with the replacement.
    */
   public SymbolicProgramConfiguration replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
