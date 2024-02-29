@@ -236,7 +236,8 @@ public class ARGStatistics implements Statistics {
         && proofWitness == null
         && proofWitnessDot == null
         && pixelGraphicFile == null
-        && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))) {
+        && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
+        && yamlWitnessOutputFileTemplate == null) {
       exportARG = false;
     }
 
