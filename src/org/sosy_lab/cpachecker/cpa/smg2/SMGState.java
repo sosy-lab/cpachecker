@@ -4648,7 +4648,7 @@ public class SMGState
       Preconditions.checkArgument(obj instanceof SMGSinglyLinkedListSegment);
       materializationAndState =
           currentState.materializer.handleMaterialisation(
-              valueToPointerToAbstractObject, obj, currentState);
+              valueToPointerToAbstractObject, (SMGSinglyLinkedListSegment) obj, currentState);
       if (materializationAndState.size() == 1) {
         // We can assume that this is the default case
         currentState = materializationAndState.get(0).getSMGState();

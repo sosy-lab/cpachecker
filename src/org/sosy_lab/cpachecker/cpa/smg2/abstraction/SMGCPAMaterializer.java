@@ -52,42 +52,46 @@ public class SMGCPAMaterializer {
    * 0+ behave differently to the others in that it generates 2 states. We order those! The first in
    * the list is the minimal state where the 0+ is deleted, the second keeps a 0+ and grows.
    *
-   * @param valueTopointerToAbstractObject pointer to an {@link SMGSinglyLinkedListSegment}.
-   * @param pAbstractObject the target of valueTopointerToAbstractObject.
+   * @param valueToPointerToAbstractObject pointer to an {@link SMGSinglyLinkedListSegment}.
+   * @param pAbstractObject the target of valueToPointerToAbstractObject ({@link
+   *     SMGSinglyLinkedListSegment} or {@link SMGDoublyLinkedListSegment})
    * @param state current {@link SMGState}.
    * @return list of returned {@link SMGValueAndSMGState} with the value being the updated pointers.
    *     (In the context of the new state valueTopointerToAbstractObject behaves the same!)
    * @throws SMGException in case of critical errors.
    */
   public List<SMGValueAndSMGState> handleMaterialisation(
-      SMGValue valueTopointerToAbstractObject, SMGObject pAbstractObject, SMGState state)
+      SMGValue valueToPointerToAbstractObject,
+      SMGSinglyLinkedListSegment pAbstractObject,
+      SMGState state)
       throws SMGException {
     // Materialize from the left ( CE -> 3+ -> 0 => CE -> CE -> 2+ -> 0) for first ptrs and all next
     // ptrs.
     // Materialize from the right for all last ptrs and prevs.
-
-    if (pAbstractObject instanceof SMGDoublyLinkedListSegment dllListSeg) {
-      if (dllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
-        // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
-        // gone
-        return handleZeroPlusDLS(dllListSeg, valueTopointerToAbstractObject, state);
+    SMGTargetSpecifier pointerSpecifier =
+        state
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(valueToPointerToAbstractObject)
+            .orElseThrow()
+            .targetSpecifier();
+    if (pAbstractObject.getMinLength() == MINIMUM_LIST_LENGTH) {
+      // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
+      // gone
+      if (pointerSpecifier.equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
+        return handleLeftSidedZeroPlusLLS(pAbstractObject, valueToPointerToAbstractObject, state);
       } else {
-        return ImmutableList.of(
-            materialiseLLSFromTheLeft(dllListSeg, valueTopointerToAbstractObject, state));
+        return handleLeftSidedZeroPlusLLS(pAbstractObject, valueToPointerToAbstractObject, state);
       }
-    } else if (pAbstractObject instanceof SMGSinglyLinkedListSegment sllListSeg) {
-      if (sllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
-        // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
-        // gone
-        return handleZeroPlusSLS(sllListSeg, valueTopointerToAbstractObject, state);
+    } else {
+      if (pointerSpecifier.equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
+        return ImmutableList.of(
+            materialiseLLSFromTheLeft(pAbstractObject, valueToPointerToAbstractObject, state));
       } else {
         return ImmutableList.of(
-            materialiseLLSFromTheLeft(sllListSeg, valueTopointerToAbstractObject, state));
+            materialiseLLSFromTheLeft(pAbstractObject, valueToPointerToAbstractObject, state));
       }
     }
-    throw new SMGException(
-        "The SMG failed to materialize a abstract list as the memory object handled was not"
-            + " abstracted to begin with.");
   }
 
   /*
@@ -163,30 +167,50 @@ public class SMGCPAMaterializer {
   }
 
   /*
-   * This generates 2 states. One where we materialize the list once more and add the 0+ back and one where the 0+ is deleted.
+   * This generates 2 states.
+   * One where we materialize the list once more to the left of the 0+
+   * (the 0+ is to the right of the new concrete), and one where the 0+ is deleted.
    */
-  private List<SMGValueAndSMGState> handleZeroPlusDLS(
-      SMGDoublyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
+  private List<SMGValueAndSMGState> handleLeftSidedZeroPlusLLS(
+      SMGSinglyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
       throws SMGException {
 
     statistics.incrementZeroPlusMaterializations();
     statistics.startTotalZeroPlusMaterializationTime();
 
-    logger.log(Level.ALL, "Split into 2 states because of 0+ DLS materialization.", pListSeg);
+    logger.log(
+        Level.ALL,
+        "Split into 2 states because of 0+ "
+            + pListSeg.getClass().getSimpleName()
+            + " materialization.",
+        pListSeg);
     ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
 
     SMGState currentState = state;
     BigInteger nfo = pListSeg.getNextOffset();
-    BigInteger pfo = pListSeg.getPrevOffset();
+    BigInteger pfo = null;
+    if (pListSeg instanceof SMGDoublyLinkedListSegment dll) {
+      pfo = dll.getPrevOffset();
+    }
     BigInteger pointerSize = currentState.getMemoryModel().getSizeOfPointer();
 
     SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
     currentState = nextPointerAndState.getSMGState();
-    SMGValueAndSMGState prevPointerAndState = currentState.readSMGValue(pListSeg, pfo, pointerSize);
-    currentState = prevPointerAndState.getSMGState();
     SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
-    SMGValue prevPointerValue = prevPointerAndState.getSMGValue();
 
+    SMGValue prevPointerValue;
+    if (pListSeg.isSLL()) {
+      prevPointerValue = getSLLPrevObjPointer(currentState, pListSeg, nfo, pointerSize);
+    } else {
+      SMGValueAndSMGState prevPointerAndState =
+          currentState.readSMGValue(pListSeg, pfo, pointerSize);
+      currentState = prevPointerAndState.getSMGState();
+      prevPointerValue = prevPointerAndState.getSMGValue();
+    }
+
+    // Replace the value pointerValueTowardsThisSegment with the next value read in the entire SMG
+    // FIRST pointer needs to point to the next value
+    // Important: first pointer specifier is depending on the next ptr for the non-extended case
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState
@@ -196,6 +220,16 @@ public class SMGCPAMaterializer {
                     nextPointerValue,
                     0,
                     ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER)));
+
+    // Last ptr to the current
+    // Important: last pointer specifier need to be region for the non-extended case
+    assert currentState
+        .getMemoryModel()
+        .getSmg()
+        .getPTEdge(prevPointerValue)
+        .orElseThrow()
+        .targetSpecifier()
+        .equals(SMGTargetSpecifier.IS_REGION);
 
     currentState =
         currentState.copyAndReplaceMemoryModel(
