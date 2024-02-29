@@ -95,81 +95,11 @@ public class SMGCPAMaterializer {
   }
 
   /*
-   * This generates 2 states. One where we materialize the list once more and add the 0+ back and one where the 0+ is deleted.
-   * When removing SLSs, we read the next pointer, then we remove the SLL segment and write the next
-   * pointer to the previous memory as the new next pointer.
-   * We are not allowed to change the pointer in this case as it might be value 0.
-   * We know the previous segment needs to be a list, so the nfo is always correct.
-   * The first state in the list is the state without 0+ in it, the second is the one where it grows.
-   */
-  private List<SMGValueAndSMGState> handleZeroPlusSLS(
-      SMGSinglyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
-      throws SMGException {
-
-    statistics.incrementZeroPlusMaterializations();
-    statistics.startTotalZeroPlusMaterializationTime();
-    logger.log(Level.ALL, "Split into 2 states because of 0+ SLS materialization.", pListSeg);
-    ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
-
-    SMGState currentState = state;
-    BigInteger nfo = pListSeg.getNextOffset();
-    BigInteger pointerSize = currentState.getMemoryModel().getSizeOfPointer();
-
-    SMGValue smgAddressToPrev = getSLLPrevObjPointer(currentState, pListSeg, nfo, pointerSize);
-    SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
-    currentState = nextPointerAndState.getSMGState();
-    SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
-    // Replace the value pointerValueTowardsThisSegment with the next value read in the entire SMG
-    // FIRST pointer needs to point to the next value
-    // Important: first pointer specifier is depending on the next ptr for the non-extended case
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState
-                .getMemoryModel()
-                .replacePointersWithSMGValue(
-                    pListSeg,
-                    nextPointerValue,
-                    0,
-                    ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER)));
-
-    // Last ptr to the current
-    // Important: last pointer specifier need to be region for the non-extended case
-    assert currentState
-        .getMemoryModel()
-        .getSmg()
-        .getPTEdge(smgAddressToPrev)
-        .orElseThrow()
-        .targetSpecifier()
-        .equals(SMGTargetSpecifier.IS_REGION);
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState
-                .getMemoryModel()
-                .replacePointersWithSMGValue(
-                    pListSeg,
-                    smgAddressToPrev,
-                    0,
-                    ImmutableSet.of(SMGTargetSpecifier.IS_LAST_POINTER)));
-
-    // Remove all ALL pointers/subgraphs associated with the 0+ object
-    // currentState = currentState.prunePointerValueTargets(pListSeg, ImmutableSet.of(nfo));
-    // Also remove the object
-    // TODO: merge prunePointerValueTargets into copyAndRemoveObjectAndAssociatedSubSMG
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
-
-    returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
-    statistics.stopTotalZeroPlusMaterializationTime();
-    return returnStates
-        .add(materialiseLLSFromTheLeft(pListSeg, pointerValueTowardsThisSegment, state))
-        .build();
-  }
-
-  /*
    * This generates 2 states.
    * One where we materialize the list once more to the left of the 0+
    * (the 0+ is to the right of the new concrete), and one where the 0+ is deleted.
+   * For the remove state, the last pointer now points to the last concrete obj (prev),
+   * while the next pointer points to the next of the 0+.
    */
   private List<SMGValueAndSMGState> handleLeftSidedZeroPlusLLS(
       SMGSinglyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
