@@ -2601,8 +2601,9 @@ public class SMGState
    * Read the value in the {@link SMGObject} at the position specified by the offset and size.
    * Checks for validity of the object and if its externally allocated and may fail because of that.
    * The read {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the
-   * known value is used, unknown symbolic else. Might materialize a list if an abstracted 0+ list
-   * pointer not-pointing to the head of the abstracted memory is read.
+   * known value is used, unknown symbolic else. Might materialize a list if an abstracted list is
+   * read (Materializes if we read a pointer to an abstract list that does not point towards the
+   * head).
    *
    * @param pObject {@link SMGObject} where to read. May not be 0.
    * @param pFieldOffset {@link BigInteger} offset.

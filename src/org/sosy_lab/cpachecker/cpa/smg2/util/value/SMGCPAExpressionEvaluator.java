@@ -666,6 +666,36 @@ public class SMGCPAExpressionEvaluator {
       BigInteger sizeInBits,
       CType readType)
       throws CPATransferException {
+    return readStackOrGlobalVariable(
+        initialState, varName, offsetInBits, sizeInBits, readType, true);
+  }
+
+  /**
+   * Read the global or stack variable whoes name is given as a {@link String} from the given {@link
+   * SMGState} with the given size in bits as a {@link BigInteger}. The Value might be unknown
+   * either because it was read as unknown or because the variable was not initialized. Note: this
+   * expects that the given {@link CIdExpression} has a not null declaration.
+   *
+   * @param initialState the {@link SMGState} holding the {@link SymbolicProgramConfiguration} where
+   *     the variable should be read from.
+   * @param varName name of the global or stack variable to be read.
+   * @param sizeInBits size of the type to be read.
+   * @param readType the type of the read value before casts etc. Used to determine union float
+   *     conversion.
+   * @param materialize if false, will not materialize abstracted lists.
+   * @return {@link ValueAndSMGState} with the updated {@link SMGState} and the read {@link Value}.
+   *     The Value might be unknown either because it was read as unknown or because the variable
+   *     was not initialized.
+   * @throws CPATransferException if the variable is not known in the memory model (SPC)
+   */
+  public List<ValueAndSMGState> readStackOrGlobalVariable(
+      SMGState initialState,
+      String varName,
+      Value offsetInBits,
+      BigInteger sizeInBits,
+      CType readType,
+      boolean materialize)
+      throws CPATransferException {
 
     Optional<SMGObject> maybeObject =
         initialState.getMemoryModel().getObjectForVisibleVariable(varName);
@@ -682,7 +712,8 @@ public class SMGCPAExpressionEvaluator {
         offsetInBits,
         sizeInBits,
         readType,
-        CNumericTypes.INT);
+        CNumericTypes.INT,
+        materialize);
   }
 
   /**
@@ -763,7 +794,7 @@ public class SMGCPAExpressionEvaluator {
       Value finalOffset = addOffsetValues(pOffset, maybeTargetAndOffset.getOffsetForObject());
 
       returnBuilder.addAll(
-          readValue(pState, object, finalOffset, pSizeInBits, readType, pOffsetType));
+          readValue(pState, object, finalOffset, pSizeInBits, readType, pOffsetType, true));
     }
     return returnBuilder.build();
   }
@@ -799,8 +830,8 @@ public class SMGCPAExpressionEvaluator {
                 .getNextOffset()
                 .equals(pOffsetInBits.asNumericValue().bigIntegerValue())) {
           // Access to the last list elements next pointer
-          // return ImmutableList.of(
-          // SMGStateAndOptionalSMGObjectAndOffset.of(targetObjWOMat, pOffsetInBits, innerState));
+          return ImmutableList.of(
+              SMGStateAndOptionalSMGObjectAndOffset.of(targetObjWOMat, pOffsetInBits, innerState));
         }
       }
     }
@@ -935,6 +966,8 @@ public class SMGCPAExpressionEvaluator {
    * @param sizeInBits size of the read value in bits as {@link BigInteger}.
    * @param readType the uncasted type of the read (right hand side innermost type). Null only if
    *     its certain that implicit union casts are not possible.
+   * @param materialize if false, prevents materialization. Examples: we want the last pointer to an
+   *     abstracted list.
    * @return {@link ValueAndSMGState} bundeling the most up-to-date state and the read value.
    * @throws SMGException for critical errors when materializing lists.
    */
@@ -944,7 +977,8 @@ public class SMGCPAExpressionEvaluator {
       Value offsetValueInBits,
       BigInteger sizeInBits,
       @Nullable CType readType,
-      CType pOffsetType)
+      CType pOffsetType,
+      boolean materialize)
       throws SMGException, SMGSolverException {
     // Check that the offset and offset + size actually fit into the SMGObject
     if (offsetValueInBits.isNumericValue()) {
@@ -962,7 +996,13 @@ public class SMGCPAExpressionEvaluator {
       }
 
       // The read in SMGState checks for validity and external allocation
-      return currentState.readValue(object, offsetInBits, sizeInBits, readType);
+      if (materialize) {
+        return currentState.readValue(object, offsetInBits, sizeInBits, readType);
+      } else {
+        return ImmutableList.of(
+            currentState.readValueWithoutMaterialization(
+                object, offsetInBits, sizeInBits, readType));
+      }
 
     } else if (options.trackErrorPredicates()) {
       // Use an SMT solver to argue about the offset/size validity
