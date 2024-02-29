@@ -94,6 +94,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinSPC;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -2575,25 +2576,29 @@ public class SMGState
    *
    * @param targetObject {@link SMGObject} target.
    * @param offsetInBits Offset as BigInt.
-   * @param pointerLevel new pointer nesting level
+   * @param pointerNestingLevel new pointer nesting level
    * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
    */
   public ValueAndSMGState searchOrCreateAddress(
-      SMGObject targetObject, BigInteger offsetInBits, int pointerLevel) {
+      SMGObject targetObject, BigInteger offsetInBits, int pointerNestingLevel) {
+    Preconditions.checkArgument(pointerNestingLevel >= 0);
     // search for existing pointer first and return if found
     Optional<SMGValue> maybeAddressValue =
-        getMemoryModel().getAddressValueForPointsToTarget(targetObject, offsetInBits, pointerLevel);
+        getMemoryModel()
+            .getAddressValueForPointsToTarget(targetObject, offsetInBits, pointerNestingLevel);
 
     if (maybeAddressValue.isPresent()) {
       Optional<Value> valueForSMGValue =
           getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
+      Preconditions.checkArgument(
+          memoryModel.getNestingLevel(valueForSMGValue.orElseThrow()) == pointerNestingLevel);
       // Reuse pointer; there should never be a SMGValue without counterpart!
-      // TODO: this might actually be expensive, check once this runs!
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
     }
 
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
-    SMGState newState = createAndAddPointer(addressValue, targetObject, offsetInBits, pointerLevel);
+    SMGState newState =
+        createAndAddPointer(addressValue, targetObject, offsetInBits, pointerNestingLevel);
     return ValueAndSMGState.of(addressValue, newState);
   }
 
@@ -2928,6 +2933,18 @@ public class SMGState
     }
     Number num = value.asNumericValue().getNumber();
     return num instanceof Float || num instanceof Double || num == NegativeNaN.VALUE;
+  }
+
+  public boolean isLastPtr(SMGValue pointer) {
+    Preconditions.checkArgument(memoryModel.getSmg().isPointer(pointer));
+    return memoryModel.getSmg().getPTEdge(pointer).orElseThrow().targetSpecifier()
+        == SMGTargetSpecifier.IS_LAST_POINTER;
+  }
+
+  public boolean isFirstPtr(SMGValue pointer) {
+    Preconditions.checkArgument(memoryModel.getSmg().isPointer(pointer));
+    return memoryModel.getSmg().getPTEdge(pointer).orElseThrow().targetSpecifier()
+        == SMGTargetSpecifier.IS_FIRST_POINTER;
   }
 
   /**
@@ -3646,6 +3663,24 @@ public class SMGState
    * @param addressValue {@link Value} used as address pointing to the target at the offset.
    * @param target {@link SMGObject} where the pointer points to.
    * @param offsetInBits offset in the object.
+   * @return the new {@link SMGState} with the pointer and mapping added.
+   */
+  public SMGState createAndAddPointer(
+      Value addressValue, SMGObject target, BigInteger offsetInBits, SMGTargetSpecifier specifier) {
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddPointerFromAddressToMemory(
+            addressValue, target, offsetInBits, 0, specifier));
+  }
+
+  /**
+   * Creates a pointer (points-to-edge) from the value to the target at the specified offset. The
+   * Value is mapped to a SMGValue if no mapping exists, else the existing will be used. This does
+   * not check whether a pointer already exists but will override the target if the value already
+   * has a mapping!
+   *
+   * @param addressValue {@link Value} used as address pointing to the target at the offset.
+   * @param target {@link SMGObject} where the pointer points to.
+   * @param offsetInBits offset in the object.
    * @param nestingLevel nestingLevel of the new ptr.
    * @return the new {@link SMGState} with the pointer and mapping added.
    */
@@ -3656,30 +3691,72 @@ public class SMGState
             addressValue, target, offsetInBits, nestingLevel));
   }
 
-  /*
-   * Same as createAndAddPointer but with a specific nesting level in the SMGObject
+  /**
+   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them
+   * (with nesting level and specifier). If none can be found a new address (SMGPointsToEdge) is
+   * created and returned as Value (Not AddressExpression).
+   *
+   * @param targetObject {@link SMGObject} target.
+   * @param offsetInBits Offset as BigInt.
+   * @param nestingLevel nesting level that the pointer needs to have.
+   * @param specifier specifier that the ptr needs to have.
+   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
    */
-  public ValueAndSMGState createAndAddPointerWithNestingLevel(
-      SMGObject target, BigInteger offsetInBits, int nestingLevel) {
+  public ValueAndSMGState searchOrCreateAddress(
+      SMGObject targetObject,
+      BigInteger offsetInBits,
+      int nestingLevel,
+      SMGTargetSpecifier specifier) {
+    return searchOrCreateAddress(
+        targetObject, offsetInBits, nestingLevel, specifier, ImmutableSet.of());
+  }
+
+  /**
+   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them
+   * (with nesting level and specifier). If none can be found a new address (SMGPointsToEdge) is
+   * created and returned as Value (Not AddressExpression).
+   *
+   * @param targetObject {@link SMGObject} target.
+   * @param offsetInBits Offset as BigInt.
+   * @param nestingLevel nesting level that the pointer needs to have.
+   * @param finalSpecifier specifier that the ptr needs to have.
+   * @param specifierAllowedToOverride set of specifiers allowed to be changed to the new specifier.
+   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
+   */
+  public ValueAndSMGState searchOrCreateAddress(
+      SMGObject targetObject,
+      BigInteger offsetInBits,
+      int nestingLevel,
+      SMGTargetSpecifier finalSpecifier,
+      Set<SMGTargetSpecifier> specifierAllowedToOverride) {
     Preconditions.checkArgument(nestingLevel >= 0);
     // search for existing pointer first and return if found
     Optional<SMGValue> maybeAddressValue =
         memoryModel.getAddressValueForPointsToTargetWithNestingLevel(
-            target, offsetInBits, nestingLevel);
+            targetObject, offsetInBits, nestingLevel, finalSpecifier, specifierAllowedToOverride);
 
     if (maybeAddressValue.isPresent()) {
       SMGValue addressValue = maybeAddressValue.orElseThrow();
       Optional<Value> valueForSMGValue = getMemoryModel().getValueFromSMGValue(addressValue);
       Preconditions.checkArgument(memoryModel.getNestingLevel(addressValue) == nestingLevel);
+      SMGState currentState = this;
+      if (!getMemoryModel()
+          .getPointerSpecifier(valueForSMGValue.orElseThrow())
+          .equals(finalSpecifier)) {
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState.memoryModel.copyAndSetTargetSpecifierForPointer(
+                    addressValue, finalSpecifier));
+      }
 
-      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
+      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), currentState);
     }
     Value newAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     return ValueAndSMGState.of(
         newAddressValue,
         copyAndReplaceMemoryModel(
             memoryModel.copyAndAddPointerFromAddressToRegionWithNestingLevel(
-                newAddressValue, target, offsetInBits, nestingLevel)));
+                newAddressValue, targetObject, offsetInBits, nestingLevel, finalSpecifier)));
   }
 
   /**
@@ -4052,7 +4129,7 @@ public class SMGState
 
   /*
    * Abstracts candidates into a DLL. May abstract the chain behind the first root into more than 1 list! Depending on == values.
-   * Only abstracts lists with == values.
+   * Only abstracts lists with equal values.
    */
   public SMGState abstractIntoDLL(
       SMGObject root, BigInteger nfo, BigInteger pfo, Set<SMGObject> alreadyVisited)
@@ -4060,9 +4137,11 @@ public class SMGState
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
+
     if (maybeNext.isEmpty()
         || maybeNext.orElseThrow().equals(root)
         || alreadyVisited.contains(maybeNext.orElseThrow())) {
+      // TODO: assert specifier
       return this;
     }
     assert this.getMemoryModel().getSmg().checkSMGSanity();
@@ -4076,6 +4155,7 @@ public class SMGState
         this,
         EqualityCache.<Value>of(),
         new HashSet<>())) {
+      // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoDLL(
           nextObj,
           nfo,
@@ -4191,6 +4271,25 @@ public class SMGState
       currentState =
           currentState.copyAndReplaceMemoryModel(
               currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newDLL));
+
+      if (nextObj instanceof SMGDoublyLinkedListSegment nextDLL) {
+        // There is a first pointer of the old DLL towards nextObj that needs removal
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState
+                    .getMemoryModel()
+                    .copyAndSetSpecifierOfPtrsTowards(
+                        newDLL, nextDLL.getMinLength() - 1, SMGTargetSpecifier.IS_ALL_POINTER));
+      } else {
+        // The last ptr from nextObj that are linked lists is retained
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState
+                    .getMemoryModel()
+                    .copyAndSetSpecifierOfPtrsTowards(
+                        newDLL, 0, SMGTargetSpecifier.IS_LAST_POINTER));
+      }
+
       currentState =
           currentState.copyAndReplaceMemoryModel(
               currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
@@ -4225,14 +4324,17 @@ public class SMGState
   }
 
   /*
-   * Abstracts candidates into a SLL. May abstract the chain behind the first root into more than 1 list! Depending on == values.
+   * Abstracts candidates into an SLL. May abstract the chain behind the first root into more than 1 list! Depending on == values.
    * Only abstracts lists with == values.
+   * Last pointers are only set for concrete next segments (each ptr towards a concrete next is set to last)
+   * First pointers are only set for each concrete root.
    */
   public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo, Set<SMGObject> alreadyVisited)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
+
     if (maybeNext.isEmpty()
         || maybeNext.orElseThrow().equals(root)
         || alreadyVisited.contains(maybeNext.orElseThrow())) {
@@ -4243,6 +4345,7 @@ public class SMGState
     // Values not equal, continue traverse
     if (!checkEqualValuesForTwoStatesWithExemptions(
         root, nextObj, ImmutableList.of(nfo), this, this, EqualityCache.of(), new HashSet<>())) {
+      // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoSLL(
           nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
@@ -4251,11 +4354,8 @@ public class SMGState
     // Copy the edges from the next object to the SLL
     SMGSinglyLinkedListSegment newSLL;
     int incrementAmount = 1;
-    if (root instanceof SMGDoublyLinkedListSegment) {
-      // Something went wrong
-      // TODO: log and decide what to do here (can this even happen?)
-      return this;
-    } else if (root instanceof SMGSinglyLinkedListSegment oldSLL) {
+    Preconditions.checkArgument(!(root instanceof SMGDoublyLinkedListSegment));
+    if (root instanceof SMGSinglyLinkedListSegment oldSLL) {
       int newMinLength = oldSLL.getMinLength();
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
@@ -4273,8 +4373,7 @@ public class SMGState
               newMinLength);
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
-      // not.
-      // We don't care about it however
+      // not. We don't care about it however
       int newMinLength = 1;
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
@@ -4308,6 +4407,25 @@ public class SMGState
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newSLL));
+
+    if (nextObj instanceof SMGSinglyLinkedListSegment nextSLL) {
+      // There is a first pointer of the old SLL towards nextObj that needs removal
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState
+                  .getMemoryModel()
+                  .copyAndSetSpecifierOfPtrsTowards(
+                      newSLL, nextSLL.getMinLength() - 1, SMGTargetSpecifier.IS_ALL_POINTER));
+    } else {
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState
+                  .getMemoryModel()
+                  .copyAndSetSpecifierOfPtrsTowards(newSLL, 0, SMGTargetSpecifier.IS_LAST_POINTER));
+    }
+    // replaceAllPointersTowardsWithAndIncrementNestingLevel
+    // sets ALL specifier for all pointers towards root, except for first specifiers,
+    // if root is abstracted and first specifiers for non-abstracted root
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
@@ -4328,6 +4446,15 @@ public class SMGState
         newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
 
+  /**
+   * Checks if there is a valid next linked list object and returns it if yes. Traverses the nfo
+   * pointer and checks if the next object is valid and the same size as root.
+   *
+   * @param root current root object (left side of 2 list elements)
+   * @param nfo (suspected) next pointer offset in root
+   * @return optional filled with valid next sll or empty
+   * @throws SMGException critical errors
+   */
   private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo) throws SMGException {
     SMGState currentState = this;
     SMGValueAndSMGState valueAndState =
@@ -4553,6 +4680,8 @@ public class SMGState
                       .pointsTo()
                   instanceof SMGSinglyLinkedListSegment));
         }
+        // This can be violated for example through a last pointer still pointing to a 0+ after left
+        // sided mat
         Preconditions.checkArgument(
             !(materializationAndState
                     .get(1)
