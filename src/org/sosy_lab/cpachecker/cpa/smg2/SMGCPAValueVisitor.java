@@ -117,8 +117,6 @@ public class SMGCPAValueVisitor
 
   private final SMGOptions options;
 
-  private final boolean materializeWhenReading;
-
   public SMGCPAValueVisitor(
       SMGCPAExpressionEvaluator pEvaluator,
       SMGState currentState,
@@ -130,22 +128,6 @@ public class SMGCPAValueVisitor
     cfaEdge = edge;
     logger = pLogger;
     options = pOptions;
-    materializeWhenReading = true;
-  }
-
-  public SMGCPAValueVisitor(
-      SMGCPAExpressionEvaluator pEvaluator,
-      SMGState currentState,
-      CFAEdge edge,
-      LogManagerWithoutDuplicates pLogger,
-      SMGOptions pOptions,
-      boolean pMaterializeWhenReading) {
-    evaluator = pEvaluator;
-    state = currentState;
-    cfaEdge = edge;
-    logger = pLogger;
-    options = pOptions;
-    materializeWhenReading = pMaterializeWhenReading;
   }
 
   /**
@@ -962,8 +944,7 @@ public class SMGCPAValueVisitor
                 varDecl.getQualifiedName(),
                 new NumericValue(BigInteger.ZERO),
                 sizeInBits,
-                SMGCPAExpressionEvaluator.getCanonicalType(e),
-                materializeWhenReading));
+                SMGCPAExpressionEvaluator.getCanonicalType(e)));
         continue;
       }
     }
