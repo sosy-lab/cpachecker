@@ -78,6 +78,10 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
     targetSpecifier = pTargetSpecifier;
   }
 
+  public SMGPointsToEdge copyAndSetTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
+    return new SMGPointsToEdge(pointsToObject, offset, pTargetSpecifier);
+  }
+
   @Override
   public String toString() {
     return " -> [" + offset + "] " + pointsToObject;
