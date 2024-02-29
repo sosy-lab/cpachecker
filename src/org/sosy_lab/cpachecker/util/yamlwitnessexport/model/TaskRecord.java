@@ -20,7 +20,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -72,7 +71,7 @@ public class TaskRecord {
         Collections3.transformedImmutableListCopy(inputFiles, Path::toString),
         inputFileHashes.buildOrThrow(),
         specification,
-        MachineModel.getMachineModelAsString(pCFA.getMachineModel()),
+        pCFA.getMachineModel().getMachineModelForYAMLWitnessSpecification(),
         pCFA.getLanguage().toString());
   }
 
