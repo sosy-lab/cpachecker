@@ -242,7 +242,11 @@ public class ARGStatistics implements Statistics {
 
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
 
-    argToWitnessWriter = new ARGToYAMLWitnessExport(config, cfa, pSpecification, pLogger);
+    if (yamlWitnessOutputFileTemplate != null) {
+      argToWitnessWriter = new ARGToYAMLWitnessExport(config, cfa, pSpecification, pLogger);
+    } else {
+      argToWitnessWriter = null;
+    }
 
     if (counterexampleOptions.disabledCompletely()) {
       cexExporter = null;
@@ -413,7 +417,7 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
-        if (yamlWitnessOutputFileTemplate != null) {
+        if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
           try {
             argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
           } catch (IOException e) {

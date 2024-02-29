@@ -135,14 +135,18 @@ public class CEXExporter {
       harnessExporter = new HarnessExporter(config, pLogger, cfa);
       testExporter = new TestCaseExporter(cfa, logger, config);
       faultExporter = new FaultLocalizationInfoExporter(config);
+      if (options.getYamlWitnessPathTemplate() != null) {
+        cexToWitness = new CounterexampleToWitness(config, cfa, pSpecification, pLogger);
+      } else {
+        cexToWitness = null;
+      }
     } else {
       cexFilter = null;
       harnessExporter = null;
       testExporter = null;
       faultExporter = null;
+      cexToWitness = null;
     }
-
-    cexToWitness = new CounterexampleToWitness(config, cfa, pSpecification, pLogger);
   }
 
   /** See {@link #exportCounterexample(ARGState, CounterexampleInfo)}. */
@@ -328,7 +332,7 @@ public class CEXExporter {
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
 
-        if (options.getYamlWitnessPathTemplate() != null) {
+        if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
           try {
             cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
           } catch (IOException e) {
