@@ -1353,14 +1353,14 @@ public class SMG {
    * @param value some {@link SMGValue}. Does not have to be a pointer.
    * @return true for SLL or DLL target with non hfo offset. false else.
    */
-  public boolean pointsToMaterializableList(@Nullable SMGValue value, BigInteger hfo) {
+  public boolean pointsToMaterializableList(@Nullable SMGValue value, BigInteger readFieldOffset) {
     if (value == null) {
       return false;
     }
     Optional<SMGPointsToEdge> maybePTEdge = getPTEdge(value);
     return maybePTEdge.isPresent()
         && maybePTEdge.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment linkedList
-        && !linkedList.getHeadOffset().equals(hfo);
+        && !linkedList.getHeadOffset().equals(readFieldOffset);
   }
 
   /**
