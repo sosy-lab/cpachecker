@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExpor
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YamlWitnessExportException;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -332,7 +331,7 @@ public class CEXExporter {
         if (options.getYamlWitnessPathTemplate() != null) {
           try {
             cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-          } catch (YamlWitnessExportException | IOException e) {
+          } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
           }
         }

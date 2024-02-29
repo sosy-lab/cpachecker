@@ -40,12 +40,11 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
    * @param pOutputFileTemplate The template for the output file. The template will be used to
    *     generate unique names for each witness version by replacing the string '%s' with the
    *     version.
-   * @throws YamlWitnessExportException If the witness could not be exported.
    * @throws InterruptedException If the witness export was interrupted.
    * @throws IOException If the witness could not be written to the file.
    */
   public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
-      throws YamlWitnessExportException, InterruptedException, IOException {
+      throws InterruptedException, IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
       switch (witnessVersion) {

@@ -98,8 +98,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             assumeEdge.getPredecessor().getFunctionName()));
   }
 
-  private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath)
-      throws IOException, YamlWitnessExportException {
+  private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
     ASTStructure astStructure = getASTStructure();
 
     ListMultimap<CFAEdge, AExpressionStatement> edgeToAssumptions = ArrayListMultimap.create();
@@ -237,11 +236,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * @param pOutputFileTemplate The template for the output file. The template will be used to *
    *     generate unique names for each witness version by replacing the string '%s' with the *
    *     version.
-   * @throws YamlWitnessExportException If the witness could not be exported.
    * @throws IOException If the witness could not be written to the file.
    */
   public void export(CounterexampleInfo pCex, PathTemplate pOutputFileTemplate, int uniqueId)
-      throws YamlWitnessExportException, IOException {
+      throws IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(YAMLWitnessVersion.V2.toString(), uniqueId);
       switch (witnessVersion) {

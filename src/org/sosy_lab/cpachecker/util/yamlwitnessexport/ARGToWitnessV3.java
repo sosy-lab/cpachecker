@@ -46,8 +46,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
   }
 
   private InvariantEntryV3 createInvariant(
-      Collection<ARGState> argStates, CFANode node, String type)
-      throws InterruptedException, YamlWitnessExportException {
+      Collection<ARGState> argStates, CFANode node, String type) throws InterruptedException {
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
     Optional<IterationStructure> iterationStructure =
@@ -101,7 +100,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
   }
 
   void exportWitness(ARGState pRootState, Path pOutputFile)
-      throws YamlWitnessExportException, InterruptedException, IOException {
+      throws InterruptedException, IOException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 

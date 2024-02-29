@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YamlWitnessExportException;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -417,7 +416,7 @@ public class ARGStatistics implements Statistics {
         if (yamlWitnessOutputFileTemplate != null) {
           try {
             argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
-          } catch (YamlWitnessExportException | IOException e) {
+          } catch (IOException e) {
             logger.logUserException(
                 Level.WARNING,
                 e,
