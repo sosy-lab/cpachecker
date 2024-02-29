@@ -135,10 +135,15 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // first is non-extended
         Value endingListPtr = nextPtrs.get(0).getValue();
         SMGState endingState = nextPtrs.get(0).getState();
-        SMGValue endingLstSMGPtr = endingState.getMemoryModel().getSMGValueFromValue(endingListPtr).orElseThrow();
+        SMGValue endingLstSMGPtr =
+            endingState.getMemoryModel().getSMGValueFromValue(endingListPtr).orElseThrow();
         assertThat(endingLstSMGPtr.isZero()).isTrue();
         // Check that the last ptr truly points to the last concrete element
-        SMGValue lastSMGPtr = endingState.getMemoryModel().getSMGValueFromValue(pointers[listLength - 1]).orElseThrow();
+        SMGValue lastSMGPtr =
+            endingState
+                .getMemoryModel()
+                .getSMGValueFromValue(pointers[listLength - 1])
+                .orElseThrow();
         assertThat(lastSMGPtr.isZero()).isFalse();
         SMGPointsToEdge lastPTE =
             endingState.getMemoryModel().getSmg().getPTEdge(lastSMGPtr).orElseThrow();
@@ -148,7 +153,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // second is extended
         Value extendedListPtr = nextPtrs.get(1).getValue();
         SMGState extendedState = nextPtrs.get(1).getState();
-        SMGValue extendedLstSMGPtr = extendedState.getMemoryModel().getSMGValueFromValue(extendedListPtr).orElseThrow();
+        SMGValue extendedLstSMGPtr =
+            extendedState.getMemoryModel().getSMGValueFromValue(extendedListPtr).orElseThrow();
         SMGPointsToEdge extendedPTE =
             extendedState.getMemoryModel().getSmg().getPTEdge(extendedLstSMGPtr).orElseThrow();
         // Points to a new object
@@ -156,20 +162,26 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(extendedPTE.pointsTo()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
         assertThat(extendedPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_REGION);
         // Read the nfo and check that ptr is "next" and points to the same as last
-        ValueAndSMGState nextPtrAndState = extendedState.readValueWithoutMaterialization(extendedPTE.pointsTo(), nfo, pointerSizeInBits, null);
+        ValueAndSMGState nextPtrAndState =
+            extendedState.readValueWithoutMaterialization(
+                extendedPTE.pointsTo(), nfo, pointerSizeInBits, null);
         extendedState = nextPtrAndState.getState();
         Value nextValue = nextPtrAndState.getValue();
-        SMGValue nextSMGValue = extendedState.getMemoryModel().getSMGValueFromValue(nextValue).orElseThrow();
+        SMGValue nextSMGValue =
+            extendedState.getMemoryModel().getSMGValueFromValue(nextValue).orElseThrow();
         SMGPointsToEdge nextPTE =
             extendedState.getMemoryModel().getSmg().getPTEdge(nextSMGValue).orElseThrow();
         assertThat(nextPTE.pointsTo()).isInstanceOf(SMGSinglyLinkedListSegment.class);
         assertThat(nextPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
 
         // Check that the last ptr truly points to the last abstracted element
-         lastSMGPtr = extendedState.getMemoryModel().getSMGValueFromValue(pointers[listLength - 1]).orElseThrow();
+        lastSMGPtr =
+            extendedState
+                .getMemoryModel()
+                .getSMGValueFromValue(pointers[listLength - 1])
+                .orElseThrow();
         assertThat(lastSMGPtr.isZero()).isFalse();
-         lastPTE =
-             extendedState.getMemoryModel().getSmg().getPTEdge(lastSMGPtr).orElseThrow();
+        lastPTE = extendedState.getMemoryModel().getSmg().getPTEdge(lastSMGPtr).orElseThrow();
         assertThat(lastPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_LAST_POINTER);
         assertThat(lastPTE.pointsTo()).isInstanceOf(SMGSinglyLinkedListSegment.class);
         assertThat(((SMGSinglyLinkedListSegment) lastPTE.pointsTo()).getMinLength()).isEqualTo(0);
@@ -267,10 +279,15 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // first is non-extended
         Value endingListPtr = nextPtrs.get(0).getValue();
         SMGState endingState = nextPtrs.get(0).getState();
-        SMGValue endingLstSMGPtr = endingState.getMemoryModel().getSMGValueFromValue(endingListPtr).orElseThrow();
+        SMGValue endingLstSMGPtr =
+            endingState.getMemoryModel().getSMGValueFromValue(endingListPtr).orElseThrow();
         assertThat(endingLstSMGPtr.isZero()).isTrue();
         // Check that the last ptr truly points to the last concrete element
-        SMGValue lastSMGPtr = endingState.getMemoryModel().getSMGValueFromValue(pointers[listLength - 1]).orElseThrow();
+        SMGValue lastSMGPtr =
+            endingState
+                .getMemoryModel()
+                .getSMGValueFromValue(pointers[listLength - 1])
+                .orElseThrow();
         assertThat(lastSMGPtr.isZero()).isFalse();
         SMGPointsToEdge lastPTE =
             endingState.getMemoryModel().getSmg().getPTEdge(lastSMGPtr).orElseThrow();
@@ -280,7 +297,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // second is extended
         Value extendedListPtr = nextPtrs.get(1).getValue();
         SMGState extendedState = nextPtrs.get(1).getState();
-        SMGValue extendedLstSMGPtr = extendedState.getMemoryModel().getSMGValueFromValue(extendedListPtr).orElseThrow();
+        SMGValue extendedLstSMGPtr =
+            extendedState.getMemoryModel().getSMGValueFromValue(extendedListPtr).orElseThrow();
         SMGPointsToEdge extendedPTE =
             extendedState.getMemoryModel().getSmg().getPTEdge(extendedLstSMGPtr).orElseThrow();
         // Points to a new object
@@ -288,20 +306,26 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(extendedPTE.pointsTo()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
         assertThat(extendedPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_REGION);
         // Read the nfo and check that ptr is "next" and points to the same as last
-        ValueAndSMGState nextPtrAndState = extendedState.readValueWithoutMaterialization(extendedPTE.pointsTo(), nfo, pointerSizeInBits, null);
+        ValueAndSMGState nextPtrAndState =
+            extendedState.readValueWithoutMaterialization(
+                extendedPTE.pointsTo(), nfo, pointerSizeInBits, null);
         extendedState = nextPtrAndState.getState();
         Value nextValue = nextPtrAndState.getValue();
-        SMGValue nextSMGValue = extendedState.getMemoryModel().getSMGValueFromValue(nextValue).orElseThrow();
+        SMGValue nextSMGValue =
+            extendedState.getMemoryModel().getSMGValueFromValue(nextValue).orElseThrow();
         SMGPointsToEdge nextPTE =
             extendedState.getMemoryModel().getSmg().getPTEdge(nextSMGValue).orElseThrow();
         assertThat(nextPTE.pointsTo()).isInstanceOf(SMGSinglyLinkedListSegment.class);
         assertThat(nextPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
 
         // Check that the last ptr truly points to the last abstracted element
-        lastSMGPtr = extendedState.getMemoryModel().getSMGValueFromValue(pointers[listLength - 1]).orElseThrow();
+        lastSMGPtr =
+            extendedState
+                .getMemoryModel()
+                .getSMGValueFromValue(pointers[listLength - 1])
+                .orElseThrow();
         assertThat(lastSMGPtr.isZero()).isFalse();
-        lastPTE =
-            extendedState.getMemoryModel().getSmg().getPTEdge(lastSMGPtr).orElseThrow();
+        lastPTE = extendedState.getMemoryModel().getSmg().getPTEdge(lastSMGPtr).orElseThrow();
         assertThat(lastPTE.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_LAST_POINTER);
         assertThat(lastPTE.pointsTo()).isInstanceOf(SMGSinglyLinkedListSegment.class);
         assertThat(((SMGSinglyLinkedListSegment) lastPTE.pointsTo()).getMinLength()).isEqualTo(0);
