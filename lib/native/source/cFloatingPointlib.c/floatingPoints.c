@@ -838,7 +838,7 @@ JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
 	return r;
 }
 
-JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToShort(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+JNIEXPORT jshort JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToShort(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
 	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
         jshort r;
         switch(fp_from_type) {
@@ -857,7 +857,7 @@ JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
 	return r;
 }
 
-JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToInt(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+JNIEXPORT jint JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToInt(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
 	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
         jint r;
         switch(fp_from_type) {
@@ -876,7 +876,7 @@ JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
 	return r;
 }
 
-JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToLong(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToLong(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
 	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
         jlong r;
         switch(fp_from_type) {
