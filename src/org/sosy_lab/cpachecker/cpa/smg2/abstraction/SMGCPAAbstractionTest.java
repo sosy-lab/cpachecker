@@ -1304,13 +1304,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(
             stateAndObjectAfterAbstraction.getOffsetForObject().asNumericValue().bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
-    // There should be exactly listSize normal SMGObjects that are invalid (not zero objects)
-    // + listSize - 1 SLL objects that are invalid and the 0 object invalid and TEST_LIST_LENGTH
-    // valid stack objects for the pointers
-    assertThat(currentState.getMemoryModel().getSmg().getObjects())
-        .hasSize(1 + TEST_LIST_LENGTH + TEST_LIST_LENGTH + TEST_LIST_LENGTH - 1);
+    // There should be exactly TEST_LIST_LENGTH valid stack objects for the pointers
+    // + 1 zero obj + 1 SLL obj
+    assertThat(currentState.getMemoryModel().getSmg().getObjects()).hasSize(2 + TEST_LIST_LENGTH);
     int normalObjectCounter = 0;
-    Boolean[] found = new Boolean[TEST_LIST_LENGTH - 1];
     for (SMGObject object : currentState.getMemoryModel().getSmg().getObjects()) {
       if (object.getSize().equals(pointerSizeInBits)) {
         assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isTrue();
@@ -1320,9 +1317,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         normalObjectCounter++;
         assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isFalse();
       } else {
-        assertThat(found[((SMGSinglyLinkedListSegment) object).getMinLength() - 2]).isNull();
         // We always start with at least element 2+
-        found[((SMGSinglyLinkedListSegment) object).getMinLength() - 2] = true;
         if (((SMGSinglyLinkedListSegment) object).getMinLength() == TEST_LIST_LENGTH) {
           assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isTrue();
         } else {
@@ -1330,10 +1325,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         }
       }
     }
-    assertThat(normalObjectCounter).isEqualTo(TEST_LIST_LENGTH);
-    for (boolean f : found) {
-      assertThat(f).isTrue();
-    }
+    // There should be 0 remnant objects
+    assertThat(normalObjectCounter).isEqualTo(0);
 
     // Also only 2 heap objects known, the SLL and the 0 object
     assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2);
