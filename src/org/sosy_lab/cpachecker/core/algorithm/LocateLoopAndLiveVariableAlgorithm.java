@@ -54,6 +54,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    // Output the collected loop information to a file
     try (BufferedWriter writer =
         Files.newBufferedWriter(Paths.get("output/AllLoopInfos.txt"), StandardCharsets.UTF_8)) {
       StringBuilder allLoopInfos = new StringBuilder();
@@ -74,7 +75,10 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     List<LoopInfo> allLoopInfos = new ArrayList<>();
 
     for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      // Determine loop location 
+      // Determine loop location
+      // Since we assume that C programs only contain while loops as their loop structures,
+      // each while loop can have only one incoming edge connecting a non-loop node and
+      // the keyword "while" is located on the edge.
       int loopLocation =
           loop.getIncomingEdges().stream()
               .mapToInt(e -> e.getFileLocation().getStartingLineInOrigin())
