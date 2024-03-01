@@ -1229,6 +1229,11 @@ public class SMGState
       return false;
     }
 
+    if (!dropStackFrame().copyAndPruneUnreachable()
+        .checkErrorEqualityForTwoStates(pOther.dropStackFrame().copyAndPruneUnreachable())) {
+      return false;
+    }
+
     // Cache equalities that we already found
     EqualityCache<Value> equalityCache = EqualityCache.of();
     // Check that both have the same stack frames
