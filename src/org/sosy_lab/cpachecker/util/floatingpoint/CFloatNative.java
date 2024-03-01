@@ -222,7 +222,19 @@ public class CFloatNative extends CFloat {
 
   @Override
   public Number castToOther(CNativeType toType) {
-    return CFloatNativeAPI.castFpToOther(wrapper, type, toType.getOrdinal());
+    if (toType == CNativeType.CHAR) {
+      return CFloatNativeAPI.castFpToByte(wrapper, type);
+    }
+    if (toType == CNativeType.SHORT) {
+      return CFloatNativeAPI.castFpToShort(wrapper, type);
+    }
+    if (toType == CNativeType.INT) {
+      return CFloatNativeAPI.castFpToInt(wrapper, type);
+    }
+    if (toType == CNativeType.LONG) {
+      return CFloatNativeAPI.castFpToLong(wrapper, type);
+    }
+    throw new IllegalArgumentException();
   }
 
   private int constructParametersForMultiOperation(

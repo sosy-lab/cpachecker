@@ -235,11 +235,35 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 
 /*
  * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
- * Method:    castFpToOther
- * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;II)Ljava/lang/Number;
+ * Method:    castFpToByte
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)B;
  */
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToOther
-  (JNIEnv *, jclass, jobject, jint, jint);
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToByte
+  (JNIEnv *, jclass, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    castFpToShort
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)S;
+ */
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToShort
+  (JNIEnv *, jclass, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    castFpToInt
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)I;
+ */
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToInt
+  (JNIEnv *, jclass, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    castFpToLong
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)J;
+ */
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToLong
+  (JNIEnv *, jclass, jobject, jint);
 
 #ifdef __cplusplus
 }

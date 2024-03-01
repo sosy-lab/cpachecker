@@ -818,87 +818,78 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 	return transformWrapperToJava(env, fp, to_fp_type);
 }
 
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToOther(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type, jint to_type) {
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToByte(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
 	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
-
-	jobject number_obj;
-	jclass cls;
-	jmethodID constructor;
-
-	switch(to_type) {
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_CHAR:
-			cls = (*env)->FindClass(env, "Byte");
-			constructor = (*env)->GetMethodID(env, cls, "<init>", "(B)V");
-			switch(fp_from_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (char)(fp.f_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (char)(fp.d_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (char)(fp.ld_value)); 
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
+        jbyte r;
+        switch(fp_from_type) {
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			r = (char) fp.f_value;
 			break;
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_SHORT:
-			cls = (*env)->FindClass(env, "Short");
-			constructor = (*env)->GetMethodID(env, cls, "<init>", "(S)V");
-			switch(fp_from_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (short)(fp.f_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (short)(fp.d_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (short)(fp.ld_value)); 
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			r = (char) fp.d_value;
 			break;
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_INT:
-			cls = (*env)->FindClass(env, "Integer");
-			constructor = (*env)->GetMethodID(env, cls, "<init>", "(I)V");
-			switch(fp_from_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (int)(fp.f_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (int)(fp.d_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (int)(fp.ld_value)); 
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
-			break;
-		// adjust according to architecture
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_LONG:
-		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_LONG_LONG:
-			cls = (*env)->FindClass(env, "Long");
-			constructor = (*env)->GetMethodID(env, cls, "<init>", "(J)V");
-			switch(fp_from_type) {
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (long long)(fp.f_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (long long)(fp.d_value)); 
-					break;
-				case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-					number_obj = (*env)->NewObject(env, cls, constructor, (long long)(fp.ld_value)); 
-					break;
-				default:
-					throwNativeException(env, EX_TEXT);
-			}
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			r = (char) fp.ld_value;
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);
 	}
+	return r;
+}
 
-	return number_obj;
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToShort(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
+        jshort r;
+        switch(fp_from_type) {
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			r = (short) fp.f_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			r = (short) fp.d_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			r = (short) fp.ld_value;
+			break;
+		default:
+			throwNativeException(env, EX_TEXT);
+	}
+	return r;
+}
+
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToInt(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
+        jint r;
+        switch(fp_from_type) {
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			r = (int) fp.f_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			r = (int) fp.d_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			r = (int) fp.ld_value;
+			break;
+		default:
+			throwNativeException(env, EX_TEXT);
+	}
+	return r;
+}
+
+JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToLong(JNIEnv* env, jclass cl, jobject wrapper, jint fp_from_type) {
+	t_ld fp = transformWrapperFromJava(env, wrapper, fp_from_type);
+        jlong r;
+        switch(fp_from_type) {
+        	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			r = (long) fp.f_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			r = (long) fp.d_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+		 	r = (long) fp.ld_value;
+			break;
+		default:
+			throwNativeException(env, EX_TEXT);
+	}
+	return r;
 }

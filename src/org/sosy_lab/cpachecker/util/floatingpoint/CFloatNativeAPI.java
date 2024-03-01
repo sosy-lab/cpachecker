@@ -166,5 +166,11 @@ public class CFloatNativeAPI {
 
   public static native CFloatWrapper castOtherToFp(Number value, int from_type, int to_fp_type);
 
-  public static native Number castFpToOther(CFloatWrapper fp, int fp_from_type, int to_type);
+  public static native byte castFpToByte(CFloatWrapper fp, int fp_from_type);
+
+  public static native short castFpToShort(CFloatWrapper fp, int fp_from_type);
+
+  public static native int castFpToInt(CFloatWrapper fp, int fp_from_type);
+
+  public static native long castFpToLong(CFloatWrapper fp, int fp_from_type);
 }
