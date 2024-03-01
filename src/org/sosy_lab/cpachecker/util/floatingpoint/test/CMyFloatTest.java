@@ -13,8 +13,9 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Test;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.JFloat;
 
 public class CMyFloatTest extends CFloatUnitTest {
   static {
@@ -28,7 +29,7 @@ public class CMyFloatTest extends CFloatUnitTest {
 
   @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
-    return new JFloat(repr, pFloatType);
+    return new CFloatNative(repr, pFloatType);
   }
 
   @Test
@@ -69,5 +70,14 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat myfloat = toTestedImpl(val, 0);
     CFloat jfloat = toReferenceImpl(val, 0);
     assertThat(myfloat.ln()).isEqualTo(jfloat.ln());
+  }
+
+  @Test
+  public void castToShortBrokenTest() {
+    String val = String.valueOf("2.6497664E9");
+    CFloat myfloat = toTestedImpl(val, 0);
+    CFloat jfloat = toReferenceImpl(val, 0);
+    assertThat(
+        myfloat.castToOther(CNativeType.SHORT)).isEqualTo(jfloat.castToOther(CNativeType.SHORT));
   }
 }

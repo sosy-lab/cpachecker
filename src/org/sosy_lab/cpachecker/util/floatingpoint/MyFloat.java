@@ -1032,15 +1032,7 @@ public class MyFloat {
 
   public byte toByte() {
     BigInteger integerValue = toInteger();
-    if (isNan()) {
-      return 0;
-    }
-    BigInteger maxPositive = BigInteger.valueOf(Byte.MAX_VALUE);
-    if ((isInfinite() && !isNegative()) || integerValue.compareTo(maxPositive) > 0) {
-      return -1;
-    }
-    BigInteger maxNegative = BigInteger.valueOf(Byte.MIN_VALUE);
-    if ((isInfinite() && isNegative()) || integerValue.compareTo(maxNegative) < 0) {
+    if (isNan() || isInfinite()) {
       return 0;
     }
     return integerValue.byteValue();
@@ -1048,15 +1040,7 @@ public class MyFloat {
 
   public short toShort() {
     BigInteger integerValue = toInteger();
-    if (isNan()) {
-      return 0;
-    }
-    BigInteger maxPositive = BigInteger.valueOf(Short.MAX_VALUE);
-    if ((isInfinite() && !isNegative()) || integerValue.compareTo(maxPositive) > 0) {
-      return -1;
-    }
-    BigInteger maxNegative = BigInteger.valueOf(Short.MIN_VALUE);
-    if ((isInfinite() && isNegative()) || integerValue.compareTo(maxNegative) < 0) {
+    if (isNan() || isInfinite()) {
       return 0;
     }
     return integerValue.shortValue();
@@ -1064,15 +1048,12 @@ public class MyFloat {
 
   public int toInt() {
     BigInteger integerValue = toInteger();
-    if (isNan()) {
-      return 0;
-    }
     BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
-    if ((isInfinite() && !isNegative()) || integerValue.compareTo(maxPositive) > 0) {
-      return maxPositive.intValue();
-    }
     BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
-    if ((isInfinite() && isNegative()) || integerValue.compareTo(maxNegative) < 0) {
+    if (isNan() || isInfinite()) {
+      return maxNegative.intValue();
+    }
+    if ((integerValue.compareTo(maxPositive) > 0) || integerValue.compareTo(maxNegative) < 0) {
       return maxNegative.intValue();
     }
     return integerValue.intValue();
@@ -1080,15 +1061,12 @@ public class MyFloat {
 
   public long toLong() {
     BigInteger integerValue = toInteger();
-    if (isNan()) {
-      return 0;
-    }
     BigInteger maxPositive = BigInteger.valueOf(Long.MAX_VALUE);
-    if ((isInfinite() && !isNegative()) || integerValue.compareTo(maxPositive) > 0) {
-      return maxPositive.longValue();
-    }
     BigInteger maxNegative = BigInteger.valueOf(Long.MIN_VALUE);
-    if ((isInfinite() && isNegative()) || integerValue.compareTo(maxNegative) < 0) {
+    if (isNan() || isInfinite()) {
+      return maxNegative.longValue();
+    }
+    if ((integerValue.compareTo(maxPositive) > 0) || integerValue.compareTo(maxNegative) < 0) {
       return maxNegative.longValue();
     }
     return integerValue.longValue();
