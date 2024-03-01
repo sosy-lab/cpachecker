@@ -1179,13 +1179,16 @@ public class SMGState
       MemoryLocation otherMemLoc = otherMemLocAndValue.getKey();
       Value otherValue = otherMemLocAndValue.getValue().getValue();
       ValueAndValueSize thisValueAndType = thisAllMemLocAndValues.get(otherMemLoc);
-
+      if (thisValueAndType == null) {
+        return false;
+      } else if (otherMemLoc.getExtendedQualifiedName().contains("__CPAchecker_TMP_")) {
+        thisAllMemLocAndValues = thisAllMemLocAndValues.removeAndCopy(otherMemLoc);
+        continue;
+      }
       // Now check the equality of all values. For concrete values, we allow overapproximations.
       // Pointers/memory is compared by shape, subsumtion is allowed for equal linked lists, such
       // that the smaller subsumes the larger (5+ >= 6+)
-      if (thisValueAndType == null
-          || !areValuesEqual(
-              this, thisValueAndType.getValue(), pOther, otherValue, equalityCache)) {
+      if (!areValuesEqual(this, thisValueAndType.getValue(), pOther, otherValue, equalityCache)) {
         return false;
       }
       // Remove the checked values (don't double-check later)
@@ -1216,7 +1219,8 @@ public class SMGState
     }
 
     if (!pOther.constraintsState.containsAll(constraintsState)) {
-      return false;
+      // TODO: translate symbolic values so that they can be compared on an memory location basis
+      // return false;
     }
 
     // We may not forget any errors already found
@@ -4299,10 +4303,10 @@ public class SMGState
     // Remove the 2 old objects and continue
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.copyAndRemoveObjectFromHeap(nextObj));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(root));
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(nextObj));
 
     if (incrementAmount == 0) {
       assert (currentState
@@ -4434,11 +4438,10 @@ public class SMGState
     // Remove the 2 old objects and continue
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
-
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(root));
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.copyAndRemoveObjectFromHeap(nextObj));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(nextObj));
 
     // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
