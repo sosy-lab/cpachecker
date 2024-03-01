@@ -13,6 +13,7 @@
 #include<locale.h>
 
 #include<stdio.h>
+#include<stdint.h>
 
 #define min(x, y) (x < y ? x : y)
 #define max(x, y) (x > y ? x : y)
@@ -823,13 +824,13 @@ JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
         jbyte r;
         switch(fp_from_type) {
         	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			r = (char) fp.f_value;
+			r = (int8_t) fp.f_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			r = (char) fp.d_value;
+			r = (int8_t) fp.d_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			r = (char) fp.ld_value;
+			r = (int8_t) fp.ld_value;
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);
@@ -842,13 +843,13 @@ JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
         jshort r;
         switch(fp_from_type) {
         	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			r = (short) fp.f_value;
+			r = (int16_t) fp.f_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			r = (short) fp.d_value;
+			r = (int16_t) fp.d_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			r = (short) fp.ld_value;
+			r = (int16_t) fp.ld_value;
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);
@@ -861,13 +862,13 @@ JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
         jint r;
         switch(fp_from_type) {
         	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			r = (int) fp.f_value;
+			r = (int32_t) fp.f_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			r = (int) fp.d_value;
+			r = (int32_t) fp.d_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			r = (int) fp.ld_value;
+			r = (int32_t) fp.ld_value;
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);
@@ -880,13 +881,13 @@ JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
         jlong r;
         switch(fp_from_type) {
         	case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			r = (long) fp.f_value;
+			r = (int64_t) fp.f_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			r = (long) fp.d_value;
+			r = (int64_t) fp.d_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-		 	r = (long) fp.ld_value;
+		 	r = (int64_t) fp.ld_value;
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);
