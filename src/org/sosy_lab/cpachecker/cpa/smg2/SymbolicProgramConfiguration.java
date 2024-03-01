@@ -778,7 +778,6 @@ public class SymbolicProgramConfiguration {
    */
   public SymbolicProgramConfiguration copyAndRemoveObjectAndAssociatedSubSMG(SMGObject object) {
     // TODO: rework urgently
-    Preconditions.checkArgument(object instanceof SMGSinglyLinkedListSegment);
     // The following condition is obviously wrong! Better: check that "not-all" ptrs exist
     Preconditions.checkArgument(getAllSourcesForPointersPointingTowards(object).isEmpty());
     SMGAndSMGObjects newSMGAndToRemoveObjects = smg.copyAndRemoveObjectAndSubSMG(object);
