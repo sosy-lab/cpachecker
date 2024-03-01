@@ -1229,7 +1229,8 @@ public class SMGState
       return false;
     }
 
-    if (!dropStackFrame().copyAndPruneUnreachable()
+    if (!dropStackFrame()
+        .copyAndPruneUnreachable()
         .checkErrorEqualityForTwoStates(pOther.dropStackFrame().copyAndPruneUnreachable())) {
       return false;
     }
