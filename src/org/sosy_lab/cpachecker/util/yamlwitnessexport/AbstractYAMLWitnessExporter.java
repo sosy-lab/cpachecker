@@ -60,11 +60,6 @@ abstract class AbstractYAMLWitnessExporter {
                 .build());
     mapper.setSerializationInclusion(Include.NON_NULL);
     producerRecord = ProducerRecord.getProducerRecord(pConfig);
-
-    if (cfa.getASTStructure().isEmpty()) {
-      throw new InvalidConfigurationException(
-          "Could not get ASTStructure which is required to export the witnesses!");
-    }
   }
 
   protected MetadataRecord getMetadata(YAMLWitnessVersion version) throws IOException {
@@ -73,7 +68,9 @@ abstract class AbstractYAMLWitnessExporter {
   }
 
   protected ASTStructure getASTStructure() {
-    return cfa.getASTStructure().orElseThrow();
+    ASTStructure astCFARelation = cfa.getASTStructure();
+    assert astCFARelation != null;
+    return astCFARelation;
   }
 
   protected void exportEntries(AbstractEntry entry, Path outFile) {

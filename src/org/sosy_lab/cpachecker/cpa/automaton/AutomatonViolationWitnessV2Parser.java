@@ -288,14 +288,14 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 distance,
                 follow.getConstraint().getValue()));
       } else if (follow.getType().equals(WaypointType.BRANCHING)) {
-        if (cfa.getASTStructure().isEmpty()) {
+        if (cfa.getASTStructure() == null) {
           logger.log(
               Level.INFO,
               "Cannot handle branching waypoint without ASTStructure, skipping waypoint");
           continue;
         }
 
-        ASTStructure astStructure = cfa.getASTStructure().orElseThrow();
+        ASTStructure astStructure = cfa.getASTStructure();
         // The -1 in the column is needed since the ASTStructure element starts at the offset before
         // the if keyword, but the waypoint points to the first character of the if keyword
 

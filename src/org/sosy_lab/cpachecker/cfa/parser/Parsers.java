@@ -69,12 +69,6 @@ public class Parsers {
         description = "Which functions should be interpreted as never returning to their call site")
     private Set<String> noReturnFunctions = ImmutableSet.of("abort", "exit");
 
-    @Option(
-        secure = true,
-        name = "useASTStructure",
-        description = "add AST structure information to CFA.")
-    private boolean useASTStructure = false;
-
     public boolean initializeAllVariables() {
       return initializeAllVariables;
     }
@@ -97,10 +91,6 @@ public class Parsers {
      */
     public boolean isNonReturningFunction(String functionName) {
       return noReturnFunctions.contains(functionName);
-    }
-
-    public boolean useASTStructure() {
-      return useASTStructure;
     }
   }
 

@@ -49,7 +49,7 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getMainFunctionEntry();
   }
 
-  default Optional<ASTStructure> getASTStructure() {
+  default ASTStructure getASTStructure() {
     return getMetadata().getASTStructure();
   }
 

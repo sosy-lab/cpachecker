@@ -42,7 +42,7 @@ public final class CfaMetadata implements Serializable {
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
-  private final @Nullable ASTStructure astStructure;
+  private final ASTStructure astStructure;
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
@@ -217,8 +217,8 @@ public final class CfaMetadata implements Serializable {
    *     containing the AST structure is returned. Otherwise, if this metadata instance does not
    *     contain the AST structure for the CFA, an empty optional is returned.
    */
-  public Optional<ASTStructure> getASTStructure() {
-    return Optional.ofNullable(astStructure);
+  public ASTStructure getASTStructure() {
+    return astStructure;
   }
 
   /**
