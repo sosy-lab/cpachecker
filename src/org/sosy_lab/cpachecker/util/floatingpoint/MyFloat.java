@@ -1030,9 +1030,32 @@ public class MyFloat {
     return significand;
   }
 
+  // NOTE: toByte, toShort, toInt and toLong depend on undefined behaviour
+  // According to the C99 standard:
+  // "F.4 Floating to integer conversion
+  //  If the floating value is infinite or NaN or if the integral part of the floating value exceeds
+  //  the range of the integer type, then the ‘‘invalid’’ floating-point exception is raised and the
+  //  resulting value is unspecified. Whether conversion of non-integer floating values whose
+  //  integral part is within the range of the integer type raises the ‘‘inexact’’ floating-point
+  //  exception is unspecified"
+  // However gcc does not always set the inexact flag correctly
+  // (see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27682) and the check has to be performed
+  // manually. It is also possible to check the range in advance, but this again has to be done by
+  // the programmer.
+  // We therefore try to emulate the default behaviour of gcc, which is to return a special
+  // indefinite value if the real value is out of range. For signed integers this indefinite value
+  // is 0x80000000 for int and 0x8000000000000000 for long. Conversion to byte or short happens in
+  // two steps: first the float is converted to a 32bit integer, and then this value is truncated.
+  // The indefinite value is therefore 0 in both cases.
+
   public byte toByte() {
     BigInteger integerValue = toInteger();
-    if (isNan() || isInfinite()) {
+    BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
+    BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
+    if (isNan()
+        || isInfinite()
+        || (integerValue.compareTo(maxPositive) > 0)
+        || integerValue.compareTo(maxNegative) < 0) {
       return 0;
     }
     return integerValue.byteValue();
@@ -1040,7 +1063,12 @@ public class MyFloat {
 
   public short toShort() {
     BigInteger integerValue = toInteger();
-    if (isNan() || isInfinite()) {
+    BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
+    BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
+    if (isNan()
+        || isInfinite()
+        || (integerValue.compareTo(maxPositive) > 0)
+        || integerValue.compareTo(maxNegative) < 0) {
       return 0;
     }
     return integerValue.shortValue();
@@ -1050,10 +1078,10 @@ public class MyFloat {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
     BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
-    if (isNan() || isInfinite()) {
-      return maxNegative.intValue();
-    }
-    if ((integerValue.compareTo(maxPositive) > 0) || integerValue.compareTo(maxNegative) < 0) {
+    if (isNan()
+        || isInfinite()
+        || (integerValue.compareTo(maxPositive) > 0)
+        || integerValue.compareTo(maxNegative) < 0) {
       return maxNegative.intValue();
     }
     return integerValue.intValue();
@@ -1063,10 +1091,10 @@ public class MyFloat {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Long.MAX_VALUE);
     BigInteger maxNegative = BigInteger.valueOf(Long.MIN_VALUE);
-    if (isNan() || isInfinite()) {
-      return maxNegative.longValue();
-    }
-    if ((integerValue.compareTo(maxPositive) > 0) || integerValue.compareTo(maxNegative) < 0) {
+    if (isNan()
+        || isInfinite()
+        || (integerValue.compareTo(maxPositive) > 0)
+        || integerValue.compareTo(maxNegative) < 0) {
       return maxNegative.longValue();
     }
     return integerValue.longValue();
