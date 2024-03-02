@@ -956,7 +956,7 @@ public class MyFloat {
       RoundingMode rm, boolean negative, BigInteger significand, long grs) {
     BigInteger plusOne = significand.add(BigInteger.ONE);
     return switch (rm) {
-      case NEAREST -> ((grs == 4 && !negative) || grs > 4) ? plusOne : significand;
+      case NEAREST -> (grs >= 4) ? plusOne : significand;
       case CEILING -> (grs > 0 && !negative) ? plusOne : significand;
       case FLOOR -> (grs > 0 && negative) ? plusOne : significand;
       case TRUNCATE -> significand;
