@@ -176,6 +176,10 @@ public class MyFloat {
     return (value.exponent == format.minExp() - 1) && value.significand.equals(BigInteger.ZERO);
   }
 
+  public boolean isOne() {
+    return one(format).equals(this);
+  }
+
   public boolean isNegative() {
     return value.sign;
   }
@@ -676,14 +680,14 @@ public class MyFloat {
     return sqrtImpl();
   }
 
-  private MyFloat sqrtImpl() {
-    // Declare some constants
-    MyFloat const1_5 =
-        new MyFloat(
-            Format.DOUBLE, false, 0, BigInteger.valueOf(3).shiftLeft(Format.DOUBLE.sigBits - 1));
-    MyFloat const0_5 =
-        new MyFloat(Format.DOUBLE, false, -1, BigInteger.ONE.shiftLeft(Format.DOUBLE.sigBits));
+  // TODO: These constants should be declared once for each supported precision
+  private static final MyFloat const1_5 =
+      new MyFloat(
+          Format.DOUBLE, false, 0, BigInteger.valueOf(3).shiftLeft(Format.DOUBLE.sigBits - 1));
+  private static final MyFloat const0_5 =
+      new MyFloat(Format.DOUBLE, false, -1, BigInteger.ONE.shiftLeft(Format.DOUBLE.sigBits));
 
+  private MyFloat sqrtImpl() {
     // Get the exponent and the significand of the argument
     long exponent = Math.max(value.exponent, format.minExp());
     BigInteger significand = value.significand;
@@ -782,26 +786,30 @@ public class MyFloat {
       return negativeInfinity(format);
     }
     if (isNan() || isNegative()) {
-      return MyFloat.nan(format);
+      return nan(format);
     }
     if (isInfinite()) {
       return infinity(format);
+    }
+    if (isOne()) {
+      return zero(format);
     }
     return lnImpl();
   }
 
   public MyFloat lnImpl() {
     MyFloat x = this.withPrecision(Format.DOUBLE);
-    int preprocess = 10;
-    for (int i = 0; i < preprocess; i++) {
+    int preprocess = 0;
+    while (x.greaterThan(const1_5) || const0_5.greaterThan(x)) {
       x = x.sqrt();
+      preprocess++;
     }
     x = x.subtract(MyFloat.one(Format.DOUBLE));
 
     MyFloat xs = MyFloat.one(Format.DOUBLE); // x^k (1 for k=0)
     MyFloat r = MyFloat.zero(Format.DOUBLE);
 
-    for (int k = 1; k < 20; k++) { // TODO: Find a proper bound for the number of iterations
+    for (int k = 1; k < 30; k++) { // TODO: Find a proper bound for the number of iterations
       // Calculate x^n/k
       xs = xs.multiply(x);
       MyFloat term = xs.divide(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));

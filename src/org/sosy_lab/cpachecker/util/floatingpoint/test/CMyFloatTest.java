@@ -72,6 +72,15 @@ public class CMyFloatTest extends CFloatUnitTest {
     assertThat(myfloat.ln()).isEqualTo(jfloat.ln());
   }
 
+  @Test
+  public void ln_1Test() {
+    // Calculate ln for the next closest value to 1
+    String val = String.valueOf("1.00000011920929");
+    CFloat myfloat = toTestedImpl(val, 0);
+    CFloat jfloat = toReferenceImpl(val, 0);
+    assertThat(printValue(myfloat.ln().toFloat())).isEqualTo(printValue(jfloat.ln().toFloat()));
+  }
+
   @Ignore
   @Override
   public void castToByteTest() {
