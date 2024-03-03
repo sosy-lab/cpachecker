@@ -84,7 +84,6 @@ public class CMyFloatTest extends CFloatUnitTest {
     // Broken in JFloat
   }
 
-
   @Ignore
   @Override
   public void castToIntTest() {
