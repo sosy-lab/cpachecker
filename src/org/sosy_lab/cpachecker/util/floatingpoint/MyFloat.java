@@ -1005,13 +1005,17 @@ public class MyFloat {
   }
 
   private FpValue fromInteger(BigInteger number) {
+    // Return +0.0 for input 0
     if (number.equals(BigInteger.ZERO)) {
       return new FpValue(false, 0, BigInteger.ZERO);
     }
-    int exponent = number.bitLength() - 1;
-    BigInteger significand = number.abs().shiftLeft(format.sigBits + 3);
+
+    // Get the sign and calculate the exponent
+    boolean sign = number.signum() < 0;
+    int exponent = number.abs().bitLength() - 1;
 
     // Truncate the number while carrying over the grs bits.
+    BigInteger significand = number.abs().shiftLeft(format.sigBits + 3);
     significand = truncate(significand, exponent);
 
     // Round the result according to the grs bits
@@ -1021,7 +1025,7 @@ public class MyFloat {
       significand = significand.add(BigInteger.ONE);
     }
 
-    return new FpValue(number.signum() < 0, exponent, significand);
+    return new FpValue(sign, exponent, significand);
   }
 
   private BigInteger toInteger() {
