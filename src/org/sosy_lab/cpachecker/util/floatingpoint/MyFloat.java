@@ -757,20 +757,19 @@ public class MyFloat {
     return expImpl();
   }
 
-  private static Map<Integer, MyFloat> mkTable(Format pFormat) {
+  private static Map<Integer, MyFloat> mkExpTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
-    MyFloat fs = MyFloat.one(pFormat);
-    builder.put(0, fs);
-    for (int k = 1; k < 20; k++) {
-      // Calculate k! and store the values in the table
-      fs = fs.multiply(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
-      builder.put(k, MyFloat.one(pFormat).divide(fs));
+    MyFloat next = one(pFormat);
+    for (int k = 1; k < 100; k++) {
+      // Calculate 1/k! and store the values in the table
+      next = next.multiply(constant(pFormat, BigInteger.valueOf(k)));
+      builder.put(k, one(pFormat).divide(next));
     }
     return builder.buildOrThrow();
   }
 
-  // Table contains terms 1/k! for 0..100
-  private static Map<Integer, MyFloat> fac_fractions = mkTable(Format.DOUBLE);
+  // Table contains terms 1/k! for 1..100
+  private static Map<Integer, MyFloat> expTable = mkExpTable(Format.DOUBLE);
 
   private MyFloat expImpl() {
     MyFloat one = MyFloat.one(Format.DOUBLE);
@@ -787,7 +786,7 @@ public class MyFloat {
     for (int k = 1; k < 20; k++) { // TODO: Find a proper bound for the number of iterations
       // Calculate x^n and look up the factorial term
       xs = xs.multiply(x);
-      MyFloat divisor = fac_fractions.get(k);
+      MyFloat divisor = expTable.get(k);
 
       // Add it to the sum
       r = r.add(xs.multiply(divisor));
@@ -816,6 +815,18 @@ public class MyFloat {
     return lnImpl();
   }
 
+  private static Map<Integer, MyFloat> mkLnTable(Format pFormat) {
+    ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
+    for (int k = 1; k < 100; k++) {
+      // Calculate 1/k and store the values in the table
+      builder.put(k, one(pFormat).divide(constant(pFormat, BigInteger.valueOf(k))));
+    }
+    return builder.buildOrThrow();
+  }
+
+  // Table contains terms 1/k for 1..100
+  private static Map<Integer, MyFloat> lnTable = mkLnTable(Format.DOUBLE);
+
   public MyFloat lnImpl() {
     MyFloat x = this.withPrecision(Format.DOUBLE);
     int preprocess = 0;
@@ -831,7 +842,7 @@ public class MyFloat {
     for (int k = 1; k < 30; k++) { // TODO: Find a proper bound for the number of iterations
       // Calculate x^n/k
       xs = xs.multiply(x);
-      MyFloat term = xs.divide(MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(k)));
+      MyFloat term = xs.multiply(lnTable.get(k));
 
       // Add the sign and then build the sum
       r = r.add(k % 2 == 0 ? term.negate() : term);
