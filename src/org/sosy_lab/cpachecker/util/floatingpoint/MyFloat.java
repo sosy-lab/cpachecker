@@ -158,6 +158,11 @@ public class MyFloat {
     return new MyFloat(pFormat, value);
   }
 
+  public static MyFloat negativeOne(Format pFormat) {
+    FpValue value = new FpValue(true, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
+    return new MyFloat(pFormat, value);
+  }
+
   public static MyFloat constant(Format pFormat, BigInteger number) {
     return new MyFloat(pFormat, number);
   }
@@ -180,8 +185,22 @@ public class MyFloat {
     return one(format).equals(this);
   }
 
+  public boolean isNegativeOne() {
+    return negativeOne(format).equals(this);
+  }
+
   public boolean isNegative() {
     return value.sign;
+  }
+
+  public boolean isInteger() {
+    BigInteger intValue = toInteger();
+    return value.equals(fromInteger(intValue));
+  }
+
+  public boolean isOddInteger() {
+    BigInteger intValue = toInteger();
+    return value.equals(fromInteger(intValue)) && intValue.testBit(0);
   }
 
   @Override
@@ -824,40 +843,76 @@ public class MyFloat {
   }
 
   public MyFloat pow(MyFloat exponent) {
-    if (exponent.isZero()) {
-      return MyFloat.one(format);
+    // Handle special cases
+    // See https://en.cppreference.com/w/c/numeric/math/pow for the full definition
+
+    if (isOne() || exponent.isZero()) {
+      // pow(+1, exponent) returns 1 for any exponent, even when exponent is NaN
+      // pow(base, ±0) returns 1 for any base, even when base is NaN
+      return one(format);
     }
     if (isNan() || exponent.isNan()) {
-      return MyFloat.nan(format);
+      // except where specified above, if any argument is NaN, NaN is returned
+      return nan(format);
     }
-    if (isZero()) {
-      return exponent.isNegative() ? MyFloat.infinity(format) : MyFloat.zero(format);
+    if (isZero() && exponent.isNegative() && exponent.isOddInteger()) {
+      // pow(+0, exponent), where exponent is a negative odd integer, returns +∞ and raises
+      // FE_DIVBYZERO
+      // pow(-0, exponent), where exponent is a negative odd integer, returns -∞ and raises
+      // FE_DIVBYZERO
+      return isNegative() ? negativeInfinity(format) : infinity(format);
+    }
+    if (isZero() && exponent.isNegative()) {
+      // pow(±0, -∞) returns +∞ and may raise FE_DIVBYZERO(until C23)
+      // pow(±0, exponent), where exponent is negative, finite, and is an even integer or a
+      // non-integer, returns +∞ and raises FE_DIVBYZERO
+      return infinity(format);
+    }
+    if (isZero() && !exponent.isNegative()) {
+      // pow(+0, exponent), where exponent is a positive odd integer, returns +0
+      // pow(-0, exponent), where exponent is a positive odd integer, returns -0
+      // pow(±0, exponent), where exponent is positive non-integer or a positive even integer,
+      // returns +0
+      return exponent.isOddInteger() ? this : zero(format);
+    }
+    if (isNegativeOne() && exponent.isInfinite()) {
+      // pow(-1, ±∞) returns 1
+      return one(format);
     }
     if (isInfinite() && isNegative()) {
-      return exponent.isNegative() ? MyFloat.zero(format) : MyFloat.infinity(format);
+      // pow(-∞, exponent) returns -0 if exponent is a negative odd integer
+      // pow(-∞, exponent) returns +0 if exponent is a negative non-integer or negative even integer
+      // pow(-∞, exponent) returns -∞ if exponent is a positive odd integer
+      // pow(-∞, exponent) returns +∞ if exponent is a positive non-integer or positive even integer
+      MyFloat power = exponent.isNegative() ? zero(format) : infinity(format);
+      return exponent.isOddInteger() ? power.negate() : power;
+    }
+    if (isInfinite()) {
+      // pow(+∞, exponent) returns +0 for any negative exponent
+      // pow(+∞, exponent) returns +∞ for any positive exponent
+      return exponent.isNegative() ? zero(format) : infinity(format);
+    }
+    if (exponent.isInfinite() && exponent.isNegative()) {
+      // pow(base, -∞) returns +∞ for any |base|<1
+      // pow(base, -∞) returns +0 for any |base|>1
+      return this.abs().greaterThan(one(format)) ? zero(format) : infinity(format);
     }
     if (exponent.isInfinite()) {
-      boolean negativePower = exponent.isNegative();
-      boolean lessThanOne =
-          MyFloat.zero(format).greaterThan(this.abs().subtract(MyFloat.one(format)));
-
-      return negativePower ^ lessThanOne ? MyFloat.zero(format) : MyFloat.infinity(format);
+      // pow(base, +∞) returns +0 for any |base|<1
+      // pow(base, +∞) returns +∞ for any |base|>1
+      return this.abs().greaterThan(one(format)) ? infinity(format) : zero(format);
     }
-    MyFloat r = powImpl(exponent);
-    if (r.isNan()) {
-      boolean alessThanOne =
-          MyFloat.zero(format).greaterThan(this.abs().subtract(MyFloat.one(format)));
-      boolean xlessThanOne =
-          MyFloat.zero(format).greaterThan(exponent.abs().subtract(MyFloat.one(format)));
-
-      if (isNegative() && !alessThanOne && !xlessThanOne) {
-        return exponent.isNegative() ? MyFloat.zero(format) : MyFloat.infinity(format);
-      }
-      if (isNegative() && alessThanOne && !xlessThanOne) {
-        return exponent.isNegative() ? MyFloat.infinity(format) : MyFloat.zero(format);
-      }
+    if (isNegative() && !exponent.isInteger()) {
+      // pow(base, exponent) returns NaN and raises FE_INVALID if base is finite and negative and
+      // exponent is finite and non-integer.
+      return nan(format);
     }
-    return r;
+    if (isNegative()) {
+      // -a^x where x is an integer: We calculate a^x and then set the sign to -1^x
+      MyFloat r = this.abs().powImpl(exponent);
+      return exponent.isOddInteger() ? r.negate() : r;
+    }
+    return powImpl(exponent);
   }
 
   private MyFloat powImpl(MyFloat exponent) {
