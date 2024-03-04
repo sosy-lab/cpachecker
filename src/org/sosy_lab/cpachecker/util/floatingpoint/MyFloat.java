@@ -578,24 +578,25 @@ public class MyFloat {
     }
 
     // Calculate the exponent of the result by subtracting the exponent of the divisor from the
-    // exponent of the dividend. If the result is beyond the exponent range, skip the calculation
-    // and return infinity immediately. If it is below the subnormal range, return zero immediately.
+    // exponent of the dividend.
     long exponent_ = exponent1 - exponent2;
-    if (exponent_ > format.maxExp()) {
-      return sign_ ? negativeInfinity(format) : infinity(format);
-    }
-    if (exponent_ < format.minExp() - (format.sigBits + 1)) {
-      return sign_ ? negativeZero(format) : zero(format);
-    }
 
     // Calculate how many digits need to be calculated. If the result is <1 we need one additional
     // digit to normalize it.
-    // TODO: Figure out how many digits we actually need
-    int hack = format.sigBits;
-    int digits = hack + (1 + format.sigBits) + 3; // last 3 is for grs bits
+    int digits = (1 + 2 * format.sigBits) + 3; // 2p-1 (+ 3 grs bits)
     if (significand1.compareTo(significand2) < 0) {
       digits += 1;
       exponent_ -= 1;
+    }
+
+    // If the exponent of the result is beyond the exponent range, skip the calculation and return
+    // infinity immediately.
+    if (exponent_ > format.maxExp()) {
+      return sign_ ? negativeInfinity(format) : infinity(format);
+    }
+    // If it is below the subnormal range, return zero immediately.
+    if (exponent_ < format.minExp() - (format.sigBits + 1)) {
+      return sign_ ? negativeZero(format) : zero(format);
     }
 
     // Divide the significands
@@ -614,7 +615,6 @@ public class MyFloat {
 
     // Fix the exponent if it is too small. Use the lowest possible exponent for the format and then
     // move the rest into the significand by shifting it to the right.
-    // Here we calculate haw many digits we need to shift:
     int leading = 0;
     if (exponent_ < format.minExp()) {
       leading = (int) Math.abs(format.minExp() - exponent_);
@@ -622,7 +622,7 @@ public class MyFloat {
     }
 
     // Truncate the value while carrying over the grs bits.
-    significand_ = truncate(significand_, hack + leading);
+    significand_ = truncate(significand_, format.sigBits + leading);
 
     // Round the result according to the grs bits
     long grs = significand_.and(new BigInteger("111", 2)).longValue();
