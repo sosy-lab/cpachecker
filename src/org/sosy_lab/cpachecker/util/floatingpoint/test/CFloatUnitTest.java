@@ -98,7 +98,7 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<Float> builder = ImmutableList.builder();
     builder.addAll(floatConsts());
     builder.addAll(floatPowers(3, 0.5f, 3, 0.5f));
-    builder.addAll(floatRandom(10));
+    builder.addAll(floatRandom(200));
     return builder.build();
   }
 
@@ -106,7 +106,7 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<Float> builder = ImmutableList.builder();
     builder.addAll(floatConsts());
     builder.addAll(floatPowers(14, 0.5f, 20, 0.5f));
-    builder.addAll(floatRandom(1000));
+    builder.addAll(floatRandom(50000));
     return builder.build();
   }
 
