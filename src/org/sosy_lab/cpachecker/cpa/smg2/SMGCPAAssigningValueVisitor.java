@@ -129,10 +129,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         updateNested(lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState)) {
       currentState = uselessValueAndUpdatedState.getState();
 
-      if (isEligibleForAssignment(leftValue)
-          && rightValue.isExplicitlyKnown()
-          && !evaluator.isPointerValue(leftValue, currentState)) {
+      if (isEligibleForAssignment(leftValue, currentState) && rightValue.isExplicitlyKnown()) {
 
+        // e.g. x == 0 or x == 1
         List<SMGStateAndOptionalSMGObjectAndOffset> leftHandSideAssignments =
             getAssignable(lVarInBinaryExp, currentState);
         Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
@@ -150,6 +149,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             rightValue = newRightValueAndState.getValue();
             currentState = newRightValueAndState.getState();
           }
+          // Replace mapping of the SMGValue with the new value!
           currentState =
               currentState.writeValueWithChecks(
                   leftHandSideAssignment.getSMGObject(),
@@ -159,10 +159,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                   lType,
                   edge);
 
-        } else if (isEligibleForAssignment(rightValue)
-            && leftValue.isExplicitlyKnown()
-            && !evaluator.isPointerValue(rightValue, currentState)) {
+        } else if (isEligibleForAssignment(rightValue, currentState)
+            && leftValue.isExplicitlyKnown()) {
 
+          // e.g. 0 == x or 1 == x
           List<SMGStateAndOptionalSMGObjectAndOffset> rightHandSideAssignments =
               getAssignable(rVarInBinaryExp, initialState);
           Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
@@ -212,61 +212,69 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     SMGState initialState = super.getInitialVisitorState();
 
-    if (assumingUnknownToBeZero(leftValue, rightValue)) {
-      if (!isNestingHandleable((CExpression) unwrap(lVarInBinaryExp))) {
-        return currentState;
-      }
-      List<SMGStateAndOptionalSMGObjectAndOffset> leftHandSideAssignments =
-          getAssignable(lVarInBinaryExp, currentState);
-      Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
-      SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment = leftHandSideAssignments.get(0);
-      currentState = leftHandSideAssignment.getSMGState();
-      if (isAssignable(leftHandSideAssignments)) {
-        String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
+    if (isAssumptionComparedToZero(rightValue)) {
+      // x != 0
+      if (isEligibleForAssignment(leftValue, currentState) && rightValue.isExplicitlyKnown()) {
+        if (!isNestingHandleable((CExpression) unwrap(lVarInBinaryExp))) {
+          return currentState;
+        }
+        List<SMGStateAndOptionalSMGObjectAndOffset> leftHandSideAssignments =
+            getAssignable(lVarInBinaryExp, currentState);
+        Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
+        SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
+            leftHandSideAssignments.get(0);
+        currentState = leftHandSideAssignment.getSMGState();
+        if (isAssignable(leftHandSideAssignments)) {
+          String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
 
-        if (options.isOptimizeBooleanVariables()
-            && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
+          if (options.isOptimizeBooleanVariables()
+              && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
 
-          CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-          BigInteger size = evaluator.getBitSizeof(currentState, type);
-          currentState =
-              currentState.writeValueWithChecks(
-                  leftHandSideAssignment.getSMGObject(),
-                  leftHandSideAssignment.getOffsetForObject(),
-                  size,
-                  new NumericValue(1L),
-                  type,
-                  edge);
+            CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
+            BigInteger size = evaluator.getBitSizeof(currentState, type);
+            currentState =
+                currentState.writeValueWithChecks(
+                    leftHandSideAssignment.getSMGObject(),
+                    leftHandSideAssignment.getOffsetForObject(),
+                    size,
+                    new NumericValue(1L),
+                    type,
+                    edge);
+          }
         }
       }
-    }
+    } else if (isAssumptionComparedToZero(leftValue)) {
+      // 0 != x
+      if (isEligibleForAssignment(rightValue, currentState)
+          && leftValue.isExplicitlyKnown()
+          && !evaluator.isPointerValue(rightValue, currentState)) {
+        if (!isNestingHandleable((CExpression) unwrap(rVarInBinaryExp))) {
+          return currentState;
+        }
+        String rightMemLocName = getExtendedQualifiedName((CExpression) unwrap(rVarInBinaryExp));
 
-    if (options.isOptimizeBooleanVariables() && assumingUnknownToBeZero(rightValue, leftValue)) {
-      if (!isNestingHandleable((CExpression) unwrap(rVarInBinaryExp))) {
-        return currentState;
-      }
-      String rightMemLocName = getExtendedQualifiedName((CExpression) unwrap(rVarInBinaryExp));
+        if (options.isOptimizeBooleanVariables()
+            && (booleans.contains(rightMemLocName) || options.isInitAssumptionVars())) {
+          List<SMGStateAndOptionalSMGObjectAndOffset> rightHandSideAssignments =
+              getAssignable(rVarInBinaryExp, initialState);
+          Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
+          SMGStateAndOptionalSMGObjectAndOffset rightHandSideAssignment =
+              rightHandSideAssignments.get(0);
+          currentState = rightHandSideAssignment.getSMGState();
 
-      if (booleans.contains(rightMemLocName) || options.isInitAssumptionVars()) {
-        List<SMGStateAndOptionalSMGObjectAndOffset> rightHandSideAssignments =
-            getAssignable(rVarInBinaryExp, initialState);
-        Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
-        SMGStateAndOptionalSMGObjectAndOffset rightHandSideAssignment =
-            rightHandSideAssignments.get(0);
-        currentState = rightHandSideAssignment.getSMGState();
+          if (isAssignable(rightHandSideAssignments)) {
 
-        if (isAssignable(rightHandSideAssignments)) {
-
-          CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-          BigInteger size = evaluator.getBitSizeof(currentState, type);
-          currentState =
-              currentState.writeValueWithChecks(
-                  rightHandSideAssignment.getSMGObject(),
-                  rightHandSideAssignment.getOffsetForObject(),
-                  size,
-                  new NumericValue(1L),
-                  type,
-                  edge);
+            CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+            BigInteger size = evaluator.getBitSizeof(currentState, type);
+            currentState =
+                currentState.writeValueWithChecks(
+                    rightHandSideAssignment.getSMGObject(),
+                    rightHandSideAssignment.getOffsetForObject(),
+                    size,
+                    new NumericValue(1L),
+                    type,
+                    edge);
+          }
         }
       }
     }
@@ -370,20 +378,20 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     return true;
   }
 
-  private boolean isEligibleForAssignment(final Value pValue) {
+  private boolean isEligibleForAssignment(final Value pValue, SMGState currentState) {
     // We can't assign memory location carriers. They are indicators for pointers, which are treated
     // like concrete values!
     return !pValue.isExplicitlyKnown()
         && options.isAssignEqualityAssumptions()
         && !(pValue instanceof AddressExpression)
-        && !(pValue instanceof SymbolicIdentifier
-            && ((SymbolicIdentifier) pValue).getRepresentedLocation().isPresent());
+        && (!(pValue instanceof SymbolicIdentifier symIdent)
+            || (!symIdent.getRepresentedLocation().isPresent()
+                && !currentState.getMemoryModel().isPointer(pValue)));
   }
 
   // TODO: option?
-  private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
-    // TODO: assume symbolic as 0 as well if we are not tracking them?
-    return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
+  private static boolean isAssumptionComparedToZero(Value value) {
+    return value.equals(new NumericValue(BigInteger.ZERO));
   }
 
   /**
@@ -396,7 +404,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    */
   private String getExtendedQualifiedName(CExpression expr) throws SMGException {
     if (expr instanceof CIdExpression) {
-      return ((CIdExpression) expr).getName();
+      return ((CIdExpression) expr).getDeclaration().getQualifiedName();
     } else if (expr instanceof CArraySubscriptExpression) {
       return expr.toQualifiedASTString();
     } else if (expr instanceof CFieldReference) {
