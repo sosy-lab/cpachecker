@@ -276,8 +276,7 @@ public class CFloatNative extends CFloat {
 
   @Override
   public boolean greaterThan(CFloat pFloat) {
-    // TODO ... implement some time; not too urgent
-    throw new UnsupportedOperationException();
+    return CFloatNativeAPI.isGreaterFp(wrapper, type, pFloat.copyWrapper(), pFloat.getType());
   }
 
   @Override

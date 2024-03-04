@@ -227,6 +227,14 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 
 /*
  * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    isGreaterFp
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isGreaterFp
+  (JNIEnv *, jclass, jobject, jint, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
  * Method:    copySignFp
  * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
  */
