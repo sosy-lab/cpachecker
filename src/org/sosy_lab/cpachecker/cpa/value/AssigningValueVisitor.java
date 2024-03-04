@@ -104,28 +104,28 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       if (isEligibleForAssignment(leftValue)
           && rightValue.isExplicitlyKnown()
           && isAssignable(lVarInBinaryExp)) {
-        assignConcreteValue(lVarInBinaryExp, rightValue, pE.getOperand2().getExpressionType());
+        assignableState.assignConstant(
+            getMemoryLocation(lVarInBinaryExp), rightValue, pE.getOperand2().getExpressionType());
 
       } else if (isEligibleForAssignment(rightValue)
           && leftValue.isExplicitlyKnown()
           && isAssignable(rVarInBinaryExp)) {
-        assignConcreteValue(rVarInBinaryExp, leftValue, pE.getOperand1().getExpressionType());
+        assignableState.assignConstant(
+            getMemoryLocation(rVarInBinaryExp), leftValue, pE.getOperand1().getExpressionType());
       }
     }
 
-    if (isNonEqualityAssumption(binaryOperator)) {
+    if (isNonEqualityAssumption(binaryOperator) && options.isOptimizeBooleanVariables()) {
       if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
         MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
-        if (options.isOptimizeBooleanVariables()
-            && (booleans.contains(leftMemLoc.getExtendedQualifiedName())
-                || options.isInitAssumptionVars())) {
+        if (booleans.contains(leftMemLoc.getExtendedQualifiedName())
+            || options.isInitAssumptionVars()) {
           assignableState.assignConstant(
               leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
         }
 
-      } else if (options.isOptimizeBooleanVariables()
-          && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
+      } else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
         MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
         if (booleans.contains(rightMemLoc.getExtendedQualifiedName())
@@ -141,12 +141,6 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
   private boolean isEligibleForAssignment(final Value pValue) {
     return !pValue.isExplicitlyKnown() && options.isAssignEqualityAssumptions();
-  }
-
-  private void assignConcreteValue(
-      final CExpression pVarInBinaryExp, final Value pNewValue, final CType pValueType)
-      throws UnrecognizedCodeException {
-    assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
   }
 
   private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
