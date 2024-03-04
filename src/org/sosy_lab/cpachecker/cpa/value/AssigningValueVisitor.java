@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -30,7 +31,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -103,28 +106,30 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       if (isEligibleForAssignment(leftValue)
           && rightValue.isExplicitlyKnown()
           && isAssignable(lVarInBinaryExp)) {
-        assignableState.assignConstant(
-            getMemoryLocation(lVarInBinaryExp), rightValue, pE.getOperand2().getExpressionType());
+        assignConcreteValue(
+            lVarInBinaryExp, leftValue, rightValue, pE.getOperand2().getExpressionType());
 
       } else if (isEligibleForAssignment(rightValue)
           && leftValue.isExplicitlyKnown()
           && isAssignable(rVarInBinaryExp)) {
-        assignableState.assignConstant(
-            getMemoryLocation(rVarInBinaryExp), leftValue, pE.getOperand1().getExpressionType());
+        assignConcreteValue(
+            rVarInBinaryExp, rightValue, leftValue, pE.getOperand1().getExpressionType());
       }
     }
 
-    if (isNonEqualityAssumption(binaryOperator) && options.isOptimizeBooleanVariables()) {
+    if (isNonEqualityAssumption(binaryOperator)) {
       if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
         MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
-        if (booleans.contains(leftMemLoc.getExtendedQualifiedName())
-            || options.isInitAssumptionVars()) {
+        if (options.isOptimizeBooleanVariables()
+            && (booleans.contains(leftMemLoc.getExtendedQualifiedName())
+                || options.isInitAssumptionVars())) {
           assignableState.assignConstant(
               leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
         }
 
-      } else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
+      } else if (options.isOptimizeBooleanVariables()
+          && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
         MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
         if (booleans.contains(rightMemLoc.getExtendedQualifiedName())
@@ -139,11 +144,24 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   private boolean isEligibleForAssignment(final Value pValue) {
-    return !pValue.isExplicitlyKnown() && options.isAssignEqualityAssumptions();
+    return pValue.isUnknown() && options.isAssignEqualityAssumptions();
+  }
+
+  private void assignConcreteValue(
+      final CExpression pVarInBinaryExp,
+      final Value pOldValue,
+      final Value pNewValue,
+      final CType pValueType)
+      throws UnrecognizedCodeException {
+    checkState(
+        !(pOldValue instanceof SymbolicValue),
+        "Symbolic values should never be replaced by a concrete value");
+
+    assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
   }
 
   private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
-    return !value1.isExplicitlyKnown() && value2.equals(new NumericValue(BigInteger.ZERO));
+    return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
   }
 
   private boolean isEqualityAssumption(BinaryOperator binaryOperator) {
