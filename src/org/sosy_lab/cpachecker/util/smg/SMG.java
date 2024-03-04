@@ -1944,7 +1944,9 @@ public class SMG {
             && !pointsToEntry1.getKey().isZero()) {
           int nestingLevel1 = smgValuesAndNestingLvl.get(pointsToEntry1.getKey());
           int nestingLevel2 = smgValuesAndNestingLvl.get(pointsToEntry2.getKey());
-          if (nestingLevel1 == nestingLevel2) {
+          SMGTargetSpecifier tspec1 = pointsToEntry1.getValue().targetSpecifier();
+          SMGTargetSpecifier tspec2 = pointsToEntry2.getValue().targetSpecifier();
+          if (nestingLevel1 == nestingLevel2 && !tspec1.equals(tspec2)) {
             // Both ptEdges have the same target, but different values, are none zero, and have the
             // same nesting level
             return false;
@@ -2000,6 +2002,22 @@ public class SMG {
 
   public SMG copyAndSetTargetSpecifierForPtrsTowards(
       SMGObject pTarget, int nestingLevelToChange, SMGTargetSpecifier pSpecifierToSet) {
+    return copyAndSetTargetSpecifierForPtrsTowards(
+        pTarget,
+        nestingLevelToChange,
+        pSpecifierToSet,
+        ImmutableSet.of(
+            SMGTargetSpecifier.IS_FIRST_POINTER,
+            SMGTargetSpecifier.IS_LAST_POINTER,
+            SMGTargetSpecifier.IS_REGION,
+            SMGTargetSpecifier.IS_ALL_POINTER));
+  }
+
+  public SMG copyAndSetTargetSpecifierForPtrsTowards(
+      SMGObject pTarget,
+      int nestingLevelToChange,
+      SMGTargetSpecifier pSpecifierToSet,
+      Set<SMGTargetSpecifier> specifierToSwitch) {
     Preconditions.checkArgument(pTarget instanceof SMGSinglyLinkedListSegment);
     Set<SMGValue> pointersTowardsTarget =
         objectsAndPointersPointingAtThem
@@ -2013,20 +2031,28 @@ public class SMG {
     if (pointersTowardsTarget.isEmpty()) {
       return this;
     }
-    boolean returnBool = true;
+    ImmutableSet.Builder<SMGValue> pointersTowardsTargetNeedSwitchingBuilder =
+        ImmutableSet.builder();
+    // Precheck if there is anything to do at all
     for (SMGValue ptrValue : pointersTowardsTarget) {
-      if (!pointsToEdges.get(ptrValue).targetSpecifier().equals(pSpecifierToSet)) {
-        returnBool = false;
-        break;
+      if (!pointsToEdges.get(ptrValue).targetSpecifier().equals(pSpecifierToSet)
+          && specifierToSwitch.contains(pointsToEdges.get(ptrValue).targetSpecifier())) {
+        pointersTowardsTargetNeedSwitchingBuilder =
+            pointersTowardsTargetNeedSwitchingBuilder.add(ptrValue);
       }
     }
-    if (returnBool) {
+    Set<SMGValue> pointersTowardsTargetNeedSwitching =
+        pointersTowardsTargetNeedSwitchingBuilder.build();
+    if (pointersTowardsTargetNeedSwitching.isEmpty()) {
       return this;
     }
+    // TODO: check if a pointer already exists and switch all values of the pointers to truly switch
+    // to the other value
 
     for (Entry<SMGValue, SMGPointsToEdge> ptrValuesAndPTE : pointsToEdges.entrySet()) {
       SMGValue currentValue = ptrValuesAndPTE.getKey();
-      if (pointersTowardsTarget.contains(currentValue)) {
+      // pointersTowardsTargetNeedSwitching contains only the SMGValues that need switching
+      if (pointersTowardsTargetNeedSwitching.contains(currentValue)) {
         newPTEs.put(
             currentValue, ptrValuesAndPTE.getValue().copyAndSetTargetSpecifier(pSpecifierToSet));
       } else {

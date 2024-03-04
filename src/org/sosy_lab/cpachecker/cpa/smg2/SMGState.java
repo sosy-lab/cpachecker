@@ -1220,8 +1220,8 @@ public class SMGState
       return false;
     }
 
-    if (!pOther.constraintsState.contains(constraintsState)) {
-      // TODO: translate symbolic values so that they can be compared on an memory location basis
+    if (!pOther.constraintsState.containsAll(constraintsState)) {
+      // TODO: kick out constraints of outdated (unused) values and look into merge of constraints
       return false;
     }
 
@@ -4287,7 +4287,10 @@ public class SMGState
                 currentState
                     .getMemoryModel()
                     .copyAndSetSpecifierOfPtrsTowards(
-                        newDLL, nextDLL.getMinLength() - 1, SMGTargetSpecifier.IS_ALL_POINTER));
+                        newDLL,
+                        nextDLL.getMinLength() - 1,
+                        SMGTargetSpecifier.IS_ALL_POINTER,
+                        ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER)));
       } else {
         // The last ptr from nextObj that are linked lists is retained
         currentState =
@@ -4423,7 +4426,10 @@ public class SMGState
               currentState
                   .getMemoryModel()
                   .copyAndSetSpecifierOfPtrsTowards(
-                      newSLL, nextSLL.getMinLength() - 1, SMGTargetSpecifier.IS_ALL_POINTER));
+                      newSLL,
+                      nextSLL.getMinLength() - 1,
+                      SMGTargetSpecifier.IS_ALL_POINTER,
+                      ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER)));
     } else {
       currentState =
           currentState.copyAndReplaceMemoryModel(

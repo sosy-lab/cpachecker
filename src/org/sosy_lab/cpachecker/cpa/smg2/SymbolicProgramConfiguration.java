@@ -1633,6 +1633,24 @@ public class SymbolicProgramConfiguration {
         mallocZeroMemory);
   }
 
+  public SymbolicProgramConfiguration copyAndSetSpecifierOfPtrsTowards(
+      SMGObject target,
+      int nestingLvlToChange,
+      SMGTargetSpecifier specifierToSet,
+      Set<SMGTargetSpecifier> specifierToSwitch) {
+    return new SymbolicProgramConfiguration(
+        smg.copyAndSetTargetSpecifierForPtrsTowards(
+            target, nestingLvlToChange, specifierToSet, specifierToSwitch),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
+  }
+
   public SymbolicProgramConfiguration copyAndSetTargetSpecifierForPointer(
       SMGValue pPtrValue, SMGTargetSpecifier specifierToSet) {
     return new SymbolicProgramConfiguration(
