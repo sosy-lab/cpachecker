@@ -221,9 +221,9 @@ public class MyFloat {
   // Shift the significand to the right while preserving the sticky bit
   private BigInteger truncate(BigInteger significand, int bits) {
     BigInteger mask = BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE);
-    BigInteger carry =
-        significand.and(mask).equals(BigInteger.ZERO) ? BigInteger.ZERO : BigInteger.ONE;
-    return significand.shiftRight(bits).or(carry);
+    BigInteger r = significand.and(mask);
+    BigInteger l = significand.shiftRight(bits);
+    return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
   public MyFloat negate() {
@@ -267,25 +267,29 @@ public class MyFloat {
           ? MyFloat.negativeZero(format)
           : MyFloat.zero(format);
     }
+    // (5) Only one of the arguments is zero (or negative zero)
+    if (n.isZero() || m.isZero()) {
+      return n.isZero() ? m : n;
+    }
 
     // Handle regular numbers in addImpl
     return n.addImpl(m);
   }
 
   private MyFloat addImpl(MyFloat number) {
-    // Get the exponents and add the bias to shift them above zero. Note that for subnormal numbers
-    // the stored exponent needs to be increased by one.
-    long exponent1 = Math.max(value.exponent, format.minExp()) + format.bias();
-    long exponent2 = Math.max(number.value.exponent, format.minExp()) + format.bias();
+    // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
+    // needs to be increased by one.
+    long exponent1 = Math.max(value.exponent, format.minExp());
+    long exponent2 = Math.max(number.value.exponent, format.minExp());
 
     // Calculate the difference between the exponents. If it is larger than the mantissa size we can
     // skip the add and return immediately.
     int exp_diff = (int) (exponent1 - exponent2);
-    if (Math.abs(exp_diff) > format.sigBits + 1) {
+    if (exp_diff >= format.sigBits + 3) {
       return this;
     }
 
-    // Get the signficands and apply the sign
+    // Get the significands and apply the sign
     BigInteger significand1 = value.sign ? value.significand.negate() : value.significand;
     BigInteger significand2 =
         number.value.sign ? number.value.significand.negate() : number.value.significand;
@@ -295,7 +299,6 @@ public class MyFloat {
     significand2 = significand2.shiftLeft(3);
 
     // Shift the number with the smaller exponent to the exponent of the other number.
-    // Update the grs bits during the shift.
     significand2 = truncate(significand2, exp_diff);
 
     // Add the two significands
@@ -306,7 +309,7 @@ public class MyFloat {
     BigInteger significand_ = result.abs();
 
     // The result has the same exponent as the larger of the two arguments
-    long exponent_ = value.exponent;
+    long exponent_ = exponent1;
 
     // Normalize
     // (1) Significand is too large: shift to the right by one bit
@@ -314,7 +317,7 @@ public class MyFloat {
     //     f.ex 1.0e3 + 1.0e3 = 10.0e3
     //     (here we normalize the result to 1.0e4)
     if (significand_.testBit(format.sigBits + 4)) {
-      significand_ = significand_.shiftRight(1);
+      significand_ = truncate(significand_, 1);
       exponent_ += 1;
     }
 
@@ -322,11 +325,17 @@ public class MyFloat {
     //     This can happen if digits have canceled out:
     //     f.ex 1.01001e2 + (-1.01e2) = 0.00001e2
     //     (here we normalize to 1.0e-3)
-    // FIXME: Handle subnormals
-    int offset = (format.sigBits + 4) - significand_.bitLength();
-    if (offset > 0 && exponent_ > format.minExp()) {
-      significand_ = significand_.shiftLeft(offset);
-      exponent_ -= offset;
+    int leading = (format.sigBits + 4) - significand_.bitLength();
+    int maxValue = (int) (exponent_ - format.minExp()); // format.minExp() <= exponent
+    if (leading > maxValue) {
+      // If the exponent would get too small only shift to the left until the minimal exponent is
+      // reached and return a subnormal number.
+      significand_ = significand_.shiftLeft(maxValue);
+      exponent_ = format.minExp() - 1;
+    } else {
+      significand_ = significand_.shiftLeft(leading);
+      exponent_ -= leading;
+      ;
     }
 
     // Round the result according to the grs bits
