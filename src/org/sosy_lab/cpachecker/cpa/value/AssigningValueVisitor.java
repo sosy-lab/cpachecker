@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -33,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -106,14 +104,12 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       if (isEligibleForAssignment(leftValue)
           && rightValue.isExplicitlyKnown()
           && isAssignable(lVarInBinaryExp)) {
-        assignConcreteValue(
-            lVarInBinaryExp, leftValue, rightValue, pE.getOperand2().getExpressionType());
+        assignConcreteValue(lVarInBinaryExp, rightValue, pE.getOperand2().getExpressionType());
 
       } else if (isEligibleForAssignment(rightValue)
           && leftValue.isExplicitlyKnown()
           && isAssignable(rVarInBinaryExp)) {
-        assignConcreteValue(
-            rVarInBinaryExp, rightValue, leftValue, pE.getOperand1().getExpressionType());
+        assignConcreteValue(rVarInBinaryExp, leftValue, pE.getOperand1().getExpressionType());
       }
     }
 
@@ -144,24 +140,17 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   private boolean isEligibleForAssignment(final Value pValue) {
-    return pValue.isUnknown() && options.isAssignEqualityAssumptions();
+    return !pValue.isExplicitlyKnown() && options.isAssignEqualityAssumptions();
   }
 
   private void assignConcreteValue(
-      final CExpression pVarInBinaryExp,
-      final Value pOldValue,
-      final Value pNewValue,
-      final CType pValueType)
+      final CExpression pVarInBinaryExp, final Value pNewValue, final CType pValueType)
       throws UnrecognizedCodeException {
-    checkState(
-        !(pOldValue instanceof SymbolicValue),
-        "Symbolic values should never be replaced by a concrete value");
-
     assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
   }
 
   private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
-    return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
+    return !value1.isExplicitlyKnown() && value2.equals(new NumericValue(BigInteger.ZERO));
   }
 
   private boolean isEqualityAssumption(BinaryOperator binaryOperator) {

@@ -25,6 +25,10 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
+    <include>../programs/simple/explicit/*.yml</includesfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+  <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
