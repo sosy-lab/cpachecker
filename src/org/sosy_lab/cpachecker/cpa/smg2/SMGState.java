@@ -1069,6 +1069,11 @@ public class SMGState
     return copyAndAddStackFrame(pFunctionDefinition, null);
   }
 
+  @SuppressWarnings("unused")
+  public SMGState copyAndReplaceValueMapping(Value oldValue, Value newValue) {
+    return copyAndReplaceMemoryModel(memoryModel.copyAndReplaceValueMapping(oldValue, newValue));
+  }
+
   /**
    * Copy SMGState and adds a new frame for the function. Also saves the variable arguments of this
    * function. Null as argument means no variable arguments. The list of variable arguments may be
@@ -1181,9 +1186,6 @@ public class SMGState
       ValueAndValueSize thisValueAndType = thisAllMemLocAndValues.get(otherMemLoc);
       if (thisValueAndType == null) {
         return false;
-      } else if (otherMemLoc.getExtendedQualifiedName().contains("__CPAchecker_TMP_")) {
-        thisAllMemLocAndValues = thisAllMemLocAndValues.removeAndCopy(otherMemLoc);
-        continue;
       }
       // Now check the equality of all values. For concrete values, we allow overapproximations.
       // Pointers/memory is compared by shape, subsumtion is allowed for equal linked lists, such
@@ -1218,20 +1220,14 @@ public class SMGState
       return false;
     }
 
-    if (!pOther.constraintsState.containsAll(constraintsState)) {
+    if (!pOther.constraintsState.contains(constraintsState)) {
       // TODO: translate symbolic values so that they can be compared on an memory location basis
-      // return false;
+      return false;
     }
 
     // We may not forget any errors already found
     if (!copyAndPruneUnreachable()
         .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
-      return false;
-    }
-
-    if (!dropStackFrame()
-        .copyAndPruneUnreachable()
-        .checkErrorEqualityForTwoStates(pOther.dropStackFrame().copyAndPruneUnreachable())) {
       return false;
     }
 
@@ -1355,6 +1351,8 @@ public class SMGState
         equalityCache.addEquality(thisValue, otherValue);
         return true;
       }
+      // Possibly 2 symbolic values that are equal by constraints
+
       return false;
     }
 

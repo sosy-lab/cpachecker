@@ -848,6 +848,28 @@ public class SymbolicProgramConfiguration {
         readBlacklist);
   }
 
+  public SymbolicProgramConfiguration copyAndReplaceValueMapping(Value oldValue, Value newValue) {
+    ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> builder = ImmutableBiMap.builder();
+    for (Entry<Wrapper<Value>, SMGValue> entry : valueMapping.entrySet()) {
+      if (entry.getKey().get().equals(oldValue)) {
+        builder.put(valueWrapper.wrap(newValue), entry.getValue());
+      } else {
+        builder.put(entry);
+      }
+    }
+    return of(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        builder.buildOrThrow(),
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory,
+        readBlacklist);
+  }
+
   /**
    * Copies the {@link SymbolicProgramConfiguration} and sets the externally allocated {@link
    * SMGObject} validity to false. If the entered {@link SMGObject} is not yet in the external
