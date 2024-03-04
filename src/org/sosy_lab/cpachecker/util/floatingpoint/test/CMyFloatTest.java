@@ -32,6 +32,10 @@ public class CMyFloatTest extends CFloatUnitTest {
     return new JFloat(repr, pFloatType);
   }
 
+  protected void assertEqual(CFloat r1, CFloat r2) {
+    assertThat(printValue(r1.toFloat())).isEqualTo(printValue(r2.toFloat()));
+  }
+
   @Test
   public void overflowTest() {
     // Should overflow as the exponents add up to 127 in binary and the product of th significands
@@ -45,7 +49,9 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat jfloat1 = toReferenceImpl(val1, 0);
     CFloat jfloat2 = toReferenceImpl(val2, 0);
 
-    assertThat(myfloat1.multiply(myfloat2)).isEqualTo(jfloat1.multiply(jfloat2));
+    CFloat r1 = myfloat1.multiply(myfloat2);
+    CFloat r2 = jfloat1.multiply(jfloat2);
+    assertEqual(r1, r2);
   }
 
   @Test
@@ -53,7 +59,10 @@ public class CMyFloatTest extends CFloatUnitTest {
     String val = "2.0";
     CFloat myfloat = toTestedImpl(val, 0);
     CFloat jfloat = toReferenceImpl(val, 0);
-    assertThat(myfloat.sqrt()).isEqualTo(jfloat.sqrt());
+
+    CFloat r1 = myfloat.sqrt();
+    CFloat r2 = jfloat.sqrt();
+    assertEqual(r1, r2);
   }
 
   @Test
@@ -61,7 +70,10 @@ public class CMyFloatTest extends CFloatUnitTest {
     String val = "-10.0";
     CFloat myfloat = toTestedImpl(val, 0);
     CFloat jfloat = toReferenceImpl(val, 0);
-    assertThat(myfloat.exp()).isEqualTo(jfloat.exp());
+
+    CFloat r1 = myfloat.exp();
+    CFloat r2 = jfloat.exp();
+    assertEqual(r1, r2);
   }
 
   @Test
@@ -69,16 +81,38 @@ public class CMyFloatTest extends CFloatUnitTest {
     String val = String.valueOf(Math.E);
     CFloat myfloat = toTestedImpl(val, 0);
     CFloat jfloat = toReferenceImpl(val, 0);
-    assertThat(myfloat.ln()).isEqualTo(jfloat.ln());
+
+    CFloat r1 = myfloat.ln();
+    CFloat r2 = jfloat.ln();
+    assertEqual(r1, r2);
   }
 
   @Test
   public void ln_1Test() {
     // Calculate ln for the next closest value to 1
-    String val = String.valueOf("1.00000011920929");
+    String val = "1.00000011920929";
     CFloat myfloat = toTestedImpl(val, 0);
     CFloat jfloat = toReferenceImpl(val, 0);
-    assertThat(printValue(myfloat.ln().toFloat())).isEqualTo(printValue(jfloat.ln().toFloat()));
+
+    CFloat r1 = myfloat.ln();
+    CFloat r2 = jfloat.ln();
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void addBug1Test() {
+    String val1 = "-1.0";
+    String val2 = "4.9603518E-8";
+
+    CFloat myfloat1 = toTestedImpl(val1, 0);
+    CFloat myfloat2 = toTestedImpl(val2, 0);
+
+    CFloat jfloat1 = toReferenceImpl(val1, 0);
+    CFloat jfloat2 = toReferenceImpl(val2, 0);
+
+    CFloat r1 = myfloat1.add(myfloat2);
+    CFloat r2 = jfloat1.add(jfloat2);
+    assertEqual(r1, r2);
   }
 
   @Ignore
