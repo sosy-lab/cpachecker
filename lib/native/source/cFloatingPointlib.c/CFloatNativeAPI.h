@@ -107,6 +107,22 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 
 /*
  * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    logFp
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
+ */
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_logFp
+  (JNIEnv *, jclass, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    expFp
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
+ */
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_expFp
+  (JNIEnv *, jclass, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
  * Method:    powFp
  * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
  */

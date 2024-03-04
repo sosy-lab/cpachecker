@@ -100,12 +100,12 @@ public class CFloatNative extends CFloat {
 
   @Override
   public CFloat ln() {
-    throw new UnsupportedOperationException();
+    return new CFloatNative(CFloatNativeAPI.logFp(wrapper, type), type);
   }
 
   @Override
   public CFloat exp() {
-    throw new UnsupportedOperationException();
+    return new CFloatNative(CFloatNativeAPI.expFp(wrapper, type), type);
   }
 
   @Override

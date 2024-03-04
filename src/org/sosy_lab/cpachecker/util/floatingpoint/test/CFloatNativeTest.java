@@ -36,16 +36,4 @@ public class CFloatNativeTest extends CFloatUnitTest {
   public void greaterThanTest() {
     // FIXME: CFloatNative does not implement greaterThan()
   }
-
-  @Ignore
-  @Override
-  public void expTest() {
-    // FIXME: Not implemented
-  }
-
-  @Ignore
-  @Override
-  public void lnTest() {
-    // FIXME: Not implemented
-  }
 }
