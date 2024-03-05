@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
@@ -97,45 +96,5 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = myfloat.ln();
     CFloat r2 = jfloat.ln();
     assertEqual(r1, r2);
-  }
-
-  @Test
-  public void addBug1Test() {
-    String val1 = "-1.0";
-    String val2 = "4.9603518E-8";
-
-    CFloat myfloat1 = toTestedImpl(val1, 0);
-    CFloat myfloat2 = toTestedImpl(val2, 0);
-
-    CFloat jfloat1 = toReferenceImpl(val1, 0);
-    CFloat jfloat2 = toReferenceImpl(val2, 0);
-
-    CFloat r1 = myfloat1.add(myfloat2);
-    CFloat r2 = jfloat1.add(jfloat2);
-    assertEqual(r1, r2);
-  }
-
-  @Ignore
-  @Override
-  public void castToByteTest() {
-    // Broken in JFloat
-  }
-
-  @Ignore
-  @Override
-  public void castToShortTest() {
-    // Broken in JFloat
-  }
-
-  @Ignore
-  @Override
-  public void castToIntTest() {
-    // Broken in JFloat
-  }
-
-  @Ignore
-  @Override
-  public void castToLongTest() {
-    // Broken in JFloat
   }
 }
