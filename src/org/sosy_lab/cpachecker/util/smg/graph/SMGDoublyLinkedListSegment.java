@@ -87,4 +87,21 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
   public boolean isSLL() {
     return false;
   }
+
+  /**
+   * Copies the object, but the new object has a new id. So size etc. will match, but never the ID!
+   *
+   * @param objectToCopy obj to copy.
+   * @return a new object with the same size etc. as the old.
+   */
+  public static SMGObject of(SMGDoublyLinkedListSegment objectToCopy) {
+    return new SMGDoublyLinkedListSegment(
+        objectToCopy.getNestingLevel(),
+        objectToCopy.getSize(),
+        objectToCopy.getOffset(),
+        objectToCopy.getHeadOffset(),
+        objectToCopy.getNextOffset(),
+        objectToCopy.prevOffset,
+        objectToCopy.getMinLength());
+  }
 }

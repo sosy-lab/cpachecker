@@ -52,6 +52,23 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     return super.hashCode();
   }
 
+  /**
+   * Copies the object, but the new object has a new id. So size etc. will match, but never the ID!
+   *
+   * @param objectToCopy obj to copy.
+   * @return a new object with the same size etc. as the old.
+   */
+  public static SMGObject of(SMGSinglyLinkedListSegment objectToCopy) {
+    Preconditions.checkArgument(objectToCopy.isSLL());
+    return new SMGSinglyLinkedListSegment(
+        objectToCopy.getNestingLevel(),
+        objectToCopy.getSize(),
+        objectToCopy.getOffset(),
+        objectToCopy.headOffset,
+        objectToCopy.nextOffset,
+        objectToCopy.minLength);
+  }
+
   @Override
   public SMGObject copyWithNewLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);

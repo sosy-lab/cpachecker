@@ -95,6 +95,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
    * @return a new object with the same size etc. as the old.
    */
   public static SMGObject of(SMGObject objectToCopy) {
+    Preconditions.checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
     return new SMGObject(objectToCopy.nestingLevel, objectToCopy.size, objectToCopy.offset);
   }
 
