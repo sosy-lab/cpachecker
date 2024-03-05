@@ -176,7 +176,7 @@ public class SMGCPATransferRelationTest {
             MACHINE_MODEL, logManager, SMGCPAExportOptions.getNoExportInstance(), smgOptions, null);
 
     initialState =
-        SMGState.of(MACHINE_MODEL, logManager, smgOptions, evaluator)
+        SMGState.of(MACHINE_MODEL, logManager, smgOptions, evaluator, new SMGCPAStatistics())
             .copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
 
     // null for the constraintsStrengthenOperator is fine as long as we don't use it in tests!
@@ -794,11 +794,7 @@ public class SMGCPATransferRelationTest {
         assertThat(statesAfterDecl).hasSize(1);
         // We check the variable later
         SMGState stateAfterDecl = statesAfterDecl.get(0);
-        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkValueInConcreteMemorySanity())
-            .isTrue();
-        assertThat(stateAfterDecl.getMemoryModel().getSmg().verifyPointsToEdgeSanity()).isTrue();
-        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap())
-            .isTrue();
+        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkSMGSanity()).isTrue();
 
         CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
             new CFunctionCallAssignmentStatement(
@@ -844,9 +840,7 @@ public class SMGCPATransferRelationTest {
             SymbolicProgramConfiguration memoryModel =
                 statesListAfterMallocAssign.get(0).getMemoryModel();
 
-            assertThat(memoryModel.getSmg().checkValueInConcreteMemorySanity()).isTrue();
-            assertThat(memoryModel.getSmg().verifyPointsToEdgeSanity()).isTrue();
-            assertThat(memoryModel.getSmg().checkCorrectObjectsToPointersMap()).isTrue();
+            assertThat(memoryModel.getSmg().checkSMGSanity()).isTrue();
 
             assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
             SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
@@ -936,9 +930,7 @@ public class SMGCPATransferRelationTest {
         assertThat(mallocObjectAndOffset.getOffsetForObject().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
 
-        assertThat(memoryModel.getSmg().checkValueInConcreteMemorySanity()).isTrue();
-        assertThat(memoryModel.getSmg().verifyPointsToEdgeSanity()).isTrue();
-        assertThat(memoryModel.getSmg().checkCorrectObjectsToPointersMap()).isTrue();
+        assertThat(memoryModel.getSmg().checkSMGSanity()).isTrue();
 
         // Read the SMGObject to make sure that there is no value written
         // TODO:

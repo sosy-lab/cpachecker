@@ -86,7 +86,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -855,43 +855,56 @@ public class SMGTransferRelation
       }
 
       if (!value.isExplicitlyKnown()) {
-        if (options.trackPredicates()) {
+        // Use the Explicit Value Analysis assigning value visitor,
+        // as we might be able to deterministically assume values (for example 0 == x -> x = 0).
+        // If this fails, revert to symbolic execution if possible.
+        SMGCPAAssigningValueVisitor avv =
+            new SMGCPAAssigningValueVisitor(
+                evaluator, currentState, cfaEdge, logger, truthValue, options, booleanVariables);
 
-          // Symbolic Execution for assumption edges
-          Collection<SMGState> statesWithConstraints =
-              computeNewStateByCreatingConstraint(currentState, cExpression, truthValue, cfaEdge);
+        for (ValueAndSMGState maybeUpdatedValueAndUpdatedState : cExpression.accept(avv)) {
+          SMGState maybeUpdatedState = maybeUpdatedValueAndUpdatedState.getState();
+          Value maybeUpdatedValue = maybeUpdatedValueAndUpdatedState.getValue();
 
-          for (SMGState stateWithConstraint : statesWithConstraints) {
-            if (options.isSatCheckStrategyAtAssume()) {
-              SolverResult solverResult =
-                  solver.checkUnsat(stateWithConstraint.getConstraints(), functionName);
-              if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
-                resultStateBuilder.add(
-                    stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
-                        solverResult.definiteAssignments(), solverResult.model()));
-              }
-              // We might add/return nothing here if the check was UNSAT
-            } else {
-              // If either we don't check SAT or the path is SAT we return the state
-              resultStateBuilder.add(stateWithConstraint);
+          if (maybeUpdatedValue.isExplicitlyKnown()) {
+            if (representsBoolean(maybeUpdatedValue, truthValue)) {
+              // We know more than before, and the assumption is fulfilled, so return the state
+              // from the value visitor
+              resultStateBuilder.add(maybeUpdatedState);
+              break;
             }
           }
 
-        } else {
+          if (options.trackPredicates()) {
 
-          // Explicit Value Analysis
-          // if unknown, try to assign a (boolean) value and maybe split into multiple states
-          SMGCPAAssigningValueVisitor avv =
-              new SMGCPAAssigningValueVisitor(
-                  evaluator, state, cfaEdge, logger, truthValue, options, booleanVariables);
+            // Symbolic Execution for assumption edges, use previous state and values
+            Collection<SMGState> statesWithConstraints =
+                computeNewStateByCreatingConstraint(currentState, cExpression, truthValue, cfaEdge);
 
-          for (ValueAndSMGState newValueAndUpdatedState : cExpression.accept(avv)) {
-            SMGState updatedState = newValueAndUpdatedState.getState();
+            for (SMGState stateWithConstraint : statesWithConstraints) {
+              if (options.isSatCheckStrategyAtAssume()) {
+                SolverResult solverResult =
+                    solver.checkUnsat(stateWithConstraint.getConstraints(), functionName);
+                if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
+                  resultStateBuilder.add(
+                      stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
+                          solverResult.definiteAssignments(), solverResult.model()));
+                }
+                // We might add/return nothing here if the check was UNSAT
+              } else {
+                // If either we don't check SAT or the path is SAT we return the state
+                resultStateBuilder.add(stateWithConstraint);
+              }
+            }
 
-            resultStateBuilder.add(updatedState);
+          } else {
+
+            // Explicit Value Analysis; if unknown,
+            // try to assign a (boolean) value and maybe split into multiple states
+            // (already done above)
+            resultStateBuilder.add(maybeUpdatedState);
           }
         }
-
       } else if (representsBoolean(value, truthValue)) {
         // We do not know more than before, and the assumption is fulfilled, so return the state
         // from the value visitor (we don't need a copy as every state operation generates a new
@@ -1307,13 +1320,13 @@ public class SMGTransferRelation
           properPointer = newAddressAndState.getValue();
         }
 
-        Optional<SMGObjectAndOffset> maybeRightHandSideMemoryAndOffset =
+        Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeRightHandSideMemoryAndOffset =
             currentState.getPointsToTarget(properPointer);
 
         if (maybeRightHandSideMemoryAndOffset.isEmpty()) {
           return currentState;
         }
-        SMGObjectAndOffset rightHandSideMemoryAndOffset =
+        SMGObjectAndOffsetMaybeNestingLvl rightHandSideMemoryAndOffset =
             maybeRightHandSideMemoryAndOffset.orElseThrow();
         // copySMGObjectContentToSMGObject checks for sizes etc.
 

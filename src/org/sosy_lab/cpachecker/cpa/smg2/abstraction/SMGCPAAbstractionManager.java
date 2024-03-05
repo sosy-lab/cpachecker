@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -45,9 +46,13 @@ public class SMGCPAAbstractionManager {
 
   private int minimumLengthForListsForAbstraction;
 
-  public SMGCPAAbstractionManager(SMGState pState, int pMinimumLengthForListsForAbstraction) {
+  private final SMGCPAStatistics statistics;
+
+  public SMGCPAAbstractionManager(
+      SMGState pState, int pMinimumLengthForListsForAbstraction, SMGCPAStatistics pStatistics) {
     state = pState;
     minimumLengthForListsForAbstraction = pMinimumLengthForListsForAbstraction;
+    statistics = pStatistics;
   }
 
   /*
@@ -61,6 +66,7 @@ public class SMGCPAAbstractionManager {
    * (e.g. 2 concrete regions form a 2+, but a 2+ and a concrete region form a 3+).
    * Pointers pointing to the original segments (everywhere in the SMG) now point
    * to the new SLS or DLS, but remember their original nesting level in the list.
+   * They also retain special behavior for the first and last segments through their pointer specifier.
    * If there was a nested list, those are also merged. First a single nested list is abstracted
    * (for example into an X+ SLL).
    * Then, when the upper list is merged, the nested abstracted linked lists are also merged.
@@ -72,25 +78,26 @@ public class SMGCPAAbstractionManager {
    * This is continued until all is merged.
    * Note: we don't use nesting level as described in the paper
    * "Byte-precise Verification of low level list manipulation"!
-   * They use nesting level for merges performed in joins.
+   * They use nesting level for merges performed in joins. They use the all pointer specifier and repeat actions for all segments.
    * We remember concrete locations of pointers in abstracted memory.
    * Future idea: remember level of nested lists, for pointers towards them.
    * No nesting level as we do it now, but a list of nesting levels. With each segment corresponding
    * to a level. E.g. {1, 2} -> a list nested in a list, with the upper list nesting level 1,
    * the lower level 2. This would also give us the nesting level of the original paper back.
+   *
    */
   public SMGState findAndAbstractLists() throws SMGException {
     SMGState currentState = state;
     equalityCache = EqualityCache.of();
+    statistics.startTotalListSearchTime();
     ImmutableList<SMGCandidate> refinedCandidates = getRefinedLinkedCandidates();
     // Sort in DLL and SLL candidates and also order by nesting
     List<Set<SMGCandidate>> orderListCandidatesByNesting =
         orderListCandidatesByNestingAndListType(refinedCandidates);
 
-    assert currentState.getMemoryModel().getSmg().verifyPointsToEdgeSanity();
-    assert currentState.getMemoryModel().getSmg().checkCorrectObjectsToPointersMap();
-    assert currentState.getMemoryModel().getSmg().checkValueInConcreteMemorySanity();
-
+    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    statistics.stopTotalListSearchTime();
+    statistics.startTotalAbstractionTime();
     // Abstract top level nesting first
     for (Set<SMGCandidate> candidates : orderListCandidatesByNesting) {
       for (SMGCandidate candidate : candidates) {
@@ -113,6 +120,7 @@ public class SMGCPAAbstractionManager {
         }
       }
     }
+    statistics.stopTotalAbstractionTime();
     return currentState;
   }
 
@@ -140,7 +148,9 @@ public class SMGCPAAbstractionManager {
                         candidate.getSuspectedNfo(),
                         candidate.getSuspectedPfo(),
                         new HashSet<>(),
-                        0))
+                        candidate.getObject() instanceof SMGSinglyLinkedListSegment listSeg
+                            ? listSeg.getMinLength()
+                            : 0))
             .collect(ImmutableSet.toImmutableSet());
 
     return findNestingOfCandidates(trueListStarts);
@@ -295,7 +305,15 @@ public class SMGCPAAbstractionManager {
           return true;
         } else {
           return candidateHasEqualValuesForAtLeastLength(
-              root, pointsToNext.pointsTo(), nfo, maybePfo, alreadySeen, currentLength + 1);
+              root,
+              pointsToNext.pointsTo(),
+              nfo,
+              maybePfo,
+              alreadySeen,
+              currentLength
+                  + (pointsToNext.pointsTo() instanceof SMGSinglyLinkedListSegment listSeg
+                      ? listSeg.getMinLength()
+                      : 1));
         }
       }
     } catch (SMGException e) {

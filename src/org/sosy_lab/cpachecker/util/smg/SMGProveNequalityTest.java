@@ -24,19 +24,19 @@ import org.sosy_lab.cpachecker.util.smg.test.SMGTest0;
 public class SMGProveNequalityTest extends SMGTest0 {
 
   private SMG smg;
-  private final SMGValue value1 = createValue("value1");
-  private final SMGValue value2 = createValue("value2");
-  private final SMGValue value3 = createValue("value3");
-  private final SMGValue value4 = createValue("value4");
+  private final SMGValue value1 = SMGValue.of();
+  private final SMGValue value2 = SMGValue.of();
+  private final SMGValue value3 = SMGValue.of();
+  private final SMGValue value4 = SMGValue.of();
 
   @Before
   public void setUp() {
     smg = new SMG(mockType8bSize);
     smg =
-        smg.copyAndAddValue(value1)
-            .copyAndAddValue(value2)
-            .copyAndAddValue(value3)
-            .copyAndAddValue(value4);
+        smg.copyAndAddValueWithNestingLevelZero(value1)
+            .copyAndAddValueWithNestingLevelZero(value2)
+            .copyAndAddValueWithNestingLevelZero(value3)
+            .copyAndAddValueWithNestingLevelZero(value4);
   }
 
   @Test
@@ -94,15 +94,15 @@ public class SMGProveNequalityTest extends SMGTest0 {
     SMGPointsToEdge pt5 = createPTEdge(32, SMGTargetSpecifier.IS_FIRST_POINTER, dlls3);
     smg = smg.copyAndAddPTEdge(pt4, value3);
     smg = smg.copyAndAddPTEdge(pt5, value4);
-    final SMGValue value5 = createValue("value5");
-    final SMGValue value6 = createValue("value6");
+    final SMGValue value5 = SMGValue.of();
+    final SMGValue value6 = SMGValue.of();
 
     SMGHasValueEdge hasValueEdge3 = createHasValueEdge(64, 32, value5);
     SMGHasValueEdge hasValueEdge4 = createHasValueEdge(64, 0, value6);
 
     smg =
-        smg.copyAndAddValue(value5)
-            .copyAndAddValue(value6)
+        smg.copyAndAddValueWithNestingLevelZero(value5)
+            .copyAndAddValueWithNestingLevelZero(value6)
             .copyAndAddHVEdge(hasValueEdge4, dlls3)
             .copyAndAddHVEdge(hasValueEdge3, dlls3);
     SMGPointsToEdge pt6 =

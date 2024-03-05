@@ -102,12 +102,8 @@ public class SMGTest0 {
     return new SMGPointsToEdge(andObject, BigInteger.valueOf(withOffset), targetSpecifier);
   }
 
-  protected SMGValue createValue(int withLevel) {
-    return SMGValue.of(withLevel);
-  }
-
   protected SMGValue createValue() {
-    return SMGValue.of(0);
+    return SMGValue.of();
   }
 
   protected SMGObject createRegion(BigInteger withSize, int withOffset, String label) {
@@ -138,13 +134,5 @@ public class SMGTest0 {
         mLength,
         BigInteger.valueOf(offset),
         label);
-  }
-
-  protected SMGValue createValue(int withLevel, String label) {
-    return new LabeledValue(withLevel, label);
-  }
-
-  protected SMGValue createValue(String label) {
-    return new LabeledValue(0, label);
   }
 }

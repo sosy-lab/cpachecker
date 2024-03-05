@@ -66,11 +66,11 @@ public class SMGJoinFields {
     FluentIterable<SMGHasValueEdge> addObj2Edges = mergeNonNullValues(newSMG1, newSMG2, obj1, obj2);
 
     for (SMGHasValueEdge edge : addObj1Edges) {
-      newSMG1 = newSMG1.copyAndAddValue(edge.hasValue());
+      newSMG1 = newSMG1.copyAndAddValue(edge.hasValue(), smg1.getNestingLevel(edge.hasValue()));
       newSMG1 = newSMG1.copyAndAddHVEdge(edge, obj1);
     }
     for (SMGHasValueEdge edge : addObj2Edges) {
-      newSMG2 = newSMG2.copyAndAddValue(edge.hasValue());
+      newSMG2 = newSMG2.copyAndAddValue(edge.hasValue(), smg2.getNestingLevel(edge.hasValue()));
       newSMG2 = newSMG2.copyAndAddHVEdge(edge, obj2);
     }
 
@@ -105,11 +105,8 @@ public class SMGJoinFields {
         .transform(
             // add fresh edges for offset and size tuples, which are defined in o1 and undefined
             // in o2
-            edge ->
-                new SMGHasValueEdge(
-                    SMGValue.of(edge.hasValue().getNestingLevel()),
-                    edge.getOffset(),
-                    edge.getSizeInBits()));
+            // TODO: add the value and the correct nesting level
+            edge -> new SMGHasValueEdge(SMGValue.of(), edge.getOffset(), edge.getSizeInBits()));
   }
 
   /**

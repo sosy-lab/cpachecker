@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
 public class SMGWriteReadTest extends SMGTest0 {
 
   private SMG smg;
-  private final SMGValue value1 = createValue("value1");
-  private final SMGValue value2 = createValue("value2");
-  private final SMGValue value3 = createValue("value3");
-  private final SMGValue value4 = createValue("value4");
+  private final SMGValue value1 = SMGValue.of();
+  private final SMGValue value2 = SMGValue.of();
+  private final SMGValue value3 = SMGValue.of();
+  private final SMGValue value4 = SMGValue.of();
 
   private SMGPointsToEdge nullPointer;
 
@@ -64,7 +64,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     assertThat(smg.getHVEdges().toList()).isEmpty();
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -80,7 +80,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     assertThat(smg.getHVEdges().toList()).isEmpty();
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -131,7 +131,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     // Assert that now the region of the testObject is coverd in a nullyfied block completely
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -168,7 +168,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that there are only the 4 HVEdges in total
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Assert that there are only the zero value and value1 and2
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -263,7 +263,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Check that nothing changed for the points to edges
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -308,7 +308,7 @@ public class SMGWriteReadTest extends SMGTest0 {
 
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -342,7 +342,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     assertThat(smg.getHVEdges().toList()).isEmpty();
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -367,7 +367,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     // Assert that now the region of the testObject is coverd in a nullyfied block completely
     assertThat(smg.getHVEdges().toList()).isEqualTo(ImmutableList.of(expectedEdge));
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -416,7 +416,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getHVEdges().toList()).hasSize(2);
     assertThat(smg.getHVEdges().toList()).contains(expectedValueEdge);
     assertThat(smg.getHVEdges().toList()).contains(expectedZeroEdge);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -471,7 +471,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getHVEdges().toList()).hasSize(2);
     assertThat(smg.getHVEdges().toList()).contains(expectedValueEdge);
     assertThat(smg.getHVEdges().toList()).contains(expectedZeroEdge);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -520,7 +520,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -586,7 +586,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -599,9 +599,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
     assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
 
-    assertThat(smg.checkCorrectObjectsToPointersMap()).isTrue();
-    assertThat(smg.verifyPointsToEdgeSanity()).isTrue();
-    assertThat(smg.checkValueInConcreteMemorySanity()).isTrue();
+    assertThat(smg.checkSMGSanity()).isTrue();
   }
 
   /*
@@ -646,7 +644,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -701,7 +699,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -764,7 +762,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -822,7 +820,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -877,7 +875,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -1483,14 +1481,14 @@ public class SMGWriteReadTest extends SMGTest0 {
       assertThat(smg.getEdges(testObject))
           .contains(new SMGHasValueEdge(expectedValue, offset, size));
     }
-    Set<SMGValue> allValuesBeforeRead = smg.getValues();
+    Set<SMGValue> allValuesBeforeRead = smg.getValues().keySet();
     SMGAndHasValueEdges readReinterpretation = smg.readValue(testObject, offset, size, false);
     SMG newSMG = readReinterpretation.getSMG();
 
     assertThat(readReinterpretation.getHvEdges()).hasSize(1);
     assertThat(readReinterpretation.getHvEdges().get(0).hasValue()).isEqualTo(expectedValue);
     // Check that no new values are introduced by the read
-    assertThat(newSMG.getValues()).isEqualTo(allValuesBeforeRead);
+    assertThat(newSMG.getValues().keySet()).isEqualTo(allValuesBeforeRead);
     return newSMG;
   }
 
@@ -1509,7 +1507,7 @@ public class SMGWriteReadTest extends SMGTest0 {
    */
   private SMGandValue checkReadUnknownValue(
       SMGObject testObject, BigInteger offset, BigInteger size, boolean preciseRead) {
-    Set<SMGValue> allValuesBeforeRead = smg.getValues();
+    Set<SMGValue> allValuesBeforeRead = smg.getValues().keySet();
     SMGAndHasValueEdges readReinterpretation = smg.readValue(testObject, offset, size, preciseRead);
     PersistentSet<SMGHasValueEdge> oldEdgesForObject =
         (PersistentSet<SMGHasValueEdge>) smg.getEdges(testObject);
@@ -1519,7 +1517,9 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(newSMG.getValues()).hasSize(allValuesBeforeRead.size() + 1);
     // Check that the new value is indeed the value that is read
     SMGValue newValue =
-        Sets.difference(newSMG.getValues(), allValuesBeforeRead).stream().findFirst().orElseThrow();
+        Sets.difference(newSMG.getValues().keySet(), allValuesBeforeRead).stream()
+            .findFirst()
+            .orElseThrow();
     assertThat(readReinterpretation.getHvEdges()).hasSize(1);
     assertThat(readReinterpretation.getHvEdges().get(0).hasValue()).isEqualTo(newValue);
     // Assert that there is now a new SMGHasValueEdge for the field with the new value.

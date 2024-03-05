@@ -163,7 +163,7 @@ public class SMGCPAValueVisitorTest {
     // null, null is fine as long as builtin functions are not used!
     evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null, makeTestSolver());
 
-    currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator);
+    currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
 
     visitor =
         new SMGCPAValueVisitor(
@@ -198,7 +198,11 @@ public class SMGCPAValueVisitorTest {
   public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
     currentState =
         SMGState.of(
-            MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()), evaluator);
+            MACHINE_MODEL,
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            evaluator,
+            new SMGCPAStatistics());
 
     visitor =
         new SMGCPAValueVisitor(
@@ -3393,7 +3397,7 @@ public class SMGCPAValueVisitorTest {
     // Mapping to the smg points to edge
     spc =
         spc.copyAndAddPointerFromAddressToRegion(
-            addressValue, smgHeapObject, BigInteger.valueOf(offset));
+            addressValue, smgHeapObject, BigInteger.valueOf(offset), 0);
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
