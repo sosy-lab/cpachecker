@@ -137,9 +137,11 @@ public class JDouble extends CFloat {
 
   @Override
   public CFloat round() {
-    double above = Math.ceil(value);
-    double below = Math.floor(value);
-    return new JDouble(above - value > value - below ? below : above);
+    double posValue = Math.abs(value);
+    double above = Math.ceil(posValue);
+    double below = Math.floor(posValue);
+    double rounded = posValue >= (above + below) / 2 ? above : below;
+    return new JDouble(value > 0 ? rounded : -rounded);
   }
 
   @Override

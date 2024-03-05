@@ -137,9 +137,11 @@ public class JFloat extends CFloat {
 
   @Override
   public CFloat round() {
-    float above = (float) Math.ceil(value);
-    float below = (float) Math.floor(value);
-    return new JFloat(above - value > value - below ? below : above);
+    double posValue = Math.abs(value);
+    double above = Math.ceil(posValue);
+    double below = Math.floor(posValue);
+    double rounded = posValue >= (above + below) / 2 ? above : below;
+    return new JFloat((float) (value > 0 ? rounded : -rounded));
   }
 
   @Override

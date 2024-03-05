@@ -138,10 +138,4 @@ public class CMyFloatTest extends CFloatUnitTest {
   public void castToLongTest() {
     // Broken in JFloat
   }
-
-  @Ignore
-  @Override
-  public void roundTest() {
-    // Broken in JFloat
-  }
 }
