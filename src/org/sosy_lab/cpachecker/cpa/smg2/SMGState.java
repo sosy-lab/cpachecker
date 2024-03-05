@@ -850,8 +850,37 @@ public class SMGState
    * @param pTypeSizeInBits Size of the type of the new global variable.
    * @return Newly created object + state with it.
    */
-  public SMGObjectAndSMGState copyAndAddHeapObject(BigInteger pTypeSizeInBits) {
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(BigInteger pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
+    return SMGObjectAndSMGState.of(
+        newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
+  }
+
+  /**
+   * Copy SMGState with a newly created {@link SMGObject} and returns the new state + the new {@link
+   * SMGObject} with the size and type of the given. Make sure that you reuse the {@link SMGObject}
+   * right away to create a points-to-edge and not just use SMGObjects in the code.
+   *
+   * @param objectToCopy The object copied. Size, type, nfo, pfo etc. are all copied.
+   * @return Newly created object + state with it.
+   */
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(SMGObject objectToCopy) {
+    SMGObject newObject;
+    if (objectToCopy instanceof SMGSinglyLinkedListSegment sllToCopy) {
+      if (objectToCopy instanceof SMGDoublyLinkedListSegment dllToCopy) {
+        // DLL
+        newObject = SMGDoublyLinkedListSegment.of(dllToCopy);
+      } else {
+        // SLL
+        Preconditions.checkArgument(sllToCopy.isSLL());
+        newObject = SMGSinglyLinkedListSegment.of(sllToCopy);
+      }
+    } else {
+      Preconditions.checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
+      newObject =
+          SMGObject.of(
+              objectToCopy.getNestingLevel(), objectToCopy.getSize(), objectToCopy.getOffset());
+    }
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
   }
@@ -4308,6 +4337,19 @@ public class SMGState
     }
 
     // Remove the 2 old objects and continue
+    // For this to work without issues, we rewrite the next/prev pointers to 0 in them
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, pfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, pfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(root));
@@ -4326,6 +4368,7 @@ public class SMGState
     }
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    assert currentState.getMemoryModel().getSmg().checkFirstPointerNestingLevelConsistency();
 
     return currentState.abstractIntoDLL(
         newDLL,
@@ -4445,7 +4488,14 @@ public class SMGState
             currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
                 root, newSLL, incrementAmount));
 
-    // Remove the 2 old objects and continue
+    // Remove the 2 old objects and continue.
+    // For this to work without issues, we rewrite the next pointers to 0 in them
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(root));
@@ -4455,6 +4505,7 @@ public class SMGState
 
     // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+
     return currentState.abstractIntoSLL(
         newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
@@ -4581,7 +4632,6 @@ public class SMGState
             continue;
           }
           ptEdge = maybePtEdge.orElseThrow();
-          Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
           returnBuilder.add(
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
@@ -4675,26 +4725,12 @@ public class SMGState
       } else {
         // Size should be 2 in all other cases. This is the 0+ case, which is always the last
         Preconditions.checkArgument(materializationAndState.size() == 2);
-        // None of the values points to a SMGSinglyLinkedListSegment
+        // The values might point to a SMGSinglyLinkedListSegments if a followup is not merged
         // The 0 state does not materialize anything, the 1 state does materialize one more concrete
         // list segment and appends another 0+ segment after that
-        if (currentState
-            .memoryModel
-            .getSmg()
-            .isPointer(materializationAndState.get(0).getSMGValue())) {
-          Preconditions.checkArgument(
-              !(materializationAndState
-                      .get(0)
-                      .getSMGState()
-                      .memoryModel
-                      .getSmg()
-                      .getPTEdge(materializationAndState.get(0).getSMGValue())
-                      .orElseThrow()
-                      .pointsTo()
-                  instanceof SMGSinglyLinkedListSegment));
-        }
+
         // This can be violated for example through a last pointer still pointing to a 0+ after left
-        // sided mat
+        // sided mat, so check that
         Preconditions.checkArgument(
             !(materializationAndState
                     .get(1)
