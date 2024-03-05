@@ -678,7 +678,7 @@ public class MyFloat {
     MyFloat d = new MyFloat(Format.DOUBLE, false, -1, significand2);
 
     // Calculate how many iterations are needed
-    int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
+    int bound = (int) Math.ceil(lb((Format.DOUBLE.sigBits + 2) / lb(17)));
 
     // Set the initial value to 48/32 - 32/17*D
     MyFloat x = c48d17.subtract(c32d17.multiply(d));
