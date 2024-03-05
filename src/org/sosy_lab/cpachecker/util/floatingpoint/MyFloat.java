@@ -167,6 +167,10 @@ public class MyFloat {
     return new MyFloat(pFormat, number);
   }
 
+  public static MyFloat constant(Format pFormat, int number) {
+    return new MyFloat(pFormat, BigInteger.valueOf(number));
+  }
+
   public boolean isNan() {
     return !value.sign
         && (value.exponent == format.maxExp() + 1)
@@ -821,7 +825,7 @@ public class MyFloat {
     if (isOne()) {
       return zero(format);
     }
-    return lnImpl();
+    return lnNewton();
   }
 
   private static Map<Integer, MyFloat> mkLnTable(Format pFormat) {
@@ -836,30 +840,69 @@ public class MyFloat {
   // Table contains terms 1/k for 1..100
   private static Map<Integer, MyFloat> lnTable = mkLnTable(Format.DOUBLE);
 
-  public MyFloat lnImpl() {
+  private MyFloat withExponent(long pExponent) {
+    return new MyFloat(format, value.sign, pExponent, value.significand);
+  }
+
+  private MyFloat lnImpl() {
+    // FIXME: Rounding issue?
+    //  Testcase powTo(3.4028235E380.5):
+    //  expected: 0 10111110 11111111111111111111111 [1.8446743E19]
+    //  but was : 0 10111111 00000000000000000000000 [1.8446744E19]]
+
     MyFloat x = this.withPrecision(Format.DOUBLE);
     int preprocess = 0;
     while (x.greaterThan(const1_5) || const0_5.greaterThan(x)) {
       x = x.sqrt();
       preprocess++;
     }
-    x = x.subtract(MyFloat.one(Format.DOUBLE));
 
-    MyFloat xs = MyFloat.one(Format.DOUBLE); // x^k (1 for k=0)
-    MyFloat r = MyFloat.zero(Format.DOUBLE);
+    MyFloat r = x.subtract(MyFloat.one(Format.DOUBLE)).ln1p();
+    MyFloat p = r.withExponent(r.value.exponent + preprocess);
 
-    for (int k = 1; k < 30; k++) { // TODO: Find a proper bound for the number of iterations
-      // Calculate x^n/k
-      xs = xs.multiply(x);
-      MyFloat term = xs.multiply(lnTable.get(k));
-
-      // Add the sign and then build the sum
-      r = r.add(k % 2 == 0 ? term.negate() : term);
-    }
-    MyFloat p =
-        new MyFloat(
-            Format.DOUBLE, r.value.sign, r.value.exponent + preprocess, r.value.significand);
     return p.withPrecision(format);
+  }
+
+  public MyFloat ln1p() {
+    Preconditions.checkArgument(this.greaterThan(negativeOne(format)));
+    Preconditions.checkArgument(this.equals(one(format)) || one(format).greaterThan(this));
+
+    MyFloat x = this;
+    MyFloat r = MyFloat.zero(format);
+
+    // x^k (1 for k=0)
+    MyFloat xs = MyFloat.one(format);
+
+    for (int k = 1; k < 100; k++) { // TODO: Find a proper bound for the number of iterations
+      // Calculate the next term x^k/k
+      xs = xs.multiply(x);
+      MyFloat next = xs.multiply(lnTable.get(k));
+
+      // Set the sign and add the term to the sum
+      r = r.add(k % 2 == 0 ? next.negate() : next);
+    }
+    return r;
+  }
+
+  private MyFloat lnNewton() {
+    MyFloat x = this.withPrecision(Format.DOUBLE);
+    int preprocess = 0;
+    while (x.greaterThan(const1_5) || const0_5.greaterThan(x)) {
+      x = x.sqrt();
+      preprocess++;
+    }
+
+    // Initial value: first term of taylor series for ln
+    MyFloat r = x.subtract(one(Format.DOUBLE));
+
+    for (int i = 0; i < 10; i++) {
+      //  r(n+1) = r(n) + 2 * (x - e^r(n)) / (x + e^r(n))
+      MyFloat exp_y = r.exp();
+      MyFloat t1 = x.subtract(exp_y);
+      MyFloat t2 = x.add(exp_y);
+      r = r.add(constant(Format.DOUBLE, 2).multiply(t1.divide(t2)));
+    }
+    return r.withExponent(r.value.exponent + preprocess).withPrecision(format);
   }
 
   public MyFloat pow(MyFloat exponent) {
