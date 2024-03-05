@@ -856,6 +856,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "After changing SSA", interpolant);
       if (solver.implies(interpolant, bfmgr.or(prefixFormula, accumImage))) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
+        stats.fixedPointConvergenceLength = stats.numOfInterpolationCalls - initialIMCIter;
         finalFixedPoint = bfmgr.or(reachVector.get(0), fmgr.uninstantiate(accumImage));
         return true;
       }
