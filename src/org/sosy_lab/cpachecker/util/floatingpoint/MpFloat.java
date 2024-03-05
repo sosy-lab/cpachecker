@@ -189,7 +189,13 @@ public class MpFloat extends CFloat {
 
   @Override
   public CFloat round() {
-    return new MpFloat(value.rint(format));
+    BigFloat posValue = value.abs();
+    BigFloat above = posValue.rint(format.withRoundingMode(RoundingMode.CEILING));
+    BigFloat below = posValue.rint(format.withRoundingMode(RoundingMode.FLOOR));
+    BigFloat tie = above.add(below, format).divide(new BigFloat(2, format), format);
+
+    BigFloat rounded = posValue.greaterThanOrEqualTo(tie) ? above : below;
+    return new MpFloat(value.sign() ? rounded.negate() : rounded);
   }
 
   @Override
