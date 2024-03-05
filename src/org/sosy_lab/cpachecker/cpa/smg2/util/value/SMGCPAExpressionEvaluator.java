@@ -302,7 +302,7 @@ public class SMGCPAExpressionEvaluator {
    */
   public ValueAndSMGState createHeapMemoryAndPointer(
       SMGState pInitialSmgState, BigInteger sizeInBits) {
-    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddHeapObject(sizeInBits);
+    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddNewHeapObject(sizeInBits);
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
@@ -322,7 +322,7 @@ public class SMGCPAExpressionEvaluator {
    */
   public ValueAndSMGState createMallocZeroMemoryAndPointer(
       SMGState pInitialSmgState, BigInteger sizeInBits) {
-    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddHeapObject(sizeInBits);
+    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddNewHeapObject(sizeInBits);
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 

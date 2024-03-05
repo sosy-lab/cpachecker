@@ -1032,7 +1032,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   /**
-   * Asserts that the only valid existing object is a SLL or DLL equaling the length given and nfo
+   * Asserts that the only valid existing object is an SLL or DLL equaling the length given and nfo
    * and pfo both being 0.
    *
    * @param pointers an array of all pointers to check that the properties hold.
@@ -2182,7 +2182,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     currentState = stackObjForPointerAndState.getState();
 
     // "malloc" a list segment and create head pointer and save in stack
-    SMGObjectAndSMGState initialListSegmentAndState = currentState.copyAndAddHeapObject(sllSize);
+    SMGObjectAndSMGState initialListSegmentAndState = currentState.copyAndAddNewHeapObject(sllSize);
     SMGObject initialListSegment = initialListSegmentAndState.getSMGObject();
     currentState = initialListSegmentAndState.getState();
     ValueAndSMGState ptrAndState = currentState.searchOrCreateAddress(initialListSegment, hfo);
@@ -2208,7 +2208,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       // Now, in a loop, create/reuse a stack variable, create a new list segment,
       // create a pointer to it, save in stack variable
-      SMGObjectAndSMGState newListSegmentAndState = currentState.copyAndAddHeapObject(sllSize);
+      SMGObjectAndSMGState newListSegmentAndState = currentState.copyAndAddNewHeapObject(sllSize);
       SMGObject newListSegment = newListSegmentAndState.getSMGObject();
       currentState = newListSegmentAndState.getState();
       ValueAndSMGState newListPtrAndState =
