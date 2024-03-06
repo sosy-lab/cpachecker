@@ -1396,12 +1396,27 @@ public class SMGState
             .equals(((SymbolicExpression) otherValue).getType())) {
       if (options.isTreatSymbolicValuesAsUnknown()) {
         return true;
+      } else if (equalConstraintsInSymbolicValues(thisValue, thisState, otherValue, otherState)) {
+        // Check matching constraints
+
       } else {
         return thisValue.equals(otherValue);
       }
     }
 
     return thisValue.equals(otherValue);
+  }
+
+  @SuppressWarnings("unused")
+  private boolean equalConstraintsInSymbolicValues(
+      Value pThisValue, SMGState thisState, Value pOtherValue, SMGState otherState) {
+    return false;
+    // TODO: find a way to find Constraints with specific symbolic values in them
+    // TODO: build visitor that replaces symbolic values in constraints
+    // TODO: carry a SymbolicGenerator Object with all found SymbolicValues that can be replaced by
+    // it
+    //  Important/Difficulty: make sure the symbolic value relations to occurrences outside of the
+    // list are respected somehow
   }
 
   /* Check heap equality as far as possible. This has some limitations.
@@ -4184,14 +4199,9 @@ public class SMGState
     assert this.getMemoryModel().getSmg().checkSMGSanity();
     SMGObject nextObj = maybeNext.orElseThrow();
     // Values not equal, continue traverse
+    EqualityCache<Value> eqCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        root,
-        nextObj,
-        ImmutableList.of(nfo, pfo),
-        this,
-        this,
-        EqualityCache.<Value>of(),
-        new HashSet<>())) {
+        nextObj, root, ImmutableList.of(nfo, pfo), this, this, eqCache, new HashSet<>())) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoDLL(
           nextObj,
@@ -4199,6 +4209,12 @@ public class SMGState
           pfo,
           ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
+    // When the equality cache is empty, identical values were found.
+    // If it has values, those are equal but not identical.
+    // (right = root, left = next)
+    // (order in the cache is important, as we carry over the values/pointers of the next element
+    //   and want to easily check them later on)
+
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
     SMGDoublyLinkedListSegment newDLL;
@@ -4215,15 +4231,8 @@ public class SMGState
       } else {
         newMinLength++;
       }
-      newDLL =
-          new SMGDoublyLinkedListSegment(
-              oldDLL.getNestingLevel(),
-              oldDLL.getSize(),
-              oldDLL.getOffset(),
-              oldDLL.getHeadOffset(),
-              oldDLL.getNextOffset(),
-              oldDLL.getPrevOffset(),
-              newMinLength);
+      newDLL = oldDLL.copyWithNewMinimumLength(newMinLength).copyWithNewRelevantEqualities(eqCache);
+
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
       // not at 0, or right behind the pfo if the pfo is right behind nfo
@@ -4258,7 +4267,8 @@ public class SMGState
               headOffset,
               nfo,
               pfo,
-              newMinLength);
+              newMinLength,
+              eqCache);
     }
     SMGState currentState = copyAndAddObjectToHeap(newDLL);
     // TODO: check that the other values are not pointers, if they are we want to merge the pointers
@@ -4397,12 +4407,18 @@ public class SMGState
     SMGObject nextObj = maybeNext.orElseThrow();
 
     // Values not equal, continue traverse
+    EqualityCache<Value> eqCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        root, nextObj, ImmutableList.of(nfo), this, this, EqualityCache.of(), new HashSet<>())) {
+        nextObj, root, ImmutableList.of(nfo), this, this, eqCache, new HashSet<>())) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoSLL(
           nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
+    // When the equality cache is empty, identical values were found.
+    // If it has values, those are equal but not identical.
+    // (right = root, left = next)
+    // (order in the cache is important, as we carry over the values/pointers of the next element
+    //   and want to easily check them later on)
 
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
@@ -4417,14 +4433,8 @@ public class SMGState
       } else {
         newMinLength++;
       }
-      newSLL =
-          new SMGSinglyLinkedListSegment(
-              oldSLL.getNestingLevel(),
-              oldSLL.getSize(),
-              oldSLL.getOffset(),
-              oldSLL.getHeadOffset(),
-              nfo,
-              newMinLength);
+      newSLL = oldSLL.copyWithNewMinimumLength(newMinLength).copyWithNewRelevantEqualities(eqCache);
+
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
       // not. We don't care about it however
@@ -4446,7 +4456,8 @@ public class SMGState
               root.getOffset(),
               headOffset,
               nfo,
-              newMinLength);
+              newMinLength,
+              eqCache);
     }
     SMGState currentState = copyAndAddObjectToHeap(newSLL);
     // TODO: check that the other values are not pointers, if they are we want to merge the pointers
@@ -4947,7 +4958,7 @@ public class SMGState
     /*
      * Use this to check if a known value mapping exists. If this returns false, don't call isEqual!
      */
-    private boolean knownKey(V thisEqual) {
+    public boolean knownKey(V thisEqual) {
       return primitiveCache.containsKey(thisEqual);
     }
 

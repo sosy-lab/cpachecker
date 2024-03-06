@@ -22,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -607,7 +608,15 @@ public class SMGCPAMaterializer {
     if (pListSeg instanceof SMGDoublyLinkedListSegment dllListSeg) {
       excludedOffsets = ImmutableSet.of(pListSeg.getNextOffset(), dllListSeg.getPrevOffset());
     }
-    currentState = copyMemoryOfTo(pListSeg, newConcreteRegion, currentState, excludedOffsets);
+    // Careful when copying memory. Some memory needs a copy and some needs replication!
+    // (copy == the same memory/values, replication == new, but equal memory/values)
+    currentState =
+        copyMemoryOfTo(
+            pListSeg,
+            newConcreteRegion,
+            currentState,
+            excludedOffsets,
+            pListSeg.getRelevantEqualities());
 
     currentState =
         currentState.copyAndReplaceMemoryModel(
@@ -633,11 +642,17 @@ public class SMGCPAMaterializer {
    * @param newMemory target of the values/memory copied.
    * @param pState current {@link SMGState}
    * @param excludedOffsets offsets excluded from being copied, for example nfo, pfo.
+   * @param replicationCache values that are present in this cache need replication. All others need
+   *     to be copied.
    * @return a new {@link SMGState} with all values copied from sourceObj to newMemory and all
    *     pointers and havoc generators copied into new memory/values.
    */
   private SMGState copyMemoryOfTo(
-      SMGObject sourceObj, SMGObject newMemory, SMGState pState, Set<BigInteger> excludedOffsets) {
+      SMGObject sourceObj,
+      SMGObject newMemory,
+      SMGState pState,
+      Set<BigInteger> excludedOffsets,
+      EqualityCache<Value> replicationCache) {
     SMGState currentState = pState.copyAllValuesFromObjToObj(sourceObj, newMemory);
     // All HVEs copied
     PersistentSet<SMGHasValueEdge> setOfValues =
@@ -657,6 +672,13 @@ public class SMGCPAMaterializer {
       BigInteger offset = hve.getOffset();
       BigInteger sizeInBits = hve.getSizeInBits();
       SMGValue smgValue = hve.hasValue();
+      Optional<Value> maybeValue = currentState.getMemoryModel().getValueFromSMGValue(smgValue);
+      if (maybeValue.isPresent() && isCopyValue(maybeValue.orElseThrow(), replicationCache)) {
+        // Copy case; we already copied the value, do nothing.
+        continue;
+      }
+
+      // Replication cases
       if (currentState.getMemoryModel().getSmg().isPointer(smgValue)) {
         Value value = currentState.getMemoryModel().getValueFromSMGValue(smgValue).orElseThrow();
         // Copy memory and insert new pointer
@@ -683,7 +705,8 @@ public class SMGCPAMaterializer {
           // Now copy all values and copy all memory for pointers again recursively
           // TODO: this is UNSOUND! It ignores ptr specifier and connections!
           currentState =
-              copyMemoryOfTo(oldTargetMemory, newTarget, currentState, ImmutableSet.of());
+              copyMemoryOfTo(
+                  oldTargetMemory, newTarget, currentState, ImmutableSet.of(), replicationCache);
           // Create a new pointer to the new memory that is equal to the old and save in newConcrete
           SMGPointsToEdge oldPTE =
               currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
@@ -704,6 +727,22 @@ public class SMGCPAMaterializer {
       // TODO: havok w constraints
     }
     return currentState;
+  }
+
+  /**
+   * Returns true if the {@link Value} given is to be copied. Returns false if it is to be
+   * replicated (either a new symbolic value with the same constraints is to be written to the
+   * location of the value entered here or the same memory with a new pointer is to be added instead
+   * of the pointer value given here).
+   *
+   * @param pValue a {@link Value} that may be a pointer or a symbolic value (or any other).
+   * @param pReplicationCache the equality cache of the creation of the original abstracted list
+   *     section that knows if this value is to be copied or replicated.
+   * @return true for copy, false for replication.
+   */
+  private boolean isCopyValue(Value pValue, EqualityCache<Value> pReplicationCache) {
+    // TODO: fix self references in the cache
+    return pReplicationCache.isEqualityKnown(pValue, pValue);
   }
 
   /**
