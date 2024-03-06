@@ -79,7 +79,7 @@ public class JFloat extends CFloat {
 
   @Override
   public CFloat add(CFloat... pSummands) {
-    float result = 0.0f;
+    float result = value;
     for (CFloat f : pSummands) {
       result += toFloat(f.getWrapper());
     }
@@ -93,7 +93,7 @@ public class JFloat extends CFloat {
 
   @Override
   public CFloat multiply(CFloat... pFactors) {
-    float result = 0.0f;
+    float result = value;
     for (CFloat f : pFactors) {
       result *= toFloat(f.getWrapper());
     }
