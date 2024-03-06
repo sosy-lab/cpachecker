@@ -337,7 +337,6 @@ public class MyFloat {
     } else {
       significand_ = significand_.shiftLeft(leading);
       exponent_ -= leading;
-      ;
     }
 
     // Round the result according to the grs bits
@@ -345,6 +344,12 @@ public class MyFloat {
     significand_ = significand_.shiftRight(3);
     if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
       significand_ = significand_.add(BigInteger.ONE);
+    }
+
+    // Shift the significand to the right if rounding has caused an overflow
+    if (significand_.bitLength() > format.sigBits + 1) {
+      significand_ = significand_.shiftRight(1);
+      exponent_ += 1;
     }
 
     // Check if the result is zero
@@ -469,6 +474,12 @@ public class MyFloat {
     significand_ = significand_.shiftRight(3);
     if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
       significand_ = significand_.add(BigInteger.ONE);
+    }
+
+    // Shift the significand to the right if rounding has caused an overflow
+    if (significand_.bitLength() > format.sigBits + 1) {
+      significand_ = significand_.shiftRight(1);
+      exponent_ += 1;
     }
 
     // Return infinity if there is an overflow.
@@ -619,6 +630,12 @@ public class MyFloat {
     significand_ = significand_.shiftRight(3);
     if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
       significand_ = significand_.add(BigInteger.ONE);
+    }
+
+    // Shift the significand to the right if rounding has caused an overflow
+    if (significand_.bitLength() > format.sigBits + 1) {
+      significand_ = significand_.shiftRight(1);
+      exponent_ += 1;
     }
 
     // Return the number
