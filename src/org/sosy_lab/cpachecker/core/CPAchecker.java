@@ -88,7 +88,9 @@ public class CPAchecker {
     private final ShutdownManager shutdownManager;
 
     public CPAcheckerBean(
-        ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
+        ReachedSet pReached,
+        LogManager logger,
+        ShutdownManager pShutdownManager) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
@@ -106,9 +108,9 @@ public class CPAchecker {
   }
 
   @Option(
-      secure = true,
-      name = "analysis.stopAfterError",
-      description = "stop after the first error has been found")
+    secure = true,
+    name = "analysis.stopAfterError",
+    description = "stop after the first error has been found")
   private boolean stopAfterError = true;
 
   public enum InitialStatesFor {
@@ -132,71 +134,66 @@ public class CPAchecker {
   }
 
   @Option(
-      secure = true,
-      name = "analysis.initialStatesFor",
-      description = "What CFA nodes should be the starting point of the analysis?")
+    secure = true,
+    name = "analysis.initialStatesFor",
+    description = "What CFA nodes should be the starting point of the analysis?")
   private Set<InitialStatesFor> initialStatesFor = ImmutableSet.of(InitialStatesFor.ENTRY);
 
   @Option(
-      secure = true,
-      name = "analysis.partitionInitialStates",
-      description =
-          "Partition the initial states based on the type of location they were created for (see"
-              + " 'initialStatesFor')")
+    secure = true,
+    name = "analysis.partitionInitialStates",
+    description = "Partition the initial states based on the type of location they were created for (see"
+        + " 'initialStatesFor')")
   private boolean partitionInitialStates = false;
 
   @Option(
-      secure = true,
-      name = "specification",
-      description =
-          "Comma-separated list of files with specifications that should be checked (cf."
-              + " config/specification/ for examples). Property files as used in SV-COMP can also"
-              + " be used here, but when these are specified inside a configuration file instead of"
-              + " on the command line, CPAchecker"
-              + " will ignore the entry function in the property file.")
+    secure = true,
+    name = "specification",
+    description = "Comma-separated list of files with specifications that should be checked (cf."
+        + " config/specification/ for examples). Property files as used in SV-COMP can also"
+        + " be used here, but when these are specified inside a configuration file instead of"
+        + " on the command line, CPAchecker"
+        + " will ignore the entry function in the property file.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> specificationFiles = ImmutableList.of();
 
   @Option(
-      secure = true,
-      name = "backwardSpecification",
-      description =
-          "comma-separated list of files with specifications that should be used "
-              + "\nin a backwards analysis; used if the analysis starts at the target states!"
-              + "\n(see config/specification/ for examples)")
+    secure = true,
+    name = "backwardSpecification",
+    description = "comma-separated list of files with specifications that should be used "
+        + "\nin a backwards analysis; used if the analysis starts at the target states!"
+        + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> backwardSpecificationFiles = ImmutableList.of();
 
   @Option(
-      secure = true,
-      name = "analysis.serializedCfaFile",
-      description =
-          "if this option is used, the CFA will be loaded from the given file "
-              + "instead of parsed from sourcefile.")
+    secure = true,
+    name = "analysis.serializedCfaFile",
+    description = "if this option is used, the CFA will be loaded from the given file "
+        + "instead of parsed from sourcefile.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path serializedCfaFile = null;
 
   @Option(
-      secure = true,
-      name = "analysis.unknownAsTrue",
-      description = "Do not report unknown if analysis terminated, report true (UNSOUND!).")
+    secure = true,
+    name = "analysis.unknownAsTrue",
+    description = "Do not report unknown if analysis terminated, report true (UNSOUND!).")
   private boolean unknownAsTrue = false;
 
   @Option(
-      secure = true,
-      name = "analysis.counterexampleLimit",
-      description = "Maximum number of counterexamples to be created.")
+    secure = true,
+    name = "analysis.counterexampleLimit",
+    description = "Maximum number of counterexamples to be created.")
   private int cexLimit = 0;
 
   @Option(
-      secure = true,
-      name = "analysis.invertSpecifications",
-      description =
-          "for benchmarking, the argument to -spec needs to be defined in the task definitions."
-              + " However, the goal of the backwards analysis is mostly not equivalent to the"
-              + " defined specifications in the benchmark set. With this property, the argument of"
-              + " -spec will be used to find target states if analysis.initialStatesFor=TARGET. The"
-              + " backward specification will then be used to create the CPA algorithm.")
+    secure = true,
+    name = "analysis.invertSpecifications",
+    description = "for benchmarking, the argument to -spec needs to be defined in the task definitions."
+        + " However, the goal of the backwards analysis is mostly not equivalent to the"
+        + " defined specifications in the benchmark set. With this property, the argument of"
+        + " -spec will be used to find target states if analysis.initialStatesFor=TARGET. The"
+        + " backward specification will then be used to create the CPA algorithm.")
   private boolean invertSpecifications = false;
 
   private final LogManager logger;
@@ -234,9 +231,9 @@ public class CPAchecker {
   @Options
   private static final class ApproachNameInformation {
     @Option(
-        secure = true,
-        name = CPAMain.APPROACH_NAME_OPTION,
-        description = "Name of the used analysis, defaults to the name of the used configuration")
+      secure = true,
+      name = CPAMain.APPROACH_NAME_OPTION,
+      description = "Name of the used analysis, defaults to the name of the used configuration")
     private String approachName;
 
     private ApproachNameInformation(Configuration pConfig) throws InvalidConfigurationException {
@@ -270,7 +267,8 @@ public class CPAchecker {
    * Returns a string that represents the aproach that CPAchecker runs (typically the name of the
    * properties file).
    *
-   * <p>Result can be null if name can not be determined.
+   * <p>
+   * Result can be null if name can not be determined.
    *
    * @param pConfig current config
    * @return approach name
@@ -292,7 +290,9 @@ public class CPAchecker {
   }
 
   public CPAchecker(
-      Configuration pConfiguration, LogManager pLogManager, ShutdownManager pShutdownManager)
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
@@ -302,7 +302,10 @@ public class CPAchecker {
     config.inject(this);
     factory =
         new CoreComponentsFactory(
-            pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty());
+            pConfiguration,
+            pLogManager,
+            shutdownNotifier,
+            AggregatedReachedSets.empty());
   }
 
   public CPAcheckerResult run(List<String> programDenotation) {
@@ -455,11 +458,8 @@ public class CPAchecker {
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException,
-          IOException,
-          ParserException,
-          InterruptedException,
-          ClassNotFoundException {
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
+      ClassNotFoundException {
 
     final CFA cfa;
     if (serializedCfaFile == null) {
@@ -505,7 +505,9 @@ public class CPAchecker {
   }
 
   private AlgorithmStatus runAlgorithm(
-      final Algorithm algorithm, final ReachedSet reached, final MainCPAStatistics stats)
+      final Algorithm algorithm,
+      final ReachedSet reached,
+      final MainCPAStatistics stats)
       throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Starting analysis ...");
@@ -524,9 +526,9 @@ public class CPAchecker {
 
         if (cexLimit > 0) {
           counterExampleCount =
-              Optionals.presentInstances(
-                      from(reached)
-                          .filter(AbstractStates::isTargetState)
+              Optionals
+                  .presentInstances(
+                      from(reached).filter(AbstractStates::isTargetState)
                           .filter(ARGState.class)
                           .transform(ARGState::getCounterexampleInformation))
                   .size();
@@ -598,39 +600,39 @@ public class CPAchecker {
     logger.log(Level.FINE, "Creating initial reached set");
 
     for (InitialStatesFor isf : initialStatesFor) {
-      final ImmutableSet<? extends CFANode> initialLocations =
-          switch (isf) {
-            case ENTRY -> ImmutableSet.of(pAnalysisEntryFunction);
-            case EXIT -> {
-              if (pAnalysisEntryFunction.getExitNode().isEmpty()) {
-                logger.logf(
-                    Level.SEVERE,
-                    "Cannot use exit node of '%s' because it never returns in a normal way"
-                        + " (because, e.g., it always aborts the program or always executes an"
-                        + " obvious infinite loop)",
-                    pAnalysisEntryFunction.getFunction().getOrigName());
-              }
-              yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
-            }
-            case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.entryNodes());
-            case FUNCTION_SINKS ->
-                ImmutableSet.<CFANode>builder()
-                    .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
-                    .addAll(getAllFunctionExitNodes(pCfa))
-                    .build();
-            case PROGRAM_SINKS ->
-                ImmutableSet.<CFANode>builder()
-                    .addAll(
-                        CFAUtils.getProgramSinks(
-                            pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
-                    .build();
-            case TARGET ->
-                new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
-                    .tryGetAutomatonTargetLocations(
-                        pAnalysisEntryFunction,
-                        Specification.fromFiles(
-                            backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
-          };
+      final ImmutableSet<? extends CFANode> initialLocations = switch (isf) {
+        case ENTRY -> ImmutableSet.of(pAnalysisEntryFunction);
+        case EXIT -> {
+          if (pAnalysisEntryFunction.getExitNode().isEmpty()) {
+            logger.logf(
+                Level.SEVERE,
+                "Cannot use exit node of '%s' because it never returns in a normal way"
+                    + " (because, e.g., it always aborts the program or always executes an"
+                    + " obvious infinite loop)",
+                pAnalysisEntryFunction.getFunction().getOrigName());
+          }
+          yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
+        }
+        case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.entryNodes());
+        case FUNCTION_SINKS -> ImmutableSet.<CFANode>builder()
+            .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
+            .addAll(getAllFunctionExitNodes(pCfa))
+            .build();
+        case PROGRAM_SINKS -> ImmutableSet.<CFANode>builder()
+            .addAll(
+                CFAUtils
+                    .getProgramSinks(pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+            .build();
+        case TARGET -> new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
+            .tryGetAutomatonTargetLocations(
+                pAnalysisEntryFunction,
+                Specification.fromFiles(
+                    invertSpecifications ? specificationFiles : backwardSpecificationFiles,
+                    pCfa,
+                    config,
+                    logger,
+                    shutdownNotifier));
+      };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }
 

@@ -1103,8 +1103,8 @@ class WitnessFactory implements EdgeAppender {
     // Merge nodes with empty or repeated edges
     int sizeBeforeMerging = edgeToCFAEdges.size();
     if (witnessOptions.minimizeARG()) {
-      mergeEdges(entryStateNodeId, true, this::isEdgeIrrelevant);
-      mergeEdges(entryStateNodeId, false, this::isEdgeIrrelevantByFaultLocalization);
+      mergeEdges(entryStateNodeId, true, this::isEdgeIrrelevant, backwardARG);
+      mergeEdges(entryStateNodeId, false, this::isEdgeIrrelevantByFaultLocalization, backwardARG);
     }
     int sizeAfterMerging = edgeToCFAEdges.size();
     logger.logf(
