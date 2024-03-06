@@ -267,9 +267,7 @@ public class MyFloat {
     }
     // (4) Both arguments are zero (or negative zero)
     if (n.isZero() && m.isZero()) {
-      return (n.isNegative() || m.isNegative())
-             ? negativeZero(format)
-             : zero(format);
+      return (n.isNegative() || m.isNegative()) ? negativeZero(format) : zero(format);
     }
     // (5) Only one of the arguments is zero (or negative zero)
     if (n.isZero() || m.isZero()) {
@@ -392,15 +390,11 @@ public class MyFloat {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(format);
       }
-      return (n.isNegative() ^ m.isNegative())
-             ? negativeInfinity(format)
-             : infinity(format);
+      return (n.isNegative() ^ m.isNegative()) ? negativeInfinity(format) : infinity(format);
     }
     // (3) One of the arguments is zero (or negative zero)
     if (n.isZero() || m.isZero()) {
-      return (n.isNegative() ^ m.isNegative())
-             ? negativeZero(format)
-             : zero(format);
+      return (n.isNegative() ^ m.isNegative()) ? negativeZero(format) : zero(format);
     }
 
     // Handle regular numbers in multiplyImpl
@@ -526,9 +520,7 @@ public class MyFloat {
         // Divisor is zero or infinite
         return nan(format);
       }
-      return (n.isNegative() ^ m.isNegative())
-             ? negativeZero(format)
-             : zero(format);
+      return (n.isNegative() ^ m.isNegative()) ? negativeZero(format) : zero(format);
     }
     // (3) Dividend is infinite
     if (n.isInfinite()) {
@@ -536,21 +528,15 @@ public class MyFloat {
         // Divisor is infinite
         return nan(format);
       }
-      return (n.isNegative() ^ m.isNegative())
-             ? negativeInfinity(format)
-             : infinity(format);
+      return (n.isNegative() ^ m.isNegative()) ? negativeInfinity(format) : infinity(format);
     }
     // (4) Divisor is zero (and dividend is finite)
     if (m.isZero()) {
-      return (n.isNegative() ^ m.isNegative())
-             ? negativeInfinity(format)
-             : infinity(format);
+      return (n.isNegative() ^ m.isNegative()) ? negativeInfinity(format) : infinity(format);
     }
     // (5) Divisor is infinite (and dividend is finite)
     if (m.isInfinite()) {
-      return (n.isNegative() ^ m.isNegative())
-             ? negativeZero(format)
-             : zero(format);
+      return (n.isNegative() ^ m.isNegative()) ? negativeZero(format) : zero(format);
     }
 
     // Handle regular numbers in divideImpl
