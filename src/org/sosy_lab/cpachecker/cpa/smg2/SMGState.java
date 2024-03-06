@@ -850,8 +850,37 @@ public class SMGState
    * @param pTypeSizeInBits Size of the type of the new global variable.
    * @return Newly created object + state with it.
    */
-  public SMGObjectAndSMGState copyAndAddHeapObject(BigInteger pTypeSizeInBits) {
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(BigInteger pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
+    return SMGObjectAndSMGState.of(
+        newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
+  }
+
+  /**
+   * Copy SMGState with a newly created {@link SMGObject} and returns the new state + the new {@link
+   * SMGObject} with the size and type of the given. Make sure that you reuse the {@link SMGObject}
+   * right away to create a points-to-edge and not just use SMGObjects in the code.
+   *
+   * @param objectToCopy The object copied. Size, type, nfo, pfo etc. are all copied.
+   * @return Newly created object + state with it.
+   */
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(SMGObject objectToCopy) {
+    SMGObject newObject;
+    if (objectToCopy instanceof SMGSinglyLinkedListSegment sllToCopy) {
+      if (objectToCopy instanceof SMGDoublyLinkedListSegment dllToCopy) {
+        // DLL
+        newObject = SMGDoublyLinkedListSegment.of(dllToCopy);
+      } else {
+        // SLL
+        Preconditions.checkArgument(sllToCopy.isSLL());
+        newObject = SMGSinglyLinkedListSegment.of(sllToCopy);
+      }
+    } else {
+      Preconditions.checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
+      newObject =
+          SMGObject.of(
+              objectToCopy.getNestingLevel(), objectToCopy.getSize(), objectToCopy.getOffset());
+    }
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
   }
@@ -1367,12 +1396,27 @@ public class SMGState
             .equals(((SymbolicExpression) otherValue).getType())) {
       if (options.isTreatSymbolicValuesAsUnknown()) {
         return true;
+      } else if (equalConstraintsInSymbolicValues(thisValue, thisState, otherValue, otherState)) {
+        // Check matching constraints
+
       } else {
         return thisValue.equals(otherValue);
       }
     }
 
     return thisValue.equals(otherValue);
+  }
+
+  @SuppressWarnings("unused")
+  private boolean equalConstraintsInSymbolicValues(
+      Value pThisValue, SMGState thisState, Value pOtherValue, SMGState otherState) {
+    return false;
+    // TODO: find a way to find Constraints with specific symbolic values in them
+    // TODO: build visitor that replaces symbolic values in constraints
+    // TODO: carry a SymbolicGenerator Object with all found SymbolicValues that can be replaced by
+    // it
+    //  Important/Difficulty: make sure the symbolic value relations to occurrences outside of the
+    // list are respected somehow
   }
 
   /* Check heap equality as far as possible. This has some limitations.
@@ -4155,14 +4199,9 @@ public class SMGState
     assert this.getMemoryModel().getSmg().checkSMGSanity();
     SMGObject nextObj = maybeNext.orElseThrow();
     // Values not equal, continue traverse
+    EqualityCache<Value> eqCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        root,
-        nextObj,
-        ImmutableList.of(nfo, pfo),
-        this,
-        this,
-        EqualityCache.<Value>of(),
-        new HashSet<>())) {
+        nextObj, root, ImmutableList.of(nfo, pfo), this, this, eqCache, new HashSet<>())) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoDLL(
           nextObj,
@@ -4170,6 +4209,12 @@ public class SMGState
           pfo,
           ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
+    // When the equality cache is empty, identical values were found.
+    // If it has values, those are equal but not identical.
+    // (right = root, left = next)
+    // (order in the cache is important, as we carry over the values/pointers of the next element
+    //   and want to easily check them later on)
+
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
     SMGDoublyLinkedListSegment newDLL;
@@ -4186,15 +4231,8 @@ public class SMGState
       } else {
         newMinLength++;
       }
-      newDLL =
-          new SMGDoublyLinkedListSegment(
-              oldDLL.getNestingLevel(),
-              oldDLL.getSize(),
-              oldDLL.getOffset(),
-              oldDLL.getHeadOffset(),
-              oldDLL.getNextOffset(),
-              oldDLL.getPrevOffset(),
-              newMinLength);
+      newDLL = oldDLL.copyWithNewMinimumLength(newMinLength).copyWithNewRelevantEqualities(eqCache);
+
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
       // not at 0, or right behind the pfo if the pfo is right behind nfo
@@ -4229,7 +4267,8 @@ public class SMGState
               headOffset,
               nfo,
               pfo,
-              newMinLength);
+              newMinLength,
+              eqCache);
     }
     SMGState currentState = copyAndAddObjectToHeap(newDLL);
     // TODO: check that the other values are not pointers, if they are we want to merge the pointers
@@ -4308,6 +4347,19 @@ public class SMGState
     }
 
     // Remove the 2 old objects and continue
+    // For this to work without issues, we rewrite the next/prev pointers to 0 in them
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, pfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, pfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(root));
@@ -4326,6 +4378,7 @@ public class SMGState
     }
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    assert currentState.getMemoryModel().getSmg().checkFirstPointerNestingLevelConsistency();
 
     return currentState.abstractIntoDLL(
         newDLL,
@@ -4354,12 +4407,18 @@ public class SMGState
     SMGObject nextObj = maybeNext.orElseThrow();
 
     // Values not equal, continue traverse
+    EqualityCache<Value> eqCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        root, nextObj, ImmutableList.of(nfo), this, this, EqualityCache.of(), new HashSet<>())) {
+        nextObj, root, ImmutableList.of(nfo), this, this, eqCache, new HashSet<>())) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoSLL(
           nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
+    // When the equality cache is empty, identical values were found.
+    // If it has values, those are equal but not identical.
+    // (right = root, left = next)
+    // (order in the cache is important, as we carry over the values/pointers of the next element
+    //   and want to easily check them later on)
 
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
@@ -4374,14 +4433,8 @@ public class SMGState
       } else {
         newMinLength++;
       }
-      newSLL =
-          new SMGSinglyLinkedListSegment(
-              oldSLL.getNestingLevel(),
-              oldSLL.getSize(),
-              oldSLL.getOffset(),
-              oldSLL.getHeadOffset(),
-              nfo,
-              newMinLength);
+      newSLL = oldSLL.copyWithNewMinimumLength(newMinLength).copyWithNewRelevantEqualities(eqCache);
+
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
       // not. We don't care about it however
@@ -4403,7 +4456,8 @@ public class SMGState
               root.getOffset(),
               headOffset,
               nfo,
-              newMinLength);
+              newMinLength,
+              eqCache);
     }
     SMGState currentState = copyAndAddObjectToHeap(newSLL);
     // TODO: check that the other values are not pointers, if they are we want to merge the pointers
@@ -4445,7 +4499,14 @@ public class SMGState
             currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
                 root, newSLL, incrementAmount));
 
-    // Remove the 2 old objects and continue
+    // Remove the 2 old objects and continue.
+    // For this to work without issues, we rewrite the next pointers to 0 in them
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(root));
@@ -4455,6 +4516,7 @@ public class SMGState
 
     // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+
     return currentState.abstractIntoSLL(
         newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
@@ -4581,7 +4643,6 @@ public class SMGState
             continue;
           }
           ptEdge = maybePtEdge.orElseThrow();
-          Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
           returnBuilder.add(
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
@@ -4675,26 +4736,12 @@ public class SMGState
       } else {
         // Size should be 2 in all other cases. This is the 0+ case, which is always the last
         Preconditions.checkArgument(materializationAndState.size() == 2);
-        // None of the values points to a SMGSinglyLinkedListSegment
+        // The values might point to a SMGSinglyLinkedListSegments if a followup is not merged
         // The 0 state does not materialize anything, the 1 state does materialize one more concrete
         // list segment and appends another 0+ segment after that
-        if (currentState
-            .memoryModel
-            .getSmg()
-            .isPointer(materializationAndState.get(0).getSMGValue())) {
-          Preconditions.checkArgument(
-              !(materializationAndState
-                      .get(0)
-                      .getSMGState()
-                      .memoryModel
-                      .getSmg()
-                      .getPTEdge(materializationAndState.get(0).getSMGValue())
-                      .orElseThrow()
-                      .pointsTo()
-                  instanceof SMGSinglyLinkedListSegment));
-        }
+
         // This can be violated for example through a last pointer still pointing to a 0+ after left
-        // sided mat
+        // sided mat, so check that
         Preconditions.checkArgument(
             !(materializationAndState
                     .get(1)
@@ -4911,7 +4958,7 @@ public class SMGState
     /*
      * Use this to check if a known value mapping exists. If this returns false, don't call isEqual!
      */
-    private boolean knownKey(V thisEqual) {
+    public boolean knownKey(V thisEqual) {
       return primitiveCache.containsKey(thisEqual);
     }
 

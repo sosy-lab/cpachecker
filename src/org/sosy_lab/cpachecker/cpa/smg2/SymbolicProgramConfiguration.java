@@ -771,32 +771,43 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Removes the given object and all objects with pointers towards it or them recursively. (Removes
-   * the subSMG, but only for objects pointing towards removed objects)
+   * the subSMG, for objects pointing towards removed objects and pointers in those objects pointing
+   * towards other memory)
    *
    * @param object {@link SMGObject} to be removed.
    * @return a new SPC with the object and subSMG removed.
    */
   public SymbolicProgramConfiguration copyAndRemoveObjectAndAssociatedSubSMG(SMGObject object) {
     // TODO: rework urgently
-    // The following condition is obviously wrong! Better: check that "not-all" ptrs exist
-    Preconditions.checkArgument(getAllSourcesForPointersPointingTowards(object).isEmpty());
+    // The following condition is obviously wrong!
+    // There might be valid memory pointed to by other sources, but some memory we want to get rid
+    // of.
+    if (!getAllSourcesForPointersPointingTowards(object).isEmpty() || object.isZero()) {
+      return this;
+    }
+    Set<SMGObject> targetsOfCurrent = getAllTargetsOfPointersInObject(object);
     SMGAndSMGObjects newSMGAndToRemoveObjects = smg.copyAndRemoveObjectAndSubSMG(object);
     SMG newSMG = newSMGAndToRemoveObjects.getSMG();
     PersistentSet<SMGObject> newHeapObject = heapObjects.removeAndCopy(object);
     for (SMGObject toRemove : newSMGAndToRemoveObjects.getSMGObjects()) {
       newHeapObject = newHeapObject.removeAndCopy(toRemove);
     }
-    return of(
-        newSMG,
-        globalVariableMapping,
-        stackVariableMapping,
-        newHeapObject,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        memoryAddressAssumptionsMap.removeAndCopy(object),
-        mallocZeroMemory,
-        readBlacklist);
+    SymbolicProgramConfiguration newSPC =
+        of(
+            newSMG,
+            globalVariableMapping,
+            stackVariableMapping,
+            newHeapObject,
+            externalObjectAllocation,
+            valueMapping,
+            variableToTypeMap,
+            memoryAddressAssumptionsMap.removeAndCopy(object),
+            mallocZeroMemory,
+            readBlacklist);
+    for (SMGObject objectToRemove : targetsOfCurrent) {
+      newSPC = newSPC.copyAndRemoveObjectAndAssociatedSubSMG(objectToRemove);
+    }
+    return newSPC;
   }
 
   /** Returns {@link SMGObject} reserved for the return value of the current StackFrame. */
@@ -1929,6 +1940,10 @@ public class SymbolicProgramConfiguration {
   public Set<SMGObject> getAllSourcesForPointersPointingTowards(SMGObject target) {
     // TODO: use valuesToRegionsTheyAreSavedIn
     return smg.getAllSourcesForPointersPointingTowards(target);
+  }
+
+  public Set<SMGObject> getAllTargetsOfPointersInObject(SMGObject source) {
+    return smg.getTargetsForPointersIn(source);
   }
 
   @Override

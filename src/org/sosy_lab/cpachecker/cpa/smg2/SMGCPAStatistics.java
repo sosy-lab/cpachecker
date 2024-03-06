@@ -92,10 +92,27 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
     }
 
     super.printStatistics(out, result, reached);
-    writer
-        .put(assumptions)
-        .put(deterministicAssumptions)
-        .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
+    writer.put(assumptions);
+    writer.put(deterministicAssumptions);
+    writer.put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
+    writer.put("Number of list materializations: ", listMaterializations.getValue());
+    writer.put("Total time spent on materialization: ", totalMaterializationTime.getConsumedTime());
+    writer.put("Max time spent on materialization: ", totalMaterializationTime.getMaxTime());
+    writer.put("Number of 0+ materializations", zeroPlusMaterializations);
+    writer.put(
+        "Total time spent on 0+ materialization: ",
+        totalZeroPlusMaterializationTime.getConsumedTime());
+    writer.put(
+        "Max time spent on 0+ materialization: ", totalZeroPlusMaterializationTime.getMaxTime());
+    writer.put("Number of lists abstracted in total: ", listAbstractions.getValue());
+    writer.put("Total time spent on list abstraction: ", totalAbstractionTime.getConsumedTime());
+    writer.put("Max time spent on list abstraction: ", totalAbstractionTime.getMaxTime());
+    writer.put(
+        "Total time spent on searching for list abstractions: ",
+        totalListSearchTime.getConsumedTime());
+    writer.put(
+        "Max time spent on searching a single list abstractions: ",
+        totalListSearchTime.getMaxTime());
   }
 
   /**

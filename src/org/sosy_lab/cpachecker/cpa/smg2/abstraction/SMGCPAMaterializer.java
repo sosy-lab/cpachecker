@@ -19,14 +19,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
@@ -65,9 +69,9 @@ public class SMGCPAMaterializer {
       SMGSinglyLinkedListSegment pAbstractObject,
       SMGState state)
       throws SMGException {
+    assert state.getMemoryModel().getSmg().checkFirstPointerNestingLevelConsistency();
     // Materialize from the left ( CE -> 3+ -> 0 => CE -> CE -> 2+ -> 0) for first ptrs and all next
-    // ptrs.
-    // Materialize from the right for all last ptrs and prevs.
+    // ptrs. Materialize from the right for all last ptrs and prevs.
     if (pAbstractObject.getMinLength() == MINIMUM_LIST_LENGTH) {
       // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
       // removed
@@ -145,6 +149,17 @@ public class SMGCPAMaterializer {
         .targetSpecifier()
         .equals(SMGTargetSpecifier.IS_REGION);
 
+    assert currentState
+            .getMemoryModel()
+            .getSmg()
+            .getObjectsPointingToZeroPlusAbstraction(pListSeg)
+            .isEmpty()
+        || currentState.getMemoryModel().getSmg().getPTEdgeMapping().values().stream()
+            .anyMatch(
+                pte ->
+                    pte.pointsTo().equals(pListSeg)
+                        && !pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER));
+
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState
@@ -157,15 +172,32 @@ public class SMGCPAMaterializer {
 
     // We can assume that a 0+ does not have other valid pointers to it!
     // Remove all other pointers/subgraphs associated with the 0+ object
-    // currentState = currentState.prunePointerValueTargets(pListSeg, ImmutableSet.of(nfo));
-    // Also remove the object
-    // TODO: merge prunePointerValueTargets into copyAndRemoveObjectAndAssociatedSubSMG
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
-    returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
+    if (state
+        .getMemoryModel()
+        .getSmg()
+        .getPTEdge(pointerValueTowardsThisSegment)
+        .orElseThrow()
+        .targetSpecifier()
+        .equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
+      returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
+    } else if (state
+        .getMemoryModel()
+        .getSmg()
+        .getPTEdge(pointerValueTowardsThisSegment)
+        .orElseThrow()
+        .targetSpecifier()
+        .equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
+      returnStates.add(SMGValueAndSMGState.of(currentState, prevPointerValue));
+    } else {
+      throw new SMGException("Unknown pointer specifier towards 0+ list segment.");
+    }
+
     statistics.stopTotalZeroPlusMaterializationTime();
+
     return returnStates
         .add(materialiseLLS(pListSeg, pointerValueTowardsThisSegment, state))
         .build();
@@ -547,7 +579,8 @@ public class SMGCPAMaterializer {
 
   /**
    * Creates a new concrete region, adds it as heap object, copies all values of the abstracted list
-   * segment to it, and switches the pointers with the nesting level given to the new object.
+   * segment to it, and switches the pointers with the nesting level given to the new object. This
+   * also copies memory associated with ALL pointers and constraints of values copied.
    *
    * @param pListSeg the abstracted list segment, either {@link SMGSinglyLinkedListSegment} or
    *     {@link SMGDoublyLinkedListSegment}.
@@ -564,31 +597,27 @@ public class SMGCPAMaterializer {
       Set<SMGTargetSpecifier> specifierToSwitch) {
     // Add new concrete memory region
     SMGObjectAndSMGState newConcreteRegionAndState =
-        pState.copyAndAddHeapObject(pListSeg.getSize());
+        pState.copyAndAddNewHeapObject(pListSeg.getSize());
     SMGState currentState = newConcreteRegionAndState.getState();
     SMGObject newConcreteRegion = newConcreteRegionAndState.getSMGObject();
-
-    // Add all values. next pointer is wrong here!
-    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newConcreteRegion);
-    // TODO: Check all not nfo values if they are pointers, if they are, we need to copy their
-    // targets and
-    // insert a new pointer to the copy
-    // -2 in the nesting lvl as we have not decremented the sll yet
-    /*
+    assert !newConcreteRegion.getSize().equals(BigInteger.ZERO);
+    // Add all values. next/prev pointer is wrong here, depending on left/right sided
+    // materialization! We write this later in the materialization.
+    // If one of those is a pointer, we copy the pointer and memory structure
+    Set<BigInteger> excludedOffsets = ImmutableSet.of(pListSeg.getNextOffset());
+    if (pListSeg instanceof SMGDoublyLinkedListSegment dllListSeg) {
+      excludedOffsets = ImmutableSet.of(pListSeg.getNextOffset(), dllListSeg.getPrevOffset());
+    }
+    // Careful when copying memory. Some memory needs a copy and some needs replication!
+    // (copy == the same memory/values, replication == new, but equal memory/values)
     currentState =
-        currentState.copyMemoryNotOriginatingFrom(
+        copyMemoryOfTo(
+            pListSeg,
             newConcreteRegion,
-            ImmutableSet.of(nfo),
-            Integer.max(pListSeg.getMinLength() - 2, MINIMUM_LIST_LENGTH));
-            */
+            currentState,
+            excludedOffsets,
+            pListSeg.getRelevantEqualities());
 
-    // --------------------------------------------------- 1
-
-    // Replace the pointer behind the value pointing to the abstract region with a pointer to the
-    // new object.
-    // We don't change the nesting level of the pointers! We switch only those with new nesting
-    // level == current minLength to the new concrete region and set that one to 0.
-    // This saves us a lookup compared to the SMG paper!
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState
@@ -599,6 +628,121 @@ public class SMGCPAMaterializer {
                     Integer.max(nestingLevelToSwitch, MINIMUM_LIST_LENGTH),
                     specifierToSwitch));
     return SMGObjectAndSMGState.of(newConcreteRegion, currentState);
+  }
+
+  /**
+   * Copies all values from sourceObj to newMemory. Memory of pointers copied is then also copied,
+   * except for the pointers at the offsets given in excludedOffsets. If a havok generating value is
+   * copied, a new symbolic value with the correct constraints in the state is added instead.
+   *
+   * <p>This method does NOT handle pointers towards the memory copied or the original memory of the
+   * copy currently!!!!
+   *
+   * @param sourceObj source of the values/memory copied.
+   * @param newMemory target of the values/memory copied.
+   * @param pState current {@link SMGState}
+   * @param excludedOffsets offsets excluded from being copied, for example nfo, pfo.
+   * @param replicationCache values that are present in this cache need replication. All others need
+   *     to be copied.
+   * @return a new {@link SMGState} with all values copied from sourceObj to newMemory and all
+   *     pointers and havoc generators copied into new memory/values.
+   */
+  private SMGState copyMemoryOfTo(
+      SMGObject sourceObj,
+      SMGObject newMemory,
+      SMGState pState,
+      Set<BigInteger> excludedOffsets,
+      EqualityCache<Value> replicationCache) {
+    SMGState currentState = pState.copyAllValuesFromObjToObj(sourceObj, newMemory);
+    // All HVEs copied
+    PersistentSet<SMGHasValueEdge> setOfValues =
+        currentState
+            .getMemoryModel()
+            .getSmg()
+            .getSMGObjectsWithSMGHasValueEdges()
+            .getOrDefault(sourceObj, PersistentSet.of());
+    // Filter out offsets that are unwanted, for example nfo or pfo
+    Set<SMGHasValueEdge> valuesWONextAndPrev =
+        setOfValues.stream()
+            .filter(hve -> !excludedOffsets.contains(hve.getOffset()))
+            .collect(ImmutableSet.toImmutableSet());
+
+    // Now we have all values whose memory we might need to copy
+    for (SMGHasValueEdge hve : valuesWONextAndPrev) {
+      BigInteger offset = hve.getOffset();
+      BigInteger sizeInBits = hve.getSizeInBits();
+      SMGValue smgValue = hve.hasValue();
+      Optional<Value> maybeValue = currentState.getMemoryModel().getValueFromSMGValue(smgValue);
+      if (maybeValue.isPresent() && isCopyValue(maybeValue.orElseThrow(), replicationCache)) {
+        // Copy case; we already copied the value, do nothing.
+        continue;
+      }
+
+      // Replication cases
+      if (currentState.getMemoryModel().getSmg().isPointer(smgValue)) {
+        Value value = currentState.getMemoryModel().getValueFromSMGValue(smgValue).orElseThrow();
+        // Copy memory and insert new pointer
+        SMGStateAndOptionalSMGObjectAndOffset targetMemoryAndState =
+            currentState.dereferencePointerWithoutMaterilization(value).orElseThrow();
+        currentState = targetMemoryAndState.getSMGState();
+        SMGObject oldTargetMemory = targetMemoryAndState.getSMGObject();
+        Preconditions.checkArgument(
+            targetMemoryAndState
+                .getOffsetForObject()
+                .asNumericValue()
+                .bigIntegerValue()
+                .equals(BigInteger.ZERO));
+        // Copy targetMemory
+        SMGValue newSMGValueToWrite;
+        if (oldTargetMemory.isZero()) {
+          newSMGValueToWrite = SMGValue.zeroValue();
+        } else {
+          SMGObjectAndSMGState copiedTargetMemoryAndState =
+              currentState.copyAndAddNewHeapObject(oldTargetMemory);
+          SMGObject newTarget = copiedTargetMemoryAndState.getSMGObject();
+          assert !newTarget.getSize().equals(BigInteger.ZERO);
+          currentState = copiedTargetMemoryAndState.getState();
+          // Now copy all values and copy all memory for pointers again recursively
+          // TODO: this is UNSOUND! It ignores ptr specifier and connections!
+          currentState =
+              copyMemoryOfTo(
+                  oldTargetMemory, newTarget, currentState, ImmutableSet.of(), replicationCache);
+          // Create a new pointer to the new memory that is equal to the old and save in newConcrete
+          SMGPointsToEdge oldPTE =
+              currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
+          BigInteger oldOffset = oldPTE.getOffset();
+          int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
+          SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
+          ValueAndSMGState newPtrAndState =
+              currentState.searchOrCreateAddress(
+                  newTarget, oldOffset, oldPtrNestingLvl, oldPtrTargetSpec);
+          currentState = newPtrAndState.getState();
+          Value newPtr = newPtrAndState.getValue();
+          newSMGValueToWrite =
+              currentState.getMemoryModel().getSMGValueFromValue(newPtr).orElseThrow();
+        }
+        currentState =
+            currentState.writeValueWithoutChecks(newMemory, offset, sizeInBits, newSMGValueToWrite);
+      }
+      // TODO: havok w constraints
+    }
+    return currentState;
+  }
+
+  /**
+   * Returns true if the {@link Value} given is to be copied. Returns false if it is to be
+   * replicated (either a new symbolic value with the same constraints is to be written to the
+   * location of the value entered here or the same memory with a new pointer is to be added instead
+   * of the pointer value given here).
+   *
+   * @param pValue a {@link Value} that may be a pointer or a symbolic value (or any other).
+   * @param pReplicationCache the equality cache of the creation of the original abstracted list
+   *     section that knows if this value is to be copied or replicated.
+   * @return true for copy, false for replication.
+   */
+  private boolean isCopyValue(Value pValue, EqualityCache<Value> pReplicationCache) {
+    // TODO: fix self references in the cache
+    return pReplicationCache.isEqualityKnown(pValue, pValue);
   }
 
   /**

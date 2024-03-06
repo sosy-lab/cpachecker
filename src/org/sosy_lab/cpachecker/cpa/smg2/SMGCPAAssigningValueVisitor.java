@@ -224,11 +224,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
             leftHandSideAssignments.get(0);
         currentState = leftHandSideAssignment.getSMGState();
-        if (isAssignable(leftHandSideAssignments)) {
+        if (isAssignable(leftHandSideAssignments) && options.isOptimizeBooleanVariables()) {
           String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
 
-          if (options.isOptimizeBooleanVariables()
-              && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
+          if (booleans.contains(leftMemLocName) || options.isInitAssumptionVars()) {
 
             CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
             BigInteger size = evaluator.getBitSizeof(currentState, type);
@@ -247,14 +246,14 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       // 0 != x
       if (isEligibleForAssignment(rightValue, currentState)
           && leftValue.isExplicitlyKnown()
-          && !evaluator.isPointerValue(rightValue, currentState)) {
+          && !evaluator.isPointerValue(rightValue, currentState)
+          && options.isOptimizeBooleanVariables()) {
         if (!isNestingHandleable((CExpression) unwrap(rVarInBinaryExp))) {
           return currentState;
         }
         String rightMemLocName = getExtendedQualifiedName((CExpression) unwrap(rVarInBinaryExp));
 
-        if (options.isOptimizeBooleanVariables()
-            && (booleans.contains(rightMemLocName) || options.isInitAssumptionVars())) {
+        if (booleans.contains(rightMemLocName) || options.isInitAssumptionVars()) {
           List<SMGStateAndOptionalSMGObjectAndOffset> rightHandSideAssignments =
               getAssignable(rVarInBinaryExp, initialState);
           Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
