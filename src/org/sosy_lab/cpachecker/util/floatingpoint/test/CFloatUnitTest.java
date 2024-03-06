@@ -467,6 +467,13 @@ public abstract class CFloatUnitTest {
   }
 
   @Test
+  public void castToRoundingTest() {
+    testOperator(
+        "castToRoundingTest",
+        (CFloat a) -> a.castTo(CNativeType.DOUBLE).sqrt().castTo(CNativeType.SINGLE));
+  }
+
+  @Test
   public void castToByteTest() {
     testIntegerFunction("castToByteTest", (CFloat a) -> a.castToOther(CNativeType.CHAR));
   }
