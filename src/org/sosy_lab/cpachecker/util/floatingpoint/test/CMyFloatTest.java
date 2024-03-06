@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import org.junit.Test;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
@@ -29,10 +27,6 @@ public class CMyFloatTest extends CFloatUnitTest {
   @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
     return new JFloat(repr, pFloatType);
-  }
-
-  protected void assertEqual(CFloat r1, CFloat r2) {
-    assertThat(printValue(r1.toFloat())).isEqualTo(printValue(r2.toFloat()));
   }
 
   @Test

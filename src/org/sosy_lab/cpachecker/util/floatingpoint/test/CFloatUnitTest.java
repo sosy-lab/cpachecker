@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
@@ -342,6 +343,10 @@ public abstract class CFloatUnitTest {
               errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
+  }
+
+  protected void assertEqual(CFloat r1, CFloat r2) {
+    assertThat(printValue(r1.toFloat())).isEqualTo(printValue(r2.toFloat()));
   }
 
   public abstract CFloat toTestedImpl(String repr, int pFloatType);
