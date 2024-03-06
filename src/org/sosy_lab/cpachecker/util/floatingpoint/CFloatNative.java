@@ -35,6 +35,18 @@ public class CFloatNative extends CFloat {
     return new CFloatNative(newFloat, max(type, summand.getType()));
   }
 
+  public CFloat add3(CFloat summand1, CFloat summand2) {
+    CFloatWrapper newFloat =
+        CFloatNativeAPI.add3Fp(
+            wrapper,
+            type,
+            summand1.copyWrapper(),
+            summand1.getType(),
+            summand2.copyWrapper(),
+            summand2.getType());
+    return new CFloatNative(newFloat, max(type, summand1.getType(), summand1.getType()));
+  }
+
   @Override
   public CFloat add(CFloat... summands) {
     if (summands.length < 1) {

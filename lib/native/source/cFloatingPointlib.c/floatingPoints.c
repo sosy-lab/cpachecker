@@ -185,10 +185,35 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.f_value = fp_1.f_value + fp_2.f_value;
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			result.d_value = chooseOf2(type1, fp_1) + chooseOf3(type2, fp_2);
+			result.d_value = chooseOf2(type1, fp_1) + chooseOf2(type2, fp_2);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			result.ld_value = chooseOf3(type1, fp_1) + chooseOf3(type2, fp_2);
+			break;
+		default:
+			throwNativeException(env, EX_TEXT);
+	}
+
+	return transformWrapperToJava(env, result, maxType);
+}
+
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_add3Fp(JNIEnv* env, jclass cl, jobject wrapper1, jint type1, jobject wrapper2, jint type2, jobject wrapper3, jint type3) {
+	t_ld fp_1 = transformWrapperFromJava(env, wrapper1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, wrapper2, type2);
+        t_ld fp_3 = transformWrapperFromJava(env, wrapper3, type3);
+
+	t_ld result = { .ld_value = 0.0L };
+
+	jint maxType = max(type1, max(type2, type3));
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			result.f_value = fp_1.f_value + fp_2.f_value + fp_3.f_value;
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			result.d_value = chooseOf2(type1, fp_1) + chooseOf2(type2, fp_2) + chooseOf2(type2, fp_3);
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			result.ld_value = chooseOf3(type1, fp_1) + chooseOf3(type2, fp_2) + chooseOf3(type2, fp_3);
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);

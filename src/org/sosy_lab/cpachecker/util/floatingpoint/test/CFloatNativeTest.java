@@ -27,18 +27,18 @@ public class CFloatNativeTest extends CFloatUnitTest {
   }
 
   @Test
-  public void addManyBugTest() {
+  public void add3Test() {
     String val1 = "1.6777216E7"; // 1.0 x 2^24
     String val2 = "1.0";
     String val_ = "1.6777218E7"; // 1.00...1 x 2^24
 
-    CFloat nativeFloat1 = toTestedImpl(val1, 0);
-    CFloat nativeFloat2 = toTestedImpl(val2, 0);
-    CFloat nativeFloat_ = toTestedImpl(val_, 0);
+    CFloatNative nativeFloat1 = (CFloatNative) toTestedImpl(val1, 0);
+    CFloatNative nativeFloat2 = (CFloatNative) toTestedImpl(val2, 0);
+    CFloatNative nativeFloat_ = (CFloatNative) toTestedImpl(val_, 0);
 
     // If the calculation is done with a larger precision than float we'd expect the two val2 to
     // carry over into the last bit of the result
-    assertEqual(nativeFloat1.add(nativeFloat2, nativeFloat2), nativeFloat_);
+    assertEqual(nativeFloat1.add3(nativeFloat2, nativeFloat2), nativeFloat_);
   }
 
   @Ignore
