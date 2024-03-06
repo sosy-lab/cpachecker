@@ -232,7 +232,7 @@ public class MyFloat {
 
   public MyFloat negate() {
     if (isNan()) {
-      return MyFloat.nan(format);
+      return nan(format);
     }
     return new MyFloat(format, new FpValue(!value.sign, value.exponent, value.significand));
   }
@@ -249,17 +249,17 @@ public class MyFloat {
     // Handle special cases:
     // (1) Either argument is NaN
     if (n.isNan() || m.isNan()) {
-      return MyFloat.nan(format);
+      return nan(format);
     }
     // (2) Both arguments are infinite
     if (n.isInfinite() && m.isInfinite()) {
       if (n.isNegative() && m.isNegative()) {
-        return MyFloat.negativeInfinity(format);
+        return negativeInfinity(format);
       }
       if (!n.isNegative() && !m.isNegative()) {
-        return MyFloat.infinity(format);
+        return infinity(format);
       }
-      return MyFloat.nan(format);
+      return nan(format);
     }
     // (3) Only one argument is infinite
     if (n.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
@@ -268,8 +268,8 @@ public class MyFloat {
     // (4) Both arguments are zero (or negative zero)
     if (n.isZero() && m.isZero()) {
       return (n.isNegative() || m.isNegative())
-          ? MyFloat.negativeZero(format)
-          : MyFloat.zero(format);
+             ? negativeZero(format)
+             : zero(format);
     }
     // (5) Only one of the arguments is zero (or negative zero)
     if (n.isZero() || m.isZero()) {
@@ -356,7 +356,7 @@ public class MyFloat {
 
     // Return infinity if there is an overflow.
     if (exponent_ > format.bias()) {
-      return sign_ ? MyFloat.negativeInfinity(format) : MyFloat.infinity(format);
+      return sign_ ? negativeInfinity(format) : infinity(format);
     }
 
     // Otherwise return the number
@@ -366,7 +366,7 @@ public class MyFloat {
   public MyFloat subtract(MyFloat number) {
     // We need to override the special case "0 - 0"
     if (this.isZero() && number.isZero()) {
-      return MyFloat.zero(format);
+      return zero(format);
     }
     // Everything else is just as for addition
     return add(number.negate());
@@ -384,23 +384,23 @@ public class MyFloat {
     // Handle special cases:
     // (1) Either argument is NaN
     if (n.isNan() || m.isNan()) {
-      return MyFloat.nan(format);
+      return nan(format);
     }
     // (2) One of the argument is infinite
     if (n.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
       if (m.isZero()) {
         // Return NaN if we're trying to multiply infinity by zero
-        return MyFloat.nan(format);
+        return nan(format);
       }
       return (n.isNegative() ^ m.isNegative())
-          ? MyFloat.negativeInfinity(format)
-          : MyFloat.infinity(format);
+             ? negativeInfinity(format)
+             : infinity(format);
     }
     // (3) One of the arguments is zero (or negative zero)
     if (n.isZero() || m.isZero()) {
       return (n.isNegative() ^ m.isNegative())
-          ? MyFloat.negativeZero(format)
-          : MyFloat.zero(format);
+             ? negativeZero(format)
+             : zero(format);
     }
 
     // Handle regular numbers in multiplyImpl
@@ -479,7 +479,7 @@ public class MyFloat {
 
     // Return infinity if there is an overflow.
     if (exponent_ > format.bias()) {
-      return sign_ ? MyFloat.negativeInfinity(format) : MyFloat.infinity(format);
+      return sign_ ? negativeInfinity(format) : infinity(format);
     }
 
     // Otherwise return the number
@@ -494,20 +494,20 @@ public class MyFloat {
     MyFloat t = this.withPrecision(Format.DOUBLE);
     MyFloat r = t.powFast(Math.abs(exp));
     if (exp < 0) {
-      r = MyFloat.one(Format.DOUBLE).divide(r);
+      r = one(Format.DOUBLE).divide(r);
     }
     return r.withPrecision(format);
   }
 
   public MyFloat powFast(int exp) {
     if (exp == 0) {
-      return MyFloat.one(Format.DOUBLE);
+      return one(Format.DOUBLE);
     }
     if (exp == 1) {
       return this;
     }
     MyFloat r = powFast(exp / 2).squared();
-    MyFloat p = exp % 2 == 0 ? MyFloat.one(Format.DOUBLE) : this;
+    MyFloat p = exp % 2 == 0 ? one(Format.DOUBLE) : this;
     return p.multiply(r);
   }
 
@@ -518,39 +518,39 @@ public class MyFloat {
     // Handle special cases:
     // (1) Either argument is NaN
     if (n.isNan() || m.isNan()) {
-      return MyFloat.nan(format);
+      return nan(format);
     }
     // (2) Dividend is zero
     if (n.isZero()) {
       if (m.isZero()) {
         // Divisor is zero or infinite
-        return MyFloat.nan(format);
+        return nan(format);
       }
       return (n.isNegative() ^ m.isNegative())
-          ? MyFloat.negativeZero(format)
-          : MyFloat.zero(format);
+             ? negativeZero(format)
+             : zero(format);
     }
     // (3) Dividend is infinite
     if (n.isInfinite()) {
       if (m.isInfinite()) {
         // Divisor is infinite
-        return MyFloat.nan(format);
+        return nan(format);
       }
       return (n.isNegative() ^ m.isNegative())
-          ? MyFloat.negativeInfinity(format)
-          : MyFloat.infinity(format);
+             ? negativeInfinity(format)
+             : infinity(format);
     }
     // (4) Divisor is zero (and dividend is finite)
     if (m.isZero()) {
       return (n.isNegative() ^ m.isNegative())
-          ? MyFloat.negativeInfinity(format)
-          : MyFloat.infinity(format);
+             ? negativeInfinity(format)
+             : infinity(format);
     }
     // (5) Divisor is infinite (and dividend is finite)
     if (m.isInfinite()) {
       return (n.isNegative() ^ m.isNegative())
-          ? MyFloat.negativeZero(format)
-          : MyFloat.zero(format);
+             ? negativeZero(format)
+             : zero(format);
     }
 
     // Handle regular numbers in divideImpl
@@ -644,10 +644,10 @@ public class MyFloat {
   }
 
   // TODO: Calculate these constants only once for each floating point precision
-  private static final MyFloat c48 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(48));
-  private static final MyFloat c32 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(32));
-  private static final MyFloat c17 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(17));
-  private static final MyFloat c2 = MyFloat.constant(Format.DOUBLE, BigInteger.valueOf(2));
+  private static final MyFloat c48 = constant(Format.DOUBLE, BigInteger.valueOf(48));
+  private static final MyFloat c32 = constant(Format.DOUBLE, BigInteger.valueOf(32));
+  private static final MyFloat c17 = constant(Format.DOUBLE, BigInteger.valueOf(17));
+  private static final MyFloat c2 = constant(Format.DOUBLE, BigInteger.valueOf(2));
 
   private static final MyFloat c48d17 = c48.divideImpl(c17);
   private static final MyFloat c32d17 = c32.divideImpl(c17);
@@ -701,13 +701,13 @@ public class MyFloat {
 
   public MyFloat sqrt() {
     if (isZero()) {
-      return MyFloat.negativeZero(format);
+      return negativeZero(format);
     }
     if (isNan() || isNegative()) {
-      return MyFloat.nan(format);
+      return nan(format);
     }
     if (isInfinite()) {
-      return MyFloat.infinity(format);
+      return infinity(format);
     }
     return sqrtImpl();
   }
@@ -747,7 +747,7 @@ public class MyFloat {
     // TODO: Figure out a bound for the number of iterations
     for (int i = 0; i < 7; i++) {
       // x_n+1 = x_n * (3/2 - 1/2 * x_n^2)
-      x = x.multiply(const1_5.subtract(const0_5.multiply(f).multiply(x.powInt(2))));
+      x = x.multiply(const1_5.subtract(const0_5.multiply(f).multiply(x.squared())));
     }
 
     // r is the exponent part that we pulled out of sqrt()
@@ -762,10 +762,10 @@ public class MyFloat {
 
   public MyFloat exp() {
     if (isNan()) {
-      return MyFloat.nan(format);
+      return nan(format);
     }
     if (isInfinite()) {
-      return isNegative() ? MyFloat.zero(format) : MyFloat.infinity(format);
+      return isNegative() ? zero(format) : infinity(format);
     }
     return expImpl();
   }
@@ -785,7 +785,7 @@ public class MyFloat {
   private static Map<Integer, MyFloat> expTable = mkExpTable(Format.DOUBLE);
 
   private MyFloat expImpl() {
-    MyFloat one = MyFloat.one(Format.DOUBLE);
+    MyFloat one = one(Format.DOUBLE);
 
     MyFloat x = this.withPrecision(Format.DOUBLE);
     MyFloat xs = one; // x^k (1 for k=0)
@@ -807,7 +807,7 @@ public class MyFloat {
 
     // Square the result to recover the exponent
     for (int i = 0; i < value.exponent; i++) {
-      r = r.powInt(2);
+      r = r.squared();
     }
     return r.withPrecision(format);
   }
@@ -857,7 +857,7 @@ public class MyFloat {
       preprocess++;
     }
 
-    MyFloat r = x.subtract(MyFloat.one(Format.DOUBLE)).ln1p();
+    MyFloat r = x.subtract(one(Format.DOUBLE)).ln1p();
     MyFloat p = r.withExponent(r.value.exponent + preprocess);
 
     return p.withPrecision(format);
@@ -868,10 +868,10 @@ public class MyFloat {
     Preconditions.checkArgument(this.equals(one(format)) || one(format).greaterThan(this));
 
     MyFloat x = this;
-    MyFloat r = MyFloat.zero(format);
+    MyFloat r = zero(format);
 
     // x^k (1 for k=0)
-    MyFloat xs = MyFloat.one(format);
+    MyFloat xs = one(format);
 
     for (int k = 1; k < 100; k++) { // TODO: Find a proper bound for the number of iterations
       // Calculate the next term x^k/k
@@ -1013,10 +1013,13 @@ public class MyFloat {
 
   public MyFloat withPrecision(Format targetFormat) {
     if (isNan()) {
-      return MyFloat.nan(targetFormat);
+      return nan(targetFormat);
     }
     if (isInfinite()) {
-      return value.sign ? MyFloat.negativeInfinity(targetFormat) : MyFloat.infinity(targetFormat);
+      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    }
+    if (isZero()) {
+      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
     }
 
     long exponent = Math.max(value.exponent, format.minExp());
