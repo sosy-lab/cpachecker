@@ -13,6 +13,12 @@ Changes since CPAchecker 2.3
 * Now by default, CPAchecker tries to generate a test harness when a property violation is found.
   The test harness can reproduce the found violation through test execution.
   See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
+* Dual Approximated Reachability (DAR)
+  A new reachability-safety analysis (config `-bmc-interpolationDualSequence`),
+  which adopts a hardware model-checking algorithm
+  proposed by Yakir Vizel, Orna Grumberg, and Sharon Shoham
+  (cf. ["Intertwined Forward-Backward Reachability Analysis Using Interpolants", Proc. TACAS, 2013](https://doi.org/10.1007/978-3-642-36742-7_22))
+  for software verification, has been added to CPAchecker.
 
 Changes from CPAchecker 2.2 to CPAchecker 2.3
 ---------------------------------------------
