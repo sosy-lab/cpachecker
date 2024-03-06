@@ -10,9 +10,12 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -25,12 +28,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -378,14 +384,30 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   private boolean isEligibleForAssignment(final Value pValue, SMGState currentState) {
+    // Make sure that we don't assign to symbolic values with constraints preventing assignments
+    // TODO: this currently is a quick and dirty fix. Do properly.
+    Set<SymbolicIdentifier> symIdents = ImmutableSet.of();
+    if (pValue instanceof SymbolicIdentifier valSymId) {
+      symIdents = SymbolicIdentifierLocator.getInstance().visit(valSymId);
+    }
+    if (pValue instanceof ConstantSymbolicExpression valSymId) {
+      symIdents = SymbolicIdentifierLocator.getInstance().visit(valSymId);
+    }
+    Set<Constraint> constraints = currentState.getConstraints();
+    for (Constraint co : constraints) {
+      Set<SymbolicIdentifier> symIdentsConstr = SymbolicIdentifierLocator.getInstance().visit(co);
+      if (!Collections.disjoint(symIdentsConstr, symIdents)) {
+        return false;
+      }
+    }
     // We can't assign memory location carriers. They are indicators for pointers, which are treated
     // like concrete values!
     return !pValue.isExplicitlyKnown()
         && options.isAssignEqualityAssumptions()
         && !(pValue instanceof AddressExpression)
+        && !currentState.getMemoryModel().isPointer(pValue)
         && (!(pValue instanceof SymbolicIdentifier symIdent)
-            || (!symIdent.getRepresentedLocation().isPresent()
-                && !currentState.getMemoryModel().isPointer(pValue)));
+            || !symIdent.getRepresentedLocation().isPresent());
   }
 
   // TODO: option?
