@@ -108,7 +108,12 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat add(CFloat... pSummands) {
-    throw new UnsupportedOperationException();
+    MyFloat r = delegate;
+    for (CFloat f : pSummands) {
+      CMyFloat mf = (CMyFloat) f;
+      r = r.add(mf.delegate);
+    }
+    return new CMyFloat(r);
   }
 
   @Override
@@ -121,7 +126,12 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat multiply(CFloat... pFactors) {
-    throw new UnsupportedOperationException();
+    MyFloat r = delegate;
+    for (CFloat f : pFactors) {
+      CMyFloat mf = (CMyFloat) f;
+      r = r.multiply(mf.delegate);
+    }
+    return new CMyFloat(r);
   }
 
   @Override

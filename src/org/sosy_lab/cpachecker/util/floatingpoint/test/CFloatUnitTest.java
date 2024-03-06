@@ -366,8 +366,18 @@ public abstract class CFloatUnitTest {
   }
 
   @Test
+  public void addManyTest() {
+    testOperator("addManyTest", (CFloat a, CFloat b) -> b.add(a, b));
+  }
+
+  @Test
   public void multiplyTest() {
     testOperator("multiply", (CFloat a, CFloat b) -> a.multiply(b));
+  }
+
+  @Test
+  public void multiplyManyTest() {
+    testOperator("multiplyManyTest", (CFloat a, CFloat b) -> b.sqrt().multiply(a, b.sqrt()));
   }
 
   @Test
