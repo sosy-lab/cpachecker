@@ -397,6 +397,12 @@ public class SMG {
         sizeOfPointer);
   }
 
+  public int getNumberOfValueUsages(SMGValue value) {
+    PersistentMap<SMGObject, Integer> sourceObjectsMap =
+        valuesToRegionsTheyAreSavedIn.getOrDefault(value, PathCopyingPersistentTreeMap.of());
+    return sourceObjectsMap.values().stream().reduce(0, Integer::sum);
+  }
+
   public SMG copyAndAddHVEdges(Iterable<SMGHasValueEdge> edges, SMGObject source) {
     PersistentSet<SMGHasValueEdge> smgEdges = hasValueEdges.get(source);
     PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>> newValuesToRegionsTheyAreSavedIn =

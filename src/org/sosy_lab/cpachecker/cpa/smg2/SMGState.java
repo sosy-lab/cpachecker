@@ -1101,11 +1101,6 @@ public class SMGState
     return copyAndAddStackFrame(pFunctionDefinition, null);
   }
 
-  @SuppressWarnings("unused")
-  public SMGState copyAndReplaceValueMapping(Value oldValue, Value newValue) {
-    return copyAndReplaceMemoryModel(memoryModel.copyAndReplaceValueMapping(oldValue, newValue));
-  }
-
   /**
    * Copy SMGState and adds a new frame for the function. Also saves the variable arguments of this
    * function. Null as argument means no variable arguments. The list of variable arguments may be
@@ -1243,6 +1238,10 @@ public class SMGState
       return false;
     }
     return true;
+  }
+
+  public int getNumberOfValueUsages(Value value) {
+    return memoryModel.getNumberOfValueUsages(value);
   }
 
   @Override
