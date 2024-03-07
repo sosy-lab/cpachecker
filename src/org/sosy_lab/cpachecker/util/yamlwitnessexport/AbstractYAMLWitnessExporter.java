@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
@@ -82,8 +83,19 @@ abstract class AbstractYAMLWitnessExporter {
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
       String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
       writer.write(entryYaml);
+    } catch (JsonProcessingException e) {
+      logger.log(
+          Level.INFO,
+          "witness export to "
+              + outFile
+              + " was not possible due to an internal error when transforming "
+              + "the internal witness data structure into a YAML string.");
     } catch (IOException e) {
-      logger.log(Level.INFO, "witness export to " + outFile + " failed.");
+      logger.log(
+          Level.INFO,
+          "witness export to "
+              + outFile
+              + " failed due to not being able to write to the output file.");
     }
   }
 }
