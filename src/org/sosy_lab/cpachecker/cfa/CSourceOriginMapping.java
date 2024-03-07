@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Splitter;
+import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
@@ -97,15 +98,16 @@ public class CSourceOriginMapping {
     // This should only happen when parsing an automaton file. In those cases the file is called
     // 'fragment' since usually only a fragment of the automaton contains C-code.
     if (!lineNumberToStartingColumn.containsKey(pAnalysisFileName)) {
-      return -1;
+      Verify.verify(pAnalysisFileName.toString().equals("fragment"));
+      // Till now, we only have fragments with one line of code.
+      Verify.verify(pAnalysisCodeLine == 1);
+      return pOffset;
     }
 
-    // This should never happen, but in order to not completely fail we check for this case.
-    if (lineNumberToStartingColumn.get(pAnalysisFileName).size() <= pAnalysisCodeLine) {
-      return -2;
-    }
+    Verify.verify(lineNumberToStartingColumn.get(pAnalysisFileName).size() > pAnalysisCodeLine);
 
-    // Since the offsets start at 0 there is a one-off difference between the column and the offset
+    // Since the offsets start at 0 there is a one-off difference between the column and the
+    // offset
     return pOffset
         - lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1)
         + 1;
