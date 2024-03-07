@@ -28,6 +28,9 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -594,7 +597,8 @@ public class SMGCPAMaterializer {
       SMGSinglyLinkedListSegment pListSeg,
       SMGState pState,
       int nestingLevelToSwitch,
-      Set<SMGTargetSpecifier> specifierToSwitch) {
+      Set<SMGTargetSpecifier> specifierToSwitch)
+      throws SMGException {
     // Add new concrete memory region
     SMGObjectAndSMGState newConcreteRegionAndState =
         pState.copyAndAddNewHeapObject(pListSeg.getSize());
@@ -652,7 +656,8 @@ public class SMGCPAMaterializer {
       SMGObject newMemory,
       SMGState pState,
       Set<BigInteger> excludedOffsets,
-      EqualityCache<Value> replicationCache) {
+      EqualityCache<Value> replicationCache)
+      throws SMGException {
     SMGState currentState = pState.copyAllValuesFromObjToObj(sourceObj, newMemory);
     // All HVEs copied
     PersistentSet<SMGHasValueEdge> setOfValues =
@@ -723,8 +728,27 @@ public class SMGCPAMaterializer {
         }
         currentState =
             currentState.writeValueWithoutChecks(newMemory, offset, sizeInBits, newSMGValueToWrite);
+
+      } else if (maybeValue.isPresent()
+          && maybeValue.orElseThrow() instanceof SymbolicExpression
+          && maybeValue.orElseThrow() instanceof ConstantSymbolicExpression constExpr
+          && constExpr.getValue() instanceof SymbolicIdentifier) {
+        Value value = maybeValue.orElseThrow();
+        boolean valueHasConstraints = currentState.valueContainedInConstraints(value);
+        // TODO: replace with getting the constraints and copying them for a new sym expr
+        if (valueHasConstraints) {
+          throw new SMGException(
+              "Could not copy constraints on symbolic value when materializing a list.");
+        }
+
+        // Create symbolic value with the same type as the one above and save in the SMG
+        Value newSymbolicValue = currentState.getNewSymbolicValue(value);
+        SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(newSymbolicValue);
+        SMGValue smgValueOfNewSym = valueAndState.getSMGValue();
+        currentState = valueAndState.getSMGState();
+        currentState =
+            currentState.writeValueWithoutChecks(newMemory, offset, sizeInBits, smgValueOfNewSym);
       }
-      // TODO: havok w constraints
     }
     return currentState;
   }
