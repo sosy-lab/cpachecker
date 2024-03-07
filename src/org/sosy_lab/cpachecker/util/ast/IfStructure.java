@@ -114,27 +114,30 @@ public class IfStructure extends StatementStructure {
    *  </pre>
    */
   private void computeNodesBetweenConditionAndBranches() {
-    Set<CFANode> nodesBoundaryCondition =
+    final Set<CFANode> nodesBoundaryCondition =
         Sets.difference(
             transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getSuccessor),
             transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getPredecessor));
-    Set<CFANode> collectorNodesBetweenConditionAndElseBranch = nodesBoundaryCondition;
-    Set<CFANode> collectorNodesBetweenConditionAndThenBranch = nodesBoundaryCondition;
+    final Set<CFANode> collectorNodesBetweenConditionAndElseBranch;
+    final Set<CFANode> collectorNodesBetweenConditionAndThenBranch;
 
     // TODO: Currently we over-approximate by taking both branches when there are no edges
     //  in both branches
-    Set<CFANode> nodesThenBranch =
+    final Set<CFANode> nodesThenBranch =
         transformedImmutableSetCopy(thenElement.edges(), CFAEdge::getPredecessor);
 
     if (nodesThenBranch.isEmpty()) {
       if (maybeElseElement.isPresent()) {
-        Set<CFANode> nodesElseBranch =
+        final Set<CFANode> nodesElseBranch =
             transformedImmutableSetCopy(
                 maybeElseElement.orElseThrow().edges(), CFAEdge::getPredecessor);
         collectorNodesBetweenConditionAndThenBranch =
             Sets.difference(nodesBoundaryCondition, nodesElseBranch);
         collectorNodesBetweenConditionAndElseBranch =
             Sets.intersection(nodesBoundaryCondition, nodesElseBranch);
+      } else {
+        collectorNodesBetweenConditionAndThenBranch = nodesBoundaryCondition;
+        collectorNodesBetweenConditionAndElseBranch = nodesBoundaryCondition;
       }
     } else {
       collectorNodesBetweenConditionAndThenBranch =
