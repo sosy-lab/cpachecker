@@ -102,7 +102,7 @@ public final class CEXExportOptions {
               + "The string %d is replace with the number of the counterexample.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate yamlWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("witness-%s.%d.yml");
+      PathTemplate.ofFormatString("Counterexample.%d.witness-%s.yml");
 
   @Option(
       secure = true,

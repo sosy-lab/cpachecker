@@ -241,7 +241,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   public void export(CounterexampleInfo pCex, PathTemplate pOutputFileTemplate, int uniqueId)
       throws IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
-      Path outputFile = pOutputFileTemplate.getPath(YAMLWitnessVersion.V2.toString(), uniqueId);
+      Path outputFile = pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString());
       switch (witnessVersion) {
         case V2 -> exportWitnessVersion2(pCex, outputFile);
         case V3 ->
