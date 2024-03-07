@@ -58,6 +58,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
 
+  /** A data structure for collecting the relevant information for a witness from an ARG */
   protected static class CollectedARGStates {
     public Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
     public Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
@@ -65,6 +66,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     public Multimap<FunctionExitNode, ARGState> functionContractEnsures = HashMultimap.create();
   }
 
+  /**
+   * Analyzes the ARG during its traversal by collecting the states relevant to exporting a witness
+   */
   private static class RelevantARGStateCollector {
 
     private final CollectedARGStates collectedStates = new CollectedARGStates();
@@ -92,6 +96,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
   }
 
+  /** How to traverse the ARG */
   private static class ARGSuccessorFunction implements SuccessorsFunction<ARGState> {
 
     @Override
@@ -100,6 +105,13 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
   }
 
+  /**
+   * Cache the information collected when traversing the ARG starting at the given state.
+   *
+   * @param pRootState the state for where the traversal of the ARG should start for the collection
+   *     of the information
+   * @return the collected information about the ARG
+   */
   CollectedARGStates getRelevantStates(ARGState pRootState) {
     if (!stateToStatesCollector.containsKey(pRootState)) {
       RelevantARGStateCollector statesCollector = new RelevantARGStateCollector();
@@ -114,12 +126,28 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     return stateToStatesCollector.get(pRootState);
   }
 
-  protected ExpressionTree<Object> getOverapproximationOfStates(
+  protected ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
       Collection<ARGState> argStates, CFANode node) throws InterruptedException {
-    return getOverapproximationOfStates(argStates, node, false);
+    return getOverapproximationOfStatesIgnoringReturnVariables(argStates, node, false);
   }
 
-  protected ExpressionTree<Object> getOverapproximationOfStates(
+  protected ExpressionTree<Object> getOverapproximationOfStatesReplacingReturnVariables(
+      Collection<ARGState> argStates, CFANode node) throws InterruptedException {
+    return getOverapproximationOfStatesIgnoringReturnVariables(argStates, node, true);
+  }
+
+  /**
+   * Provdes an overapproximation of the abstractions encoded by the arg states at the location of
+   * the node.
+   *
+   * @param argStates the arg states encoding abstractions of the state
+   * @param node the node at whose location the state should be over approximated
+   * @param pReplaceOutputVariable if this is true, then return variables from functions are
+   *     included in the over approximation using \return for them. If not, they are ignored
+   * @return an over approximation of the abstraction at the state
+   * @throws InterruptedException if the call to this function is interrupted
+   */
+  private ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
       Collection<ARGState> argStates, CFANode node, boolean pReplaceOutputVariable)
       throws InterruptedException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());

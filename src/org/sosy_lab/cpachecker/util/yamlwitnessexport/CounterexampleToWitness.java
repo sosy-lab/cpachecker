@@ -54,7 +54,16 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
 
-  private WaypointRecord handleAssumptionWaypoint(
+  /**
+   * Create an Assumption Waypoint at the position of the current edge with the given assumptions
+   *
+   * @param assumptions the assumptions at this position
+   * @param edge the edge which is the location at which the assumptions are valid
+   * @param pAstCfaRelation the mapping between the
+   * @return a waypoint constraining the execution to the given assumptions at the location of the
+   *     edge
+   */
+  private static WaypointRecord handleAssumptionWaypoint(
       Collection<AExpressionStatement> assumptions, CFAEdge edge, AstCfaRelation pAstCfaRelation) {
     String statement;
     if (assumptions.isEmpty()) {
@@ -83,7 +92,15 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         location);
   }
 
-  private WaypointRecord handleBranchingWaypoint(IfElement pIfElement, AssumeEdge assumeEdge) {
+  /**
+   * Creates a waypoint record which describes which branch should be taken at an if statement
+   *
+   * @param pIfElement the AST element where the branch taken should be constrained
+   * @param assumeEdge the edge which encodes what branch should be taken
+   * @return a waypoint record constraining the execution to a single branch of this if statement
+   */
+  private static WaypointRecord handleBranchingWaypoint(
+      IfElement pIfElement, AssumeEdge assumeEdge) {
     String branchToFollow =
         Boolean.toString(
             pIfElement.getNodesBetweenConditionAndThenBranch().contains(assumeEdge.getSuccessor()));
@@ -97,6 +114,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             assumeEdge.getPredecessor().getFunctionName()));
   }
 
+  /**
+   * Export the given counterexample to the path as a Witness version 2.0
+   *
+   * @param pCex the counterexample to be exported
+   * @param pPath the path to export the witness to
+   * @throws IOException if writing the witness to the path is not possible
+   */
   private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
     AstCfaRelation astCFARelation = getASTStructure();
 

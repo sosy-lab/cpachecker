@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,6 +36,17 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
 
+  /**
+   * Create an invariant in the format for witnesses version 2.0 for the abstractions encoded by the
+   * arg states
+   *
+   * @param argStates the arg states encoding abstractions of the state
+   * @param node the node at whose location the state should be over approximated
+   * @param type the type of the invariant. Currently only `loop_invariant` and `location_invariant`
+   *     are supported
+   * @return an invariant over approximating the abstraction at the state
+   * @throws InterruptedException if the execution is interrupted
+   */
   private InvariantEntry createInvariant(Collection<ARGState> argStates, CFANode node, String type)
       throws InterruptedException {
 
@@ -48,7 +58,8 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     }
 
     FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
-    ExpressionTree<Object> invariant = getOverapproximationOfStates(argStates, node);
+    ExpressionTree<Object> invariant =
+        getOverapproximationOfStatesIgnoringReturnVariables(argStates, node);
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
@@ -70,7 +81,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    List<InvariantEntry> entries = new ArrayList<>();
+    ImmutableList.Builder<InvariantEntry> entries = new ImmutableList.Builder<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
@@ -92,6 +103,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
       }
     }
 
-    exportEntries(new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), entries), pPath);
+    exportEntries(
+        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), entries.build()), pPath);
   }
 }

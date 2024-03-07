@@ -12,9 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,10 +43,21 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
 
+  /**
+   * Create an invariant in the format for witnesses version 3.0 for the abstractions encoded by the
+   * arg states
+   *
+   * @param argStates the arg states encoding abstractions of the state
+   * @param node the node at whose location the state should be over approximated
+   * @param type the type of the invariant. Currently only `loop_invariant` and `location_invariant`
+   *     are supported
+   * @return an invariant over approximating the abstraction at the state
+   * @throws InterruptedException if the execution is interrupted
+   */
   private InvariantEntryV3 createInvariant(
       Collection<ARGState> argStates, CFANode node, String type) throws InterruptedException {
 
-    // We now conjunct all the overapproximations of the states and export them as loop invariants
+    // We now conjunct all the over approximations of the states and export them as loop invariants
     Optional<IterationElement> iterationStructure =
         getASTStructure().getTightestIterationStructureForNode(node);
     if (iterationStructure.isEmpty()) {
@@ -56,7 +65,8 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
     }
 
     FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
-    ExpressionTree<Object> invariant = getOverapproximationOfStates(argStates, node);
+    ExpressionTree<Object> invariant =
+        getOverapproximationOfStatesIgnoringReturnVariables(argStates, node);
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
@@ -70,23 +80,36 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
     return invariantRecord;
   }
 
-  private List<FunctionContractEntry> handleFunctionContract(
+  /**
+   * Create function contracts for each of the functions whose entry nodes have been given
+   *
+   * @param functionContractRequires a mapping from function entry nodes to arg states encoding the
+   *     abstractions at that location
+   * @param functionContractEnsures a mapping from function exit nodes to arg states encoding the *
+   *     abstractions at that location
+   * @return a list of function contracts, one for each of the functions whose entry nodes have been
+   *     given
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private ImmutableList<FunctionContractEntry> handleFunctionContract(
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
       Multimap<FunctionExitNode, ARGState> functionContractEnsures)
       throws InterruptedException {
-    List<FunctionContractEntry> functionContractRecords = new ArrayList<>();
+    ImmutableList.Builder<FunctionContractEntry> functionContractRecords =
+        new ImmutableList.Builder<>();
     for (FunctionEntryNode node : functionContractRequires.keySet()) {
       Collection<ARGState> requiresArgStates = functionContractRequires.get(node);
 
       FileLocation location = node.getFileLocation();
       String requiresClause =
-          getOverapproximationOfStates(requiresArgStates, node, true).toString();
+          getOverapproximationOfStatesReplacingReturnVariables(requiresArgStates, node).toString();
       String ensuresClause = "1";
       if (node.getExitNode().isPresent()
           && functionContractEnsures.containsKey(node.getExitNode().orElseThrow())) {
         Collection<ARGState> ensuresArgStates =
             functionContractEnsures.get(node.getExitNode().orElseThrow());
-        ensuresClause = getOverapproximationOfStates(ensuresArgStates, node, true).toString();
+        ensuresClause =
+            getOverapproximationOfStatesReplacingReturnVariables(ensuresArgStates, node).toString();
       }
       functionContractRecords.add(
           new FunctionContractEntry(
@@ -96,7 +119,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
               LocationRecord.createLocationRecordAtStart(location, node.getFunctionName())));
     }
 
-    return functionContractRecords;
+    return functionContractRecords.build();
   }
 
   void exportWitness(ARGState pRootState, Path pOutputFile)
@@ -108,7 +131,8 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    List<CorrectnessWitnessSetElementEntry> entries = new ArrayList<>();
+    ImmutableList.Builder<CorrectnessWitnessSetElementEntry> entries =
+        new ImmutableList.Builder<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
@@ -136,6 +160,6 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
             statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
 
     exportEntries(
-        new CorrectnessWitnessSetEntry(getMetadata(YAMLWitnessVersion.V3), entries), pOutputFile);
+        new CorrectnessWitnessSetEntry(getMetadata(YAMLWitnessVersion.V3), entries.build()), pOutputFile);
   }
 }
