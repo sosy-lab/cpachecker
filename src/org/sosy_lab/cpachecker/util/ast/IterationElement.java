@@ -13,7 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public class IterationStructure extends BranchingStructure {
+public class IterationElement extends BranchingElement {
 
   private final Optional<ASTElement> clause;
   private final ASTElement body;
@@ -22,7 +22,7 @@ public class IterationStructure extends BranchingStructure {
   private final Optional<ASTElement> initClause;
   private final Optional<ASTElement> iterationExpression;
 
-  public IterationStructure(
+  public IterationElement(
       FileLocation pIterationStatementLocation,
       Optional<FileLocation> pClauseLocation,
       Optional<FileLocation> pControllingExpression,

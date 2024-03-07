@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.ast.IfStructure;
+import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
@@ -379,15 +379,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private final ImmutableSet<CFANode> conditionElementPredecessors;
 
-    public CheckEntersIfBranch(IfStructure pIfStructure, boolean pTakeThenBranch) {
+    public CheckEntersIfBranch(IfElement pIfElement, boolean pTakeThenBranch) {
       takeThenBranch = pTakeThenBranch;
       conditionElementPredecessors =
           transformedImmutableSetCopy(
-              pIfStructure.getConditionElement().edges(), CFAEdge::getPredecessor);
+              pIfElement.getConditionElement().edges(), CFAEdge::getPredecessor);
       if (takeThenBranch) {
-        nodesBetweenConditionAndBranch = pIfStructure.getNodesBetweenConditionAndThenBranch();
+        nodesBetweenConditionAndBranch = pIfElement.getNodesBetweenConditionAndThenBranch();
       } else {
-        nodesBetweenConditionAndBranch = pIfStructure.getNodesBetweenConditionAndElseBranch();
+        nodesBetweenConditionAndBranch = pIfElement.getNodesBetweenConditionAndElseBranch();
       }
     }
 

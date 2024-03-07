@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.ast.IfStructure;
+import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
@@ -83,18 +83,16 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         location);
   }
 
-  private WaypointRecord handleBranchingWaypoint(IfStructure ifStructure, AssumeEdge assumeEdge) {
+  private WaypointRecord handleBranchingWaypoint(IfElement pIfElement, AssumeEdge assumeEdge) {
     String branchToFollow =
         Boolean.toString(
-            ifStructure
-                .getNodesBetweenConditionAndThenBranch()
-                .contains(assumeEdge.getSuccessor()));
+            pIfElement.getNodesBetweenConditionAndThenBranch().contains(assumeEdge.getSuccessor()));
     return new WaypointRecord(
         WaypointRecord.WaypointType.BRANCHING,
         WaypointRecord.WaypointAction.FOLLOW,
         new InformationRecord(branchToFollow, null, null),
         LocationRecord.createLocationRecordAtStart(
-            ifStructure.getCompleteElement().location(),
+            pIfElement.getCompleteElement().location(),
             assumeEdge.getFileLocation().getFileName().toString(),
             assumeEdge.getPredecessor().getFunctionName()));
   }
@@ -175,21 +173,21 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       } else if (edge instanceof AssumeEdge assumeEdge) {
         // Without the AST structure we cannot guarantee that we are exporting at the beginning of
         // an iteration or if statement
-        // To export the branching waypoint, we first find the IfStructure or IterationStructure
+        // To export the branching waypoint, we first find the IfElement or IterationElement
         // containing it. Then we look for the FileLocation of the structure
         // Currently we only export IfStructures, since there is no nice way to say how often a loop
         // should be traversed and exporting this information will quickly make the witness
         // difficult to read
         // TODO: Also export branches at iteration statements
-        IfStructure ifStructure = astCFARelation.getIfStructureForConditionEdge(edge);
-        if (ifStructure == null) {
+        IfElement ifElement = astCFARelation.getIfStructureForConditionEdge(edge);
+        if (ifElement == null) {
           continue;
         }
 
         Set<CFANode> nodesBetweenConditionAndThenBranch =
-            ifStructure.getNodesBetweenConditionAndThenBranch();
+            ifElement.getNodesBetweenConditionAndThenBranch();
         Set<CFANode> nodesBetweenConditionAndElseBranch =
-            ifStructure.getNodesBetweenConditionAndElseBranch();
+            ifElement.getNodesBetweenConditionAndElseBranch();
         CFANode successor = edge.getSuccessor();
 
         if (!nodesBetweenConditionAndThenBranch.contains(successor)
@@ -197,7 +195,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           continue;
         }
 
-        waypoints.add(handleBranchingWaypoint(ifStructure, assumeEdge));
+        waypoints.add(handleBranchingWaypoint(ifElement, assumeEdge));
       }
 
       if (!waypoints.isEmpty()) {

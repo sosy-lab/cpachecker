@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import java.util.Optional;
 
-public abstract class BranchingStructure extends StatementStructure {
+public abstract class BranchingElement extends StatementElement {
 
   /**
    * Returns the (optional) ASTElement representing the part in the round parenthesis of the

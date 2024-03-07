@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.ast.IfStructure;
-import org.sosy_lab.cpachecker.util.ast.IterationStructure;
+import org.sosy_lab.cpachecker.util.ast.IfElement;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 
 class ASTCFARelationBuilder {
 
@@ -35,12 +35,12 @@ class ASTCFARelationBuilder {
         classifier.getStatementOffsetsToLocations());
   }
 
-  private static ImmutableSet<IfStructure> getIfStructures(
+  private static ImmutableSet<IfElement> getIfStructures(
       ImmutableSet<CFAEdge> pEdges, ASTLocationClassifier classifier) {
-    ImmutableSet.Builder<IfStructure> ifStructures = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<IfElement> ifStructures = new ImmutableSet.Builder<>();
     for (FileLocation loc : classifier.ifLocations) {
       ifStructures.add(
-          new IfStructure(
+          new IfElement(
               loc,
               classifier.ifCondition.get(loc),
               classifier.ifThenClause.get(loc),
@@ -50,12 +50,12 @@ class ASTCFARelationBuilder {
     return ifStructures.build();
   }
 
-  private static ImmutableSet<IterationStructure> getIterationStructures(
+  private static ImmutableSet<IterationElement> getIterationStructures(
       ImmutableSet<CFAEdge> pEdges, ASTLocationClassifier classifier) {
-    ImmutableSet.Builder<IterationStructure> iterationStructures = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<IterationElement> iterationStructures = new ImmutableSet.Builder<>();
     for (FileLocation loc : classifier.loopLocations) {
       iterationStructures.add(
-          new IterationStructure(
+          new IterationElement(
               loc,
               Optional.ofNullable(classifier.loopParenthesesBlock.get(loc)),
               Optional.ofNullable(classifier.loopControllingExpression.get(loc)),

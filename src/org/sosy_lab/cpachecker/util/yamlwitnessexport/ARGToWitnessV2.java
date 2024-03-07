@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.ast.IterationStructure;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
@@ -41,7 +41,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
       throws InterruptedException {
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
-    Optional<IterationStructure> iterationStructure =
+    Optional<IterationElement> iterationStructure =
         getASTStructure().getTightestIterationStructureForNode(node);
     if (iterationStructure.isEmpty()) {
       return null;

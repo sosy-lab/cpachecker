@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public abstract class StatementStructure {
+public abstract class StatementElement {
 
   public abstract ASTElement getCompleteElement();
 

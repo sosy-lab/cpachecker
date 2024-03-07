@@ -22,22 +22,22 @@ import org.sosy_lab.cpachecker.util.Pair;
 /** Contains information relating the CFA to the AST of the program. */
 public class AstCfaRelation {
 
-  private final ImmutableSet<IfStructure> ifStructures;
+  private final ImmutableSet<IfElement> ifElements;
 
-  private final ImmutableSet<IterationStructure> iterationStructures;
+  private final ImmutableSet<IterationElement> iterationStructures;
 
   private final ImmutableSortedMap<Integer, FileLocation> statementOffsetsToLocations;
 
-  @LazyInit private ImmutableMap<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
+  @LazyInit private ImmutableMap<CFAEdge, IfElement> conditionEdgesToIfStructure = null;
 
   @LazyInit
-  private ImmutableMap<Pair<Integer, Integer>, IfStructure> lineAndStartColumnToIfStructure = null;
+  private ImmutableMap<Pair<Integer, Integer>, IfElement> lineAndStartColumnToIfStructure = null;
 
   public AstCfaRelation(
-      ImmutableSet<IfStructure> pIfStructures,
-      ImmutableSet<IterationStructure> pIterationStructures,
+      ImmutableSet<IfElement> pIfElements,
+      ImmutableSet<IterationElement> pIterationStructures,
       ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations) {
-    ifStructures = pIfStructures;
+    ifElements = pIfElements;
     iterationStructures = pIterationStructures;
     statementOffsetsToLocations = pStatementOffsetsToLocations;
   }
@@ -56,8 +56,8 @@ public class AstCfaRelation {
     if (conditionEdgesToIfStructure != null) {
       return;
     }
-    ImmutableMap.Builder<CFAEdge, IfStructure> builder = new ImmutableMap.Builder<>();
-    for (IfStructure structure : ifStructures) {
+    ImmutableMap.Builder<CFAEdge, IfElement> builder = new ImmutableMap.Builder<>();
+    for (IfElement structure : ifElements) {
       for (CFAEdge edge : structure.getConditionElement().edges()) {
         builder.put(edge, structure);
       }
@@ -66,12 +66,12 @@ public class AstCfaRelation {
   }
 
   /**
-   * Returns the IfStructure that contains the given edge as a condition.
+   * Returns the IfElement that contains the given edge as a condition.
    *
    * @param pEdge the edge to look for
-   * @return the IfStructure that contains the given edge as a condition
+   * @return the IfElement that contains the given edge as a condition
    */
-  public IfStructure getIfStructureForConditionEdge(CFAEdge pEdge) {
+  public IfElement getIfStructureForConditionEdge(CFAEdge pEdge) {
     if (conditionEdgesToIfStructure == null) {
       initializeMapFromConditionEdgesToIfStructures();
     }
@@ -89,9 +89,9 @@ public class AstCfaRelation {
    * @param pNode the node to look for
    * @return the tightest iteration structure that contains the given node
    */
-  public Optional<IterationStructure> getTightestIterationStructureForNode(CFANode pNode) {
-    Optional<IterationStructure> result = Optional.empty();
-    for (IterationStructure structure : iterationStructures) {
+  public Optional<IterationElement> getTightestIterationStructureForNode(CFANode pNode) {
+    Optional<IterationElement> result = Optional.empty();
+    for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().edges().stream()
           .anyMatch(pEdge -> pEdge.getPredecessor() == pNode || pEdge.getSuccessor() == pNode)) {
         if (result.isPresent()) {
@@ -114,9 +114,8 @@ public class AstCfaRelation {
     if (lineAndStartColumnToIfStructure != null) {
       return;
     }
-    ImmutableMap.Builder<Pair<Integer, Integer>, IfStructure> builder =
-        new ImmutableMap.Builder<>();
-    for (IfStructure structure : ifStructures) {
+    ImmutableMap.Builder<Pair<Integer, Integer>, IfElement> builder = new ImmutableMap.Builder<>();
+    for (IfElement structure : ifElements) {
       FileLocation location = structure.getCompleteElement().location();
       Pair<Integer, Integer> key =
           Pair.of(location.getStartColumnInLine(), location.getStartingLineNumber());
@@ -126,13 +125,13 @@ public class AstCfaRelation {
   }
 
   /**
-   * Returns the IfStructure that starts at the given column and line.
+   * Returns the IfElement that starts at the given column and line.
    *
    * @param pColumn the column to look for
    * @param pLine the line to look for
-   * @return the IfStructure that starts at the given column and line
+   * @return the IfElement that starts at the given column and line
    */
-  public Optional<IfStructure> getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
+  public Optional<IfElement> getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
     if (lineAndStartColumnToIfStructure == null) {
       initializeMapFromLineAndStartColumnToIfStructure();
     }

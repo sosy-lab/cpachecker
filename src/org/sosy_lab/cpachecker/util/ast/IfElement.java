@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class IfStructure extends StatementStructure {
+public class IfElement extends StatementElement {
 
   private final ASTElement completeElement;
   private final ASTElement conditionElement;
@@ -34,7 +34,7 @@ public class IfStructure extends StatementStructure {
   @LazyInit private ImmutableSet<CFANode> nodesBetweenConditionAndThenBranch = null;
   @LazyInit private ImmutableSet<CFANode> nodesBetweenConditionAndElseBranch = null;
 
-  public IfStructure(
+  public IfElement(
       FileLocation pIfLocation,
       FileLocation pConditionLocation,
       FileLocation pThenLocation,

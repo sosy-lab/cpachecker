@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.Inval
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.ast.IfStructure;
+import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
@@ -140,18 +140,17 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean followIfBranch) {
-    Optional<IfStructure> optionalIfStructure =
+    Optional<IfElement> optionalIfStructure =
         pAstCfaRelation.getIfStructureStartingAtColumn(followColumn, followLine);
     if (optionalIfStructure.isEmpty()) {
-      logger.log(
-          Level.FINE, "Could not find IfStructure corresponding to the waypoint, skipping it");
+      logger.log(Level.FINE, "Could not find IfElement corresponding to the waypoint, skipping it");
       return Optional.empty();
     }
-    IfStructure ifStructure = optionalIfStructure.orElseThrow();
+    IfElement ifElement = optionalIfStructure.orElseThrow();
 
-    if (ifStructure
+    if (ifElement
         .getNodesBetweenConditionAndElseBranch()
-        .equals(ifStructure.getNodesBetweenConditionAndThenBranch())) {
+        .equals(ifElement.getNodesBetweenConditionAndThenBranch())) {
       logger.log(
           Level.FINE,
           "Skipping branching waypoint at if statement since the"
@@ -160,14 +159,14 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       return Optional.empty();
     }
 
-    AutomatonBoolExpr condition = new CheckEntersIfBranch(ifStructure, followIfBranch);
+    AutomatonBoolExpr condition = new CheckEntersIfBranch(ifElement, followIfBranch);
     AutomatonTransition followBranchTransition =
         distanceToViolation(
                 new AutomatonTransition.Builder(condition, nextStateId), pDistanceToViolation)
             .build();
 
     // Add break state for the other branch, since we don't want to explore it
-    CheckEntersIfBranch negatedCondition = new CheckEntersIfBranch(ifStructure, !followIfBranch);
+    CheckEntersIfBranch negatedCondition = new CheckEntersIfBranch(ifElement, !followIfBranch);
     AutomatonTransition avoidBranchTransition =
         new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
 
