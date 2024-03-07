@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -52,18 +51,6 @@ public class SymbolicIdentifierLocator implements SymbolicValueVisitor<Set<Symbo
 
   public static SymbolicIdentifierLocator getInstance() {
     return SINGLETON;
-  }
-
-  public Set<SymbolicIdentifier> visit(final Constraint pValue) {
-    if (pValue instanceof EqualsExpression eqExpr) {
-      return this.visit(eqExpr);
-    } else if (pValue instanceof LessThanExpression lTExpr) {
-      return this.visit(lTExpr);
-    } else if (pValue instanceof LessThanOrEqualExpression lTOExpr) {
-      return this.visit(lTOExpr);
-    } else {
-      return this.visit((LogicalNotExpression) pValue);
-    }
   }
 
   @Override
