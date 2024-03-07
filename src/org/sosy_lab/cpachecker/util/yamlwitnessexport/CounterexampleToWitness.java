@@ -66,8 +66,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       statement =
           FluentIterable.from(assumptions)
               .transform(AExpressionStatement::toString)
-              .transformAndConcat(s -> List.of(s.split(";")))
-              .transformAndConcat(s -> List.of(s.split(",")))
+              .transformAndConcat(s -> ImmutableList.copyOf(s.split(";")))
+              .transformAndConcat(s -> ImmutableList.copyOf(s.split(",")))
               .join(Joiner.on(" && "));
     }
 
