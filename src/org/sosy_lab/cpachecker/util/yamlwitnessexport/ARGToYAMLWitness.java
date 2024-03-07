@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.graph.SuccessorsFunction;
+import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -63,16 +65,11 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     public Multimap<FunctionExitNode, ARGState> functionContractEnsures = HashMultimap.create();
   }
 
-  private static class CollectRelevantARGStates extends GraphTraverser<ARGState> {
+  private static class RelevantARGStateCollector {
 
     private final CollectedARGStates collectedStates = new CollectedARGStates();
 
-    protected CollectRelevantARGStates(ARGState startNode) {
-      super(startNode);
-    }
-
-    @Override
-    protected ARGState visit(ARGState pSuccessor) {
+    protected void analyze(ARGState pSuccessor) {
       for (LocationState state :
           AbstractStates.asIterable(pSuccessor).filter(LocationState.class)) {
         CFANode node = state.getLocationNode();
@@ -88,21 +85,30 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
           collectedStates.functionContractEnsures.put(functionExitNode, pSuccessor);
         }
       }
-
-      return pSuccessor;
     }
 
+    public CollectedARGStates getCollectedStates() {
+      return collectedStates;
+    }
+  }
+
+  private static class ARGSuccessorFunction implements SuccessorsFunction<ARGState> {
+
     @Override
-    protected Iterable<ARGState> getSuccessors(ARGState pCurrent) {
-      return pCurrent.getChildren();
+    public Iterable<ARGState> successors(ARGState node) {
+      return node.getChildren();
     }
   }
 
   CollectedARGStates getRelevantStates(ARGState pRootState) {
     if (!stateToStatesCollector.containsKey(pRootState)) {
-      CollectRelevantARGStates statesCollector = new CollectRelevantARGStates(pRootState);
-      statesCollector.traverse();
-      stateToStatesCollector.put(pRootState, statesCollector.collectedStates);
+      RelevantARGStateCollector statesCollector = new RelevantARGStateCollector();
+      for (ARGState state :
+          Traverser.forGraph(new ARGSuccessorFunction()).breadthFirst(pRootState)) {
+        statesCollector.analyze(state);
+      }
+
+      stateToStatesCollector.put(pRootState, statesCollector.getCollectedStates());
     }
 
     return stateToStatesCollector.get(pRootState);
