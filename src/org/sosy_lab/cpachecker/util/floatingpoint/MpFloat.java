@@ -130,9 +130,9 @@ public class MpFloat extends CFloat {
 
   @Override
   public CFloat add(CFloat... pSummands) {
-    BigFloat result = new BigFloat(0, format);
+    BigFloat result = value;
     for (CFloat f : pSummands) {
-      result.add(toBigFloat(f.getWrapper()), format);
+      result = result.add(toBigFloat(f.getWrapper()), format);
     }
     return new MpFloat(result);
   }
@@ -144,9 +144,9 @@ public class MpFloat extends CFloat {
 
   @Override
   public CFloat multiply(CFloat... pFactor) {
-    BigFloat result = new BigFloat(0, format);
+    BigFloat result = value;
     for (CFloat f : pFactor) {
-      result.multiply(toBigFloat(f.getWrapper()), format);
+      result = result.multiply(toBigFloat(f.getWrapper()), format);
     }
     return new MpFloat(result);
   }
