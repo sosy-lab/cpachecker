@@ -10,8 +10,9 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.errorprone.annotations.concurrent.LazyInit;
-import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -25,7 +26,7 @@ public class AstCfaRelation {
 
   private final ImmutableSet<IterationStructure> iterationStructures;
 
-  private final ImmutableMap<Integer, FileLocation> statementOffsetsToLocations;
+  private final ImmutableSortedMap<Integer, FileLocation> statementOffsetsToLocations;
 
   @LazyInit private ImmutableMap<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
 
@@ -35,7 +36,7 @@ public class AstCfaRelation {
   public AstCfaRelation(
       ImmutableSet<IfStructure> pIfStructures,
       ImmutableSet<IterationStructure> pIterationStructures,
-      ImmutableMap<Integer, FileLocation> pStatementOffsetsToLocations) {
+      ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations) {
     ifStructures = pIfStructures;
     iterationStructures = pIterationStructures;
     statementOffsetsToLocations = pStatementOffsetsToLocations;
@@ -48,14 +49,7 @@ public class AstCfaRelation {
    * @return the next location at which a statement starts after the given offset
    */
   public FileLocation nextStartStatementLocation(Integer offset) {
-    for (int counter = offset;
-        counter < Collections.max(statementOffsetsToLocations.keySet());
-        counter++) {
-      if (statementOffsetsToLocations.containsKey(counter)) {
-        return statementOffsetsToLocations.get(counter);
-      }
-    }
-    return null;
+    return Objects.requireNonNull(statementOffsetsToLocations.ceilingEntry(offset)).getValue();
   }
 
   private void initializeMapFromConditionEdgesToIfStructures() {
