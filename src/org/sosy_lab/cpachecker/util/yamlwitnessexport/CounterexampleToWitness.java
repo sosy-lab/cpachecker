@@ -9,11 +9,10 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -101,15 +100,19 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
     AstCfaRelation astCFARelation = getASTStructure();
 
-    ListMultimap<CFAEdge, AExpressionStatement> edgeToAssumptions = ArrayListMultimap.create();
+    ImmutableListMultimap.Builder<CFAEdge, AExpressionStatement> edgeToAssumptionsBuilder =
+        new ImmutableListMultimap.Builder<>();
     Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
     if (pCex.isPreciseCounterExample()) {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
         CFAEdge edge = edgeWithAssumptions.getCFAEdge();
-        edgeToAssumptions.putAll(edge, edgeWithAssumptions.getExpStmts());
+        edgeToAssumptionsBuilder.putAll(edge, edgeWithAssumptions.getExpStmts());
         edgeToCurrentExpressionIndex.put(edge, 0);
       }
     }
+
+    ImmutableListMultimap<CFAEdge, AExpressionStatement> edgeToAssumptions =
+        edgeToAssumptionsBuilder.build();
 
     ImmutableList.Builder<SegmentRecord> segments = ImmutableList.builder();
     List<CFAEdge> edges = pCex.getTargetPath().getFullPath();
