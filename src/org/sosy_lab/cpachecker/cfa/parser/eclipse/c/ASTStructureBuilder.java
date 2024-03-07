@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 
-public class ASTStructureBuilder {
+class ASTStructureBuilder {
 
   public static ASTStructure getASTStructure(
       CSourceOriginMapping pSourceOriginMapping,

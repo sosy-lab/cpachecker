@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 class ASTLocationClassifier extends ASTVisitor {
   private final ImmutableMap.Builder<Integer, FileLocation> statementOffsetsToLocations =
       new ImmutableMap.Builder<>();
+
   private final Set<FileLocation> compoundLocations = new HashSet<>();
 
   private final Set<FileLocation> labelLocations = new HashSet<>();
