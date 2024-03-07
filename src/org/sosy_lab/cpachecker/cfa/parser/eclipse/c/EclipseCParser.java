@@ -344,7 +344,7 @@ class EclipseCParser implements CParser {
       for (IASTTranslationUnit ast : asts) {
         builderASTStructure.analyze(ast);
       }
-      builderASTStructure.updateStructures(builder.getEdges());
+      builderASTStructure.updateStructures(result.getEdges());
       result.setASTStructure(builderASTStructure.getASTStructure());
 
       return result;

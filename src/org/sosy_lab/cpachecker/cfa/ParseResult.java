@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
@@ -17,8 +19,10 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 
@@ -68,6 +72,12 @@ public class ParseResult {
 
   public TreeMultimap<String, CFANode> getCFANodes() {
     return cfaNodes;
+  }
+
+  public ImmutableSet<CFAEdge> getEdges() {
+    return FluentIterable.from(cfaNodes.values())
+        .transformAndConcat(CFAUtils::allLeavingEdges)
+        .toSet();
   }
 
   public List<Pair<ADeclaration, String>> getGlobalDeclarations() {
