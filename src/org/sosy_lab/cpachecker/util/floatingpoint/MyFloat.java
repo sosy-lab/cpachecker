@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.kframework.mpfr.BigFloat;
@@ -38,6 +40,7 @@ public class MyFloat {
 
     public static final Format FLOAT = new Format(8, 23);
     public static final Format DOUBLE = new Format(11, 52);
+    public static final Format EXTENDED = new Format(15, 79);
 
     @Override
     public boolean equals(Object other) {
@@ -230,11 +233,104 @@ public class MyFloat {
     return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
+  // Copy the value, but with a different exponent
+  private MyFloat withExponent(long pExponent) {
+    return new MyFloat(format, value.sign, pExponent, value.significand);
+  }
+
+  // Convert the value to a different precision (uses round to nearest, ties to even for now)
+  public MyFloat withPrecision(Format targetFormat) {
+    if (isNan()) {
+      return nan(targetFormat);
+    }
+    if (isInfinite()) {
+      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    }
+    if (isZero()) {
+      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
+    }
+
+    long exponent = Math.max(value.exponent, format.minExp());
+    BigInteger significand = value.significand;
+
+    // Normalization
+    // If the number is subnormal shift it upward and adjust the exponent
+    int shift = (format.sigBits + 1) - significand.bitLength();
+    if (shift > 0) {
+      significand = significand.shiftLeft(shift);
+      exponent -= shift;
+    }
+
+    // Return infinity if the exponent is too large for the new encoding
+    if (exponent > targetFormat.maxExp()) {
+      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    }
+
+    // Return zero if the exponent is below the subnormal range
+    if (exponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
+      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
+    }
+
+    // Extend the significand
+    significand = significand.shiftLeft(targetFormat.sigBits + 3);
+
+    // Use the lowest possible exponent and move the rest into the significand by shifting
+    // it to the right.
+    // Here we calculate haw many digits we need to shift:
+    int leading = 0;
+    if (exponent < targetFormat.minExp()) {
+      leading = (int) Math.abs(targetFormat.minExp() - exponent);
+      exponent = targetFormat.minExp() - 1;
+    }
+
+    // Truncate the value while carrying over the grs bits.
+    significand = truncate(significand, format.sigBits + leading);
+
+    // Round the result according to the grs bits
+    long grs = significand.and(new BigInteger("111", 2)).longValue();
+    significand = significand.shiftRight(3);
+    if ((grs == 4 && significand.testBit(0)) || grs > 4) {
+      significand = significand.add(BigInteger.ONE);
+    }
+
+    // Normalize if rounding caused an overflow
+    if (significand.testBit(targetFormat.sigBits + 1)) {
+      significand = significand.shiftRight(1); // The last bit is zero
+      exponent += 1;
+    }
+
+    return new MyFloat(targetFormat, value.sign, exponent, significand);
+  }
+
+  public MyFloat abs() {
+    return new MyFloat(format, false, value.exponent, value.significand);
+  }
+
   public MyFloat negate() {
     if (isNan()) {
       return nan(format);
     }
     return new MyFloat(format, new FpValue(!value.sign, value.exponent, value.significand));
+  }
+
+  public boolean greaterThan(MyFloat number) {
+    if (this.isNan() || number.isNan()) {
+      return false;
+    }
+    if (this.isInfinite() && !this.isNegative()) {
+      if (number.isInfinite() && !number.isNegative()) {
+        return false;
+      }
+      return true;
+    }
+    if (this.isInfinite() && this.isNegative() && number.isInfinite() && number.isNegative()) {
+      return false;
+    }
+    MyFloat r = this.subtract(number);
+    if (r.isZero()) {
+      return false;
+    }
+    return !r.isNegative();
   }
 
   public MyFloat add(MyFloat number) {
@@ -738,29 +834,31 @@ public class MyFloat {
     // All intermediate results have to be calculated in double precision to avoid rounding errors
     significand = significand.shiftLeft(Format.DOUBLE.sigBits - format.sigBits);
 
-    // Pull the exponent part from the square root
-    long exponent_f = exponent % 2;
-    long exponent_r = exponent / 2;
+    // Range reduction:
+    // sqrt(f * 2^2m) = sqrt(f)*2^m
+    MyFloat f = new MyFloat(Format.DOUBLE, value.sign, exponent % 2, significand);
 
-    // Define f (the transformed argument) and x, the initial value for the inverse square root
-    MyFloat f = new MyFloat(Format.DOUBLE, value.sign, exponent_f, significand);
-    MyFloat x = const0_5; // Will converge, but might be slow. TODO: Find a better initial value.
+    // Initial value (0.5 will always converge)
+    MyFloat x = const0_5;
 
-    // Repeat the approximation until we have enough precision
-    // TODO: Figure out a bound for the number of iterations
-    for (int i = 0; i < 7; i++) {
-      // x_n+1 = x_n * (3/2 - 1/2 * x_n^2)
+    boolean done = false;
+    List<MyFloat> partial = new ArrayList<>();
+    while (!done) {
+      partial.add(x);
+
+      // x_n+1 = x_n * (3/2 - 1/2 * f * x_n^2)
       x = x.multiply(const1_5.subtract(const0_5.multiply(f).multiply(x.squared())));
+
+      // Abort once we have enough precision
+      done = partial.contains(x);
     }
 
-    // r is the exponent part that we pulled out of sqrt()
-    MyFloat r =
-        new MyFloat(
-            Format.DOUBLE, false, exponent_r, BigInteger.ONE.shiftLeft(Format.DOUBLE.sigBits));
+    // Multiply the inverse square root with f again to get the square root itself.
+    x = x.multiply(f);
 
-    // Multiply the inverse square root with f again to get the square root. Then convert the result
-    // back to single precision.
-    return x.multiply(f).multiply(r).withPrecision(format);
+    // Restore the exponent by multiplying with 2^m. Then convert the result back to float.
+    MyFloat r = one(Format.DOUBLE).withExponent(exponent / 2);
+    return x.multiply(r).withPrecision(format);
   }
 
   public MyFloat exp() {
@@ -785,27 +883,32 @@ public class MyFloat {
   }
 
   // Table contains terms 1/k! for 1..100
-  private static Map<Integer, MyFloat> expTable = mkExpTable(Format.DOUBLE);
+  private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.DOUBLE);
 
   private MyFloat expImpl() {
-    MyFloat one = one(Format.DOUBLE);
-
     MyFloat x = this.withPrecision(Format.DOUBLE);
-    MyFloat xs = one; // x^k (1 for k=0)
+    MyFloat y = one(Format.DOUBLE); // During the iteration we set y=x^k
+    MyFloat r = one(Format.DOUBLE); // Series expansion after k terms
 
-    // Pull out the exponent to reduce the argument
+    // Range reduction:
+    // e^(a * 2^x) = e^(a * 2 * 2^x-1) = e^(a*2^x-1 + a*2^x-1) = (e^(a*2^x-1))^2 = ... = (e^a)^(2^x)
     if (value.exponent > 0) {
-      x = new MyFloat(Format.DOUBLE, x.value.sign, 0, x.value.significand);
+      x = x.withExponent(0);
     }
 
-    MyFloat r = one;
-    for (int k = 1; k < 20; k++) { // TODO: Find a proper bound for the number of iterations
-      // Calculate x^n and look up the factorial term
-      xs = xs.multiply(x);
-      MyFloat divisor = expTable.get(k);
+    boolean done = false;
+    List<MyFloat> partial = new ArrayList<>();
+    int k = 1;
+    while (!done) {
+      partial.add(r);
 
-      // Add it to the sum
-      r = r.add(xs.multiply(divisor));
+      // r(n+1) = r(n) + x^k/k!
+      y = y.multiply(x);
+      r = r.add(y.multiply(expTable.get(k)));
+
+      // Abort once we have enough precision
+      done = partial.contains(r);
+      k++;
     }
 
     // Square the result to recover the exponent
@@ -842,12 +945,19 @@ public class MyFloat {
     // Initial value: first term of taylor series for ln
     MyFloat r = x.subtract(one(Format.DOUBLE));
 
-    for (int i = 0; i < 10; i++) {
+    boolean done = false;
+    List<MyFloat> partial = new ArrayList<>();
+    while (!done) {
+      partial.add(r);
+
       //  r(n+1) = r(n) + 2 * (x - e^r(n)) / (x + e^r(n))
       MyFloat exp_y = r.exp();
       MyFloat t1 = x.subtract(exp_y);
       MyFloat t2 = x.add(exp_y);
       r = r.add(constant(Format.DOUBLE, 2).multiply(t1.divide(t2)));
+
+      // Abort once we have enough precision
+      done = partial.contains(r);
     }
     return r.withExponent(r.value.exponent + preprocess).withPrecision(format);
   }
@@ -926,99 +1036,16 @@ public class MyFloat {
   }
 
   private MyFloat powImpl(MyFloat exponent) {
+    // FIXME: Testcase powTo(3.4028235E38, 0.5):
+    //  expected: 0 10111110 11111111111111111111111 [1.8446743E19]
+    //  but was : 0 10111111 00000000000000000000000 [1.8446744E19]
+
     MyFloat a = this.withPrecision(Format.DOUBLE);
     MyFloat x = exponent.withPrecision(Format.DOUBLE);
 
     // a^x = e^(x * ln a)
     MyFloat r = x.multiply(a.ln()).exp();
     return r.withPrecision(format);
-  }
-
-  public MyFloat abs() {
-    return new MyFloat(format, false, value.exponent, value.significand);
-  }
-
-  public boolean greaterThan(MyFloat number) {
-    if (this.isNan() || number.isNan()) {
-      return false;
-    }
-    if (this.isInfinite() && !this.isNegative()) {
-      if (number.isInfinite() && !number.isNegative()) {
-        return false;
-      }
-      return true;
-    }
-    if (this.isInfinite() && this.isNegative() && number.isInfinite() && number.isNegative()) {
-      return false;
-    }
-    MyFloat r = this.subtract(number);
-    if (r.isZero()) {
-      return false;
-    }
-    return !r.isNegative();
-  }
-
-  public MyFloat withPrecision(Format targetFormat) {
-    if (isNan()) {
-      return nan(targetFormat);
-    }
-    if (isInfinite()) {
-      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
-    }
-    if (isZero()) {
-      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
-    }
-
-    long exponent = Math.max(value.exponent, format.minExp());
-    BigInteger significand = value.significand;
-
-    // Normalization
-    // If the number is subnormal shift it upward and adjust the exponent
-    int shift = (format.sigBits + 1) - significand.bitLength();
-    if (shift > 0) {
-      significand = significand.shiftLeft(shift);
-      exponent -= shift;
-    }
-
-    // Return infinity if the exponent is too large for the new encoding
-    if (exponent > targetFormat.maxExp()) {
-      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
-    }
-
-    // Return zero if the exponent is below the subnormal range
-    if (exponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
-      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
-    }
-
-    // Extend the significand
-    significand = significand.shiftLeft(targetFormat.sigBits + 3);
-
-    // Use the lowest possible exponent and move the rest into the significand by shifting
-    // it to the right.
-    // Here we calculate haw many digits we need to shift:
-    int leading = 0;
-    if (exponent < targetFormat.minExp()) {
-      leading = (int) Math.abs(targetFormat.minExp() - exponent);
-      exponent = targetFormat.minExp() - 1;
-    }
-
-    // Truncate the value while carrying over the grs bits.
-    significand = truncate(significand, format.sigBits + leading);
-
-    // Round the result according to the grs bits
-    long grs = significand.and(new BigInteger("111", 2)).longValue();
-    significand = significand.shiftRight(3);
-    if ((grs == 4 && significand.testBit(0)) || grs > 4) {
-      significand = significand.add(BigInteger.ONE);
-    }
-
-    // Normalize if rounding caused an overflow
-    if (significand.testBit(targetFormat.sigBits + 1)) {
-      significand = significand.shiftRight(1); // The last bit is zero
-      exponent += 1;
-    }
-
-    return new MyFloat(targetFormat, value.sign, exponent, significand);
   }
 
   public enum RoundingMode {
