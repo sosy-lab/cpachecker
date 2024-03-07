@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Writer;
@@ -70,8 +71,7 @@ abstract class AbstractYAMLWitnessExporter {
 
   protected ASTStructure getASTStructure() {
     ASTStructure astCFARelation = cfa.getASTStructure();
-    assert astCFARelation != null;
-    return astCFARelation;
+    return Verify.verifyNotNull(astCFARelation);
   }
 
   protected void exportEntries(AbstractEntry entry, Path outFile) {
