@@ -133,8 +133,6 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean followIfBranch) {
-    // The -1 in the column is needed since the ASTStructure element starts at the offset before
-    // the if keyword, but the waypoint points to the first character of the if keyword
     IfStructure ifStructure = astStructure.getIfStructureStartingAtColumn(followColumn, followLine);
     if (ifStructure == null) {
       logger.log(
@@ -296,9 +294,6 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         }
 
         ASTStructure astStructure = cfa.getASTStructure();
-        // The -1 in the column is needed since the ASTStructure element starts at the offset before
-        // the if keyword, but the waypoint points to the first character of the if keyword
-
         List<AutomatonTransition> ifStatementTransitions =
             handleFollowWaypointAtIfStatement(
                 astStructure,
