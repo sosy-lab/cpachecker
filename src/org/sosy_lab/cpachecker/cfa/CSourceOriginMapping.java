@@ -50,12 +50,14 @@ public class CSourceOriginMapping {
   }
 
   /**
-   * Returns a list where for entry i the starting offset of line i in the file is stored.
+   * Adds information about the relation between line numbers and offsets for the given path. This
+   * is tracked by a mapping from paths to A list where for entry i the starting offset of line i in
+   * the file is stored.
    *
+   * @param pPath the path from where the program code stems
    * @param pProgramCode code for the file whose line starting offsets should be computed
-   * @return Immutable List
    */
-  private static ImmutableList<Integer> getLineOffsets(String pProgramCode) {
+  public void addFileInformation(Path pPath, String pProgramCode) {
     ImmutableList.Builder<Integer> result = ImmutableList.builder();
 
     int currentOffset = 0;
@@ -64,11 +66,8 @@ public class CSourceOriginMapping {
       result.add(currentOffset);
       currentOffset += sourceLine.length() + 1;
     }
-    return result.build();
-  }
 
-  public void addFileInformation(Path pPath, String pProgramCode) {
-    lineNumberToStartingColumn.putAll(pPath.normalize(), getLineOffsets(pProgramCode));
+    lineNumberToStartingColumn.putAll(pPath.normalize(), result.build());
   }
 
   /**
