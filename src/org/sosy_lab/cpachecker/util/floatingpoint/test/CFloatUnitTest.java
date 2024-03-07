@@ -377,7 +377,7 @@ public abstract class CFloatUnitTest {
 
   @Test
   public void multiplyManyTest() {
-    testOperator("multiplyManyTest", (CFloat a, CFloat b) -> b.sqrt().multiply(a, b.sqrt()));
+    testOperator("multiplyManyTest", (CFloat a, CFloat b) -> b.multiply(a, b));
   }
 
   @Test

@@ -398,7 +398,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 	}
 
 	for (long long i = 0; i < size; i++) {
-		t_ld cur_fp = transformWrapperFromJava(env, (*env)->GetObjectArrayElement(env, factors, 0), types[i + 1]);
+		t_ld cur_fp = transformWrapperFromJava(env, (*env)->GetObjectArrayElement(env, factors, i), types[i + 1]);
 		switch(maxType) {
 			case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
 				fp.f_value = fp.f_value * cur_fp.f_value;
