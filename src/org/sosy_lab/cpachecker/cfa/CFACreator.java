@@ -463,7 +463,7 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.getFunctions().get(mainFunctionName);
+      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
       CFA cfa = createCFA(parseResult, mainFunction);
@@ -503,11 +503,11 @@ public class CFACreator {
 
       switch (language) {
         case JAVA:
-          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.getFunctions());
-          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.getFunctions());
+          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.functions());
+          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
           break;
         case C:
-          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          mainFunction = getCMainFunction(sourceFiles, c.functions());
           break;
         default:
           throw new AssertionError();
@@ -582,11 +582,10 @@ public class CFACreator {
         CfaMetadata.forMandatoryAttributes(
             machineModel,
             language,
-            pParseResult.getFileNames(),
+            pParseResult.fileNames(),
             mainFunction,
             CfaConnectedness.UNCONNECTED_FUNCTIONS);
-    MutableCFA cfa =
-        new MutableCFA(pParseResult.getFunctions(), pParseResult.getCFANodes(), cfaMetadata);
+    MutableCFA cfa = new MutableCFA(pParseResult.functions(), pParseResult.cfaNodes(), cfaMetadata);
 
     stats.checkTime.start();
 
@@ -600,7 +599,7 @@ public class CFACreator {
     // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
     stats.processingTime.start();
 
-    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.getGlobalDeclarations());
+    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.globalDeclarations());
 
     // Check CFA again after post-processings
     stats.checkTime.start();
@@ -656,20 +655,20 @@ public class CFACreator {
         && (cfa.getVarClassification().isPresent() || cfa.getLanguage() != Language.C)) {
       cfa.setLiveVariables(
           LiveVariables.create(
-              pParseResult.getGlobalDeclarations(), cfa, logger, shutdownNotifier, config));
+              pParseResult.globalDeclarations(), cfa, logger, shutdownNotifier, config));
     }
 
     stats.processingTime.stop();
 
-    if (pParseResult.getASTStructure().isPresent()) {
-      cfa.setASTStructure(pParseResult.getASTStructure().orElseThrow());
+    if (pParseResult.astStructure().isPresent()) {
+      cfa.setASTStructure(pParseResult.astStructure().orElseThrow());
     }
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
-    if (pParseResult.getBlocks().isPresent() && pParseResult.getCommentLocations().isPresent()) {
-      commentPositions.addAll(pParseResult.getCommentLocations().orElseThrow());
-      blocks.addAll(pParseResult.getBlocks().orElseThrow());
+    if (pParseResult.blocks().isPresent() && pParseResult.commentLocations().isPresent()) {
+      commentPositions.addAll(pParseResult.commentLocations().orElseThrow());
+      blocks.addAll(pParseResult.blocks().orElseThrow());
     }
 
     // check the super CFA starting at the main function

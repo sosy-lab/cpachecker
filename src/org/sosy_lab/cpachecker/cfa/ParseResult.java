@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
@@ -37,30 +36,28 @@ import org.sosy_lab.cpachecker.util.ast.ASTStructure;
  * <p>This class is immutable, but it does not ensure that it's content also is. It is recommended
  * to use it only as a "transport" data class, not for permanent storage.
  */
-public class ParseResult {
-
-  private Optional<ASTStructure> astStructure = Optional.empty();
-
-  private Optional<List<FileLocation>> commentLocations = Optional.empty();
-  private Optional<List<SyntacticBlock>> blocks = Optional.empty();
-
-  private final NavigableMap<String, FunctionEntryNode> functions;
-
-  private final TreeMultimap<String, CFANode> cfaNodes;
-
-  private final List<Pair<ADeclaration, String>> globalDeclarations;
-
-  private final List<Path> fileNames;
+public record ParseResult(
+    NavigableMap<String, FunctionEntryNode> functions,
+    TreeMultimap<String, CFANode> cfaNodes,
+    List<Pair<ADeclaration, String>> globalDeclarations,
+    List<Path> fileNames,
+    Optional<ASTStructure> astStructure,
+    Optional<List<FileLocation>> commentLocations,
+    Optional<List<SyntacticBlock>> blocks) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
       TreeMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames) {
-    functions = pFunctions;
-    cfaNodes = pCfaNodes;
-    globalDeclarations = pGlobalDeclarations;
-    fileNames = ImmutableList.copyOf(pFileNames);
+    this(
+        pFunctions,
+        pCfaNodes,
+        pGlobalDeclarations,
+        pFileNames,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty());
   }
 
   public ParseResult(
@@ -70,25 +67,18 @@ public class ParseResult {
       List<Path> pFileNames,
       List<FileLocation> pCommentLocations,
       List<SyntacticBlock> pBlocks) {
-
-    functions = pFunctions;
-    cfaNodes = pCfaNodes;
-    globalDeclarations = pGlobalDeclarations;
-    fileNames = ImmutableList.copyOf(pFileNames);
-    commentLocations = Optional.of(pCommentLocations);
-    blocks = Optional.of(pBlocks);
+    this(
+        pFunctions,
+        pCfaNodes,
+        pGlobalDeclarations,
+        pFileNames,
+        Optional.empty(),
+        Optional.of(pCommentLocations),
+        Optional.of(pBlocks));
   }
 
   public boolean isEmpty() {
     return functions.isEmpty();
-  }
-
-  public NavigableMap<String, FunctionEntryNode> getFunctions() {
-    return functions;
-  }
-
-  public TreeMultimap<String, CFANode> getCFANodes() {
-    return cfaNodes;
   }
 
   public ImmutableSet<CFAEdge> getCFAEdges() {
@@ -97,28 +87,15 @@ public class ParseResult {
         .toSet();
   }
 
-  public List<Pair<ADeclaration, String>> getGlobalDeclarations() {
-    return globalDeclarations;
-  }
-
-  public List<Path> getFileNames() {
-    return fileNames;
-  }
-
-  public Optional<ASTStructure> getASTStructure() {
-    return astStructure;
-  }
-
-  public void setASTStructure(ASTStructure pAstStructure) {
+  public ParseResult withASTStructure(ASTStructure pAstStructure) {
     Verify.verify(astStructure.isEmpty());
-    astStructure = Optional.of(pAstStructure);
-  }
-
-  public Optional<List<FileLocation>> getCommentLocations() {
-    return commentLocations;
-  }
-
-  public Optional<List<SyntacticBlock>> getBlocks() {
-    return blocks;
+    return new ParseResult(
+        functions,
+        cfaNodes,
+        globalDeclarations,
+        fileNames,
+        Optional.of(pAstStructure),
+        commentLocations,
+        blocks);
   }
 }

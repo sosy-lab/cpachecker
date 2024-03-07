@@ -340,8 +340,10 @@ class EclipseCParser implements CParser {
 
       ParseResult result = builder.createCFA();
 
-      result.setASTStructure(
-          ASTStructureBuilder.getASTStructure(pSourceOriginMapping, result.getCFAEdges(), asts));
+      result =
+          result.withASTStructure(
+              ASTStructureBuilder.getASTStructure(
+                  pSourceOriginMapping, result.getCFAEdges(), asts));
 
       return result;
     } catch (CFAGenerationRuntimeException e) {

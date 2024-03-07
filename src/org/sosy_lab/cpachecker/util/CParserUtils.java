@@ -436,7 +436,7 @@ public class CParserUtils {
             "Cannot interpret code as C expression: <" + pAssumeCode + ">", e);
       }
     }
-    FunctionEntryNode entryNode = parseResult.getFunctions().values().iterator().next();
+    FunctionEntryNode entryNode = parseResult.functions().values().iterator().next();
 
     return asExpressionTree(entryNode, pParserTools);
   }
