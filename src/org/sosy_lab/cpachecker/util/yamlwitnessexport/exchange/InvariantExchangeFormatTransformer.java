@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -30,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
@@ -127,18 +127,20 @@ public class InvariantExchangeFormatTransformer {
    */
   public Set<Invariant> generateInvariantsFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException {
-    Set<Invariant> invariants = new HashSet<>();
+    ImmutableSet.Builder<Invariant> invariants = new ImmutableSet.Builder<>();
 
-    SetMultimap<Integer, String> lineToSeenInvariants = HashMultimap.create();
+    SetMultimap<Pair<Integer, Integer>, String> lineToSeenInvariants = HashMultimap.create();
 
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
         for (InvariantEntry invariantEntry : invariantSetEntry.content) {
-          Integer line = invariantEntry.getLocation().getLine();
+          int line = invariantEntry.getLocation().getLine();
+          int column = invariantEntry.getLocation().getColumn();
+          Pair<Integer, Integer> cacheLookupKey = Pair.of(line, column);
           String invariantString = invariantEntry.getValue();
 
-          // Parsing is expensive, therefore cache everything we can
-          if (lineToSeenInvariants.get(line).contains(invariantString)) {
+          // Parsing is expensive, therefore, cache everything we can
+          if (lineToSeenInvariants.get(cacheLookupKey).contains(invariantString)) {
             continue;
           }
 
@@ -147,16 +149,16 @@ public class InvariantExchangeFormatTransformer {
           invariants.add(
               new Invariant(
                   invariant,
-                  invariantEntry.getLocation().getLine(),
-                  invariantEntry.getLocation().getColumn(),
+                  line,
+                  column,
                   invariantEntry
                       .getType()
                       .equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())));
 
-          lineToSeenInvariants.get(line).add(invariantString);
+          lineToSeenInvariants.get(cacheLookupKey).add(invariantString);
         }
       }
     }
-    return invariants;
+    return invariants.build();
   }
 }
