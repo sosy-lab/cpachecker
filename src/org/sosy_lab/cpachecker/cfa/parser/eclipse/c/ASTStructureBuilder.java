@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import java.util.Optional;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -20,32 +21,23 @@ import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 
 public class ASTStructureBuilder {
 
-  private final ASTLocationClassifier classifier;
-
-  final ImmutableSet.Builder<IfStructure> ifStructures = new ImmutableSet.Builder<>();
-  final ImmutableSet.Builder<IterationStructure> iterationStructures = new ImmutableSet.Builder<>();
-
-  public ASTStructureBuilder(CSourceOriginMapping pSourceOriginMapping) {
-    classifier = new ASTLocationClassifier(pSourceOriginMapping);
-  }
-
-  public ASTStructure getASTStructure() {
+  public static ASTStructure getASTStructure(
+      CSourceOriginMapping pSourceOriginMapping,
+      ImmutableSet<CFAEdge> pEdges,
+      List<IASTTranslationUnit> pAsts) {
+    ASTLocationClassifier classifier = new ASTLocationClassifier(pSourceOriginMapping);
+    for (IASTTranslationUnit ast : pAsts) {
+      ast.accept(classifier);
+    }
     return new ASTStructure(
-        ifStructures.build(),
-        iterationStructures.build(),
+        getIfStructures(pEdges, classifier),
+        getIterationStructures(pEdges, classifier),
         classifier.getStatementOffsetsToLocations());
   }
 
-  public void analyze(IASTTranslationUnit pTranslationUnit) {
-    pTranslationUnit.accept(classifier);
-  }
-
-  public void updateStructures(ImmutableSet<CFAEdge> pEdges) {
-    updateIfStructures(pEdges);
-    updateIterationStructures(pEdges);
-  }
-
-  private void updateIfStructures(ImmutableSet<CFAEdge> pEdges) {
+  private static ImmutableSet<IfStructure> getIfStructures(
+      ImmutableSet<CFAEdge> pEdges, ASTLocationClassifier classifier) {
+    ImmutableSet.Builder<IfStructure> ifStructures = new ImmutableSet.Builder<>();
     for (FileLocation loc : classifier.ifLocations) {
       ifStructures.add(
           new IfStructure(
@@ -55,9 +47,12 @@ public class ASTStructureBuilder {
               Optional.ofNullable(classifier.ifElseClause.get(loc)),
               pEdges));
     }
+    return ifStructures.build();
   }
 
-  private void updateIterationStructures(ImmutableSet<CFAEdge> pEdges) {
+  private static ImmutableSet<IterationStructure> getIterationStructures(
+      ImmutableSet<CFAEdge> pEdges, ASTLocationClassifier classifier) {
+    ImmutableSet.Builder<IterationStructure> iterationStructures = new ImmutableSet.Builder<>();
     for (FileLocation loc : classifier.loopLocations) {
       iterationStructures.add(
           new IterationStructure(
@@ -69,5 +64,6 @@ public class ASTStructureBuilder {
               Optional.ofNullable(classifier.loopIterationStatement.get(loc)),
               pEdges));
     }
+    return iterationStructures.build();
   }
 }

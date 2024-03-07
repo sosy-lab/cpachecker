@@ -74,7 +74,7 @@ public class ParseResult {
     return cfaNodes;
   }
 
-  public ImmutableSet<CFAEdge> getEdges() {
+  public ImmutableSet<CFAEdge> getCFAEdges() {
     return FluentIterable.from(cfaNodes.values())
         .transformAndConcat(CFAUtils::allLeavingEdges)
         .toSet();
