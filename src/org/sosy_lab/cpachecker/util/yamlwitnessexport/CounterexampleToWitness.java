@@ -68,6 +68,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
               .transform(AExpressionStatement::toString)
               .transformAndConcat(s -> ImmutableList.copyOf(s.split(";")))
               .transformAndConcat(s -> ImmutableList.copyOf(s.split(",")))
+              .filter(s -> !s.contains("__CPAchecker_TMP"))
               .join(Joiner.on(" && "));
     }
 
