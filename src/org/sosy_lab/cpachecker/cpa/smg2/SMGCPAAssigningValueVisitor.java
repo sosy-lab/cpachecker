@@ -198,7 +198,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   /*
-   * a != b
+   * a != b or !(a==b)
    */
   private SMGState handleInEqualityAssumption(
       CExpression lVarInBinaryExp,
@@ -212,9 +212,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     SMGState initialState = super.getInitialVisitorState();
 
-    if (isAssumptionComparedToZero(rightValue)) {
-      // x != 0
-      if (isEligibleForAssignment(leftValue, currentState) && rightValue.isExplicitlyKnown()) {
+    if (isAssumptionComparedToZero(rightValue) && rightValue.isExplicitlyKnown()) {
+      // !(x == 0) or x != 0
+      if (isEligibleForAssignment(leftValue, currentState)) {
         if (!isNestingHandleable((CExpression) unwrap(lVarInBinaryExp))) {
           return currentState;
         }
@@ -243,7 +243,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         }
       }
     } else if (isAssumptionComparedToZero(leftValue)) {
-      // 0 != x
+      // 0 != x or !(x == 0)
       if (isEligibleForAssignment(rightValue, currentState)
           && leftValue.isExplicitlyKnown()
           && !evaluator.isPointerValue(rightValue, currentState)
@@ -383,6 +383,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     // like concrete values!
     return !pValue.isExplicitlyKnown()
         && options.isAssignEqualityAssumptions()
+        && (!options.trackPredicates() || currentState.getNumberOfValueUsages(pValue) == 1)
         && !(pValue instanceof AddressExpression)
         && !currentState.getMemoryModel().isPointer(pValue)
         && (!(pValue instanceof SymbolicIdentifier symIdent)
