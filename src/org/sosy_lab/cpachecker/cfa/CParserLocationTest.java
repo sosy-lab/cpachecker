@@ -136,8 +136,12 @@ public class CParserLocationTest {
     String expectedAdditionalFileName = expectedFileName.replace("test", "additional");
     FileContentToParse additional =
         new FileContentToParse(Path.of(additionalFileName), additionalCode);
-    ParseResult result =
-        parser.parseString(ImmutableList.of(main, additional), new CSourceOriginMapping());
+    CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+    ImmutableList<FileContentToParse> programFragments = ImmutableList.of(main, additional);
+    programFragments.forEach(
+        f -> sourceOriginMapping.addFileInformation(f.getFileName(), f.getFileContent()));
+
+    ParseResult result = parser.parseString(programFragments, sourceOriginMapping);
 
     FileLocation mainLoc = result.functions().get("main").getFileLocation();
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
