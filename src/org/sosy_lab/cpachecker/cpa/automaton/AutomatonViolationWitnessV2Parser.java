@@ -98,12 +98,13 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
             // iteration statement edges may fulfill the condition, but are not always desired.
             new IsStatementEdge());
 
-    AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
-    builder = distanceToViolation(builder, pDistanceToViolation);
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
 
     // When we match the target state we want to enter the error location immediately
-    builder = builder.withAssertion(createViolationAssertion());
-    return builder.build();
+    transitionBuilder = transitionBuilder.withAssertion(createViolationAssertion());
+    return transitionBuilder.build();
   }
 
   private AutomatonTransition handleAssumption(
@@ -127,12 +128,13 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
             // iteration statement edges may fulfill the condition, but are not always desired.
             new IsStatementEdge());
 
-    AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
-    builder = distanceToViolation(builder, pDistanceToViolation);
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
 
-    handleConstraint(constraint, Optional.ofNullable(function), followLine, builder);
+    handleConstraint(constraint, Optional.ofNullable(function), followLine, transitionBuilder);
 
-    return builder.build();
+    return transitionBuilder.build();
   }
 
   private Optional<List<AutomatonTransition>> handleFollowWaypointAtIfStatement(
@@ -162,20 +164,18 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       return Optional.empty();
     }
 
-    AutomatonBoolExpr expr = new CheckEntersIfBranch(ifStructure, followIfBranch);
-    AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
-    builder = distanceToViolation(builder, pDistanceToViolation);
-
-    List<AutomatonTransition> transitions = new ArrayList<>();
-    transitions.add(builder.build());
+    AutomatonBoolExpr condition = new CheckEntersIfBranch(ifStructure, followIfBranch);
+    AutomatonTransition followBranchTransition =
+        distanceToViolation(
+                new AutomatonTransition.Builder(condition, nextStateId), pDistanceToViolation)
+            .build();
 
     // Add break state for the other branch, since we don't want to explore it
-    builder =
-        new AutomatonTransition.Builder(
-            new CheckEntersIfBranch(ifStructure, !followIfBranch), AutomatonInternalState.BOTTOM);
-    transitions.add(builder.build());
+    CheckEntersIfBranch negatedCondition = new CheckEntersIfBranch(ifStructure, !followIfBranch);
+    AutomatonTransition avoidBranchTransition =
+        new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
 
-    return Optional.of(transitions);
+    return Optional.of(ImmutableList.of(followBranchTransition, avoidBranchTransition));
   }
 
   private AutomatonTransition handleFunctionReturn(
@@ -364,7 +364,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     AutomatonIntVariable distanceVariable =
         (AutomatonIntVariable)
             AutomatonVariable.createAutomatonVariable(
-                "int",
+                /* pType= */ "int",
                 AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
                 Integer.toString(segments.size() + 1));
     automatonVariables.put(AutomatonGraphmlParser.DISTANCE_TO_VIOLATION, distanceVariable);
