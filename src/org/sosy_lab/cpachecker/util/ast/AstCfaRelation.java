@@ -12,8 +12,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,8 +29,8 @@ public class AstCfaRelation {
 
   @LazyInit private ImmutableMap<CFAEdge, IfStructure> conditionEdgesToIfStructure = null;
 
-  private final Map<Pair<Integer, Integer>, IfStructure> lineAndStartColumnToIfStructure =
-      new HashMap<>();
+  @LazyInit
+  private ImmutableMap<Pair<Integer, Integer>, IfStructure> lineAndStartColumnToIfStructure = null;
 
   public AstCfaRelation(
       ImmutableSet<IfStructure> pIfStructures,
@@ -118,6 +116,21 @@ public class AstCfaRelation {
     return result;
   }
 
+  private void initializeMapFromLineAndStartColumnToIfStructure() {
+    if (lineAndStartColumnToIfStructure != null) {
+      return;
+    }
+    ImmutableMap.Builder<Pair<Integer, Integer>, IfStructure> builder =
+        new ImmutableMap.Builder<>();
+    for (IfStructure structure : ifStructures) {
+      FileLocation location = structure.getCompleteElement().location();
+      Pair<Integer, Integer> key =
+          Pair.of(location.getStartColumnInLine(), location.getStartingLineNumber());
+      builder.put(key, structure);
+    }
+    lineAndStartColumnToIfStructure = builder.buildOrThrow();
+  }
+
   /**
    * Returns the IfStructure that starts at the given column and line.
    *
@@ -126,17 +139,13 @@ public class AstCfaRelation {
    * @return the IfStructure that starts at the given column and line
    */
   public Optional<IfStructure> getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
+    if (lineAndStartColumnToIfStructure == null) {
+      initializeMapFromLineAndStartColumnToIfStructure();
+    }
+
     Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
     if (lineAndStartColumnToIfStructure.containsKey(key)) {
       return Optional.ofNullable(lineAndStartColumnToIfStructure.get(key));
-    }
-
-    for (IfStructure structure : ifStructures) {
-      FileLocation location = structure.getCompleteElement().location();
-      if (location.getStartColumnInLine() == pColumn && location.getStartingLineNumber() == pLine) {
-        lineAndStartColumnToIfStructure.put(key, structure);
-        return Optional.of(structure);
-      }
     }
 
     return Optional.empty();
