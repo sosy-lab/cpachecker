@@ -375,9 +375,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   class CheckEntersIfBranch implements AutomatonBoolExpr {
 
     private final boolean takeThenBranch;
-    private final Set<CFANode> nodesBetweenConditionAndBranch;
+    private final ImmutableSet<CFANode> nodesBetweenConditionAndBranch;
 
-    private final Set<CFANode> conditionElementPredecessors;
+    private final ImmutableSet<CFANode> conditionElementPredecessors;
 
     public CheckEntersIfBranch(IfStructure pIfStructure, boolean pTakeThenBranch) {
       takeThenBranch = pTakeThenBranch;
