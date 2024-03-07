@@ -80,7 +80,9 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -2513,6 +2515,25 @@ public class SMGState
           copyAndReplaceMemoryModel(memoryModel.copyAndPutValue(pValue, newSMGValue, 0)),
           newSMGValue);
     }
+  }
+
+  public boolean valueContainedInConstraints(Value pValue) {
+    // TODO: this currently is a quick and dirty fix. Do properly.
+    Set<SymbolicIdentifier> symIdents = ImmutableSet.of();
+    if (pValue instanceof SymbolicExpression symExpr) {
+      symIdents = symExpr.accept(SymbolicIdentifierLocator.getInstance());
+    }
+    Set<Constraint> constraints = getConstraints();
+    if (!symIdents.isEmpty()) {
+      for (Constraint co : constraints) {
+        Set<SymbolicIdentifier> symIdentsConstr =
+            co.accept(SymbolicIdentifierLocator.getInstance());
+        if (!Collections.disjoint(symIdentsConstr, symIdents)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
