@@ -11,12 +11,10 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -39,11 +37,9 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumn
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersIfBranch;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -194,18 +190,16 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
             // iteration statement edges may fulfill the condition, but are not always desired.
             new IsStatementEdge());
 
-    AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
-    builder = distanceToViolation(builder, pDistanceToViolation);
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
 
     // This is basically a special case of an assumption waypoint.
     for (AStatementEdge edge :
         FluentIterable.from(startLineToCFAEdge.get(followLine)).filter(AStatementEdge.class)) {
       // The syntax of the witness V2 describes that the return statement must point to the
       // closing bracket of the function whose return statement is being considered
-      int columnEndOfEdge =
-          edge.getFileLocation().getStartingLineInOrigin()
-              + edge.getFileLocation().getNodeLength()
-              - 1;
+      int columnEndOfEdge = edge.getFileLocation().getEndColumnInLine();
       if (columnEndOfEdge != followColumn
           || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;
@@ -240,17 +234,17 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
           logger.log(Level.FINEST, "Could not generate automaton assumption.");
           continue;
         }
-        builder.withAssumptions(expressions);
+        transitionBuilder.withAssumptions(expressions);
         break;
       }
     }
 
-    return builder.build();
+    return transitionBuilder.build();
   }
 
   Automaton createViolationAutomatonFromEntriesMatchingOffsets(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
-    List<Pair<WaypointRecord, List<WaypointRecord>>> segments = segmentize(pEntries);
+    List<PartitionedWaypoints> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
@@ -260,31 +254,31 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         FluentIterable.from(cfa.edges())
             .index(edge -> edge.getFileLocation().getStartingLineNumber());
 
-    int counter = 0;
-    final String initState = getStateName(counter++);
+    int stateCounter = 0;
+    final String initState = getStateName(stateCounter++);
 
-    final List<AutomatonInternalState> automatonStates = new ArrayList<>();
+    final ImmutableList.Builder<AutomatonInternalState> automatonStates =
+        new ImmutableList.Builder<>();
     String currentStateId = initState;
-    WaypointRecord follow;
 
     int distance = segments.size();
 
-    for (Pair<WaypointRecord, List<WaypointRecord>> entry : segments) {
-      List<AutomatonTransition> transitions = new ArrayList<>();
-      follow = entry.getFirst();
-      List<WaypointRecord> avoids = entry.getSecond();
-      if (avoids != null && !avoids.isEmpty()) {
+    for (PartitionedWaypoints entry : segments) {
+      ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
+      WaypointRecord follow = entry.follow();
+      List<WaypointRecord> avoids = entry.avoids();
+      if (!avoids.isEmpty()) {
         logger.log(
             Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
       }
-      String nextStateId = getStateName(counter++);
+      String nextStateId = getStateName(stateCounter++);
       int followLine = follow.getLocation().getLine();
       int followColumn = follow.getLocation().getColumn();
 
       if (follow.getType().equals(WaypointType.TARGET)) {
         nextStateId = "X";
         transitions.add(handleTarget(nextStateId, followLine, followColumn, distance));
-        if (counter != segments.size()) {
+        if (stateCounter != segments.size()) {
           logger.log(
               Level.INFO,
               "Target waypoint is not the last waypoint, following waypoints will be ignored!");
@@ -338,7 +332,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       automatonStates.add(
           new AutomatonInternalState(
               currentStateId,
-              transitions,
+              transitions.build(),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
@@ -359,19 +353,18 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
             /* pAllTransitions= */ false,
             /* pIsCycleStart= */ false));
 
-    Automaton automaton;
-    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
-    AutomatonIntVariable distanceVariable =
-        (AutomatonIntVariable)
+    ImmutableMap<String, AutomatonVariable> automatonVariables =
+        ImmutableMap.of(
+            AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
             AutomatonVariable.createAutomatonVariable(
                 /* pType= */ "int",
                 AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-                Integer.toString(segments.size() + 1));
-    automatonVariables.put(AutomatonGraphmlParser.DISTANCE_TO_VIOLATION, distanceVariable);
+                Integer.toString(segments.size() + 1)));
 
-    // new AutomatonInternalState(entryStateId, transitions, false, false, true)
+    Automaton automaton;
     try {
-      automaton = new Automaton(automatonName, automatonVariables, automatonStates, initState);
+      automaton =
+          new Automaton(automatonName, automatonVariables, automatonStates.build(), initState);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(
           "The witness automaton generated from the provided Witness V2 is invalid!", e);

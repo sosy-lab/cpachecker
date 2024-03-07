@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -33,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
@@ -94,16 +92,18 @@ class AutomatonWitnessV2ParserCommon {
     return "S" + i;
   }
 
-  List<Pair<WaypointRecord, List<WaypointRecord>>> segmentize(List<AbstractEntry> pEntries)
+  record PartitionedWaypoints(WaypointRecord follow, ImmutableList<WaypointRecord> avoids) {}
+
+  ImmutableList<PartitionedWaypoints> segmentize(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
-    List<Pair<WaypointRecord, List<WaypointRecord>>> segments = new ArrayList<>();
+    ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
     WaypointRecord latest = null;
     int numTargetWaypoints = 0;
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof ViolationSequenceEntry violationEntry) {
 
-        List<WaypointRecord> avoids = new ArrayList<>();
         for (SegmentRecord segmentRecord : violationEntry.getContent()) {
+          ImmutableList.Builder<WaypointRecord> avoids = new ImmutableList.Builder<>();
           for (WaypointRecord waypoint : segmentRecord.getSegment()) {
             latest = waypoint;
             numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
@@ -111,9 +111,8 @@ class AutomatonWitnessV2ParserCommon {
               avoids.add(waypoint);
               continue;
             } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-              segments.add(Pair.of(waypoint, avoids));
-              avoids = new ArrayList<>();
-              continue;
+              segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
+              break;
             }
           }
         }
@@ -121,7 +120,7 @@ class AutomatonWitnessV2ParserCommon {
       }
     }
     checkTargetIsAtEnd(latest, numTargetWaypoints);
-    return segments;
+    return segments.build();
   }
 
   void handleConstraint(
