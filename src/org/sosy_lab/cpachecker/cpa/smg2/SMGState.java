@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -3856,6 +3857,22 @@ public class SMGState
   private Value getNewSymbolicValueForType(CType valueType) {
     // For unknown values we use a new symbolic value without memory location as this is
     // handled by the SMGs
+    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    return factory.asConstant(factory.newIdentifier(null), valueType);
+  }
+
+  /**
+   * Returns a new symbolic constant value based on the type of another.
+   *
+   * @param valueToTakeTypeFrom the {@link CType} will be extracted from this {@link Value} if
+   *     possible.
+   * @return a new symbolic Value.
+   */
+  public Value getNewSymbolicValue(Value valueToTakeTypeFrom) {
+    CType valueType = null;
+    if (valueToTakeTypeFrom instanceof ConstantSymbolicExpression constSym) {
+      valueType = (CType) constSym.getType();
+    }
     SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     return factory.asConstant(factory.newIdentifier(null), valueType);
   }
