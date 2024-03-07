@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -62,6 +63,22 @@ public class ParseResult {
     fileNames = ImmutableList.copyOf(pFileNames);
   }
 
+  public ParseResult(
+      NavigableMap<String, FunctionEntryNode> pFunctions,
+      TreeMultimap<String, CFANode> pCfaNodes,
+      List<Pair<ADeclaration, String>> pGlobalDeclarations,
+      List<Path> pFileNames,
+      List<FileLocation> pCommentLocations,
+      List<SyntacticBlock> pBlocks) {
+
+    functions = pFunctions;
+    cfaNodes = pCfaNodes;
+    globalDeclarations = pGlobalDeclarations;
+    fileNames = ImmutableList.copyOf(pFileNames);
+    commentLocations = Optional.of(pCommentLocations);
+    blocks = Optional.of(pBlocks);
+  }
+
   public boolean isEmpty() {
     return functions.isEmpty();
   }
@@ -93,6 +110,7 @@ public class ParseResult {
   }
 
   public void setASTStructure(ASTStructure pAstStructure) {
+    Verify.verify(astStructure.isEmpty());
     astStructure = Optional.of(pAstStructure);
   }
 
@@ -100,15 +118,7 @@ public class ParseResult {
     return commentLocations;
   }
 
-  public void setCommentLocations(List<FileLocation> pCommentLocations) {
-    commentLocations = Optional.of(pCommentLocations);
-  }
-
   public Optional<List<SyntacticBlock>> getBlocks() {
     return blocks;
-  }
-
-  public void setBlocks(List<SyntacticBlock> pBlocks) {
-    blocks = Optional.of(pBlocks);
   }
 }

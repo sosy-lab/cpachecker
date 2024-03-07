@@ -371,11 +371,13 @@ class CFABuilder extends ASTVisitor {
           "Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    ParseResult result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+    ParseResult result;
 
     if (!acslCommentPositions.isEmpty()) {
-      result.setCommentLocations(acslCommentPositions);
-      result.setBlocks(blocks);
+      result =
+          new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
+    } else {
+      result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
     }
 
     return result;
