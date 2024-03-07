@@ -828,66 +828,10 @@ public class MyFloat {
     if (isOne()) {
       return zero(format);
     }
-    return lnNewton();
-  }
-
-  private static Map<Integer, MyFloat> mkLnTable(Format pFormat) {
-    ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
-    for (int k = 1; k < 100; k++) {
-      // Calculate 1/k and store the values in the table
-      builder.put(k, one(pFormat).divide(constant(pFormat, BigInteger.valueOf(k))));
-    }
-    return builder.buildOrThrow();
-  }
-
-  // Table contains terms 1/k for 1..100
-  private static Map<Integer, MyFloat> lnTable = mkLnTable(Format.DOUBLE);
-
-  private MyFloat withExponent(long pExponent) {
-    return new MyFloat(format, value.sign, pExponent, value.significand);
+    return lnImpl();
   }
 
   private MyFloat lnImpl() {
-    // FIXME: Rounding issue?
-    //  Testcase powTo(3.4028235E380.5):
-    //  expected: 0 10111110 11111111111111111111111 [1.8446743E19]
-    //  but was : 0 10111111 00000000000000000000000 [1.8446744E19]]
-
-    MyFloat x = this.withPrecision(Format.DOUBLE);
-    int preprocess = 0;
-    while (x.greaterThan(const1_5) || const0_5.greaterThan(x)) {
-      x = x.sqrt();
-      preprocess++;
-    }
-
-    MyFloat r = x.subtract(one(Format.DOUBLE)).ln1p();
-    MyFloat p = r.withExponent(r.value.exponent + preprocess);
-
-    return p.withPrecision(format);
-  }
-
-  public MyFloat ln1p() {
-    Preconditions.checkArgument(this.greaterThan(negativeOne(format)));
-    Preconditions.checkArgument(this.equals(one(format)) || one(format).greaterThan(this));
-
-    MyFloat x = this;
-    MyFloat r = zero(format);
-
-    // x^k (1 for k=0)
-    MyFloat xs = one(format);
-
-    for (int k = 1; k < 100; k++) { // TODO: Find a proper bound for the number of iterations
-      // Calculate the next term x^k/k
-      xs = xs.multiply(x);
-      MyFloat next = xs.multiply(lnTable.get(k));
-
-      // Set the sign and add the term to the sum
-      r = r.add(k % 2 == 0 ? next.negate() : next);
-    }
-    return r;
-  }
-
-  private MyFloat lnNewton() {
     MyFloat x = this.withPrecision(Format.DOUBLE);
     int preprocess = 0;
     while (x.greaterThan(const1_5) || const0_5.greaterThan(x)) {
