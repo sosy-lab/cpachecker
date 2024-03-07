@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.ASTCFARelation;
 
 @Immutable
 public class LocationRecord {
@@ -61,10 +61,10 @@ public class LocationRecord {
   }
 
   public static LocationRecord createLocationRecordAfterLocation(
-      FileLocation fLoc, String functionName, ASTStructure astStructure) {
+      FileLocation fLoc, String functionName, ASTCFARelation pASTCFARelation) {
     final String fileName = fLoc.getFileName().toString();
     FileLocation nextStatementFileLocation =
-        astStructure.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
+        pASTCFARelation.nextStartStatementLocation(fLoc.getNodeOffset() + fLoc.getNodeLength());
 
     return LocationRecord.createLocationRecordAtStart(
         nextStatementFileLocation, fileName, functionName);

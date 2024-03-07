@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParse
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.ASTCFARelation;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
@@ -134,14 +134,14 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
   }
 
   private Optional<List<AutomatonTransition>> handleFollowWaypointAtIfStatement(
-      ASTStructure astStructure,
+      ASTCFARelation pASTCFARelation,
       String nextStateId,
       Integer followColumn,
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean followIfBranch) {
     Optional<IfStructure> optionalIfStructure =
-        astStructure.getIfStructureStartingAtColumn(followColumn, followLine);
+        pASTCFARelation.getIfStructureStartingAtColumn(followColumn, followLine);
     if (optionalIfStructure.isEmpty()) {
       logger.log(
           Level.FINE, "Could not find IfStructure corresponding to the waypoint, skipping it");
@@ -294,12 +294,12 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 distance,
                 follow.getConstraint().getValue()));
       } else if (follow.getType().equals(WaypointType.BRANCHING)) {
-        ASTStructure astStructure = cfa.getASTStructure();
-        Verify.verifyNotNull(astStructure);
+        ASTCFARelation astCFARelation = cfa.getASTStructure();
+        Verify.verifyNotNull(astCFARelation);
 
         Optional<List<AutomatonTransition>> ifStatementTransitions =
             handleFollowWaypointAtIfStatement(
-                astStructure,
+                astCFARelation,
                 nextStateId,
                 followColumn,
                 followLine,

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.ASTCFARelation;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
@@ -56,7 +56,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   private WaypointRecord handleAssumptionWaypoint(
-      Collection<AExpressionStatement> assumptions, CFAEdge edge, ASTStructure astStructure) {
+      Collection<AExpressionStatement> assumptions, CFAEdge edge, ASTCFARelation pASTCFARelation) {
     String statement;
     if (assumptions.isEmpty()) {
       // We need to export this waypoint in order to avoid errors caused by passing another
@@ -75,7 +75,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         new InformationRecord(statement, null, YAMLWitnessExpressionType.C.toString());
     LocationRecord location =
         LocationRecord.createLocationRecordAfterLocation(
-            edge.getFileLocation(), edge.getPredecessor().getFunctionName(), astStructure);
+            edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pASTCFARelation);
     return new WaypointRecord(
         WaypointRecord.WaypointType.ASSUMPTION,
         WaypointRecord.WaypointAction.FOLLOW,
@@ -100,7 +100,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
-    ASTStructure astStructure = getASTStructure();
+    ASTCFARelation astCFARelation = getASTStructure();
 
     ListMultimap<CFAEdge, AExpressionStatement> edgeToAssumptions = ArrayListMultimap.create();
     Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
@@ -171,7 +171,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                 ImmutableList.of(
                     edgeToAssumptions.get(edge).get(edgeToCurrentExpressionIndex.get(edge))),
                 edge,
-                astStructure));
+                astCFARelation));
       } else if (edge instanceof AssumeEdge assumeEdge) {
         // Without the AST structure we cannot guarantee that we are exporting at the beginning of
         // an iteration or if statement
@@ -181,7 +181,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // should be traversed and exporting this information will quickly make the witness
         // difficult to read
         // TODO: Also export branches at iteration statements
-        IfStructure ifStructure = astStructure.getIfStructureForConditionEdge(edge);
+        IfStructure ifStructure = astCFARelation.getIfStructureForConditionEdge(edge);
         if (ifStructure == null) {
           continue;
         }

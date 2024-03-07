@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Contains information relating the CFA to the AST of the program. */
-public class ASTStructure {
+public class ASTCFARelation {
 
   private final ImmutableSet<IfStructure> ifStructures;
 
@@ -34,7 +34,7 @@ public class ASTStructure {
   private final Map<Pair<Integer, Integer>, IfStructure> lineAndStartColumnToIfStructure =
       new HashMap<>();
 
-  public ASTStructure(
+  public ASTCFARelation(
       ImmutableSet<IfStructure> pIfStructures,
       ImmutableSet<IterationStructure> pIterationStructures,
       ImmutableMap<Integer, FileLocation> pStatementOffsetsToLocations) {

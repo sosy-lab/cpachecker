@@ -15,13 +15,13 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.ASTCFARelation;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.ast.IterationStructure;
 
-class ASTStructureBuilder {
+class ASTCFARelationBuilder {
 
-  public static ASTStructure getASTStructure(
+  public static ASTCFARelation getASTCFARelation(
       CSourceOriginMapping pSourceOriginMapping,
       ImmutableSet<CFAEdge> pEdges,
       List<IASTTranslationUnit> pAsts) {
@@ -29,7 +29,7 @@ class ASTStructureBuilder {
     for (IASTTranslationUnit ast : pAsts) {
       ast.accept(classifier);
     }
-    return new ASTStructure(
+    return new ASTCFARelation(
         getIfStructures(pEdges, classifier),
         getIterationStructures(pEdges, classifier),
         classifier.getStatementOffsetsToLocations());

@@ -342,7 +342,7 @@ class EclipseCParser implements CParser {
 
       result =
           result.withASTStructure(
-              ASTStructureBuilder.getASTStructure(
+              ASTCFARelationBuilder.getASTCFARelation(
                   pSourceOriginMapping, result.getCFAEdges(), asts));
 
       return result;
