@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.ast.ASTCFARelation;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
@@ -42,7 +42,7 @@ public final class CfaMetadata implements Serializable {
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
-  private final ASTCFARelation astCFARelation;
+  private final AstCfaRelation astCFARelation;
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
@@ -53,7 +53,7 @@ public final class CfaMetadata implements Serializable {
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness,
-      @Nullable ASTCFARelation pASTCFARelation,
+      @Nullable AstCfaRelation pAstCfaRelation,
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables) {
@@ -63,7 +63,7 @@ public final class CfaMetadata implements Serializable {
     mainFunctionEntry = checkNotNull(pMainFunctionEntry);
     connectedness = checkNotNull(pConnectedness);
 
-    astCFARelation = pASTCFARelation;
+    astCFARelation = pAstCfaRelation;
     loopStructure = pLoopStructure;
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
@@ -217,7 +217,7 @@ public final class CfaMetadata implements Serializable {
    *     containing the AST structure is returned. Otherwise, if this metadata instance does not
    *     contain the AST structure for the CFA, an empty optional is returned.
    */
-  public ASTCFARelation getASTStructure() {
+  public AstCfaRelation getASTStructure() {
     return astCFARelation;
   }
 
@@ -235,18 +235,18 @@ public final class CfaMetadata implements Serializable {
   /**
    * Returns a copy of this metadata instance, but with the specified AST structure.
    *
-   * @param pASTCFARelation the AST structure to store in the returned metadata instance (use {@code
+   * @param pAstCfaRelation the AST structure to store in the returned metadata instance (use {@code
    *     null} to create an instance without AST structure)
    * @return a copy of this metadata instance, but with the specified AST structure
    */
-  public CfaMetadata withASTStructure(@Nullable ASTCFARelation pASTCFARelation) {
+  public CfaMetadata withASTStructure(@Nullable AstCfaRelation pAstCfaRelation) {
     return new CfaMetadata(
         machineModel,
         language,
         fileNames,
         mainFunctionEntry,
         connectedness,
-        pASTCFARelation,
+        pAstCfaRelation,
         loopStructure,
         variableClassification,
         liveVariables);

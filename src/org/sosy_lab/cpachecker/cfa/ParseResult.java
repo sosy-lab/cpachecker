@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.ast.ASTCFARelation;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
 /**
  * Class representing the result of parsing a C file before function calls are bound to their
@@ -41,7 +41,7 @@ public record ParseResult(
     TreeMultimap<String, CFANode> cfaNodes,
     List<Pair<ADeclaration, String>> globalDeclarations,
     List<Path> fileNames,
-    Optional<ASTCFARelation> astStructure,
+    Optional<AstCfaRelation> astStructure,
     Optional<List<FileLocation>> commentLocations,
     Optional<List<SyntacticBlock>> blocks) {
 
@@ -87,14 +87,14 @@ public record ParseResult(
         .toSet();
   }
 
-  public ParseResult withASTStructure(ASTCFARelation pASTCFARelation) {
+  public ParseResult withASTStructure(AstCfaRelation pAstCfaRelation) {
     Verify.verify(astStructure.isEmpty());
     return new ParseResult(
         functions,
         cfaNodes,
         globalDeclarations,
         fileNames,
-        Optional.of(pASTCFARelation),
+        Optional.of(pAstCfaRelation),
         commentLocations,
         blocks);
   }

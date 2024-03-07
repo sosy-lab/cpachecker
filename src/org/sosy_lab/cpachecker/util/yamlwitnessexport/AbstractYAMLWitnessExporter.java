@@ -29,7 +29,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.util.ast.ASTCFARelation;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ProducerRecord;
@@ -69,8 +69,8 @@ abstract class AbstractYAMLWitnessExporter {
         producerRecord, TaskRecord.getTaskDescription(cfa, specification), version);
   }
 
-  protected ASTCFARelation getASTStructure() {
-    ASTCFARelation astCFARelation = cfa.getASTStructure();
+  protected AstCfaRelation getASTStructure() {
+    AstCfaRelation astCFARelation = cfa.getASTStructure();
     return Verify.verifyNotNull(astCFARelation);
   }
 

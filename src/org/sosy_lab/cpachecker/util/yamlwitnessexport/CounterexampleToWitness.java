@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.ast.ASTCFARelation;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IfStructure;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
@@ -56,7 +56,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   private WaypointRecord handleAssumptionWaypoint(
-      Collection<AExpressionStatement> assumptions, CFAEdge edge, ASTCFARelation pASTCFARelation) {
+      Collection<AExpressionStatement> assumptions, CFAEdge edge, AstCfaRelation pAstCfaRelation) {
     String statement;
     if (assumptions.isEmpty()) {
       // We need to export this waypoint in order to avoid errors caused by passing another
@@ -75,7 +75,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         new InformationRecord(statement, null, YAMLWitnessExpressionType.C.toString());
     LocationRecord location =
         LocationRecord.createLocationRecordAfterLocation(
-            edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pASTCFARelation);
+            edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pAstCfaRelation);
     return new WaypointRecord(
         WaypointRecord.WaypointType.ASSUMPTION,
         WaypointRecord.WaypointAction.FOLLOW,
@@ -100,7 +100,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
-    ASTCFARelation astCFARelation = getASTStructure();
+    AstCfaRelation astCFARelation = getASTStructure();
 
     ListMultimap<CFAEdge, AExpressionStatement> edgeToAssumptions = ArrayListMultimap.create();
     Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
