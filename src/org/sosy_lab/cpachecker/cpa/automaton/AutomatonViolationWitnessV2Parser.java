@@ -231,7 +231,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                   cfa.getMachineModel(),
                   logger);
         } catch (InvalidAutomatonException e) {
-          logger.log(Level.FINEST, "Could not generate automaton assumption.");
+          logger.logDebugException(e, "Could not parse the constraint for the function return");
           continue;
         }
         transitionBuilder.withAssumptions(expressions);
