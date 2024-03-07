@@ -873,9 +873,6 @@ cfa.threads.threadSelfCreate = "pthread_create_N"
 # A name of thread_join_N function
 cfa.threads.threadSelfJoin = "pthread_join_N"
 
-# add AST structure information to CFA.
-cfa.useASTStructure = false
-
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.
 cfa.useCFACloningForMultiThreadedPrograms = false
@@ -1148,7 +1145,7 @@ counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 # The template from which the different versions of the violation witnesses
 # will be exported. Each version replaces the string '%s' with its version
 # number. The string %d is replace with the number of the counterexample.
-counterexample.export.yaml = "witness-%s.%d.yml"
+counterexample.export.yaml = "Counterexample.%d.witness-%s.yml"
 
 # If continueAfterInfeasibleError is true, remove the error state that is
 # proven to be unreachable before continuing. Set this to false if
@@ -1419,7 +1416,7 @@ cpa.arg.witness.revertThreadFunctionRenaming = false
 # The template from which the different versions of the correctness witnesses
 # will be exported. Each version replaces the string '%s' with its version
 # number.
-cpa.arg.yamlProofWitness = no default value
+cpa.arg.yamlProofWitness = "witness-%s.yml"
 
 # signal the analysis to break in case the given number of error state is
 # reached. Use -1 to disable this limit.
