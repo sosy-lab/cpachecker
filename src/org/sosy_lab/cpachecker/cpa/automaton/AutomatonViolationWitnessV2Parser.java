@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -299,14 +300,9 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 distance,
                 follow.getConstraint().getValue()));
       } else if (follow.getType().equals(WaypointType.BRANCHING)) {
-        if (cfa.getASTStructure() == null) {
-          logger.log(
-              Level.INFO,
-              "Cannot handle branching waypoint without ASTStructure, skipping waypoint");
-          continue;
-        }
-
         ASTStructure astStructure = cfa.getASTStructure();
+        Verify.verifyNotNull(astStructure);
+
         Optional<List<AutomatonTransition>> ifStatementTransitions =
             handleFollowWaypointAtIfStatement(
                 astStructure,
