@@ -134,19 +134,21 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     return builder.build();
   }
 
-  private List<AutomatonTransition> handleFollowWaypointAtIfStatement(
+  private Optional<List<AutomatonTransition>> handleFollowWaypointAtIfStatement(
       ASTStructure astStructure,
       String nextStateId,
       Integer followColumn,
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean followIfBranch) {
-    IfStructure ifStructure = astStructure.getIfStructureStartingAtColumn(followColumn, followLine);
-    if (ifStructure == null) {
+    Optional<IfStructure> optionalIfStructure =
+        astStructure.getIfStructureStartingAtColumn(followColumn, followLine);
+    if (optionalIfStructure.isEmpty()) {
       logger.log(
           Level.FINE, "Could not find IfStructure corresponding to the waypoint, skipping it");
-      return null;
+      return Optional.empty();
     }
+    IfStructure ifStructure = optionalIfStructure.orElseThrow();
 
     if (ifStructure
         .getNodesBetweenConditionAndElseBranch()
@@ -156,7 +158,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
           "Skipping branching waypoint at if statement since the"
               + " then and else branch are both empty,"
               + " and currently there is no way to distinguish them.");
-      return null;
+      return Optional.empty();
     }
 
     AutomatonBoolExpr expr = new CheckEntersIfBranch(ifStructure, followIfBranch);
@@ -172,7 +174,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
             new CheckEntersIfBranch(ifStructure, !followIfBranch), AutomatonInternalState.BOTTOM);
     transitions.add(builder.build());
 
-    return transitions;
+    return Optional.of(transitions);
   }
 
   private AutomatonTransition handleFunctionReturn(
@@ -305,7 +307,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         }
 
         ASTStructure astStructure = cfa.getASTStructure();
-        List<AutomatonTransition> ifStatementTransitions =
+        Optional<List<AutomatonTransition>> ifStatementTransitions =
             handleFollowWaypointAtIfStatement(
                 astStructure,
                 nextStateId,
@@ -315,13 +317,13 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 Boolean.parseBoolean(follow.getConstraint().getValue()));
 
         // TODO: Handle branching waypoints at IterationStatements
-        if (ifStatementTransitions == null) {
+        if (ifStatementTransitions.isEmpty()) {
           logger.log(
               Level.INFO, "Could not handle branching waypoint at if statement, skipping waypoint");
           continue;
         }
 
-        transitions.addAll(ifStatementTransitions);
+        transitions.addAll(ifStatementTransitions.orElseThrow());
       } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
         transitions.add(
             handleFunctionReturn(

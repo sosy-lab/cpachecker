@@ -125,20 +125,20 @@ public class ASTStructure {
    * @param pLine the line to look for
    * @return the IfStructure that starts at the given column and line
    */
-  public IfStructure getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
+  public Optional<IfStructure> getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
     Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
     if (lineAndStartColumnToIfStructure.containsKey(key)) {
-      return lineAndStartColumnToIfStructure.get(key);
+      return Optional.ofNullable(lineAndStartColumnToIfStructure.get(key));
     }
 
     for (IfStructure structure : ifStructures) {
       FileLocation location = structure.getCompleteElement().location();
       if (location.getStartColumnInLine() == pColumn && location.getStartingLineNumber() == pLine) {
         lineAndStartColumnToIfStructure.put(key, structure);
-        return structure;
+        return Optional.of(structure);
       }
     }
 
-    return null;
+    return Optional.empty();
   }
 }
