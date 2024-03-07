@@ -122,6 +122,9 @@ public class JDouble extends CFloat {
 
   @Override
   public CFloat powTo(CFloat exponent) {
+    if ((isOne() && !isNegative()) || isOne() && exponent.isInfinity()) {
+      return new JDouble(1.0d);
+    }
     return new JDouble(Math.pow(value, toDouble(exponent.getWrapper())));
   }
 
