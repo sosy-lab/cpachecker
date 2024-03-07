@@ -171,7 +171,7 @@ public class JFloat extends CFloat {
 
   @Override
   public boolean isOne() {
-    return value == 1.0f;
+    return value == 1.0f || value == -1.0f;
   }
 
   @Override

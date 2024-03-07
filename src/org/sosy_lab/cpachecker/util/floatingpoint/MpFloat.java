@@ -228,7 +228,7 @@ public class MpFloat extends CFloat {
 
   @Override
   public boolean isOne() {
-    return value.compareTo(new BigFloat("1.0", format)) == 0;
+    return value.abs().compareTo(new BigFloat("1.0", format)) == 0;
   }
 
   @Override

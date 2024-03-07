@@ -171,7 +171,7 @@ public class JDouble extends CFloat {
 
   @Override
   public boolean isOne() {
-    return value == 1.0d;
+    return value == 1.0d || value == -1.0d;
   }
 
   @Override

@@ -210,7 +210,7 @@ public class CMyFloat extends CFloat {
 
   @Override
   public boolean isOne() {
-    return delegate.equals(MyFloat.one(delegate.getFormat()));
+    return delegate.isOne() || delegate.isNegativeOne();
   }
 
   @Override
