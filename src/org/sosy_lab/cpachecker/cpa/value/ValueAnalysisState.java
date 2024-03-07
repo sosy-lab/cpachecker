@@ -798,9 +798,9 @@ public final class ValueAnalysisState
         throw new AssertionError("Unexpected type: " + simpleType);
       }
     } else if (pCType instanceof CEnumType enumType) {
-      Long value = pNum.getNumber().longValue();
+      long value = pNum.getNumber().longValue();
       for (CEnumerator enumerator : enumType.getEnumerators()) {
-        if (value.equals(enumerator.getValue())) {
+        if (value == enumerator.getValue()) {
           val = new CIdExpression(loc, enumerator);
           break;
         }
