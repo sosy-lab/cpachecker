@@ -53,7 +53,7 @@ class AutomatonWitnessV2ParserCommon {
       name = "invariantsSpecificationAutomaton",
       description =
           "Validate correctness witness by specifying an invariants specification automaton")
-  InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
+  private InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
 
   final CFA cfa;
@@ -90,6 +90,10 @@ class AutomatonWitnessV2ParserCommon {
 
   static String getStateName(int i) {
     return "S" + i;
+  }
+
+  InvariantsSpecificationAutomatonBuilder getInvariantsSpecAutomaton() {
+    return invariantsSpecAutomaton;
   }
 
   record PartitionedWaypoints(WaypointRecord follow, ImmutableList<WaypointRecord> avoids) {}

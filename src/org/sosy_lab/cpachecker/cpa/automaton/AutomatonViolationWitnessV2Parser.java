@@ -370,7 +370,8 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
           "The witness automaton generated from the provided Witness V2 is invalid!", e);
     }
 
-    automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
+    automaton =
+        getInvariantsSpecAutomaton().build(automaton, config, logger, shutdownNotifier, cfa);
 
     dumpAutomatonIfRequested(automaton);
 
