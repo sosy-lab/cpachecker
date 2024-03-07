@@ -68,7 +68,7 @@ public class CSourceOriginMapping {
   }
 
   public void addFileInformation(Path pPath, String pProgramCode) {
-    lineNumberToStartingColumn.putAll(pPath, getLineOffsets(pProgramCode));
+    lineNumberToStartingColumn.putAll(pPath.normalize(), getLineOffsets(pProgramCode));
   }
 
   /**
@@ -95,25 +95,25 @@ public class CSourceOriginMapping {
   }
 
   public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
+    Path normalizedPath = pAnalysisFileName.normalize();
     // This should only happen when parsing an automaton file. In those cases the file is called
     // 'fragment' since usually only a fragment of the automaton contains C-code.
-    if (!lineNumberToStartingColumn.containsKey(pAnalysisFileName)) {
+    if (!lineNumberToStartingColumn.containsKey(normalizedPath)) {
       Verify.verify(
-          pAnalysisFileName.toString().equals("fragment")
-              || pAnalysisFileName.toString().equals("./#expr#")
-              || pAnalysisFileName.toString().equals("#expr#"));
+          // For automata files
+          normalizedPath.toString().equals("fragment")
+              // For parsing expressions stemming from witnesses
+              || normalizedPath.toString().equals("#expr#"));
       // Till now, we only have fragments with one line of code.
       Verify.verify(pAnalysisCodeLine == 1);
       return pOffset;
     }
 
-    Verify.verify(lineNumberToStartingColumn.get(pAnalysisFileName).size() > pAnalysisCodeLine);
+    Verify.verify(lineNumberToStartingColumn.get(normalizedPath).size() >= pAnalysisCodeLine);
 
     // Since the offsets start at 0 there is a one-off difference between the column and the
     // offset
-    return pOffset
-        - lineNumberToStartingColumn.get(pAnalysisFileName).get(pAnalysisCodeLine - 1)
-        + 1;
+    return pOffset - lineNumberToStartingColumn.get(normalizedPath).get(pAnalysisCodeLine - 1) + 1;
   }
 
   /**

@@ -184,7 +184,7 @@ public class CParserWithLocationMapper implements CParser {
       Path pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InterruptedException {
     String tokenizedCode = processCode(pFilename, pCode, pSourceOriginMapping);
-
+    pSourceOriginMapping.addFileInformation(pFilename, tokenizedCode);
     return realParser.parseString(pFilename, tokenizedCode, pSourceOriginMapping, pScope);
   }
 
