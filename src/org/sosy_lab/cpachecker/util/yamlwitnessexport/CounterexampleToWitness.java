@@ -113,9 +113,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     ImmutableList.Builder<SegmentRecord> segments = ImmutableList.builder();
-    // For some readon the edges can contain null elements
-    List<CFAEdge> edges =
-        pCex.getTargetPath().getInnerEdges().stream().filter(edge -> edge != null).toList();
+    List<CFAEdge> edges = pCex.getTargetPath().getFullPath();
 
     // The semantics of the YAML witnesses imply that every assumption waypoint should be
     // valid before the sequence statement it points to. Due to the semantics of the format:
