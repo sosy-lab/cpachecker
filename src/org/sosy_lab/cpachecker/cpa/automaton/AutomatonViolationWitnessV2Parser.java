@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.util.HashSet;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -80,6 +82,15 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 new AutomatonIntExpr.Constant(pDistance))));
   }
 
+  /**
+   * Handles a target waypoint
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param pDistanceToViolation the distance to the violation
+   * @return an automaton transition encoding the reaching of the target
+   */
   private AutomatonTransition handleTarget(
       String nextStateId, Integer followLine, Integer followColumn, Integer pDistanceToViolation) {
     // For target nodes it sometimes does not make sense to evaluate them at the last possible
@@ -103,6 +114,19 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     return transitionBuilder.build();
   }
 
+  /**
+   * Create automaton transitions matching an assumption waypoint
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param function the function in which the waypoint is valid
+   * @param pDistanceToViolation the distance to the violation
+   * @param constraint the constraint
+   * @return automata transitions matching the assumption waypoint
+   * @throws InterruptedException if the function call is interrupted
+   * @throws WitnessParseException if the constraint cannot be parsed
+   */
   private AutomatonTransition handleAssumption(
       String nextStateId,
       Integer followLine,
@@ -133,6 +157,19 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     return transitionBuilder.build();
   }
 
+  /**
+   * Transform a branching waypoint into automata transitions
+   *
+   * @param pAstCfaRelation the relation between the cfa and ast to find out which if statement is
+   *     being considered
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param pDistanceToViolation the distance to the violation
+   * @param followIfBranch which branch to follow, if true the if branch is followed
+   * @return a list of transitions matching the branching waypoint, empty if they could not be
+   *     created
+   */
   private Optional<List<AutomatonTransition>> handleFollowWaypointAtIfStatement(
       AstCfaRelation pAstCfaRelation,
       String nextStateId,
@@ -173,6 +210,17 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     return Optional.of(ImmutableList.of(followBranchTransition, avoidBranchTransition));
   }
 
+  /**
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param pDistanceToViolation the distance to the violation
+   * @param constraint the constraint on the return value of the function. It can be null, which
+   *     means that returning from the function is the relevant aspect
+   * @param startLineToCFAEdge a mapping from the start line to the cfa edge
+   * @return an automaton transition encoding the constraint on the returned value of a function
+   * @throws InterruptedException if the function call is interrupted
+   */
   private AutomatonTransition handleFunctionReturn(
       String nextStateId,
       Integer followLine,
@@ -241,7 +289,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     return transitionBuilder.build();
   }
 
-  Automaton createViolationAutomatonFromEntriesMatchingOffsets(List<AbstractEntry> pEntries)
+  Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
     List<PartitionedWaypoints> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
@@ -249,7 +297,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
     // TODO: It may be worthwhile to refactor this into the CFA
-    Multimap<Integer, CFAEdge> startLineToCFAEdge =
+    ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
         FluentIterable.from(cfa.edges())
             .index(edge -> edge.getFileLocation().getStartingLineNumber());
 

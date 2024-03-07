@@ -98,6 +98,13 @@ class AutomatonWitnessV2ParserCommon {
 
   record PartitionedWaypoints(WaypointRecord follow, ImmutableList<WaypointRecord> avoids) {}
 
+  /**
+   * Separate the entries into segments whose waypoints should be passed one after the other
+   *
+   * @param pEntries the entries to segmentize
+   * @return the segmentized entries
+   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
+   */
   ImmutableList<PartitionedWaypoints> segmentize(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
     ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();

@@ -12,7 +12,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,15 +39,26 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
     super(pConfig, pLogger, pShutdownNotifier, pCFA);
   }
 
+  /**
+   * Create an automaton from a correctness witness. This automaton contains a single node and each
+   * invariant is marked as such on a edge which matches starts at that single state and returns to
+   * it. Each transition is only passed if the locations match.
+   *
+   * @param entries the entries of the correctness witness
+   * @return an automaton for the correctness witness
+   * @throws InterruptedException if the function is interrupted
+   * @throws WitnessParseException if there is some problem parsing the witness
+   */
   Automaton createCorrectnessAutomatonFromEntries(List<AbstractEntry> entries)
       throws InterruptedException, WitnessParseException {
     String automatonName = "No Loop Invariant Present";
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     String entryStateId = "singleState";
 
-    List<AutomatonTransition> transitions = new ArrayList<>();
+    ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
 
-    SetMultimap<Integer, Pair<String, String>> lineToSeenInvariants = HashMultimap.create();
+    SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
+        HashMultimap.create();
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
@@ -57,14 +67,16 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
               Optional.ofNullable(invariantEntry.getLocation().getFunction());
           String invariantString = invariantEntry.getValue();
           Integer line = invariantEntry.getLocation().getLine();
+          Integer column = invariantEntry.getLocation().getColumn();
+          Pair<Integer, Integer> position = Pair.of(line, column);
 
           // Parsing is expensive for long invariants, we therefore try to reduce it
           Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
 
-          if (lineToSeenInvariants.get(line).contains(lookupKey)) {
+          if (lineToSeenInvariants.get(position).contains(lookupKey)) {
             continue;
           } else {
-            lineToSeenInvariants.get(line).add(lookupKey);
+            lineToSeenInvariants.get(position).add(lookupKey);
           }
 
           ExpressionTree<AExpression> invariant = transformer.parseInvariantEntry(invariantEntry);
@@ -87,7 +99,8 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
     }
 
     List<AutomatonInternalState> automatonStates =
-        ImmutableList.of(new AutomatonInternalState(entryStateId, transitions, false, false, true));
+        ImmutableList.of(
+            new AutomatonInternalState(entryStateId, transitions.build(), false, false, true));
 
     Automaton automaton;
     try {
