@@ -1297,7 +1297,7 @@ public class SMGState
       @Nullable Value otherValue,
       EqualityCache<Value> equalityCache) {
     return areValuesEqual(
-        thisState, thisValue, otherState, otherValue, equalityCache, new HashSet<>());
+        thisState, thisValue, otherState, otherValue, equalityCache, new HashSet<>(), false);
   }
 
   /**
@@ -1317,7 +1317,13 @@ public class SMGState
       SMGState otherState,
       @Nullable Value otherValue) {
     return thisState.areValuesEqual(
-        thisState, thisValue, otherState, otherValue, new EqualityCache<>(), new HashSet<>());
+        thisState,
+        thisValue,
+        otherState,
+        otherValue,
+        new EqualityCache<>(),
+        new HashSet<>(),
+        false);
   }
 
   /**
@@ -1337,7 +1343,8 @@ public class SMGState
       SMGState otherState,
       @Nullable Value otherValue,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisAlreadyCheckedPointers) {
+      Set<Value> thisAlreadyCheckedPointers,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
     // Comparing pointers leads to == true, but they may be not equal because of the heap!!!
     if (thisValue == otherValue && thisValue.isExplicitlyKnown()) {
       return true;
@@ -1379,7 +1386,8 @@ public class SMGState
           otherState,
           otherValue,
           equalityCache,
-          thisAlreadyCheckedPointers)) {
+          thisAlreadyCheckedPointers,
+          treatSymbolicsAsEqualWEqualConstrains)) {
         equalityCache.addEquality(thisValue, otherValue);
         return true;
       }
@@ -1397,13 +1405,14 @@ public class SMGState
         && ((SymbolicExpression) thisValue)
             .getType()
             .equals(((SymbolicExpression) otherValue).getType())) {
-      if (options.isTreatSymbolicValuesAsUnknown()) {
+      if (thisValue.equals(otherValue)) {
         return true;
-      } else if (thisValue.equals(otherValue)) {
-        return true;
-      } else if (equalConstraintsInSymbolicValues(thisValue, thisState, otherValue, otherState)) {
+      } else if (treatSymbolicsAsEqualWEqualConstrains
+          && equalConstraintsInSymbolicValues(thisValue, thisState, otherValue, otherState)) {
         // Check matching constraints
         equalityCache.addEquality(thisValue, otherValue);
+        return true;
+      } else if (options.isTreatSymbolicValuesAsUnknown()) {
         return true;
       }
     }
@@ -1444,7 +1453,8 @@ public class SMGState
       SMGState otherState,
       Value otherAddress,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisAlreadyCheckedPointers) {
+      Set<Value> thisAlreadyCheckedPointers,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
     // Careful, dereference might materialize new memory out of abstractions!
     Optional<SMGStateAndOptionalSMGObjectAndOffset> thisDeref =
         thisState.dereferencePointerWithoutMaterilization(thisAddress);
@@ -1485,7 +1495,13 @@ public class SMGState
       if (thisObj instanceof SMGSinglyLinkedListSegment
           || otherObj instanceof SMGSinglyLinkedListSegment) {
         return checkAbstractedListEquality(
-            thisState, thisObj, otherState, otherObj, equalityCache, thisAlreadyCheckedPointers);
+            thisState,
+            thisObj,
+            otherState,
+            otherObj,
+            equalityCache,
+            thisAlreadyCheckedPointers,
+            treatSymbolicsAsEqualWEqualConstrains);
       }
 
       if (!getMemoryModel().isObjectValid(thisObj)
@@ -1501,7 +1517,8 @@ public class SMGState
           thisState,
           otherState,
           equalityCache,
-          thisAlreadyCheckedPointers);
+          thisAlreadyCheckedPointers,
+          treatSymbolicsAsEqualWEqualConstrains);
     }
     return false;
   }
@@ -1515,7 +1532,8 @@ public class SMGState
       SMGState otherState,
       SMGObject otherObj,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValueAlreadyVisited) {
+      Set<Value> thisPointerValueAlreadyVisited,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
 
     // If one is DLL and the other is SLL, something is wrong
     if ((otherObj instanceof SMGDoublyLinkedListSegment
@@ -1548,7 +1566,8 @@ public class SMGState
             thisState,
             otherState,
             equalityCache,
-            thisPointerValueAlreadyVisited);
+            thisPointerValueAlreadyVisited,
+            treatSymbolicsAsEqualWEqualConstrains);
       }
     } else {
       // Don't check for equality of abstracted and concrete lists for lessOrEqual!
@@ -1558,129 +1577,39 @@ public class SMGState
     return false;
   }
 
-  // Saved for later usage; State comparison
-  @SuppressWarnings("unused")
-  private boolean abstractedAndConcreteListEquality(
+  /**
+   * Compare 2 values, but do not compare the exempt offsets. Compares pointers by shape of the
+   * memory they point to. Needed for lists and their next/prev pointers.
+   *
+   * @param thisObject object of the this state to compare.
+   * @param otherObject object of the other state to compare.
+   * @param exemptOffsets exempt offsets, e.g. nfo, pfo offsets.
+   * @param thisState the state to which the this object belongs.
+   * @param otherState the state to which the other object belongs.
+   * @param equalityCache basic value check cache.
+   * @param treatSymbolicsAsEqualWEqualConstrains true if you want 2 non-equal symbolic variables
+   *     with the same constraints to be treated as equals.
+   * @return true if the 2 memory sections given are equal. False else.
+   * @throws SMGException for critical errors.
+   */
+  public boolean checkEqualValuesForTwoStatesWithExemptions(
+      SMGObject thisObject,
+      SMGObject otherObject,
+      ImmutableList<BigInteger> exemptOffsets,
       SMGState thisState,
-      Value thisAddress,
-      SMGObject thisObj,
       SMGState otherState,
-      Value otherAddress,
-      SMGObject otherObj,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValuesAlreadyVisited)
+      boolean treatSymbolicsAsEqualWEqualConstrains)
       throws SMGException {
-    // one is an abstracted list, the other is not, we check this by materializing the abstracted
-    // as long as the concrete allows
-    if (thisObj instanceof SMGSinglyLinkedListSegment thisSLL) {
-      if (thisSLL.getMinLength() <= 1) {
-        // TODO: merge with the case below (important: don't switch this and other!!!)
-        // For == 1 the next pointer might not be correct as the list materializes for reads as
-        // well
-        // hence why we need <= 1
-        // We create more than 1 state in those cases by reading the next pointer
-        // One extends the list, the other does not, only 1 has to be equal
-        List<SMGStateAndOptionalSMGObjectAndOffset> derefs =
-            thisState.dereferencePointer(thisAddress);
-        for (SMGStateAndOptionalSMGObjectAndOffset deref : derefs) {
-          List<ValueAndSMGState> readStatesAndUseless =
-              deref
-                  .getSMGState()
-                  .readValue(
-                      deref.getSMGObject(),
-                      thisSLL.getNextOffset(),
-                      memoryModel.getSizeOfPointer(),
-                      null);
-
-          for (ValueAndSMGState stateAndUseless : readStatesAndUseless) {
-            if (stateAndUseless
-                .getState()
-                .areValuesEqual(
-                    stateAndUseless.getState(),
-                    thisAddress,
-                    otherState,
-                    otherAddress,
-                    equalityCache,
-                    thisPointerValuesAlreadyVisited)) {
-              equalityCache.addEquality(thisAddress, otherAddress);
-              return true;
-            }
-          }
-        }
-
-      } else {
-
-        // This list only ever has 1 element
-        for (SMGStateAndOptionalSMGObjectAndOffset deref :
-            thisState.dereferencePointer(thisAddress)) {
-          // At least one of deref has to be true
-          return deref
-              .getSMGState()
-              .areValuesEqual(
-                  deref.getSMGState(),
-                  thisAddress,
-                  otherState,
-                  otherAddress,
-                  equalityCache,
-                  thisPointerValuesAlreadyVisited);
-        }
-      }
-    }
-
-    if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
-      if (otherSLL.getMinLength() <= 1) {
-        // For == 1 the next pointer might not be correct as the list materializes for reads as
-        // well
-        // hence why we need <= 1
-        // At least one of deref has to be true
-        // Check the stop case first (nfo == otherAddress) (cheaper)
-        List<SMGStateAndOptionalSMGObjectAndOffset> derefs =
-            otherState.dereferencePointer(otherAddress);
-        for (SMGStateAndOptionalSMGObjectAndOffset deref : derefs) {
-          List<ValueAndSMGState> readStatesAndUseless =
-              deref
-                  .getSMGState()
-                  .readValue(
-                      deref.getSMGObject(),
-                      otherSLL.getNextOffset(),
-                      memoryModel.getSizeOfPointer(),
-                      null,
-                      options.isPreciseSMGRead(),
-                      false);
-
-          for (ValueAndSMGState stateAndUseless : readStatesAndUseless) {
-            if (stateAndUseless
-                .getState()
-                .areValuesEqual(
-                    thisState,
-                    thisAddress,
-                    stateAndUseless.getState(),
-                    otherAddress,
-                    equalityCache,
-                    thisPointerValuesAlreadyVisited)) {
-              equalityCache.addEquality(thisAddress, otherAddress);
-              return true;
-            }
-          }
-        }
-      } else {
-        // this has only 1 list element always
-        for (SMGStateAndOptionalSMGObjectAndOffset deref :
-            otherState.dereferencePointer(otherAddress)) {
-          // At least one of deref has to be true
-          return deref
-              .getSMGState()
-              .areValuesEqual(
-                  thisState,
-                  thisAddress,
-                  deref.getSMGState(),
-                  otherAddress,
-                  equalityCache,
-                  thisPointerValuesAlreadyVisited);
-        }
-      }
-    }
-    return false;
+    return checkEqualValuesForTwoStatesWithExemptions(
+        thisObject,
+        otherObject,
+        exemptOffsets,
+        thisState,
+        otherState,
+        equalityCache,
+        new HashSet<>(),
+        treatSymbolicsAsEqualWEqualConstrains);
   }
 
   /**
@@ -1711,7 +1640,8 @@ public class SMGState
         thisState,
         otherState,
         equalityCache,
-        new HashSet<>());
+        new HashSet<>(),
+        false);
   }
 
   /**
@@ -1733,7 +1663,8 @@ public class SMGState
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValuesAlreadyVisited) {
+      Set<Value> thisPointerValuesAlreadyVisited,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
 
     Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
     for (SMGHasValueEdge hve :
@@ -1773,6 +1704,10 @@ public class SMGState
       if (thisHVE == null || thisHVE.getSizeInBits().compareTo(otherHVE.getSizeInBits()) != 0) {
         return false;
       }
+      if (thisObject instanceof SMGSinglyLinkedListSegment
+          && otherObject instanceof SMGSinglyLinkedListSegment) {
+        treatSymbolicsAsEqualWEqualConstrains = true;
+      }
       // Check the Value (not the SMGValue!). If a SMGValue exists, a Value mapping exists.
       Value otherHVEValue =
           otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).orElseThrow();
@@ -1786,7 +1721,8 @@ public class SMGState
           otherState,
           otherHVEValue,
           equalityCache,
-          thisPointerValuesAlreadyVisited)) {
+          thisPointerValuesAlreadyVisited,
+          treatSymbolicsAsEqualWEqualConstrains)) {
         return false;
       }
       // They are equal, we don't need to check it again later
@@ -1815,7 +1751,8 @@ public class SMGState
           otherState,
           otherHVEValue,
           equalityCache,
-          thisPointerValuesAlreadyVisited)) {
+          thisPointerValuesAlreadyVisited,
+          treatSymbolicsAsEqualWEqualConstrains)) {
         return false;
       }
       equalityCache.addEquality(thisHVEValue, otherHVEValue);
@@ -4240,7 +4177,7 @@ public class SMGState
     // Values not equal, continue traverse
     EqualityCache<Value> eqCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        nextObj, root, ImmutableList.of(nfo, pfo), this, this, eqCache, new HashSet<>())) {
+        nextObj, root, ImmutableList.of(nfo, pfo), this, this, eqCache, new HashSet<>(), true)) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoDLL(
           nextObj,
@@ -4448,7 +4385,7 @@ public class SMGState
     // Values not equal, continue traverse
     EqualityCache<Value> eqCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        nextObj, root, ImmutableList.of(nfo), this, this, eqCache, new HashSet<>())) {
+        nextObj, root, ImmutableList.of(nfo), this, this, eqCache, new HashSet<>(), true)) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoSLL(
           nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());

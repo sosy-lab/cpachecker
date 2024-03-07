@@ -300,7 +300,7 @@ public class SMGCPAAbstractionManager {
       }
       // Use the more advanced equality check that checks pointers via memory shapes
       if (state.checkEqualValuesForTwoStatesWithExemptions(
-          root, walker, exemptOffsetsOfList, state, state, equalityCache)) {
+          root, walker, exemptOffsetsOfList, state, state, equalityCache, true)) {
         if (currentLength + 1 >= minimumLengthForListsForAbstraction) {
           return true;
         } else {
