@@ -33,8 +33,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersIfBranch;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
@@ -89,8 +91,11 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // the same way as with assumptions would not work. As an overapproximation we use the
     // covers to present the desired functionality.
     AutomatonBoolExpr expr =
-        CheckCoversColumnAndLine.newCheckCoversColumnAndLineForStatementEdges(
-            followColumn, followLine);
+        new And(
+            new CheckCoversColumnAndLine(followColumn, followLine),
+            // Edges which correspond to blocks in the code, like function declaration edges and
+            // iteration statement edges may fulfill the condition, but are not always desired.
+            new IsStatementEdge());
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);
@@ -115,8 +120,11 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // waypoint location. The waypoint is passed if the given constraint evaluates to true."
     // Therefore, we need the Reaches Offset guard.
     AutomatonBoolExpr expr =
-        CheckCoversColumnAndLine.newCheckCoversColumnAndLineForStatementEdges(
-            followColumn, followLine);
+        new And(
+            new CheckCoversColumnAndLine(followColumn, followLine),
+            // Edges which correspond to blocks in the code, like function declaration edges and
+            // iteration statement edges may fulfill the condition, but are not always desired.
+            new IsStatementEdge());
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);
@@ -177,8 +185,11 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       throws InterruptedException {
 
     AutomatonBoolExpr expr =
-        CheckCoversColumnAndLine.newCheckCoversColumnAndLineForStatementEdges(
-            followColumn, followLine);
+        new And(
+            new CheckCoversColumnAndLine(followColumn, followLine),
+            // Edges which correspond to blocks in the code, like function declaration edges and
+            // iteration statement edges may fulfill the condition, but are not always desired.
+            new IsStatementEdge());
 
     AutomatonTransition.Builder builder = new AutomatonTransition.Builder(expr, nextStateId);
     builder = distanceToViolation(builder, pDistanceToViolation);

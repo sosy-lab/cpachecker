@@ -89,6 +89,29 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  public static class IsStatementEdge implements AutomatonBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return pArgs.getCfaEdge() instanceof AStatementEdge ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "IS_STATEMENT_EDGE";
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof IsStatementEdge;
+    }
+  }
+
   public static class CheckCoversLines implements AutomatonBoolExpr {
     private final ImmutableSet<Integer> linesToCover;
 
@@ -172,27 +195,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
     private final int offsetToReach;
     private final int lineNumber;
-    private final boolean expectStatementEdge;
 
     public CheckCoversOffsetAndLine(int pOffset, int pLineNumber) {
       offsetToReach = pOffset;
       lineNumber = pLineNumber;
-      expectStatementEdge = false;
-    }
-
-    public CheckCoversOffsetAndLine(
-        Integer pOffset, Integer pLineNumber, boolean pExpectStatementEdge) {
-      offsetToReach = pOffset;
-      lineNumber = pLineNumber;
-      expectStatementEdge = pExpectStatementEdge;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (expectStatementEdge && !(edge instanceof AStatementEdge)) {
-        return CONST_FALSE;
-      }
 
       if (!CoverageData.coversLine(edge)) {
         return CONST_FALSE;
@@ -234,34 +245,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   public static class CheckCoversColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
-    private final boolean expectStatementEdge;
 
-    public static CheckCoversColumnAndLine newCheckCoversColumnAndLineForStatementEdges(
-        int pColumn, int pLineNumber) {
-      return new CheckCoversColumnAndLine(pColumn, pLineNumber, true);
-    }
-
-    @SuppressWarnings("unused")
-    public static CheckCoversColumnAndLine newCheckCoversColumnAndLineForAllCFAEdges(
-        int pColumn, int pLineNumber) {
-      return new CheckCoversColumnAndLine(pColumn, pLineNumber, false);
-    }
-
-    private CheckCoversColumnAndLine(int pColumn, int pLineNumber, boolean pExpectStatementEdge) {
+    public CheckCoversColumnAndLine(int pColumn, int pLineNumber) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
-      expectStatementEdge = pExpectStatementEdge;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-
-      // Edges which correspond to blocks in the code, like function declaration edges and iteration
-      // statement edges may fulfill the condition, but are not always desired.
-      if (expectStatementEdge && !(edge instanceof AStatementEdge)) {
-        return CONST_FALSE;
-      }
 
       FileLocation edgeLocation = edge.getFileLocation();
       int edgeNodeStartingColumn = edgeLocation.getStartColumnInLine();
