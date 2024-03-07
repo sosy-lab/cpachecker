@@ -199,30 +199,30 @@ class AstLocationClassifier extends ASTVisitor {
   }
 
   public ImmutableMap<FileLocation, FileLocation> getLoopInitializer() {
-    return loopInitializer.build();
+    return loopInitializer.buildOrThrow();
   }
 
   public ImmutableMap<FileLocation, FileLocation> getLoopIterationStatement() {
-    return loopIterationStatement.build();
+    return loopIterationStatement.buildOrThrow();
   }
 
   public ImmutableMap<FileLocation, FileLocation> getLoopParenthesesBlock() {
-    return loopParenthesesBlock.build();
+    return loopParenthesesBlock.buildOrThrow();
   }
 
   public ImmutableMap<FileLocation, FileLocation> getLoopBody() {
-    return loopBody.build();
+    return loopBody.buildOrThrow();
   }
 
   public ImmutableMap<FileLocation, FileLocation> getIfCondition() {
-    return ifCondition.build();
+    return ifCondition.buildOrThrow();
   }
 
   public ImmutableMap<FileLocation, FileLocation> getIfThenClause() {
-    return ifThenClause.build();
+    return ifThenClause.buildOrThrow();
   }
 
   public ImmutableMap<FileLocation, FileLocation> getIfElseClause() {
-    return ifElseClause.build();
+    return ifElseClause.buildOrThrow();
   }
 }
