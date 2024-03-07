@@ -14,8 +14,8 @@ Files: test/programs/parser/*.c
  test/programs/parser/*.i
  test/programs/parser/*.desc
 Copyright: 2001-2013, Daniel Kroening, Edmund Clarke
-Copyright: Computer Science Department, Carnegie Mellon University
-Copyright: Computer Science Department, University of Oxford
+           Computer Science Department, Carnegie Mellon University
+           Computer Science Department, University of Oxford
 License: LicenseRef-BSD-4-Clause-CBMC
 
 Files: src/org/sosy_lab/cpachecker/core/counterexample/build/main.*
