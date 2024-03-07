@@ -299,8 +299,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /**
-   * The check succeeds if any of the successors of the current edge fulfil {@link
-   * CheckCoversOffsetAndLine}.
+   * The check succeeds if any of the edges leaving any of the successor nodes of the current edge
+   * fulfil {@link CheckCoversOffsetAndLine}.
    */
   public static class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
     private final int offsetToReach;
