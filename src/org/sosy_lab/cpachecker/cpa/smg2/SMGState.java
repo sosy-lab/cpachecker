@@ -1399,21 +1399,22 @@ public class SMGState
             .equals(((SymbolicExpression) otherValue).getType())) {
       if (options.isTreatSymbolicValuesAsUnknown()) {
         return true;
+      } else if (thisValue.equals(otherValue)) {
+        return true;
       } else if (equalConstraintsInSymbolicValues(thisValue, thisState, otherValue, otherState)) {
         // Check matching constraints
-
-      } else {
-        return thisValue.equals(otherValue);
+        equalityCache.addEquality(thisValue, otherValue);
+        return true;
       }
     }
 
     return thisValue.equals(otherValue);
   }
 
-  @SuppressWarnings("unused")
   private boolean equalConstraintsInSymbolicValues(
       Value pThisValue, SMGState thisState, Value pOtherValue, SMGState otherState) {
-    return false;
+    return !thisState.valueContainedInConstraints(pThisValue)
+        && !otherState.valueContainedInConstraints(pOtherValue);
     // TODO: find a way to find Constraints with specific symbolic values in them
     // TODO: build visitor that replaces symbolic values in constraints
     // TODO: carry a SymbolicGenerator Object with all found SymbolicValues that can be replaced by
@@ -2530,11 +2531,11 @@ public class SMGState
         Set<SymbolicIdentifier> symIdentsConstr =
             co.accept(SymbolicIdentifierLocator.getInstance());
         if (!Collections.disjoint(symIdentsConstr, symIdents)) {
-          return false;
+          return true;
         }
       }
     }
-    return true;
+    return false;
   }
 
   /**
