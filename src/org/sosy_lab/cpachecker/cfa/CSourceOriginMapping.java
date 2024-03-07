@@ -55,7 +55,7 @@ public class CSourceOriginMapping {
    * @param pProgramCode code for the file whose line starting offsets should be computed
    * @return Immutable List
    */
-  public static ImmutableList<Integer> getLineOffsets(String pProgramCode) {
+  private static ImmutableList<Integer> getLineOffsets(String pProgramCode) {
     ImmutableList.Builder<Integer> result = ImmutableList.builder();
 
     int currentOffset = 0;
