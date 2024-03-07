@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ListMultimap;
@@ -62,12 +64,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       statement = "1";
     } else {
       statement =
-          String.join(
-              " && ",
-              assumptions.stream()
-                  .map(AExpressionStatement::toString)
-                  .map(x -> "(" + x.replace(";", "") + ")")
-                  .toList());
+          FluentIterable.from(assumptions)
+              .transform(AExpressionStatement::toString)
+              .transformAndConcat(s -> List.of(s.split(";")))
+              .join(Joiner.on(" && "));
     }
 
     InformationRecord informationRecord =
