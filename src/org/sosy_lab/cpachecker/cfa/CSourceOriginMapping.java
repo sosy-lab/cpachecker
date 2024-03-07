@@ -98,7 +98,10 @@ public class CSourceOriginMapping {
     // This should only happen when parsing an automaton file. In those cases the file is called
     // 'fragment' since usually only a fragment of the automaton contains C-code.
     if (!lineNumberToStartingColumn.containsKey(pAnalysisFileName)) {
-      Verify.verify(pAnalysisFileName.toString().equals("fragment"));
+      Verify.verify(
+          pAnalysisFileName.toString().equals("fragment")
+              || pAnalysisFileName.toString().equals("./#expr#")
+              || pAnalysisFileName.toString().equals("#expr#"));
       // Till now, we only have fragments with one line of code.
       Verify.verify(pAnalysisCodeLine == 1);
       return pOffset;
