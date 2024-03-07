@@ -213,7 +213,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "REACHES_OFFSET(" + offsetToReach + ")";
+      return "REACHES_OFFSET_AND_LINE(line = " + lineNumber + ", offset = " + offsetToReach + ")";
     }
 
     @Override
@@ -290,7 +290,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "COVERS_COLUMN(" + columnToReach + ")";
+      return "COVERS_COLUMN_AND_LINE(line = " + lineNumber + ", column = " + columnToReach + ")";
     }
 
     @Override
@@ -362,7 +362,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "REACHES_OFFSET(" + offsetToReach + ")";
+      return "REACHES_OFFSET_AND_LINE(line = " + lineNumber + ", offset = " + offsetToReach + ")";
     }
 
     @Override
