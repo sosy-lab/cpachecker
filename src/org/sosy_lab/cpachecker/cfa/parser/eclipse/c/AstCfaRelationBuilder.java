@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -19,13 +21,13 @@ import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 
-class ASTCFARelationBuilder {
+class AstCfaRelationBuilder {
 
   public static AstCfaRelation getASTCFARelation(
       CSourceOriginMapping pSourceOriginMapping,
       ImmutableSet<CFAEdge> pEdges,
       List<IASTTranslationUnit> pAsts) {
-    ASTLocationClassifier classifier = new ASTLocationClassifier(pSourceOriginMapping);
+    AstLocationClassifier classifier = new AstLocationClassifier(pSourceOriginMapping);
     for (IASTTranslationUnit ast : pAsts) {
       ast.accept(classifier);
     }
@@ -36,32 +38,43 @@ class ASTCFARelationBuilder {
   }
 
   private static ImmutableSet<IfElement> getIfStructures(
-      ImmutableSet<CFAEdge> pEdges, ASTLocationClassifier classifier) {
+      ImmutableSet<CFAEdge> pEdges, AstLocationClassifier classifier) {
+    ImmutableMap<FileLocation, FileLocation> ifCondition = classifier.getIfCondition();
+    ImmutableMap<FileLocation, FileLocation> ifThenClause = classifier.getIfThenClause();
+    ImmutableMap<FileLocation, FileLocation> ifElseClause = classifier.getIfElseClause();
     ImmutableSet.Builder<IfElement> ifStructures = new ImmutableSet.Builder<>();
-    for (FileLocation loc : classifier.ifLocations) {
+    for (FileLocation loc : classifier.getIfLocations()) {
       ifStructures.add(
           new IfElement(
               loc,
-              classifier.ifCondition.get(loc),
-              classifier.ifThenClause.get(loc),
-              Optional.ofNullable(classifier.ifElseClause.get(loc)),
+              ifCondition.get(loc),
+              ifThenClause.get(loc),
+              Optional.ofNullable(ifElseClause.get(loc)),
               pEdges));
     }
     return ifStructures.build();
   }
 
   private static ImmutableSet<IterationElement> getIterationStructures(
-      ImmutableSet<CFAEdge> pEdges, ASTLocationClassifier classifier) {
+      ImmutableSet<CFAEdge> pEdges, AstLocationClassifier classifier) {
+    Map<FileLocation, FileLocation> loopParenthesesBlock = classifier.getLoopParenthesesBlock();
+    Map<FileLocation, FileLocation> loopControllingExpression =
+        classifier.getLoopControllingExpression();
+    Map<FileLocation, FileLocation> loopBody = classifier.getLoopBody();
+
+    Map<FileLocation, FileLocation> loopInitializer = classifier.getLoopInitializer();
+    Map<FileLocation, FileLocation> loopIterationStatement = classifier.getLoopIterationStatement();
+
     ImmutableSet.Builder<IterationElement> iterationStructures = new ImmutableSet.Builder<>();
-    for (FileLocation loc : classifier.loopLocations) {
+    for (FileLocation loc : classifier.getLoopLocations()) {
       iterationStructures.add(
           new IterationElement(
               loc,
-              Optional.ofNullable(classifier.loopParenthesesBlock.get(loc)),
-              Optional.ofNullable(classifier.loopControllingExpression.get(loc)),
-              classifier.loopBody.get(loc),
-              Optional.ofNullable(classifier.loopInitializer.get(loc)),
-              Optional.ofNullable(classifier.loopIterationStatement.get(loc)),
+              Optional.ofNullable(loopParenthesesBlock.get(loc)),
+              Optional.ofNullable(loopControllingExpression.get(loc)),
+              loopBody.get(loc),
+              Optional.ofNullable(loopInitializer.get(loc)),
+              Optional.ofNullable(loopIterationStatement.get(loc)),
               pEdges));
     }
     return iterationStructures.build();

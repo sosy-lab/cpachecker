@@ -8,17 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
@@ -34,40 +30,43 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-class ASTLocationClassifier extends ASTVisitor {
+class AstLocationClassifier extends ASTVisitor {
   private final ImmutableSortedMap.Builder<Integer, FileLocation> statementOffsetsToLocations =
       ImmutableSortedMap.naturalOrder();
 
-  private final Set<FileLocation> compoundLocations = new HashSet<>();
+  private final ImmutableSet.Builder<FileLocation> compoundLocations = new ImmutableSet.Builder<>();
 
-  private final Set<FileLocation> labelLocations = new HashSet<>();
-  private final Set<FileLocation> declarationLocations = new HashSet<>();
-  Set<Integer> declarationStartOffsets = new HashSet<>();
+  private final ImmutableSet.Builder<FileLocation> labelLocations = new ImmutableSet.Builder<>();
+  private final ImmutableSet.Builder<FileLocation> declarationLocations =
+      new ImmutableSet.Builder<>();
 
-  final Set<FileLocation> loopLocations = new HashSet<>();
-  final Map<FileLocation, FileLocation> loopControllingExpression = new HashMap<>();
-  final Map<FileLocation, FileLocation> loopInitializer = new HashMap<>();
-  final Map<FileLocation, FileLocation> loopIterationStatement = new HashMap<>();
-  final Map<FileLocation, FileLocation> loopParenthesesBlock = new HashMap<>();
-  final Map<FileLocation, FileLocation> loopBody = new HashMap<>();
+  private final ImmutableSet.Builder<FileLocation> loopLocations = new ImmutableSet.Builder<>();
+  private final ImmutableMap.Builder<FileLocation, FileLocation> loopControllingExpression =
+      new ImmutableMap.Builder<>();
+  private final ImmutableMap.Builder<FileLocation, FileLocation> loopInitializer =
+      new ImmutableMap.Builder<>();
+  private final ImmutableMap.Builder<FileLocation, FileLocation> loopIterationStatement =
+      new ImmutableMap.Builder<>();
+  private final ImmutableMap.Builder<FileLocation, FileLocation> loopParenthesesBlock =
+      new ImmutableMap.Builder<>();
+  private final ImmutableMap.Builder<FileLocation, FileLocation> loopBody =
+      new ImmutableMap.Builder<>();
 
-  final Set<FileLocation> ifLocations = new HashSet<>();
-  final Map<FileLocation, FileLocation> ifCondition = new HashMap<>();
-  final Map<FileLocation, FileLocation> ifThenClause = new HashMap<>();
-  final Map<FileLocation, FileLocation> ifElseClause = new HashMap<>();
+  private final ImmutableSet.Builder<FileLocation> ifLocations = new ImmutableSet.Builder<>();
+  private final ImmutableMap.Builder<FileLocation, FileLocation> ifCondition =
+      new ImmutableMap.Builder<>();
+  private final ImmutableMap.Builder<FileLocation, FileLocation> ifThenClause =
+      new ImmutableMap.Builder<>();
+  private final ImmutableMap.Builder<FileLocation, FileLocation> ifElseClause =
+      new ImmutableMap.Builder<>();
 
-  private final Map<String, Path> fileNames = new HashMap<>();
+  private final ImmutableMap.Builder<String, Path> fileNames = new ImmutableMap.Builder<>();
 
   public final CSourceOriginMapping sourceOriginMapping;
 
-  public ASTLocationClassifier(CSourceOriginMapping pSourceOriginMapping) {
+  public AstLocationClassifier(CSourceOriginMapping pSourceOriginMapping) {
     super(true);
     sourceOriginMapping = pSourceOriginMapping;
-  }
-
-  public void update() {
-    declarationStartOffsets =
-        transformedImmutableSetCopy(declarationLocations, x -> x.getNodeOffset());
   }
 
   public ImmutableSortedMap<Integer, FileLocation> getStatementOffsetsToLocations() {
@@ -185,5 +184,45 @@ class ASTLocationClassifier extends ASTVisitor {
     if (parenthesesBlockLocation != null) {
       loopParenthesesBlock.put(loc, parenthesesBlockLocation);
     }
+  }
+
+  public ImmutableSet<FileLocation> getLoopLocations() {
+    return loopLocations.build();
+  }
+
+  public ImmutableSet<FileLocation> getIfLocations() {
+    return ifLocations.build();
+  }
+
+  public ImmutableMap<FileLocation, FileLocation> getLoopControllingExpression() {
+    return loopControllingExpression.buildOrThrow();
+  }
+
+  public ImmutableMap<FileLocation, FileLocation> getLoopInitializer() {
+    return loopInitializer.build();
+  }
+
+  public ImmutableMap<FileLocation, FileLocation> getLoopIterationStatement() {
+    return loopIterationStatement.build();
+  }
+
+  public ImmutableMap<FileLocation, FileLocation> getLoopParenthesesBlock() {
+    return loopParenthesesBlock.build();
+  }
+
+  public ImmutableMap<FileLocation, FileLocation> getLoopBody() {
+    return loopBody.build();
+  }
+
+  public ImmutableMap<FileLocation, FileLocation> getIfCondition() {
+    return ifCondition.build();
+  }
+
+  public ImmutableMap<FileLocation, FileLocation> getIfThenClause() {
+    return ifThenClause.build();
+  }
+
+  public ImmutableMap<FileLocation, FileLocation> getIfElseClause() {
+    return ifElseClause.build();
   }
 }
