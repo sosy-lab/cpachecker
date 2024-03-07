@@ -20,18 +20,24 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
  */
 public class Invariant {
   private final ExpressionTree<AExpression> formula;
-  private final FileLocation location;
+  private final int line;
+  private final int column;
   private final boolean isLoopInvariant;
 
   public Invariant(
-      ExpressionTree<AExpression> pFormula, FileLocation pLocation, boolean pIsLoopInvariant) {
+      ExpressionTree<AExpression> pFormula, int pLine, int pColumn, boolean pIsLoopInvariant) {
     formula = Objects.requireNonNull(pFormula);
-    location = Objects.requireNonNull(pLocation);
+    line = pLine;
+    column = pColumn;
     isLoopInvariant = pIsLoopInvariant;
   }
 
-  public FileLocation getLocation() {
-    return location;
+  public int getLine() {
+    return line;
+  }
+
+  public int getColumn() {
+    return column;
   }
 
   public boolean isLoopInvariant() {
@@ -44,7 +50,7 @@ public class Invariant {
 
   @Override
   public int hashCode() {
-    int hashCode = location.hashCode();
+    int hashCode = column + 124765 * line;
     hashCode = 31 * hashCode + formula.hashCode();
     return hashCode;
   }
@@ -57,7 +63,9 @@ public class Invariant {
 
     return pObj instanceof Invariant other
         && other.formula.equals(formula)
-        && other.location.equals(location);
+        && other.line == line
+        && other.column == column
+        && other.isLoopInvariant == isLoopInvariant;
   }
 
   @Override

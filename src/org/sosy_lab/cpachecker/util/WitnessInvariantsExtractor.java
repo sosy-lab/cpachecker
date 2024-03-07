@@ -252,23 +252,19 @@ public class WitnessInvariantsExtractor {
         }
 
         for (CFAEdge e : edges) {
-          if (e.getFileLocation().getEndingLineInOrigin()
-                  == invariant.getLocation().getEndingLineInOrigin()
-              && e.getFileLocation().getStartingLineInOrigin()
-                  == invariant.getLocation().getStartingLineInOrigin()
-              && e.getFileLocation().getStartColumnInLine()
-                  <= invariant.getLocation().getStartColumnInLine()
-              && e.getFileLocation().getEndColumnInLine()
-                  >= invariant.getLocation().getEndColumnInLine()) {
+          if (e.getFileLocation().getEndingLineInOrigin() == invariant.getLine()
+              && e.getFileLocation().getStartingLineInOrigin() == invariant.getLine()
+              && e.getFileLocation().getStartColumnInLine() <= invariant.getColumn()
+              && e.getFileLocation().getEndColumnInLine() >= invariant.getColumn()) {
             if (e instanceof FunctionCallEdge) {
               node = e.getPredecessor();
             }
             candidateInvariants.add(
                 new ExpressionTreeLocationInvariant(
                     "Invariant matched at line "
-                        + invariant.getLocation().getStartingLineInOrigin()
-                        + " with Offset "
-                        + invariant.getLocation().getNodeOffset(),
+                        + invariant.getLine()
+                        + " with column "
+                        + invariant.getColumn(),
                     node,
                     invariant.getFormula(),
                     toCodeVisitorCache));

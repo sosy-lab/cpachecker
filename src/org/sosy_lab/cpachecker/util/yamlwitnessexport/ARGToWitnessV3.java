@@ -160,6 +160,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
             statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
 
     exportEntries(
-        new CorrectnessWitnessSetEntry(getMetadata(YAMLWitnessVersion.V3), entries.build()), pOutputFile);
+        new CorrectnessWitnessSetEntry(getMetadata(YAMLWitnessVersion.V3), entries.build()),
+        pOutputFile);
   }
 }

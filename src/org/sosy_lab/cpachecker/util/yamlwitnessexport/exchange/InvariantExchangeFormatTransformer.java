@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -27,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
@@ -146,22 +144,11 @@ public class InvariantExchangeFormatTransformer {
 
           ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
 
-          // This is the position at which the invariant should be valid.
-          FileLocation loc =
-              new FileLocation(
-                  Path.of(invariantEntry.getLocation().getFileName()),
-                  // dummy offset is ok because not used for matching invariants to their position
-                  -1,
-                  // length 0 because invariants only refers to a particular point in the program
-                  0,
-                  line,
-                  line,
-                  invariantEntry.getLocation().getColumn(),
-                  invariantEntry.getLocation().getColumn());
           invariants.add(
               new Invariant(
                   invariant,
-                  loc,
+                  invariantEntry.getLocation().getLine(),
+                  invariantEntry.getLocation().getColumn(),
                   invariantEntry
                       .getType()
                       .equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())));
