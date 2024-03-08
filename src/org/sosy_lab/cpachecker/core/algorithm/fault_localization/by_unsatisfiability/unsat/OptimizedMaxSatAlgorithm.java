@@ -66,7 +66,7 @@ public class OptimizedMaxSatAlgorithm
     soft.removeIf(fc -> bmgr.isTrue(fc.getFormula()) || bmgr.isFalse(fc.getFormula()));
 
     Set<TraceAtom> complement;
-    Set<TraceAtom> softCopy = new LinkedHashSet<>(soft);
+    Set<TraceAtom> softCopy;
 
     // Save already found MSS in foundMSS
     Set<Fault> foundMSS = new LinkedHashSet<>();
