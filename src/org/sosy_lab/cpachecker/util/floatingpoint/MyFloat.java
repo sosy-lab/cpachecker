@@ -249,9 +249,14 @@ public class MyFloat {
     return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
-  // Copy the value, but with a different exponent
+  // Copy the value with a new exponent
   private MyFloat withExponent(long pExponent) {
     return new MyFloat(format, value.sign, pExponent, value.significand);
+  }
+
+  // Copy the value with a new sign
+  private MyFloat withSign(boolean pSign) {
+    return new MyFloat(format, pSign, value.exponent, value.significand);
   }
 
   // Convert the value to a different precision (uses round to nearest, ties to even for now)
@@ -354,62 +359,56 @@ public class MyFloat {
 
   public MyFloat add(MyFloat number) {
     // Make sure the first argument has the larger (or equal) exponent
-    MyFloat n = number;
-    MyFloat m = this;
+    MyFloat a = number;
+    MyFloat b = this;
     if (value.exponent >= number.value.exponent) {
-      n = this;
-      m = number;
+      a = this;
+      b = number;
     }
 
     // Handle special cases:
     // (1) Either argument is NaN
-    if (n.isNan() || m.isNan()) {
+    if (a.isNan() || b.isNan()) {
       return nan(format);
     }
     // (2) Both arguments are infinite
-    if (n.isInfinite() && m.isInfinite()) {
-      if (n.isNegative() && m.isNegative()) {
+    if (a.isInfinite() && b.isInfinite()) {
+      if (a.isNegative() && b.isNegative()) {
         return negativeInfinity(format);
       }
-      if (!n.isNegative() && !m.isNegative()) {
+      if (!a.isNegative() && !b.isNegative()) {
         return infinity(format);
       }
       return nan(format);
     }
     // (3) Only one argument is infinite
-    if (n.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
-      return n;
+    if (a.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
+      return a;
     }
     // (4) Both arguments are zero (or negative zero)
-    if (n.isZero() && m.isZero()) {
-      return (n.isNegative() || m.isNegative()) ? negativeZero(format) : zero(format);
+    if (a.isZero() && b.isZero()) {
+      return (a.isNegative() || b.isNegative()) ? negativeZero(format) : zero(format);
     }
     // (5) Only one of the arguments is zero (or negative zero)
-    if (n.isZero() || m.isZero()) {
-      return n.isZero() ? m : n;
+    if (a.isZero() || b.isZero()) {
+      return a.isZero() ? b : a;
     }
 
-    // Handle regular numbers in addImpl
-    return n.addImpl(m);
-  }
-
-  private MyFloat addImpl(MyFloat number) {
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
-    long exponent1 = Math.max(value.exponent, format.minExp());
-    long exponent2 = Math.max(number.value.exponent, format.minExp());
+    long exponent1 = Math.max(a.value.exponent, format.minExp());
+    long exponent2 = Math.max(b.value.exponent, format.minExp());
 
     // Calculate the difference between the exponents. If it is larger than the mantissa size we can
     // skip the add and return immediately.
     int exp_diff = (int) (exponent1 - exponent2);
     if (exp_diff >= format.sigBits + 3) {
-      return this;
+      return a;
     }
 
     // Get the significands and apply the sign
-    BigInteger significand1 = value.sign ? value.significand.negate() : value.significand;
-    BigInteger significand2 =
-        number.value.sign ? number.value.significand.negate() : number.value.significand;
+    BigInteger significand1 = a.value.sign ? a.value.significand.negate() : a.value.significand;
+    BigInteger significand2 = b.value.sign ? b.value.significand.negate() : b.value.significand;
 
     // Expand the significand with (empty) guard, round and sticky bits
     significand1 = significand1.shiftLeft(3);
@@ -482,8 +481,9 @@ public class MyFloat {
   }
 
   public MyFloat subtract(MyFloat number) {
-    // We need to override the special case "0 - 0"
+    // We need to override the special case where both arguments are (negative) zero
     if (this.isZero() && number.isZero()) {
+      // Always return positive zero
       return zero(format);
     }
     // Everything else is just as for addition
@@ -492,43 +492,38 @@ public class MyFloat {
 
   public MyFloat multiply(MyFloat number) {
     // Make sure the first argument has the larger (or equal) exponent
-    MyFloat n = number;
-    MyFloat m = this;
+    MyFloat a = number;
+    MyFloat b = this;
     if (value.exponent >= number.value.exponent) {
-      n = this;
-      m = number;
+      a = this;
+      b = number;
     }
 
     // Handle special cases:
     // (1) Either argument is NaN
-    if (n.isNan() || m.isNan()) {
+    if (a.isNan() || b.isNan()) {
       return nan(format);
     }
     // (2) One of the argument is infinite
-    if (n.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
-      if (m.isZero()) {
+    if (a.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
+      if (b.isZero()) {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(format);
       }
-      return (n.isNegative() ^ m.isNegative()) ? negativeInfinity(format) : infinity(format);
+      return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(format) : infinity(format);
     }
     // (3) One of the arguments is zero (or negative zero)
-    if (n.isZero() || m.isZero()) {
-      return (n.isNegative() ^ m.isNegative()) ? negativeZero(format) : zero(format);
+    if (a.isZero() || b.isZero()) {
+      return (a.isNegative() ^ b.isNegative()) ? negativeZero(format) : zero(format);
     }
 
-    // Handle regular numbers in multiplyImpl
-    return n.multiplyImpl(m);
-  }
-
-  private MyFloat multiplyImpl(MyFloat number) {
     // Calculate the sign of the result
     boolean sign_ = value.sign ^ number.value.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
-    long exponent1 = Math.max(value.exponent, format.minExp());
-    long exponent2 = Math.max(number.value.exponent, format.minExp());
+    long exponent1 = Math.max(a.value.exponent, format.minExp());
+    long exponent2 = Math.max(b.value.exponent, format.minExp());
 
     // Calculate the exponent of the result by adding the exponents of the two arguments.
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
@@ -541,8 +536,8 @@ public class MyFloat {
     }
 
     // Multiply the significands
-    BigInteger significand1 = value.significand;
-    BigInteger significand2 = number.value.significand;
+    BigInteger significand1 = a.value.significand;
+    BigInteger significand2 = b.value.significand;
 
     BigInteger result = significand1.multiply(significand2);
 
@@ -577,11 +572,11 @@ public class MyFloat {
       exponent_ = format.minExp() - 1;
     }
 
-    // Truncate the value
+    // Truncate the value:
     // The significand now has length 2*|precision of the significand| + 3 where 3 are the grs bits
-    // at the end. We need to shift by at least |precision of the significand| bits. If one of the
-    // factors was subnormal the results may have leading zeroes as well, and we need to shift
-    // further by 'leading' bits.
+    // at the end. We need to shift by at least |precision of the significand| bits.
+    // If one of the factors was subnormal the results may have leading zeroes as well, and we need
+    // to shift further by 'leading' bits.
     significand_ = truncate(significand_, format.sigBits + leading);
 
     // Round the result according to the grs bits
@@ -611,7 +606,7 @@ public class MyFloat {
   }
 
   public MyFloat powInt(int exp) {
-    MyFloat t = this.withPrecision(format.extended());
+    MyFloat t = withPrecision(format.extended());
     MyFloat r = t.powFast(Math.abs(exp));
     if (exp < 0) {
       r = one(format.extended()).divide_(r);
@@ -632,50 +627,15 @@ public class MyFloat {
   }
 
   public MyFloat divide(MyFloat number) {
-    MyFloat n = this.withPrecision(format.extended());
-    MyFloat m = number.withPrecision(format.extended());
-    return n.divide_(m).withPrecision(format);
+    MyFloat a = this.withPrecision(format.extended());
+    MyFloat b = number.withPrecision(format.extended());
+    return a.divide_(b).withPrecision(format);
   }
 
-  private MyFloat divide_(MyFloat number) {
-    MyFloat n = this;
-    MyFloat m = number;
-
-    // Handle special cases:
-    // (1) Either argument is NaN
-    if (n.isNan() || m.isNan()) {
-      return nan(format);
-    }
-    // (2) Dividend is zero
-    if (n.isZero()) {
-      if (m.isZero()) {
-        // Divisor is zero or infinite
-        return nan(format);
-      }
-      return (n.isNegative() ^ m.isNegative()) ? negativeZero(format) : zero(format);
-    }
-    // (3) Dividend is infinite
-    if (n.isInfinite()) {
-      if (m.isInfinite()) {
-        // Divisor is infinite
-        return nan(format);
-      }
-      return (n.isNegative() ^ m.isNegative()) ? negativeInfinity(format) : infinity(format);
-    }
-    // (4) Divisor is zero (and dividend is finite)
-    if (m.isZero()) {
-      return (n.isNegative() ^ m.isNegative()) ? negativeInfinity(format) : infinity(format);
-    }
-    // (5) Divisor is infinite (and dividend is finite)
-    if (m.isInfinite()) {
-      return (n.isNegative() ^ m.isNegative()) ? negativeZero(format) : zero(format);
-    }
-
-    // Handle regular numbers in divideImpl
-    return n.divideNewton(m).withPrecision(format);
-  }
-
-  private MyFloat divideImpl(MyFloat number) {
+  // This version of divide is slower and does not check for corner cases. It is still needed to
+  // calculate the constants that are needed for the other, faster version of divide that uses
+  // Newton's method.
+  private MyFloat divideSlow(MyFloat number) {
     // Calculate the sign of the result
     boolean sign_ = value.sign ^ number.value.sign;
 
@@ -763,25 +723,60 @@ public class MyFloat {
     return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
   }
 
-  private double lb(double number) {
-    return Math.log(number) / Math.log(2);
-  }
-
+  // These constants are needed for division with Newton's approach.
   // TODO: Calculate these constants only once for each floating point precision
   private static final MyFloat c48 = constant(Format.Float128, 48);
   private static final MyFloat c32 = constant(Format.Float128, 32);
   private static final MyFloat c17 = constant(Format.Float128, 17);
 
-  private static final MyFloat c48d17 = c48.divideImpl(c17);
-  private static final MyFloat c32d17 = c32.divideImpl(c17);
+  // Here we have to use the slow divide for the constants.
+  private static final MyFloat c48d17 = c48.divideSlow(c17);
+  private static final MyFloat c32d17 = c32.divideSlow(c17);
 
-  private MyFloat divideNewton(MyFloat number) {
+  private double lb(double number) {
+    return Math.log(number) / Math.log(2);
+  }
+
+  private MyFloat divide_(MyFloat number) {
+    MyFloat a = this;
+    MyFloat b = number;
+
+    // Handle special cases:
+    // (1) Either argument is NaN
+    if (a.isNan() || b.isNan()) {
+      return nan(format);
+    }
+    // (2) Dividend is zero
+    if (a.isZero()) {
+      if (b.isZero()) {
+        // Divisor is zero or infinite
+        return nan(format);
+      }
+      return (a.isNegative() ^ b.isNegative()) ? negativeZero(format) : zero(format);
+    }
+    // (3) Dividend is infinite
+    if (a.isInfinite()) {
+      if (b.isInfinite()) {
+        // Divisor is infinite
+        return nan(format);
+      }
+      return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(format) : infinity(format);
+    }
+    // (4) Divisor is zero (and dividend is finite)
+    if (b.isZero()) {
+      return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(format) : infinity(format);
+    }
+    // (5) Divisor is infinite (and dividend is finite)
+    if (b.isInfinite()) {
+      return (a.isNegative() ^ b.isNegative()) ? negativeZero(format) : zero(format);
+    }
+
     // Extract exponents and significand bits
-    int exponent1 = (int) Math.max(value.exponent, format.minExp());
-    int exponent2 = (int) Math.max(number.value.exponent, format.minExp());
+    int exponent1 = (int) Math.max(a.value.exponent, format.minExp());
+    int exponent2 = (int) Math.max(b.value.exponent, format.minExp());
 
-    BigInteger significand1 = value.significand;
-    BigInteger significand2 = number.value.significand;
+    BigInteger significand1 = a.value.significand;
+    BigInteger significand2 = b.value.significand;
 
     // Shift numerator and divisor by pulling out common factors in the exponent.
     // This will put the divisor in the range of 0.5 to 1.0
@@ -806,8 +801,7 @@ public class MyFloat {
     MyFloat r = x.multiply(n);
 
     // Set the sign bit and return the result
-    return new MyFloat(
-        format, value.sign ^ number.value.sign, r.value.exponent, r.value.significand);
+    return r.withSign(a.value.sign ^ b.value.sign);
   }
 
   public MyFloat sqrt() {
@@ -824,10 +818,8 @@ public class MyFloat {
     if (isInfinite()) {
       return infinity(format);
     }
-    return sqrtImpl();
-  }
 
-  private MyFloat sqrtImpl() {
+    // Get the exponent and the significand
     long exponent = Math.max(value.exponent, format.minExp());
     BigInteger significand = value.significand;
 
@@ -848,7 +840,6 @@ public class MyFloat {
     List<MyFloat> partial = new ArrayList<>();
     while (!done) {
       partial.add(x);
-
       // x_n+1 = x_n * (3/2 - 1/2 * f * x_n^2)
       x = x.multiply(c3d2.subtract(c1d2.multiply(f).multiply(x.squared())));
 
@@ -868,16 +859,6 @@ public class MyFloat {
     return withPrecision(format.extended()).exp_().withPrecision(format);
   }
 
-  private MyFloat exp_() {
-    if (isNan()) {
-      return nan(format);
-    }
-    if (isInfinite()) {
-      return isNegative() ? zero(format) : infinity(format);
-    }
-    return expImpl();
-  }
-
   private static Map<Integer, MyFloat> mkExpTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
     MyFloat next = one(pFormat);
@@ -892,7 +873,14 @@ public class MyFloat {
   // Table contains terms 1/k! for 1..100
   private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.Float128);
 
-  private MyFloat expImpl() {
+  private MyFloat exp_() {
+    if (isNan()) {
+      return nan(format);
+    }
+    if (isInfinite()) {
+      return isNegative() ? zero(format) : infinity(format);
+    }
+
     MyFloat x = this;
     MyFloat y = one(format); // During the iteration we set y=x^k
     MyFloat r = one(format); // Series expansion after k terms
@@ -942,10 +930,7 @@ public class MyFloat {
     if (isOne()) {
       return zero(format);
     }
-    return lnImpl();
-  }
 
-  private MyFloat lnImpl() {
     // TODO: These constants should be declared only once for each supported precision
     MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
     MyFloat c3d2 =
@@ -985,83 +970,79 @@ public class MyFloat {
   }
 
   private MyFloat pow_(MyFloat exponent) {
+    MyFloat a = this;
+    MyFloat x = exponent;
+
     // Handle special cases
     // See https://en.cppreference.com/w/c/numeric/math/pow for the full definition
 
-    if (isOne() || exponent.isZero()) {
+    if (a.isOne() || x.isZero()) {
       // pow(+1, exponent) returns 1 for any exponent, even when exponent is NaN
       // pow(base, ±0) returns 1 for any base, even when base is NaN
       return one(format);
     }
-    if (isNan() || exponent.isNan()) {
+    if (a.isNan() || x.isNan()) {
       // except where specified above, if any argument is NaN, NaN is returned
       return nan(format);
     }
-    if (isZero() && exponent.isNegative() && exponent.isOddInteger()) {
+    if (a.isZero() && x.isNegative() && x.isOddInteger()) {
       // pow(+0, exponent), where exponent is a negative odd integer, returns +∞ and raises
       // FE_DIVBYZERO
       // pow(-0, exponent), where exponent is a negative odd integer, returns -∞ and raises
       // FE_DIVBYZERO
-      return isNegative() ? negativeInfinity(format) : infinity(format);
+      return a.isNegative() ? negativeInfinity(format) : infinity(format);
     }
-    if (isZero() && exponent.isNegative()) {
+    if (a.isZero() && x.isNegative()) {
       // pow(±0, -∞) returns +∞ and may raise FE_DIVBYZERO(until C23)
       // pow(±0, exponent), where exponent is negative, finite, and is an even integer or a
       // non-integer, returns +∞ and raises FE_DIVBYZERO
       return infinity(format);
     }
-    if (isZero() && !exponent.isNegative()) {
+    if (a.isZero() && !x.isNegative()) {
       // pow(+0, exponent), where exponent is a positive odd integer, returns +0
       // pow(-0, exponent), where exponent is a positive odd integer, returns -0
       // pow(±0, exponent), where exponent is positive non-integer or a positive even integer,
       // returns +0
-      return exponent.isOddInteger() ? this : zero(format);
+      return x.isOddInteger() ? a : zero(format);
     }
-    if (isNegativeOne() && exponent.isInfinite()) {
+    if (a.isNegativeOne() && x.isInfinite()) {
       // pow(-1, ±∞) returns 1
       return one(format);
     }
-    if (isInfinite() && isNegative()) {
+    if (a.isInfinite() && isNegative()) {
       // pow(-∞, exponent) returns -0 if exponent is a negative odd integer
       // pow(-∞, exponent) returns +0 if exponent is a negative non-integer or negative even integer
       // pow(-∞, exponent) returns -∞ if exponent is a positive odd integer
       // pow(-∞, exponent) returns +∞ if exponent is a positive non-integer or positive even integer
-      MyFloat power = exponent.isNegative() ? zero(format) : infinity(format);
-      return exponent.isOddInteger() ? power.negate() : power;
+      MyFloat power = x.isNegative() ? zero(format) : infinity(format);
+      return x.isOddInteger() ? power.negate() : power;
     }
-    if (isInfinite()) {
+    if (a.isInfinite()) {
       // pow(+∞, exponent) returns +0 for any negative exponent
       // pow(+∞, exponent) returns +∞ for any positive exponent
-      return exponent.isNegative() ? zero(format) : infinity(format);
+      return x.isNegative() ? zero(format) : infinity(format);
     }
-    if (exponent.isInfinite() && exponent.isNegative()) {
+    if (x.isInfinite() && x.isNegative()) {
       // pow(base, -∞) returns +∞ for any |base|<1
       // pow(base, -∞) returns +0 for any |base|>1
-      return this.abs().greaterThan(one(format)) ? zero(format) : infinity(format);
+      return a.abs().greaterThan(one(format)) ? zero(format) : infinity(format);
     }
-    if (exponent.isInfinite()) {
+    if (x.isInfinite()) {
       // pow(base, +∞) returns +0 for any |base|<1
       // pow(base, +∞) returns +∞ for any |base|>1
-      return this.abs().greaterThan(one(format)) ? infinity(format) : zero(format);
+      return a.abs().greaterThan(one(format)) ? infinity(format) : zero(format);
     }
-    if (isNegative() && !exponent.isInteger()) {
+    if (a.isNegative() && !x.isInteger()) {
       // pow(base, exponent) returns NaN and raises FE_INVALID if base is finite and negative and
       // exponent is finite and non-integer.
       return nan(format);
     }
-    if (isNegative()) {
+
+    if (a.isNegative()) {
       // -a^x where x is an integer: We calculate a^x and then set the sign to -1^x
-      MyFloat r = this.abs().powImpl(exponent);
-      return exponent.isOddInteger() ? r.negate() : r;
+      MyFloat r = x.multiply(a.abs().ln()).exp();
+      return x.isOddInteger() ? r.negate() : r;
     }
-    return powImpl(exponent);
-  }
-
-  private MyFloat powImpl(MyFloat exponent) {
-    MyFloat a = this;
-    MyFloat x = exponent;
-
-    // a^x = e^(x * ln a)
     return x.multiply(a.ln()).exp();
   }
 
