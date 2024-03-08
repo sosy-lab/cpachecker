@@ -31,13 +31,13 @@ public class CMyFloat extends CFloat {
   }
 
   private CFloatWrapper fromImpl(MyFloat floatValue) {
-    if (Format.FLOAT.equals(floatValue.getFormat())) {
+    if (Format.Float32.equals(floatValue.getFormat())) {
       long bits = Float.floatToRawIntBits(floatValue.toFloat());
       long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
       long mantissa = bits & 0x007FFFFF;
       return new CFloatWrapper(exponent, mantissa);
     }
-    if (Format.DOUBLE.equals(floatValue.getFormat())) {
+    if (Format.Float64.equals(floatValue.getFormat())) {
       long bits = Double.doubleToRawLongBits(floatValue.toDouble());
       long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFFL;
       long mantissa = bits & 0xFFFFFFFFFFFFFL;
@@ -48,25 +48,25 @@ public class CMyFloat extends CFloat {
 
   private MyFloat parseFloat(String repr) {
     if ("nan".equals(repr)) {
-      return MyFloat.nan(Format.FLOAT);
+      return MyFloat.nan(Format.Float32);
     }
     if ("-inf".equals(repr)) {
-      return MyFloat.negativeInfinity(Format.FLOAT);
+      return MyFloat.negativeInfinity(Format.Float32);
     }
     if ("inf".equals(repr)) {
-      return MyFloat.infinity(Format.FLOAT);
+      return MyFloat.infinity(Format.Float32);
     }
     if ("-0.0".equals(repr)) {
-      return MyFloat.negativeZero(Format.FLOAT);
+      return MyFloat.negativeZero(Format.Float32);
     }
     if ("0.0".equals(repr)) {
-      return MyFloat.zero(Format.FLOAT);
+      return MyFloat.zero(Format.Float32);
     }
     BigFloat floatValue = new BigFloat(repr, BinaryMathContext.BINARY32);
     long min = BinaryMathContext.BINARY32.minExponent;
     long max = BinaryMathContext.BINARY32.maxExponent;
     return new MyFloat(
-        Format.FLOAT,
+        Format.Float32,
         floatValue.sign(),
         floatValue.exponent(min, max),
         floatValue.significand(min, max));
@@ -74,25 +74,25 @@ public class CMyFloat extends CFloat {
 
   private MyFloat parseDouble(String repr) {
     if ("nan".equals(repr)) {
-      return MyFloat.nan(Format.DOUBLE);
+      return MyFloat.nan(Format.Float64);
     }
     if ("-inf".equals(repr)) {
-      return MyFloat.negativeInfinity(Format.DOUBLE);
+      return MyFloat.negativeInfinity(Format.Float64);
     }
     if ("inf".equals(repr)) {
-      return MyFloat.infinity(Format.DOUBLE);
+      return MyFloat.infinity(Format.Float64);
     }
     if ("-0.0".equals(repr)) {
-      return MyFloat.negativeZero(Format.DOUBLE);
+      return MyFloat.negativeZero(Format.Float64);
     }
     if ("0.0".equals(repr)) {
-      return MyFloat.zero(Format.DOUBLE);
+      return MyFloat.zero(Format.Float64);
     }
     BigFloat doubleValue = new BigFloat(repr, BinaryMathContext.BINARY64);
     long min = BinaryMathContext.BINARY64.minExponent;
     long max = BinaryMathContext.BINARY64.maxExponent;
     return new MyFloat(
-        Format.DOUBLE,
+        Format.Float64,
         doubleValue.sign(),
         doubleValue.exponent(min, max),
         doubleValue.significand(min, max));
@@ -239,8 +239,8 @@ public class CMyFloat extends CFloat {
   @Override
   public CFloat castTo(CNativeType toType) {
     return switch (toType) {
-      case SINGLE -> new CMyFloat(delegate.withPrecision(Format.FLOAT));
-      case DOUBLE -> new CMyFloat(delegate.withPrecision(Format.DOUBLE));
+      case SINGLE -> new CMyFloat(delegate.withPrecision(Format.Float32));
+      case DOUBLE -> new CMyFloat(delegate.withPrecision(Format.Float64));
       case LONG_DOUBLE -> throw new UnsupportedOperationException();
       default -> throw new IllegalArgumentException();
     };
@@ -276,10 +276,10 @@ public class CMyFloat extends CFloat {
 
   @Override
   public int getType() {
-    if (Format.FLOAT.equals(delegate.getFormat())) {
+    if (Format.Float32.equals(delegate.getFormat())) {
       return CNativeType.SINGLE.getOrdinal();
     }
-    if (Format.DOUBLE.equals(delegate.getFormat())) {
+    if (Format.Float64.equals(delegate.getFormat())) {
       return CNativeType.DOUBLE.getOrdinal();
     }
     throw new IllegalStateException();

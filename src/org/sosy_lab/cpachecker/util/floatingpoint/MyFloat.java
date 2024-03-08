@@ -19,10 +19,6 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 
-// Several functions here require higher precision variables for their intermediate results.
-// Currently, we assume the arguments are float and then use double precision for these variables.
-// TODO: Rewrite for arbitrary precision.
-
 public class MyFloat {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
@@ -38,9 +34,11 @@ public class MyFloat {
       sigBits = pSigBits;
     }
 
-    public static final Format FLOAT = new Format(8, 23);
-    public static final Format DOUBLE = new Format(11, 52);
-    public static final Format EXTENDED = new Format(15, 79);
+    public static final Format Float16 = new Format(5, 10);
+    public static final Format Float32 = new Format(8, 23);
+    public static final Format Float64 = new Format(11, 52);
+    public static final Format Float128 = new Format(15, 112);
+    public static final Format Float256 = new Format(19, 236);
 
     @Override
     public boolean equals(Object other) {
@@ -69,6 +67,24 @@ public class MyFloat {
     public long maxExp() {
       long rawExp = (1L << expBits) - 2;
       return rawExp - bias();
+    }
+
+    // Returns the next bigger format meant to be used for intermediate results.
+    public Format extended() {
+      // TODO: Add support for arbitrary sizes
+      if (equals(Format.Float16)) {
+        return Float32;
+      }
+      if (equals(Format.Float32)) {
+        return Float64;
+      }
+      if (equals(Format.Float64)) {
+        return Float128;
+      }
+      if (equals(Format.Float128)) {
+        return Float256;
+      }
+      throw new IllegalStateException();
     }
   }
 
@@ -595,27 +611,33 @@ public class MyFloat {
   }
 
   public MyFloat powInt(int exp) {
-    MyFloat t = this.withPrecision(Format.DOUBLE);
+    MyFloat t = this.withPrecision(format.extended());
     MyFloat r = t.powFast(Math.abs(exp));
     if (exp < 0) {
-      r = one(Format.DOUBLE).divide(r);
+      r = one(format.extended()).divide_(r);
     }
     return r.withPrecision(format);
   }
 
   public MyFloat powFast(int exp) {
     if (exp == 0) {
-      return one(Format.DOUBLE);
+      return one(format);
     }
     if (exp == 1) {
       return this;
     }
     MyFloat r = powFast(exp / 2).squared();
-    MyFloat p = exp % 2 == 0 ? one(Format.DOUBLE) : this;
+    MyFloat p = exp % 2 == 0 ? one(format) : this;
     return p.multiply(r);
   }
 
   public MyFloat divide(MyFloat number) {
+    MyFloat n = this.withPrecision(format.extended());
+    MyFloat m = number.withPrecision(format.extended());
+    return n.divide_(m).withPrecision(format);
+  }
+
+  private MyFloat divide_(MyFloat number) {
     MyFloat n = this;
     MyFloat m = number;
 
@@ -650,7 +672,7 @@ public class MyFloat {
     }
 
     // Handle regular numbers in divideImpl
-    return n.divideNewton(m);
+    return n.divideNewton(m).withPrecision(format);
   }
 
   private MyFloat divideImpl(MyFloat number) {
@@ -745,46 +767,30 @@ public class MyFloat {
     return Math.log(number) / Math.log(2);
   }
 
-  // TODO: Calculate these constants only once for each floating point precision
-  private static final MyFloat c48 = constant(Format.DOUBLE, BigInteger.valueOf(48));
-  private static final MyFloat c32 = constant(Format.DOUBLE, BigInteger.valueOf(32));
-  private static final MyFloat c17 = constant(Format.DOUBLE, BigInteger.valueOf(17));
-  private static final MyFloat c2 = constant(Format.DOUBLE, BigInteger.valueOf(2));
-
-  private static final MyFloat c48d17 = c48.divideImpl(c17);
-  private static final MyFloat c32d17 = c32.divideImpl(c17);
-
   private MyFloat divideNewton(MyFloat number) {
+    // TODO: Calculate these constants only once for each floating point precision
+    MyFloat c48 = constant(format, BigInteger.valueOf(48));
+    MyFloat c32 = constant(format, BigInteger.valueOf(32));
+    MyFloat c17 = constant(format, BigInteger.valueOf(17));
+    MyFloat c2 = constant(format, BigInteger.valueOf(2));
+
+    MyFloat c48d17 = c48.divideImpl(c17);
+    MyFloat c32d17 = c32.divideImpl(c17);
+
     // Extract exponents and significand bits
     int exponent1 = (int) Math.max(value.exponent, format.minExp());
     int exponent2 = (int) Math.max(number.value.exponent, format.minExp());
 
-    // Normalize both arguments
     BigInteger significand1 = value.significand;
-    int shift1 = (format.sigBits + 1) - significand1.bitLength();
-    if (shift1 > 0) {
-      significand1 = significand1.shiftLeft(shift1);
-      exponent1 -= shift1;
-    }
-
     BigInteger significand2 = number.value.significand;
-    int shift2 = (format.sigBits + 1) - significand2.bitLength();
-    if (shift2 > 0) {
-      significand2 = significand2.shiftLeft(shift2);
-      exponent2 -= shift2;
-    }
-
-    // Extend the significands to double precision
-    significand1 = significand1.shiftLeft(Format.DOUBLE.sigBits - format.sigBits);
-    significand2 = significand2.shiftLeft(Format.DOUBLE.sigBits - format.sigBits);
 
     // Shift numerator and divisor by pulling out common factors in the exponent.
     // This will put the divisor in the range of 0.5 to 1.0
-    MyFloat n = new MyFloat(Format.DOUBLE, false, exponent1 - (exponent2 + 1), significand1);
-    MyFloat d = new MyFloat(Format.DOUBLE, false, -1, significand2);
+    MyFloat n = new MyFloat(format, false, exponent1 - (exponent2 + 1), significand1);
+    MyFloat d = new MyFloat(format, false, -1, significand2);
 
     // Calculate how many iterations are needed
-    int bound = (int) Math.ceil(lb((Format.DOUBLE.sigBits + 2) / lb(17)));
+    int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
 
     // Set the initial value to 48/32 - 32/17*D
     MyFloat x = c48d17.subtract(c32d17.multiply(d));
@@ -794,7 +800,7 @@ public class MyFloat {
     }
 
     // Multiply 1/D with N and round down to single precision
-    MyFloat r = x.multiply(n).withPrecision(format);
+    MyFloat r = x.multiply(n);
 
     // Set the sign bit and return the result
     return new MyFloat(
@@ -802,6 +808,10 @@ public class MyFloat {
   }
 
   public MyFloat sqrt() {
+    return withPrecision(format.extended()).sqrt_().withPrecision(format);
+  }
+
+  private MyFloat sqrt_() {
     if (isZero()) {
       return negativeZero(format);
     }
@@ -814,35 +824,23 @@ public class MyFloat {
     return sqrtImpl();
   }
 
-  // TODO: These constants should be declared once for each supported precision
-  private static final MyFloat const1_5 =
-      new MyFloat(
-          Format.DOUBLE, false, 0, BigInteger.valueOf(3).shiftLeft(Format.DOUBLE.sigBits - 1));
-  private static final MyFloat const0_5 =
-      new MyFloat(Format.DOUBLE, false, -1, BigInteger.ONE.shiftLeft(Format.DOUBLE.sigBits));
-
   private MyFloat sqrtImpl() {
-    // Get the exponent and the significand of the argument
     long exponent = Math.max(value.exponent, format.minExp());
     BigInteger significand = value.significand;
 
-    // Normalize the argument
-    int shift = (format.sigBits + 1) - significand.bitLength();
-    if (shift > 0) {
-      significand = significand.shiftLeft(shift);
-      exponent -= shift;
-    }
-
-    // Convert the significand from float to double
-    // All intermediate results have to be calculated in double precision to avoid rounding errors
-    significand = significand.shiftLeft(Format.DOUBLE.sigBits - format.sigBits);
-
     // Range reduction:
     // sqrt(f * 2^2m) = sqrt(f)*2^m
-    MyFloat f = new MyFloat(Format.DOUBLE, value.sign, exponent % 2, significand);
+    MyFloat f = new MyFloat(format, value.sign, exponent % 2, significand);
+
+    // Define constants
+    // TODO: These constants should be declared only once for each supported precision
+    MyFloat c2 = constant(format, 2);
+    MyFloat c3 = constant(format, 3);
+    MyFloat c1d2 = one(format).divide_(c2);
+    MyFloat c3d2 = c3.divide_(c2);
 
     // Initial value (0.5 will always converge)
-    MyFloat x = const0_5;
+    MyFloat x = c1d2;
 
     boolean done = false;
     List<MyFloat> partial = new ArrayList<>();
@@ -850,7 +848,7 @@ public class MyFloat {
       partial.add(x);
 
       // x_n+1 = x_n * (3/2 - 1/2 * f * x_n^2)
-      x = x.multiply(const1_5.subtract(const0_5.multiply(f).multiply(x.squared())));
+      x = x.multiply(c3d2.subtract(c1d2.multiply(f).multiply(x.squared())));
 
       // Abort once we have enough precision
       done = partial.contains(x);
@@ -860,11 +858,15 @@ public class MyFloat {
     x = x.multiply(f);
 
     // Restore the exponent by multiplying with 2^m. Then convert the result back to float.
-    MyFloat r = one(Format.DOUBLE).withExponent(exponent / 2);
-    return x.multiply(r).withPrecision(format);
+    MyFloat r = one(format).withExponent(exponent / 2);
+    return x.multiply(r);
   }
 
   public MyFloat exp() {
+    return withPrecision(format.extended()).exp_().withPrecision(format);
+  }
+
+  private MyFloat exp_() {
     if (isNan()) {
       return nan(format);
     }
@@ -880,18 +882,18 @@ public class MyFloat {
     for (int k = 1; k < 100; k++) {
       // Calculate 1/k! and store the values in the table
       next = next.multiply(constant(pFormat, BigInteger.valueOf(k)));
-      builder.put(k, one(pFormat).divide(next));
+      builder.put(k, one(pFormat).divide_(next));
     }
     return builder.buildOrThrow();
   }
 
   // Table contains terms 1/k! for 1..100
-  private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.DOUBLE);
+  private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.Float128);
 
   private MyFloat expImpl() {
-    MyFloat x = this.withPrecision(Format.DOUBLE);
-    MyFloat y = one(Format.DOUBLE); // During the iteration we set y=x^k
-    MyFloat r = one(Format.DOUBLE); // Series expansion after k terms
+    MyFloat x = this;
+    MyFloat y = one(format); // During the iteration we set y=x^k
+    MyFloat r = one(format); // Series expansion after k terms
 
     // Range reduction:
     // e^(a * 2^x) = e^(a * 2 * 2^x-1) = e^(a*2^x-1 + a*2^x-1) = (e^(a*2^x-1))^2 = ... = (e^a)^(2^x)
@@ -907,7 +909,7 @@ public class MyFloat {
 
       // r(n+1) = r(n) + x^k/k!
       y = y.multiply(x);
-      r = r.add(y.multiply(expTable.get(k)));
+      r = r.add(y.multiply(expTable.get(k).withPrecision(format)));
 
       // Abort once we have enough precision
       done = partial.contains(r);
@@ -918,10 +920,14 @@ public class MyFloat {
     for (int i = 0; i < value.exponent; i++) {
       r = r.squared();
     }
-    return r.withPrecision(format);
+    return r;
   }
 
   public MyFloat ln() {
+    return withPrecision(format.extended()).ln_().withPrecision(format);
+  }
+
+  private MyFloat ln_() {
     if (isZero()) {
       return negativeInfinity(format);
     }
@@ -938,15 +944,22 @@ public class MyFloat {
   }
 
   private MyFloat lnImpl() {
-    MyFloat x = this.withPrecision(Format.DOUBLE);
+    // TODO: These constants should be declared only once for each supported precision
+    MyFloat c2 = constant(format, 2);
+    MyFloat c3 = constant(format, 3);
+
+    MyFloat c1d2 = one(format).divide_(c2);
+    MyFloat c3d2 = c3.divide_(c2);
+
+    MyFloat x = this;
     int preprocess = 0;
-    while (x.greaterThan(const1_5) || const0_5.greaterThan(x)) {
-      x = x.sqrt();
+    while (x.greaterThan(c3d2) || c1d2.greaterThan(x)) {
+      x = x.sqrt_();
       preprocess++;
     }
 
     // Initial value: first term of taylor series for ln
-    MyFloat r = x.subtract(one(Format.DOUBLE));
+    MyFloat r = x.subtract(one(format));
 
     boolean done = false;
     List<MyFloat> partial = new ArrayList<>();
@@ -957,15 +970,21 @@ public class MyFloat {
       MyFloat exp_y = r.exp();
       MyFloat t1 = x.subtract(exp_y);
       MyFloat t2 = x.add(exp_y);
-      r = r.add(constant(Format.DOUBLE, 2).multiply(t1.divide(t2)));
+      r = r.add(constant(format, 2).multiply(t1.divide_(t2)));
 
       // Abort once we have enough precision
       done = partial.contains(r);
     }
-    return r.withExponent(r.value.exponent + preprocess).withPrecision(format);
+    return r.withExponent(r.value.exponent + preprocess);
   }
 
   public MyFloat pow(MyFloat exponent) {
+    MyFloat a = withPrecision(format.extended());
+    MyFloat x = exponent.withPrecision(format.extended());
+    return a.pow_(x).withPrecision(format);
+  }
+
+  private MyFloat pow_(MyFloat exponent) {
     // Handle special cases
     // See https://en.cppreference.com/w/c/numeric/math/pow for the full definition
 
@@ -1039,12 +1058,11 @@ public class MyFloat {
   }
 
   private MyFloat powImpl(MyFloat exponent) {
-    MyFloat a = this.withPrecision(Format.DOUBLE);
-    MyFloat x = exponent.withPrecision(Format.DOUBLE);
+    MyFloat a = this;
+    MyFloat x = exponent;
 
     // a^x = e^(x * ln a)
-    MyFloat r = x.multiply(a.ln()).exp();
-    return r.withPrecision(format);
+    return x.multiply(a.ln()).exp();
   }
 
   public enum RoundingMode {
@@ -1207,7 +1225,7 @@ public class MyFloat {
   }
 
   public float toFloat() {
-    Preconditions.checkState(format.equals(Format.FLOAT));
+    Preconditions.checkState(format.equals(Format.Float32));
     if (isNan()) {
       return Float.NaN;
     }
@@ -1219,7 +1237,7 @@ public class MyFloat {
   }
 
   public double toDouble() {
-    Preconditions.checkState(format.equals(Format.DOUBLE));
+    Preconditions.checkState(format.equals(Format.Float64));
     if (isNan()) {
       return Double.NaN;
     }
@@ -1241,6 +1259,6 @@ public class MyFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    return String.format("%.6e", format.equals(Format.FLOAT) ? toFloat() : toDouble());
+    return String.format("%.6e", format.equals(Format.Float32) ? toFloat() : toDouble());
   }
 }
