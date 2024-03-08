@@ -1259,6 +1259,7 @@ public class MyFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    return String.format("%.6e", format.equals(Format.Float32) ? toFloat() : toDouble());
+    // TODO: Return more digits if the bitwidth allows it
+    return String.format("%.6e", withPrecision(Format.Float64).toDouble());
   }
 }
