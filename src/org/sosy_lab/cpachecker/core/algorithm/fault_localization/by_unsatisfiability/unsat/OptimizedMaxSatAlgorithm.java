@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import java.util.Collection;
 import java.util.Comparator;
@@ -89,8 +90,7 @@ public class OptimizedMaxSatAlgorithm
         // -> softCopy without complement is MSS
         Fault foundMSSFault = new Fault();
         softCopy.removeAll(complement);
-        foundMSSFault.addAll(
-            transformedImmutableListCopy(softCopy, atom -> (FaultContribution) atom));
+        foundMSSFault.addAll(Collections2.transform(softCopy, atom -> (FaultContribution) atom));
 
         if (foundMSSFault.isEmpty() && !foundMSS.isEmpty()) {
           break;
