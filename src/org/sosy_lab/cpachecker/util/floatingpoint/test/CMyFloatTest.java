@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Test;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
+import org.sosy_lab.cpachecker.util.floatingpoint.JDouble;
 import org.sosy_lab.cpachecker.util.floatingpoint.JFloat;
 
 public class CMyFloatTest extends CFloatUnitTest {
@@ -56,6 +59,38 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = myfloat.sqrt();
     CFloat r2 = jfloat.sqrt();
     assertEqual(r1, r2);
+  }
+
+  @Test
+  public void powBugTest() {
+    String val1 = "3.4028235E38";
+    String val2 = "0.5";
+
+    CFloat myfloat1 = toTestedImpl(val1, 0);
+    CFloat myfloat2 = toTestedImpl(val2, 0);
+
+    CFloat jfloat1 = toReferenceImpl(val1, 0);
+    CFloat jfloat2 = toReferenceImpl(val2, 0);
+
+    CFloat r1 = myfloat1.powTo(myfloat2);
+    CFloat r2 = jfloat1.powTo(jfloat2);
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void hardExp1Test() {
+    // Example of a "hard to round" input for the exponential function
+    // Taken from "Handbook of Floating-Point Arithmetic", chapter 12
+    String val = "7.5417527749959590085206221024712557043923055744016892276704E-10";
+
+    CFloat myfloat = toTestedImpl(val, 1);
+    CFloat jfloat = new JDouble(val, 1);
+
+    CFloat r1 = myfloat.exp();
+    CFloat r2 = jfloat.exp();
+
+    assertThat(printValue(r1.toDouble())).isEqualTo(printValue(r2.toDouble()));
   }
 
   @Test

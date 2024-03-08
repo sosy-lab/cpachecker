@@ -1039,10 +1039,6 @@ public class MyFloat {
   }
 
   private MyFloat powImpl(MyFloat exponent) {
-    // FIXME: Testcase powTo(3.4028235E38, 0.5):
-    //  expected: 0 10111110 11111111111111111111111 [1.8446743E19]
-    //  but was : 0 10111111 00000000000000000000000 [1.8446744E19]
-
     MyFloat a = this.withPrecision(Format.DOUBLE);
     MyFloat x = exponent.withPrecision(Format.DOUBLE);
 
