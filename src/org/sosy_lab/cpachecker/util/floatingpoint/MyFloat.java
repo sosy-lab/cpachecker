@@ -767,16 +767,15 @@ public class MyFloat {
     return Math.log(number) / Math.log(2);
   }
 
+  // TODO: Calculate these constants only once for each floating point precision
+  private static final MyFloat c48 = constant(Format.Float128, 48);
+  private static final MyFloat c32 = constant(Format.Float128, 32);
+  private static final MyFloat c17 = constant(Format.Float128, 17);
+
+  private static final MyFloat c48d17 = c48.divideImpl(c17);
+  private static final MyFloat c32d17 = c32.divideImpl(c17);
+
   private MyFloat divideNewton(MyFloat number) {
-    // TODO: Calculate these constants only once for each floating point precision
-    MyFloat c48 = constant(format, BigInteger.valueOf(48));
-    MyFloat c32 = constant(format, BigInteger.valueOf(32));
-    MyFloat c17 = constant(format, BigInteger.valueOf(17));
-    MyFloat c2 = constant(format, BigInteger.valueOf(2));
-
-    MyFloat c48d17 = c48.divideImpl(c17);
-    MyFloat c32d17 = c32.divideImpl(c17);
-
     // Extract exponents and significand bits
     int exponent1 = (int) Math.max(value.exponent, format.minExp());
     int exponent2 = (int) Math.max(number.value.exponent, format.minExp());
@@ -793,10 +792,14 @@ public class MyFloat {
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
 
     // Set the initial value to 48/32 - 32/17*D
-    MyFloat x = c48d17.subtract(c32d17.multiply(d));
+    MyFloat t1 = c48d17.withPrecision(format);
+    MyFloat t2 = c32d17.withPrecision(format);
+
+    MyFloat x = t1.subtract(t2.multiply(d));
+
     for (int i = 0; i < bound; i++) {
       // X(i+1) = X(i)*(2 - D*X(i))
-      x = x.multiply(c2.subtract(d.multiply(x)));
+      x = x.multiply(constant(format, 2).subtract(d.multiply(x)));
     }
 
     // Multiply 1/D with N and round down to single precision
@@ -834,10 +837,9 @@ public class MyFloat {
 
     // Define constants
     // TODO: These constants should be declared only once for each supported precision
-    MyFloat c2 = constant(format, 2);
-    MyFloat c3 = constant(format, 3);
-    MyFloat c1d2 = one(format).divide_(c2);
-    MyFloat c3d2 = c3.divide_(c2);
+    MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
+    MyFloat c3d2 =
+        new MyFloat(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
 
     // Initial value (0.5 will always converge)
     MyFloat x = c1d2;
@@ -945,11 +947,9 @@ public class MyFloat {
 
   private MyFloat lnImpl() {
     // TODO: These constants should be declared only once for each supported precision
-    MyFloat c2 = constant(format, 2);
-    MyFloat c3 = constant(format, 3);
-
-    MyFloat c1d2 = one(format).divide_(c2);
-    MyFloat c3d2 = c3.divide_(c2);
+    MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
+    MyFloat c3d2 =
+        new MyFloat(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
 
     MyFloat x = this;
     int preprocess = 0;
