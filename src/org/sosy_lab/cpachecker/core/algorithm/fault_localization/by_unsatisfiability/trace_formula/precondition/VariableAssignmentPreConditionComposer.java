@@ -159,8 +159,13 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
       prover.push(context.getManager().makeFormulaForPath(pCounterexample).getFormula());
 
       if (prover.isUnsat()) {
-        throw new InvalidCounterexampleException(
-            "Precondition cannot be computed since counterexample is not feasible.");
+        if (!previousPreconditions.isEmpty()) {
+          throw new IllegalStateException(
+              "All preconditions have already been enumerated.");
+        } else {
+          throw new InvalidCounterexampleException(
+              "Precondition cannot be computed since counterexample is not feasible.");
+        }
       }
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);

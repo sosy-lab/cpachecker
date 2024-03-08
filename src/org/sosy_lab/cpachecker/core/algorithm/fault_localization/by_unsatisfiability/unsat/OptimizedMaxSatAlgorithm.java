@@ -195,10 +195,11 @@ public class OptimizedMaxSatAlgorithm
     } while (changed);
     return selectors;
   }
+  
 
-  private boolean isSupersetOfFoundMSS(Fault setToCheck, Set<Fault> foundMSS) {
+  private boolean isSupersetOfFoundMSS(Fault potentialSupersetFault, Set<Fault> foundMSS) {
     for (Fault mss : foundMSS) {
-      if (setToCheck.containsAll(mss)) {
+      if (potentialSupersetFault.containsAll(mss)) {
         return true;
       }
     }
