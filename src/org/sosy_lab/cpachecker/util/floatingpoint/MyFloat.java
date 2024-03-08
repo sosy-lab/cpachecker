@@ -240,6 +240,9 @@ public class MyFloat {
 
   // Convert the value to a different precision (uses round to nearest, ties to even for now)
   public MyFloat withPrecision(Format targetFormat) {
+    if (format.equals(targetFormat)) {
+      return this;
+    }
     if (isNan()) {
       return nan(targetFormat);
     }
