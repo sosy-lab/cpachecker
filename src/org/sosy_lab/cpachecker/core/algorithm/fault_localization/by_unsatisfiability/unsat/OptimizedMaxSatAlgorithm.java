@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import java.util.Collection;
 import java.util.Comparator;
@@ -88,9 +90,9 @@ public class OptimizedMaxSatAlgorithm
         Fault foundMSSFault = new Fault();
         softCopy.removeAll(complement);
         foundMSSFault.addAll(
-            FluentIterable.from(softCopy).transform(atom -> (FaultContribution) atom).toList());
+            transformedImmutableListCopy(softCopy, atom -> (FaultContribution) atom));
 
-        if (foundMSSFault.size() == 0 && foundMSS.size() > 0) {
+        if (foundMSSFault.isEmpty() && !foundMSS.isEmpty()) {
           break;
         }
 
@@ -165,7 +167,7 @@ public class OptimizedMaxSatAlgorithm
               FluentIterable.from(copy)
                   .toSortedList(Comparator.comparingInt(f -> ((TraceAtom) f).getIndex()));
           List<CFAEdge> newTraceAtomsCFA =
-              FluentIterable.from(newTraceAtoms).transform(a -> a.correspondingEdge()).toList();
+              transformedImmutableListCopy(newTraceAtoms, a -> a.correspondingEdge());
           Trace newTrace =
               Trace.fromCounterexample(
                   newTraceAtomsCFA, pContext, new TraceFormulaOptions(pContext.getConfiguration()));
