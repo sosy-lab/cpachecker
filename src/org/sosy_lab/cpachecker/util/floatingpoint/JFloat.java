@@ -122,7 +122,7 @@ public class JFloat extends CFloat {
 
   @Override
   public CFloat powTo(CFloat exponent) {
-    if ((isOne() && !isNegative()) || isOne() && exponent.isInfinity()) {
+    if ((isOne() && !isNegative()) || (isOne() && exponent.isInfinity())) {
       return new JFloat(1.0f);
     }
     return new JFloat((float) Math.pow(value, toFloat(exponent.getWrapper())));
