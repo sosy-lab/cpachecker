@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
@@ -114,6 +115,7 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 public class SMGState
     implements ImmutableForgetfulState<SMGInformation>,
         LatticeAbstractState<SMGState>,
+        Partitionable,
         AbstractQueryableState,
         Graphable {
 
@@ -850,7 +852,7 @@ public class SMGState
    * SMGObject} with the size specified in bits. Make sure that you reuse the {@link SMGObject}
    * right away to create a points-to-edge and not just use SMGObjects in the code.
    *
-   * @param pTypeSizeInBits Size of the type of the new global variable.
+   * @param pTypeSizeInBits Size of the type of the new memory.
    * @return Newly created object + state with it.
    */
   public SMGObjectAndSMGState copyAndAddNewHeapObject(BigInteger pTypeSizeInBits) {
@@ -4898,6 +4900,11 @@ public class SMGState
 
   public SMGCPAStatistics getStatistics() {
     return statistics;
+  }
+
+  @Override
+  public @Nullable Object getPartitionKey() {
+    return getMemoryModel().getSmg().getNumberOfAbstractedLists();
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find
