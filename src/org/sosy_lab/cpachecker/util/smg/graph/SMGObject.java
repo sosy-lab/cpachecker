@@ -12,6 +12,8 @@ import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
@@ -19,10 +21,10 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
   // Static 0 instance. Always present in the SMGs
-  private static final SMGObject NULL_OBJECT = new SMGObject(0, BigInteger.ZERO, BigInteger.ZERO);
+  private static final SMGObject NULL_OBJECT = new SMGObject(0, new NumericValue(BigInteger.ZERO), BigInteger.ZERO);
 
   private int nestingLevel;
-  private final BigInteger size;
+  private final Value size;
   private final BigInteger offset;
   // ID needed for comparable implementation.
   private final int id;
@@ -32,7 +34,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   // For statically named objects, e.g. stack variables
   private final Optional<String> name;
 
-  protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
+  protected SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
@@ -41,7 +43,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     name = Optional.empty();
   }
 
-  private SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset, String objectName) {
+  private SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset, String objectName) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
@@ -50,7 +52,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     name = Optional.ofNullable(objectName);
   }
 
-  protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset, int pId) {
+  protected SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset, int pId) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
@@ -61,7 +63,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   protected SMGObject(
       int pNestingLevel,
-      BigInteger pSize,
+      Value pSize,
       BigInteger pOffset,
       int pId,
       boolean pIsConstBinaryString,
@@ -79,12 +81,12 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return NULL_OBJECT;
   }
 
-  public static SMGObject of(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
+  public static SMGObject of(int pNestingLevel, Value pSize, BigInteger pOffset) {
     return new SMGObject(pNestingLevel, pSize, pOffset);
   }
 
   public static SMGObject of(
-      int pNestingLevel, BigInteger pSize, BigInteger pOffset, String objectName) {
+      int pNestingLevel, Value pSize, BigInteger pOffset, String objectName) {
     return new SMGObject(pNestingLevel, pSize, pOffset, objectName);
   }
 
@@ -110,7 +112,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return isConstBinaryString;
   }
 
-  public BigInteger getSize() {
+  public Value getSize() {
     return size;
   }
 
