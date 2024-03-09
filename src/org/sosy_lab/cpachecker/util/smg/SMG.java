@@ -397,6 +397,16 @@ public class SMG {
         sizeOfPointer);
   }
 
+  public int getNumberOfAbstractedLists() {
+    int num = 0;
+    for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
+      if (obj.getValue() && obj.getKey() instanceof SMGSinglyLinkedListSegment) {
+        num++;
+      }
+    }
+    return num;
+  }
+
   public int getNumberOfValueUsages(SMGValue value) {
     PersistentMap<SMGObject, Integer> sourceObjectsMap =
         valuesToRegionsTheyAreSavedIn.getOrDefault(value, PathCopyingPersistentTreeMap.of());
