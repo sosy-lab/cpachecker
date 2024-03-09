@@ -3340,7 +3340,9 @@ public class SMGCPAValueVisitorTest {
       currentState = currentState.copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
     }
 
-    currentState = currentState.copyAndAddLocalVariable(sizeInBits, variableName, null);
+    currentState =
+        currentState.copyAndAddLocalVariable(
+            new NumericValue(BigInteger.valueOf(sizeInBits)), variableName, null);
 
     visitor =
         new SMGCPAValueVisitor(
@@ -3391,7 +3393,8 @@ public class SMGCPAValueVisitorTest {
       throws InvalidConfigurationException {
     SymbolicProgramConfiguration spc = currentState.getMemoryModel();
 
-    SMGObject smgHeapObject = SMGObject.of(0, BigInteger.valueOf(size), BigInteger.valueOf(0));
+    SMGObject smgHeapObject =
+        SMGObject.of(0, new NumericValue(BigInteger.valueOf(size)), BigInteger.valueOf(0));
     spc = spc.copyAndAddHeapObject(smgHeapObject);
 
     // Mapping to the smg points to edge

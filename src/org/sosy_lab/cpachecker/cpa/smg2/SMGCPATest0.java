@@ -51,6 +51,8 @@ public class SMGCPATest0 {
   // Pointer size for the machine model in bits
   protected BigInteger pointerSizeInBits;
 
+  protected Value numericPointerSizeInBits;
+
   protected LogManagerWithoutDuplicates logger;
   protected SMGState currentState;
   protected SMGCPAMaterializer materializer;
@@ -60,6 +62,9 @@ public class SMGCPATest0 {
 
   protected BigInteger sllSize;
   protected BigInteger dllSize;
+
+  protected Value sllSizeValue;
+  protected Value dllSizeValue;
 
   protected BigInteger hfo = BigInteger.ZERO;
   protected BigInteger nfo;
@@ -81,6 +86,8 @@ public class SMGCPATest0 {
     // We expect the sizes of SLL/DLL to be hfo + nfo ( + pfo)
     sllSize = pointerSizeInBits.multiply(BigInteger.TWO);
     dllSize = pointerSizeInBits.multiply(BigInteger.valueOf(3));
+    dllSizeValue = new NumericValue(dllSize);
+    sllSizeValue = new NumericValue(sllSize);
     // Per default we expect the nfo after the hfo and the pfo after that
     nfo = hfo.add(pointerSizeInBits);
     pfo = nfo.add(pointerSizeInBits);
@@ -97,6 +104,7 @@ public class SMGCPATest0 {
             smgOptions,
             makeTestSolver());
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+    numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
   }
 
   // Resets state and visitor to an empty state
@@ -177,7 +185,7 @@ public class SMGCPATest0 {
             currentState.writeValueWithChecks(
                 listSegment,
                 new NumericValue(BigInteger.valueOf(j).multiply(BigInteger.valueOf(32))),
-                pointerSizeInBits,
+                new NumericValue(pointerSizeInBits),
                 new NumericValue(j),
                 null,
                 dummyCDAEdge);
@@ -190,7 +198,7 @@ public class SMGCPATest0 {
             currentState.writeValueWithChecks(
                 listSegment,
                 new NumericValue(nfo),
-                pointerSizeInBits,
+                numericPointerSizeInBits,
                 nextPointer,
                 null,
                 dummyCDAEdge);
@@ -203,7 +211,7 @@ public class SMGCPATest0 {
             currentState.writeValueWithChecks(
                 prevObject,
                 new NumericValue(nfo),
-                pointerSizeInBits,
+                numericPointerSizeInBits,
                 pointerAndState.getValue(),
                 null,
                 dummyCDAEdge);
@@ -224,7 +232,7 @@ public class SMGCPATest0 {
             currentState.writeValueWithChecks(
                 listSegment,
                 new NumericValue(pfo),
-                pointerSizeInBits,
+                numericPointerSizeInBits,
                 prevPointer,
                 null,
                 dummyCDAEdge);
@@ -241,12 +249,12 @@ public class SMGCPATest0 {
         }
         currentState =
             currentState.copyAndAddLocalVariable(
-                pointerSizeInBits.intValue(), i == 0 ? "first" : "last", null);
+                numericPointerSizeInBits, i == 0 ? "first" : "last", null);
         currentState =
             currentState.writeToStackOrGlobalVariable(
                 i == 0 ? "first" : "last",
                 new NumericValue(BigInteger.ZERO),
-                pointerSizeInBits,
+                new NumericValue(pointerSizeInBits),
                 pointerAndState.getValue(),
                 null,
                 dummyCDAEdge);
@@ -257,13 +265,12 @@ public class SMGCPATest0 {
         pointerArray[1] = pointerAndState.getValue();
         currentState = pointerAndState.getState();
         // Save all pointers in objects to not confuse the internal SMG assertions
-        currentState =
-            currentState.copyAndAddLocalVariable(pointerSizeInBits.intValue(), "last", null);
+        currentState = currentState.copyAndAddLocalVariable(numericPointerSizeInBits, "last", null);
         currentState =
             currentState.writeToStackOrGlobalVariable(
                 "last",
                 new NumericValue(BigInteger.ZERO),
-                pointerSizeInBits,
+                numericPointerSizeInBits,
                 pointerAndState.getValue(),
                 null,
                 dummyCDAEdge);
@@ -306,7 +313,7 @@ public class SMGCPATest0 {
             currentState.writeValueWithChecks(
                 listSegment,
                 new NumericValue(BigInteger.valueOf(j).multiply(BigInteger.valueOf(32))),
-                pointerSizeInBits,
+                numericPointerSizeInBits,
                 new NumericValue(valueStart + j),
                 null,
                 dummyCDAEdge);
@@ -319,7 +326,7 @@ public class SMGCPATest0 {
             currentState.writeValueWithChecks(
                 listSegment,
                 new NumericValue(nfo),
-                pointerSizeInBits,
+                numericPointerSizeInBits,
                 nextPointer,
                 null,
                 dummyCDAEdge);
@@ -332,7 +339,7 @@ public class SMGCPATest0 {
             currentState.writeValueWithChecks(
                 prevObject,
                 new NumericValue(nfo),
-                pointerSizeInBits,
+                numericPointerSizeInBits,
                 pointerAndState.getValue(),
                 null,
                 dummyCDAEdge);
@@ -353,7 +360,7 @@ public class SMGCPATest0 {
             currentState.writeValueWithChecks(
                 listSegment,
                 new NumericValue(pfo),
-                pointerSizeInBits,
+                numericPointerSizeInBits,
                 prevPointer,
                 null,
                 dummyCDAEdge);
@@ -368,14 +375,15 @@ public class SMGCPATest0 {
     }
     // Save all pointers in objects to not confuse the internal SMG assertions
     for (Value pointer : pointerArray) {
-      SMGObjectAndSMGState stackObjAndState = currentState.copyAndAddStackObject(pointerSizeInBits);
+      SMGObjectAndSMGState stackObjAndState =
+          currentState.copyAndAddStackObject(numericPointerSizeInBits);
       currentState = stackObjAndState.getState();
       SMGObject dummyStackObject = stackObjAndState.getSMGObject();
       currentState =
           currentState.writeValueWithChecks(
               dummyStackObject,
               new NumericValue(BigInteger.ZERO),
-              pointerSizeInBits,
+              numericPointerSizeInBits,
               pointer,
               null,
               dummyCDAEdge);
@@ -455,10 +463,10 @@ public class SMGCPATest0 {
    */
   @SuppressWarnings("NarrowCalculation")
   protected SMGObject buildFilledArray(int arraySize, Value[] valuesInOrder, int sizeOfElements)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     int objectSize = arraySize * sizeOfElements * valuesInOrder.length;
     SMGObjectAndSMGState arrayAndState =
-        currentState.copyAndAddStackObject(BigInteger.valueOf(objectSize));
+        currentState.copyAndAddStackObject(new NumericValue(BigInteger.valueOf(objectSize)));
     currentState = arrayAndState.getState();
     SMGObject array = arrayAndState.getSMGObject();
 
@@ -467,7 +475,7 @@ public class SMGCPATest0 {
           currentState.writeValueWithChecks(
               array,
               new NumericValue(BigInteger.valueOf(i).multiply(BigInteger.valueOf(sizeOfElements))),
-              BigInteger.valueOf(sizeOfElements),
+              new NumericValue(BigInteger.valueOf(sizeOfElements)),
               valuesInOrder[i],
               null,
               dummyCDAEdge);

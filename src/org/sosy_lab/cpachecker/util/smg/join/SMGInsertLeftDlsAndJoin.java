@@ -69,7 +69,12 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
             dlls1,
             edge ->
                 nextFieldOffset.equals(edge.getOffset())
-                    && dlls1.getSize().equals(edge.getSizeInBits()));
+                    && dlls1.getSize().isNumericValue()
+                    && dlls1
+                        .getSize()
+                        .asNumericValue()
+                        .bigIntegerValue()
+                        .equals(edge.getSizeInBits()));
 
     SMGValue nextValue = edgeToNextSmgValue.orElseThrow().hasValue();
 
@@ -146,7 +151,8 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     }
     // step 11 & 12
     SMGHasValueEdge resultHasValueEdge =
-        new SMGHasValueEdge(value, nextFieldOffset, dlls1.getSize());
+        new SMGHasValueEdge(
+            value, nextFieldOffset, dlls1.getSize().asNumericValue().bigIntegerValue());
     destSMG = destSMG.copyAndAddHVEdge(resultHasValueEdge, freshCopyDLLS1);
   }
 

@@ -26,7 +26,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
 
   public SMGSinglyLinkedListSegment(
       int pNestingLevel,
-      BigInteger pSize,
+      Value pSize,
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,
@@ -40,7 +40,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
 
   public SMGSinglyLinkedListSegment(
       int pNestingLevel,
-      BigInteger pSize,
+      Value pSize,
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,

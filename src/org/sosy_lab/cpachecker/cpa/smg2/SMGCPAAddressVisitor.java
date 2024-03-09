@@ -110,7 +110,8 @@ public class SMGCPAAddressVisitor
     String globalVarName = evaluator.getCStringLiteralExpressionVairableName(e);
     SMGState currentState = state;
     if (!currentState.isGlobalVariablePresent(globalVarName)) {
-      BigInteger sizeOfString = evaluator.getBitSizeof(currentState, e.getExpressionType());
+      Value sizeOfString =
+          new NumericValue(evaluator.getBitSizeof(currentState, e.getExpressionType()));
       currentState =
           currentState.copyAndAddGlobalVariable(sizeOfString, globalVarName, e.getExpressionType());
       List<SMGState> statesWithString =

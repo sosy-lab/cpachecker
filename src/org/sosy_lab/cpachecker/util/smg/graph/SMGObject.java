@@ -21,9 +21,10 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
   // Static 0 instance. Always present in the SMGs
-  private static final SMGObject NULL_OBJECT = new SMGObject(0, new NumericValue(BigInteger.ZERO), BigInteger.ZERO);
+  private static final SMGObject NULL_OBJECT =
+      new SMGObject(0, new NumericValue(BigInteger.ZERO), BigInteger.ZERO);
 
-  private int nestingLevel;
+  private final int nestingLevel;
   private final Value size;
   private final BigInteger offset;
   // ID needed for comparable implementation.
@@ -49,7 +50,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     offset = pOffset;
     id = U_ID_GENERATOR.getFreshId();
     isConstBinaryString = false;
-    name = Optional.ofNullable(objectName);
+    name = Optional.of(objectName);
   }
 
   protected SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset, int pId) {
@@ -85,6 +86,10 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return new SMGObject(pNestingLevel, pSize, pOffset);
   }
 
+  public static SMGObject of(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
+    return new SMGObject(pNestingLevel, new NumericValue(pSize), pOffset);
+  }
+
   public static SMGObject of(
       int pNestingLevel, Value pSize, BigInteger pOffset, String objectName) {
     return new SMGObject(pNestingLevel, pSize, pOffset, objectName);
@@ -99,6 +104,17 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   public static SMGObject of(SMGObject objectToCopy) {
     Preconditions.checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
     return new SMGObject(objectToCopy.nestingLevel, objectToCopy.size, objectToCopy.offset);
+  }
+
+  /**
+   * Compares the sizes of the 2 {@link SMGObject}s either by concrete size or identity. Does NOT
+   * check if symbolic values may be equal besides being the identical value.
+   *
+   * @param object2 another {@link SMGObject}
+   * @return true if the sizes are concrete and equal or identical symbolic expressions.
+   */
+  public boolean isSizeEqual(SMGObject object2) {
+    return size.equals(object2.getSize());
   }
 
   /**
@@ -142,10 +158,14 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   @Override
   public String toString() {
+    String sizeToPrint = size.toString();
+    if (size.isNumericValue()) {
+      sizeToPrint = size.asNumericValue().bigIntegerValue().toString();
+    }
     if (name.isEmpty()) {
-      return "SMGObject" + id + "[" + offset + ", " + size + ")";
+      return "SMGObject" + id + "[" + offset + ", " + sizeToPrint + ")";
     } else {
-      return name.orElseThrow() + "[" + offset + ", " + size + ")";
+      return name.orElseThrow() + "[" + offset + ", " + sizeToPrint + ")";
     }
   }
 

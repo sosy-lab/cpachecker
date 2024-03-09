@@ -604,7 +604,7 @@ public class SMGCPAMaterializer {
         pState.copyAndAddNewHeapObject(pListSeg.getSize());
     SMGState currentState = newConcreteRegionAndState.getState();
     SMGObject newConcreteRegion = newConcreteRegionAndState.getSMGObject();
-    assert !newConcreteRegion.getSize().equals(BigInteger.ZERO);
+
     // Add all values. next/prev pointer is wrong here, depending on left/right sided
     // materialization! We write this later in the materialization.
     // If one of those is a pointer, we copy the pointer and memory structure
@@ -705,7 +705,7 @@ public class SMGCPAMaterializer {
           SMGObjectAndSMGState copiedTargetMemoryAndState =
               currentState.copyAndAddNewHeapObject(oldTargetMemory);
           SMGObject newTarget = copiedTargetMemoryAndState.getSMGObject();
-          assert !newTarget.getSize().equals(BigInteger.ZERO);
+
           currentState = copiedTargetMemoryAndState.getState();
           // Now copy all values and copy all memory for pointers again recursively
           // TODO: this is UNSOUND! It ignores ptr specifier and connections!
@@ -865,7 +865,7 @@ public class SMGCPAMaterializer {
       // segment, without being one, i.e. the nfo does not point back to the start object.
       SMGObject maybeStart = prevPointer.orElseThrow().pointsTo();
       if (state.getMemoryModel().isObjectValid(maybeStart)
-          && maybeStart.getSize().compareTo(start.getSize()) == 0
+          && maybeStart.isSizeEqual(start)
           && !start.equals(maybeStart)) {
         SMGValueAndSMGState nextPointerAndStateOfPrev =
             state.readSMGValue(maybeStart, nfo, pointerSize);
@@ -939,7 +939,7 @@ public class SMGCPAMaterializer {
     // Note: there might be objects before that one! Or the prev object might look like a list
     // segment, without being one, i.e. the nfo does not point back to the start object.
     while (state.getMemoryModel().isObjectValid(prevObj)
-        && prevObj.getSize().compareTo(currentObj.getSize()) == 0
+        && prevObj.isSizeEqual(currentObj)
         && !currentObj.equals(prevObj)
         && !listOfObjectsVisited.contains(currentObj)) {
       SMGValueAndSMGState nextOfPrevPointerAndState = state.readSMGValue(prevObj, nfo, pointerSize);

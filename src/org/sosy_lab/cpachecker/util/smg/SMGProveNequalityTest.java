@@ -50,8 +50,8 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
   @Test
   public void pointerValuesThatShareTargetValuesAreNotInEqual() {
-    SMGDoublyLinkedListSegment dlls1 = createDLLS(64, 0, 32, 32, "dlls1");
-    SMGDoublyLinkedListSegment dlls2 = createDLLS(64, 0, 32, 32, "dlls2");
+    SMGDoublyLinkedListSegment dlls1 = createDLLS(64, 0, 32, 32);
+    SMGDoublyLinkedListSegment dlls2 = createDLLS(64, 0, 32, 32);
     SMGPointsToEdge pt1 = createPTEdge(0, SMGTargetSpecifier.IS_FIRST_POINTER, dlls1);
     SMGPointsToEdge pt2 = createPTEdge(0, SMGTargetSpecifier.IS_FIRST_POINTER, dlls2);
 
@@ -74,8 +74,8 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
   @Test
   public void pointerValuesThatHaveSharedObjectsAreNotInEqual() {
-    SMGDoublyLinkedListSegment dlls1 = createDLLS(64, 0, 32, 32, "dlls1");
-    SMGDoublyLinkedListSegment dlls2 = createDLLS(64, 0, 32, 32, "dlls2");
+    SMGDoublyLinkedListSegment dlls1 = createDLLS(64, 0, 32, 32);
+    SMGDoublyLinkedListSegment dlls2 = createDLLS(64, 0, 32, 32);
     SMGPointsToEdge pt1 = createPTEdge(0, SMGTargetSpecifier.IS_FIRST_POINTER, dlls1);
     SMGPointsToEdge pt2 = createPTEdge(0, SMGTargetSpecifier.IS_FIRST_POINTER, dlls2);
 
@@ -88,7 +88,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
     smg = smg.copyAndAddHVEdge(hasValueEdge1, dlls1);
     smg = smg.copyAndAddHVEdge(hasValueEdge2, dlls2);
 
-    SMGDoublyLinkedListSegment dlls3 = createDLLS(64, 0, 32, 0, "dlls3");
+    SMGDoublyLinkedListSegment dlls3 = createDLLS(64, 0, 32, 0);
 
     SMGPointsToEdge pt4 = createPTEdge(0, SMGTargetSpecifier.IS_LAST_POINTER, dlls3);
     SMGPointsToEdge pt5 = createPTEdge(32, SMGTargetSpecifier.IS_FIRST_POINTER, dlls3);

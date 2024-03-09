@@ -633,7 +633,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
           currentState.writeValueWithChecks(
               ithObj,
               new NumericValue(BigInteger.ZERO),
-              pointerSizeInBits,
+              new NumericValue(pointerSizeInBits),
               new NumericValue(-1),
               null,
               dummyCDAEdge);

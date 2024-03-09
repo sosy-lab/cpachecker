@@ -309,7 +309,8 @@ public class SymbolicProgramConfiguration {
    */
   private PersistentMap<SMGObject, BigInteger> calculateNewNumericAddressMapForNewSMGObject(
       SMGObject newObject) {
-    if (memoryAddressAssumptionsMap.containsKey(newObject)) {
+    if (memoryAddressAssumptionsMap.containsKey(newObject)
+        || !newObject.getSize().isNumericValue()) {
       return memoryAddressAssumptionsMap;
     }
     // Add buffer
@@ -317,7 +318,8 @@ public class SymbolicProgramConfiguration {
     PersistentMap<SMGObject, BigInteger> newMap =
         memoryAddressAssumptionsMap.putAndCopy(newObject, currentMemoryAssumptionMax);
     currentMemoryAssumptionMax =
-        currentMemoryAssumptionMax.add(newObject.getSize().divide(BigInteger.valueOf(8)));
+        currentMemoryAssumptionMax.add(
+            newObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.valueOf(8)));
     return newMap;
   }
 
@@ -1548,8 +1550,8 @@ public class SymbolicProgramConfiguration {
     return map;
   }
 
-  public Map<String, BigInteger> getSizeObMemoryForSPCWithoutHeap() {
-    Map<String, BigInteger> variableNameToMemorySizeInBits = new HashMap<>();
+  public Map<String, Value> getSizeObMemoryForSPCWithoutHeap() {
+    Map<String, Value> variableNameToMemorySizeInBits = new HashMap<>();
     for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {
       String qualifiedName = globalEntry.getKey();
       SMGObject memory = globalEntry.getValue();

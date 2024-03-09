@@ -52,7 +52,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   /** the variable assignment of the interpolant */
   private final @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments;
 
-  private final @Nullable Map<String, BigInteger> variableNameToMemorySizeInBits;
+  private final @Nullable Map<String, Value> variableNameToMemorySizeInBits;
 
   private final @Nullable Map<String, CType> variableToTypeMap;
 
@@ -115,7 +115,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
-      Map<String, BigInteger> pVariableNameToMemorySizeInBits,
+      Map<String, Value> pVariableNameToMemorySizeInBits,
       Map<String, CType> pVariableToTypeMap,
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackFrameDeclarations,
       CFunctionDeclaration pCfaEntryFunDecl,
@@ -151,7 +151,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
-      Map<String, BigInteger> pVariableNameToMemorySizeInBits,
+      Map<String, Value> pVariableNameToMemorySizeInBits,
       Map<String, CType> pVariableToTypeMap,
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackFrameDeclarations,
       CFunctionDeclaration pCfaEntryFunDecl,
@@ -409,6 +409,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         return SMGState.of(machineModel, logger, options, evaluator, statistics)
             .reconstructStackFrames(stackFrameDeclarations);
       } catch (SMGSolverException e) {
+        throw new RuntimeException(e);
+      } catch (SMGException e) {
         throw new RuntimeException(e);
       }
       /*.reconstructSMGStateFromNonHeapAssignments(

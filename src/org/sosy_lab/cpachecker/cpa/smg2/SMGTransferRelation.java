@@ -337,7 +337,7 @@ public class SMGTransferRelation
                   offsetSource,
                   returnMemory,
                   BigInteger.ZERO,
-                  returnMemory.getSize().subtract(offsetSource)));
+                  SMGCPAExpressionEvaluator.subtractValues(returnMemory.getSize(), offsetSource)));
 
         } else {
           ValueAndSMGState valueAndStateToWrite =
@@ -728,7 +728,7 @@ public class SMGTransferRelation
       }
 
       BigInteger offsetSource;
-      BigInteger sizeOfNewVariable;
+      Value sizeOfNewVariable;
       SMGObject memorySource;
       if (paramValue instanceof AddressExpression addrParamValue) {
         // The SymbolicIdentifier might be wrapped in an AddressExpression,
@@ -753,7 +753,8 @@ public class SMGTransferRelation
         }
         offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
         memorySource = derefedPointerOffsetAndState.get(0).getSMGObject();
-        sizeOfNewVariable = memorySource.getSize().subtract(offsetSource);
+        sizeOfNewVariable =
+            SMGCPAExpressionEvaluator.subtractValues(memorySource.getSize(), offsetSource);
 
       } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
         // Local struct to local struct copy
@@ -774,7 +775,8 @@ public class SMGTransferRelation
 
         offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
         memorySource = maybeKnownMemory.orElseThrow();
-        sizeOfNewVariable = memorySource.getSize().subtract(offsetSource);
+        sizeOfNewVariable =
+            SMGCPAExpressionEvaluator.subtractValues(memorySource.getSize(), offsetSource);
       } else {
         throw new SMGException(
             "Unexpected argument evaluation for struct argument in function call: " + callEdge);
@@ -790,7 +792,7 @@ public class SMGTransferRelation
           offsetSource,
           newMemory,
           BigInteger.ZERO,
-          newMemory.getSize().subtract(offsetSource));
+          SMGCPAExpressionEvaluator.subtractValues(newMemory.getSize(), offsetSource));
     } else {
 
       return evaluator.writeValueToNewVariableBasedOnTypes(
@@ -1046,7 +1048,8 @@ public class SMGTransferRelation
           // Init main parameters if there are any
           for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
             CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
-            BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, paramType);
+            Value paramSizeInBits =
+                new NumericValue(evaluator.getBitSizeof(currentState, paramType));
             if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
               currentState =
                   currentState.copyAndAddLocalVariable(
@@ -1216,7 +1219,8 @@ public class SMGTransferRelation
         for (ValueAndSMGState addressAndState :
             evaluator.createAddress(rValue, currentState, cfaEdge)) {
 
-          BigInteger sizeOfTypeLeft = evaluator.getBitSizeof(currentState, leftHandSideType);
+          Value sizeOfTypeLeft =
+              new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
           Value addressToAssign = addressAndState.getValue();
           currentState = addressAndState.getState();
 
@@ -1270,7 +1274,7 @@ public class SMGTransferRelation
     SMGState currentState = pCurrentState;
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
-    BigInteger sizeInBits = evaluator.getBitSizeof(currentState, leftHandSideType);
+    Value sizeInBits = new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
 
     if (valueToWrite instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
@@ -1364,7 +1368,12 @@ public class SMGTransferRelation
           valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
-            sizeInBits.compareTo(evaluator.getBitSizeof(currentState, leftHandSideType)) == 0);
+            sizeInBits.isNumericValue()
+                && sizeInBits
+                        .asNumericValue()
+                        .bigIntegerValue()
+                        .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
+                    == 0);
 
         return currentState.writeValueWithChecks(
             addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);

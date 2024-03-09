@@ -600,9 +600,9 @@ public class SMGState
   private SMGState assignReturnValue(
       MemoryLocation memLoc,
       ValueAndValueSize valueAndSize,
-      Map<String, BigInteger> variableNameToMemorySizeInBits,
+      Map<String, Value> variableNameToMemorySizeInBits,
       Map<String, CType> variableTypeMap)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     SMGState currentState = this;
     SMGObject obj = getReturnObjectForMemoryLocation(memLoc);
     BigInteger offsetToWriteToInBits = BigInteger.valueOf(memLoc.getOffset());
@@ -620,7 +620,7 @@ public class SMGState
     return currentState.writeValueWithChecks(
         obj,
         new NumericValue(offsetToWriteToInBits),
-        sizeOfWriteInBits,
+        new NumericValue(sizeOfWriteInBits),
         valueToWrite,
         typeOfUnknown,
         null);
@@ -653,7 +653,7 @@ public class SMGState
   public SMGState assignNonHeapConstant(
       MemoryLocation memLoc,
       ValueAndValueSize valueAndSize,
-      Map<String, BigInteger> variableNameToMemorySizeInBits,
+      Map<String, Value> variableNameToMemorySizeInBits,
       Map<String, CType> variableTypeMap)
       throws SMGException, SMGSolverException {
 
@@ -669,7 +669,7 @@ public class SMGState
     String qualifiedName = memLoc.getQualifiedName();
     if (!isLocalOrGlobalVariablePresent(memLoc)) {
       // Create the variable first
-      BigInteger sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
+      Value sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
       if (memLoc.isOnFunctionStack()) {
         // Add depending on function stack!
         currentState =
@@ -700,12 +700,16 @@ public class SMGState
     // TODO: use variableTypeMap and deconstruct struct and array types to the correct ones
     // This is only needed for floats nested in these types btw.
     return currentState.writeToAnyStackOrGlobalVariable(
-        qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
+        qualifiedName,
+        offsetToWriteToInBits,
+        new NumericValue(sizeOfWriteInBits),
+        valueToWrite,
+        typeOfUnknown);
   }
 
   public SMGState reconstructStackFrames(
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     SMGState currentState = this;
     // the given stack is reversed! We can
     Iterator<StackFrame> existingFrames = currentState.memoryModel.getStackFrames().iterator();
@@ -781,7 +785,7 @@ public class SMGState
    */
   public SMGState reconstructSMGStateFromNonHeapAssignments(
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
-      @Nullable Map<String, BigInteger> variableNameToMemorySizeInBits,
+      @Nullable Map<String, Value> variableNameToMemorySizeInBits,
       @Nullable Map<String, CType> variableTypeMap,
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
       throws SMGException, SMGSolverException {
@@ -827,7 +831,8 @@ public class SMGState
    */
   public SMGState copyAndAddGlobalVariable(int pTypeSizeInBits, String pVarName, CType type) {
     // TODO: do we really need this for ints?
-    return copyAndAddGlobalVariable(BigInteger.valueOf(pTypeSizeInBits), pVarName, type);
+    return copyAndAddGlobalVariable(
+        new NumericValue(BigInteger.valueOf(pTypeSizeInBits)), pVarName, type);
   }
 
   /**
@@ -838,8 +843,7 @@ public class SMGState
    * @param pVarName Name of the global variable.
    * @return Newly created {@link SMGState} with the object added for the name specified.
    */
-  public SMGState copyAndAddGlobalVariable(
-      BigInteger pTypeSizeInBits, String pVarName, CType type) {
+  public SMGState copyAndAddGlobalVariable(Value pTypeSizeInBits, String pVarName, CType type) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO, pVarName);
     if (pVarName.endsWith("_STRING_LITERAL")) {
       newObject = newObject.copyAsConstStringInBinary();
@@ -855,7 +859,7 @@ public class SMGState
    * @param pTypeSizeInBits Size of the type of the new memory.
    * @return Newly created object + state with it.
    */
-  public SMGObjectAndSMGState copyAndAddNewHeapObject(BigInteger pTypeSizeInBits) {
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(Value pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
@@ -915,7 +919,7 @@ public class SMGState
    * @param pTypeSizeInBits Size of the type of the new global variable.
    * @return Newly created object + state with it.
    */
-  public SMGObjectAndSMGState copyAndAddStackObject(BigInteger pTypeSizeInBits) {
+  public SMGObjectAndSMGState copyAndAddStackObject(Value pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject)));
@@ -982,29 +986,6 @@ public class SMGState
   }
 
   /**
-   * Copy SMGState with a newly created object with the size given and put it into the current stack
-   * frame. If there is no stack frame this throws an exception!
-   *
-   * <p>Keeps consistency: yes
-   *
-   * @param pTypeSize Size of the type the new local variable in bits.
-   * @param pVarName Name of the local variable
-   * @return {@link SMGState} with the new variables searchable by the name given.
-   * @throws SMGException thrown if the stack frame is empty.
-   */
-  public SMGState copyAndAddLocalVariable(int pTypeSize, String pVarName, CType type)
-      throws SMGException {
-    if (memoryModel.getStackFrames().isEmpty()) {
-      throw new SMGException(
-          "Can't add a variable named "
-              + pVarName
-              + " to the memory model because there is no stack frame.");
-    }
-    SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO, pVarName);
-    return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject, pVarName, type));
-  }
-
-  /**
    * Add a local variable based on an existing SMGObject. I.e. a local array.
    *
    * @param object the existing memory
@@ -1035,7 +1016,7 @@ public class SMGState
    * @return {@link SMGState} with the new variables searchable by the name given.
    * @throws SMGException thrown if the stack frame is empty.
    */
-  public SMGState copyAndAddLocalVariable(BigInteger pTypeSize, String pVarName, CType type)
+  public SMGState copyAndAddLocalVariable(Value pTypeSize, String pVarName, CType type)
       throws SMGException {
     return copyAndAddLocalVariable(pTypeSize, pVarName, type, false);
   }
@@ -1053,8 +1034,7 @@ public class SMGState
    * @throws SMGException thrown if the stack frame is empty.
    */
   public SMGState copyAndAddLocalVariable(
-      BigInteger pTypeSize, String pVarName, CType type, boolean exceptionOnRead)
-      throws SMGException {
+      Value pTypeSize, String pVarName, CType type, boolean exceptionOnRead) throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
       throw new SMGException(
           "Can't add a variable named "
@@ -1067,7 +1047,7 @@ public class SMGState
   }
 
   private SMGState copyAndAddLocalVariableToSpecificStackframe(
-      String functionNameForStackFrame, BigInteger pTypeSize, String pVarName, CType type)
+      String functionNameForStackFrame, Value pTypeSize, String pVarName, CType type)
       throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
       throw new SMGException(
@@ -1478,6 +1458,8 @@ public class SMGState
         return false;
       }
 
+      Value thisObjSize = thisObj.getSize();
+      Value otherObjSize = otherObj.getSize();
       Value thisDerefOffset = thisDerefObjAndOffset.getOffsetForObject();
       Value otherDerefOffset = otherDerefObjAndOffset.getOffsetForObject();
       if (!thisDerefOffset.equals(otherDerefOffset)) {
@@ -1487,7 +1469,7 @@ public class SMGState
           .getPointerSpecifier(thisAddress)
           .equals(otherState.memoryModel.getPointerSpecifier(otherAddress))) {
         return false;
-      } else if (!(thisObj.getSize().compareTo(otherObj.getSize()) == 0
+      } else if (!(thisObjSize.equals(otherObjSize)
           && thisObj.getNestingLevel() == otherObj.getNestingLevel()
           && thisObj.getOffset().compareTo(otherObj.getOffset()) == 0)) {
         return false;
@@ -2217,11 +2199,7 @@ public class SMGState
    * @return A new SMGState with the error info.
    */
   public SMGState withOutOfRangeWrite(
-      SMGObject objectWrittenTo,
-      BigInteger writeOffset,
-      BigInteger writeSize,
-      Value pValue,
-      CFAEdge edge) {
+      SMGObject objectWrittenTo, Value writeOffset, Value writeSize, Value pValue, CFAEdge edge) {
 
     if (getMemoryModel().isHeapObject(objectWrittenTo)) {
       // Invalid deref
@@ -2230,9 +2208,17 @@ public class SMGState
 
     int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
     String errorMSG =
-        String.format(
-            "Try writing value %s with size %d at offset %d bit to object sized %d bit in line %d.",
-            pValue, writeSize, writeOffset, objectWrittenTo.getSize(), lineInOrigin);
+        "Try writing value "
+            + pValue
+            + " with size "
+            + writeSize
+            + " at offset "
+            + writeOffset
+            + " bit to object sized "
+            + objectWrittenTo.getSize()
+            + " bit in line "
+            + lineInOrigin
+            + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
@@ -2261,17 +2247,21 @@ public class SMGState
       CFAEdge edge) {
 
     if (writeOffset.isNumericValue()) {
-      return withOutOfRangeWrite(
-          objectWrittenTo, writeOffset.asNumericValue().bigIntegerValue(), writeSize, pValue, edge);
+      return withOutOfRangeWrite(objectWrittenTo, writeOffset, writeSize, pValue, edge);
     }
 
     // TODO: get model for offset
     int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
     String errorMSG =
-        String.format(
-            "Try writing value %s with size %d at unknown possible offset bit to object sized %d"
-                + " bit in line %d.",
-            pValue, writeSize, objectWrittenTo.getSize(), lineInOrigin);
+        "Try writing value "
+            + pValue
+            + " with size "
+            + writeSize
+            + " at unknown possible offset bit to object sized "
+            + objectWrittenTo.getSize()
+            + " bit in line "
+            + lineInOrigin
+            + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
@@ -2306,16 +2296,29 @@ public class SMGState
    * the range of the {@link SMGObject}. Returns an updated state with the error in it.
    *
    * @param objectRead the {@link SMGObject} that should have been read.
-   * @param readOffset The offset in bits as {@link BigInteger} where you want to read.
+   * @param readOffset The offset in bits as {@link Value} where you want to read. Might be
+   *     symbolic!
    * @param readSize the size of the type in bits to read as {@link BigInteger}.
    * @return A new SMGState with the error info.
    */
-  public SMGState withOutOfRangeRead(
-      SMGObject objectRead, BigInteger readOffset, BigInteger readSize) {
+  public SMGState withOutOfRangeRead(SMGObject objectRead, Value readOffset, Value readSize) {
+    // TODO: extract model for readOffset and print here
+    if (readOffset.isNumericValue() && readSize.isNumericValue()) {
+      return withOutOfRangeRead(
+          objectRead,
+          readOffset.asNumericValue().bigIntegerValue(),
+          readSize.asNumericValue().bigIntegerValue());
+    }
     String errorMSG =
-        String.format(
-            "Try reading object %s with size %d bits at offset %d bit with read type size %d bit",
-            objectRead, objectRead.getSize(), readOffset, readSize);
+        "Try reading object "
+            + objectRead
+            + " with size "
+            + objectRead.getSize()
+            + " bits at offset "
+            + readOffset
+            + " bit with read type size "
+            + readSize
+            + " bit";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
@@ -2326,22 +2329,49 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  /**
-   * Copy and update this {@link SMGState} with an error resulting from trying to read outside of
-   * the range of the {@link SMGObject}. Returns an updated state with the error in it.
-   *
-   * @param objectRead the {@link SMGObject} that should have been read.
-   * @param readOffset The offset in bits as {@link Value} where you want to read. Might be
-   *     symbolic!
-   * @param readSize the size of the type in bits to read as {@link BigInteger}.
-   * @return A new SMGState with the error info.
-   */
+  public SMGState withOutOfRangeRead(
+      SMGObject objectRead, BigInteger readOffset, BigInteger readSize) {
+    // TODO: extract model for readOffset and print here
+    String sizeToPrint = objectRead.getSize().toString();
+    if (objectRead.getSize().isNumericValue()) {
+      sizeToPrint = objectRead.getSize().asNumericValue().bigIntegerValue().toString();
+    }
+    String errorMSG =
+        "Try reading object "
+            + objectRead
+            + " with size "
+            + sizeToPrint
+            + " bits at offset "
+            + readOffset
+            + " bit with read type size "
+            + readSize
+            + " bit";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectRead));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
   public SMGState withOutOfRangeRead(SMGObject objectRead, Value readOffset, BigInteger readSize) {
     // TODO: extract model for readOffset and print here
+    if (readOffset.isNumericValue()) {
+      return withOutOfRangeRead(
+          objectRead, readOffset.asNumericValue().bigIntegerValue(), readSize);
+    }
     String errorMSG =
-        String.format(
-            "Try reading object %s with size %d bits at offset %s bit with read type size %d bit",
-            objectRead, objectRead.getSize(), readOffset, readSize);
+        "Try reading object "
+            + objectRead
+            + " with size "
+            + objectRead.getSize()
+            + " bits at offset "
+            + readOffset
+            + " bit with read type size "
+            + readSize
+            + " bit";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
@@ -3178,11 +3208,11 @@ public class SMGState
   public SMGState writeValueWithChecks(
       SMGObject object,
       Value writeOffsetInBits,
-      BigInteger sizeInBits,
+      Value sizeInBits,
       Value valueToWrite,
       CType valueType,
       @Nullable CFAEdge edge)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     if (object.isZero()) {
       // Write to 0
       return withInvalidWriteToZeroObject(object);
@@ -3204,14 +3234,22 @@ public class SMGState
     }
 
     BigInteger numericOffsetInBits = null;
-    if (writeOffsetInBits.isNumericValue()) {
+    Value objSize = object.getSize();
+    if (writeOffsetInBits.isNumericValue()
+        && objSize.isNumericValue()
+        && sizeInBits.isNumericValue()) {
       numericOffsetInBits = writeOffsetInBits.asNumericValue().bigIntegerValue();
       // Check that the target can hold the value
       if (object.getOffset().compareTo(numericOffsetInBits) > 0
-          || object.getSize().compareTo(sizeInBits.add(numericOffsetInBits)) < 0) {
+          || object
+                  .getSize()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .compareTo(sizeInBits.asNumericValue().bigIntegerValue().add(numericOffsetInBits))
+              < 0) {
         // Out of range write
         // If object part if heap -> invalid deref
-        return withOutOfRangeWrite(object, numericOffsetInBits, sizeInBits, valueToWrite, edge);
+        return withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite, edge);
       }
 
     } else if (options.trackErrorPredicates()) {
@@ -3221,11 +3259,7 @@ public class SMGState
               currentState, machineModel, logger, options, evaluator, edge);
       final Collection<Constraint> newConstraints =
           constraintFactory.checkValidMemoryAccess(
-              writeOffsetInBits,
-              new NumericValue(sizeInBits),
-              new NumericValue(object.getSize()),
-              CNumericTypes.INT,
-              currentState);
+              writeOffsetInBits, sizeInBits, object.getSize(), CNumericTypes.INT, currentState);
 
       String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
 
@@ -3252,14 +3286,30 @@ public class SMGState
       // Either the error is now in the state, or there is no error, but we can't write as we don't
       // know the offset
       return currentState;
+    } else {
+      if (!writeOffsetInBits.isNumericValue()) {
+        // offset symbolic in value analysis, overapproximate
+        return currentState.withUnknownOffsetMemoryAccess();
+
+      } else if (!objSize.isNumericValue() || !sizeInBits.isNumericValue()) {
+        // obj size symbolic in value analysis, overapproximate
+        // or sizeInBits symbolic
+        return currentState.withOutOfRangeRead(object, writeOffsetInBits, sizeInBits);
+      }
+    }
+    if (!sizeInBits.isNumericValue()) {
+      // sizeInBits symbolic, can't write, invalidate the whole obj starting from the numeric offset
+      throw new SMGException("Symbolic memory write size found that could not be handled.");
     }
 
     Preconditions.checkArgument(!(valueToWrite instanceof AddressExpression));
     Preconditions.checkNotNull(numericOffsetInBits);
+    Preconditions.checkArgument(sizeInBits.isNumericValue());
     SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
     SMGValue smgValue = valueAndState.getSMGValue();
     currentState = valueAndState.getSMGState();
-    return currentState.writeValueWithoutChecks(object, numericOffsetInBits, sizeInBits, smgValue);
+    return currentState.writeValueWithoutChecks(
+        object, numericOffsetInBits, sizeInBits.asNumericValue().bigIntegerValue(), smgValue);
   }
 
   /*
@@ -3291,28 +3341,29 @@ public class SMGState
    */
   public SMGState writeToReturn(
       BigInteger sizeInBits, Value valueToWrite, CType returnValueType, CFAEdge edge)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     SMGObject returnObject = getMemoryModel().getReturnObjectForCurrentStackFrame().orElseThrow();
     if (valueToWrite.isUnknown()) {
       valueToWrite = getNewSymbolicValueForType(returnValueType);
     }
     // Check that the target can hold the value
     if (returnObject.getOffset().compareTo(BigInteger.ZERO) > 0
-        || returnObject.getSize().compareTo(sizeInBits) < 0) {
+        || returnObject.getSize().asNumericValue().bigIntegerValue().compareTo(sizeInBits) < 0) {
       // Out of range write
-      return withOutOfRangeWrite(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, edge);
+      return withOutOfRangeWrite(
+          returnObject, new NumericValue(BigInteger.ZERO), sizeInBits, valueToWrite, edge);
     }
     return writeValueWithChecks(
         returnObject,
         new NumericValue(BigInteger.ZERO),
-        sizeInBits,
+        new NumericValue(sizeInBits),
         valueToWrite,
         returnValueType,
         edge);
   }
 
   /** Writes the value exactly to the size of the return of the current stack frame. */
-  private SMGState writeToReturn(Value valueToWrite) throws SMGSolverException {
+  private SMGState writeToReturn(Value valueToWrite) throws SMGSolverException, SMGException {
     SMGObject returnObject = memoryModel.getReturnObjectForCurrentStackFrame().orElseThrow();
     return writeValueWithChecks(
         returnObject,
@@ -3345,7 +3396,7 @@ public class SMGState
   public List<SMGState> writeValueTo(
       Value addressToMemory,
       BigInteger writeOffsetInBits,
-      BigInteger sizeInBits,
+      Value sizeInBits,
       Value valueToWrite,
       CType valueType,
       CFAEdge edge)
@@ -3445,26 +3496,45 @@ public class SMGState
       Value targetStartOffset,
       Value copySize)
       throws SMGException {
+    Value targetObjSize = targetObject.getSize();
+    Value sourceObjSize = sourceObject.getSize();
     if (sourceStartOffset.isNumericValue()
         && targetStartOffset.isNumericValue()
-        && copySize.isNumericValue()) {
+        && copySize.isNumericValue()
+        && targetObjSize.isNumericValue()
+        && sourceObjSize.isNumericValue()) {
       BigInteger copySizeInBits = copySize.asNumericValue().bigIntegerValue();
       BigInteger sourceOffset = sourceStartOffset.asNumericValue().bigIntegerValue();
       BigInteger targetOffset = targetStartOffset.asNumericValue().bigIntegerValue();
       // Check that we don't read beyond the source size and don't write beyonde the target size
       // and that we don't start before the object begins
-      if (sourceObject.getSize().subtract(sourceOffset).compareTo(copySizeInBits) < 0
+      if (sourceObjSize
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .subtract(sourceOffset)
+                  .compareTo(copySizeInBits)
+              < 0
           || sourceOffset.compareTo(BigInteger.ZERO) < 0) {
         // This would be an invalid read
         SMGState currentState = this.withInvalidRead(sourceObject);
-        if (targetObject.getSize().subtract(targetOffset).compareTo(copySizeInBits) < 0
+        if (targetObjSize
+                    .asNumericValue()
+                    .bigIntegerValue()
+                    .subtract(targetOffset)
+                    .compareTo(copySizeInBits)
+                < 0
             || targetOffset.compareTo(BigInteger.ZERO) < 0) {
           // That would be an invalid write
           currentState = currentState.withInvalidWrite(sourceObject);
         }
         return currentState;
       }
-      if (targetObject.getSize().subtract(targetOffset).compareTo(copySizeInBits) < 0
+      if (targetObjSize
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .subtract(targetOffset)
+                  .compareTo(copySizeInBits)
+              < 0
           || targetOffset.compareTo(BigInteger.ZERO) < 0) {
         // That would be an invalid write
         return this.withInvalidWrite(sourceObject);
@@ -3474,7 +3544,7 @@ public class SMGState
           sourceStartOffset.asNumericValue().bigIntegerValue(),
           targetObject,
           targetStartOffset.asNumericValue().bigIntegerValue(),
-          copySizeInBits);
+          copySize);
     }
     // Unknown/Symbolic offset Values, we need to check them using a SMT solver
     // TODO:
@@ -3508,9 +3578,14 @@ public class SMGState
       BigInteger sourceStartOffset,
       SMGObject targetObject,
       BigInteger targetStartOffset,
-      BigInteger copySizeInBits) {
+      Value copySizeInBits)
+      throws SMGException {
+    if (!copySizeInBits.isNumericValue()) {
+      throw new SMGException("Symbolic size of internal memory copy operation.");
+    }
     SMGState currentState = this;
-    BigInteger maxReadOffsetPlusSize = sourceStartOffset.add(copySizeInBits);
+    BigInteger maxReadOffsetPlusSize =
+        sourceStartOffset.add(copySizeInBits.asNumericValue().bigIntegerValue());
     // Removal of edges in the target is not necessary as the write deletes old overlapping edges
     // Get all source edges and copy them
     Set<SMGHasValueEdge> sourceContents = memoryModel.getSmg().getEdges(sourceObject);
@@ -3551,7 +3626,7 @@ public class SMGState
   public SMGState writeToStackOrGlobalVariable(
       String variableName,
       Value writeOffsetInBits,
-      BigInteger writeSizeInBits,
+      Value writeSizeInBits,
       Value valueToWrite,
       CType valueType,
       CFAEdge edge)
@@ -3573,10 +3648,10 @@ public class SMGState
   private SMGState writeToAnyStackOrGlobalVariable(
       String variableName,
       BigInteger writeOffsetInBits,
-      BigInteger writeSizeInBits,
+      Value writeSizeInBits,
       Value valueToWrite,
       @Nullable CType valueType)
-      throws SMGSolverException {
+      throws SMGSolverException, SMGException {
     // expected to never be empty!
     Optional<SMGObject> maybeVariableMemory = getMemoryModel().getObjectForVariable(variableName);
 
@@ -4516,8 +4591,17 @@ public class SMGState
       return Optional.empty();
     }
     SMGObject nextObject = memoryModel.getSmg().getPTEdge(value).orElseThrow().pointsTo();
-    if (!memoryModel.getSmg().isValid(nextObject)
-        || root.getSize().compareTo(nextObject.getSize()) != 0) {
+    Value rootSize = root.getSize();
+    Value nextSize = nextObject.getSize();
+    if (!rootSize.isNumericValue() || !nextSize.isNumericValue()) {
+      // TODO: handle with solver
+      throw new SMGException("Symbolic memory size in linked list abstraction can not be handled.");
+    } else if (!memoryModel.getSmg().isValid(nextObject)
+        || rootSize
+                .asNumericValue()
+                .bigIntegerValue()
+                .compareTo(nextSize.asNumericValue().bigIntegerValue())
+            != 0) {
       return Optional.empty();
     }
     // Same object size, same content expect for the pointers, its valid -> ok

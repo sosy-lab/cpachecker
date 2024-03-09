@@ -142,7 +142,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         if (isAssignable(leftHandSideAssignments)) {
 
           CType lType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-          BigInteger size = evaluator.getBitSizeof(currentState, lType);
+          Value size = new NumericValue(evaluator.getBitSizeof(currentState, lType));
           if (!SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp).equals(lType)) {
             // Cast first
             ValueAndSMGState newRightValueAndState = castCValue(rightValue, lType, currentState);
@@ -173,7 +173,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           if (isAssignable(rightHandSideAssignments)) {
 
             CType rType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-            BigInteger size = evaluator.getBitSizeof(currentState, rType);
+            Value size = new NumericValue(evaluator.getBitSizeof(currentState, rType));
 
             if (!SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp).equals(rType)) {
               // Cast first
@@ -230,7 +230,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           if (booleans.contains(leftMemLocName) || options.isInitAssumptionVars()) {
 
             CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-            BigInteger size = evaluator.getBitSizeof(currentState, type);
+            Value size = new NumericValue(evaluator.getBitSizeof(currentState, type));
             currentState =
                 currentState.writeValueWithChecks(
                     leftHandSideAssignment.getSMGObject(),
@@ -264,7 +264,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           if (isAssignable(rightHandSideAssignments)) {
 
             CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-            BigInteger size = evaluator.getBitSizeof(currentState, type);
+            Value size = new NumericValue(evaluator.getBitSizeof(currentState, type));
             currentState =
                 currentState.writeValueWithChecks(
                     rightHandSideAssignment.getSMGObject(),

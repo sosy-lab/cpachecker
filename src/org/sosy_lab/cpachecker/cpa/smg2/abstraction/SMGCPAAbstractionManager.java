@@ -131,7 +131,7 @@ public class SMGCPAAbstractionManager {
    * nesting, such that a nested list nested in a top list is index + 1 of the top list.
    */
   private List<Set<SMGCandidate>> orderListCandidatesByNestingAndListType(
-      ImmutableList<SMGCandidate> refinedCandidates) {
+      ImmutableList<SMGCandidate> refinedCandidates) throws SMGException {
 
     // After findCandidatesForDLLAndSLL we know who is an SLL and a DLL, we now traverse all
     // candidates and check that their
@@ -161,7 +161,7 @@ public class SMGCPAAbstractionManager {
    * are DLLs, else no changes are made to the candidates.
    */
   private Set<SMGCandidate> findCandidatesForDLLAndSLL(
-      ImmutableList<SMGCandidate> refinedCandidates) {
+      ImmutableList<SMGCandidate> refinedCandidates) throws SMGException {
 
     Set<SMGCandidate> noNestingCandidates = new HashSet<>();
     for (SMGCandidate candidate : refinedCandidates) {
@@ -385,7 +385,7 @@ public class SMGCPAAbstractionManager {
   }
 
   @VisibleForTesting
-  private Set<SMGCandidate> getLinkedCandidates() {
+  private Set<SMGCandidate> getLinkedCandidates() throws SMGException {
     SMG smg = state.getMemoryModel().getSmg();
     Set<SMGCandidate> candidates = new HashSet<>();
     Set<SMGObject> alreadyVisited = new HashSet<>();
@@ -415,7 +415,7 @@ public class SMGCPAAbstractionManager {
    * @return Optional.empty iff not a DLL. Suspected PFO else.
    */
   @VisibleForTesting
-  protected Optional<BigInteger> isDLL(SMGCandidate candidate, SMG smg) {
+  protected Optional<BigInteger> isDLL(SMGCandidate candidate, SMG smg) throws SMGException {
     BigInteger nfo = candidate.getSuspectedNfo();
     SMGObject root = candidate.getObject();
     // Go to the next element, search for a pointer back and conform this for the following
@@ -502,8 +502,16 @@ public class SMGCPAAbstractionManager {
     }
     SMGObject nextObject =
         pState.getMemoryModel().getSmg().getPTEdge(value).orElseThrow().pointsTo();
+    Value rootObjSize = root.getSize();
+    Value nextObjSize = nextObject.getSize();
+    if (!rootObjSize.isNumericValue() || !nextObjSize.isNumericValue()) {
+      throw new SMGException(
+          "Symbolic memory size in linked list abstraction not supported at the moment.");
+    }
+    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().bigIntegerValue();
+    BigInteger nextObjConcreteSize = nextObjSize.asNumericValue().bigIntegerValue();
     if (!pState.getMemoryModel().getSmg().isValid(nextObject)
-        || root.getSize().compareTo(nextObject.getSize()) != 0) {
+        || rootObjConcreteSize.compareTo(nextObjConcreteSize) != 0) {
       return Optional.empty();
     }
     // Same object size, same content expect for the pointers, its valid -> ok
@@ -518,7 +526,8 @@ public class SMGCPAAbstractionManager {
       BigInteger nfo,
       BigInteger pfo,
       int lengthToCheck,
-      Set<SMGObject> alreadyVisited) {
+      Set<SMGObject> alreadyVisited)
+      throws SMGException {
     if (lengthToCheck <= 0) {
       return Optional.of(pfo);
     }
@@ -559,7 +568,8 @@ public class SMGCPAAbstractionManager {
   }
 
   private Optional<BigInteger> findBackPointerOffsetForListObject(
-      SMGObject root, SMGObject previous, SMG smg, BigInteger nfo, int lengthToCheck) {
+      SMGObject root, SMGObject previous, SMG smg, BigInteger nfo, int lengthToCheck)
+      throws SMGException {
     Set<SMGObject> alreadyVisited = new HashSet<>();
     // pfo unknown, try to find it
 
@@ -614,7 +624,8 @@ public class SMGCPAAbstractionManager {
       SMGObject potentialRoot,
       SMG pInputSmg,
       Set<SMGObject> pAlreadyVisited,
-      Collection<SMGObject> heapObjects) {
+      Collection<SMGObject> heapObjects)
+      throws SMGException {
     Set<SMGObject> thisAlreadyVisited = new HashSet<>(pAlreadyVisited);
     if (thisAlreadyVisited.contains(potentialRoot) || !pInputSmg.isValid(potentialRoot)) {
       return Optional.empty();
@@ -667,7 +678,8 @@ public class SMGCPAAbstractionManager {
       SMGObject potentialFollowup,
       BigInteger nfoOfPrev,
       SMG pInputSmg,
-      Set<SMGObject> alreadyVisited) {
+      Set<SMGObject> alreadyVisited)
+      throws SMGException {
     alreadyVisited.add(potentialFollowup);
     ImmutableSet<SMGHasValueEdge> pointers =
         getPointersToSameSizeObjects(potentialFollowup, pInputSmg, alreadyVisited);
@@ -689,8 +701,13 @@ public class SMGCPAAbstractionManager {
    * yet been visited.
    */
   private ImmutableSet<SMGHasValueEdge> getPointersToSameSizeObjects(
-      SMGObject root, SMG pInputSmg, Set<SMGObject> alreadyVisited) {
-    BigInteger rootSize = root.getSize();
+      SMGObject root, SMG pInputSmg, Set<SMGObject> alreadyVisited) throws SMGException {
+    Value rootObjSize = root.getSize();
+    if (!rootObjSize.isNumericValue()) {
+      throw new SMGException(
+          "Symbolic memory size in linked list abstraction not supported at the moment.");
+    }
+    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().bigIntegerValue();
     ImmutableSet.Builder<SMGHasValueEdge> res = ImmutableSet.builder();
     for (SMGHasValueEdge hve : pInputSmg.getEdges(root)) {
       SMGValue value = hve.hasValue();
@@ -701,8 +718,18 @@ public class SMGCPAAbstractionManager {
         if (alreadyVisited.contains(reachedObject)) {
           continue;
         }
+        if (!reachedObject.getSize().isNumericValue()) {
+          throw new SMGException(
+              "Symbolic memory size in linked list abstraction not supported at the moment.");
+        }
         // If the followup is invalid or size does not match, next
-        if (!pInputSmg.isValid(reachedObject) || reachedObject.getSize().compareTo(rootSize) != 0) {
+        if (!pInputSmg.isValid(reachedObject)
+            || reachedObject
+                    .getSize()
+                    .asNumericValue()
+                    .bigIntegerValue()
+                    .compareTo(rootObjConcreteSize)
+                != 0) {
           continue;
         }
 
@@ -717,8 +744,14 @@ public class SMGCPAAbstractionManager {
   }
 
   private ImmutableSet<SMGHasValueEdge> getPointersToSameSizeObjectsWithoutOffset(
-      SMGObject root, SMG pInputSmg, Set<SMGObject> alreadyVisted, BigInteger offsetToAvoid) {
-    BigInteger rootSize = root.getSize();
+      SMGObject root, SMG pInputSmg, Set<SMGObject> alreadyVisted, BigInteger offsetToAvoid)
+      throws SMGException {
+    Value rootObjSize = root.getSize();
+    if (!rootObjSize.isNumericValue()) {
+      throw new SMGException(
+          "Symbolic memory size in linked list abstraction not supported at the moment.");
+    }
+    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().bigIntegerValue();
     ImmutableSet.Builder<SMGHasValueEdge> res = ImmutableSet.builder();
     for (SMGHasValueEdge hve : pInputSmg.getEdges(root)) {
       SMGValue value = hve.hasValue();
@@ -732,8 +765,18 @@ public class SMGCPAAbstractionManager {
         if (alreadyVisted.contains(reachedObject)) {
           continue;
         }
+        if (!reachedObject.getSize().isNumericValue()) {
+          throw new SMGException(
+              "Symbolic memory size in linked list abstraction not supported at the moment.");
+        }
         // If the followup is invalid or size does not match, next
-        if (!pInputSmg.isValid(reachedObject) || reachedObject.getSize().compareTo(rootSize) != 0) {
+        if (!pInputSmg.isValid(reachedObject)
+            || reachedObject
+                    .getSize()
+                    .asNumericValue()
+                    .bigIntegerValue()
+                    .compareTo(rootObjConcreteSize)
+                != 0) {
           continue;
         }
 

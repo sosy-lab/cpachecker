@@ -927,6 +927,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     nfo = BigInteger.ZERO;
     pfo = nfo.add(pointerSizeInBits);
     dllSize = pointerSizeInBits.multiply(BigInteger.TWO);
+    dllSizeValue = new NumericValue(dllSize);
     // We start with no data and add int size space each iteration for data, moving the nfo
     for (int i = 0; i < 3; i++) {
       resetSMGStateAndVisitor();
@@ -941,7 +942,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = pointerToLeftmostConcreteAndState.getState();
       Value pointerToLeftMostConcrete = pointerToLeftmostConcreteAndState.getValue();
       SMGDoublyLinkedListSegment newDLLSegment =
-          new SMGDoublyLinkedListSegment(0, dllSize, BigInteger.ZERO, hfo, nfo, pfo, 0);
+          new SMGDoublyLinkedListSegment(0, dllSizeValue, BigInteger.ZERO, hfo, nfo, pfo, 0);
       ValueAndSMGState pointerToLeftmostZeroPlusAndState =
           currentState.searchOrCreateAddress(
               newDLLSegment, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_LAST_POINTER);
@@ -991,6 +992,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       // Increase num of data and position of nfo
       nfo = nfo.add(pointerSizeInBits);
       dllSize = dllSize.add(pointerSizeInBits);
+      dllSizeValue = new NumericValue(dllSize);
       pfo = nfo.add(pointerSizeInBits);
     }
   }
@@ -1047,7 +1049,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       // This includes invalid objects (null obj is invalid)!
       if (currentState.getMemoryModel().isObjectValid(obj)) {
         numOfValidObjects++;
-        if (obj.getSize().equals(pointerSizeInBits)) {
+        if (obj.getSize().asNumericValue().bigIntegerValue().equals(pointerSizeInBits)) {
           // Stack objects for ptrs
           // TODO: this also created pointerSize lists during the test
           // assertThat(currentState.getMemoryModel().isObjectValid(obj)).isTrue();
@@ -1309,7 +1311,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(currentState.getMemoryModel().getSmg().getObjects()).hasSize(2 + TEST_LIST_LENGTH);
     int normalObjectCounter = 0;
     for (SMGObject object : currentState.getMemoryModel().getSmg().getObjects()) {
-      if (object.getSize().equals(pointerSizeInBits)) {
+      if (object.getSize().asNumericValue().bigIntegerValue().equals(pointerSizeInBits)) {
         assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isTrue();
       } else if (object.isZero()) {
         continue;
@@ -1869,14 +1871,14 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     BigInteger offset = BigInteger.ZERO;
 
     SMGDoublyLinkedListSegment currentAbstraction =
-        new SMGDoublyLinkedListSegment(0, dllSize, offset, hfo, nfo, pfo, TEST_LIST_LENGTH);
+        new SMGDoublyLinkedListSegment(0, dllSizeValue, offset, hfo, nfo, pfo, TEST_LIST_LENGTH);
 
     currentState = currentState.copyAndAddObjectToHeap(currentAbstraction);
     currentState =
         currentState.writeValueWithChecks(
             currentAbstraction,
             new NumericValue(hfo),
-            pointerSizeInBits,
+            numericPointerSizeInBits,
             new NumericValue(1),
             null,
             dummyCDAEdge);
@@ -1884,7 +1886,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         currentState.writeValueWithChecks(
             currentAbstraction,
             new NumericValue(nfo),
-            pointerSizeInBits,
+            numericPointerSizeInBits,
             new NumericValue(0),
             null,
             dummyCDAEdge);
@@ -1892,7 +1894,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         currentState.writeValueWithChecks(
             currentAbstraction,
             new NumericValue(pfo),
-            pointerSizeInBits,
+            numericPointerSizeInBits,
             new NumericValue(0),
             null,
             dummyCDAEdge);
@@ -1905,7 +1907,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // Save the pointer in a "stack" variable
     SMGValue pointerToFirst =
         currentState.getMemoryModel().getSMGValueFromValue(pointer).orElseThrow();
-    SMGObjectAndSMGState objAndState = currentState.copyAndAddStackObject(pointerSizeInBits);
+    SMGObjectAndSMGState objAndState = currentState.copyAndAddStackObject(numericPointerSizeInBits);
     currentState = objAndState.getState();
     SMGObject stackObj = objAndState.getSMGObject();
     currentState =
@@ -1942,7 +1944,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         Optional<SMGStateAndOptionalSMGObjectAndOffset> object =
             currentState.dereferencePointerWithoutMaterilization(currentPointer);
         assertThat(object).isPresent();
-        assertThat(object.orElseThrow().getSMGObject().getSize()).isEqualTo(dllSize);
+        assertThat(object.orElseThrow().getSMGObject().getSize().asNumericValue().bigIntegerValue())
+            .isEqualTo(dllSize);
 
         // get(0) takes the list that is not extending for 0+
         ValueAndSMGState nextPointer =
@@ -2031,14 +2034,14 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     BigInteger offset = BigInteger.ZERO;
 
     SMGSinglyLinkedListSegment currentAbstraction =
-        new SMGSinglyLinkedListSegment(0, sllSize, offset, hfo, nfo, TEST_LIST_LENGTH);
+        new SMGSinglyLinkedListSegment(0, sllSizeValue, offset, hfo, nfo, TEST_LIST_LENGTH);
 
     currentState = currentState.copyAndAddObjectToHeap(currentAbstraction);
     currentState =
         currentState.writeValueWithChecks(
             currentAbstraction,
             new NumericValue(hfo),
-            pointerSizeInBits,
+            numericPointerSizeInBits,
             new NumericValue(1),
             null,
             dummyCDAEdge);
@@ -2046,7 +2049,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         currentState.writeValueWithChecks(
             currentAbstraction,
             new NumericValue(nfo),
-            pointerSizeInBits,
+            numericPointerSizeInBits,
             new NumericValue(0),
             null,
             dummyCDAEdge);
@@ -2056,7 +2059,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         currentState.createAndAddPointer(
             pointer, currentAbstraction, BigInteger.ZERO, SMGTargetSpecifier.IS_FIRST_POINTER);
     // Save the pointer in a stack variable
-    SMGObjectAndSMGState objAndState = currentState.copyAndAddStackObject(sllSize);
+    SMGObjectAndSMGState objAndState = currentState.copyAndAddStackObject(sllSizeValue);
     currentState = objAndState.getState();
     SMGObject stackObj = objAndState.getSMGObject();
     currentState =
@@ -2099,7 +2102,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         Optional<SMGStateAndOptionalSMGObjectAndOffset> object =
             currentState.dereferencePointerWithoutMaterilization(currentPointer);
         assertThat(object).isPresent();
-        assertThat(object.orElseThrow().getSMGObject().getSize()).isEqualTo(sllSize);
+        assertThat(object.orElseThrow().getSMGObject().getSize().asNumericValue().bigIntegerValue())
+            .isEqualTo(sllSize);
 
         // get(0) takes the list that is not extending for 0+
         ValueAndSMGState nextPointer =
@@ -2177,38 +2181,40 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     NumericValue oneValue = new NumericValue(BigInteger.ONE);
     // Create a stack memory region for the head pointer
     SMGObjectAndSMGState stackObjForPointerAndState =
-        currentState.copyAndAddStackObject(pointerSizeInBits);
+        currentState.copyAndAddStackObject(numericPointerSizeInBits);
     SMGObject plist = stackObjForPointerAndState.getSMGObject();
     currentState = stackObjForPointerAndState.getState();
 
     // "malloc" a list segment and create head pointer and save in stack
-    SMGObjectAndSMGState initialListSegmentAndState = currentState.copyAndAddNewHeapObject(sllSize);
+    SMGObjectAndSMGState initialListSegmentAndState =
+        currentState.copyAndAddNewHeapObject(sllSizeValue);
     SMGObject initialListSegment = initialListSegmentAndState.getSMGObject();
     currentState = initialListSegmentAndState.getState();
     ValueAndSMGState ptrAndState = currentState.searchOrCreateAddress(initialListSegment, hfo);
     currentState = ptrAndState.getState();
     currentState =
         currentState.writeValueWithChecks(
-            plist, hfoValue, pointerSizeInBits, ptrAndState.getValue(), null, null);
+            plist, hfoValue, numericPointerSizeInBits, ptrAndState.getValue(), null, null);
 
     // write the "next" pointer to 0 for the list segment
     currentState =
         currentState.writeValueWithChecks(
-            initialListSegment, nfoValue, pointerSizeInBits, zeroValue, null, null);
+            initialListSegment, nfoValue, numericPointerSizeInBits, zeroValue, null, null);
 
     // Write some value in the payload (we write numeric 1)
     currentState =
         currentState.writeValueWithChecks(
-            initialListSegment, hfoValue, pointerSizeInBits, oneValue, null, null);
+            initialListSegment, hfoValue, numericPointerSizeInBits, oneValue, null, null);
 
-    stackObjForPointerAndState = currentState.copyAndAddStackObject(pointerSizeInBits);
+    stackObjForPointerAndState = currentState.copyAndAddStackObject(numericPointerSizeInBits);
     SMGObject newHeadOnStack = stackObjForPointerAndState.getSMGObject();
     currentState = stackObjForPointerAndState.getState();
 
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       // Now, in a loop, create/reuse a stack variable, create a new list segment,
       // create a pointer to it, save in stack variable
-      SMGObjectAndSMGState newListSegmentAndState = currentState.copyAndAddNewHeapObject(sllSize);
+      SMGObjectAndSMGState newListSegmentAndState =
+          currentState.copyAndAddNewHeapObject(sllSizeValue);
       SMGObject newListSegment = newListSegmentAndState.getSMGObject();
       currentState = newListSegmentAndState.getState();
       ValueAndSMGState newListPtrAndState =
@@ -2218,7 +2224,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           currentState.writeValueWithChecks(
               newHeadOnStack,
               hfoValue,
-              pointerSizeInBits,
+              numericPointerSizeInBits,
               newListPtrAndState.getValue(),
               null,
               null);
@@ -2245,7 +2251,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       currentState =
           currentState.writeValueWithChecks(
-              newListSegment, nfoValue, pointerSizeInBits, listHeadPtr, null, null);
+              newListSegment, nfoValue, numericPointerSizeInBits, listHeadPtr, null, null);
 
       // read data payload from now "next" list segment and save in new list segments data
       SMGObject derefedObj = derefOfListWOMat.orElseThrow().getSMGObject();
@@ -2280,7 +2286,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = valuesAndStates.get(0).getState();
       currentState =
           currentState.writeValueWithChecks(
-              newListSegment, hfoValue, pointerSizeInBits, payloadValue, null, null);
+              newListSegment, hfoValue, numericPointerSizeInBits, payloadValue, null, null);
 
       // Switch pointer of new segment to plist
       List<ValueAndSMGState> valuesAndStatesNewHead =
@@ -2291,7 +2297,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = valuesAndStatesNewHead.get(0).getState();
       currentState =
           currentState.writeValueWithChecks(
-              plist, zeroValue, pointerSizeInBits, newHeadPtr, null, null);
+              plist, zeroValue, numericPointerSizeInBits, newHeadPtr, null, null);
 
       // abstract
       SMGCPAAbstractionManager absFinder =
@@ -2366,7 +2372,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           sll = (SMGSinglyLinkedListSegment) object;
         } else {
           // The only valid non-SLL object is the stack variable
-          if (object.getSize().equals(BigInteger.valueOf(32))) {
+          if (object.getSize().asNumericValue().bigIntegerValue().equals(BigInteger.valueOf(32))) {
             assertThat(state.getMemoryModel().isObjectValid(object)).isTrue();
           } else {
             assertThat(state.getMemoryModel().isObjectValid(object)).isFalse();
@@ -2377,7 +2383,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       if (sll != null) {
         assertThat(sll.getMinLength()).isEqualTo(i);
         assertThat(sll.getNextOffset()).isEqualTo(nfo);
-        assertThat(sll.getSize()).isEqualTo(sllSize);
+        assertThat(sll.getSize().asNumericValue().bigIntegerValue()).isEqualTo(sllSize);
       }
     }
   }
@@ -2411,7 +2417,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           sll = (SMGSinglyLinkedListSegment) object;
         } else {
           // The only valid non-SLL object is the stack variable
-          if (object.getSize().equals(BigInteger.valueOf(32))) {
+          if (object.getSize().asNumericValue().bigIntegerValue().equals(BigInteger.valueOf(32))) {
             assertThat(state.getMemoryModel().isObjectValid(object)).isTrue();
           } else {
             assertThat(state.getMemoryModel().isObjectValid(object)).isFalse();
@@ -2420,7 +2426,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       }
       assertThat(sll.getMinLength()).isEqualTo(i);
       assertThat(sll.getNextOffset()).isEqualTo(nfo);
-      assertThat(sll.getSize()).isEqualTo(sllSize);
+      assertThat(sll.getSize().asNumericValue().bigIntegerValue()).isEqualTo(sllSize);
     }
   }
 
@@ -2451,7 +2457,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           assertThat(dll).isNull();
           dll = (SMGDoublyLinkedListSegment) object;
         } else {
-          if (object.getSize().equals(pointerSizeInBits)) {
+          if (object.getSize().asNumericValue().bigIntegerValue().equals(pointerSizeInBits)) {
             // Only the stack variable memory is valid (original pointer)
             assertThat(state.getMemoryModel().isObjectValid(object)).isTrue();
           } else {
@@ -2462,7 +2468,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       assertThat(dll.getMinLength()).isEqualTo(i);
       assertThat(dll.getNextOffset()).isEqualTo(nfo);
       assertThat(dll.getPrevOffset()).isEqualTo(pfo);
-      assertThat(dll.getSize()).isEqualTo(dllSize);
+      assertThat(dll.getSize().asNumericValue().bigIntegerValue()).isEqualTo(dllSize);
       assertThat(state.readSMGValue(dll, pfo, pointerSizeInBits).getSMGValue().isZero()).isTrue();
       assertThat(state.readSMGValue(dll, nfo, pointerSizeInBits).getSMGValue().isZero()).isTrue();
     }
@@ -2500,7 +2506,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               && state.getMemoryModel().isObjectValid(object)) {
             assertThat(dll).isNull();
             dll = (SMGDoublyLinkedListSegment) object;
-          } else if (object.getSize().equals(pointerSizeInBits)) {
+          } else if (object
+              .getSize()
+              .asNumericValue()
+              .bigIntegerValue()
+              .equals(pointerSizeInBits)) {
             assertThat(state.getMemoryModel().isObjectValid(object)).isTrue();
           } else {
             assertThat(state.getMemoryModel().isObjectValid(object)).isFalse();
@@ -2509,7 +2519,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(dll.getMinLength()).isEqualTo(i);
         assertThat(dll.getNextOffset()).isEqualTo(nfo);
         assertThat(dll.getPrevOffset()).isEqualTo(pfo);
-        assertThat(dll.getSize()).isEqualTo(dllSize);
+        assertThat(dll.getSize().asNumericValue().bigIntegerValue()).isEqualTo(dllSize);
         assertThat(state.readSMGValue(dll, pfo, pointerSizeInBits).getSMGValue().isZero()).isTrue();
         assertThat(state.readSMGValue(dll, nfo, pointerSizeInBits).getSMGValue().isZero()).isTrue();
       }

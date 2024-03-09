@@ -87,7 +87,10 @@ public class SMGProveNequality {
   }
 
   private boolean checkIfEdgePointsOutOfBounds(SMGPointsToEdge pToEdge) {
-    return pToEdge.getOffset().compareTo(pToEdge.pointsTo().getSize()) > 0
+    return pToEdge
+                .getOffset()
+                .compareTo(pToEdge.pointsTo().getSize().asNumericValue().bigIntegerValue())
+            > 0
         || pToEdge.getOffset().signum() < 0;
   }
 

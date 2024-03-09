@@ -19,7 +19,7 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
 
   public SMGDoublyLinkedListSegment(
       int pNestingLevel,
-      BigInteger pSize,
+      Value pSize,
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,
@@ -31,7 +31,7 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
 
   public SMGDoublyLinkedListSegment(
       int pNestingLevel,
-      BigInteger pSize,
+      Value pSize,
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,

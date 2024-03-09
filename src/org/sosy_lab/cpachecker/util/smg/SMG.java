@@ -971,7 +971,9 @@ public class SMG {
   public SMGAndHasValueEdges readValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, boolean preciseRead) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    Preconditions.checkArgument(offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
+    Preconditions.checkArgument(object.getSize().isNumericValue());
+    Preconditions.checkArgument(
+        offset.add(sizeInBits).compareTo(object.getSize().asNumericValue().bigIntegerValue()) <= 0);
 
     // let v := H(o, of, t)
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
@@ -1087,7 +1089,9 @@ public class SMG {
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
     BigInteger offsetPlusSize = offset.add(sizeInBits);
-    Preconditions.checkArgument(offsetPlusSize.compareTo(object.getSize()) <= 0);
+    Preconditions.checkArgument(object.getSize().isNumericValue());
+    Preconditions.checkArgument(
+        offsetPlusSize.compareTo(object.getSize().asNumericValue().bigIntegerValue()) <= 0);
     if (value.isZero() && isCoveredByNullifiedBlocks(object, offset, sizeInBits).isPresent()) {
       return this;
     }
@@ -1455,7 +1459,7 @@ public class SMG {
           }
           for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(heapObj, PersistentSet.of())) {
             if (hve.hasValue() == pointerValue) {
-              if (heapObj.getSize().compareTo(targetObject.getSize()) == 0) {
+              if (heapObj.isSizeEqual(targetObject)) {
                 if (hve.getOffset().compareTo(suspectedNfo) == 0) {
                   return false;
                 }
@@ -1463,6 +1467,7 @@ public class SMG {
                 // as we
                 // will eliminate those by traversing along the NFOs
               }
+              // TODO: use solver to check for equal size?
             }
           }
         }
