@@ -2839,7 +2839,8 @@ public class SMGState
   // Expects a (single) read SMGHasValueEdge that was not exact (to the offset/size read) and needs
   // to be cut to size
   private Value transformSingleHVEdgeToTargetValue(
-      SMGHasValueEdge readSMGHVValue, BigInteger readOffset, BigInteger readSizeInBits) {
+      SMGHasValueEdge readSMGHVValue, BigInteger readOffset, BigInteger readSizeInBits)
+      throws SMGException {
     Value value = getMemoryModel().getValueFromSMGValue(readSMGHVValue.hasValue()).orElseThrow();
     int shiftRight;
     if (machineModel.getEndianness().equals(ByteOrder.LITTLE_ENDIAN)) {
@@ -2907,24 +2908,18 @@ public class SMGState
     return UnknownValue.getInstance();
   }
 
-  private static long getMask(BigInteger readSizeInBits) {
+  private static long getMask(BigInteger readSizeInBits) throws SMGException {
     int readSize = readSizeInBits.intValueExact();
     long mask;
-    if (readSize == 1) {
-      mask = 1;
-    } else if (readSize == 2) {
-      mask = 3;
-    } else if (readSize == 4) {
-      mask = 0x0000000F;
-    } else if (readSize == 8) {
-      mask = 0x000000FF;
-    } else if (readSize == 16) {
-      mask = 0x0000FFFF;
-    } else if (readSize == 32) {
-      mask = 0xFFFFFFFF;
-    } else {
-      assert readSize == 64;
-      mask = Long.MAX_VALUE;
+    switch (readSize) {
+      case 1 -> mask = 1;
+      case 2 -> mask = 3;
+      case 4 -> mask = 0x0000000F;
+      case 8 -> mask = 0x000000FF;
+      case 16 -> mask = 0x0000FFFF;
+      case 32 -> mask = 0xFFFFFFFF;
+      case 64 -> mask = -1;
+      default -> throw new SMGException("Unhandled bit size in partial memory read.");
     }
     return mask;
   }
@@ -3968,8 +3963,10 @@ public class SMGState
     return trackedHeapValues.build();
   }
 
-  /*
-   * Returns the number of variables in the memory model
+  /**
+   * Returns the number of global and local variables in the memory model.
+   *
+   * @return num of vars.
    */
   @Override
   public int getSize() {
@@ -4988,7 +4985,7 @@ public class SMGState
 
   @Override
   public @Nullable Object getPartitionKey() {
-    return getMemoryModel().getSmg().getNumberOfAbstractedLists();
+    return getMemoryModel().getSmg().getNumberOfAbstractedLists() * 100000 + getSize();
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find
