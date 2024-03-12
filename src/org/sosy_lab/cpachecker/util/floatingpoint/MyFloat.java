@@ -887,7 +887,7 @@ public class MyFloat {
   }
 
   // Table contains terms 1/k! for 1..100
-  private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.Float128);
+  private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.Float256);
 
   private MyFloat exp_() {
     if (isNan()) {
@@ -968,7 +968,7 @@ public class MyFloat {
       partial.add(r);
 
       //  r(n+1) = r(n) + 2 * (x - e^r(n)) / (x + e^r(n))
-      MyFloat exp_y = r.exp();
+      MyFloat exp_y = r.exp_();
       MyFloat t1 = x.subtract(exp_y);
       MyFloat t2 = x.add(exp_y);
       r = r.add(constant(format, 2).multiply(t1.divide_(t2)));
