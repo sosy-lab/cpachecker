@@ -196,7 +196,13 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   public void native_expBug1() {
     // One of 23 failed tests
     // All failed tests have small exponents. Values are generally between 0.1 and 1
-    String val = "386.0202221885229";
+    String val = "0.7611478141380555";
+
+    // X1  = 1.1100001011011010100101010100100100100101000100111110 10000000000000000000000000000...
+    // X15 = 1.0001001000000011100000010101101101011101100010000000 00010001111110111010010011011...
+    // X16 = 1.0001001000000011100000010101101101011101100010000001 01101111101001100100111011101...
+    // X28 = 1.0001001000000011100000010101101101011101100010000001 01111111111111101011011111111...
+    //                                                                             ^ 53+16 bits
 
     CFloat tested = toTestedImpl(val, 1);
     CFloat reference = toReferenceImpl(val, 1);
@@ -209,8 +215,11 @@ public class CMyDoubleTest extends CDoubleUnitTest {
 
   @Test
   public void native_expBug2() {
-    // One of 23 failed tests
-    String val = "0.7805213540453771";
+    // One of 14 failed tests
+    String val = "0.01608839922770744";
+
+    // X8 = 1.0000010000100110111001011000010011001100010011001011 011111111111101110010011101111...
+    //                                                                          ^ 53+14 bits
 
     CFloat tested = toTestedImpl(val, 1);
     CFloat reference = toReferenceImpl(val, 1);
@@ -223,16 +232,12 @@ public class CMyDoubleTest extends CDoubleUnitTest {
 
   @Test
   public void native_lnBug() {
-    // One of 47 failed tests
+    // One of 11 failed tests
     // All failed values have small exponents. Values are generally between 0.8 and 1
     String val = "0.9151734892115296";
 
-    // Value is hard to round:
-    // X1 = 1.0110101100010011011110100000110010100100011101110100 101101110110100110010100101001...
     // X2 = 1.0110101100010011011110110100101010100011010011100110 100000000000000010110101111110...
-    // X2 = 1.0110101100010011011110110100101010100011010011100110 100000000000000010110101111111...
-    // X3 = 1.0110101100010011011110110100101010100011010011100110 100000000000000010110101111111...
-    //                                                                        ^ end of x87 register
+    //                                                                             ^ 52+16bits
 
     CFloat tested = toTestedImpl(val, 1);
     CFloat reference = toReferenceImpl(val, 1);
@@ -244,8 +249,47 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   }
 
   @Test
+  public void native_powBug() {
+    // One of 15 failed tests (+ one actual bug)
+    // Most failed values are between 0.1 and 1 for both arguments.
+    String val1 = "0.9412491794821144";
+    String val2 = "0.027169061868886568";
+
+    CFloat tested1 = toTestedImpl(val1, 1);
+    CFloat tested2 = toTestedImpl(val2, 1);
+
+    CFloat reference1 = toReferenceImpl(val1, 1);
+    CFloat reference2 = toReferenceImpl(val2, 1);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual(r1, r2);
+  }
+
+  // Fixed by enabling SSE
+  @Test
+  public void native_divideByBug() {
+    // One of 12 failed tests
+    // Most failed values are between 0.1 and 1 for both arguments.
+    String val1 = "0.24053641567148587";
+    String val2 = "0.6839413314680614";
+
+    CFloat tested1 = toTestedImpl(val1, 1);
+    CFloat tested2 = toTestedImpl(val2, 1);
+
+    CFloat reference1 = toReferenceImpl(val1, 1);
+    CFloat reference2 = toReferenceImpl(val2, 1);
+
+    CFloat r1 = tested1.divideBy(tested2);
+    CFloat r2 = reference1.divideBy(reference2);
+
+    assertEqual(r1, r2);
+  }
+
+  // Fixed by enabling SSE
+  @Test
   public void native_multiplyBug() {
-    // Fixed by enabling SSE
     // x87 has issues with double rounding:
     //   1.0110001001110100001110101010000000111001100001011101
     // x 1.0110011011101110100100110110000101101110100101101011           v x87 ends here
@@ -270,46 +314,6 @@ public class CMyDoubleTest extends CDoubleUnitTest {
 
     CFloat r1 = tested1.multiply(tested2);
     CFloat r2 = reference1.multiply(reference2);
-
-    assertEqual(r1, r2);
-  }
-
-  @Test
-  public void native_powBug() {
-    // One of 41 failed tests (+ one actual bug)
-    // Most failed values are between 0.1 and 1 for both arguments.
-    String val1 = "0.1";
-    String val2 = "0.8388903500470183";
-
-    CFloat tested1 = toTestedImpl(val1, 1);
-    CFloat tested2 = toTestedImpl(val2, 1);
-
-    CFloat reference1 = toReferenceImpl(val1, 1);
-    CFloat reference2 = toReferenceImpl(val2, 1);
-
-    CFloat r1 = tested1.powTo(tested2);
-    CFloat r2 = reference1.powTo(reference2);
-
-    assertEqual(r1, r2);
-  }
-
-  @Test
-  public void native_divideByBug() {
-    // Fixed by enabling SSE
-
-    // One of 12 failed tests
-    // Most failed values are between 0.1 and 1 for both arguments.
-    String val1 = "0.24053641567148587";
-    String val2 = "0.6839413314680614";
-
-    CFloat tested1 = toTestedImpl(val1, 1);
-    CFloat tested2 = toTestedImpl(val2, 1);
-
-    CFloat reference1 = toReferenceImpl(val1, 1);
-    CFloat reference2 = toReferenceImpl(val2, 1);
-
-    CFloat r1 = tested1.divideBy(tested2);
-    CFloat r2 = reference1.divideBy(reference2);
 
     assertEqual(r1, r2);
   }
