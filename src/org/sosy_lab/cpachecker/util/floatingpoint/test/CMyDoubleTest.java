@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.JDouble;
 import org.sosy_lab.cpachecker.util.floatingpoint.MpFloat;
 
+@SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
 public class CMyDoubleTest extends CDoubleUnitTest {
   static {
@@ -51,7 +52,6 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     return new CMyFloat(repr, pFloatType);
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
     return switch (refImpl) {

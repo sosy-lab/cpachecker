@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.JFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.MpFloat;
 
+@SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
 public class CMyFloatTest extends CFloatUnitTest {
   static {
@@ -50,7 +51,6 @@ public class CMyFloatTest extends CFloatUnitTest {
     return new CMyFloat(repr, pFloatType);
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
     return switch (refImpl) {
