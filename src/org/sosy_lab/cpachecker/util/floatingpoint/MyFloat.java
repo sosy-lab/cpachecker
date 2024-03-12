@@ -157,8 +157,32 @@ public class MyFloat {
     return new MyFloat(pFormat, value);
   }
 
-  public static MyFloat negativeInfinity(Format pFormat) {
-    FpValue value = new FpValue(true, pFormat.maxExp() + 1, BigInteger.ZERO);
+  public static MyFloat maxValue(Format pFormat) {
+    BigInteger allOnes = BigInteger.ONE.shiftLeft(pFormat.sigBits + 1).subtract(BigInteger.ONE);
+    FpValue value = new FpValue(false, pFormat.maxExp(), allOnes);
+    return new MyFloat(pFormat, value);
+  }
+
+  public static MyFloat constant(Format pFormat, BigInteger number) {
+    return new MyFloat(pFormat, number);
+  }
+
+  public static MyFloat constant(Format pFormat, int number) {
+    return new MyFloat(pFormat, BigInteger.valueOf(number));
+  }
+
+  public static MyFloat one(Format pFormat) {
+    FpValue value = new FpValue(false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
+    return new MyFloat(pFormat, value);
+  }
+
+  public static MyFloat minNormal(Format pFormat) {
+    FpValue value = new FpValue(false, pFormat.minExp(), BigInteger.ONE.shiftLeft(pFormat.sigBits));
+    return new MyFloat(pFormat, value);
+  }
+
+  public static MyFloat minValue(Format pFormat) {
+    FpValue value = new FpValue(false, pFormat.minExp() - 1, BigInteger.ONE);
     return new MyFloat(pFormat, value);
   }
 
@@ -172,22 +196,14 @@ public class MyFloat {
     return new MyFloat(pFormat, value);
   }
 
-  public static MyFloat one(Format pFormat) {
-    FpValue value = new FpValue(false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
-    return new MyFloat(pFormat, value);
-  }
-
   public static MyFloat negativeOne(Format pFormat) {
     FpValue value = new FpValue(true, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
     return new MyFloat(pFormat, value);
   }
 
-  public static MyFloat constant(Format pFormat, BigInteger number) {
-    return new MyFloat(pFormat, number);
-  }
-
-  public static MyFloat constant(Format pFormat, int number) {
-    return new MyFloat(pFormat, BigInteger.valueOf(number));
+  public static MyFloat negativeInfinity(Format pFormat) {
+    FpValue value = new FpValue(true, pFormat.maxExp() + 1, BigInteger.ZERO);
+    return new MyFloat(pFormat, value);
   }
 
   public boolean isNan() {
