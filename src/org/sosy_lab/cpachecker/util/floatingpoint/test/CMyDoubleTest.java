@@ -238,6 +238,18 @@ public class CMyDoubleTest extends CDoubleUnitTest {
 
   @Test
   public void native_multiplyBug() {
+    // Fixed by enabling SSE
+    // x87 has issues with double rounding:
+    //   1.0110001001110100001110101010000000111001100001011101
+    // x 1.0110011011101110100100110110000101101110100101101011           v x87 ends here
+    // = 1.11110000111110001101111000011010001101100011100101101000000000000001110100001011001010...
+    //   1.1111000011111000110111100001101000110110001110010110               ^ only > 0.5 here
+    //
+    //   1.1001000011110001011111111011001010010110001001001110
+    // x 1.0101011001101100000110010111100100100100100111000000           v x87 ends here
+    // = 1.00001100001001011111011100101111111000100111000001010111111111111111111110011111010001...
+    //   1.0000110000100101111101110010111111100010011100000110                     ^ only zero here
+
     // One of 6 failed tests
     // All failed values are between 0.5 and 1 for both arguments.
     String val1 = "0.6922930069529333";
@@ -276,6 +288,8 @@ public class CMyDoubleTest extends CDoubleUnitTest {
 
   @Test
   public void native_divideByBug() {
+    // Fixed by enabling SSE
+
     // One of 12 failed tests
     // Most failed values are between 0.1 and 1 for both arguments.
     String val1 = "0.24053641567148587";

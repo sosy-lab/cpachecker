@@ -8,7 +8,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-gcc -std='c11' -shared -fpic -mfpmath=387 -o 'libFloatingPoints.so' \
+gcc -std='c11' -shared -fpic -msse2 -O3 -o 'libFloatingPoints.so' \
  	-I"$JAVA_HOME/include/" \
 	-I"$JAVA_HOME/include/linux/" \
 	-I"$JAVA_HOME/include/darwin/" \
