@@ -227,6 +227,13 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     // All failed values have small exponents. Values are generally between 0.8 and 1
     String val = "0.9151734892115296";
 
+    // Value is hard to round:
+    // X1 = 1.0110101100010011011110100000110010100100011101110100 101101110110100110010100101001...
+    // X2 = 1.0110101100010011011110110100101010100011010011100110 100000000000000010110101111110...
+    // X2 = 1.0110101100010011011110110100101010100011010011100110 100000000000000010110101111111...
+    // X3 = 1.0110101100010011011110110100101010100011010011100110 100000000000000010110101111111...
+    //                                                                        ^ end of x87 register
+
     CFloat tested = toTestedImpl(val, 1);
     CFloat reference = toReferenceImpl(val, 1);
 
