@@ -51,6 +51,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     return new CMyFloat(repr, pFloatType);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
     return switch (refImpl) {

@@ -50,6 +50,7 @@ public class CMyFloatTest extends CFloatUnitTest {
     return new CMyFloat(repr, pFloatType);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
     return switch (refImpl) {
