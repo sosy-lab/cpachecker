@@ -67,9 +67,7 @@ public class MpFloat extends CFloat {
     return (1 << (sizeExponent() - 1)) - 1;
   }
 
-  /**
-   * Returns the number of bits in the significand.
-   */
+  /** Returns the number of bits in the significand. */
   public int sizeSignificand() {
     return format.precision;
   }

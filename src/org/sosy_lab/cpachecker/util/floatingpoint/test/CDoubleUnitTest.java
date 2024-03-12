@@ -118,12 +118,12 @@ public abstract class CDoubleUnitTest {
     private final T expected;
 
     public TestValue(Double arg, T result) {
-      args = new Double[]{arg};
+      args = new Double[] {arg};
       expected = result;
     }
 
     public TestValue(Double arg1, Double arg2, T result) {
-      args = new Double[]{arg1, arg2};
+      args = new Double[] {arg1, arg2};
       expected = result;
     }
 
@@ -186,8 +186,8 @@ public abstract class CDoubleUnitTest {
     ImmutableList<String> errorLog = logBuilder.build();
     if (!errorLog.isEmpty()) {
       assertWithMessage(
-          "Failed on %s (out of %s) test inputs:%s",
-          errorLog.size(), testCases.size(), errorLog)
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
   }
@@ -223,8 +223,8 @@ public abstract class CDoubleUnitTest {
     ImmutableList<String> errorLog = logBuilder.build();
     if (!errorLog.isEmpty()) {
       assertWithMessage(
-          "Failed on %s (out of %s) test inputs:%s",
-          errorLog.size(), testCases.size(), errorLog)
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
   }
@@ -257,8 +257,8 @@ public abstract class CDoubleUnitTest {
 
     if (!errorLog.isEmpty()) {
       assertWithMessage(
-          "Failed on %s (out of %s) test inputs:%s",
-          errorLog.size(), testCases.size(), errorLog)
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
   }
@@ -294,8 +294,8 @@ public abstract class CDoubleUnitTest {
     ImmutableList<String> errorLog = logBuilder.build();
     if (!errorLog.isEmpty()) {
       assertWithMessage(
-          "Failed on %s (out of %s) test inputs:%s",
-          errorLog.size(), testCases.size(), errorLog)
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
   }
@@ -328,8 +328,8 @@ public abstract class CDoubleUnitTest {
 
     if (!errorLog.isEmpty()) {
       assertWithMessage(
-          "Failed on %s (out of %s) test inputs:%s",
-          errorLog.size(), testCases.size(), errorLog)
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
   }
