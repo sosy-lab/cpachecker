@@ -371,7 +371,6 @@ public abstract class CFloatUnitTest {
 
   protected void assertEqual1Ulp(CFloat r1, CFloat r2) {
     assertThat(printValue(r1.toFloat())).isIn(errorRange(ulpError(), r2.toFloat()));
-    ;
   }
 
   public abstract CFloat toTestedImpl(String repr, int pFloatType);
