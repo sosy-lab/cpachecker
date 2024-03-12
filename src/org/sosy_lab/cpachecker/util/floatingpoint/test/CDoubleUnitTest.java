@@ -176,7 +176,7 @@ public abstract class CDoubleUnitTest {
         try {
           result = operator.apply(tested).toDouble();
         } catch (Throwable t) {
-          assertWithMessage(testHeader + t.getMessage()).fail();
+          assertWithMessage(testHeader + t).fail();
         }
         assertWithMessage(testHeader).that(printValue(result)).isEqualTo(printValue(test.result()));
       } catch (AssertionError e) {
@@ -213,8 +213,7 @@ public abstract class CDoubleUnitTest {
         try {
           result = operator.apply(tested1, tested2).toDouble();
         } catch (Throwable t) {
-          String errorMessage = testHeader + t.getMessage();
-          assertWithMessage(errorMessage).fail();
+          assertWithMessage(testHeader + t).fail();
         }
         assertWithMessage(testHeader).that(printValue(result)).isEqualTo(printValue(test.result()));
       } catch (AssertionError e) {
@@ -247,7 +246,7 @@ public abstract class CDoubleUnitTest {
         try {
           result = predicate.test(tested);
         } catch (Throwable t) {
-          assertWithMessage(testHeader + t.getMessage()).fail();
+          assertWithMessage(testHeader + t).fail();
         }
         assertWithMessage(testHeader).that(result).isEqualTo(test.result());
       } catch (AssertionError e) {
@@ -285,8 +284,7 @@ public abstract class CDoubleUnitTest {
         try {
           result = predicate.apply(tested1, tested2);
         } catch (Throwable t) {
-          String errorMessage = testHeader + t.getMessage();
-          assertWithMessage(errorMessage).fail();
+          assertWithMessage(testHeader + t).fail();
         }
         assertWithMessage(testHeader).that(result).isEqualTo(test.result());
       } catch (AssertionError e) {
@@ -319,7 +317,7 @@ public abstract class CDoubleUnitTest {
         try {
           result = function.apply(tested);
         } catch (Throwable t) {
-          assertWithMessage(testHeader + t.getMessage()).fail();
+          assertWithMessage(testHeader + t).fail();
         }
         assertWithMessage(testHeader).that(result).isEqualTo(test.result());
       } catch (AssertionError e) {
