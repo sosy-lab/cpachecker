@@ -423,7 +423,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 
 	switch(type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			result.f_value = logf(fp.f_value);
+			result.f_value = log(fp.f_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
 			result.d_value = log(fp.d_value);
@@ -469,7 +469,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 	jint maxType = max(type1, type2);
 	switch(maxType) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			result.f_value = powf(fp_1.f_value, fp_2.f_value);
+			result.f_value = pow(fp_1.f_value, fp_2.f_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
 			result.d_value = pow(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
