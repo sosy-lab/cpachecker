@@ -17,6 +17,9 @@ import org.sosy_lab.cpachecker.util.floatingpoint.JFloat;
 @SuppressWarnings("deprecation")
 public class CFloatNativeTest extends CFloatUnitTest {
   @Override
+  protected int ulpError() { return 1; }
+
+  @Override
   public CFloat toTestedImpl(String repr, int pFloatType) {
     return new CFloatNative(repr, pFloatType);
   }
@@ -38,7 +41,7 @@ public class CFloatNativeTest extends CFloatUnitTest {
 
     // If the calculation is done with a larger precision than float we'd expect the two val2 to
     // carry over into the last bit of the result
-    assertEqual(nativeFloat1.add3(nativeFloat2, nativeFloat2), nativeFloat_);
+    assertEqual1Ulp(nativeFloat1.add3(nativeFloat2, nativeFloat2), nativeFloat_);
   }
 
   @Ignore

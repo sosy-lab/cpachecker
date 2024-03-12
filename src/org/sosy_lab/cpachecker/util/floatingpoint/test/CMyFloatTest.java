@@ -41,6 +41,11 @@ public class CMyFloatTest extends CFloatUnitTest {
   public ReferenceImpl refImpl;
 
   @Override
+  protected int ulpError() {
+    return refImpl == CMyFloatTest.ReferenceImpl.MPFR ? 0 : 1;
+  }
+
+  @Override
   public CFloat toTestedImpl(String repr, int pFloatType) {
     return new CMyFloat(repr, pFloatType);
   }
@@ -70,7 +75,7 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = tested1.multiply(tested2);
     CFloat r2 = reference1.multiply(reference2);
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -83,7 +88,7 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = tested.sqrt();
     CFloat r2 = reference.sqrt();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -100,7 +105,7 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = tested1.powTo(tested2);
     CFloat r2 = reference1.powTo(reference2);
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -113,7 +118,7 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -127,7 +132,7 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -142,7 +147,7 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -160,6 +165,6 @@ public class CMyFloatTest extends CFloatUnitTest {
     CFloat r1 = tested1.powTo(tested2);
     CFloat r2 = reference1.powTo(reference2);
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 }

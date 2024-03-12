@@ -20,6 +20,9 @@ public class MpFloatTest extends CFloatUnitTest {
   }
 
   @Override
+  protected int ulpError() { return 1; }
+
+  @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
     return new JFloat(repr, pFloatType);
   }

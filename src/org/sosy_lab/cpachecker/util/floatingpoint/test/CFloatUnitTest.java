@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint.test;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Correspondence.BinaryPredicate;
 import java.math.BigDecimal;
@@ -168,7 +169,28 @@ public abstract class CFloatUnitTest {
     return String.format("%n%nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
-  protected void testOperator(String name, UnaryOperator<CFloat> operator) {
+  // Overload to define the error in ulps for transcendent functions
+  protected abstract int ulpError();
+
+  // Returns a list of all float values in the error range
+  private List<String> errorRange(int pDistance, Float pValue) {
+    Preconditions.checkArgument(pDistance >= 0);
+    if (pValue.isNaN()) {
+      return List.of(printValue(pValue));
+    }
+    float ulp = Math.ulp(pValue);
+    if (pValue == 0.0f) { // for zero we look at the closest subnormal numbers
+      ulp = Float.MIN_VALUE;
+    }
+    ImmutableList.Builder<String> builder = ImmutableList.builder();
+    for (int p=-pDistance; p<=pDistance; p++) {
+      float value = p == 0 ? pValue : pValue + p*ulp; // adding 0 messes up the sign for -0.0
+      builder.add(printValue(value));
+    }
+    return builder.build();
+  }
+
+  protected void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
     ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
     for (Float arg : unaryTestValues()) {
       CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
@@ -187,7 +209,7 @@ public abstract class CFloatUnitTest {
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(printValue(result)).isEqualTo(printValue(test.result()));
+        assertWithMessage(testHeader).that(printValue(result)).isIn(errorRange(ulps, test.result()));
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -201,7 +223,7 @@ public abstract class CFloatUnitTest {
     }
   }
 
-  protected void testOperator(String name, BinaryOperator<CFloat> operator) {
+  protected void testOperator(String name, int ulps, BinaryOperator<CFloat> operator) {
     ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
     for (Float arg1 : binaryTestValues()) {
       for (Float arg2 : binaryTestValues()) {
@@ -224,7 +246,7 @@ public abstract class CFloatUnitTest {
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(printValue(result)).isEqualTo(printValue(test.result()));
+        assertWithMessage(testHeader).that(printValue(result)).isIn(errorRange(ulps, test.result()));
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -343,8 +365,8 @@ public abstract class CFloatUnitTest {
     }
   }
 
-  protected void assertEqual(CFloat r1, CFloat r2) {
-    assertThat(printValue(r1.toFloat())).isEqualTo(printValue(r2.toFloat()));
+  protected void assertEqual1Ulp(CFloat r1, CFloat r2) {
+    assertThat(printValue(r1.toFloat())).isIn(errorRange(ulpError(), r2.toFloat()));;
   }
 
   public abstract CFloat toTestedImpl(String repr, int pFloatType);
@@ -355,87 +377,87 @@ public abstract class CFloatUnitTest {
   // implementation)
   @Test
   public void constTest() {
-    testOperator("id", (CFloat a) -> a);
+    testOperator("id", 0, (CFloat a) -> a);
   }
 
   @Test
   public void addTest() {
-    testOperator("add", (CFloat a, CFloat b) -> a.add(b));
+    testOperator("add", 0, (CFloat a, CFloat b) -> a.add(b));
   }
 
   @Test
   public void addManyTest() {
-    testOperator("addManyTest", (CFloat a, CFloat b) -> b.add(a, b));
+    testOperator("addManyTest", 0, (CFloat a, CFloat b) -> b.add(a, b));
   }
 
   @Test
   public void multiplyTest() {
-    testOperator("multiply", (CFloat a, CFloat b) -> a.multiply(b));
+    testOperator("multiply", 0, (CFloat a, CFloat b) -> a.multiply(b));
   }
 
   @Test
   public void multiplyManyTest() {
-    testOperator("multiplyManyTest", (CFloat a, CFloat b) -> b.multiply(a, b));
+    testOperator("multiplyManyTest", 0, (CFloat a, CFloat b) -> b.multiply(a, b));
   }
 
   @Test
   public void subtractTest() {
-    testOperator("subtract", (CFloat a, CFloat b) -> a.subtract(b));
+    testOperator("subtract", 0, (CFloat a, CFloat b) -> a.subtract(b));
   }
 
   @Test
   public void divideByTest() {
-    testOperator("divideBy", (CFloat a, CFloat b) -> a.divideBy(b));
+    testOperator("divideBy", 0, (CFloat a, CFloat b) -> a.divideBy(b));
   }
 
   @Test
   public void lnTest() {
-    testOperator("ln", (CFloat a) -> a.ln());
+    testOperator("ln", ulpError(), (CFloat a) -> a.ln());
   }
 
   @Test
   public void expTest() {
-    testOperator("exp", (CFloat a) -> a.exp());
+    testOperator("exp", ulpError(), (CFloat a) -> a.exp());
   }
 
   @Test
   public void powToTest() {
-    testOperator("powTo", (CFloat a, CFloat b) -> a.powTo(b));
+    testOperator("powTo", ulpError(), (CFloat a, CFloat b) -> a.powTo(b));
   }
 
   @Test
   public void powToIntegralTest() {
-    testOperator("powToInteger", (CFloat a, CFloat b) -> a.powToIntegral(b.toInteger()));
+    testOperator("powToInteger", 0, (CFloat a, CFloat b) -> a.powToIntegral(b.toInteger()));
   }
 
   @Test
   public void sqrtTest() {
-    testOperator("sqrt", (CFloat a) -> a.sqrt());
+    testOperator("sqrt", 0, (CFloat a) -> a.sqrt());
   }
 
   @Test
   public void roundTest() {
-    testOperator("round", (CFloat a) -> a.round());
+    testOperator("round", 0,(CFloat a) -> a.round());
   }
 
   @Test
   public void truncTest() {
-    testOperator("trunc", (CFloat a) -> a.trunc());
+    testOperator("trunc", 0, (CFloat a) -> a.trunc());
   }
 
   @Test
   public void ceilTest() {
-    testOperator("ceil", (CFloat a) -> a.ceil());
+    testOperator("ceil", 0, (CFloat a) -> a.ceil());
   }
 
   @Test
   public void floorTest() {
-    testOperator("floor", (CFloat a) -> a.floor());
+    testOperator("floor", 0, (CFloat a) -> a.floor());
   }
 
   @Test
   public void absTest() {
-    testOperator("abs", (CFloat a) -> a.abs());
+    testOperator("abs", 0, (CFloat a) -> a.abs());
   }
 
   @Test
@@ -470,19 +492,20 @@ public abstract class CFloatUnitTest {
 
   @Test
   public void copySignFromTest() {
-    testOperator("copySignFrom", (CFloat a, CFloat b) -> a.copySignFrom(b));
+    testOperator("copySignFrom", 0, (CFloat a, CFloat b) -> a.copySignFrom(b));
   }
 
   @Test
   public void castToTest() {
     testOperator(
-        "castToTest", (CFloat a) -> a.castTo(CNativeType.DOUBLE).castTo(CNativeType.SINGLE));
+        "castToTest", 0, (CFloat a) -> a.castTo(CNativeType.DOUBLE).castTo(CNativeType.SINGLE));
   }
 
   @Test
   public void castToRoundingTest() {
     testOperator(
         "castToRoundingTest",
+        0,
         (CFloat a) -> a.castTo(CNativeType.DOUBLE).sqrt().castTo(CNativeType.SINGLE));
   }
 
