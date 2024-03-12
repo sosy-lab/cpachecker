@@ -9,16 +9,34 @@
 package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
 import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.JDouble;
 import org.sosy_lab.cpachecker.util.floatingpoint.MpFloat;
 
+@RunWith(Parameterized.class)
 public class CMyDoubleTest extends CDoubleUnitTest {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
   }
+
+  public enum ReferenceImpl {
+    MPFR,
+    JAVA,
+    NATIVE
+  }
+
+  @Parameters(name = "{0}")
+  public static ReferenceImpl[] getReferences() { return ReferenceImpl.values(); }
+
+  @Parameter(0)
+  public ReferenceImpl refImpl;
 
   @Override
   public CFloat toTestedImpl(String repr, int pFloatType) {
@@ -28,6 +46,12 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
     return new JDouble(repr, pFloatType);
+    return switch (refImpl) {
+      case MPFR -> new MpFloat(repr, pFloatType);
+      case JAVA -> new JDouble(repr, pFloatType);
+      case NATIVE -> new CFloatNative(repr, pFloatType);
+    };
+  }
   }
 
   @Test
