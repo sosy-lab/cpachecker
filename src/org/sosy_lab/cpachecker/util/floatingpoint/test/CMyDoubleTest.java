@@ -97,6 +97,21 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   }
 
   @Test
+  public void hardExp1Test() {
+    // Example of a "hard to round" input for the exponential function
+    // Taken from "Handbook of Floating-Point Arithmetic", chapter 12
+    String val = "7.5417527749959590085206221024712557043923055744016892276704E-10";
+
+    CFloat tested = toTestedImpl(val, 1);
+    CFloat reference = toReferenceImpl(val, 1);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
   public void mpfr_powBug() {
     // Same as in 32 bits before we increased precision
     String val1 = "1.7976931348623157E308";
