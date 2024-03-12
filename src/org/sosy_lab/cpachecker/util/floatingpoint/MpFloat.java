@@ -22,27 +22,41 @@ public class MpFloat extends CFloat {
 
   private final CFloatWrapper wrapper;
 
-  private final BinaryMathContext format = BinaryMathContext.BINARY32;
+  private final BinaryMathContext format;
   private final BigFloat value;
 
-  public MpFloat(BigFloat pValue) {
+  public MpFloat(BigFloat pValue, BinaryMathContext pMathContext) {
+    format = pMathContext;
     value = pValue;
     wrapper = fromBigFloat(value);
   }
 
   public MpFloat(String repr, int floatType) {
-    assert floatType == 0;
+    format = toBinaryMathContext(floatType);
     value = parseBigFloat(repr);
     wrapper = fromBigFloat(value);
   }
 
   public MpFloat(CFloatWrapper pWrapper, int floatType) {
-    assert floatType == 0;
+    format = toBinaryMathContext(floatType);
     value = toBigFloat(pWrapper);
     wrapper = pWrapper;
   }
 
-  // TODO: Refactor and move the next 2 methods beck into CFloat (or maybe even FloatingPointNumber)
+  private BinaryMathContext toBinaryMathContext(int floatType) {
+    if (floatType == CNativeType.SINGLE.getOrdinal()) {
+      return BinaryMathContext.BINARY32;
+    }
+    if (floatType == CNativeType.DOUBLE.getOrdinal()) {
+      return BinaryMathContext.BINARY64;
+    }
+    if (floatType == CNativeType.LONG_LONG.getOrdinal()) {
+      return new BinaryMathContext(64, 15);
+    }
+    throw new IllegalArgumentException();
+  }
+
+  // TODO: Refactor and move the next 3 methods beck into CFloat (or maybe even FloatingPointNumber)
   /** Returns the number of bits in the exponent. */
   public int sizeExponent() {
     return Long.numberOfTrailingZeros(format.maxExponent + 1) + 1;
@@ -51,6 +65,13 @@ public class MpFloat extends CFloat {
   /** Returns the bias of the exponent. This is needed to convert from and to the IEEE format. */
   public int biasExponent() {
     return (1 << (sizeExponent() - 1)) - 1;
+  }
+
+  /**
+   * Returns the number of bits in the significand.
+   */
+  public int sizeSignificand() {
+    return format.precision;
   }
 
   private BigFloat toBigFloat(CFloatWrapper floatWrapper) {
@@ -88,8 +109,9 @@ public class MpFloat extends CFloat {
     // If the value is not NaN we get the actual mantissa.
     if (!floatValue.isNaN()) {
       mantissa = floatValue.significand(format.minExponent, format.maxExponent);
-      // Delete the leading "1." if the number is normal (= not subnormal or zero)
-      if (exponentBits != 0) {
+      // Delete the leading "1." if the number is normal (= not subnormal or zero), and the format
+      // is not 'long double'
+      if (exponentBits != 0 && !format.equals(new BinaryMathContext(64, 15))) {
         mantissa = mantissa.clearBit(format.precision - 1);
       }
     }
@@ -125,7 +147,7 @@ public class MpFloat extends CFloat {
 
   @Override
   public CFloat add(CFloat pSummand) {
-    return new MpFloat(value.add(toBigFloat(pSummand.getWrapper()), format));
+    return new MpFloat(value.add(toBigFloat(pSummand.getWrapper()), format), format);
   }
 
   @Override
@@ -134,12 +156,12 @@ public class MpFloat extends CFloat {
     for (CFloat f : pSummands) {
       result = result.add(toBigFloat(f.getWrapper()), format);
     }
-    return new MpFloat(result);
+    return new MpFloat(result, format);
   }
 
   @Override
   public CFloat multiply(CFloat pFactor) {
-    return new MpFloat(value.multiply(toBigFloat(pFactor.getWrapper()), format));
+    return new MpFloat(value.multiply(toBigFloat(pFactor.getWrapper()), format), format);
   }
 
   @Override
@@ -148,32 +170,32 @@ public class MpFloat extends CFloat {
     for (CFloat f : pFactor) {
       result = result.multiply(toBigFloat(f.getWrapper()), format);
     }
-    return new MpFloat(result);
+    return new MpFloat(result, format);
   }
 
   @Override
   public CFloat subtract(CFloat pSubtrahend) {
-    return new MpFloat(value.subtract(toBigFloat(pSubtrahend.getWrapper()), format));
+    return new MpFloat(value.subtract(toBigFloat(pSubtrahend.getWrapper()), format), format);
   }
 
   @Override
   public CFloat divideBy(CFloat pDivisor) {
-    return new MpFloat(value.divide(toBigFloat(pDivisor.getWrapper()), format));
+    return new MpFloat(value.divide(toBigFloat(pDivisor.getWrapper()), format), format);
   }
 
   @Override
   public CFloat ln() {
-    return new MpFloat(value.log(format));
+    return new MpFloat(value.log(format), format);
   }
 
   @Override
   public CFloat exp() {
-    return new MpFloat(value.exp(format));
+    return new MpFloat(value.exp(format), format);
   }
 
   @Override
   public CFloat powTo(CFloat exponent) {
-    return new MpFloat(value.pow(toBigFloat(exponent.getWrapper()), format));
+    return new MpFloat(value.pow(toBigFloat(exponent.getWrapper()), format), format);
   }
 
   @Override
@@ -184,7 +206,7 @@ public class MpFloat extends CFloat {
 
   @Override
   public CFloat sqrt() {
-    return new MpFloat(value.sqrt(format));
+    return new MpFloat(value.sqrt(format), format);
   }
 
   @Override
@@ -195,30 +217,33 @@ public class MpFloat extends CFloat {
     BigFloat tie = above.add(below, format).divide(new BigFloat(2, format), format);
 
     BigFloat rounded = posValue.greaterThanOrEqualTo(tie) ? above : below;
-    return new MpFloat(value.sign() ? rounded.negate() : rounded);
+    return new MpFloat(value.sign() ? rounded.negate() : rounded, format);
   }
 
   @Override
   public CFloat trunc() {
-    BinaryMathContext toTrunc = new BinaryMathContext(24, 8, RoundingMode.DOWN);
-    return new MpFloat(value.rint(toTrunc));
+    BinaryMathContext toTrunc =
+        new BinaryMathContext(sizeSignificand(), sizeExponent(), RoundingMode.DOWN);
+    return new MpFloat(value.rint(toTrunc), format);
   }
 
   @Override
   public CFloat ceil() {
-    BinaryMathContext toCeil = new BinaryMathContext(24, 8, RoundingMode.CEILING);
-    return new MpFloat(value.rint(toCeil));
+    BinaryMathContext toCeil =
+        new BinaryMathContext(sizeSignificand(), sizeExponent(), RoundingMode.CEILING);
+    return new MpFloat(value.rint(toCeil), format);
   }
 
   @Override
   public CFloat floor() {
-    BinaryMathContext toFloor = new BinaryMathContext(24, 8, RoundingMode.FLOOR);
-    return new MpFloat(value.rint(toFloor));
+    BinaryMathContext toFloor =
+        new BinaryMathContext(sizeSignificand(), sizeExponent(), RoundingMode.FLOOR);
+    return new MpFloat(value.rint(toFloor), format);
   }
 
   @Override
   public CFloat abs() {
-    return new MpFloat(value.abs());
+    return new MpFloat(value.abs(), format);
   }
 
   @Override
@@ -250,15 +275,18 @@ public class MpFloat extends CFloat {
   public CFloat copySignFrom(CFloat source) {
     // MPFR actually has mpfr_copysign for this, but it seems to be missing from BigFloat
     boolean negative = toBigFloat(source.getWrapper()).sign();
-    return new MpFloat(negative ? value.abs().negate() : value.abs());
+    return new MpFloat(negative ? value.abs().negate() : value.abs(), format);
   }
 
   @Override
   public CFloat castTo(CNativeType toType) {
+    BinaryMathContext ldouble = new BinaryMathContext(64, 15);
     return switch (toType) {
-      case SINGLE -> new MpFloat(value.round(BinaryMathContext.BINARY32));
-      case DOUBLE -> new MpFloat(value.round(BinaryMathContext.BINARY64));
-      case LONG_DOUBLE -> new MpFloat(value.round(new BinaryMathContext(80, 15)));
+      case SINGLE ->
+          new MpFloat(value.round(BinaryMathContext.BINARY32), BinaryMathContext.BINARY32);
+      case DOUBLE ->
+          new MpFloat(value.round(BinaryMathContext.BINARY64), BinaryMathContext.BINARY64);
+      case LONG_DOUBLE -> new MpFloat(value.round(ldouble), ldouble);
       default -> throw new IllegalArgumentException();
     };
   }
@@ -289,7 +317,16 @@ public class MpFloat extends CFloat {
 
   @Override
   public int getType() {
-    return 0;
+    if (format.equals(BinaryMathContext.BINARY32)) {
+      return CNativeType.SINGLE.getOrdinal();
+    }
+    if (format.equals(BinaryMathContext.BINARY64)) {
+      return CNativeType.DOUBLE.getOrdinal();
+    }
+    if (format.equals(new BinaryMathContext(64, 15))) {
+      return CNativeType.LONG_DOUBLE.getOrdinal();
+    }
+    throw new IllegalArgumentException();
   }
 
   @Override
