@@ -167,7 +167,7 @@ public abstract class CDoubleUnitTest {
   private List<String> errorRange(int pDistance, Double pValue) {
     Preconditions.checkArgument(pDistance >= 0);
     if (pValue.isNaN()) {
-      return List.of(printValue(pValue));
+      return ImmutableList.of(printValue(pValue));
     }
     double ulp = Math.ulp(pValue);
     if (pValue == 0.0d) { // for zero we look at the closest subnormal numbers

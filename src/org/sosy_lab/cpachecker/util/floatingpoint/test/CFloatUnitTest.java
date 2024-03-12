@@ -176,7 +176,7 @@ public abstract class CFloatUnitTest {
   private List<String> errorRange(int pDistance, Float pValue) {
     Preconditions.checkArgument(pDistance >= 0);
     if (pValue.isNaN()) {
-      return List.of(printValue(pValue));
+      return ImmutableList.of(printValue(pValue));
     }
     float ulp = Math.ulp(pValue);
     if (pValue == 0.0f) { // for zero we look at the closest subnormal numbers
