@@ -174,8 +174,8 @@ public abstract class CDoubleUnitTest {
       ulp = Double.MIN_VALUE;
     }
     ImmutableList.Builder<String> builder = ImmutableList.builder();
-    for (int p=-pDistance; p<=pDistance; p++) {
-      double value = p == 0 ? pValue : pValue + p*ulp; // adding 0 messes up the sign for -0.0
+    for (int p = -pDistance; p <= pDistance; p++) {
+      double value = p == 0 ? pValue : pValue + p * ulp; // adding 0 messes up the sign for -0.0
       builder.add(printValue(value));
     }
     return builder.build();
@@ -200,7 +200,9 @@ public abstract class CDoubleUnitTest {
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(printValue(result)).isIn(errorRange(ulps, test.result()));
+        assertWithMessage(testHeader)
+            .that(printValue(result))
+            .isIn(errorRange(ulps, test.result()));
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -237,7 +239,9 @@ public abstract class CDoubleUnitTest {
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(printValue(result)).isIn(errorRange(ulps, test.result()));
+        assertWithMessage(testHeader)
+            .that(printValue(result))
+            .isIn(errorRange(ulps, test.result()));
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -489,7 +493,9 @@ public abstract class CDoubleUnitTest {
   @Test
   public void castToTest() {
     testOperator(
-        "castToTest", 0, (CFloat a) -> a.castTo(CNativeType.LONG_DOUBLE).castTo(CNativeType.DOUBLE));
+        "castToTest",
+        0,
+        (CFloat a) -> a.castTo(CNativeType.LONG_DOUBLE).castTo(CNativeType.DOUBLE));
   }
 
   @Test

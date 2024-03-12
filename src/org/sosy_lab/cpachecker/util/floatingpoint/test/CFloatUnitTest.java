@@ -183,8 +183,8 @@ public abstract class CFloatUnitTest {
       ulp = Float.MIN_VALUE;
     }
     ImmutableList.Builder<String> builder = ImmutableList.builder();
-    for (int p=-pDistance; p<=pDistance; p++) {
-      float value = p == 0 ? pValue : pValue + p*ulp; // adding 0 messes up the sign for -0.0
+    for (int p = -pDistance; p <= pDistance; p++) {
+      float value = p == 0 ? pValue : pValue + p * ulp; // adding 0 messes up the sign for -0.0
       builder.add(printValue(value));
     }
     return builder.build();
@@ -209,7 +209,9 @@ public abstract class CFloatUnitTest {
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(printValue(result)).isIn(errorRange(ulps, test.result()));
+        assertWithMessage(testHeader)
+            .that(printValue(result))
+            .isIn(errorRange(ulps, test.result()));
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -246,7 +248,9 @@ public abstract class CFloatUnitTest {
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(printValue(result)).isIn(errorRange(ulps, test.result()));
+        assertWithMessage(testHeader)
+            .that(printValue(result))
+            .isIn(errorRange(ulps, test.result()));
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -366,7 +370,8 @@ public abstract class CFloatUnitTest {
   }
 
   protected void assertEqual1Ulp(CFloat r1, CFloat r2) {
-    assertThat(printValue(r1.toFloat())).isIn(errorRange(ulpError(), r2.toFloat()));;
+    assertThat(printValue(r1.toFloat())).isIn(errorRange(ulpError(), r2.toFloat()));
+    ;
   }
 
   public abstract CFloat toTestedImpl(String repr, int pFloatType);
@@ -437,7 +442,7 @@ public abstract class CFloatUnitTest {
 
   @Test
   public void roundTest() {
-    testOperator("round", 0,(CFloat a) -> a.round());
+    testOperator("round", 0, (CFloat a) -> a.round());
   }
 
   @Test

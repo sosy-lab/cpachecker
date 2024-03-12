@@ -17,7 +17,9 @@ import org.sosy_lab.cpachecker.util.floatingpoint.JFloat;
 @SuppressWarnings("deprecation")
 public class CFloatNativeTest extends CFloatUnitTest {
   @Override
-  protected int ulpError() { return 1; }
+  protected int ulpError() {
+    return 1;
+  }
 
   @Override
   public CFloat toTestedImpl(String repr, int pFloatType) {
