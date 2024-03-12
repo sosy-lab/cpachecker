@@ -34,7 +34,9 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   }
 
   @Parameters(name = "{0}")
-  public static ReferenceImpl[] getReferences() { return ReferenceImpl.values(); }
+  public static ReferenceImpl[] getReferences() {
+    return ReferenceImpl.values();
+  }
 
   @Parameter(0)
   public ReferenceImpl refImpl;
@@ -80,9 +82,8 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   @Ignore
   @Override
   public void castToShortTest() {
-   // Disabled
+    // Disabled
   }
-
 
   @Ignore
   @Override

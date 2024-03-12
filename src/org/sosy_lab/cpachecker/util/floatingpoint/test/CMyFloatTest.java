@@ -33,7 +33,9 @@ public class CMyFloatTest extends CFloatUnitTest {
   }
 
   @Parameters(name = "{0}")
-  public static ReferenceImpl[] getReferences() { return ReferenceImpl.values(); }
+  public static ReferenceImpl[] getReferences() {
+    return ReferenceImpl.values();
+  }
 
   @Parameter(0)
   public ReferenceImpl refImpl;
