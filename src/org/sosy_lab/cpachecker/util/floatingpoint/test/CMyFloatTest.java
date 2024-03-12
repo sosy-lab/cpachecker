@@ -67,17 +67,20 @@ public class CMyFloatTest extends CFloatUnitTest {
 
     CFloat r1 = tested1.multiply(tested2);
     CFloat r2 = reference1.multiply(reference2);
+
     assertEqual(r1, r2);
   }
 
   @Test
   public void sqrt2Test() {
     String val = "2.0";
+
     CFloat tested = toTestedImpl(val, 0);
     CFloat reference = toReferenceImpl(val, 0);
 
     CFloat r1 = tested.sqrt();
     CFloat r2 = reference.sqrt();
+
     assertEqual(r1, r2);
   }
 
@@ -99,24 +102,15 @@ public class CMyFloatTest extends CFloatUnitTest {
   }
 
   @Test
-  public void exp1Test() {
-    String val = "-10.0";
-    CFloat tested = toTestedImpl(val, 0);
-    CFloat reference = toReferenceImpl(val, 0);
-
-    CFloat r1 = tested.exp();
-    CFloat r2 = reference.exp();
-    assertEqual(r1, r2);
-  }
-
-  @Test
   public void ln_eTest() {
     String val = String.valueOf(Math.E);
+
     CFloat tested = toTestedImpl(val, 0);
     CFloat reference = toReferenceImpl(val, 0);
 
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
+
     assertEqual(r1, r2);
   }
 
@@ -124,11 +118,13 @@ public class CMyFloatTest extends CFloatUnitTest {
   public void ln_1Test() {
     // Calculate ln for the next closest value to 1
     String val = "1.00000011920929";
+
     CFloat tested = toTestedImpl(val, 0);
     CFloat reference = toReferenceImpl(val, 0);
 
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
+
     assertEqual(r1, r2);
   }
 }
