@@ -1056,10 +1056,10 @@ public class MyFloat {
 
     if (a.isNegative()) {
       // -a^x where x is an integer: We calculate a^x and then set the sign to -1^x
-      MyFloat r = x.multiply(a.abs().ln()).exp();
+      MyFloat r = x.multiply(a.abs().ln_()).exp_();
       return x.isOddInteger() ? r.negate() : r;
     }
-    return x.multiply(a.ln()).exp();
+    return x.multiply(a.ln_()).exp_();
   }
 
   public enum RoundingMode {
