@@ -46,7 +46,6 @@ public class CMyDoubleTest extends CDoubleUnitTest {
 
   @Override
   public CFloat toReferenceImpl(String repr, int pFloatType) {
-    return new JDouble(repr, pFloatType);
     return switch (refImpl) {
       case MPFR -> new MpFloat(repr, pFloatType);
       case JAVA -> new JDouble(repr, pFloatType);
@@ -98,19 +97,182 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   }
 
   @Test
-  public void pow64Bug() {
-    // We've already seen this bug for 32 bits. Now it's back...
+  public void mpfr_powBug() {
+    // Same as in 32 bits before we increased precision
     String val1 = "1.7976931348623157E308";
     String val2 = "0.5";
 
-    CFloat myfloat1 = toTestedImpl(val1, 1);
-    CFloat myfloat2 = toTestedImpl(val2, 1);
+    CFloat tested1 = toTestedImpl(val1, 1);
+    CFloat tested2 = toTestedImpl(val2, 1);
 
-    CFloat jfloat1 = new MpFloat(val1, 1);
-    CFloat jfloat2 = new MpFloat(val2, 1);
+    CFloat reference1 = toReferenceImpl(val1, 1);
+    CFloat reference2 = toReferenceImpl(val2, 1);
 
-    CFloat r1 = myfloat1.powTo(myfloat2);
-    CFloat r2 = jfloat1.powTo(jfloat2);
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void java_expBug1() {
+    // One of 94 failed test cases
+    // All failed test inputs have small exponents (mostly +/- 3)
+    String val = "128";
+
+    CFloat tested = toTestedImpl(val, 1);
+    CFloat reference = toReferenceImpl(val, 1);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void java_expBug2() {
+    // One of 94 failed tests
+    String val = "6.20027091141992";
+
+    CFloat tested = toTestedImpl(val, 1);
+    CFloat reference = toReferenceImpl(val, 1);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void java_lnBug() {
+    // Only failed test for ln
+    String val = "0.9961249915064813";
+
+    CFloat tested = toTestedImpl(val, 1);
+    CFloat reference = toReferenceImpl(val, 1);
+
+    CFloat r1 = tested.ln();
+    CFloat r2 = reference.ln();
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void java_powBug() {
+    // One of 27 failed tests (+ one actual bug: see powMyFloatBug)
+    // Most failed values are between 0.1 and 1 for both arguments
+    String val1 = "0.7411183464344743";
+    String val2 = "0.047265869196129406";
+
+    CFloat tested1 = toTestedImpl(val1, 1);
+    CFloat tested2 = toTestedImpl(val2, 1);
+
+    CFloat reference1 = toReferenceImpl(val1, 1);
+    CFloat reference2 = toReferenceImpl(val2, 1);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void native_expBug1() {
+    // One of 23 failed tests
+    // All failed tests have small exponents. Values are generally between 0.1 and 1
+    String val = "386.0202221885229";
+
+    CFloat tested = toTestedImpl(val, 1);
+    CFloat reference = toReferenceImpl(val, 1);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void native_expBug2() {
+    // One of 23 failed tests
+    String val = "0.7805213540453771";
+
+    CFloat tested = toTestedImpl(val, 1);
+    CFloat reference = toReferenceImpl(val, 1);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void native_lnBug() {
+    // One of 47 failed tests
+    // All failed values have small exponents. Values are generally between 0.8 and 1
+    String val = "0.9151734892115296";
+
+    CFloat tested = toTestedImpl(val, 1);
+    CFloat reference = toReferenceImpl(val, 1);
+
+    CFloat r1 = tested.ln();
+    CFloat r2 = reference.ln();
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void native_multiplyBug() {
+    // One of 6 failed tests
+    // All failed values are between 0.5 and 1 for both arguments.
+    String val1 = "0.6922930069529333";
+    String val2 = "0.7010389381824046";
+
+    CFloat tested1 = toTestedImpl(val1, 1);
+    CFloat tested2 = toTestedImpl(val2, 1);
+
+    CFloat reference1 = toReferenceImpl(val1, 1);
+    CFloat reference2 = toReferenceImpl(val2, 1);
+
+    CFloat r1 = tested1.multiply(tested2);
+    CFloat r2 = reference1.multiply(reference2);
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void native_powBug() {
+    // One of 41 failed tests (+ one actual bug)
+    // Most failed values are between 0.1 and 1 for both arguments.
+    String val1 = "0.1";
+    String val2 = "0.8388903500470183";
+
+    CFloat tested1 = toTestedImpl(val1, 1);
+    CFloat tested2 = toTestedImpl(val2, 1);
+
+    CFloat reference1 = toReferenceImpl(val1, 1);
+    CFloat reference2 = toReferenceImpl(val2, 1);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void native_divideByBug() {
+    // One of 12 failed tests
+    // Most failed values are between 0.1 and 1 for both arguments.
+    String val1 = "0.24053641567148587";
+    String val2 = "0.6839413314680614";
+
+    CFloat tested1 = toTestedImpl(val1, 1);
+    CFloat tested2 = toTestedImpl(val2, 1);
+
+    CFloat reference1 = toReferenceImpl(val1, 1);
+    CFloat reference2 = toReferenceImpl(val2, 1);
+
+    CFloat r1 = tested1.divideBy(tested2);
+    CFloat r2 = reference1.divideBy(reference2);
 
     assertEqual(r1, r2);
   }
