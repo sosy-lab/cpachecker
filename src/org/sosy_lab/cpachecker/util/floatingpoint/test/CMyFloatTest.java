@@ -127,4 +127,37 @@ public class CMyFloatTest extends CFloatUnitTest {
 
     assertEqual(r1, r2);
   }
+
+  @Test
+  public void native_lnBugTest() {
+    // One of 4 failed inputs
+    // Other values mostly between 0.1 and 1
+    String val = "0.0050035235";
+
+    CFloat tested = toTestedImpl(val, 0);
+    CFloat reference = toReferenceImpl(val, 0);
+
+    CFloat r1 = tested.ln();
+    CFloat r2 = reference.ln();
+
+    assertEqual(r1, r2);
+  }
+
+  @Test
+  public void native_powBugTest() {
+    // Only failed input (other than powBugTest)
+    String val1 = "1.413657E11";
+    String val2 = "-0.14661042";
+
+    CFloat tested1 = toTestedImpl(val1, 0);
+    CFloat tested2 = toTestedImpl(val2, 0);
+
+    CFloat reference1 = toReferenceImpl(val1, 0);
+    CFloat reference2 = toReferenceImpl(val2, 0);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual(r1, r2);
+  }
 }

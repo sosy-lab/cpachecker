@@ -97,7 +97,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   }
 
   @Test
-  public void hardExp1Test() {
+  public void hardExpTest() {
     // Example of a "hard to round" input for the exponential function
     // Taken from "Handbook of Floating-Point Arithmetic", chapter 12
     String val = "7.5417527749959590085206221024712557043923055744016892276704E-10";
