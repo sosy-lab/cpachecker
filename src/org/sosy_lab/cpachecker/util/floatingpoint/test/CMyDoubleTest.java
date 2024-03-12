@@ -42,6 +42,11 @@ public class CMyDoubleTest extends CDoubleUnitTest {
   public ReferenceImpl refImpl;
 
   @Override
+  protected int ulpError() {
+    return refImpl == ReferenceImpl.MPFR ? 0 : 1;
+  }
+
+  @Override
   public CFloat toTestedImpl(String repr, int pFloatType) {
     return new CMyFloat(repr, pFloatType);
   }
@@ -109,7 +114,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested.exp();
     CFloat r2 = reference.exp();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -127,7 +132,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested1.powTo(tested2);
     CFloat r2 = reference1.powTo(reference2);
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -142,7 +147,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested.exp();
     CFloat r2 = reference.exp();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -156,7 +161,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested.exp();
     CFloat r2 = reference.exp();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -170,7 +175,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -189,7 +194,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested1.powTo(tested2);
     CFloat r2 = reference1.powTo(reference2);
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -210,7 +215,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested.exp();
     CFloat r2 = reference.exp();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -227,7 +232,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested.exp();
     CFloat r2 = reference.exp();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -245,7 +250,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   @Test
@@ -264,7 +269,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested1.powTo(tested2);
     CFloat r2 = reference1.powTo(reference2);
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   // Fixed by enabling SSE
@@ -284,7 +289,7 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested1.divideBy(tested2);
     CFloat r2 = reference1.divideBy(reference2);
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 
   // Fixed by enabling SSE
@@ -315,6 +320,6 @@ public class CMyDoubleTest extends CDoubleUnitTest {
     CFloat r1 = tested1.multiply(tested2);
     CFloat r2 = reference1.multiply(reference2);
 
-    assertEqual(r1, r2);
+    assertEqual1Ulp(r1, r2);
   }
 }

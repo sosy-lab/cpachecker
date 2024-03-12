@@ -160,6 +160,10 @@ public abstract class CDoubleUnitTest {
     return String.format("%n%nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
+  // Overload to define the error in ulps for transcendent functions
+  protected abstract int ulpError();
+
+  // Returns a list of all float values in the error range
   private List<String> errorRange(int pDistance, Double pValue) {
     Preconditions.checkArgument(pDistance >= 0);
     if (pValue.isNaN()) {
@@ -352,8 +356,8 @@ public abstract class CDoubleUnitTest {
     }
   }
 
-  protected void assertEqual(CFloat r1, CFloat r2) {
-    assertThat(printValue(r1.toDouble())).isEqualTo(printValue(r2.toDouble()));
+  protected void assertEqual1Ulp(CFloat r1, CFloat r2) {
+    assertThat(printValue(r1.toDouble())).isIn(errorRange(ulpError(), r2.toDouble()));
   }
 
   public abstract CFloat toTestedImpl(String repr, int pFloatType);
@@ -399,17 +403,17 @@ public abstract class CDoubleUnitTest {
 
   @Test
   public void lnTest() {
-    testOperator("ln", 1, (CFloat a) -> a.ln());
+    testOperator("ln", ulpError(), (CFloat a) -> a.ln());
   }
 
   @Test
   public void expTest() {
-    testOperator("exp", 1, (CFloat a) -> a.exp());
+    testOperator("exp", ulpError(), (CFloat a) -> a.exp());
   }
 
   @Test
   public void powToTest() {
-    testOperator("powTo", 1, (CFloat a, CFloat b) -> a.powTo(b));
+    testOperator("powTo", ulpError(), (CFloat a, CFloat b) -> a.powTo(b));
   }
 
   @Test
