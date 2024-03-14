@@ -244,7 +244,9 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     }
 
     AssertionError unwrap() throws InterruptedException, SolverException {
-      Throwables.propagateIfPossible(getCause(), InterruptedException.class, SolverException.class);
+      Throwables.throwIfInstanceOf(getCause(), InterruptedException.class);
+      Throwables.throwIfInstanceOf(getCause(), SolverException.class);
+      Throwables.throwIfUnchecked(getCause());
       throw new AssertionError(this);
     }
   }

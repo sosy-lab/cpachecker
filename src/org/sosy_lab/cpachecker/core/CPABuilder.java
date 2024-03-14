@@ -448,8 +448,8 @@ public class CPABuilder {
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
-      Throwables.propagateIfPossible(cause, CPAException.class);
-
+      Throwables.throwIfInstanceOf(cause, CPAException.class);
+      Throwables.throwIfUnchecked(cause);
       throw new UnexpectedCheckedException("instantiation of CPA " + pCpaName, cause);
     }
 
