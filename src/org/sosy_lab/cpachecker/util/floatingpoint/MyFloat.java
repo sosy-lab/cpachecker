@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -621,26 +622,32 @@ public class MyFloat {
     return this.multiply(this);
   }
 
+  private final Map<Integer, MyFloat> powMap = new HashMap<>();
+
   public MyFloat powInt(int exp) {
     return withPrecision(format.extended()).powInt_(exp).withPrecision(format);
   }
 
   private MyFloat powInt_(int exp) {
-    MyFloat r = powFast(Math.abs(exp));
-    if (exp < 0) {
-      r = one(format).divide_(r);
-    }
-    return r;
+    return powMap.computeIfAbsent(
+        exp,
+        (Integer x) -> {
+          MyFloat r = powFast(Math.abs(x));
+          if (exp < 0) {
+            r = one(format).divide_(r);
+          }
+          return r;
+        });
   }
 
-  public MyFloat powFast(int exp) {
+  private MyFloat powFast(int exp) {
     if (exp == 0) {
       return one(format);
     }
     if (exp == 1) {
       return this;
     }
-    MyFloat r = powFast(exp / 2).squared();
+    MyFloat r = powInt_(exp / 2).squared();
     MyFloat p = exp % 2 == 0 ? one(format) : this;
     return p.multiply(r);
   }
