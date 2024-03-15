@@ -622,12 +622,15 @@ public class MyFloat {
   }
 
   public MyFloat powInt(int exp) {
-    MyFloat t = withPrecision(format.extended());
-    MyFloat r = t.powFast(Math.abs(exp));
+    return withPrecision(format.extended()).powInt_(exp).withPrecision(format);
+  }
+
+  private MyFloat powInt_(int exp) {
+    MyFloat r = powFast(Math.abs(exp));
     if (exp < 0) {
-      r = one(format.extended()).divide_(r);
+      r = one(format).divide_(r);
     }
-    return r.withPrecision(format);
+    return r;
   }
 
   public MyFloat powFast(int exp) {
@@ -898,8 +901,7 @@ public class MyFloat {
     }
 
     MyFloat x = this;
-    MyFloat y = one(format); // During the iteration we set y=x^k
-    MyFloat r = one(format); // Series expansion after k terms
+    MyFloat r = zero(format); // Series expansion after k terms.
 
     // Range reduction:
     // e^(a * 2^x) = e^(a * 2 * 2^x-1) = e^(a*2^x-1 + a*2^x-1) = (e^(a*2^x-1))^2 = ... = (e^a)^(2^x)
@@ -914,13 +916,16 @@ public class MyFloat {
       partial.add(r);
 
       // r(n+1) = r(n) + x^k/k!
-      y = y.multiply(x);
-      r = r.add(y.multiply(expTable.get(k).withPrecision(format)));
+      MyFloat a = x.powInt_(k);
+      MyFloat q = a.multiply(expTable.get(k).withPrecision(format));
+      r = r.add(q);
 
       // Abort once we have enough precision
       done = partial.contains(r);
       k++;
     }
+    // Add the missing first term (it was skipped earlier to improve precision close to zero)
+    r = r.add(one(format));
 
     // Square the result to recover the exponent
     for (int i = 0; i < value.exponent; i++) {
