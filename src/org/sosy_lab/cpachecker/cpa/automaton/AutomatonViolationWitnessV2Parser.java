@@ -325,7 +325,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       if (follow.getType().equals(WaypointType.TARGET)) {
         nextStateId = "X";
         transitions.add(handleTarget(nextStateId, followLine, followColumn, distance));
-        if (stateCounter != segments.size()) {
+        if (stateCounter != segments.size() + 1) {
           logger.log(
               Level.INFO,
               "Target waypoint is not the last waypoint, following waypoints will be ignored!");
