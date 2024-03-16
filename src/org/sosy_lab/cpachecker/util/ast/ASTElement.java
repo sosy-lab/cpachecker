@@ -40,4 +40,23 @@ public class ASTElement {
     }
     return edges;
   }
+
+  @Override
+  public int hashCode() {
+    return location.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+
+    return other instanceof ASTElement a && location.equals(a.location);
+  }
+
+  @Override
+  public String toString() {
+    return "ASTElement at [ " + location + " ]";
+  }
 }

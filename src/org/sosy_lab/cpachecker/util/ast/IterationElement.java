@@ -17,7 +17,6 @@ public class IterationElement extends BranchingElement {
 
   private final Optional<ASTElement> clause;
   private final ASTElement body;
-  private final ASTElement completeElement;
   private final Optional<ASTElement> controllingExpression;
   private final Optional<ASTElement> initClause;
   private final Optional<ASTElement> iterationExpression;
@@ -30,9 +29,9 @@ public class IterationElement extends BranchingElement {
       Optional<FileLocation> pMaybeInitClause,
       Optional<FileLocation> pMaybeIterationExpression,
       ImmutableSet<CFAEdge> pEdges) {
+    super(pIterationStatementLocation, pEdges);
     clause = pClauseLocation.map(x -> determineElement(x, pEdges));
     body = determineElement(pBodyLocation, pEdges);
-    completeElement = determineElement(pIterationStatementLocation, pEdges);
     controllingExpression = pControllingExpression.map(x -> determineElement(x, pEdges));
     initClause = pMaybeInitClause.map(x -> determineElement(x, pEdges));
     iterationExpression = pMaybeIterationExpression.map(x -> determineElement(x, pEdges));
@@ -41,11 +40,6 @@ public class IterationElement extends BranchingElement {
   @Override
   public Optional<ASTElement> getClause() {
     return clause;
-  }
-
-  @Override
-  public ASTElement getCompleteElement() {
-    return completeElement;
   }
 
   @Override

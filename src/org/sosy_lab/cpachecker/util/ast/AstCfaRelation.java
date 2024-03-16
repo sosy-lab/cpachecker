@@ -22,9 +22,26 @@ import org.sosy_lab.cpachecker.util.Pair;
 /** Contains information relating the CFA to the AST of the program. */
 public class AstCfaRelation {
 
+  private record StartingLocation(int column, int line) implements Comparable<StartingLocation> {
+    @Override
+    public int compareTo(StartingLocation pStartingLocation) {
+      if (line != pStartingLocation.line) {
+        return Integer.compare(line, pStartingLocation.line);
+      } else {
+        return Integer.compare(column, pStartingLocation.column);
+      }
+    }
+  }
+
   private final ImmutableSet<IfElement> ifElements;
 
   private final ImmutableSet<IterationElement> iterationStructures;
+
+  private ImmutableSet<StatementElement> statementElements;
+
+  @LazyInit
+  private ImmutableSortedMap<StartingLocation, ASTElement> startingLocationToTightestStatement =
+      null;
 
   private final ImmutableSortedMap<Integer, FileLocation> statementOffsetsToLocations;
 
@@ -36,10 +53,12 @@ public class AstCfaRelation {
   public AstCfaRelation(
       ImmutableSet<IfElement> pIfElements,
       ImmutableSet<IterationElement> pIterationStructures,
-      ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations) {
+      ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations,
+      ImmutableSet<StatementElement> pStatementElements) {
     ifElements = pIfElements;
     iterationStructures = pIterationStructures;
     statementOffsetsToLocations = pStatementOffsetsToLocations;
+    statementElements = pStatementElements;
   }
 
   /**
@@ -142,5 +161,31 @@ public class AstCfaRelation {
     }
 
     return Optional.empty();
+  }
+
+  private void initializeMapFromStartingLocationToTightestStatement() {
+    if (startingLocationToTightestStatement != null) {
+      return;
+    }
+    ImmutableSortedMap.Builder<StartingLocation, ASTElement> builder =
+        ImmutableSortedMap.naturalOrder();
+    for (StatementElement element : statementElements) {
+      StartingLocation key =
+          new StartingLocation(
+              element.getCompleteElement().location().getStartColumnInLine(),
+              element.getCompleteElement().location().getStartingLineNumber());
+      builder.put(key, element.getCompleteElement());
+    }
+    startingLocationToTightestStatement = builder.buildOrThrow();
+  }
+
+  public ASTElement getTightestStatementForStarting(int pLine, int pColumn) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
+    }
+
+    return Objects.requireNonNull(
+            startingLocationToTightestStatement.floorEntry(new StartingLocation(pColumn, pLine)))
+        .getValue();
   }
 }

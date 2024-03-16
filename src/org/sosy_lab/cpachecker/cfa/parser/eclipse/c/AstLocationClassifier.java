@@ -34,6 +34,8 @@ class AstLocationClassifier extends ASTVisitor {
   private final ImmutableSortedMap.Builder<Integer, FileLocation> statementOffsetsToLocations =
       ImmutableSortedMap.naturalOrder();
 
+  private final ImmutableSet.Builder<FileLocation> statementLocations =
+      new ImmutableSet.Builder<>();
   private final ImmutableSet.Builder<FileLocation> compoundLocations = new ImmutableSet.Builder<>();
 
   private final ImmutableSet.Builder<FileLocation> labelLocations = new ImmutableSet.Builder<>();
@@ -79,6 +81,10 @@ class AstLocationClassifier extends ASTVisitor {
     }
   }
 
+  /**
+   * Different than as defined in the C-Standard statement also include declarations. For example
+   * `int i = 0;` is a statement according to the eclipse CDT Parser, but not in the C-Standard.
+   */
   @Override
   public int visit(IASTStatement statement) {
     FileLocation loc = getLocation(statement);
@@ -96,6 +102,7 @@ class AstLocationClassifier extends ASTVisitor {
       handleIfStatement(statement);
     }
     statementOffsetsToLocations.put(loc.getNodeOffset(), loc);
+    statementLocations.add(loc);
     return PROCESS_CONTINUE;
   }
 
@@ -224,5 +231,13 @@ class AstLocationClassifier extends ASTVisitor {
 
   public ImmutableMap<FileLocation, FileLocation> getIfElseClause() {
     return ifElseClause.buildOrThrow();
+  }
+
+  public ImmutableSet<FileLocation> getDeclarationLocations() {
+    return compoundLocations.build();
+  }
+
+  public ImmutableSet<FileLocation> getStatementLocations() {
+    return statementLocations.build();
   }
 }

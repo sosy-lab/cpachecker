@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -12,11 +12,11 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public class StatementElement {
+public class DeclarationElement {
 
   private final ASTElement completeElement;
 
-  public StatementElement(FileLocation pStatementLocation, ImmutableSet<CFAEdge> pEdges) {
+  public DeclarationElement(FileLocation pStatementLocation, ImmutableSet<CFAEdge> pEdges) {
     completeElement = determineElement(pStatementLocation, pEdges);
   }
 

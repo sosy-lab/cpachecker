@@ -22,8 +22,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class IfElement extends StatementElement {
-
-  private final ASTElement completeElement;
   private final ASTElement conditionElement;
   private final ASTElement thenElement;
   private final Optional<ASTElement> maybeElseElement;
@@ -40,15 +38,10 @@ public class IfElement extends StatementElement {
       FileLocation pThenLocation,
       Optional<FileLocation> pMaybeElseLocation,
       ImmutableSet<CFAEdge> pEdges) {
-    completeElement = determineElement(pIfLocation, pEdges);
+    super(pIfLocation, pEdges);
     conditionElement = determineElement(pConditionLocation, pEdges);
     thenElement = determineElement(pThenLocation, pEdges);
     maybeElseElement = pMaybeElseLocation.map(x -> determineElement(x, pEdges));
-  }
-
-  @Override
-  public ASTElement getCompleteElement() {
-    return completeElement;
   }
 
   public ASTElement getConditionElement() {

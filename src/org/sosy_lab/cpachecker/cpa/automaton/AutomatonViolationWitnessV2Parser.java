@@ -37,11 +37,13 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersIfBranch;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -98,12 +100,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // any successors in the ARG, since the verification stops there. Therefore handling targets
     // the same way as with assumptions would not work. As an overapproximation we use the
     // covers to present the desired functionality.
-    AutomatonBoolExpr expr =
-        new And(
-            new CheckCoversColumnAndLine(followColumn, followLine),
-            // Edges which correspond to blocks in the code, like function declaration edges and
-            // iteration statement edges may fulfill the condition, but are not always desired.
-            new IsStatementEdge());
+    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine);
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -119,7 +116,8 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
    *
    * @param nextStateId the id of the next state in the automaton being constructed
    * @param followLine the line at which the target is
-   * @param followColumn the column at which the target is
+   * @param enterElement the element in the AST that should be entered in order to pass this
+   *     waypoint
    * @param function the function in which the waypoint is valid
    * @param pDistanceToViolation the distance to the violation
    * @param constraint the constraint
@@ -129,8 +127,8 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
    */
   private AutomatonTransition handleAssumption(
       String nextStateId,
-      Integer followLine,
-      Integer followColumn,
+      ASTElement enterElement,
+      int followLine,
       String function,
       Integer pDistanceToViolation,
       String constraint)
@@ -141,12 +139,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // "An assumption waypoint is evaluated at the sequence point immediately before the
     // waypoint location. The waypoint is passed if the given constraint evaluates to true."
     // Therefore, we need the Reaches Offset guard.
-    AutomatonBoolExpr expr =
-        new And(
-            new CheckCoversColumnAndLine(followColumn, followLine),
-            // Edges which correspond to blocks in the code, like function declaration edges and
-            // iteration statement edges may fulfill the condition, but are not always desired.
-            new IsStatementEdge());
+    AutomatonBoolExpr expr = new CheckReachesElement(enterElement);
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -308,7 +301,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         new ImmutableList.Builder<>();
     String currentStateId = initState;
 
-    int distance = segments.size();
+    int distance = segments.size() - 1;
 
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
@@ -330,13 +323,24 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
               Level.INFO,
               "Target waypoint is not the last waypoint, following waypoints will be ignored!");
         }
+        // Add the state directly, since we are exiting the loop afterwards
+        automatonStates.add(
+            new AutomatonInternalState(
+                currentStateId,
+                transitions.build(),
+                /* pIsTarget= */ false,
+                /* pAllTransitions= */ false,
+                /* pIsCycleStart= */ false));
+        currentStateId = nextStateId;
         break;
       } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
+        ASTElement element =
+            cfa.getASTStructure().getTightestStatementForStarting(followLine, followColumn);
         transitions.add(
             handleAssumption(
                 nextStateId,
+                element,
                 followLine,
-                followColumn,
                 follow.getLocation().getFunction(),
                 distance,
                 follow.getConstraint().getValue()));
@@ -406,7 +410,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
             AutomatonVariable.createAutomatonVariable(
                 /* pType= */ "int",
                 AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-                Integer.toString(segments.size() + 1)));
+                Integer.toString(segments.size())));
 
     Automaton automaton;
     try {

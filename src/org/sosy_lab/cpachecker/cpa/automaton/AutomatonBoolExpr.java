@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -235,6 +236,84 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public boolean equals(Object o) {
       return o instanceof CheckCoversOffsetAndLine c && offsetToReach == c.offsetToReach;
+    }
+  }
+
+  /** Checks if the current edge is contained within the ASTElement. */
+  public static class CheckEntersElement implements AutomatonBoolExpr {
+
+    private final ASTElement elementToEnter;
+
+    public CheckEntersElement(ASTElement pElement) {
+      elementToEnter = pElement;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (elementToEnter.edges().contains(edge)) {
+        return CONST_TRUE;
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "FOLLOW_ELEMENT(" + elementToEnter + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return elementToEnter.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+
+      return o instanceof CheckEntersElement c && elementToEnter.equals(c.elementToEnter);
+    }
+  }
+
+  /** Sees if any successor of the current edge fulfills {@link CheckEntersElement} */
+  public static class CheckReachesElement implements AutomatonBoolExpr {
+
+    private final ASTElement elementToEnter;
+
+    public CheckReachesElement(ASTElement pElement) {
+      elementToEnter = pElement;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (CFAUtils.leavingEdges(edge.getSuccessor())
+          .anyMatch(e -> elementToEnter.edges().contains(e))) {
+        return CONST_TRUE;
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "REACHES_ELEMENT(" + elementToEnter + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return elementToEnter.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+
+      return o instanceof CheckReachesElement c && elementToEnter.equals(c.elementToEnter);
     }
   }
 

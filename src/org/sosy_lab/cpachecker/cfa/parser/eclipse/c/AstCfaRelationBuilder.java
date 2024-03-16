@@ -18,8 +18,10 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.DeclarationElement;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.ast.StatementElement;
 
 class AstCfaRelationBuilder {
 
@@ -34,7 +36,8 @@ class AstCfaRelationBuilder {
     return new AstCfaRelation(
         getIfStructures(pEdges, classifier),
         getIterationStructures(pEdges, classifier),
-        classifier.getStatementOffsetsToLocations());
+        classifier.getStatementOffsetsToLocations(),
+        getStatementStructures(pEdges, classifier));
   }
 
   private static ImmutableSet<IfElement> getIfStructures(
@@ -78,5 +81,24 @@ class AstCfaRelationBuilder {
               pEdges));
     }
     return iterationStructures.build();
+  }
+
+  @SuppressWarnings("unused")
+  private static ImmutableSet<DeclarationElement> getDeclarationStructures(
+      ImmutableSet<CFAEdge> pEdges, AstLocationClassifier classifier) {
+    ImmutableSet.Builder<DeclarationElement> declarationStructures = new ImmutableSet.Builder<>();
+    for (FileLocation loc : classifier.getDeclarationLocations()) {
+      declarationStructures.add(new DeclarationElement(loc, pEdges));
+    }
+    return declarationStructures.build();
+  }
+
+  private static ImmutableSet<StatementElement> getStatementStructures(
+      ImmutableSet<CFAEdge> pEdges, AstLocationClassifier classifier) {
+    ImmutableSet.Builder<StatementElement> statementStructures = new ImmutableSet.Builder<>();
+    for (FileLocation loc : classifier.getStatementLocations()) {
+      statementStructures.add(new StatementElement(loc, pEdges));
+    }
+    return statementStructures.build();
   }
 }
