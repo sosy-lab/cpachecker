@@ -5078,5 +5078,8 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # the current one.
 witness.validation.violation.config = no default value
 
+# Export all information contained in the counterexample as a witness.
+witness.yamlexporter.exportCompleteCounterexample = false
+
 # The version for which to export the witness.
 witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]
