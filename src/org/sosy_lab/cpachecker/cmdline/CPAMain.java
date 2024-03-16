@@ -673,14 +673,19 @@ public class CPAMain {
     } else {
       WitnessType witnessType;
       try {
-        Optional<WitnessType> optionalWitnessType =
-            AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
-        if (optionalWitnessType.isPresent()) {
-          witnessType = optionalWitnessType.orElseThrow();
+        // If a GraphML witness is parse first, then the parsing produces the error message "[Fatal
+        // Error] :1:1: Content is not allowed in prolog." which is printed directly to
+        // stdout/stderr. This is not desired in CPAchecker. For the meaning of the error see:
+        // https://stackoverflow.com/questions/11577420/fatal-error-11-content-is-not-allowed-in-prolog
+        Optional<WitnessType> optionalWitnessTypeYAML =
+            AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(options.witness);
+        if (optionalWitnessTypeYAML.isPresent()) {
+          witnessType = optionalWitnessTypeYAML.orElseThrow();
         } else {
-          optionalWitnessType = AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(options.witness);
-          if (optionalWitnessType.isPresent()) {
-            witnessType = optionalWitnessType.orElseThrow();
+          Optional<WitnessType> optionalWitnessTypeGraphML =
+              AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
+          if (optionalWitnessTypeGraphML.isPresent()) {
+            witnessType = optionalWitnessTypeGraphML.orElseThrow();
           } else {
             throw new InvalidConfigurationException(
                 "The Witness format found for " + options.witness + " is currently not supported.");
