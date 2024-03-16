@@ -12,8 +12,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimaps;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,6 +19,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -29,11 +28,13 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -88,6 +89,78 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         WaypointRecord.WaypointAction.FOLLOW,
         informationRecord,
         location);
+  }
+
+  /**
+   * Waypoints cannot be exported at every possible location. This method checks if the current edge
+   * is a possible location for an assumption waypoint and if so, exports it.
+   *
+   * @param pEdge the edge for which to export the assumption waypoint
+   * @param pEdgeToAssumptions the assumptions at each edge
+   * @param edgeToCurrentExpressionIndex the index of the current assumption at each edge
+   * @param pAstCfaRelation the mapping between the AST and the CFA
+   * @return an assumption waypoint if the edge is a possible location for an assumption waypoint,
+   *     otherwise an empty optional
+   */
+  private Optional<WaypointRecord> handleAssumptionWhenAtPossibleLocation(
+      CFAEdge pEdge,
+      ImmutableListMultimap<CFAEdge, AExpressionStatement> pEdgeToAssumptions,
+      Map<CFAEdge, Integer> edgeToCurrentExpressionIndex,
+      AstCfaRelation pAstCfaRelation) {
+
+    // Do not consider edges which are added internally by CPAchecker, since this may duplicate
+    // assumptions
+    if (pEdge.toString().contains("__CPAchecker_TMP")) {
+      return Optional.empty();
+    }
+
+    // Do not consider elements which have no assumptions
+    if (!(pEdgeToAssumptions.containsKey(pEdge)
+        && edgeToCurrentExpressionIndex.containsKey(pEdge))) {
+      return Optional.empty();
+    }
+
+    // Currently, it is unclear what to do with assumptions where the next statement is after a
+    // function return. Since the variables for the assumptions may not be in scope.
+    // TODO: Add a method to export these assumptions
+    if (!CFAUtils.leavingEdges(pEdge.getSuccessor())
+        .transform(CFAEdge::getSuccessor)
+        .filter(FunctionExitNode.class)
+        .isEmpty()) {
+      return Optional.empty();
+    }
+
+    // Currently, it is unclear what to do with assumptions where the next statement is after a
+    // function call, since if the variable is a global variable, then it will be in scope, but if
+    // it is a local variable, then it will not be in scope. There are methods to check this, see
+    // for example outOfScopeVariables in a CFANode.
+    // TODO: Add a method to export these assumptions
+    if (!CFAUtils.leavingEdges(pEdge.getSuccessor())
+        .filter(CDeclarationEdge.class)
+        .transform(CDeclarationEdge::getDeclaration)
+        .filter(CFunctionDeclaration.class)
+        .isEmpty()) {
+      return Optional.empty();
+    }
+
+    // Blank edges are usually a sign that we are returning to a loop head, calling a function or
+    // returning from a function. Since the AST
+    // location following the end of the loop is simply the next statement, we need to export
+    // this assumption at the next possible edge location where the variable is in scope.
+    // Since currently there is no straightforward way to do this, we simply do not export these
+    // waypoints currently
+    // TODO: Add a method to export these assumptions
+    if (!CFAUtils.leavingEdges(pEdge.getSuccessor()).filter(BlankEdge.class).isEmpty()
+        || pEdge instanceof BlankEdge) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        handleAssumptionWaypoint(
+            ImmutableList.of(
+                pEdgeToAssumptions.get(pEdge).get(edgeToCurrentExpressionIndex.get(pEdge))),
+            pEdge,
+            pAstCfaRelation));
   }
 
   /**
@@ -150,52 +223,21 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     //  The location has to point to the beginning of a statement.'
     // Therefore an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
-    ImmutableMultimap<CFAEdge, CFAEdge> cfaEdgesOccurences =
-        Multimaps.index(edges.iterator(), key -> key);
-
     for (CFAEdge edge : edges) {
       // See if the edge contains an assignment of a VerifierNondet call
       List<WaypointRecord> waypoints = new ArrayList<>();
 
       if (CFAUtils.assignsNondetFunctionCall(edge)) {
-        // Since waypoints are considered one after the other if an edge occurs more than once with
-        // possibly different assumptions in the counterexample path, if not all are exported then
-        // there may be a wrong matching
-        if (cfaEdgesOccurences.get(edge).size() == 1) {
+
+        Optional<WaypointRecord> assumptionWaypoint =
+            handleAssumptionWhenAtPossibleLocation(
+                edge, edgeToAssumptions, edgeToCurrentExpressionIndex, astCFARelation);
+
+        if (assumptionWaypoint.isEmpty()) {
           continue;
         }
 
-        // Do not consider elements which have no assumptions
-        if (!(edgeToAssumptions.containsKey(edge)
-            && edgeToCurrentExpressionIndex.containsKey(edge))) {
-          continue;
-        }
-
-        // Currently it is unclear what to do with assumptions where the next statement is after a
-        // function return. Since the variables for the assumptions may not be in scope.
-        if (!CFAUtils.leavingEdges(edge.getSuccessor())
-            .transform(CFAEdge::getSuccessor)
-            .filter(FunctionExitNode.class)
-            .isEmpty()) {
-          continue;
-        }
-
-        // Blank edges are usually a sign that we are returning to a loop head. Since the AST
-        // location following the end of the loop is simply the next statement, we need to export
-        // this assumption at the next possible edge location where the variable is in scope.
-        // Since currently there is no straightforward way to do this, we simply do not export these
-        // waypoints currently
-        // TODO: Add a method to export these assumptions
-        if (!CFAUtils.leavingEdges(edge.getSuccessor()).filter(BlankEdge.class).isEmpty()) {
-          continue;
-        }
-
-        waypoints.add(
-            handleAssumptionWaypoint(
-                ImmutableList.of(
-                    edgeToAssumptions.get(edge).get(edgeToCurrentExpressionIndex.get(edge))),
-                edge,
-                astCFARelation));
+        waypoints.add(assumptionWaypoint.orElseThrow());
       } else if (edge instanceof AssumeEdge assumeEdge) {
         // Without the AST structure we cannot guarantee that we are exporting at the beginning of
         // an iteration or if statement
@@ -222,6 +264,17 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         }
 
         waypoints.add(handleBranchingWaypoint(ifElement, assumeEdge));
+      } else if (exportCompleteCounterexample) {
+        // Export all other edges which are not absolutely relevant for the counterexample
+        Optional<WaypointRecord> assumptionWaypoint =
+            handleAssumptionWhenAtPossibleLocation(
+                edge, edgeToAssumptions, edgeToCurrentExpressionIndex, astCFARelation);
+
+        if (assumptionWaypoint.isEmpty()) {
+          continue;
+        }
+
+        waypoints.add(assumptionWaypoint.orElseThrow());
       }
 
       if (!waypoints.isEmpty()) {

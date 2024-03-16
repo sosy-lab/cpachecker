@@ -41,7 +41,13 @@ abstract class AbstractYAMLWitnessExporter {
   @Option(secure = true, description = "The version for which to export the witness.")
   protected List<YAMLWitnessVersion> witnessVersions = ImmutableList.of(YAMLWitnessVersion.V2);
 
+  @Option(
+      secure = true,
+      description = "Export all information contained in the counterexample as a witness.")
+  protected boolean exportCompleteCounterexample = false;
+
   protected final CFA cfa;
+
   protected final LogManager logger;
   private final Specification specification;
   protected final ObjectMapper mapper;
