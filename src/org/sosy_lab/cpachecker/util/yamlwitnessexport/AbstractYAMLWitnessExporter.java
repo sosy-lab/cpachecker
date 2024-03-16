@@ -90,12 +90,7 @@ abstract class AbstractYAMLWitnessExporter {
       String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
       writer.write(entryYaml);
     } catch (JsonProcessingException e) {
-      logger.logDebugException(
-          e,
-          "witness export to "
-              + outFile
-              + " was not possible due to an error when transforming "
-              + "the internal witness data structure into a YAML string.");
+      throw new AssertionError(e);
     } catch (IOException e) {
       logger.logUserException(
           Level.INFO,
