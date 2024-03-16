@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -25,11 +26,10 @@ public class AstCfaRelation {
   private record StartingLocation(int column, int line) implements Comparable<StartingLocation> {
     @Override
     public int compareTo(StartingLocation pStartingLocation) {
-      if (line != pStartingLocation.line) {
-        return Integer.compare(line, pStartingLocation.line);
-      } else {
-        return Integer.compare(column, pStartingLocation.column);
-      }
+      return ComparisonChain.start()
+          .compare(line, pStartingLocation.line)
+          .compare(column, pStartingLocation.column)
+          .result();
     }
   }
 
