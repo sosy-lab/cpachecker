@@ -945,7 +945,70 @@ public class MyFloat {
     return withPrecision(format.extended()).ln_().withPrecision(format);
   }
 
+  private static Map<Integer, MyFloat> mkLnTable(Format pFormat) {
+    ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
+    for (int k = 1; k < 100; k++) {
+      // Calculate 1/k and store the values in the table
+      builder.put(k, one(pFormat).divide_(constant(pFormat, k)));
+    }
+    return builder.buildOrThrow();
+  }
+
+  // Table contains terms 1/k for k=1..100
+  private static final Map<Integer, MyFloat> lnTable = mkLnTable(Format.Float256);
+
   private MyFloat ln_() {
+    if (isZero()) {
+      return negativeInfinity(format);
+    }
+    if (isNan() || isNegative()) {
+      return nan(format);
+    }
+    if (isInfinite()) {
+      return infinity(format);
+    }
+    if (isOne()) {
+      return zero(format);
+    }
+
+    // TODO: These constants should be declared only once for each supported precision
+    MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
+    MyFloat c3d2 =
+        new MyFloat(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
+
+    MyFloat x = this;
+    int preprocess = 0;
+    while (x.greaterThan(c3d2) || c1d2.greaterThan(x)) {
+      x = x.sqrt_();
+      preprocess++;
+    }
+
+    MyFloat r = x.subtract(one(format)).ln1p();
+    MyFloat p = r.withExponent(r.value.exponent + preprocess);
+
+    return p;
+  }
+
+  public MyFloat ln1p() {
+    MyFloat x = this;
+    MyFloat r = zero(format);
+
+    for (int k = 1; k < 100; k++) { // fill the cache with values
+      powInt_(k);
+    }
+
+    // We calculate the sum backwards to avoid rounding errors
+    for (int k = 99; k >= 1; k--) { // TODO: Find a proper bound for the number of iterations.
+      // Calculate the next term x^k/k
+      MyFloat a = x.powInt_(k);
+      MyFloat b = a.multiply(lnTable.get(k).withPrecision(format));
+
+      r = r.add(k % 2 == 0 ? b.negate() : b); // Add the term to the sum
+    }
+    return r;
+  }
+
+  private MyFloat lnNewton_() {
     if (isZero()) {
       return negativeInfinity(format);
     }
