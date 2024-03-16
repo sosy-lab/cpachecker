@@ -27,10 +27,10 @@ public abstract class AExpressionAssignmentStatement extends AbstractStatement
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return leftHandSide.toASTString(pQualified)
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return leftHandSide.toASTString(pQualified, pOriginalVariableNames)
         + " = "
-        + rightHandSide.toASTString(pQualified)
+        + rightHandSide.toASTString(pQualified, pOriginalVariableNames)
         + ";";
   }
 

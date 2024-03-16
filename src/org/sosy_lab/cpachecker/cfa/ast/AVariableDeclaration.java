@@ -43,18 +43,20 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     StringBuilder lASTString = new StringBuilder();
 
     if (pQualified) {
       lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
+    } else if (pOriginalVariableNames) {
+      lASTString.append(getType().toASTString(getOrigName()));
     } else {
       lASTString.append(getType().toASTString(getName()));
     }
 
     if (initializer != null) {
       lASTString.append(" = ");
-      lASTString.append(initializer.toASTString(pQualified));
+      lASTString.append(initializer.toASTString(pQualified, pOriginalVariableNames));
     }
 
     lASTString.append(";");

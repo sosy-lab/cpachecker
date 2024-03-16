@@ -36,12 +36,12 @@ public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     String left =
         (arrayExpression instanceof AArraySubscriptExpression)
-            ? arrayExpression.toASTString(pQualified)
-            : arrayExpression.toParenthesizedASTString(pQualified);
-    return left + "[" + subscriptExpression.toASTString(pQualified) + "]";
+            ? arrayExpression.toASTString(pQualified, pOriginalVariableNames)
+            : arrayExpression.toParenthesizedASTString(pQualified, pOriginalVariableNames);
+    return left + "[" + subscriptExpression.toASTString(pQualified, pOriginalVariableNames) + "]";
   }
 
   @Override

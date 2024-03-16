@@ -21,8 +21,8 @@ public abstract class AExpressionStatement extends AbstractStatement {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return expression.toASTString(pQualified) + ";";
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return expression.toASTString(pQualified, pOriginalVariableNames) + ";";
   }
 
   public AExpression getExpression() {

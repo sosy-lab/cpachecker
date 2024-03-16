@@ -76,7 +76,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     return toASTString();
   }
 

@@ -120,7 +120,7 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     return toASTString();
   }
 
