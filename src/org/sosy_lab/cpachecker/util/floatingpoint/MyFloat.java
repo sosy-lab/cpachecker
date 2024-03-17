@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -876,22 +877,104 @@ public class MyFloat {
     // Multiply the inverse square root with f again to get the square root itself.
     x = x.multiply(f);
 
-    // Restore the exponent by multiplying with 2^m. Then convert the result back to float.
+    // Restore the exponent by multiplying with 2^m
     MyFloat r = one(format).withExponent(exponent / 2);
     return x.multiply(r);
   }
 
+  // Strip invalid digits from the significand. This assumes that the number is transcendent.
+  private MyFloat validPart() {
+    // In round to nearest invalid digits follow one of two patterns:
+    // 1(0)+ or 1(0)+
+    // After truncating these bits from the end all other digits are equal to the digits of the
+    // infinite actual number.
+    if (isZero() || isNan() || isInfinite()) {
+      return this;
+    }
+    BigInteger significand = value.significand;
+    boolean last = significand.testBit(0);
+
+    // Search for the pattern
+    int trailing = 1;
+    do {
+      significand = significand.shiftRight(1);
+      trailing++;
+    } while (significand.testBit(0) == last);
+
+    significand = significand.shiftRight(1);
+
+    if (significand.equals(BigInteger.ZERO)) {
+      // Can happen if the number was 2^k, or the largest subnormal number in the format
+      return zero(format);
+    }
+    return new MyFloat(
+        new Format(format.expBits, format.sigBits - trailing),
+        value.sign,
+        value.exponent,
+        significand);
+  }
+
+  // Returns the next larger floating point number
+  private MyFloat plus1Ulp() {
+    BigInteger significand = BigInteger.ONE.shiftLeft(format.sigBits);
+    long exponent = value.exponent - format.sigBits;
+    MyFloat ulp = new MyFloat(format, value.sign, exponent, significand);
+    return ulp.add(this);
+  }
+
+  // Compare two m-float numbers for equality when rounded to lower precision p
+  private boolean equalModuloP(MyFloat a, MyFloat b) {
+    return a.withPrecision(format).equals(b.withPrecision(format));
+  }
+
+  // Check if an m-float number is stable in precision p
+  private boolean isStable(MyFloat r) {
+    return equalModuloP(r, r.plus1Ulp());
+  }
+
   public MyFloat exp() {
-    return withPrecision(format.extended()).exp_().withPrecision(format);
+    Format fp1 = new Format(format.expBits, format.sigBits + 10);
+    Format fp2 = format.extended();
+    Format fp3 = fp2.extended();
+
+    MyFloat r = nan(format);
+    boolean done = false;
+
+    for(Format p : List.of(fp1, fp2, fp3)) {
+
+      MyFloat x = this.withPrecision(p);
+      MyFloat ex = x.exp_().validPart();
+
+      if (isStable(ex)) {
+        done = true;
+        r = ex;
+      }
+    }
+    return r.withPrecision(format);
+  }
+
+  private static final Map<Integer, BigInteger> facMap = new HashMap<>();
+
+  private static BigInteger fac(int k) {
+    return facMap.computeIfAbsent(k, MyFloat::fac_);
+  }
+
+  private static BigInteger fac_(Integer k) {
+    if (k == 0 || k == 1) {
+      return BigInteger.ONE;
+    }
+    return fac(k-1).multiply(BigInteger.valueOf(k));
   }
 
   private static Map<Integer, MyFloat> mkExpTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
     MyFloat next = one(pFormat);
+    builder.put(0, next);
     for (int k = 1; k < 100; k++) {
       // Calculate 1/k! and store the values in the table
       next = next.multiply(constant(pFormat, BigInteger.valueOf(k)));
       builder.put(k, one(pFormat).divide_(next));
+      //  builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k))));
     }
     return builder.buildOrThrow();
   }
@@ -907,8 +990,10 @@ public class MyFloat {
       return isNegative() ? zero(format) : infinity(format);
     }
 
+    Format fp1 = new Format(format.expBits, format.sigBits + 3);
+
     MyFloat x = this;
-    MyFloat r = zero(format); // Series expansion after k terms.
+    MyFloat r = zero(fp1); // Series expansion after k terms.
 
     // Range reduction:
     // e^(a * 2^x) = e^(a * 2 * 2^x-1) = e^(a*2^x-1 + a*2^x-1) = (e^(a*2^x-1))^2 = ... = (e^a)^(2^x)
@@ -916,33 +1001,48 @@ public class MyFloat {
       x = x.withExponent(0);
     }
 
-    boolean done = false;
-    List<MyFloat> partial = new ArrayList<>();
-    int k = 1;
-    while (!done) {
-      partial.add(r);
-
-      // r(n+1) = r(n) + x^k/k!
+    ImmutableList.Builder<MyFloat> terms = ImmutableList.builder();
+    for(int k=0; k<40; k++) {
       MyFloat a = x.powInt_(k);
-      MyFloat q = a.multiply(expTable.get(k).withPrecision(format));
-      r = r.add(q);
-
-      // Abort once we have enough precision
-      done = partial.contains(r);
-      k++;
+      terms.add(a.multiply(expTable.get(k).withPrecision(format)));
     }
-    // Add the missing first term (it was skipped earlier to improve precision close to zero)
-    r = r.add(one(format));
+
+    // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
+    // some rounding issues.)
+    List<MyFloat> sorted =
+        terms.build().stream().sorted(
+            (o1, o2)-> (int) (o1.value.exponent - o2.value.exponent)).toList();
+    for (MyFloat v : sorted) {
+      r = r.add(v.withPrecision(fp1));
+    }
 
     // Square the result to recover the exponent
     for (int i = 0; i < value.exponent; i++) {
       r = r.squared();
     }
-    return r;
+    return r.withPrecision(format);
   }
 
   public MyFloat ln() {
-    return withPrecision(format.extended()).ln_().withPrecision(format);
+    Format fp1 = new Format(format.expBits, format.sigBits + 10);
+    Format fp2 = format.extended();
+    Format fp3 = fp2.extended();
+
+    MyFloat r = nan(format);
+    boolean done = false;
+
+    for(Format p : List.of(fp1, fp2, fp3)) {
+      if (!done) {
+        MyFloat x = this.withPrecision(p);
+        MyFloat lnx = x.ln_2().validPart();
+
+        if (isStable(lnx)) {
+          done = true;
+          r = lnx;
+        }
+      }
+    }
+    return r.withPrecision(format);
   }
 
   private static Map<Integer, MyFloat> mkLnTable(Format pFormat) {
@@ -989,12 +1089,35 @@ public class MyFloat {
     return p;
   }
 
+  public MyFloat ln_2() {
+    if (isZero()) {
+      return negativeInfinity(format);
+    }
+    if (isNan() || isNegative()) {
+      return nan(format);
+    }
+    if (isInfinite()) {
+      return infinity(format);
+    }
+    if (isOne()) {
+      return zero(format);
+    }
+
+    MyFloat ln2 = constant(Format.Float256, 2).sqrt_().subtract(one(Format.Float256)).ln1p();
+    ln2 = ln2.withExponent(ln2.value.exponent + 1).withPrecision(format);
+
+    MyFloat a = withExponent(-1).subtract(one(format)).ln1p();
+    MyFloat b = constant(format, (int) value.exponent + 1).multiply(ln2);
+
+    return a.add(b);
+  }
+
   public MyFloat ln1p() {
     MyFloat x = this;
     MyFloat r = zero(format);
 
     for (int k = 1; k < 100; k++) { // fill the cache with values
-      powInt_(k);
+      x.powInt_(k);
     }
 
     // We calculate the sum backwards to avoid rounding errors
@@ -1055,12 +1178,6 @@ public class MyFloat {
   }
 
   public MyFloat pow(MyFloat exponent) {
-    MyFloat a = withPrecision(format.extended());
-    MyFloat x = exponent.withPrecision(format.extended());
-    return a.pow_(x).withPrecision(format);
-  }
-
-  private MyFloat pow_(MyFloat exponent) {
     MyFloat a = this;
     MyFloat x = exponent;
 
@@ -1129,12 +1246,40 @@ public class MyFloat {
       return nan(format);
     }
 
+    MyFloat r = a.abs().pow_(exponent);
     if (a.isNegative()) {
-      // -a^x where x is an integer: We calculate a^x and then set the sign to -1^x
-      MyFloat r = x.multiply(a.abs().ln_()).exp_();
-      return x.isOddInteger() ? r.negate() : r;
+      // Fix the sign if `a` was negative and x an integer
+      r = r.withSign(x.isOddInteger());
     }
-    return x.multiply(a.ln_()).exp_();
+    return r;
+  }
+
+  private MyFloat pow_(MyFloat exponent) {
+    Format fp1 = new Format(format.expBits, format.sigBits + 10);
+    Format fp2 = format.extended();
+    Format fp3 = fp2.extended();
+
+    MyFloat r = nan(format);
+    boolean done = false;
+
+    for(Format p : List.of(fp1, fp2, fp3)) {
+      if (!done) {
+        MyFloat a = this.withPrecision(p);
+        MyFloat x = exponent.withPrecision(p);
+        MyFloat lna = a.ln_2();
+        MyFloat xlna = x.multiply(lna).validPart();
+
+        MyFloat hi = xlna.plus1Ulp().exp_();
+        MyFloat lo = xlna.exp_();
+
+        if (equalModuloP(hi, lo) && isStable(hi)) {
+          // TODO: Does isValid already follow from RN(e^hi) == RN(e^lo)?
+          done = true;
+          r = hi;
+        }
+      }
+    }
+    return r.withPrecision(format);
   }
 
   public enum RoundingMode {
