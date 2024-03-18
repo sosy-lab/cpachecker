@@ -951,7 +951,7 @@ public class MyFloat {
     MyFloat r = nan(format);
     boolean done = false;
 
-    for(Format p : List.of(fp1, fp2, fp3)) {
+    for (Format p : List.of(fp1, fp2, fp3)) {
 
       MyFloat x = this.withPrecision(p);
       MyFloat ex = x.exp_().validPart();
@@ -974,7 +974,7 @@ public class MyFloat {
     if (k == 0 || k == 1) {
       return BigInteger.ONE;
     }
-    return fac(k-1).multiply(BigInteger.valueOf(k));
+    return fac(k - 1).multiply(BigInteger.valueOf(k));
   }
 
   private static Map<Integer, MyFloat> mkExpTable(Format pFormat) {
@@ -1013,7 +1013,7 @@ public class MyFloat {
     }
 
     ImmutableList.Builder<MyFloat> terms = ImmutableList.builder();
-    for(int k=0; k<40; k++) {
+    for (int k = 0; k < 40; k++) {
       MyFloat a = x.powInt_(k);
       terms.add(a.multiply(expTable.get(k).withPrecision(format)));
     }
@@ -1021,8 +1021,9 @@ public class MyFloat {
     // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
     // some rounding issues.)
     List<MyFloat> sorted =
-        terms.build().stream().sorted(
-            (o1, o2)-> (int) (o1.value.exponent - o2.value.exponent)).toList();
+        terms.build().stream()
+            .sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent))
+            .toList();
     for (MyFloat v : sorted) {
       r = r.add(v.withPrecision(fp1));
     }
@@ -1043,7 +1044,7 @@ public class MyFloat {
     MyFloat r = nan(format);
     boolean done = false;
 
-    for(Format p : List.of(fp1, fp2, fp3)) {
+    for (Format p : List.of(fp1, fp2, fp3)) {
       if (!done) {
         MyFloat x = this.withPrecision(p);
         MyFloat lnx = x.ln_2().validPart();
@@ -1274,7 +1275,7 @@ public class MyFloat {
     MyFloat r = nan(format);
     boolean done = false;
 
-    for(Format p : List.of(fp1, fp2, fp3)) {
+    for (Format p : List.of(fp1, fp2, fp3)) {
       if (!done) {
         MyFloat a = this.withPrecision(p);
         MyFloat x = exponent.withPrecision(p);
