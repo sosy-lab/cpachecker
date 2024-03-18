@@ -904,8 +904,10 @@ public class MyFloat {
     significand = significand.shiftRight(1);
 
     if (significand.equals(BigInteger.ZERO)) {
-      // Can happen if the number was 2^k, or the largest subnormal number in the format
-      return zero(format);
+      // This happens for exp(x) when x is very small (~ 2^-p). The exact bound and the correct
+      // return value depends on the rounding mode
+      // FIXME: Figure out the correct value for all rounding modes
+      return one(format);
     }
     return new MyFloat(
         new Format(format.expBits, format.sigBits - trailing),
@@ -914,12 +916,21 @@ public class MyFloat {
         significand);
   }
 
-  // Returns the next larger floating point number
-  private MyFloat plus1Ulp() {
+  // The minimal distance between two float with the same exponent
+  private MyFloat oneUlp() {
     BigInteger significand = BigInteger.ONE.shiftLeft(format.sigBits);
     long exponent = value.exponent - format.sigBits;
-    MyFloat ulp = new MyFloat(format, value.sign, exponent, significand);
-    return ulp.add(this);
+    return new MyFloat(format, value.sign, exponent, significand);
+  }
+
+  // Returns the next larger floating point number
+  private MyFloat plus1Ulp() {
+    return add(oneUlp());
+  }
+
+  // Returns the floating point number immediately below this number
+  private MyFloat minus1Ulp() {
+    return add(oneUlp().negate());
   }
 
   // Compare two m-float numbers for equality when rounded to lower precision p
@@ -1270,8 +1281,8 @@ public class MyFloat {
         MyFloat lna = a.ln_2();
         MyFloat xlna = x.multiply(lna).validPart();
 
-        MyFloat hi = xlna.plus1Ulp().exp_();
-        MyFloat lo = xlna.exp_();
+        MyFloat hi = xlna.plus1Ulp().exp_().validPart();
+        MyFloat lo = xlna.exp_().validPart();
 
         if (equalModuloP(hi, lo) && isStable(hi)) {
           // TODO: Does isValid already follow from RN(e^hi) == RN(e^lo)?
