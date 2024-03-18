@@ -952,13 +952,14 @@ public class MyFloat {
     boolean done = false;
 
     for (Format p : List.of(fp1, fp2, fp3)) {
+      if(!done) {
+        MyFloat x = this.withPrecision(p);
+        MyFloat ex = x.exp_().validPart();
 
-      MyFloat x = this.withPrecision(p);
-      MyFloat ex = x.exp_().validPart();
-
-      if (isStable(ex)) {
-        done = true;
-        r = ex;
+        if (isStable(ex)) {
+          done = true;
+          r = ex;
+        }
       }
     }
     return r.withPrecision(format);
