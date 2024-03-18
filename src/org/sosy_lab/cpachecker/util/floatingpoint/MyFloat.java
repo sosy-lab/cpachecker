@@ -933,7 +933,7 @@ public class MyFloat {
   }
 
   public MyFloat exp() {
-    Format fp1 = new Format(format.expBits, format.sigBits + 10);
+    Format fp1 = new Format(15, format.sigBits + 10);
     Format fp2 = format.extended();
     Format fp3 = fp2.extended();
 
@@ -1024,7 +1024,8 @@ public class MyFloat {
   }
 
   public MyFloat ln() {
-    Format fp1 = new Format(format.expBits, format.sigBits + 10);
+    // TODO: Make sure exponent size is always large enough
+    Format fp1 = new Format(15, format.sigBits + 10);
     Format fp2 = format.extended();
     Format fp3 = fp2.extended();
 
@@ -1255,7 +1256,7 @@ public class MyFloat {
   }
 
   private MyFloat pow_(MyFloat exponent) {
-    Format fp1 = new Format(format.expBits, format.sigBits + 10);
+    Format fp1 = new Format(15, format.sigBits + 10);
     Format fp2 = format.extended();
     Format fp3 = fp2.extended();
 
