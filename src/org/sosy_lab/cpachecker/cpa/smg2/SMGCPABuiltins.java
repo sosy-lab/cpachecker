@@ -37,6 +37,9 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -517,7 +520,6 @@ public class SMGCPABuiltins {
   /**
    * Gets the size of an allocation. This needs either 1 or 2 parameters. Those are read and
    * evaluated to the size for the allocation. Might throw an exception in case of an error.
-   * Currently, sizes are only calculated concretely, not symbolicly.
    *
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
@@ -550,16 +552,19 @@ public class SMGCPABuiltins {
 
         if (!value1.isNumericValue()) {
           String infoMsg =
-              "Could not determine a concrete size for a memory allocation function: "
+              "Could not determine a concrete value for the first argument of an memory allocation"
+                  + " function: "
                   + functionCall.getFunctionNameExpression();
           if (options.isAbortOnNonConcreteMemorySize()) {
             throw new UnrecognizedCodeException(infoMsg, cfaEdge);
           } else {
             logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
           }
-          // Max overapproximation
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(state1));
-          continue;
+          if (!options.trackPredicates()) {
+            // Max overapproximation
+            resultBuilder.add(ValueAndSMGState.ofUnknownValue(state1));
+            continue;
+          }
         }
 
         for (ValueAndSMGState value2AndState :
@@ -574,20 +579,20 @@ public class SMGCPABuiltins {
           if (!value2.isNumericValue()) {
             logger.log(
                 Level.INFO,
-                "Could not determine a concrete value for a memory allocation function: "
+                "Could not determine a concrete value for the second argument of an memory"
+                    + " allocation function: "
                     + functionName
                     + ", in: "
                     + cfaEdge);
-            resultBuilder.add(ValueAndSMGState.ofUnknownValue(state2));
-            continue;
-          } else {
-            BigInteger size =
-                value1
-                    .asNumericValue()
-                    .bigIntegerValue()
-                    .multiply(value2.asNumericValue().bigIntegerValue());
-            resultBuilder.add(ValueAndSMGState.of(new NumericValue(size), state2));
+            if (!options.trackPredicates()) {
+              resultBuilder.add(ValueAndSMGState.ofUnknownValue(state2));
+              continue;
+            }
           }
+
+          Value size = SMGCPAExpressionEvaluator.multiplyOffsetValues(value1, value2);
+
+          resultBuilder.add(ValueAndSMGState.of(size, state2));
         }
       }
       return resultBuilder.build();
@@ -632,6 +637,8 @@ public class SMGCPABuiltins {
         if (options.isGuessSizeOfUnknownMemorySize()) {
           Value forcedValue = new NumericValue(options.getGuessSize());
           resultBuilder.add(ValueAndSMGState.of(forcedValue, currentState));
+        } else {
+          throw new SMGException("Unknown value in allocation function parameter.");
         }
 
       } else {
@@ -700,12 +707,14 @@ public class SMGCPABuiltins {
       Value sizeValue = sizeAndState.getValue();
       SMGState currentState = sizeAndState.getState();
 
-      if (!sizeValue.isNumericValue()) {
+      if (!sizeValue.isNumericValue() && !options.trackPredicates()) {
         String infoMsg =
-            "Could not determine a concrete size for a memory allocation function: "
+            "Could not determine a concrete size for a memory allocation function in line "
+                + cfaEdge.getFileLocation().getStartingLineInOrigin()
+                + ": "
                 + functionCall.getFunctionNameExpression();
         if (options.isAbortOnNonConcreteMemorySize()) {
-          throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+          throw new SMGException(infoMsg);
         } else {
           logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
         }
@@ -732,13 +741,12 @@ public class SMGCPABuiltins {
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
       }
-      // The size is always given in bytes
-      BigInteger sizeInBits =
-          sizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8));
+      // The size is always given in bytes, we want bit size
+      Value sizeInBits =
+          SMGCPAExpressionEvaluator.multiplyOffsetValues(sizeValue, BigInteger.valueOf(8));
 
       resultBuilder.addAll(
-          handleConfigurableMemoryAllocation(
-              functionCall, currentState, new NumericValue(sizeInBits), cfaEdge));
+          handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits, cfaEdge));
     }
 
     return resultBuilder.build();
@@ -775,8 +783,12 @@ public class SMGCPABuiltins {
       }
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
     } else {
-      // Symbolic size
-      throw new SMGException(functionCall + " Tried to allocate symbolic memory.");
+      if (!options.trackPredicates()) {
+        // Symbolic size
+        throw new SMGException(functionCall + " Tried to allocate symbolic memory.");
+      }
+      // Symbolic size allowed
+      resultBuilder.addAll(handleSymbolicAllocation(sizeInBits, currentState, edge, functionName));
     }
 
     // If malloc can fail (and fails) it simply returns a pointer to 0 (C also sets errno)
@@ -785,6 +797,69 @@ public class SMGCPABuiltins {
       Value addressToZero = new NumericValue(0);
       resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
     }
+    return resultBuilder.build();
+  }
+
+  private Collection<ValueAndSMGState> handleSymbolicAllocation(
+      Value sizeInBits, SMGState pState, CFAEdge edge, String functionName)
+      throws SMGSolverException, SMGException {
+    // Symbolic size allowed
+    // check that the size is not 0 (or may be zero)
+    // If it can be zero, we split into 2 states, one with 0, one without
+    // Symbolic Execution for assumption edges, use previous state and values
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    SMGState currentState = pState;
+    final ConstraintFactory constraintFactory =
+        ConstraintFactory.getInstance(currentState, machineModel, logger, options, evaluator, edge);
+    SMGState maybeZeroState = currentState;
+    final Constraint sizeEqZeroConstraint =
+        constraintFactory.getMemorySizeInBitsEqualsZeroConstraint(sizeInBits, currentState);
+
+    String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
+
+    // Iff SAT -> size can be zero
+    SatisfiabilityAndSMGState satisfiabilityAndStateEqZero =
+        evaluator.checkIsUnsatAndAddConstraint(
+            sizeEqZeroConstraint, stackFrameFunctionName, maybeZeroState);
+    maybeZeroState = satisfiabilityAndStateEqZero.getState();
+
+    if (satisfiabilityAndStateEqZero.isSAT()) {
+      // Create a state with the memory size == 0
+      resultBuilder.add(handleAllocZero(maybeZeroState));
+    }
+    SMGState stateWithNewNonZeroHeap = currentState;
+    final Constraint sizeNotEqZeroConstraint =
+        constraintFactory.getMemorySizeInBitsNotEqualsZeroConstraint(sizeInBits, currentState);
+
+    // If SAT -> size can be non zero
+    SatisfiabilityAndSMGState satisfiabilityAndStateNotEqZero =
+        evaluator.checkIsUnsatAndAddConstraint(
+            sizeNotEqZeroConstraint, stackFrameFunctionName, stateWithNewNonZeroHeap);
+    stateWithNewNonZeroHeap = satisfiabilityAndStateNotEqZero.getState();
+
+    Value addressToNewRegion;
+    if (satisfiabilityAndStateNotEqZero.isSAT()) {
+      // Create a state with the memory size
+      ValueAndSMGState addressAndState =
+          evaluator.createHeapMemoryAndPointer(stateWithNewNonZeroHeap, sizeInBits);
+      addressToNewRegion = addressAndState.getValue();
+      stateWithNewNonZeroHeap = addressAndState.getState();
+
+      if (options.getZeroingMemoryAllocation().contains(functionName)) {
+        // Need symbolic edges for that
+        throw new SMGException(
+            "Zeroing allocation function with symbolic memory size is currently not supported.");
+        /*
+          stateWithNewNonZeroHeap =
+              stateWithNewNonZeroHeap
+                  .writeToZero(addressToNewRegion, functionCall.getExpressionType(), edge)
+                  .get(0);
+        */
+      }
+
+      resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewNonZeroHeap));
+    }
+
     return resultBuilder.build();
   }
 
