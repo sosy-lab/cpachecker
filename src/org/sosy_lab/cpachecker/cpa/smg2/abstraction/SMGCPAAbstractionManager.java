@@ -390,7 +390,7 @@ public class SMGCPAAbstractionManager {
     Set<SMGCandidate> candidates = new HashSet<>();
     Set<SMGObject> alreadyVisited = new HashSet<>();
     for (SMGObject heapObj : state.getMemoryModel().getHeapObjects()) {
-      if (!smg.isValid(heapObj)) {
+      if (!smg.isValid(heapObj) || !heapObj.getSize().isNumericValue()) {
         continue;
       }
       Optional<SMGCandidate> possibleCandidate =
