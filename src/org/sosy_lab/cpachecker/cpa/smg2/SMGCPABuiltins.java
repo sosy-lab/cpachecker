@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -590,7 +589,7 @@ public class SMGCPABuiltins {
             }
           }
 
-          Value size = SMGCPAExpressionEvaluator.multiplyOffsetValues(value1, value2);
+          Value size = SMGCPAExpressionEvaluator.multiplyValues(value1, value2);
 
           resultBuilder.add(ValueAndSMGState.of(size, state2));
         }
@@ -667,7 +666,7 @@ public class SMGCPABuiltins {
       int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    CRightHandSide expr;
+    CExpression expr;
     String functionName = functionCall.getFunctionNameExpression().toASTString();
     try {
       expr = functionCall.getParameterExpressions().get(pParameterNumber);
@@ -742,11 +741,15 @@ public class SMGCPABuiltins {
         }
       }
       // The size is always given in bytes, we want bit size
+      CType sizeType =
+          SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+              functionCall.getParameterExpressions().get(0).getExpressionType());
       Value sizeInBits =
-          SMGCPAExpressionEvaluator.multiplyOffsetValues(sizeValue, BigInteger.valueOf(8));
+          SMGCPAExpressionEvaluator.multiplyValues(sizeValue, BigInteger.valueOf(8), sizeType);
 
       resultBuilder.addAll(
-          handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits, cfaEdge));
+          handleConfigurableMemoryAllocation(
+              functionCall, currentState, sizeInBits, sizeType, cfaEdge));
     }
 
     return resultBuilder.build();
@@ -754,7 +757,11 @@ public class SMGCPABuiltins {
 
   // malloc(size) w size in bits
   private ImmutableList<ValueAndSMGState> handleConfigurableMemoryAllocation(
-      CFunctionCallExpression functionCall, SMGState pState, Value sizeInBits, CFAEdge edge)
+      CFunctionCallExpression functionCall,
+      SMGState pState,
+      Value sizeInBits,
+      CType sizeType,
+      CFAEdge edge)
       throws SMGException, SMGSolverException {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     SMGState currentState = pState;
@@ -788,7 +795,9 @@ public class SMGCPABuiltins {
         throw new SMGException(functionCall + " Tried to allocate symbolic memory.");
       }
       // Symbolic size allowed
-      resultBuilder.addAll(handleSymbolicAllocation(sizeInBits, currentState, edge, functionName));
+      // sizeInBits is a symbolic expr with a multiplication times 8 inside
+      resultBuilder.addAll(
+          handleSymbolicAllocation(sizeInBits, sizeType, currentState, edge, functionName));
     }
 
     // If malloc can fail (and fails) it simply returns a pointer to 0 (C also sets errno)
@@ -801,7 +810,7 @@ public class SMGCPABuiltins {
   }
 
   private Collection<ValueAndSMGState> handleSymbolicAllocation(
-      Value sizeInBits, SMGState pState, CFAEdge edge, String functionName)
+      Value sizeInBits, CType sizeType, SMGState pState, CFAEdge edge, String functionName)
       throws SMGSolverException, SMGException {
     // Symbolic size allowed
     // check that the size is not 0 (or may be zero)
@@ -812,8 +821,10 @@ public class SMGCPABuiltins {
     final ConstraintFactory constraintFactory =
         ConstraintFactory.getInstance(currentState, machineModel, logger, options, evaluator, edge);
     SMGState maybeZeroState = currentState;
+
     final Constraint sizeEqZeroConstraint =
-        constraintFactory.getMemorySizeInBitsEqualsZeroConstraint(sizeInBits, currentState);
+        constraintFactory.getMemorySizeInBitsEqualsZeroConstraint(
+            sizeInBits, sizeType, currentState);
 
     String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
 
@@ -829,7 +840,8 @@ public class SMGCPABuiltins {
     }
     SMGState stateWithNewNonZeroHeap = currentState;
     final Constraint sizeNotEqZeroConstraint =
-        constraintFactory.getMemorySizeInBitsNotEqualsZeroConstraint(sizeInBits, currentState);
+        constraintFactory.getMemorySizeInBitsNotEqualsZeroConstraint(
+            sizeInBits, sizeType, currentState);
 
     // If SAT -> size can be non zero
     SatisfiabilityAndSMGState satisfiabilityAndStateNotEqZero =
@@ -1171,8 +1183,7 @@ public class SMGCPABuiltins {
   private List<ValueAndSMGState> evaluateAlloca(
       SMGState pState, Value pSizeValue, CType type, @SuppressWarnings("unused") CFAEdge cfaEdge)
       throws CPATransferException {
-    Value sizeInBits =
-        SMGCPAExpressionEvaluator.multiplyOffsetValues(pSizeValue, BigInteger.valueOf(8));
+    Value sizeInBits = SMGCPAExpressionEvaluator.multiplyValues(pSizeValue, BigInteger.valueOf(8));
 
     String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
     ValueAndSMGState addressValueAndState =
@@ -1662,7 +1673,6 @@ public class SMGCPABuiltins {
                 argumentTwoAndState.getState(),
                 argumentOneAndState.getValue(),
                 argumentTwoAndState.getValue(),
-                SMGCPAExpressionEvaluator.getCanonicalType(functionCall.getExpressionType()),
                 cfaEdge,
                 functionCall));
       }
@@ -1679,7 +1689,6 @@ public class SMGCPABuiltins {
    *
    * @param pState current {@link SMGState}
    * @param pSizeValue size in byte
-   * @param pCanonicalReturnType canonical return type (we know its void*)
    * @param pCfaEdge current cfa edge
    * @return list of points to new memory and its states
    */
@@ -1687,7 +1696,6 @@ public class SMGCPABuiltins {
       SMGState pState,
       Value pPtrValue,
       Value pSizeValue,
-      CType pCanonicalReturnType,
       CFAEdge pCfaEdge,
       CFunctionCallExpression functionCall)
       throws SMGException, SMGSolverException {
@@ -1702,22 +1710,45 @@ public class SMGCPABuiltins {
       pPtrValue = ptrAddrExpr.getMemoryAddress();
     }
 
+    Value sizeInBits;
     if (!pState.getMemoryModel().isPointer(pPtrValue)) {
       // undefined beh
       return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
-    } else if (!pSizeValue.isNumericValue()) {
-      return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
+    }
+    CType sizeType = functionCall.getParameterExpressions().get(0).getExpressionType();
+    if (pSizeValue.isNumericValue()) {
+      sizeInBits =
+          new NumericValue(
+              pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)));
+    } else {
+      if (options.trackPredicates()) {
+        sizeType =
+            SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+                functionCall.getParameterExpressions().get(0).getExpressionType());
+        sizeInBits =
+            SMGCPAExpressionEvaluator.multiplyValues(pSizeValue, BigInteger.valueOf(8), sizeType);
+      } else {
+        logger.logf(
+            Level.INFO,
+            "Realloc called in line %s with symbolic size for new memory but no symbolic handling"
+                + " is enabled. Overapproximated. %s",
+            pCfaEdge.getFileLocation().getStartingLineInOrigin(),
+            pCfaEdge);
+        return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
+      }
     }
 
     SMGState currentState = pState;
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
-    Value sizeInBits =
-        new NumericValue(
-            pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)));
+
     // Handle (realloc(0, size) -> just malloc
     if (pPtrValue.isNumericValue()
         && pPtrValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
-      return handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits, pCfaEdge);
+      return handleConfigurableMemoryAllocation(
+          functionCall, currentState, sizeInBits, sizeType, pCfaEdge);
+    } else if (options.trackPredicates()) {
+      // Check with solver
+      throw new SMGException("Can't handle symbolic realloc parameters.");
     }
 
     // Handle realloc(ptr, 0) (before C23), (C23 its just undefined beh)
