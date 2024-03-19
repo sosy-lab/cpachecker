@@ -63,8 +63,8 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.BooleanAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
@@ -1027,13 +1027,12 @@ public class SMGCPAExpressionEvaluator {
       String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
 
       // Iff SAT -> memory-safety is violated
-      BooleanAndSMGState isUnsatAndState =
+      SatisfiabilityAndSMGState satisfiabilityAndSMGState =
           checkMemoryConstraintsAreUnsatIndividually(
               newConstraints, stackFrameFunctionName, currentState);
-      boolean isUnsat = isUnsatAndState.getBoolean();
-      currentState = isUnsatAndState.getState();
+      currentState = satisfiabilityAndSMGState.getState();
 
-      if (!isUnsat) {
+      if (satisfiabilityAndSMGState.isSAT()) {
         // Unknown value that should not be used with an error state that should stop the analysis
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
@@ -1104,13 +1103,12 @@ public class SMGCPAExpressionEvaluator {
       String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
 
       // Iff SAT -> memory-safety is violated
-      BooleanAndSMGState isUnsatAndState =
+      SatisfiabilityAndSMGState satisfiabilityAndSMGState =
           checkMemoryConstraintsAreUnsatIndividually(
               newConstraints, stackFrameFunctionName, currentState);
-      boolean isUnsat = isUnsatAndState.getBoolean();
-      currentState = isUnsatAndState.getState();
+      currentState = satisfiabilityAndSMGState.getState();
 
-      if (!isUnsat) {
+      if (satisfiabilityAndSMGState.isSAT()) {
         // Unknown value that should not be used with an error state that should stop the analysis
         return ValueAndSMGState.ofUnknownValue(
             currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits));
@@ -1146,7 +1144,7 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGSolverException for {@link InterruptedException}, {@link SolverException} or {@link
    *     UnrecognizedCodeException} wrapped.
    */
-  public BooleanAndSMGState checkMemoryConstraintsAreUnsatIndividually(
+  public SatisfiabilityAndSMGState checkMemoryConstraintsAreUnsatIndividually(
       Collection<Constraint> newConstraints, String stackFrameFunctionName, SMGState currentState)
       throws SMGSolverException {
     // Iff SAT -> memory-safety is violated
@@ -1157,15 +1155,13 @@ public class SMGCPAExpressionEvaluator {
       try {
         // If a constraint is trivial, its satisfiability is not influenced by other constraints.
         // So to evade more expensive SAT checks, we just check the constraint on its own.
-        // TODO: add triviality check
         currentState = currentState.updateLastCheckedMemoryBounds(constraint);
         SolverResult satResAndModel =
             solver.checkUnsat(
                 currentState.getConstraints().copyWithNew(constraint), stackFrameFunctionName);
-        if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
-          // TODO: replace the bool by satisfiablity
-          return BooleanAndSMGState.of(
-              false,
+        if (satResAndModel.isSAT()) {
+          return SatisfiabilityAndSMGState.of(
+              satResAndModel.satisfiability(),
               currentState.replaceModelAndDefAssignmentAndCopy(
                   satResAndModel.definiteAssignments(), satResAndModel.model()));
         }
@@ -1174,8 +1170,49 @@ public class SMGCPAExpressionEvaluator {
         throw new SMGSolverException(e, currentState);
       }
     }
-    // trivial fallthrough
-    return BooleanAndSMGState.of(true, currentState);
+    // trivial fallthrough and all UNSAT
+    return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
+  }
+
+  /**
+   * Returns false for SAT. True for UNSAT. Checks each given constraint individually as a memory
+   * access constraint (error constraint). The constraint will be added to the constraints of the
+   * state for SAT cases except for trivial SAT cases.
+   *
+   * @param newConstraint new {@link Constraint} to be checked/added to the {@link SMGState}.
+   * @param stackFrameFunctionName {@link String} name of current Stackframe
+   * @param currentState current {@link SMGState}.
+   * @return BooleanAndSMGState with the bool as isUnsat and the State possibly with new constraints
+   *     added to the error predicates (not regular constraints) if they were not trivial, or
+   *     possibly a model added for SAT.
+   * @throws SMGSolverException for {@link InterruptedException}, {@link SolverException} or {@link
+   *     UnrecognizedCodeException} wrapped.
+   */
+  public SatisfiabilityAndSMGState checkIsUnsatAndAddConstraint(
+      Constraint newConstraint, String stackFrameFunctionName, SMGState currentState)
+      throws SMGSolverException {
+    try {
+      // If a constraint is trivial, its satisfiability is not influenced by other constraints.
+      // So to evade more expensive SAT checks, we just check the constraint on its own.
+      SolverResult satResAndModel =
+          solver.checkUnsat(
+              currentState.getConstraints().copyWithNew(newConstraint), stackFrameFunctionName);
+      if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
+        if (!newConstraint.isTrivial()) {
+          currentState = currentState.addConstraint(newConstraint);
+        }
+        return SatisfiabilityAndSMGState.of(
+            satResAndModel.satisfiability(),
+            currentState.replaceModelAndDefAssignmentAndCopy(
+                satResAndModel.definiteAssignments(), satResAndModel.model()));
+      }
+
+    } catch (InterruptedException | SolverException | UnrecognizedCodeException e) {
+      throw new SMGSolverException(e, currentState);
+    }
+
+    // trivial fallthrough and UNSAT
+    return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
   }
 
   /**

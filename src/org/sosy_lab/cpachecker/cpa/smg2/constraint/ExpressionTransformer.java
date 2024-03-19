@@ -405,6 +405,44 @@ public class ExpressionTransformer
     return builder.build();
   }
 
+  public Constraint checkMemorySizeNotEqualsZero(
+      Value memoryRegionSizeInBits, SMGState currentState) {
+    CType type = CNumericTypes.INT;
+
+    SymbolicExpression zeroValue =
+        SymbolicValueFactory.getInstance().asConstant(createNumericValue(BigInteger.ZERO), type);
+
+    SymbolicExpression memoryRegionSizeValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(memoryRegionSizeInBits, type)
+            .copyForState(currentState);
+
+    // size != 0
+    return (Constraint) factory.notEqual(memoryRegionSizeValue, zeroValue, type, type);
+  }
+
+  /**
+   * Builds a constraint for the equality of the given size to 0.
+   *
+   * @param memoryRegionSizeInBits size of the memory region in bits.
+   * @param currentState current {@link SMGState}
+   * @return a {@link Constraint} size == 0
+   */
+  public Constraint checkMemorySizeEqualsZero(Value memoryRegionSizeInBits, SMGState currentState) {
+    CType type = CNumericTypes.INT;
+
+    SymbolicExpression zeroValue =
+        SymbolicValueFactory.getInstance().asConstant(createNumericValue(BigInteger.ZERO), type);
+
+    SymbolicExpression memoryRegionSizeValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(memoryRegionSizeInBits, type)
+            .copyForState(currentState);
+
+    // size == 0
+    return factory.equal(memoryRegionSizeValue, zeroValue, type, CNumericTypes.INT);
+  }
+
   public Collection<Constraint> checkValidMemoryAccess(
       Value offsetInBits,
       Value readSizeInBits,

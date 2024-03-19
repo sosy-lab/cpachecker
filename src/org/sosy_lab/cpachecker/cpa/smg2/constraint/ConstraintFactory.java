@@ -223,4 +223,16 @@ public class ConstraintFactory {
     return transformer.checkValidMemoryAccess(
         offsetInBits, readSizeInBits, memoryRegionSizeInBits, offsetType, currentState);
   }
+
+  public Constraint getMemorySizeInBitsEqualsZeroConstraint(
+      Value memoryRegionSizeInBits, SMGState currentState) {
+    final ExpressionTransformer transformer = getCTransformer();
+    return transformer.checkMemorySizeEqualsZero(memoryRegionSizeInBits, currentState);
+  }
+
+  public Constraint getMemorySizeInBitsNotEqualsZeroConstraint(
+      Value memoryRegionSizeInBits, SMGState currentState) {
+    final ExpressionTransformer transformer = getCTransformer();
+    return transformer.checkMemorySizeNotEqualsZero(memoryRegionSizeInBits, currentState);
+  }
 }
