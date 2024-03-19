@@ -257,11 +257,19 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       if (lhs != null) {
         variableAddressMap.put(lhs, nextAlloc);
       }
+      BigInteger objectSize;
       if (!pObject.getSize().isNumericValue()) {
-        throw new RuntimeException(
-            "Symbolic sized memory found when calculating addresses for witnesses.");
+        // List<ValueAssignment> valuesAss = pSMGState.getModel();
+        // TODO: fix with solver assignments
+        objectSize = BigInteger.TEN;
+        /*    for (ValueAssignment assignment : valuesAss) {
+        if (assignment.getKey().equals(pObject.getSize())) {
+          objectSize = (BigInteger) assignment.getValue();
+        }
+                    }*/
+      } else {
+        objectSize = pObject.getSize().asNumericValue().bigIntegerValue();
       }
-      BigInteger objectSize = pObject.getSize().asNumericValue().bigIntegerValue();
 
       BigInteger nextAllocOffset = nextAlloc.getAddressValue().add(objectSize).add(BigInteger.TEN);
 
