@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -2283,7 +2282,7 @@ public class SMGState
             "valid-deref: invalid pointer dereference in line %d with: " + edge, lineInOrigin);
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
-            .withProperty(Property.INVALID_HEAP)
+            .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(objectDerefed));
     // Log the error in the logger
@@ -3213,7 +3212,7 @@ public class SMGState
       return withInvalidWriteToZeroObject(object);
     } else if (!memoryModel.isObjectValid(object)) {
       // Write to an object that is invalidated (already freed)
-      // If object part if heap -> invalid deref
+      // If object part of the heap -> invalid deref
       return this.withInvalidWrite(object);
     }
     SMGState currentState = this;
@@ -3248,13 +3247,16 @@ public class SMGState
       }
 
     } else if (options.trackErrorPredicates()) {
+      CType calcTypeForMemAccess =
+          SMGCPAExpressionEvaluator.calculateSymbolicMemoryBoundryCheckType(
+              object.getSize(), writeOffsetInBits, machineModel);
       // Use an SMT solver to argue about the offset/size validity
       final ConstraintFactory constraintFactory =
           ConstraintFactory.getInstance(
               currentState, machineModel, logger, options, evaluator, edge);
       final Collection<Constraint> newConstraints =
           constraintFactory.checkValidMemoryAccess(
-              writeOffsetInBits, sizeInBits, object.getSize(), CNumericTypes.INT, currentState);
+              writeOffsetInBits, sizeInBits, object.getSize(), calcTypeForMemAccess, currentState);
 
       String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
 
@@ -3267,19 +3269,21 @@ public class SMGState
       if (SatisfiabilityAndState.isSAT()) {
         // Unknown value that should not be used with an error state that should stop the analysis
         // Stop the analysis, error found
-        currentState =
-            currentState.withOutOfRangeWrite(
-                object, writeOffsetInBits, sizeInBits, valueToWrite, edge);
+        return currentState.withOutOfRangeWrite(
+            object, writeOffsetInBits, sizeInBits, valueToWrite, edge);
       }
 
-      // delete ALL edges in the target region, as they may all be now different
-      currentState =
-          currentState.copyAndReplaceMemoryModel(
-              currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of()));
+      if (!writeOffsetInBits.isNumericValue()) {
+        // delete ALL edges in the target region, as they may all be now different
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of()));
+        return currentState;
+      } else {
+        // offset numeric, but size symbolic, but write range is inside the size, -> write
+        numericOffsetInBits = writeOffsetInBits.asNumericValue().bigIntegerValue();
+      }
 
-      // Either the error is now in the state, or there is no error, but we can't write as we don't
-      // know the offset
-      return currentState;
     } else {
       if (!writeOffsetInBits.isNumericValue()) {
         // offset symbolic in value analysis, overapproximate
