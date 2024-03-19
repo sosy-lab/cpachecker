@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -17,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
@@ -952,7 +952,7 @@ public class MyFloat {
     boolean done = false;
 
     for (Format p : List.of(fp1, fp2, fp3)) {
-      if(!done) {
+      if (!done) {
         MyFloat x = this.withPrecision(p);
         MyFloat ex = x.exp_().validPart();
 
@@ -1013,7 +1013,7 @@ public class MyFloat {
       x = x.withExponent(0);
     }
 
-    ImmutableList.Builder<MyFloat> terms = ImmutableList.builder();
+    Stream.Builder<MyFloat> terms = Stream.builder();
     for (int k = 0; k < 40; k++) {
       MyFloat a = x.powInt_(k);
       terms.add(a.multiply(expTable.get(k).withPrecision(format)));
@@ -1022,8 +1022,7 @@ public class MyFloat {
     // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
     // some rounding issues.)
     List<MyFloat> sorted =
-        terms.build().stream()
-            .sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent))
+        terms.build().sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent))
             .toList();
     for (MyFloat v : sorted) {
       r = r.add(v.withPrecision(fp1));
@@ -1203,6 +1202,9 @@ public class MyFloat {
       // pow(base, ±0) returns 1 for any base, even when base is NaN
       return one(format);
     }
+    if (x.isOne()) {
+      return a;
+    }
     if (a.isNan() || x.isNan()) {
       // except where specified above, if any argument is NaN, NaN is returned
       return nan(format);
@@ -1283,13 +1285,13 @@ public class MyFloat {
         MyFloat lna = a.ln_2();
         MyFloat xlna = x.multiply(lna).validPart();
 
-        MyFloat hi = xlna.plus1Ulp().exp_().validPart();
-        MyFloat lo = xlna.exp_().validPart();
+        MyFloat hi = xlna.plus1Ulp().withPrecision(p).exp_().validPart();
+        MyFloat lo = xlna.withPrecision(p).exp_().validPart();
 
-        if (equalModuloP(hi, lo) && isStable(hi)) {
+        if (equalModuloP(hi, lo) && isStable(lo) && isStable(xlna)) {
           // TODO: Does isValid already follow from RN(e^hi) == RN(e^lo)?
           done = true;
-          r = hi;
+          r = lo;
         }
       }
     }
