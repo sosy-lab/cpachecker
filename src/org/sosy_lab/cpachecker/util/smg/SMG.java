@@ -970,11 +970,6 @@ public class SMG {
    */
   public SMGAndHasValueEdges readValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, boolean preciseRead) {
-    // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    Preconditions.checkArgument(object.getSize().isNumericValue());
-    Preconditions.checkArgument(
-        offset.add(sizeInBits).compareTo(object.getSize().asNumericValue().bigIntegerValue()) <= 0);
-
     // let v := H(o, of, t)
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
     // Check if multiple edges may exists for the same offset and size! -> There should never be
@@ -1089,9 +1084,6 @@ public class SMG {
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
     BigInteger offsetPlusSize = offset.add(sizeInBits);
-    Preconditions.checkArgument(object.getSize().isNumericValue());
-    Preconditions.checkArgument(
-        offsetPlusSize.compareTo(object.getSize().asNumericValue().bigIntegerValue()) <= 0);
     if (value.isZero() && isCoveredByNullifiedBlocks(object, offset, sizeInBits).isPresent()) {
       return this;
     }
