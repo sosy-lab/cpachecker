@@ -320,7 +320,7 @@ public class SMGCPAValueVisitor
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
         Value subscriptOffset =
-            SMGCPAExpressionEvaluator.multiplyOffsetValues(subscriptValue, typeSizeInBits);
+            SMGCPAExpressionEvaluator.multiplyValues(subscriptValue, typeSizeInBits);
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
@@ -375,12 +375,7 @@ public class SMGCPAValueVisitor
         ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readValueWithPointerDereference(
-                newState,
-                arrayAddr.getMemoryAddress(),
-                finalOffset,
-                typeSizeInBits,
-                returnType,
-                CNumericTypes.INT)) {
+                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType)) {
 
           newState = readPointerAndState.getState();
           if (readPointerAndState.getValue().isUnknown()) {
@@ -396,12 +391,7 @@ public class SMGCPAValueVisitor
 
       } else {
         return evaluator.readValueWithPointerDereference(
-            newState,
-            arrayAddr.getMemoryAddress(),
-            finalOffset,
-            typeSizeInBits,
-            returnType,
-            CNumericTypes.INT);
+            newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType);
       }
     } else if (arrayValue instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
@@ -1170,12 +1160,7 @@ public class SMGCPAValueVisitor
         readValueAndState =
             evaluator
                 .readValueWithPointerDereference(
-                    currentState,
-                    pointerValue.getMemoryAddress(),
-                    offset,
-                    sizeInBits,
-                    returnType,
-                    CNumericTypes.INT)
+                    currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType)
                 .get(0);
 
         if (returnType instanceof CPointerType) {

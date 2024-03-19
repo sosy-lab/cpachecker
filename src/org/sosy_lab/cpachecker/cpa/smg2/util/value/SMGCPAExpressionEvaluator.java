@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -710,13 +711,7 @@ public class SMGCPAExpressionEvaluator {
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
     }
     return readValue(
-        initialState,
-        maybeObject.orElseThrow(),
-        offsetInBits,
-        sizeInBits,
-        readType,
-        CNumericTypes.INT,
-        materialize);
+        initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits, readType, materialize);
   }
 
   /**
@@ -738,32 +733,6 @@ public class SMGCPAExpressionEvaluator {
       Value pOffset,
       BigInteger pSizeInBits,
       CType readType)
-      throws SMGException, SMGSolverException {
-    return readValueWithPointerDereference(
-        pState, pointerValueToDeref, pOffset, pSizeInBits, readType, CNumericTypes.INT);
-  }
-
-  /**
-   * Read the value at the address of the supplied {@link Value} at the offset with the size (type
-   * size) given.
-   *
-   * @param pState current {@link SMGState}.
-   * @param pointerValueToDeref the {@link Value} for the address of the memory to be read. This
-   *     should map to a known {@link SMGObject} or a {@link SMGPointsToEdge}.
-   * @param pOffset the offset as {@link BigInteger} in bits where to start reading in the object.
-   * @param pSizeInBits the size of the type to read in bits as {@link BigInteger}.
-   * @param readType the type of the read value before casts etc. Used to determine union float
-   *     conversion.
-   * @param pOffsetType type of the offset. Typically, CNumericTypes.INT in C.
-   * @return {@link ValueAndSMGState} tuple for the read {@link Value} and the new {@link SMGState}.
-   */
-  public List<ValueAndSMGState> readValueWithPointerDereference(
-      SMGState pState,
-      Value pointerValueToDeref,
-      Value pOffset,
-      BigInteger pSizeInBits,
-      CType readType,
-      CType pOffsetType)
       throws SMGException, SMGSolverException {
 
     // Offsets are always interpreted as int in C
@@ -796,8 +765,7 @@ public class SMGCPAExpressionEvaluator {
       // offset  needs to the added to that!)
       Value finalOffset = addOffsetValues(pOffset, maybeTargetAndOffset.getOffsetForObject());
 
-      returnBuilder.addAll(
-          readValue(pState, object, finalOffset, pSizeInBits, readType, pOffsetType, true));
+      returnBuilder.addAll(readValue(pState, object, finalOffset, pSizeInBits, readType, true));
     }
     return returnBuilder.build();
   }
@@ -980,14 +948,14 @@ public class SMGCPAExpressionEvaluator {
       Value offsetValueInBits,
       BigInteger sizeInBits,
       @Nullable CType readType,
-      CType pOffsetType,
       boolean materialize)
       throws SMGException, SMGSolverException {
     // Check that the offset and offset + size actually fit into the SMGObject
     Value objectSize = object.getSize();
+    BigInteger offsetInBits;
     if (offsetValueInBits.isNumericValue() && objectSize.isNumericValue()) {
       // Typical read with known offset
-      BigInteger offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
+      offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
 
       boolean doesNotFitIntoObject =
           offsetInBits.compareTo(BigInteger.ZERO) < 0
@@ -1003,17 +971,11 @@ public class SMGCPAExpressionEvaluator {
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
       }
 
-      // The read in SMGState checks for validity and external allocation
-      if (materialize) {
-        return currentState.readValue(object, offsetInBits, sizeInBits, readType);
-      } else {
-        return ImmutableList.of(
-            currentState.readValueWithoutMaterialization(
-                object, offsetInBits, sizeInBits, readType));
-      }
-
     } else if (options.trackErrorPredicates()) {
       // Use an SMT solver to argue about the offset/size validity
+      CType calcTypeForMemAccess =
+          calculateSymbolicMemoryBoundryCheckType(
+              object.getSize(), offsetValueInBits, machineModel);
       final ConstraintFactory constraintFactory =
           ConstraintFactory.getInstance(currentState, machineModel, logger, options, this, null);
       final Collection<Constraint> newConstraints =
@@ -1021,7 +983,7 @@ public class SMGCPAExpressionEvaluator {
               offsetValueInBits,
               new NumericValue(sizeInBits),
               object.getSize(),
-              pOffsetType,
+              calcTypeForMemAccess,
               currentState);
 
       String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
@@ -1038,8 +1000,12 @@ public class SMGCPAExpressionEvaluator {
             ValueAndSMGState.ofUnknownValue(
                 currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits)));
       }
-      // We can't discern the read value, but the read itself was safe
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+      if (!offsetValueInBits.isNumericValue()) {
+        // We can't discern the read value, but the read itself was safe
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+      }
+      // Symbolic size, but concrete offset, we can actually read
+      offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
 
     } else {
       if (!offsetValueInBits.isNumericValue()) {
@@ -1054,6 +1020,14 @@ public class SMGCPAExpressionEvaluator {
             ValueAndSMGState.ofUnknownValue(
                 currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits)));
       }
+    }
+
+    // The read in SMGState checks for validity and external allocation
+    if (materialize) {
+      return currentState.readValue(object, offsetInBits, sizeInBits, readType);
+    } else {
+      return ImmutableList.of(
+          currentState.readValueWithoutMaterialization(object, offsetInBits, sizeInBits, readType));
     }
   }
 
@@ -1172,6 +1146,73 @@ public class SMGCPAExpressionEvaluator {
     }
     // trivial fallthrough and all UNSAT
     return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
+  }
+
+  /**
+   * The type given should be the type of the size argument of a memory allocation function (e.g.
+   * malloc(pExpressionType)). It is then promoted to a type that can handle the bit size
+   * calculation from the byte size given. Allocation functions usually use size_t type (uint), if
+   * we multiply by 8 this might overflow, so we use a larger type).
+   *
+   * @param pExpressionType size type of argument of a memory allocation function (e.g.
+   *     malloc(pExpressionType))
+   * @return promoted calculation and return type for the * 8 calculation.
+   * @throws SMGException for unhandled types that make no sense but are technically legal. Handle
+   *     once it happens.
+   */
+  public static CType promoteMemorySizeTypeForBitCalculation(CType pExpressionType)
+      throws SMGException {
+    if (!(pExpressionType instanceof CSimpleType)
+        || ((CSimpleType) pExpressionType).getType().equals(CBasicType.UNSPECIFIED)
+        || ((CSimpleType) pExpressionType).getType().isFloatingPointType()) {
+      throw new SMGException(
+          "Unhandled type: " + pExpressionType + "; in symbolic memory size calculation.");
+    }
+
+    if (((CSimpleType) pExpressionType).hasLongLongSpecifier()) {
+      // This might happen due to a cast.
+      // We would need to handle this with casting the source of this type to size_t
+      //   and then wrapping that with the long long type.
+      throw new SMGException(
+          "Unhandled type: " + pExpressionType + "; in symbolic memory size calculation.");
+    }
+
+    return CNumericTypes.LONG_LONG_INT;
+  }
+
+  public static CType calculateSymbolicMemoryBoundryCheckType(
+      Value objSizeInBits, Value writeOffsetInBits, MachineModel pMachineModel)
+      throws SMGException {
+    CType calcTypeForMemAccess = null;
+    if (objSizeInBits instanceof SymbolicExpression symSize) {
+      calcTypeForMemAccess = (CType) symSize.getType();
+    }
+    if (writeOffsetInBits instanceof SymbolicExpression symOffset) {
+      if (calcTypeForMemAccess != null) {
+        int sizeOfSizeType = pMachineModel.getSizeof(calcTypeForMemAccess).intValueExact();
+        int sizeOfOffsetType = pMachineModel.getSizeof((CType) symOffset.getType()).intValueExact();
+        boolean signedSizeType = ((CSimpleType) calcTypeForMemAccess).hasSignedSpecifier();
+        boolean signedOffsetType = ((CSimpleType) symOffset.getType()).hasSignedSpecifier();
+        if (sizeOfSizeType < sizeOfOffsetType) {
+          calcTypeForMemAccess = (CType) symOffset.getType();
+        } else if (sizeOfSizeType == sizeOfOffsetType) {
+          // If one is signed and the other isn't, we need a larger type that's signed
+          if (signedSizeType != signedOffsetType) {
+            if (pMachineModel.getSizeof(CNumericTypes.LONG_LONG_INT) > sizeOfSizeType) {
+              calcTypeForMemAccess = CNumericTypes.LONG_LONG_INT;
+            } else {
+              throw new SMGException(
+                  "Error in type size calculation for symbolic offset/size comparison when writing"
+                      + " a value.");
+            }
+          }
+        }
+      } else {
+        calcTypeForMemAccess = (CType) symOffset.getType();
+      }
+    }
+    Preconditions.checkNotNull(calcTypeForMemAccess);
+    return calcTypeForMemAccess;
   }
 
   /**
@@ -2535,10 +2576,16 @@ public class SMGCPAExpressionEvaluator {
       // Not numeric and not unknown -> symbolic
       final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-      SymbolicExpression leftOperand = factory.asConstant(leftValue, CNumericTypes.INT);
-      SymbolicExpression rightOperand = factory.asConstant(rightValue, CNumericTypes.INT);
+      SymbolicExpression leftOperand =
+          factory.asConstant(leftValue, CNumericTypes.UNSIGNED_LONG_INT);
+      SymbolicExpression rightOperand =
+          factory.asConstant(rightValue, CNumericTypes.UNSIGNED_LONG_INT);
 
-      return factory.add(leftOperand, rightOperand, CNumericTypes.INT, CNumericTypes.INT);
+      return factory.add(
+          leftOperand,
+          rightOperand,
+          CNumericTypes.UNSIGNED_LONG_INT,
+          CNumericTypes.UNSIGNED_LONG_INT);
     } else {
       // At some point this triggers with unknowns. And i want to know from where ;D
       throw new SMGException("Error assuming the offset of a memory access operation.");
@@ -2612,18 +2659,27 @@ public class SMGCPAExpressionEvaluator {
     }
   }
 
-  public static Value multiplyOffsetValues(Value leftValue, BigInteger rightValue)
-      throws SMGException {
+  public static Value multiplyValues(
+      Value leftValue, BigInteger rightValue, CType calculationAndReturnType) throws SMGException {
     if (rightValue.equals(BigInteger.ONE)) {
       return leftValue;
     } else if (rightValue.equals(BigInteger.ZERO)) {
       return new NumericValue(rightValue);
     }
 
-    return multiplyOffsetValues(leftValue, new NumericValue(rightValue));
+    return multiplyValues(leftValue, new NumericValue(rightValue), calculationAndReturnType);
   }
 
-  public static Value multiplyOffsetValues(Value leftValue, Value rightValue) throws SMGException {
+  public static Value multiplyValues(Value leftValue, BigInteger rightValue) throws SMGException {
+    return multiplyValues(leftValue, rightValue, CNumericTypes.INT);
+  }
+
+  public static Value multiplyValues(Value leftValue, Value rightValue) throws SMGException {
+    return multiplyValues(leftValue, rightValue, CNumericTypes.INT);
+  }
+
+  public static Value multiplyValues(
+      Value leftValue, Value rightValue, CType calculationAndReturnType) throws SMGException {
     if (leftValue.isNumericValue() && rightValue.isNumericValue()) {
       BigInteger concreteOffset =
           leftValue
@@ -2641,10 +2697,11 @@ public class SMGCPAExpressionEvaluator {
       // Not numeric and not unknown -> symbolic
       final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-      SymbolicExpression leftOperand = factory.asConstant(leftValue, CNumericTypes.INT);
-      SymbolicExpression rightOperand = factory.asConstant(rightValue, CNumericTypes.INT);
+      SymbolicExpression leftOperand = factory.asConstant(leftValue, calculationAndReturnType);
+      SymbolicExpression rightOperand = factory.asConstant(rightValue, calculationAndReturnType);
 
-      return factory.multiply(leftOperand, rightOperand, CNumericTypes.INT, CNumericTypes.INT);
+      return factory.multiply(
+          leftOperand, rightOperand, calculationAndReturnType, calculationAndReturnType);
     } else {
       // At some point this triggers with unknowns. And i want to know from where ;D
       throw new SMGException("Error assuming the offset of a memory access operation.");
