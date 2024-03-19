@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor;
@@ -406,19 +405,19 @@ public class ExpressionTransformer
   }
 
   public Constraint checkMemorySizeNotEqualsZero(
-      Value memoryRegionSizeInBits, SMGState currentState) {
-    CType type = CNumericTypes.INT;
-
+      Value memoryRegionSizeInBits, CType calculationType, SMGState currentState) {
     SymbolicExpression zeroValue =
-        SymbolicValueFactory.getInstance().asConstant(createNumericValue(BigInteger.ZERO), type);
+        SymbolicValueFactory.getInstance()
+            .asConstant(createNumericValue(BigInteger.ZERO), calculationType);
 
     SymbolicExpression memoryRegionSizeValue =
         SymbolicValueFactory.getInstance()
-            .asConstant(memoryRegionSizeInBits, type)
+            .asConstant(memoryRegionSizeInBits, calculationType)
             .copyForState(currentState);
 
     // size != 0
-    return (Constraint) factory.notEqual(memoryRegionSizeValue, zeroValue, type, type);
+    return (Constraint)
+        factory.notEqual(memoryRegionSizeValue, zeroValue, calculationType, calculationType);
   }
 
   /**
@@ -428,60 +427,59 @@ public class ExpressionTransformer
    * @param currentState current {@link SMGState}
    * @return a {@link Constraint} size == 0
    */
-  public Constraint checkMemorySizeEqualsZero(Value memoryRegionSizeInBits, SMGState currentState) {
-    CType type = CNumericTypes.INT;
-
+  public Constraint checkMemorySizeEqualsZero(
+      Value memoryRegionSizeInBits, CType calculationType, SMGState currentState) {
     SymbolicExpression zeroValue =
-        SymbolicValueFactory.getInstance().asConstant(createNumericValue(BigInteger.ZERO), type);
+        SymbolicValueFactory.getInstance()
+            .asConstant(createNumericValue(BigInteger.ZERO), calculationType);
 
     SymbolicExpression memoryRegionSizeValue =
         SymbolicValueFactory.getInstance()
-            .asConstant(memoryRegionSizeInBits, type)
+            .asConstant(memoryRegionSizeInBits, calculationType)
             .copyForState(currentState);
 
     // size == 0
-    return factory.equal(memoryRegionSizeValue, zeroValue, type, CNumericTypes.INT);
+    return factory.equal(memoryRegionSizeValue, zeroValue, calculationType, calculationType);
   }
 
   public Collection<Constraint> checkValidMemoryAccess(
       Value offsetInBits,
       Value readSizeInBits,
       Value memoryRegionSizeInBits,
-      CType offsetType,
+      CType comparisonType,
       SMGState currentState) {
     ImmutableSet.Builder<Constraint> constraintBuilder = ImmutableSet.builder();
 
     SymbolicExpression symbOffsetValue =
         SymbolicValueFactory.getInstance()
-            .asConstant(offsetInBits, offsetType)
+            .asConstant(offsetInBits, comparisonType)
             .copyForState(currentState);
 
     SymbolicExpression zeroValue =
         SymbolicValueFactory.getInstance()
-            .asConstant(createNumericValue(BigInteger.ZERO), offsetType);
+            .asConstant(createNumericValue(BigInteger.ZERO), comparisonType);
 
     SymbolicExpression readSizeValue =
         SymbolicValueFactory.getInstance()
-            .asConstant(readSizeInBits, offsetType)
+            .asConstant(readSizeInBits, comparisonType)
             .copyForState(currentState);
 
     SymbolicExpression offsetPlusReadSize =
-        factory.add(symbOffsetValue, readSizeValue, offsetType, offsetType);
+        factory.add(symbOffsetValue, readSizeValue, comparisonType, comparisonType);
 
     SymbolicExpression memoryRegionSizeValue =
         SymbolicValueFactory.getInstance()
-            .asConstant(memoryRegionSizeInBits, offsetType)
+            .asConstant(memoryRegionSizeInBits, comparisonType)
             .copyForState(currentState);
 
     // offset < 0
     SymbolicExpression offsetLessZero =
-        factory.lessThan(symbOffsetValue, zeroValue, offsetType, CNumericTypes.INT);
+        factory.lessThan(symbOffsetValue, zeroValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetLessZero);
 
     // offset + read size > size of memory region
     SymbolicExpression offsetPlusSizeGTRegion =
-        factory.greaterThan(
-            offsetPlusReadSize, memoryRegionSizeValue, offsetType, CNumericTypes.INT);
+        factory.greaterThan(offsetPlusReadSize, memoryRegionSizeValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetPlusSizeGTRegion);
 
     return constraintBuilder.build();
