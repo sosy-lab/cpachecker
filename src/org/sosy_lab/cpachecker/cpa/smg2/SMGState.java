@@ -64,8 +64,8 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.BooleanAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -3259,13 +3259,12 @@ public class SMGState
       String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
 
       // Iff SAT -> memory-safety is violated
-      BooleanAndSMGState isUnsatAndState =
+      SatisfiabilityAndSMGState SatisfiabilityAndState =
           evaluator.checkMemoryConstraintsAreUnsatIndividually(
               newConstraints, stackFrameFunctionName, currentState);
-      boolean isUnsat = isUnsatAndState.getBoolean();
-      currentState = isUnsatAndState.getState();
+      currentState = SatisfiabilityAndState.getState();
 
-      if (!isUnsat) {
+      if (SatisfiabilityAndState.isSAT()) {
         // Unknown value that should not be used with an error state that should stop the analysis
         // Stop the analysis, error found
         currentState =
