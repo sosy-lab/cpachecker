@@ -1285,10 +1285,10 @@ public class MyFloat {
         MyFloat lna = a.ln_2();
         MyFloat xlna = x.multiply(lna).validPart();
 
-        MyFloat hi = xlna.plus1Ulp().withPrecision(p).exp_().validPart();
-        MyFloat lo = xlna.withPrecision(p).exp_().validPart();
+        MyFloat hi = xlna.plus1Ulp().exp_().validPart();
+        MyFloat lo = xlna.exp_().validPart();
 
-        if (equalModuloP(hi, lo) && isStable(lo) && isStable(xlna)) {
+        if (equalModuloP(hi, lo) && isStable(lo) && isStable(xlna) && !p.equals(fp1)) {
           // TODO: Does isValid already follow from RN(e^hi) == RN(e^lo)?
           done = true;
           r = lo;
