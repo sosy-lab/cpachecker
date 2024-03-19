@@ -741,9 +741,12 @@ public class SMGCPABuiltins {
         }
       }
       // The size is always given in bytes, we want bit size
-      CType sizeType =
-          SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-              functionCall.getParameterExpressions().get(0).getExpressionType());
+      CType sizeType = functionCall.getParameterExpressions().get(0).getExpressionType();
+      if (!sizeValue.isNumericValue()) {
+        sizeType =
+            SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+                functionCall.getParameterExpressions().get(0).getExpressionType());
+      }
       Value sizeInBits =
           SMGCPAExpressionEvaluator.multiplyValues(sizeValue, BigInteger.valueOf(8), sizeType);
 
@@ -1722,9 +1725,11 @@ public class SMGCPABuiltins {
               pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)));
     } else {
       if (options.trackPredicates()) {
-        sizeType =
-            SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                functionCall.getParameterExpressions().get(0).getExpressionType());
+        if (!pSizeValue.isNumericValue()) {
+          sizeType =
+              SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+                  functionCall.getParameterExpressions().get(0).getExpressionType());
+        }
         sizeInBits =
             SMGCPAExpressionEvaluator.multiplyValues(pSizeValue, BigInteger.valueOf(8), sizeType);
       } else {

@@ -479,7 +479,8 @@ public class ExpressionTransformer
 
     // offset + read size > size of memory region
     SymbolicExpression offsetPlusSizeGTRegion =
-        factory.greaterThan(offsetPlusReadSize, memoryRegionSizeValue, comparisonType, comparisonType);
+        factory.greaterThan(
+            offsetPlusReadSize, memoryRegionSizeValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetPlusSizeGTRegion);
 
     return constraintBuilder.build();

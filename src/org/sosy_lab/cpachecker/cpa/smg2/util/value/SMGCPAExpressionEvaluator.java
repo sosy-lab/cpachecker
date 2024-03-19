@@ -1162,19 +1162,21 @@ public class SMGCPAExpressionEvaluator {
    */
   public static CType promoteMemorySizeTypeForBitCalculation(CType pExpressionType)
       throws SMGException {
-    if (!(pExpressionType instanceof CSimpleType)
-        || ((CSimpleType) pExpressionType).getType().equals(CBasicType.UNSPECIFIED)
-        || ((CSimpleType) pExpressionType).getType().isFloatingPointType()) {
+    CType canonicalType = getCanonicalType(pExpressionType);
+    // TODO: this fails for larger types and types that are non numeric (e.g. structs)
+    if (!(canonicalType instanceof CSimpleType)
+        || ((CSimpleType) canonicalType).getType().equals(CBasicType.UNSPECIFIED)
+        || ((CSimpleType) canonicalType).getType().isFloatingPointType()) {
       throw new SMGException(
-          "Unhandled type: " + pExpressionType + "; in symbolic memory size calculation.");
+          "Unhandled type: " + canonicalType + "; in symbolic memory size calculation.");
     }
 
-    if (((CSimpleType) pExpressionType).hasLongLongSpecifier()) {
+    if (((CSimpleType) canonicalType).hasLongLongSpecifier()) {
       // This might happen due to a cast.
       // We would need to handle this with casting the source of this type to size_t
       //   and then wrapping that with the long long type.
       throw new SMGException(
-          "Unhandled type: " + pExpressionType + "; in symbolic memory size calculation.");
+          "Unhandled type: " + canonicalType + "; in symbolic memory size calculation.");
     }
 
     return CNumericTypes.LONG_LONG_INT;
