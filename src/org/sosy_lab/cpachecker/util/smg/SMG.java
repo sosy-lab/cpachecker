@@ -468,6 +468,9 @@ public class SMG {
   public SMG copyAndReplaceHVEdgesAt(
       SMGObject objectToReplace, PersistentSet<SMGHasValueEdge> newHVEdges) {
     if (newHVEdges.isEmpty()) {
+      if (hasValueEdges.get(objectToReplace) == null) {
+        return this;
+      }
       return copyAndRemoveHVEdges(hasValueEdges.get(objectToReplace), objectToReplace);
     }
     // TODO: this might change pointers
