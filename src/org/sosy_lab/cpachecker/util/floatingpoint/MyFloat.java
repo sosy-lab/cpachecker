@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -953,7 +954,7 @@ public class MyFloat {
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : List.of(fp1, fp2, fp3)) {
+    for (Format p : ImmutableList.of(fp1, fp2, fp3)) {
       if (!done) {
         MyFloat x = this.withPrecision(p);
         MyFloat ex = x.exp_().validPart();
@@ -1024,8 +1025,7 @@ public class MyFloat {
     // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
     // some rounding issues.)
     List<MyFloat> sorted =
-        terms.build().sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent))
-            .toList();
+        terms.build().sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent)).toList();
     for (MyFloat v : sorted) {
       r = r.add(v.withPrecision(fp1));
     }
@@ -1046,7 +1046,7 @@ public class MyFloat {
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : List.of(fp1, fp2, fp3)) {
+    for (Format p : ImmutableList.of(fp1, fp2, fp3)) {
       if (!done) {
         MyFloat x = this.withPrecision(p);
         MyFloat lnx = x.ln_2().validPart();
@@ -1118,7 +1118,7 @@ public class MyFloat {
       return zero(format);
     }
     // ln(x) = ln(a * 2^k) = ln a + ln 2^k = ln a + k * ln 2
-    Format p = new Format(format.expBits, format.sigBits+3);
+    Format p = new Format(format.expBits, format.sigBits + 3);
     MyFloat a = this.withPrecision(p);
 
     MyFloat r = constant(Format.Float256, 2).sqrt_().subtract(one(Format.Float256)).ln1p();
@@ -1289,7 +1289,7 @@ public class MyFloat {
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : List.of(fp1, fp2, fp3)) {
+    for (Format p : ImmutableList.of(fp1, fp2, fp3)) {
       if (!done) {
         // Composing exp and ln without rounding issues is complex.
         // We have to use three different precisions:
@@ -1304,7 +1304,7 @@ public class MyFloat {
         // - Otherwise we repeat the whole process with more bits
 
         Format p_ext = new Format(p.expBits, p.sigBits + 3);
-        Format p_target = new Format(p.expBits, format.sigBits + (p.sigBits - format.sigBits)/2);
+        Format p_target = new Format(p.expBits, format.sigBits + (p.sigBits - format.sigBits) / 2);
 
         MyFloat a = this.withPrecision(p_ext);
         MyFloat x = exponent.withPrecision(p_ext);
