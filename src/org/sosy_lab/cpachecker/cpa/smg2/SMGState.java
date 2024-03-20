@@ -3282,6 +3282,12 @@ public class SMGState
           throw new SMGException(
               "Stop analysis because of symbolic offset in write operation. Enable the option"
                   + " overapproximateForSymbolicWrite if you want to continue.");
+        } else if (!sizeInBits.isNumericValue()
+            && !options.isOverapproximateValuesForSymbolicSize()) {
+          throw new SMGException(
+              "Stop analysis because of symbolic offset in write operation towards symbolically"
+                  + " sized memory. Enable the option isOverapproximateValuesForSymbolicSize if you"
+                  + " want to continue.");
         }
         // delete ALL edges in the target region, as they may all be now different
         return currentState.copyAndReplaceMemoryModel(

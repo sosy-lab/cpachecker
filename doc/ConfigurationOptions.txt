@@ -3181,7 +3181,13 @@ cpa.smg2.optimizeBooleanVariables = true
 # If this Option is enabled, all values of a memory region that is written to
 # with a symbolic and non unique offset are deleted and the value itself is
 # overapproximated to unknown in the memory region.
-cpa.smg2.overapproximateForSymbolicWrite = false
+cpa.smg2.overapproximateForSymbolicWrite = true
+
+# If this Option is enabled, all values of a memory region that is written to
+# with a symbolic and non-unique offset in symbolically sized memory are
+# deleted and the value itself is overapproximated to unknown in the memory
+# region.
+cpa.smg2.overapproximateValuesForSymbolicSize = false
 
 # with this option enabled, we try to gather information on memory reads from
 # values that are overlapping but not exactly fitting to the read parameters.
