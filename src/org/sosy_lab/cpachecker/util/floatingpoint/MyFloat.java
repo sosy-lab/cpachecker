@@ -630,15 +630,14 @@ public class MyFloat {
   }
 
   private MyFloat powInt_(int exp) {
-    return powMap.computeIfAbsent(
-        exp,
-        (Integer x) -> {
-          MyFloat r = powFast(Math.abs(x));
-          if (exp < 0) {
-            r = one(format).divide_(r);
-          }
-          return r;
-        });
+    if (!powMap.containsKey(exp)) {
+      MyFloat r = powFast(Math.abs(exp));
+      if (exp < 0) {
+        r = one(format).divide_(r);
+      }
+      powMap.put(exp, r);
+    }
+    return powMap.get(exp);
   }
 
   private MyFloat powFast(int exp) {
@@ -940,6 +939,9 @@ public class MyFloat {
 
   // Check if an m-float number is stable in precision p
   private boolean isStable(MyFloat r) {
+    if (r.format.sigBits < format.sigBits + 3) {
+      return false;
+    }
     return equalModuloP(r, r.plus1Ulp());
   }
 
@@ -1205,9 +1207,6 @@ public class MyFloat {
       // pow(base, ±0) returns 1 for any base, even when base is NaN
       return one(format);
     }
-    if (x.isOne()) {
-      return a;
-    }
     if (a.isNan() || x.isNan()) {
       // except where specified above, if any argument is NaN, NaN is returned
       return nan(format);
@@ -1264,7 +1263,10 @@ public class MyFloat {
       // exponent is finite and non-integer.
       return nan(format);
     }
-
+    if (x.isInteger()) {
+      // FIXME: Broken for larger exponents
+      return a.powInt(x.toInt());
+    }
     MyFloat r = a.abs().pow_(exponent);
     if (a.isNegative()) {
       // Fix the sign if `a` was negative and x an integer
@@ -1274,6 +1276,7 @@ public class MyFloat {
   }
 
   private MyFloat pow_(MyFloat exponent) {
+    // a^x = exp(x * ln a)
     Format fp1 = new Format(15, format.sigBits + 10);
     Format fp2 = format.extended();
     Format fp3 = fp2.extended();
@@ -1283,18 +1286,42 @@ public class MyFloat {
 
     for (Format p : List.of(fp1, fp2, fp3)) {
       if (!done) {
-        MyFloat a = this.withPrecision(p);
-        MyFloat x = exponent.withPrecision(p);
+        // Composing exp and ln without rounding issues is complex.
+        // We have to use three different precisions:
+        // format....p_target....p....p_ext
+        // - 'format' is the precision of the input (and the end result)
+        // - p is the precision of the result for the logarithm
+        // - p_ext is larger than p and used to calculate log(a)
+        // - The result is then multiplied with x and rounded down to precision p
+        // - If the result is stable (=has enough valid bits) we convert the value to p_target
+        // - p_target is the precision used to calculate exp(..)
+        // - If the result is again stable we can round down to 'format' and return the value
+        // - Otherwise we repeat the whole process with more bits
+
+        Format p_ext = new Format(p.expBits, p.sigBits + 3);
+        Format p_target = new Format(p.expBits, format.sigBits + (p.sigBits - format.sigBits)/2);
+
+        MyFloat a = this.withPrecision(p_ext);
+        MyFloat x = exponent.withPrecision(p_ext);
+
+        // Calculate ln(a) with extra precision, then multiply with x and round down
         MyFloat lna = a.ln_2();
-        MyFloat xlna = x.multiply(lna).validPart();
+        MyFloat xlna = x.multiply(lna).withPrecision(p);
 
-        MyFloat hi = xlna.plus1Ulp().withPrecision(p).exp_().validPart();
-        MyFloat lo = xlna.withPrecision(p).exp_().validPart();
+        if (withPrecision(p_target).isStable(xlna.validPart())) {
+          xlna = xlna.withPrecision(p_target); // round down to precision p_target
+          MyFloat exp = xlna.exp_();
 
-        if (equalModuloP(hi, lo) && isStable(lo) && isStable(xlna)) {
-          // TODO: Does isValid already follow from RN(e^hi) == RN(e^lo)?
-          done = true;
-          r = lo;
+          // Keep as many bits from exp(..) as there were valid bits in x*ln(a)
+          int diff = exp.format.sigBits - xlna.validPart().format.sigBits;
+          BigInteger significand = exp.value.significand.shiftRight(diff).shiftLeft(diff);
+          MyFloat val =
+              new MyFloat(xlna.format, exp.value.sign, exp.value.exponent, significand).validPart();
+
+          if (isStable(val)) {
+            done = true;
+            r = val;
+          }
         }
       }
     }
