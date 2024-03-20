@@ -1115,14 +1115,17 @@ public class MyFloat {
     if (isOne()) {
       return zero(format);
     }
+    // ln(x) = ln(a * 2^k) = ln a + ln 2^k = ln a + k * ln 2
+    Format p = new Format(format.expBits, format.sigBits+3);
+    MyFloat a = this.withPrecision(p);
 
-    MyFloat ln2 = constant(Format.Float256, 2).sqrt_().subtract(one(Format.Float256)).ln1p();
-    ln2 = ln2.withExponent(ln2.value.exponent + 1).withPrecision(format);
+    MyFloat r = constant(Format.Float256, 2).sqrt_().subtract(one(Format.Float256)).ln1p();
+    MyFloat ln2 = r.withExponent(r.value.exponent + 1).withPrecision(p);
 
-    MyFloat a = withExponent(-1).subtract(one(format)).ln1p();
-    MyFloat b = constant(format, (int) value.exponent + 1).multiply(ln2);
+    MyFloat lna = a.withExponent(-1).subtract(one(p)).ln1p();
+    MyFloat nln2 = constant(p, (int) a.value.exponent + 1).multiply(ln2);
 
-    return a.add(b);
+    return lna.add(nln2).withPrecision(format);
   }
 
   public MyFloat ln1p() {
