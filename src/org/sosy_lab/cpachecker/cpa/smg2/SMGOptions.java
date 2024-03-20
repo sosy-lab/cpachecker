@@ -81,6 +81,19 @@ public class SMGOptions {
               + "i.e., free of memory-related side-effects?")
   private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
 
+  @Option(
+      secure = true,
+      name = "overapproximateForSymbolicWrite",
+      description =
+          "If this Option is enabled, all values of a memory region that is written to with a"
+              + " symbolic and non unique offset are deleted and the value itself is"
+              + " overapproximated to unknown in the memory region.")
+  private boolean overapproximateForSymbolicWrite = true;
+
+  public boolean isOverapproximateForSymbolicWrite() {
+    return overapproximateForSymbolicWrite;
+  }
+
   public enum UnknownFunctionHandling {
     STRICT,
     ASSUME_SAFE,
