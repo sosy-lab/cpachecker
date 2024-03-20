@@ -2703,8 +2703,14 @@ public class SMGCPAExpressionEvaluator {
     } else if (!leftValue.isUnknown() && !rightValue.isUnknown()) {
       // Not numeric and not unknown -> symbolic
       final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-      CType calculationAndReturnType =
-          promoteMemorySizeTypeForBitCalculation(symbolicValueType, pMachineModel);
+      // TODO: This is not really sound, we need to choose a type that does not overflow
+      //    for both values here as this is an internal calculation
+      CType calculationAndReturnType = CNumericTypes.LONG_LONG_INT;
+      if (rightValue.isNumericValue()
+          && rightValue.asNumericValue().bigIntegerValue().equals(BigInteger.valueOf(8))) {
+        calculationAndReturnType =
+            promoteMemorySizeTypeForBitCalculation(symbolicValueType, pMachineModel);
+      }
       SymbolicExpression leftOperand = factory.asConstant(leftValue, calculationAndReturnType);
       SymbolicExpression rightOperand = factory.asConstant(rightValue, calculationAndReturnType);
 
