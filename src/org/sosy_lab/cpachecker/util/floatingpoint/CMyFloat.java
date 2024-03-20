@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
+import java.math.BigInteger;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
@@ -170,7 +171,7 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat powToIntegral(int exponent) {
-    return new CMyFloat(delegate.powInt(exponent));
+    return new CMyFloat(delegate.powInt(BigInteger.valueOf(exponent)));
   }
 
   @Override

@@ -623,16 +623,16 @@ public class MyFloat {
     return this.multiply(this);
   }
 
-  private final Map<Integer, MyFloat> powMap = new HashMap<>();
+  private final Map<BigInteger, MyFloat> powMap = new HashMap<>();
 
-  public MyFloat powInt(int exp) {
+  public MyFloat powInt(BigInteger exp) {
     return withPrecision(format.extended()).powInt_(exp).withPrecision(format);
   }
 
-  private MyFloat powInt_(int exp) {
+  private MyFloat powInt_(BigInteger exp) {
     if (!powMap.containsKey(exp)) {
-      MyFloat r = powFast(Math.abs(exp));
-      if (exp < 0) {
+      MyFloat r = powFast(exp.abs());
+      if (exp.compareTo(BigInteger.ZERO) < 0) {
         r = one(format).divide_(r);
       }
       powMap.put(exp, r);
@@ -640,15 +640,15 @@ public class MyFloat {
     return powMap.get(exp);
   }
 
-  private MyFloat powFast(int exp) {
-    if (exp == 0) {
+  private MyFloat powFast(BigInteger exp) {
+    if (exp.equals(BigInteger.ZERO)) {
       return one(format);
     }
-    if (exp == 1) {
+    if (exp.equals(BigInteger.ONE)) {
       return this;
     }
-    MyFloat r = powInt_(exp / 2).squared();
-    MyFloat p = exp % 2 == 0 ? one(format) : this;
+    MyFloat r = powInt_(exp.divide(BigInteger.valueOf(2))).squared();
+    MyFloat p = exp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
     return p.multiply(r);
   }
 
@@ -1017,7 +1017,7 @@ public class MyFloat {
 
     Stream.Builder<MyFloat> terms = Stream.builder();
     for (int k = 0; k < 40; k++) {
-      MyFloat a = x.powInt_(k);
+      MyFloat a = x.powInt_(BigInteger.valueOf(k));
       terms.add(a.multiply(expTable.get(k).withPrecision(format)));
     }
 
@@ -1135,13 +1135,13 @@ public class MyFloat {
     MyFloat r = zero(format);
 
     for (int k = 1; k < 100; k++) { // fill the cache with values
-      x.powInt_(k);
+      x.powInt_(BigInteger.valueOf(k));
     }
 
     // We calculate the sum backwards to avoid rounding errors
     for (int k = 99; k >= 1; k--) { // TODO: Find a proper bound for the number of iterations.
       // Calculate the next term x^k/k
-      MyFloat a = x.powInt_(k);
+      MyFloat a = x.powInt_(BigInteger.valueOf(k));
       MyFloat b = a.multiply(lnTable.get(k).withPrecision(format));
 
       r = r.add(k % 2 == 0 ? b.negate() : b); // Add the term to the sum
@@ -1264,8 +1264,13 @@ public class MyFloat {
       return nan(format);
     }
     if (x.isInteger()) {
-      // FIXME: Broken for larger exponents
-      return a.powInt(x.toInt());
+      // FIXME: Fix the rounding test and remove this workaround
+      return a.powInt(x.toInteger());
+    }
+    MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
+    if (x.equals(c1d2)) {
+      // FIXME: Remove this workaround
+      return a.sqrt();
     }
     MyFloat r = a.abs().pow_(exponent);
     if (a.isNegative()) {
