@@ -88,7 +88,7 @@ public class SMGOptions {
           "If this Option is enabled, all values of a memory region that is written to with a"
               + " symbolic and non unique offset are deleted and the value itself is"
               + " overapproximated to unknown in the memory region.")
-  private boolean overapproximateForSymbolicWrite = true;
+  private boolean overapproximateForSymbolicWrite = false;
 
   public boolean isOverapproximateForSymbolicWrite() {
     return overapproximateForSymbolicWrite;
