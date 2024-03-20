@@ -186,8 +186,8 @@ public class SMGCPAAddressVisitor
             SMGCPAExpressionEvaluator.multiplyValues(
                 subscriptValue,
                 typeSizeInBits,
-                SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                    e.getExpressionType(), currentState.getMachineModel()));
+                e.getExpressionType(),
+                currentState.getMachineModel());
 
         // Get the value from the array and return the value + state
         // (the is pointer check is needed because of nested subscript; i.e. array[1][1]; as if we

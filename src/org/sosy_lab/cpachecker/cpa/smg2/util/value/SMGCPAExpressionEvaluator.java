@@ -2668,22 +2668,25 @@ public class SMGCPAExpressionEvaluator {
   }
 
   public static Value multiplyValues(
-      Value leftValue, BigInteger rightValue, CType calculationAndReturnType) throws SMGException {
+      Value leftValue, BigInteger rightValue, CType leftValueType, MachineModel pMachineModel)
+      throws SMGException {
     if (rightValue.equals(BigInteger.ONE)) {
       return leftValue;
     } else if (rightValue.equals(BigInteger.ZERO)) {
       return new NumericValue(rightValue);
     }
 
-    return multiplyValues(leftValue, new NumericValue(rightValue), calculationAndReturnType);
+    return multiplyValues(leftValue, new NumericValue(rightValue), leftValueType, pMachineModel);
   }
 
-  public static Value multiplyValues(Value leftValue, Value rightValue) throws SMGException {
-    return multiplyValues(leftValue, rightValue, CNumericTypes.INT);
+  public static Value multiplyValues(Value leftValue, Value rightValue, MachineModel pMachineModel)
+      throws SMGException {
+    return multiplyValues(leftValue, rightValue, CNumericTypes.INT, pMachineModel);
   }
 
   public static Value multiplyValues(
-      Value leftValue, Value rightValue, CType calculationAndReturnType) throws SMGException {
+      Value leftValue, Value rightValue, CType symbolicValueType, MachineModel pMachineModel)
+      throws SMGException {
     if (leftValue.isNumericValue() && rightValue.isNumericValue()) {
       BigInteger concreteOffset =
           leftValue
@@ -2700,7 +2703,8 @@ public class SMGCPAExpressionEvaluator {
     } else if (!leftValue.isUnknown() && !rightValue.isUnknown()) {
       // Not numeric and not unknown -> symbolic
       final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
+      CType calculationAndReturnType =
+          promoteMemorySizeTypeForBitCalculation(symbolicValueType, pMachineModel);
       SymbolicExpression leftOperand = factory.asConstant(leftValue, calculationAndReturnType);
       SymbolicExpression rightOperand = factory.asConstant(rightValue, calculationAndReturnType);
 

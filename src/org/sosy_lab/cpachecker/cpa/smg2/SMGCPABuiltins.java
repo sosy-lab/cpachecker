@@ -590,7 +590,7 @@ public class SMGCPABuiltins {
           }
 
           // TODO: this might be wrong (the type might be incorrect)
-          Value size = SMGCPAExpressionEvaluator.multiplyValues(value1, value2);
+          Value size = SMGCPAExpressionEvaluator.multiplyValues(value1, value2, machineModel);
 
           resultBuilder.add(ValueAndSMGState.of(size, state2));
         }
@@ -750,10 +750,7 @@ public class SMGCPABuiltins {
       }
       Value sizeInBits =
           SMGCPAExpressionEvaluator.multiplyValues(
-              sizeValue,
-              BigInteger.valueOf(8),
-              SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                  sizeType, machineModel));
+              sizeValue, BigInteger.valueOf(8), sizeType, machineModel);
 
       resultBuilder.addAll(
           handleConfigurableMemoryAllocation(
@@ -1193,9 +1190,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
     Value sizeInBits =
         SMGCPAExpressionEvaluator.multiplyValues(
-            pSizeValue,
-            BigInteger.valueOf(8),
-            SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(type, machineModel));
+            pSizeValue, BigInteger.valueOf(8), type, machineModel);
 
     String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
     ValueAndSMGState addressValueAndState =
@@ -1741,10 +1736,7 @@ public class SMGCPABuiltins {
         }
         sizeInBits =
             SMGCPAExpressionEvaluator.multiplyValues(
-                pSizeValue,
-                BigInteger.valueOf(8),
-                SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                    sizeType, machineModel));
+                pSizeValue, BigInteger.valueOf(8), sizeType, machineModel);
       } else {
         logger.logf(
             Level.INFO,

@@ -321,10 +321,7 @@ public class SMGCPAValueVisitor
         BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
         Value subscriptOffset =
             SMGCPAExpressionEvaluator.multiplyValues(
-                subscriptValue,
-                typeSizeInBits,
-                SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                    returnType, state.getMachineModel()));
+                subscriptValue, typeSizeInBits, returnType, state.getMachineModel());
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
