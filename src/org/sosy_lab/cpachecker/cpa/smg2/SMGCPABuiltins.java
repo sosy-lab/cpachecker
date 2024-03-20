@@ -589,6 +589,7 @@ public class SMGCPABuiltins {
             }
           }
 
+          // TODO: this might be wrong (the type might be incorrect)
           Value size = SMGCPAExpressionEvaluator.multiplyValues(value1, value2);
 
           resultBuilder.add(ValueAndSMGState.of(size, state2));
@@ -745,10 +746,14 @@ public class SMGCPABuiltins {
       if (!sizeValue.isNumericValue()) {
         sizeType =
             SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                functionCall.getParameterExpressions().get(0).getExpressionType());
+                functionCall.getParameterExpressions().get(0).getExpressionType(), machineModel);
       }
       Value sizeInBits =
-          SMGCPAExpressionEvaluator.multiplyValues(sizeValue, BigInteger.valueOf(8), sizeType);
+          SMGCPAExpressionEvaluator.multiplyValues(
+              sizeValue,
+              BigInteger.valueOf(8),
+              SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+                  sizeType, machineModel));
 
       resultBuilder.addAll(
           handleConfigurableMemoryAllocation(
@@ -1186,7 +1191,11 @@ public class SMGCPABuiltins {
   private List<ValueAndSMGState> evaluateAlloca(
       SMGState pState, Value pSizeValue, CType type, @SuppressWarnings("unused") CFAEdge cfaEdge)
       throws CPATransferException {
-    Value sizeInBits = SMGCPAExpressionEvaluator.multiplyValues(pSizeValue, BigInteger.valueOf(8));
+    Value sizeInBits =
+        SMGCPAExpressionEvaluator.multiplyValues(
+            pSizeValue,
+            BigInteger.valueOf(8),
+            SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(type, machineModel));
 
     String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
     ValueAndSMGState addressValueAndState =
@@ -1728,10 +1737,14 @@ public class SMGCPABuiltins {
         if (!pSizeValue.isNumericValue()) {
           sizeType =
               SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                  functionCall.getParameterExpressions().get(0).getExpressionType());
+                  functionCall.getParameterExpressions().get(0).getExpressionType(), machineModel);
         }
         sizeInBits =
-            SMGCPAExpressionEvaluator.multiplyValues(pSizeValue, BigInteger.valueOf(8), sizeType);
+            SMGCPAExpressionEvaluator.multiplyValues(
+                pSizeValue,
+                BigInteger.valueOf(8),
+                SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+                    sizeType, machineModel));
       } else {
         logger.logf(
             Level.INFO,

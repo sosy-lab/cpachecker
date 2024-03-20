@@ -538,6 +538,10 @@ public class SMGState
         pStatistics);
   }
 
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
+
   /**
    * Copies the state and replaces the SPC
    *
@@ -3248,7 +3252,7 @@ public class SMGState
 
     } else if (options.trackErrorPredicates()) {
       CType calcTypeForMemAccess =
-          SMGCPAExpressionEvaluator.calculateSymbolicMemoryBoundryCheckType(
+          SMGCPAExpressionEvaluator.calculateSymbolicMemoryBoundaryCheckType(
               object.getSize(), writeOffsetInBits, machineModel);
       // Use an SMT solver to argue about the offset/size validity
       final ConstraintFactory constraintFactory =
@@ -3274,11 +3278,14 @@ public class SMGState
       }
 
       if (!writeOffsetInBits.isNumericValue()) {
+        if (!options.isOverapproximateForSymbolicWrite()) {
+          throw new SMGException(
+              "Stop analysis because of symbolic offset in write operation. Enable the option"
+                  + " overapproximateForSymbolicWrite if you want to continue.");
+        }
         // delete ALL edges in the target region, as they may all be now different
-        currentState =
-            currentState.copyAndReplaceMemoryModel(
-                currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of()));
-        return currentState;
+        return currentState.copyAndReplaceMemoryModel(
+            currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of()));
       } else {
         // offset numeric, but size symbolic, but write range is inside the size, -> write
         numericOffsetInBits = writeOffsetInBits.asNumericValue().bigIntegerValue();

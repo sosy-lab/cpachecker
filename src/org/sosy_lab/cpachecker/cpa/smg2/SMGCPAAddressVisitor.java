@@ -183,7 +183,11 @@ public class SMGCPAAddressVisitor
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         Value subscriptOffset =
-            SMGCPAExpressionEvaluator.multiplyValues(subscriptValue, typeSizeInBits);
+            SMGCPAExpressionEvaluator.multiplyValues(
+                subscriptValue,
+                typeSizeInBits,
+                SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+                    e.getExpressionType(), currentState.getMachineModel()));
 
         // Get the value from the array and return the value + state
         // (the is pointer check is needed because of nested subscript; i.e. array[1][1]; as if we

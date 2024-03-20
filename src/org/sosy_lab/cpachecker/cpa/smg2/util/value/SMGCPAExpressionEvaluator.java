@@ -974,7 +974,7 @@ public class SMGCPAExpressionEvaluator {
     } else if (options.trackErrorPredicates()) {
       // Use an SMT solver to argue about the offset/size validity
       CType calcTypeForMemAccess =
-          calculateSymbolicMemoryBoundryCheckType(
+          calculateSymbolicMemoryBoundaryCheckType(
               object.getSize(), offsetValueInBits, machineModel);
       final ConstraintFactory constraintFactory =
           ConstraintFactory.getInstance(currentState, machineModel, logger, options, this, null);
@@ -1160,8 +1160,8 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException for unhandled types that make no sense but are technically legal. Handle
    *     once it happens.
    */
-  public static CType promoteMemorySizeTypeForBitCalculation(CType pExpressionType)
-      throws SMGException {
+  public static CType promoteMemorySizeTypeForBitCalculation(
+      CType pExpressionType, MachineModel pMachineModel) throws SMGException {
     CType canonicalType = getCanonicalType(pExpressionType);
     // TODO: this fails for larger types and types that are non numeric (e.g. structs)
     if (!(canonicalType instanceof CSimpleType)
@@ -1179,10 +1179,16 @@ public class SMGCPAExpressionEvaluator {
           "Unhandled type: " + canonicalType + "; in symbolic memory size calculation.");
     }
 
+    if (pMachineModel.getSizeof(canonicalType).intValueExact()
+        >= pMachineModel.getSizeof(CNumericTypes.LONG_LONG_INT)) {
+      return new CSimpleType(
+          false, false, CBasicType.INT128, false, false, true, false, false, false, false);
+    }
+
     return CNumericTypes.LONG_LONG_INT;
   }
 
-  public static CType calculateSymbolicMemoryBoundryCheckType(
+  public static CType calculateSymbolicMemoryBoundaryCheckType(
       Value objSizeInBits, Value writeOffsetInBits, MachineModel pMachineModel)
       throws SMGException {
     CType calcTypeForMemAccess = null;
@@ -2670,10 +2676,6 @@ public class SMGCPAExpressionEvaluator {
     }
 
     return multiplyValues(leftValue, new NumericValue(rightValue), calculationAndReturnType);
-  }
-
-  public static Value multiplyValues(Value leftValue, BigInteger rightValue) throws SMGException {
-    return multiplyValues(leftValue, rightValue, CNumericTypes.INT);
   }
 
   public static Value multiplyValues(Value leftValue, Value rightValue) throws SMGException {
