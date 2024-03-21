@@ -3282,7 +3282,7 @@ public class SMGState
           throw new SMGException(
               "Stop analysis because of symbolic offset in write operation. Enable the option"
                   + " overapproximateForSymbolicWrite if you want to continue.");
-        } else if (!sizeInBits.isNumericValue()
+        } else if (!objSize.isNumericValue()
             && !options.isOverapproximateValuesForSymbolicSize()) {
           throw new SMGException(
               "Stop analysis because of symbolic offset in write operation towards symbolically"
