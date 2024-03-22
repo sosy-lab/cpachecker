@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.util.floatingpoint.test;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Correspondence.BinaryPredicate;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Random;
 import java.util.function.BinaryOperator;
@@ -22,6 +22,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import org.junit.Test;
+import org.kframework.mpfr.BigFloat;
+import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
@@ -29,52 +31,67 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 public abstract class CFloatUnitTest {
   protected int floatType = CFloatNativeAPI.FP_TYPE_SINGLE; // TODO: Add other float types
 
-  // Convert floating point value to its decimal representation
-  private static String toPlainString(float fpVal) {
-    if (Float.isNaN(fpVal)) {
+  private static String printBigFloat(BigFloat value) {
+    if (value.isNaN()) {
       return "nan";
     }
-    if (Float.isInfinite(fpVal)) {
-      return Float.compare(fpVal, 0.0f) < 0 ? "-inf" : "inf";
+    if (value.isInfinite()) {
+      return value.sign() ? "-inf" : "inf";
     }
-    if (fpVal == -0.0f) {
+    if (value.isNegativeZero()) {
       return "-0.0";
     }
-    return new BigDecimal(fpVal).toPlainString();
+    if (value.isPositiveZero()) {
+      return "0.0";
+    }
+    return value.toString().replaceAll(",", ".");
   }
 
+  // Convert floating point value to its decimal representation
+  private static String toPlainString(BigFloat value) {
+    String r = printBigFloat(value);
+    if (r.contains("e")) {
+      r = new BigDecimal(r).toPlainString();
+    }
+    return r;
+  }
+
+  protected static BinaryMathContext format = BinaryMathContext.BINARY32;
+
   // Generate a list of floating point constants that cover all special case values
-  protected static List<Float> floatConsts() {
-    ImmutableList.Builder<Float> builder = ImmutableList.builder();
+  protected static List<BigFloat> floatConsts() {
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     builder.add(
-        Float.NEGATIVE_INFINITY,
-        -Float.MAX_VALUE,
-        -17.0f,
-        -1.0f,
-        -0.1f,
-        -Float.MIN_NORMAL,
-        -Float.MIN_VALUE,
-        -0.0f,
-        Float.NaN,
-        0.0f,
-        Float.MIN_VALUE,
-        Float.MIN_NORMAL,
-        0.1f,
-        1.0f,
-        17.0f,
-        Float.MAX_VALUE,
-        Float.POSITIVE_INFINITY);
+        BigFloat.negativeInfinity(format.precision),
+        BigFloat.maxValue(format.precision, format.maxExponent).negate(),
+        new BigFloat(-17.0f, format),
+        new BigFloat(-1.0f, format),
+        new BigFloat(-0.1f, format),
+        BigFloat.minNormal(format.precision, format.minExponent).negate(),
+        BigFloat.minValue(format.precision, format.minExponent).negate(),
+        BigFloat.negativeZero(format.precision),
+        BigFloat.NaN(format.precision),
+        BigFloat.zero(format.precision),
+        BigFloat.minValue(format.precision, format.minExponent),
+        BigFloat.minNormal(format.precision, format.minExponent),
+        new BigFloat(0.1f, format),
+        new BigFloat(1.0f, format),
+        new BigFloat(17.0f, format),
+        BigFloat.maxValue(format.precision, format.maxExponent),
+        BigFloat.positiveInfinity(format.precision));
     return builder.build();
   }
 
   // Generate a list of powers ca^px where c,p are incremented starting from 1 and a,x are constants
-  protected static List<Float> floatPowers(int c, float a, int p, float x) {
-    ImmutableList.Builder<Float> builder = ImmutableList.builder();
+  protected static List<BigFloat> floatPowers(int c, BigFloat a, int p, BigFloat x) {
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     for (int i = 1; i <= c; i++) {
       for (int j = -p; j <= p; j++) {
-        float val = (float) Math.pow(i * a, j * x);
-        if (val != 1.0f) {
-          builder.add(val);
+        BigFloat t1 = new BigFloat(i, format).multiply(a, format);
+        BigFloat t2 = new BigFloat(p, format).multiply(x, format);
+        BigFloat r = t1.pow(t2, format);
+        if (!r.equalTo(new BigFloat(1, format))) {
+          builder.add(r);
         }
       }
     }
@@ -82,56 +99,59 @@ public abstract class CFloatUnitTest {
   }
 
   // Generate n random floating point values
-  protected static List<Float> floatRandom(int n) {
-    ImmutableList.Builder<Float> builder = ImmutableList.builder();
-    Random randomNumbers = new Random(0);
-    int i = 0;
-    while (i < n) {
-      float flt = Float.intBitsToFloat(randomNumbers.nextInt());
-      if (!Float.isNaN(flt) && !Float.isInfinite(flt)) {
-        builder.add(flt);
-        i++;
+  protected static List<BigFloat> floatRandom(int n) {
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
+    Random random = new Random(0);
+    for(int i=0; i<n; i++) {
+      boolean sign = random.nextBoolean();
+      long exponent = random.nextLong(2 * format.maxExponent) - format.maxExponent;
+      BigInteger leading = BigInteger.ONE.shiftLeft(format.precision - 1);
+      if (exponent < format.minExponent) { // Special case for subnormal numbers
+        exponent = format.minExponent;
+        leading = BigInteger.ZERO;
       }
+      BigInteger significand = leading.add(new BigInteger(format.precision - 1, random));
+      builder.add(new BigFloat(sign, significand, exponent, format));
     }
     return builder.build();
   }
 
-  protected static List<Float> binaryTestValues() {
-    ImmutableList.Builder<Float> builder = ImmutableList.builder();
+  protected static List<BigFloat> binaryTestValues() {
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     builder.addAll(floatConsts());
-    builder.addAll(floatPowers(3, 0.5f, 3, 0.5f));
+    builder.addAll(floatPowers(3, new BigFloat(0.5f, format), 3, new BigFloat(0.5f, format)));
     builder.addAll(floatRandom(200));
     return builder.build();
   }
 
-  protected static List<Float> unaryTestValues() {
-    ImmutableList.Builder<Float> builder = ImmutableList.builder();
+  protected static List<BigFloat> unaryTestValues() {
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     builder.addAll(floatConsts());
-    builder.addAll(floatPowers(14, 0.5f, 20, 0.5f));
+    builder.addAll(floatPowers(14, new BigFloat(0.5f, format), 20, new BigFloat(0.5f, format)));
     builder.addAll(floatRandom(50000));
     return builder.build();
   }
 
   // Wraps a generated input value along with the result of the operation
   private static class TestValue<T> {
-    private final Float[] args;
+    private final BigFloat[] args;
     private final T expected;
 
-    public TestValue(Float arg, T result) {
-      args = new Float[] {arg};
+    public TestValue(BigFloat arg, T result) {
+      args = new BigFloat[] {arg};
       expected = result;
     }
 
-    public TestValue(Float arg1, Float arg2, T result) {
-      args = new Float[] {arg1, arg2};
+    public TestValue(BigFloat arg1, BigFloat arg2, T result) {
+      args = new BigFloat[] {arg1, arg2};
       expected = result;
     }
 
-    Float arg1() {
+    BigFloat arg1() {
       return args[0];
     }
 
-    Float arg2() {
+    BigFloat arg2() {
       return args[1];
     }
 
@@ -140,32 +160,29 @@ public abstract class CFloatUnitTest {
     }
   }
 
-  private String toBits(Float value) {
-    String repr = Integer.toUnsignedString(Float.floatToIntBits(value), 2);
-    repr = "0".repeat(32 - repr.length()) + repr;
-    return String.format("%s %s %s", repr.substring(0, 1), repr.substring(1, 9), repr.substring(9));
+  private String toBits(BigFloat value) {
+    String sign = value.sign() ? "1" : "0";
+    long valueExp = value.exponent(format.minExponent, format.maxExponent) + format.maxExponent;
+    String exponent = BigInteger.valueOf(valueExp).toString(2);
+    String significand = BigInteger.ONE.shiftLeft(format.precision - 1).toString(2);
+    if (!value.isNaN()) {
+      // Get the actual significand if the value is not NaN
+      String repr = value.significand(format.minExponent, format.maxExponent).toString(2);
+      repr = "0".repeat(format.precision + 1 - repr.length()) + repr;
+      significand = repr.substring(1);
+    }
+    return String.format("%s %s %s", sign, exponent, significand);
   }
 
-  protected String printValue(Float value) {
-    return String.format("%s [%s]", toBits(value), value);
+  protected String printValue(BigFloat value) {
+    return String.format("%s [%s]", toBits(value), printBigFloat(value));
   }
 
-  private String toBits(Double value) {
-    String repr = Long.toUnsignedString(Double.doubleToLongBits(value), 2);
-    repr = "0".repeat(64 - repr.length()) + repr;
-    return String.format(
-        "%s %s %s", repr.substring(0, 1), repr.substring(1, 12), repr.substring(12));
-  }
-
-  protected String printValue(Double value) {
-    return String.format("%s [%s]", toBits(value), value);
-  }
-
-  private String printTestHeader(String name, Float arg) {
+  private String printTestHeader(String name, BigFloat arg) {
     return String.format("%n%nTestcase %s(%s): ", name, printValue(arg));
   }
 
-  private String printTestHeader(String name, Float arg1, Float arg2) {
+  private String printTestHeader(String name, BigFloat arg1, BigFloat arg2) {
     return String.format("%n%nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
@@ -173,7 +190,12 @@ public abstract class CFloatUnitTest {
   protected abstract int ulpError();
 
   // Returns a list of all float values in the error range
-  private List<String> errorRange(int pDistance, Float pValue) {
+  private List<String> errorRange(int pDistance, BigFloat pValue) {
+    ImmutableList.Builder<String> builder = ImmutableList.builder();
+    builder.add(printValue(pValue));
+    return builder.build();
+
+    /* FIXME: Translate to BigFloat
     Preconditions.checkArgument(pDistance >= 0);
     if (pValue.isNaN()) {
       return ImmutableList.of(printValue(pValue));
@@ -188,24 +210,25 @@ public abstract class CFloatUnitTest {
       builder.add(printValue(value));
     }
     return builder.build();
+    */
   }
 
   protected void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
-    ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
-    for (Float arg : unaryTestValues()) {
+    ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
+    for (BigFloat arg : unaryTestValues()) {
       CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
-      Float result = operator.apply(ref).toFloat();
+      BigFloat result = operator.apply(ref).toBigFloat();
       testBuilder.add(new TestValue<>(arg, result));
     }
-    ImmutableList<TestValue<Float>> testCases = testBuilder.build();
+    ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
-    for (TestValue<Float> test : testCases) {
+    for (TestValue<BigFloat> test : testCases) {
       try {
         String testHeader = printTestHeader(name, test.arg1());
         CFloat tested = toTestedImpl(toPlainString(test.arg1()), floatType);
-        Float result = Float.NaN;
+        BigFloat result = BigFloat.NaN(format.precision);
         try {
-          result = operator.apply(tested).toFloat();
+          result = operator.apply(tested).toBigFloat();
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
@@ -226,25 +249,25 @@ public abstract class CFloatUnitTest {
   }
 
   protected void testOperator(String name, int ulps, BinaryOperator<CFloat> operator) {
-    ImmutableList.Builder<TestValue<Float>> testBuilder = ImmutableList.builder();
-    for (Float arg1 : binaryTestValues()) {
-      for (Float arg2 : binaryTestValues()) {
+    ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
+    for (BigFloat arg1 : binaryTestValues()) {
+      for (BigFloat arg2 : binaryTestValues()) {
         CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
         CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
-        Float result = operator.apply(ref1, ref2).toFloat();
+        BigFloat result = operator.apply(ref1, ref2).toBigFloat();
         testBuilder.add(new TestValue<>(arg1, arg2, result));
       }
     }
-    ImmutableList<TestValue<Float>> testCases = testBuilder.build();
+    ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
-    for (TestValue<Float> test : testCases) {
+    for (TestValue<BigFloat> test : testCases) {
       try {
         String testHeader = printTestHeader(name, test.arg1(), test.arg2());
         CFloat tested1 = toTestedImpl(toPlainString(test.arg1()), floatType);
         CFloat tested2 = toTestedImpl(toPlainString(test.arg2()), floatType);
-        Float result = Float.NaN;
+        BigFloat result = BigFloat.NaN(format.precision);
         try {
-          result = operator.apply(tested1, tested2).toFloat();
+          result = operator.apply(tested1, tested2).toBigFloat();
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
@@ -266,7 +289,7 @@ public abstract class CFloatUnitTest {
 
   protected void testPredicate(String name, Predicate<CFloat> predicate) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
-    for (Float arg : unaryTestValues()) {
+    for (BigFloat arg : unaryTestValues()) {
       CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
       boolean result = predicate.test(ref);
       testBuilder.add(new TestValue<>(arg, result));
@@ -300,8 +323,8 @@ public abstract class CFloatUnitTest {
 
   protected void testPredicate(String name, BinaryPredicate<CFloat, CFloat> predicate) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
-    for (Float arg1 : binaryTestValues()) {
-      for (Float arg2 : binaryTestValues()) {
+    for (BigFloat arg1 : binaryTestValues()) {
+      for (BigFloat arg2 : binaryTestValues()) {
         CFloat ref1 = toReferenceImpl(toPlainString(arg1), floatType);
         CFloat ref2 = toReferenceImpl(toPlainString(arg2), floatType);
         boolean result = predicate.apply(ref1, ref2);
@@ -337,7 +360,7 @@ public abstract class CFloatUnitTest {
 
   protected void testIntegerFunction(String name, Function<CFloat, Number> function) {
     ImmutableList.Builder<TestValue<Number>> testBuilder = ImmutableList.builder();
-    for (Float arg : unaryTestValues()) {
+    for (BigFloat arg : unaryTestValues()) {
       CFloat ref = toReferenceImpl(toPlainString(arg), floatType);
       Number result = function.apply(ref);
       testBuilder.add(new TestValue<>(arg, result));
@@ -370,7 +393,7 @@ public abstract class CFloatUnitTest {
   }
 
   protected void assertEqual1Ulp(CFloat r1, CFloat r2) {
-    assertThat(printValue(r1.toFloat())).isIn(errorRange(ulpError(), r2.toFloat()));
+    assertThat(printValue(r1.toBigFloat())).isIn(errorRange(ulpError(), r2.toBigFloat()));
   }
 
   public abstract CFloat toTestedImpl(String repr, int pFloatType);

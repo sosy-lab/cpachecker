@@ -406,7 +406,7 @@ public class MyFloat {
     }
     // (4) Both arguments are zero (or negative zero)
     if (a.isZero() && b.isZero()) {
-      return (a.isNegative() || b.isNegative()) ? negativeZero(format) : zero(format);
+      return (a.isNegative() && b.isNegative()) ? negativeZero(format) : zero(format);
     }
     // (5) Only one of the arguments is zero (or negative zero)
     if (a.isZero() || b.isZero()) {
@@ -500,12 +500,6 @@ public class MyFloat {
   }
 
   public MyFloat subtract(MyFloat number) {
-    // We need to override the special case where both arguments are (negative) zero
-    if (this.isZero() && number.isZero()) {
-      // Always return positive zero
-      return zero(format);
-    }
-    // Everything else is just as for addition
     return add(number.negate());
   }
 
@@ -837,7 +831,7 @@ public class MyFloat {
 
   private MyFloat sqrt_() {
     if (isZero()) {
-      return negativeZero(format);
+      return isNegative() ? negativeZero(format) : zero(format);
     }
     if (isNan() || isNegative()) {
       return nan(format);
@@ -1418,8 +1412,7 @@ public class MyFloat {
     }
 
     // Extract significand and apply the sign, then add grs bits
-    BigInteger significand =
-        value.significand; // value.sign ? value.significand.negate() : value.significand;
+    BigInteger significand = value.significand;
     significand = significand.shiftLeft(3);
 
     // Shift away the fractional part
@@ -1576,6 +1569,19 @@ public class MyFloat {
         .doubleValueExact();
   }
 
+  public BigFloat toBigFloat() {
+    BinaryMathContext context = new BinaryMathContext(format.sigBits + 1, format.expBits);
+    if (isNan()) {
+      return BigFloat.NaN(context.precision);
+    }
+    if (isInfinite()) {
+      return isNegative()
+          ? BigFloat.negativeInfinity(context.precision)
+          : BigFloat.positiveInfinity(context.precision);
+    }
+    return new BigFloat(value.sign, value.significand, value.exponent, context);
+  }
+
   @Override
   public String toString() {
     if (isNan()) {
@@ -1602,7 +1608,7 @@ public class MyFloat {
       return isNegative() ? "-0.0" : "0.0";
     }
     String bits = value.significand.toString(2);
-    return "%s%s.%s e%d".formatted(
-        value.sign ? "-" : "", bits.charAt(0), bits.substring(1), value.exponent);
+    return "%s%s.%s e%d"
+        .formatted(value.sign ? "-" : "", bits.charAt(0), bits.substring(1), value.exponent);
   }
 }

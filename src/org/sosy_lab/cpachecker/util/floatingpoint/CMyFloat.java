@@ -295,6 +295,11 @@ public class CMyFloat extends CFloat {
   }
 
   @Override
+  public BigFloat toBigFloat() {
+    return delegate.toBigFloat();
+  }
+
+  @Override
   public String toString() {
     return delegate.toString();
   }

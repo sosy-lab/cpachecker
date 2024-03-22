@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
 import java.util.Objects;
+import org.kframework.mpfr.BigFloat;
+import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 /**
@@ -337,6 +339,16 @@ public abstract class CFloat {
     long exponent = getExponent();
     long mantissa = getMantissa();
     return Double.longBitsToDouble((exponent << 52) + mantissa);
+  }
+
+  public BigFloat toBigFloat() {
+    CNativeType toType = CFloatNativeAPI.toNativeType(getType());
+    return switch (toType) {
+      case SINGLE -> new BigFloat(toFloat(), BinaryMathContext.BINARY32);
+      case DOUBLE -> new BigFloat(toDouble(), BinaryMathContext.BINARY64);
+      case LONG_DOUBLE -> throw new UnsupportedOperationException();
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   public Integer toInteger() {
