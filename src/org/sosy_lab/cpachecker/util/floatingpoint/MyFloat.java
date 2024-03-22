@@ -891,6 +891,9 @@ public class MyFloat {
     if (isZero() || isNan() || isInfinite()) {
       return this;
     }
+    if (BigInteger.ONE.shiftLeft(format.sigBits).equals(value.significand)) {
+      return this;
+    }
     BigInteger significand = value.significand;
     boolean last = significand.testBit(0);
 
@@ -1586,5 +1589,20 @@ public class MyFloat {
     }
     // TODO: Return more digits if the bitwidth allows it
     return String.format("%.6e", withPrecision(Format.Float64).toDouble());
+  }
+
+  public String toBinaryString() {
+    if (isNan()) {
+      return "nan";
+    }
+    if (isInfinite()) {
+      return isNegative() ? "-inf" : "inf";
+    }
+    if (isZero()) {
+      return isNegative() ? "-0.0" : "0.0";
+    }
+    String bits = value.significand.toString(2);
+    return "%s%s.%s e%d".formatted(
+        value.sign ? "-" : "", bits.charAt(0), bits.substring(1), value.exponent);
   }
 }
