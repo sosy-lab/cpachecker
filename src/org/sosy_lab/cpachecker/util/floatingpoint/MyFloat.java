@@ -940,7 +940,7 @@ public class MyFloat {
 
   // Check if an m-float number is stable in precision p
   private boolean isStable(MyFloat r) {
-    if (r.format.sigBits < format.sigBits + 3) {
+    if (r.format.sigBits == 0) {
       return false;
     }
     return equalModuloP(r, r.plus1Ulp());
@@ -1280,31 +1280,62 @@ public class MyFloat {
     return r;
   }
 
+  private static MyFloat prefix(MyFloat lo, MyFloat hi) {
+    BigInteger sig1 = lo.value.significand;
+    BigInteger sig2 = hi.value.significand;
+
+    int diff = 0;
+    while (!sig1.equals(sig2)) {
+      sig1 = sig1.shiftRight(1);
+      sig2 = sig2.shiftRight(1);
+      diff++;
+    }
+    Format format = new Format(lo.format.expBits, lo.format.sigBits - diff);
+    return new MyFloat(format, lo.value.sign, lo.value.exponent, sig1);
+  }
+
+  // Largest value that will round down to the valid part of the number
+  private MyFloat above() {
+    MyFloat t = validPart();
+    int diff = format.sigBits - t.format.sigBits;
+    BigInteger sig1 = t.value.significand.shiftLeft(diff);
+    BigInteger sig2 = BigInteger.ONE;
+    if (sig1.testBit(0)) {
+      sig2 = sig2.shiftLeft(diff - 1).subtract(BigInteger.ONE);
+    } else {
+      sig2 = sig2.shiftLeft(diff - 1);
+    }
+    return new MyFloat(format, value.sign, value.exponent, sig1.add(sig2));
+  }
+
+  // Smallest value that will round up to the valid part of the number
+  private MyFloat below() {
+    MyFloat t = validPart().minus1Ulp();
+    int diff = format.sigBits - t.format.sigBits;
+    BigInteger sig1 = t.value.significand.shiftLeft(diff);
+    BigInteger sig2 = BigInteger.ONE;
+    if (sig1.testBit(0)) {
+      sig2 = sig2.shiftLeft(diff - 1);
+    } else {
+      sig2 = sig2.shiftLeft(diff - 1).add(BigInteger.ONE);
+    }
+    return new MyFloat(format, value.sign, value.exponent, sig1.add(sig2));
+  }
+
   private MyFloat pow_(MyFloat exponent) {
     // a^x = exp(x * ln a)
-    Format fp1 = new Format(15, format.sigBits + 10);
+    Format fp1 = new Format(20, format.sigBits + 20);
     Format fp2 = format.extended();
-    Format fp3 = fp2.extended();
+    Format fp3 = new Format(32, 2047);
+
+    ImmutableList<Format> formats = ImmutableList.of(fp1, fp2, fp3);
 
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : ImmutableList.of(fp1, fp2, fp3)) {
+    for (Format p : formats) {
       if (!done) {
-        // Composing exp and ln without rounding issues is complex.
-        // We have to use three different precisions:
-        // format....p_target....p....p_ext
-        // - 'format' is the precision of the input (and the end result)
-        // - p is the precision of the result for the logarithm
-        // - p_ext is larger than p and used to calculate log(a)
-        // - The result is then multiplied with x and rounded down to precision p
-        // - If the result is stable (=has enough valid bits) we convert the value to p_target
-        // - p_target is the precision used to calculate exp(..)
-        // - If the result is again stable we can round down to 'format' and return the value
-        // - Otherwise we repeat the whole process with more bits
-
         Format p_ext = new Format(p.expBits, p.sigBits + 3);
-        Format p_target = new Format(p.expBits, format.sigBits + (p.sigBits - format.sigBits) / 2);
 
         MyFloat a = this.withPrecision(p_ext);
         MyFloat x = exponent.withPrecision(p_ext);
@@ -1313,14 +1344,17 @@ public class MyFloat {
         MyFloat lna = a.ln_2();
         MyFloat xlna = x.multiply(lna).withPrecision(p);
 
-        if (withPrecision(p_target).isStable(xlna.validPart())) {
-          xlna = xlna.withPrecision(p_target); // round down to precision p_target
+        // Get an interval for the true value of exp(..)
+        MyFloat hi = xlna.above().exp_();
+        MyFloat lo = xlna.below().exp_();
 
-          MyFloat val = xlna.validPart().exp_().validPart();
-          if (isStable(val)) {
-            done = true;
-            r = val;
-          }
+        // Find the valid digits
+        MyFloat val = prefix(hi,lo).validPart();
+
+        // Check if they're enough to round
+        if (isStable(val)) {
+          done = true;
+          r = val;
         }
       }
     }
