@@ -1315,14 +1315,8 @@ public class MyFloat {
 
         if (withPrecision(p_target).isStable(xlna.validPart())) {
           xlna = xlna.withPrecision(p_target); // round down to precision p_target
-          MyFloat exp = xlna.exp_();
 
-          // Keep as many bits from exp(..) as there were valid bits in x*ln(a)
-          int diff = exp.format.sigBits - xlna.validPart().format.sigBits;
-          BigInteger significand = exp.value.significand.shiftRight(diff).shiftLeft(diff);
-          MyFloat val =
-              new MyFloat(xlna.format, exp.value.sign, exp.value.exponent, significand).validPart();
-
+          MyFloat val = xlna.validPart().exp_().validPart();
           if (isStable(val)) {
             done = true;
             r = val;
