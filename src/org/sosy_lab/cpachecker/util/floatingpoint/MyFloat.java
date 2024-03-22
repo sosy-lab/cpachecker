@@ -902,13 +902,6 @@ public class MyFloat {
     } while (significand.testBit(0) == last);
 
     significand = significand.shiftRight(1);
-
-    if (significand.equals(BigInteger.ZERO)) {
-      // This happens for exp(x) when x is very small (~ 2^-p). The exact bound and the correct
-      // return value depends on the rounding mode
-      // FIXME: Figure out the correct value for all rounding modes
-      return one(format);
-    }
     return new MyFloat(
         new Format(format.expBits, format.sigBits - trailing),
         value.sign,
@@ -1034,6 +1027,36 @@ public class MyFloat {
     for (int i = 0; i < value.exponent; i++) {
       r = r.squared();
     }
+    return r.withPrecision(format);
+  }
+
+  private MyFloat expm1() {
+    if (isNan()) {
+      return nan(format);
+    }
+    if (isInfinite()) {
+      return isNegative() ? zero(format) : infinity(format);
+    }
+
+    Format fp1 = new Format(format.expBits, format.sigBits + 3);
+
+    MyFloat x = this;
+    MyFloat r = zero(fp1); // Series expansion after k terms.
+
+    Stream.Builder<MyFloat> terms = Stream.builder();
+    for (int k = 1; k < 40; k++) {
+      MyFloat a = x.powInt_(BigInteger.valueOf(k));
+      terms.add(a.multiply(expTable.get(k).withPrecision(format)));
+    }
+
+    // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
+    // some rounding issues.)
+    List<MyFloat> sorted =
+        terms.build().sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent)).toList();
+    for (MyFloat v : sorted) {
+      r = r.add(v.withPrecision(fp1));
+    }
+
     return r.withPrecision(format);
   }
 
@@ -1326,7 +1349,7 @@ public class MyFloat {
     // a^x = exp(x * ln a)
     Format fp1 = new Format(20, format.sigBits + 20);
     Format fp2 = format.extended();
-    Format fp3 = new Format(32, 2047);
+    Format fp3 = new Format(32, 200);
 
     ImmutableList<Format> formats = ImmutableList.of(fp1, fp2, fp3);
 
@@ -1344,17 +1367,23 @@ public class MyFloat {
         MyFloat lna = a.ln_2();
         MyFloat xlna = x.multiply(lna).withPrecision(p);
 
+        // Probe to see if the result rounds to one. If so we'll use expm1 to avoid losing
+        // significand digits.
+        // TODO: Avoid the call and check the argument instead
+        boolean collapses = xlna.exp_().subtract(one(p)).isZero();
+
         // Get an interval for the true value of exp(..)
-        MyFloat hi = xlna.above().exp_();
-        MyFloat lo = xlna.below().exp_();
+        // TODO: Find a way to avoid calling exp() multiple times
+        MyFloat hi = collapses ? xlna.above().expm1() : xlna.above().exp_();
+        MyFloat lo = collapses ? xlna.below().expm1() : xlna.below().exp_();
 
         // Find the valid digits
-        MyFloat val = prefix(hi,lo).validPart();
+        MyFloat val = prefix(hi, lo).validPart();
 
         // Check if they're enough to round
         if (isStable(val)) {
           done = true;
-          r = val;
+          r = collapses ? one(val.format).add(val) : val;
         }
       }
     }
