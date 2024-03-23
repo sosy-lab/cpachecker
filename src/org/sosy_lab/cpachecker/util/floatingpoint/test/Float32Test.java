@@ -14,7 +14,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.NativeLibraries;
+import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
 import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
@@ -23,15 +23,10 @@ import org.sosy_lab.cpachecker.util.floatingpoint.MpFloat;
 
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
-public class CMyFloatTest extends CFloatUnitTest {
-  static {
-    NativeLibraries.loadLibrary("mpfr_java");
-  }
-
-  public enum ReferenceImpl {
-    MPFR,
-    JAVA,
-    NATIVE
+public class Float32Test extends CFloatUnitTest {
+  @Override
+  protected BinaryMathContext getFloatType() {
+    return BinaryMathContext.BINARY32;
   }
 
   @Parameters(name = "{0}")
@@ -43,22 +38,27 @@ public class CMyFloatTest extends CFloatUnitTest {
   public ReferenceImpl refImpl;
 
   @Override
-  protected int ulpError() {
-    return refImpl == CMyFloatTest.ReferenceImpl.MPFR ? 0 : 1;
+  protected ReferenceImpl getRefImpl() {
+    return refImpl;
   }
 
   @Override
-  public CFloat toTestedImpl(String repr, int pFloatType) {
-    return new CMyFloat(repr, pFloatType);
+  public CFloat toTestedImpl(String repr) {
+    return new CMyFloat(repr, getFloatType());
   }
 
   @Override
-  public CFloat toReferenceImpl(String repr, int pFloatType) {
+  public CFloat toReferenceImpl(String repr) {
     return switch (refImpl) {
-      case MPFR -> new MpFloat(repr, pFloatType);
-      case JAVA -> new JFloat(repr, pFloatType);
-      case NATIVE -> new CFloatNative(repr, pFloatType);
+      case MPFR -> new MpFloat(repr, getFloatType());
+      case JAVA -> new JFloat(repr);
+      case NATIVE -> new CFloatNative(repr, getFloatType());
     };
+  }
+
+  @Override
+  protected int ulpError() {
+    return refImpl == ReferenceImpl.MPFR ? 0 : 1;
   }
 
   @Ignore
@@ -110,11 +110,11 @@ public class CMyFloatTest extends CFloatUnitTest {
     String val1 = "1.3835058e+19";
     String val2 = "2.7670116e+19";
 
-    CFloat tested1 = toTestedImpl(val1, 0);
-    CFloat tested2 = toTestedImpl(val2, 0);
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
 
-    CFloat reference1 = toReferenceImpl(val1, 0);
-    CFloat reference2 = toReferenceImpl(val2, 0);
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
 
     CFloat r1 = tested1.multiply(tested2);
     CFloat r2 = reference1.multiply(reference2);
@@ -126,8 +126,8 @@ public class CMyFloatTest extends CFloatUnitTest {
   public void sqrt2Test() {
     String val = "2.0";
 
-    CFloat tested = toTestedImpl(val, 0);
-    CFloat reference = toReferenceImpl(val, 0);
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
 
     CFloat r1 = tested.sqrt();
     CFloat r2 = reference.sqrt();
@@ -168,11 +168,11 @@ public class CMyFloatTest extends CFloatUnitTest {
     //  21: 111111111111111111111111 10000000000000000000001000010
     //                               ^ ...and now we need to round up
 
-    CFloat tested1 = toTestedImpl(val1, 0);
-    CFloat tested2 = toTestedImpl(val2, 0);
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
 
-    CFloat reference1 = toReferenceImpl(val1, 0);
-    CFloat reference2 = toReferenceImpl(val2, 0);
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
 
     CFloat r1 = tested1.powTo(tested2);
     CFloat r2 = reference1.powTo(reference2);
@@ -184,8 +184,8 @@ public class CMyFloatTest extends CFloatUnitTest {
   public void ln_eTest() {
     String val = String.valueOf(Math.E);
 
-    CFloat tested = toTestedImpl(val, 0);
-    CFloat reference = toReferenceImpl(val, 0);
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
 
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
@@ -198,8 +198,8 @@ public class CMyFloatTest extends CFloatUnitTest {
     // Calculate ln for the next closest value to 1
     String val = "1.00000011920929";
 
-    CFloat tested = toTestedImpl(val, 0);
-    CFloat reference = toReferenceImpl(val, 0);
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
 
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
@@ -213,8 +213,8 @@ public class CMyFloatTest extends CFloatUnitTest {
     // Other values mostly between 0.1 and 1
     String val = "0.0050035235";
 
-    CFloat tested = toTestedImpl(val, 0);
-    CFloat reference = toReferenceImpl(val, 0);
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
 
     CFloat r1 = tested.ln();
     CFloat r2 = reference.ln();
@@ -228,11 +228,11 @@ public class CMyFloatTest extends CFloatUnitTest {
     String val1 = "1.413657E11";
     String val2 = "-0.14661042";
 
-    CFloat tested1 = toTestedImpl(val1, 0);
-    CFloat tested2 = toTestedImpl(val2, 0);
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
 
-    CFloat reference1 = toReferenceImpl(val1, 0);
-    CFloat reference2 = toReferenceImpl(val2, 0);
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
 
     CFloat r1 = tested1.powTo(tested2);
     CFloat r2 = reference1.powTo(reference2);

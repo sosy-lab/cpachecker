@@ -37,6 +37,12 @@ public class MpFloat extends CFloat {
     wrapper = fromBigFloat(value);
   }
 
+  public MpFloat(String repr, BinaryMathContext pFormat) {
+    format = pFormat;
+    value = parseBigFloat(repr);
+    wrapper = fromBigFloat(value);
+  }
+
   public MpFloat(CFloatWrapper pWrapper, int floatType) {
     format = toBinaryMathContext(floatType);
     value = toBigFloat(pWrapper);

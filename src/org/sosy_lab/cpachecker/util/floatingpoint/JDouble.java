@@ -26,6 +26,11 @@ public class JDouble extends CFloat {
     wrapper = fromFloat(value);
   }
 
+  public JDouble(String repr) {
+    value = parseDouble(repr);
+    wrapper = fromFloat(value);
+  }
+
   public JDouble(CFloatWrapper pWrapper, int floatType) {
     assert floatType == 1;
     value = toDouble(pWrapper);

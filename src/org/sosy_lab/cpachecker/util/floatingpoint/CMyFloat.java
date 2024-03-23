@@ -26,6 +26,13 @@ public class CMyFloat extends CFloat {
     wrapper = fromImpl(delegate);
   }
 
+  public CMyFloat(String repr, BinaryMathContext pFormat) {
+    Preconditions.checkArgument(
+        pFormat.equals(BinaryMathContext.BINARY32) || pFormat.equals(BinaryMathContext.BINARY64));
+    delegate = pFormat.equals(BinaryMathContext.BINARY32) ? parseFloat(repr) : parseDouble(repr);
+    wrapper = fromImpl(delegate);
+  }
+
   public CMyFloat(MyFloat pValue) {
     delegate = pValue;
     wrapper = fromImpl(pValue);

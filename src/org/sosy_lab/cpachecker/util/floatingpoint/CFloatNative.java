@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
+import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 @Deprecated
@@ -19,6 +20,22 @@ public class CFloatNative extends CFloat {
   private final int type;
 
   public CFloatNative(String rep, int pType) {
+    wrapper = CFloatNativeAPI.createFp(rep, pType);
+    type = pType;
+  }
+
+  public CFloatNative(String rep, BinaryMathContext pFormat) {
+    int pType = -1;
+    if (pFormat.equals(BinaryMathContext.BINARY32)) {
+      pType = CNativeType.SINGLE.getOrdinal();
+    }
+    if (pFormat.equals(BinaryMathContext.BINARY64)) {
+      pType = CNativeType.DOUBLE.getOrdinal();
+    }
+    // TODO: Add support for 80bit x87 floats
+    if (pType < 0) {
+      throw new IllegalArgumentException();
+    }
     wrapper = CFloatNativeAPI.createFp(rep, pType);
     type = pType;
   }

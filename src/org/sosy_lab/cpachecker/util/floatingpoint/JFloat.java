@@ -26,6 +26,11 @@ public class JFloat extends CFloat {
     wrapper = fromFloat(value);
   }
 
+  public JFloat(String repr) {
+    value = parseFloat(repr);
+    wrapper = fromFloat(value);
+  }
+
   public JFloat(CFloatWrapper pWrapper, int floatType) {
     assert floatType == 0;
     value = toFloat(pWrapper);
