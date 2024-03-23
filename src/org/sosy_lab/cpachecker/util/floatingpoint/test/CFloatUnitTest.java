@@ -26,6 +26,7 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 public abstract class CFloatUnitTest {
@@ -184,7 +185,7 @@ public abstract class CFloatUnitTest {
   }
 
   private int calculateExpWidth(BinaryMathContext pFormat) {
-    return (int) Math.ceil(lb(2*pFormat.maxExponent+1));
+    return (int) Math.ceil(lb(2 * pFormat.maxExponent + 1));
   }
 
   private String toBits(BigFloat value) {
@@ -555,18 +556,45 @@ public abstract class CFloatUnitTest {
     testOperator("copySignFrom", 0, (CFloat a, CFloat b) -> a.copySignFrom(b));
   }
 
+  private CNativeType toNativeType(BinaryMathContext pFormat) {
+    int r = -1;
+    if (pFormat.equals(BinaryMathContext.BINARY16)) {
+      r = CNativeType.HALF.getOrdinal();
+    }
+    if (pFormat.equals(BinaryMathContext.BINARY32)) {
+      r = CNativeType.SINGLE.getOrdinal();
+    }
+    if (pFormat.equals(BinaryMathContext.BINARY64)) {
+      r = CNativeType.DOUBLE.getOrdinal();
+    }
+    if (r < 0) {
+      throw new IllegalArgumentException();
+    }
+    return CFloatNativeAPI.toNativeType(r);
+  }
+
   @Test
   public void castToTest() {
+    BinaryMathContext other =
+        getFloatType().equals(BinaryMathContext.BINARY32)
+            ? BinaryMathContext.BINARY64
+            : BinaryMathContext.BINARY32;
     testOperator(
-        "castToTest", 0, (CFloat a) -> a.castTo(CNativeType.DOUBLE).castTo(CNativeType.SINGLE));
+        "castToTest",
+        0,
+        (CFloat a) -> a.castTo(toNativeType(other)).castTo(toNativeType(getFloatType())));
   }
 
   @Test
   public void castToRoundingTest() {
+    BinaryMathContext other =
+        getFloatType().equals(BinaryMathContext.BINARY32)
+            ? BinaryMathContext.BINARY64
+            : BinaryMathContext.BINARY32;
     testOperator(
         "castToRoundingTest",
         0,
-        (CFloat a) -> a.castTo(CNativeType.DOUBLE).sqrt().castTo(CNativeType.SINGLE));
+        (CFloat a) -> a.castTo(toNativeType(other)).sqrt().castTo(toNativeType(getFloatType())));
   }
 
   @Test

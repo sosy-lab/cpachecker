@@ -57,7 +57,7 @@ public class CMyFloat extends CFloat {
   }
 
   private int calculateExpWidth(BinaryMathContext pFormat) {
-    return (int) Math.ceil(lb(2*pFormat.maxExponent+1));
+    return (int) Math.ceil(lb(2 * pFormat.maxExponent + 1));
   }
 
   private MyFloat parseFloat(String repr, BinaryMathContext pFormat) {
@@ -81,10 +81,7 @@ public class CMyFloat extends CFloat {
     long min = pFormat.minExponent;
     long max = pFormat.maxExponent;
     return new MyFloat(
-        format,
-        floatValue.sign(),
-        floatValue.exponent(min, max),
-        floatValue.significand(min, max));
+        format, floatValue.sign(), floatValue.exponent(min, max), floatValue.significand(min, max));
   }
 
   @Override

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.MpFloat;
 
 @RunWith(Parameterized.class)
-public class Float16Test extends CFloatUnitTest{
+public class Float16Test extends CFloatUnitTest {
   @Override
   protected BinaryMathContext getFloatType() {
     return BinaryMathContext.BINARY16;

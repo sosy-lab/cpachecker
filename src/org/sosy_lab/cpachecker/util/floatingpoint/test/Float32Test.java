@@ -64,19 +64,7 @@ public class Float32Test extends CFloatUnitTest {
   @Ignore
   @Override
   public void powToIntegralTest() {
-    // TODO: Implement 'long double' support to fix
-  }
-
-  @Ignore
-  @Override
-  public void castToTest() {
-    // TODO: Implement 'long double' support to fix
-  }
-
-  @Ignore
-  @Override
-  public void castToRoundingTest() {
-    // TODO: Implement 'long double' support to fix
+    // TODO: Not implemented in BigFloat
   }
 
   @Ignore
