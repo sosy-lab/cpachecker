@@ -179,12 +179,21 @@ public abstract class CFloatUnitTest {
     }
   }
 
+  private double lb(double number) {
+    return Math.log(number) / Math.log(2);
+  }
+
+  private int calculateExpWidth(BinaryMathContext pFormat) {
+    return (int) Math.ceil(lb(2*pFormat.maxExponent+1));
+  }
+
   private String toBits(BigFloat value) {
     String sign = value.sign() ? "1" : "0";
     long valueExp =
         value.exponent(getFloatType().minExponent, getFloatType().maxExponent)
             + getFloatType().maxExponent;
-    String exponent = BigInteger.valueOf(valueExp).toString(2);
+    String exponent = Long.toString(valueExp, 2);
+    exponent = "0".repeat(calculateExpWidth(getFloatType()) - exponent.length()) + exponent;
     String significand = BigInteger.ONE.shiftLeft(getFloatType().precision - 1).toString(2);
     if (!value.isNaN()) {
       // Get the actual significand if the value is not NaN
