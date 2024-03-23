@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
@@ -25,6 +26,7 @@ public class CFloatNative extends CFloat {
   }
 
   public CFloatNative(String rep, BinaryMathContext pFormat) {
+    // TODO: Add support for 80bit x87 floats
     int pType = -1;
     if (pFormat.equals(BinaryMathContext.BINARY32)) {
       pType = CNativeType.SINGLE.getOrdinal();
@@ -32,10 +34,7 @@ public class CFloatNative extends CFloat {
     if (pFormat.equals(BinaryMathContext.BINARY64)) {
       pType = CNativeType.DOUBLE.getOrdinal();
     }
-    // TODO: Add support for 80bit x87 floats
-    if (pType < 0) {
-      throw new IllegalArgumentException();
-    }
+    checkArgument(pType >= 0);
     wrapper = CFloatNativeAPI.createFp(rep, pType);
     type = pType;
   }

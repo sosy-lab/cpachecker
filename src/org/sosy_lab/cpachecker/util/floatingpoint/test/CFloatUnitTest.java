@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -567,9 +568,7 @@ public abstract class CFloatUnitTest {
     if (pFormat.equals(BinaryMathContext.BINARY64)) {
       r = CNativeType.DOUBLE.getOrdinal();
     }
-    if (r < 0) {
-      throw new IllegalArgumentException();
-    }
+    checkArgument(r >= 0);
     return CFloatNativeAPI.toNativeType(r);
   }
 
