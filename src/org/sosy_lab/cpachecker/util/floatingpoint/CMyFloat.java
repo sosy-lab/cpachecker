@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
@@ -20,16 +19,8 @@ public class CMyFloat extends CFloat {
   private final CFloatWrapper wrapper;
   private final MyFloat delegate;
 
-  public CMyFloat(String repr, int pFloatType) {
-    Preconditions.checkArgument(pFloatType < 2);
-    delegate = pFloatType == CNativeType.SINGLE.getOrdinal() ? parseFloat(repr) : parseDouble(repr);
-    wrapper = fromImpl(delegate);
-  }
-
   public CMyFloat(String repr, BinaryMathContext pFormat) {
-    Preconditions.checkArgument(
-        pFormat.equals(BinaryMathContext.BINARY32) || pFormat.equals(BinaryMathContext.BINARY64));
-    delegate = pFormat.equals(BinaryMathContext.BINARY32) ? parseFloat(repr) : parseDouble(repr);
+    delegate = parseFloat(repr, pFormat);
     wrapper = fromImpl(delegate);
   }
 
@@ -39,6 +30,13 @@ public class CMyFloat extends CFloat {
   }
 
   private CFloatWrapper fromImpl(MyFloat floatValue) {
+    if (Format.Float16.equals(floatValue.getFormat())) {
+      // FIXME: Probably (?) broken for subnormal numbers
+      long bits = Float.floatToRawIntBits(floatValue.toFloat());
+      long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
+      long mantissa = bits & 0x007FFFFF;
+      return new CFloatWrapper(exponent, mantissa);
+    }
     if (Format.Float32.equals(floatValue.getFormat())) {
       long bits = Float.floatToRawIntBits(floatValue.toFloat());
       long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
@@ -54,56 +52,39 @@ public class CMyFloat extends CFloat {
     throw new IllegalArgumentException();
   }
 
-  private MyFloat parseFloat(String repr) {
+  private double lb(double number) {
+    return Math.log(number) / Math.log(2);
+  }
+
+  private int calculateExpWidth(BinaryMathContext pFormat) {
+    return (int) Math.ceil(lb(2*pFormat.maxExponent+1));
+  }
+
+  private MyFloat parseFloat(String repr, BinaryMathContext pFormat) {
+    Format format = new Format(calculateExpWidth(pFormat), pFormat.precision - 1);
     if ("nan".equals(repr)) {
-      return MyFloat.nan(Format.Float32);
+      return MyFloat.nan(format);
     }
     if ("-inf".equals(repr)) {
-      return MyFloat.negativeInfinity(Format.Float32);
+      return MyFloat.negativeInfinity(format);
     }
     if ("inf".equals(repr)) {
-      return MyFloat.infinity(Format.Float32);
+      return MyFloat.infinity(format);
     }
     if ("-0.0".equals(repr)) {
-      return MyFloat.negativeZero(Format.Float32);
+      return MyFloat.negativeZero(format);
     }
     if ("0.0".equals(repr)) {
-      return MyFloat.zero(Format.Float32);
+      return MyFloat.zero(format);
     }
-    BigFloat floatValue = new BigFloat(repr, BinaryMathContext.BINARY32);
-    long min = BinaryMathContext.BINARY32.minExponent;
-    long max = BinaryMathContext.BINARY32.maxExponent;
+    BigFloat floatValue = new BigFloat(repr, pFormat);
+    long min = pFormat.minExponent;
+    long max = pFormat.maxExponent;
     return new MyFloat(
-        Format.Float32,
+        format,
         floatValue.sign(),
         floatValue.exponent(min, max),
         floatValue.significand(min, max));
-  }
-
-  private MyFloat parseDouble(String repr) {
-    if ("nan".equals(repr)) {
-      return MyFloat.nan(Format.Float64);
-    }
-    if ("-inf".equals(repr)) {
-      return MyFloat.negativeInfinity(Format.Float64);
-    }
-    if ("inf".equals(repr)) {
-      return MyFloat.infinity(Format.Float64);
-    }
-    if ("-0.0".equals(repr)) {
-      return MyFloat.negativeZero(Format.Float64);
-    }
-    if ("0.0".equals(repr)) {
-      return MyFloat.zero(Format.Float64);
-    }
-    BigFloat doubleValue = new BigFloat(repr, BinaryMathContext.BINARY64);
-    long min = BinaryMathContext.BINARY64.minExponent;
-    long max = BinaryMathContext.BINARY64.maxExponent;
-    return new MyFloat(
-        Format.Float64,
-        doubleValue.sign(),
-        doubleValue.exponent(min, max),
-        doubleValue.significand(min, max));
   }
 
   @Override
@@ -284,6 +265,9 @@ public class CMyFloat extends CFloat {
 
   @Override
   public int getType() {
+    if (Format.Float16.equals(delegate.getFormat())) {
+      return CNativeType.HALF.getOrdinal();
+    }
     if (Format.Float32.equals(delegate.getFormat())) {
       return CNativeType.SINGLE.getOrdinal();
     }

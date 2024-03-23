@@ -38,7 +38,8 @@ public class CFloatNativeAPI {
     USHORT(9),
     UINT(10),
     ULONG(11),
-    ULONG_LONG(12);
+    ULONG_LONG(12),
+    HALF(13);
 
     private final int ordinal;
 

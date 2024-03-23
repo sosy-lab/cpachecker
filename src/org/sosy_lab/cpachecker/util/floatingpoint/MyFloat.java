@@ -1546,7 +1546,7 @@ public class MyFloat {
   }
 
   public float toFloat() {
-    Preconditions.checkState(format.equals(Format.Float32));
+    Preconditions.checkState(format.equals(Format.Float32) || format.equals(Format.Float16));
     if (isNan()) {
       return Float.NaN;
     }
