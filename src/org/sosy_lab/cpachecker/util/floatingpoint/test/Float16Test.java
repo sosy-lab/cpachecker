@@ -49,7 +49,15 @@ public class Float16Test extends CFloatUnitTest{
   }
 
   @Override
-  protected int ulpError() { return 0; }
+  protected int ulpError() {
+    return 0;
+  }
+
+  @Ignore
+  @Override
+  public void powToIntegralTest() {
+    // TODO: Not implemented in BigFloat
+  }
 
   @Ignore
   @Override
