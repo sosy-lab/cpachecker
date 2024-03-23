@@ -194,7 +194,7 @@ public abstract class CFloatUnitTest {
             + getFloatType().maxExponent;
     String exponent = Long.toString(valueExp, 2);
     exponent = "0".repeat(calculateExpWidth(getFloatType()) - exponent.length()) + exponent;
-    String significand = BigInteger.ONE.shiftLeft(getFloatType().precision - 1).toString(2);
+    String significand = BigInteger.ONE.shiftLeft(getFloatType().precision - 2).toString(2);
     if (!value.isNaN()) {
       // Get the actual significand if the value is not NaN
       String repr =
