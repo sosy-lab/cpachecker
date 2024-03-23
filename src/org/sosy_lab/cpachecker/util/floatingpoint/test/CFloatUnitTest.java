@@ -185,7 +185,7 @@ public abstract class CFloatUnitTest {
   }
 
   private int calculateExpWidth(BinaryMathContext pFormat) {
-    return (int) Math.ceil(lb(2 * pFormat.maxExponent + 1));
+    return (int) Math.ceil(lb((double) (2 * pFormat.maxExponent + 1)));
   }
 
   private String toBits(BigFloat value) {
