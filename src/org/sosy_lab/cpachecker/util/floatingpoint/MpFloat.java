@@ -342,9 +342,6 @@ public class MpFloat extends CFloat {
   @Override
   public boolean greaterThan(CFloat other) {
     BigFloat that = toBigFloat(other.getWrapper());
-    if (value.isNaN() || that.isNaN()) {
-      return false;
-    }
-    return value.compareTo(that) > 0;
+    return value.greaterThan(that);
   }
 }
