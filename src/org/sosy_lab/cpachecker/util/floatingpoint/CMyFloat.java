@@ -228,6 +228,7 @@ public class CMyFloat extends CFloat {
   @Override
   public CFloat castTo(CNativeType toType) {
     return switch (toType) {
+      case HALF -> new CMyFloat(delegate.withPrecision(Format.Float16));
       case SINGLE -> new CMyFloat(delegate.withPrecision(Format.Float32));
       case DOUBLE -> new CMyFloat(delegate.withPrecision(Format.Float64));
       case LONG_DOUBLE -> throw new UnsupportedOperationException();

@@ -67,6 +67,7 @@ public class CFloatNativeAPI {
       case 10 -> CNativeType.UINT;
       case 11 -> CNativeType.ULONG;
       case 12 -> CNativeType.ULONG_LONG;
+      case 13 -> CNativeType.HALF;
       default -> throw new IllegalArgumentException();
     };
   }
