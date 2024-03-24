@@ -218,7 +218,8 @@ public class MpfrFloat extends CFloat {
     BigFloat posValue = value.abs();
     BigFloat above = posValue.rint(format.withRoundingMode(RoundingMode.CEILING));
     BigFloat below = posValue.rint(format.withRoundingMode(RoundingMode.FLOOR));
-    BigFloat tie = above.add(below, format).divide(new BigFloat(2, format), format);
+    BigFloat half = new BigFloat("0.5", format);
+    BigFloat tie = above.multiply(half,format).add(below.multiply(half, format), format);
 
     BigFloat rounded = posValue.greaterThanOrEqualTo(tie) ? above : below;
     return new MpfrFloat(value.sign() ? rounded.negate() : rounded, format);

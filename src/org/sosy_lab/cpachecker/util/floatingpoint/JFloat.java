@@ -148,7 +148,7 @@ public class JFloat extends CFloat {
     double posValue = Math.abs(value);
     double above = Math.ceil(posValue);
     double below = Math.floor(posValue);
-    double rounded = posValue >= (above + below) / 2 ? above : below;
+    double rounded = posValue >= (above/2 + below/2) ? above : below;
     return new JFloat((float) (value > 0 ? rounded : -rounded));
   }
 
