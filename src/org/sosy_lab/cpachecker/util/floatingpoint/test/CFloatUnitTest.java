@@ -146,6 +146,10 @@ public abstract class CFloatUnitTest {
       }
       int maxValue = (2 << (format.precision - 2));
       for (int i=0; i < maxValue; i++) {
+        if (exponent > format.maxExponent && i > 1) {
+          // Only generate one NaN value
+          continue;
+        }
         BigInteger significand = leading.add(BigInteger.valueOf(i));
         builder.add(new BigFloat(false, significand, exponent, format));
         builder.add(new BigFloat(true, significand, exponent, format));
