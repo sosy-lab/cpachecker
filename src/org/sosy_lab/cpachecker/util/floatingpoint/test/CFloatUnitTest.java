@@ -223,7 +223,7 @@ public abstract class CFloatUnitTest {
     if (!value.isNaN()) {
       // Get the actual significand if the value is not NaN
       String repr = value.significand(format.minExponent, format.maxExponent).toString(2);
-      repr = "0".repeat(format.precision + 1 - repr.length()) + repr;
+      repr = "0".repeat(format.precision - repr.length()) + repr;
       significand = repr.substring(1);
     }
     return String.format("%s %s %s", sign, exponent, significand);
