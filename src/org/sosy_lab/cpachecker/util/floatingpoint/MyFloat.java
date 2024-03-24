@@ -957,14 +957,17 @@ public class MyFloat {
   }
 
   public MyFloat exp() {
-    Format fp1 = new Format(15, format.sigBits + 10);
-    Format fp2 = format.extended();
-    Format fp3 = fp2.extended();
+    ImmutableList.Builder<Format> builder = ImmutableList.builder();
+    builder.add(new Format(15, format.sigBits + 10));
+    builder.add(format.extended());
+    builder.add(format.extended().extended());
+
+    ImmutableList<Format> formats = builder.build();
 
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : ImmutableList.of(fp1, fp2, fp3)) {
+    for (Format p : formats) {
       if (!done) {
         MyFloat x = this.withPrecision(p);
         MyFloat ex = x.exp_().validPart();
@@ -993,13 +996,10 @@ public class MyFloat {
 
   private static Map<Integer, MyFloat> mkExpTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
-    MyFloat next = one(pFormat);
-    builder.put(0, next);
+    builder.put(0, one(pFormat));
     for (int k = 1; k < 100; k++) {
       // Calculate 1/k! and store the values in the table
-      next = next.multiply(constant(pFormat, BigInteger.valueOf(k)));
-      builder.put(k, one(pFormat).divide_(next));
-      //  builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k))));
+      builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k))));
     }
     return builder.buildOrThrow();
   }
@@ -1017,11 +1017,10 @@ public class MyFloat {
 
     Format fp1 = new Format(format.expBits, format.sigBits + 3);
 
-    MyFloat x = this;
+    MyFloat x = this.withPrecision(fp1);
     MyFloat r = zero(fp1); // Series expansion after k terms.
 
-    // Range reduction:
-    // e^(a * 2^x) = e^(a * 2 * 2^x-1) = e^(a*2^x-1 + a*2^x-1) = (e^(a*2^x-1))^2 = ... = (e^a)^(2^x)
+    // Range reduction: exp(a * 2^k) = exp(a)^2k
     if (value.exponent > 0) {
       x = x.withExponent(0);
     }
@@ -1029,7 +1028,7 @@ public class MyFloat {
     Stream.Builder<MyFloat> terms = Stream.builder();
     for (int k = 0; k < 40; k++) {
       MyFloat a = x.powInt_(BigInteger.valueOf(k));
-      terms.add(a.multiply(expTable.get(k).withPrecision(format)));
+      terms.add(a.multiply(expTable.get(k).withPrecision(fp1)));
     }
 
     // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
