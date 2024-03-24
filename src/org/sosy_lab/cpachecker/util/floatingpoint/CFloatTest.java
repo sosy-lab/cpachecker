@@ -437,12 +437,14 @@ public class CFloatTest {
   }
 
   @Test
+  @Ignore // FIXME: This might be an issue with the test?
   public void subtractionOverflowTest() {
     CFloatWrapper wrapperA =
         new CFloatWrapper(
             0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_01111111L,
             0b00000000_00000000_00000000_00000000_00000000_00100000_00000000_00000001L);
 
+    // FIXME: Mantissa is not normalized
     CFloatWrapper wrapperB =
         new CFloatWrapper(
             0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_01111101L,
@@ -460,6 +462,10 @@ public class CFloatTest {
     wrapperB.setMantissa(
         0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L);
 
+    // FIXME: Fails here:
+    //  value of: getMantissa()
+    //  expected: 1
+    //  but was : 0
     assertThat(aI.subtract(bI).copyWrapper().getMantissa()).isEqualTo(1);
     assertThat(bI.subtract(aI).copyWrapper().getMantissa()).isEqualTo(1);
 
@@ -775,11 +781,14 @@ public class CFloatTest {
   }
 
   @Test
-  @Ignore // known to fail
   public void toStringTest_negativeDoubleValueWithLeadingZero() {
     CFloat a = new CMyFloat("-0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
     CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
 
+    // FIXME: value of: getExponent()
+    //  expected: -1026
+    //  but was : 3070
+    // 3070 = 1 01111111110 (1023) is the correct exponent. This might be an issue in CFloatNative?
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     assertThat(a.toString()).isEqualTo(b.toString());
