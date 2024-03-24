@@ -119,16 +119,20 @@ public abstract class CFloatUnitTest {
   protected static List<BigFloat> floatRandom(BinaryMathContext format, int n) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     Random random = new Random(0);
-    for (int i = 0; i < n; i++) {
+    int i=0;
+    while (i < n) {
       boolean sign = random.nextBoolean();
       long exponent = random.nextLong(2 * format.maxExponent) - format.maxExponent;
       BigInteger leading = BigInteger.ONE.shiftLeft(format.precision - 1);
       if (exponent < format.minExponent) { // Special case for subnormal numbers
-        exponent = format.minExponent;
         leading = BigInteger.ZERO;
       }
       BigInteger significand = leading.add(new BigInteger(format.precision - 1, random));
-      builder.add(new BigFloat(sign, significand, exponent, format));
+      BigFloat value = new BigFloat(sign, significand, exponent, format);
+      if (!value.isPositiveZero() || !value.isNegativeZero()) {
+        builder.add(new BigFloat(sign, significand, exponent, format));
+        i++;
+      }
     }
     return builder.build();
   }
