@@ -43,6 +43,9 @@ public class MyFloat {
     public static final Format Float128 = new Format(15, 112);
     public static final Format Float256 = new Format(19, 236);
 
+    public Integer getExpBits() { return expBits; }
+    public Integer getSigBits() { return sigBits;}
+
     @Override
     public boolean equals(Object other) {
       if (this == other) {

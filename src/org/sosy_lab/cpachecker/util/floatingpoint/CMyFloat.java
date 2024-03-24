@@ -11,13 +11,28 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import java.math.BigInteger;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.RoundingMode;
 
 public class CMyFloat extends CFloat {
+  static {
+    NativeLibraries.loadLibrary("mpfr_java");
+  }
+
   private final CFloatWrapper wrapper;
   private final MyFloat delegate;
+
+  public CMyFloat(CFloatWrapper pWrapper, int pType) {
+    wrapper = pWrapper;
+    delegate = toMyFloat(pWrapper, CFloatNativeAPI.toNativeType(pType));
+  }
+
+  public CMyFloat(String repr, int pType) {
+    delegate = parseFloat(repr, toMathContext(CFloatNativeAPI.toNativeType(pType)));
+    wrapper = fromImpl(delegate);
+  }
 
   public CMyFloat(String repr, BinaryMathContext pFormat) {
     delegate = parseFloat(repr, pFormat);
@@ -27,6 +42,47 @@ public class CMyFloat extends CFloat {
   public CMyFloat(MyFloat pValue) {
     delegate = pValue;
     wrapper = fromImpl(pValue);
+  }
+
+  private BinaryMathContext toMathContext(CNativeType pType) {
+    return switch (pType) {
+      case SINGLE -> BinaryMathContext.BINARY32;
+      case DOUBLE -> BinaryMathContext.BINARY64;
+      case LONG_DOUBLE -> new BinaryMathContext(64, 15);
+      default -> throw new UnsupportedOperationException();
+    };
+  }
+
+  private Format toFormat(CNativeType pType) {
+    return switch (pType) {
+      case SINGLE -> Format.Float32;
+      case DOUBLE -> Format.Float64;
+      case LONG_DOUBLE -> new Format(15, 63);
+      default -> throw new UnsupportedOperationException();
+    };
+  }
+
+  private MyFloat toMyFloat(CFloatWrapper floatWrapper, CNativeType pType) {
+    Format format = toFormat(pType);
+    long signMask = 1L << format.getExpBits();
+    long exponentMask = signMask - 1;
+
+    // Extract bits for sign, exponent and mantissa from the wrapper
+    long signBit = floatWrapper.getExponent() & signMask;
+    long exponentBits = floatWrapper.getExponent() & exponentMask;
+    long mantissaBits = floatWrapper.getMantissa();
+
+    // Shift the exponent and convert the values
+    boolean sign = signBit != 0;
+    long exponent = exponentBits - format.bias();
+    BigInteger mantissa = BigInteger.valueOf(mantissaBits);
+
+    // Check that the value is "normal" (= not 0, Inf or NaN) and add the missing 1 to the mantissa
+    if (exponentBits != 0 && exponentBits != exponentMask) {
+      BigInteger leadingOne = BigInteger.ONE.shiftLeft(format.getSigBits());
+      mantissa = mantissa.add(leadingOne);
+    }
+    return new MyFloat(format, sign, exponent, mantissa);
   }
 
   private CFloatWrapper fromImpl(MyFloat floatValue) {
