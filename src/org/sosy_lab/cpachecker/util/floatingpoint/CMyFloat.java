@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
@@ -36,7 +37,7 @@ public class CMyFloat extends CFloat {
 
   public CMyFloat(String repr, BinaryMathContext pFormat) {
     delegate = parseFloat(repr, pFormat);
-    wrapper = fromImpl(delegate);
+    wrapper = null;//fromImpl(delegate);
   }
 
   public CMyFloat(MyFloat pValue) {
@@ -86,14 +87,9 @@ public class CMyFloat extends CFloat {
   }
 
   private CFloatWrapper fromImpl(MyFloat floatValue) {
-    if (Format.Float16.equals(floatValue.getFormat())) {
-      // FIXME: Probably (?) broken for subnormal numbers
-      long bits = Float.floatToRawIntBits(floatValue.toFloat());
-      long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
-      long mantissa = bits & 0x007FFFFF;
-      return new CFloatWrapper(exponent, mantissa);
-    }
-    if (Format.Float32.equals(floatValue.getFormat())) {
+    ImmutableList<Format> tiny = ImmutableList.of(new Format(3,4), Format.Float16, Format.Float32);
+    if (tiny.contains(floatValue.getFormat())) {
+      // FIXME: In Float8 and Float16 this may be broken for subnormal numbers
       long bits = Float.floatToRawIntBits(floatValue.toFloat());
       long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
       long mantissa = bits & 0x007FFFFF;

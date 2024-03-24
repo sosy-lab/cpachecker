@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
@@ -78,6 +77,9 @@ public class MyFloat {
     // Returns the next bigger format meant to be used for intermediate results.
     public Format extended() {
       // TODO: Add support for arbitrary sizes
+      if (equals(new Format(3, 4))) {
+        return Float16;
+      }
       if (equals(Format.Float16)) {
         return Float32;
       }
@@ -1556,7 +1558,6 @@ public class MyFloat {
   }
 
   public float toFloat() {
-    Preconditions.checkState(format.equals(Format.Float32) || format.equals(Format.Float16));
     if (isNan()) {
       return Float.NaN;
     }
@@ -1568,7 +1569,6 @@ public class MyFloat {
   }
 
   public double toDouble() {
-    Preconditions.checkState(format.equals(Format.Float64));
     if (isNan()) {
       return Double.NaN;
     }
