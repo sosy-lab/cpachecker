@@ -1413,39 +1413,42 @@ public class MyFloat {
   }
 
   public MyFloat roundToInteger(RoundingMode rm) {
-    // If exponent is too large to leave any fractional part, return immediately
+    // If we have a special value, just return it
+    if (isNan() || isInfinite()) {
+      return this;
+    }
+    // If the exponent is large enough we already have an integer and can return immediately
     if (value.exponent > format.sigBits) {
       return this;
     }
 
-    // Extract significand and apply the sign, then add grs bits
+    // Get the significand and add grs bits
     BigInteger significand = value.significand;
     significand = significand.shiftLeft(3);
 
-    // Shift away the fractional part
-    int shift = (int) (format.sigBits - value.exponent);
-    for (int i = 0; i < shift; i++) {
-      BigInteger carry = significand.and(BigInteger.ONE);
-      significand = significand.shiftRight(1);
-      significand = significand.or(carry);
-    }
+    // Shift the fractional part to the right
+    significand = truncate(significand, (int) (format.sigBits - value.exponent));
 
     // Drop the grs bits and round the result according to the selected rounding mode
     long grs = significand.abs().and(new BigInteger("111", 2)).longValue();
     significand = significand.shiftRight(3);
     significand = applyRounding(rm, value.sign, significand, grs);
 
-    // If the significand was rounded to 0.00000 return zero
+    // Recalculate the exponent
+    int exponent = significand.bitLength() - 1;
+
+    // Normalize the significand if there was an overflow. The last bit is then always zero and can
+    // simply be dropped.
+    significand = significand.shiftLeft(format.sigBits - exponent);
+
+    // Check if the result is zero
     if (significand.equals(BigInteger.ZERO)) {
       return isNegative() ? negativeZero(format) : zero(format);
     }
-
-    // Calculate exponent and normalize the significand
-    int exponent = significand.bitLength() - 1;
-    // (May shift one bit to the right if rounding caused an overflow. This is safe as the last bit
-    // is then always zero.)
-    significand = significand.shiftLeft(format.sigBits - exponent);
-
+    // Check if we need to round to infinity
+    if (exponent > format.maxExp()) {
+      return isNegative() ? negativeInfinity(format) : infinity(format);
+    }
     return new MyFloat(format, value.sign, exponent, significand);
   }
 
