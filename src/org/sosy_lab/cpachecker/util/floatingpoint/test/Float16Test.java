@@ -95,4 +95,32 @@ public class Float16Test extends CFloatUnitTest {
   public void castToLongTest() {
     // Disabled
   }
+
+  @Test
+  public void mpfr_expBugTest() {
+    // 1 of 5 failed test values
+    String val = "-2.9668e+00";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void mpfr_sqrtBugTest() {
+    // 1 of 7 failed test values
+    String val = "2.4402e-04";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.sqrt();
+    CFloat r2 = reference.sqrt();
+
+    assertEqual1Ulp(r1, r2);
+  }
 }

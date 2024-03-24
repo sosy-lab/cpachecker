@@ -129,51 +129,6 @@ public class Float32Test extends CFloatUnitTest {
   }
 
   @Test
-  public void powBugTest() {
-    String val1 = "3.4028235E38"; // Works for any precision: maxValue^0.5 = sqrt(maxValue)
-    String val2 = "0.5";
-
-    // FIXME: Figure out the right size for the intermediate results to avoid rounding issues
-    //  pow(a,x)=a^x is implemented as exp(x*log(a))
-    //  We calculate y=x*log(a) for the values in this test and then evaluate the exponential:
-    //  exp(101100010111001000010111 11110101110100011100111101111)
-    //  1:  100011100100101010011000 01110000110100011001001100001
-    //  2:  110110101111011100010100 11101110011100110011100001010
-    //  3:  101110000011101001110011 01100100001010101001001000100
-    //  4:  101001001000100100000101 00000100111000110111101000001
-    //  5:  111010000010010010011110 00100011001101010010001000110
-    //  6:  111110110011101010001011 01110011111100010000101111001
-    //  7:  111111110010111101001100 00010110100001111100110100101
-    //  8:  111111111110000001011011 01110110101011010001100011111
-    //  9:  111111111111101110101011 11101110011011010101011010001
-    //  10: 111111111111111101110101 10000100001000001010011000011
-    //  11: 111111111111111111101111 10110110101011101001101101010
-    //  12: 111111111111111111111101 11010100100110010100010001000
-    //  13: 111111111111111111111111 01010101111110101101010100110
-    //  14: 111111111111111111111111 01111100001001000000001000100
-    //  15: 111111111111111111111111 01111111101010101101111100100
-    //  16: 111111111111111111111111 01111111111110010001100100100
-    //  17: 111111111111111111111111 01111111111111110111101000100
-    //  18: 111111111111111111111111 01111111111111111111100000100
-    //  19: 111111111111111111111111 10000000000000000000000100010
-    //                               ^ we had an overflow here
-    //  20: 111111111111111111111111 10000000000000000000001000010
-    //  21: 111111111111111111111111 10000000000000000000001000010
-    //                               ^ ...and now we need to round up
-
-    CFloat tested1 = toTestedImpl(val1);
-    CFloat tested2 = toTestedImpl(val2);
-
-    CFloat reference1 = toReferenceImpl(val1);
-    CFloat reference2 = toReferenceImpl(val2);
-
-    CFloat r1 = tested1.powTo(tested2);
-    CFloat r2 = reference1.powTo(reference2);
-
-    assertEqual1Ulp(r1, r2);
-  }
-
-  @Test
   public void ln_eTest() {
     String val = String.valueOf(Math.E);
 
@@ -201,34 +156,15 @@ public class Float32Test extends CFloatUnitTest {
   }
 
   @Test
-  public void native_lnBugTest() {
-    // One of 4 failed inputs
-    // Other values mostly between 0.1 and 1
-    String val = "0.0050035235";
+  public void mpfr_expBugTest() {
+    // 1 of 10 failed test values
+    String val = "-6.09577408e+01";
 
     CFloat tested = toTestedImpl(val);
     CFloat reference = toReferenceImpl(val);
 
-    CFloat r1 = tested.ln();
-    CFloat r2 = reference.ln();
-
-    assertEqual1Ulp(r1, r2);
-  }
-
-  @Test
-  public void native_powBugTest() {
-    // Only failed input (other than powBugTest)
-    String val1 = "1.413657E11";
-    String val2 = "-0.14661042";
-
-    CFloat tested1 = toTestedImpl(val1);
-    CFloat tested2 = toTestedImpl(val2);
-
-    CFloat reference1 = toReferenceImpl(val1);
-    CFloat reference2 = toReferenceImpl(val2);
-
-    CFloat r1 = tested1.powTo(tested2);
-    CFloat r2 = reference1.powTo(reference2);
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
 
     assertEqual1Ulp(r1, r2);
   }
