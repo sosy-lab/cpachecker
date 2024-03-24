@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
 import java.util.List;
 import org.junit.Ignore;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -62,30 +63,35 @@ public class Float16Test extends CFloatUnitTest {
 
   @Ignore
   @Override
+  @Test
   public void powToIntegralTest() {
     // TODO: Not implemented in BigFloat
   }
 
   @Ignore
   @Override
+  @Test
   public void castToByteTest() {
     // Disabled
   }
 
   @Ignore
   @Override
+  @Test
   public void castToShortTest() {
     // Disabled
   }
 
   @Ignore
   @Override
+  @Test
   public void castToIntTest() {
     // Disabled
   }
 
   @Ignore
   @Override
+  @Test
   public void castToLongTest() {
     // Disabled
   }
