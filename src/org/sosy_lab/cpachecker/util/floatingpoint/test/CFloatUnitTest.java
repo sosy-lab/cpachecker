@@ -133,7 +133,7 @@ public abstract class CFloatUnitTest {
     return builder.build();
   }
 
-  private static List<BigFloat> allFloats(BinaryMathContext format) {
+  protected static List<BigFloat> allFloats(BinaryMathContext format) {
     // FIXME: We seem to be missing some values?
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     for (long exponent = format.minExponent - 1; exponent <= format.maxExponent + 1; exponent++) {
