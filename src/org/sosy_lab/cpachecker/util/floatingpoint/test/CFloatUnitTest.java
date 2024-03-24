@@ -134,12 +134,10 @@ public abstract class CFloatUnitTest {
   }
 
   protected static List<BigFloat> allFloats(BinaryMathContext format) {
-    // FIXME: We seem to be missing some values?
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     for (long exponent = format.minExponent - 1; exponent <= format.maxExponent + 1; exponent++) {
       BigInteger leading = BigInteger.ONE.shiftLeft(format.precision - 1);
-      if (exponent < format.minExponent) { // Special case for subnormal numbers
-        exponent = format.minExponent;
+      if (exponent < format.minExponent || exponent > format.maxExponent) {
         leading = BigInteger.ZERO;
       }
       int maxValue = (2 << (format.precision - 2));
@@ -200,34 +198,31 @@ public abstract class CFloatUnitTest {
     }
   }
 
-  private double lb(double number) {
+  private static double lb(double number) {
     return Math.log(number) / Math.log(2);
   }
 
-  private int calculateExpWidth(BinaryMathContext pFormat) {
+  private static int calculateExpWidth(BinaryMathContext pFormat) {
     return (int) Math.ceil(lb((double) (2 * pFormat.maxExponent + 1)));
   }
 
-  private String toBits(BigFloat value) {
+  private static String toBits(BinaryMathContext format, BigFloat value) {
     String sign = value.sign() ? "1" : "0";
-    long valueExp =
-        value.exponent(getFloatType().minExponent, getFloatType().maxExponent)
-            + getFloatType().maxExponent;
+    long valueExp = value.exponent(format.minExponent, format.maxExponent) + format.maxExponent;
     String exponent = Long.toString(valueExp, 2);
-    exponent = "0".repeat(calculateExpWidth(getFloatType()) - exponent.length()) + exponent;
-    String significand = BigInteger.ONE.shiftLeft(getFloatType().precision - 2).toString(2);
+    exponent = "0".repeat(calculateExpWidth(format) - exponent.length()) + exponent;
+    String significand = BigInteger.ONE.shiftLeft(format.precision - 2).toString(2);
     if (!value.isNaN()) {
       // Get the actual significand if the value is not NaN
-      String repr =
-          value.significand(getFloatType().minExponent, getFloatType().maxExponent).toString(2);
-      repr = "0".repeat(getFloatType().precision + 1 - repr.length()) + repr;
+      String repr = value.significand(format.minExponent, format.maxExponent).toString(2);
+      repr = "0".repeat(format.precision + 1 - repr.length()) + repr;
       significand = repr.substring(1);
     }
     return String.format("%s %s %s", sign, exponent, significand);
   }
 
   protected String printValue(BigFloat value) {
-    return String.format("%s [%s]", toBits(value), printBigFloat(value));
+    return String.format("%s [%s]", toBits(getFloatType(), value), printBigFloat(value));
   }
 
   private String printTestHeader(String name, BigFloat arg) {
