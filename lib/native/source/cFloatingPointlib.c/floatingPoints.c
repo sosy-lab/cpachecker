@@ -86,12 +86,12 @@ jobject transformWrapperToJava(JNIEnv* env, t_ld fp_obj, jint type) {
 
 	switch (type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)((fp_obj.bitmask.mantissa & (511L << 23)) >> 23)));
-			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 8388607L));
+			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)(((fp_obj.bitmask.mantissa & 0xFF800000L) >> 23) & 0x1FFL)));
+			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 0x007FFFFFL));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)((fp_obj.bitmask.mantissa & (4095L << 52)) >> 52)));
-			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 4503599627370495L));
+			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)((fp_obj.bitmask.mantissa & 0xFFF0000000000000L) >> 52) & 0xFFFL));
+			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 0xFFFFFFFFFFFFFL));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)fp_obj.bitmask.exp_sig_pad));
