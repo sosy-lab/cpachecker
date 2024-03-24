@@ -42,8 +42,13 @@ public class MyFloat {
     public static final Format Float128 = new Format(15, 112);
     public static final Format Float256 = new Format(19, 236);
 
-    public Integer getExpBits() { return expBits; }
-    public Integer getSigBits() { return sigBits;}
+    public Integer getExpBits() {
+      return expBits;
+    }
+
+    public Integer getSigBits() {
+      return sigBits;
+    }
 
     @Override
     public boolean equals(Object other) {
@@ -227,7 +232,9 @@ public class MyFloat {
   public boolean isZero() {
     boolean b1 = value.exponent == format.minExp() - 1;
     boolean b2 = value.significand.equals(BigInteger.ZERO);
-    return b1 && b2;//(value.exponent == format.minExp() - 1) && value.significand.equals(BigInteger.ZERO);
+    return b1
+        && b2; // (value.exponent == format.minExp() - 1) &&
+               // value.significand.equals(BigInteger.ZERO);
   }
 
   public boolean isOne() {
@@ -275,6 +282,30 @@ public class MyFloat {
     return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
+  public enum RoundingMode {
+    NEAREST_AWAY, // Round to nearest, ties away from zero
+    NEAREST_EVEN, // Round to nearest, ties to even
+    CEILING, // Round toward +∞
+    FLOOR, // Round toward -∞
+    TRUNCATE // Round toward 0
+  }
+
+  // Round the significand
+  // For internal use only. We expect the significand to be followed by 3 grs bits
+  private BigInteger applyRounding(RoundingMode rm, boolean negative, BigInteger significand) {
+    long grs = significand.and(new BigInteger("111", 2)).longValue();
+    significand = significand.shiftRight(3);
+    BigInteger plusOne = significand.add(BigInteger.ONE);
+    return switch (rm) {
+      case NEAREST_AWAY -> (grs >= 4) ? plusOne : significand;
+      case NEAREST_EVEN ->
+          ((grs == 4 && significand.testBit(0)) || grs > 4) ? plusOne : significand;
+      case CEILING -> (grs > 0 && !negative) ? plusOne : significand;
+      case FLOOR -> (grs > 0 && negative) ? plusOne : significand;
+      case TRUNCATE -> significand;
+    };
+  }
+
   // Copy the value with a new exponent
   private MyFloat withExponent(long pExponent) {
     return new MyFloat(format, value.sign, pExponent, value.significand);
@@ -315,33 +346,25 @@ public class MyFloat {
     if (exponent > targetFormat.maxExp()) {
       return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
     }
-
     // Return zero if the exponent is below the subnormal range
     if (exponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
       return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
     }
 
-    // Extend the significand
+    // Extend the significand with 3 grs bits
     significand = significand.shiftLeft(targetFormat.sigBits + 3);
 
     // Use the lowest possible exponent and move the rest into the significand by shifting
     // it to the right.
-    // Here we calculate haw many digits we need to shift:
     int leading = 0;
     if (exponent < targetFormat.minExp()) {
       leading = (int) Math.abs(targetFormat.minExp() - exponent);
       exponent = targetFormat.minExp() - 1;
     }
 
-    // Truncate the value while carrying over the grs bits.
+    // Truncate the value and round the result
     significand = truncate(significand, format.sigBits + leading);
-
-    // Round the result according to the grs bits
-    long grs = significand.and(new BigInteger("111", 2)).longValue();
-    significand = significand.shiftRight(3);
-    if ((grs == 4 && significand.testBit(0)) || grs > 4) {
-      significand = significand.add(BigInteger.ONE);
-    }
+    significand = applyRounding(RoundingMode.NEAREST_EVEN, value.sign, significand);
 
     // Normalize if rounding caused an overflow
     if (significand.testBit(targetFormat.sigBits + 1)) {
@@ -368,12 +391,14 @@ public class MyFloat {
       return false;
     }
     if (this.isInfinite() && !this.isNegative()) {
+      // inf > x = true, unless x=inf
       if (number.isInfinite() && !number.isNegative()) {
         return false;
       }
       return true;
     }
     if (this.isInfinite() && this.isNegative() && number.isInfinite() && number.isNegative()) {
+      // -inf > x = true, unless x=-inf
       return false;
     }
     MyFloat r = this.subtract(number);
@@ -480,15 +505,11 @@ public class MyFloat {
     }
 
     // Round the result according to the grs bits
-    long grs = significand_.and(new BigInteger("111", 2)).longValue();
-    significand_ = significand_.shiftRight(3);
-    if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
-      significand_ = significand_.add(BigInteger.ONE);
-    }
+    significand_ = applyRounding(RoundingMode.NEAREST_EVEN, sign_, significand_);
 
     // Shift the significand to the right if rounding has caused an overflow
     if (significand_.bitLength() > format.sigBits + 1) {
-      significand_ = significand_.shiftRight(1);
+      significand_ = significand_.shiftRight(1); // The dropped bit is zero
       exponent_ += 1;
     }
 
@@ -496,7 +517,6 @@ public class MyFloat {
     if (significand_.equals(BigInteger.ZERO)) {
       return sign_ ? negativeZero(format) : zero(format);
     }
-
     // Return infinity if there is an overflow.
     if (exponent_ > format.bias()) {
       return sign_ ? negativeInfinity(format) : infinity(format);
@@ -599,16 +619,12 @@ public class MyFloat {
     // to shift further by 'leading' bits.
     significand_ = truncate(significand_, format.sigBits + leading);
 
-    // Round the result according to the grs bits
-    long grs = significand_.and(new BigInteger("111", 2)).longValue();
-    significand_ = significand_.shiftRight(3);
-    if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
-      significand_ = significand_.add(BigInteger.ONE);
-    }
+    // Round the result
+    significand_ = applyRounding(RoundingMode.NEAREST_EVEN, sign_, significand_);
 
     // Shift the significand to the right if rounding has caused an overflow
     if (significand_.bitLength() > format.sigBits + 1) {
-      significand_ = significand_.shiftRight(1);
+      significand_ = significand_.shiftRight(1); // The dropped bit is zero
       exponent_ += 1;
     }
 
@@ -731,19 +747,13 @@ public class MyFloat {
       exponent_ = format.minExp() - 1;
     }
 
-    // Truncate the value while carrying over the grs bits.
+    // Truncate the value and round the result
     significand_ = truncate(significand_, format.sigBits + leading);
-
-    // Round the result according to the grs bits
-    long grs = significand_.and(new BigInteger("111", 2)).longValue();
-    significand_ = significand_.shiftRight(3);
-    if ((grs == 4 && significand_.testBit(0)) || grs > 4) {
-      significand_ = significand_.add(BigInteger.ONE);
-    }
+    significand_ = applyRounding(RoundingMode.NEAREST_EVEN, sign_, significand_);
 
     // Shift the significand to the right if rounding has caused an overflow
     if (significand_.bitLength() > format.sigBits + 1) {
-      significand_ = significand_.shiftRight(1);
+      significand_ = significand_.shiftRight(1); // Last bit is zero
       exponent_ += 1;
     }
 
@@ -752,10 +762,9 @@ public class MyFloat {
   }
 
   // These constants are needed for division with Newton's approach.
-  // TODO: Calculate these constants only once for each floating point precision
-  private static final MyFloat c48 = constant(Format.Float128, 48);
-  private static final MyFloat c32 = constant(Format.Float128, 32);
-  private static final MyFloat c17 = constant(Format.Float128, 17);
+  private static final MyFloat c48 = constant(Format.Float256, 48);
+  private static final MyFloat c32 = constant(Format.Float256, 32);
+  private static final MyFloat c17 = constant(Format.Float256, 17);
 
   // Here we have to use the slow divide for the constants.
   private static final MyFloat c48d17 = c48.divideSlow(c17);
@@ -1394,24 +1403,6 @@ public class MyFloat {
     return r.withPrecision(format);
   }
 
-  public enum RoundingMode {
-    NEAREST, // Round to nearest, ties to even
-    CEILING, // Round toward +∞
-    FLOOR, // Round toward -∞
-    TRUNCATE // Round toward 0
-  }
-
-  private BigInteger applyRounding(
-      RoundingMode rm, boolean negative, BigInteger significand, long grs) {
-    BigInteger plusOne = significand.add(BigInteger.ONE);
-    return switch (rm) {
-      case NEAREST -> (grs >= 4) ? plusOne : significand;
-      case CEILING -> (grs > 0 && !negative) ? plusOne : significand;
-      case FLOOR -> (grs > 0 && negative) ? plusOne : significand;
-      case TRUNCATE -> significand;
-    };
-  }
-
   public MyFloat roundToInteger(RoundingMode rm) {
     // If we have a special value, just return it
     if (isNan() || isInfinite()) {
@@ -1426,13 +1417,9 @@ public class MyFloat {
     BigInteger significand = value.significand;
     significand = significand.shiftLeft(3);
 
-    // Shift the fractional part to the right
+    // Shift the fractional part to the right and then round the result
     significand = truncate(significand, (int) (format.sigBits - value.exponent));
-
-    // Drop the grs bits and round the result according to the selected rounding mode
-    long grs = significand.abs().and(new BigInteger("111", 2)).longValue();
-    significand = significand.shiftRight(3);
-    significand = applyRounding(rm, value.sign, significand, grs);
+    significand = applyRounding(rm, value.sign, significand);
 
     // Recalculate the exponent
     int exponent = significand.bitLength() - 1;

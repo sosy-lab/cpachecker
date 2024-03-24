@@ -37,7 +37,7 @@ public class CMyFloat extends CFloat {
 
   public CMyFloat(String repr, BinaryMathContext pFormat) {
     delegate = parseFloat(repr, pFormat);
-    wrapper = null;//fromImpl(delegate);
+    wrapper = null; // fromImpl(delegate);
   }
 
   public CMyFloat(MyFloat pValue) {
@@ -87,7 +87,7 @@ public class CMyFloat extends CFloat {
   }
 
   private CFloatWrapper fromImpl(MyFloat floatValue) {
-    ImmutableList<Format> tiny = ImmutableList.of(new Format(3,4), Format.Float16, Format.Float32);
+    ImmutableList<Format> tiny = ImmutableList.of(new Format(3, 4), Format.Float16, Format.Float32);
     if (tiny.contains(floatValue.getFormat())) {
       // FIXME: In Float8 and Float16 this may be broken for subnormal numbers
       long bits = Float.floatToRawIntBits(floatValue.toFloat());
@@ -218,7 +218,7 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat round() {
-    return new CMyFloat(delegate.roundToInteger(RoundingMode.NEAREST));
+    return new CMyFloat(delegate.roundToInteger(RoundingMode.NEAREST_AWAY));
   }
 
   @Override

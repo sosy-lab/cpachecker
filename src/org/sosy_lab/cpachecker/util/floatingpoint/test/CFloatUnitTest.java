@@ -119,7 +119,7 @@ public abstract class CFloatUnitTest {
   protected static List<BigFloat> floatRandom(BinaryMathContext format, int n) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     Random random = new Random(0);
-    int i=0;
+    int i = 0;
     while (i < n) {
       boolean sign = random.nextBoolean();
       long exponent = random.nextLong(2 * format.maxExponent) - format.maxExponent;
@@ -145,7 +145,7 @@ public abstract class CFloatUnitTest {
         leading = BigInteger.ZERO;
       }
       int maxValue = (2 << (format.precision - 2));
-      for (int i=0; i < maxValue; i++) {
+      for (int i = 0; i < maxValue; i++) {
         if (exponent > format.maxExponent && i > 1) {
           // Only generate one NaN value
           continue;

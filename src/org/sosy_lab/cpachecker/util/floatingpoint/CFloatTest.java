@@ -745,7 +745,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     // FIXME: MyFloat.toString uses a different output format
-    //assertThat(a.toString()).isEqualTo(b.toString());
+    // assertThat(a.toString()).isEqualTo(b.toString());
   }
 
   @Test
@@ -756,7 +756,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     // FIXME: MyFloat.toString uses a different output format
-    //assertThat(a.toString()).isEqualTo(b.toString());
+    // assertThat(a.toString()).isEqualTo(b.toString());
   }
 
   @Test
@@ -767,7 +767,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     // FIXME: MyFloat.toString uses a different output format
-    //assertThat(a.toString()).isEqualTo(b.toString());
+    // assertThat(a.toString()).isEqualTo(b.toString());
   }
 
   @Test
@@ -778,7 +778,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     // FIXME: MyFloat.toString uses a different output format
-    //assertThat(a.toString()).isEqualTo(b.toString());
+    // assertThat(a.toString()).isEqualTo(b.toString());
   }
 
   @Test
@@ -788,7 +788,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     // FIXME: MyFloat.toString uses a different output format
-    //assertThat(a.toString()).isEqualTo(b.toString());
+    // assertThat(a.toString()).isEqualTo(b.toString());
   }
 
   @Test
@@ -821,7 +821,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     // FIXME: MyFloat.toString uses a different output format
-    //assertThat(a.toString()).isEqualTo(b.toString());
+    // assertThat(a.toString()).isEqualTo(b.toString());
   }
 
   @Test
@@ -832,7 +832,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     // FIXME: MyFloat.toString uses a different output format
-    //assertThat(a.toString()).isEqualTo(b.toString());
+    // assertThat(a.toString()).isEqualTo(b.toString());
   }
 
   @Test

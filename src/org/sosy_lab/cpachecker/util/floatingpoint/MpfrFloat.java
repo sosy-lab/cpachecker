@@ -219,7 +219,7 @@ public class MpfrFloat extends CFloat {
     BigFloat above = posValue.rint(format.withRoundingMode(RoundingMode.CEILING));
     BigFloat below = posValue.rint(format.withRoundingMode(RoundingMode.FLOOR));
     BigFloat half = new BigFloat("0.5", format);
-    BigFloat tie = above.multiply(half,format).add(below.multiply(half, format), format);
+    BigFloat tie = above.multiply(half, format).add(below.multiply(half, format), format);
 
     BigFloat rounded = posValue.greaterThanOrEqualTo(tie) ? above : below;
     return new MpfrFloat(value.sign() ? rounded.negate() : rounded, format);
@@ -287,7 +287,8 @@ public class MpfrFloat extends CFloat {
   public CFloat castTo(CNativeType toType) {
     BinaryMathContext ldouble = new BinaryMathContext(64, 15);
     return switch (toType) {
-      case HALF -> new MpfrFloat(value.round(BinaryMathContext.BINARY16), BinaryMathContext.BINARY16);
+      case HALF ->
+          new MpfrFloat(value.round(BinaryMathContext.BINARY16), BinaryMathContext.BINARY16);
       case SINGLE ->
           new MpfrFloat(value.round(BinaryMathContext.BINARY32), BinaryMathContext.BINARY32);
       case DOUBLE ->

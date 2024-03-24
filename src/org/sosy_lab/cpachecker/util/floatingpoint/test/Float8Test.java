@@ -114,4 +114,17 @@ public class Float8Test extends CFloatUnitTest {
   public void castToLongTest() {
     // Disabled
   }
+
+  @Test
+  public void roundTest() {
+    String val = "8.5";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.round();
+    CFloat r2 = reference.round();
+
+    assertEqual1Ulp(r1, r2);
+  }
 }
