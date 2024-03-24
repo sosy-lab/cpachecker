@@ -278,18 +278,7 @@ public class CFloatNative extends CFloat {
 
   @Override
   public String toString() {
-    // FIXME: Implement this for double and long double as well
-    Preconditions.checkArgument(type == CFloatNativeAPI.FP_TYPE_SINGLE);
-    if (isNan()) {
-      return "nan";
-    }
-    if (isInfinity()) {
-      return isNegative() ? "-inf" : "inf";
-    }
-    if (isZero()) {
-      return isNegative() ? "-0.0" : "0.0";
-    }
-    return String.format("%.6e", Float.parseFloat(CFloatNativeAPI.printFp(wrapper, type)));
+    return CFloatNativeAPI.printFp(wrapper, type).replaceAll("(\\.[0-9]+?)0*$", "$1");
   }
 
   @Override
