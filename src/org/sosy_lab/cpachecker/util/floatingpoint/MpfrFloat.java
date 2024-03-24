@@ -15,7 +15,7 @@ import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
-public class MpFloat extends CFloat {
+public class MpfrFloat extends CFloat {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
   }
@@ -25,25 +25,25 @@ public class MpFloat extends CFloat {
   private final BinaryMathContext format;
   private final BigFloat value;
 
-  public MpFloat(BigFloat pValue, BinaryMathContext pMathContext) {
+  public MpfrFloat(BigFloat pValue, BinaryMathContext pMathContext) {
     format = pMathContext;
     value = pValue;
     wrapper = fromBigFloat(value);
   }
 
-  public MpFloat(String repr, int floatType) {
+  public MpfrFloat(String repr, int floatType) {
     format = toBinaryMathContext(floatType);
     value = parseBigFloat(repr);
     wrapper = fromBigFloat(value);
   }
 
-  public MpFloat(String repr, BinaryMathContext pFormat) {
+  public MpfrFloat(String repr, BinaryMathContext pFormat) {
     format = pFormat;
     value = parseBigFloat(repr);
     wrapper = fromBigFloat(value);
   }
 
-  public MpFloat(CFloatWrapper pWrapper, int floatType) {
+  public MpfrFloat(CFloatWrapper pWrapper, int floatType) {
     format = toBinaryMathContext(floatType);
     value = toBigFloat(pWrapper);
     wrapper = pWrapper;
@@ -151,7 +151,7 @@ public class MpFloat extends CFloat {
 
   @Override
   public CFloat add(CFloat pSummand) {
-    return new MpFloat(value.add(toBigFloat(pSummand.getWrapper()), format), format);
+    return new MpfrFloat(value.add(toBigFloat(pSummand.getWrapper()), format), format);
   }
 
   @Override
@@ -160,12 +160,12 @@ public class MpFloat extends CFloat {
     for (CFloat f : pSummands) {
       result = result.add(toBigFloat(f.getWrapper()), format);
     }
-    return new MpFloat(result, format);
+    return new MpfrFloat(result, format);
   }
 
   @Override
   public CFloat multiply(CFloat pFactor) {
-    return new MpFloat(value.multiply(toBigFloat(pFactor.getWrapper()), format), format);
+    return new MpfrFloat(value.multiply(toBigFloat(pFactor.getWrapper()), format), format);
   }
 
   @Override
@@ -174,32 +174,32 @@ public class MpFloat extends CFloat {
     for (CFloat f : pFactor) {
       result = result.multiply(toBigFloat(f.getWrapper()), format);
     }
-    return new MpFloat(result, format);
+    return new MpfrFloat(result, format);
   }
 
   @Override
   public CFloat subtract(CFloat pSubtrahend) {
-    return new MpFloat(value.subtract(toBigFloat(pSubtrahend.getWrapper()), format), format);
+    return new MpfrFloat(value.subtract(toBigFloat(pSubtrahend.getWrapper()), format), format);
   }
 
   @Override
   public CFloat divideBy(CFloat pDivisor) {
-    return new MpFloat(value.divide(toBigFloat(pDivisor.getWrapper()), format), format);
+    return new MpfrFloat(value.divide(toBigFloat(pDivisor.getWrapper()), format), format);
   }
 
   @Override
   public CFloat ln() {
-    return new MpFloat(value.log(format), format);
+    return new MpfrFloat(value.log(format), format);
   }
 
   @Override
   public CFloat exp() {
-    return new MpFloat(value.exp(format), format);
+    return new MpfrFloat(value.exp(format), format);
   }
 
   @Override
   public CFloat powTo(CFloat exponent) {
-    return new MpFloat(value.pow(toBigFloat(exponent.getWrapper()), format), format);
+    return new MpfrFloat(value.pow(toBigFloat(exponent.getWrapper()), format), format);
   }
 
   @Override
@@ -210,7 +210,7 @@ public class MpFloat extends CFloat {
 
   @Override
   public CFloat sqrt() {
-    return new MpFloat(value.sqrt(format), format);
+    return new MpfrFloat(value.sqrt(format), format);
   }
 
   @Override
@@ -221,33 +221,33 @@ public class MpFloat extends CFloat {
     BigFloat tie = above.add(below, format).divide(new BigFloat(2, format), format);
 
     BigFloat rounded = posValue.greaterThanOrEqualTo(tie) ? above : below;
-    return new MpFloat(value.sign() ? rounded.negate() : rounded, format);
+    return new MpfrFloat(value.sign() ? rounded.negate() : rounded, format);
   }
 
   @Override
   public CFloat trunc() {
     BinaryMathContext toTrunc =
         new BinaryMathContext(sizeSignificand(), sizeExponent(), RoundingMode.DOWN);
-    return new MpFloat(value.rint(toTrunc), format);
+    return new MpfrFloat(value.rint(toTrunc), format);
   }
 
   @Override
   public CFloat ceil() {
     BinaryMathContext toCeil =
         new BinaryMathContext(sizeSignificand(), sizeExponent(), RoundingMode.CEILING);
-    return new MpFloat(value.rint(toCeil), format);
+    return new MpfrFloat(value.rint(toCeil), format);
   }
 
   @Override
   public CFloat floor() {
     BinaryMathContext toFloor =
         new BinaryMathContext(sizeSignificand(), sizeExponent(), RoundingMode.FLOOR);
-    return new MpFloat(value.rint(toFloor), format);
+    return new MpfrFloat(value.rint(toFloor), format);
   }
 
   @Override
   public CFloat abs() {
-    return new MpFloat(value.abs(), format);
+    return new MpfrFloat(value.abs(), format);
   }
 
   @Override
@@ -279,19 +279,19 @@ public class MpFloat extends CFloat {
   public CFloat copySignFrom(CFloat source) {
     // MPFR actually has mpfr_copysign for this, but it seems to be missing from BigFloat
     boolean negative = toBigFloat(source.getWrapper()).sign();
-    return new MpFloat(negative ? value.abs().negate() : value.abs(), format);
+    return new MpfrFloat(negative ? value.abs().negate() : value.abs(), format);
   }
 
   @Override
   public CFloat castTo(CNativeType toType) {
     BinaryMathContext ldouble = new BinaryMathContext(64, 15);
     return switch (toType) {
-      case HALF -> new MpFloat(value.round(BinaryMathContext.BINARY16), BinaryMathContext.BINARY16);
+      case HALF -> new MpfrFloat(value.round(BinaryMathContext.BINARY16), BinaryMathContext.BINARY16);
       case SINGLE ->
-          new MpFloat(value.round(BinaryMathContext.BINARY32), BinaryMathContext.BINARY32);
+          new MpfrFloat(value.round(BinaryMathContext.BINARY32), BinaryMathContext.BINARY32);
       case DOUBLE ->
-          new MpFloat(value.round(BinaryMathContext.BINARY64), BinaryMathContext.BINARY64);
-      case LONG_DOUBLE -> new MpFloat(value.round(ldouble), ldouble);
+          new MpfrFloat(value.round(BinaryMathContext.BINARY64), BinaryMathContext.BINARY64);
+      case LONG_DOUBLE -> new MpfrFloat(value.round(ldouble), ldouble);
       default -> throw new IllegalArgumentException();
     };
   }

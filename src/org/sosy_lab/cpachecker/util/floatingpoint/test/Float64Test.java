@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
 import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.JDouble;
-import org.sosy_lab.cpachecker.util.floatingpoint.MpFloat;
+import org.sosy_lab.cpachecker.util.floatingpoint.MpfrFloat;
 
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
@@ -50,7 +50,7 @@ public class Float64Test extends CFloatUnitTest {
   @Override
   public CFloat toReferenceImpl(String repr) {
     return switch (refImpl) {
-      case MPFR -> new MpFloat(repr, getFloatType());
+      case MPFR -> new MpfrFloat(repr, getFloatType());
       case JAVA -> new JDouble(repr);
       case NATIVE -> new CFloatNative(repr, getFloatType());
     };

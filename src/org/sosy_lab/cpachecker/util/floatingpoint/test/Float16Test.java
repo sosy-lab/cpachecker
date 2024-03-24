@@ -16,7 +16,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.MpFloat;
+import org.sosy_lab.cpachecker.util.floatingpoint.MpfrFloat;
 
 @RunWith(Parameterized.class)
 public class Float16Test extends CFloatUnitTest {
@@ -45,7 +45,7 @@ public class Float16Test extends CFloatUnitTest {
 
   @Override
   public CFloat toReferenceImpl(String repr) {
-    return new MpFloat(repr, getFloatType());
+    return new MpfrFloat(repr, getFloatType());
   }
 
   @Override
