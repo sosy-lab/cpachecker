@@ -8,11 +8,15 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
+import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
+import java.util.List;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
@@ -46,6 +50,31 @@ public class Float16Test extends CFloatUnitTest {
   @Override
   public CFloat toReferenceImpl(String repr) {
     return new MpfrFloat(repr, getFloatType());
+  }
+
+  // List *all* possible floating point values for the given precision
+  private static List<BigFloat> allFloats(BinaryMathContext format) {
+    // FIXME: We seem to be missing 2048 values?
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
+    for (long exponent = format.minExponent - 1; exponent <= format.maxExponent + 1; exponent++) {
+      BigInteger leading = BigInteger.ONE.shiftLeft(format.precision - 1);
+      if (exponent < format.minExponent) { // Special case for subnormal numbers
+        exponent = format.minExponent;
+        leading = BigInteger.ZERO;
+      }
+      int maxValue = (2 << (format.precision - 2));
+      for (int i=0; i < maxValue; i++) {
+        BigInteger significand = leading.add(BigInteger.valueOf(i));
+        builder.add(new BigFloat(false, significand, exponent, format));
+        builder.add(new BigFloat(true, significand, exponent, format));
+      }
+    }
+    return builder.build();
+  }
+
+  @Override
+  protected List<BigFloat> unaryTestValues() {
+    return allFloats(getFloatType());
   }
 
   @Override

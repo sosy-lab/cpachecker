@@ -133,6 +133,25 @@ public abstract class CFloatUnitTest {
     return builder.build();
   }
 
+  private static List<BigFloat> allFloats(BinaryMathContext format) {
+    // FIXME: We seem to be missing some values?
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
+    for (long exponent = format.minExponent - 1; exponent <= format.maxExponent + 1; exponent++) {
+      BigInteger leading = BigInteger.ONE.shiftLeft(format.precision - 1);
+      if (exponent < format.minExponent) { // Special case for subnormal numbers
+        exponent = format.minExponent;
+        leading = BigInteger.ZERO;
+      }
+      int maxValue = (2 << (format.precision - 2));
+      for (int i=0; i < maxValue; i++) {
+        BigInteger significand = leading.add(BigInteger.valueOf(i));
+        builder.add(new BigFloat(false, significand, exponent, format));
+        builder.add(new BigFloat(true, significand, exponent, format));
+      }
+    }
+    return builder.build();
+  }
+
   protected List<BigFloat> unaryTestValues() {
     BinaryMathContext format = getFloatType();
     BigFloat constant = new BigFloat(0.5f, format);
