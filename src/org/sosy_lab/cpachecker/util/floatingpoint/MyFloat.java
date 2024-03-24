@@ -223,7 +223,9 @@ public class MyFloat {
   }
 
   public boolean isZero() {
-    return (value.exponent == format.minExp() - 1) && value.significand.equals(BigInteger.ZERO);
+    boolean b1 = value.exponent == format.minExp() - 1;
+    boolean b2 = value.significand.equals(BigInteger.ZERO);
+    return b1 && b2;//(value.exponent == format.minExp() - 1) && value.significand.equals(BigInteger.ZERO);
   }
 
   public boolean isOne() {
@@ -1430,6 +1432,11 @@ public class MyFloat {
     long grs = significand.abs().and(new BigInteger("111", 2)).longValue();
     significand = significand.shiftRight(3);
     significand = applyRounding(rm, value.sign, significand, grs);
+
+    // If the significand was rounded to 0.00000 return zero
+    if (significand.equals(BigInteger.ZERO)) {
+      return isNegative() ? negativeZero(format) : zero(format);
+    }
 
     // Calculate exponent and normalize the significand
     int exponent = significand.bitLength() - 1;
