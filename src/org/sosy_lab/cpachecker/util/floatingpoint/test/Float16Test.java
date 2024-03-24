@@ -109,18 +109,4 @@ public class Float16Test extends CFloatUnitTest {
 
     assertEqual1Ulp(r1, r2);
   }
-
-  @Test
-  public void mpfr_sqrtBugTest() {
-    // 1 of 7 failed test values
-    String val = "2.4402e-04";
-
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
-
-    CFloat r1 = tested.sqrt();
-    CFloat r2 = reference.sqrt();
-
-    assertEqual1Ulp(r1, r2);
-  }
 }

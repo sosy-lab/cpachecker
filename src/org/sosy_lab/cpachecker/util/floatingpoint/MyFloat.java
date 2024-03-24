@@ -842,7 +842,11 @@ public class MyFloat {
   }
 
   public MyFloat sqrt() {
-    return withPrecision(format.extended()).sqrt_().withPrecision(format);
+    // The calculation will be done in a higher precision and the result is then rounded down.
+    // 2p+2 bits are enough for the inverse square root.
+    // See Table 12.6 in "Handbook of Floating-Point Arithmetic"
+    Format extended = new Format(format.expBits, 2*format.sigBits + 2);
+    return withPrecision(extended).sqrt_().withPrecision(format);
   }
 
   private MyFloat sqrt_() {
