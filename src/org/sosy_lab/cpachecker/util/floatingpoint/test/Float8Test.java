@@ -116,14 +116,17 @@ public class Float8Test extends CFloatUnitTest {
   }
 
   @Test
-  public void roundTest() {
-    String val = "8.5";
+  public void expBugTest() {
+    // Caused by the small exponent range:
+    // exp(1.81) = 1 + (1.81^2)*(1/2!) + (1.81^3)*(1/3!) ..
+    // 1.81^k grows to infinity and 1/k! becomes 0, which causes the NaN
+    String val = "1.81e+00";
 
     CFloat tested = toTestedImpl(val);
     CFloat reference = toReferenceImpl(val);
 
-    CFloat r1 = tested.round();
-    CFloat r2 = reference.round();
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
 
     assertEqual1Ulp(r1, r2);
   }
