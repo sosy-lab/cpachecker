@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Stream;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
@@ -1033,7 +1032,10 @@ public class MyFloat {
   // Table contains terms 1/k! for 1..100
   private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.Float256);
 
-  private MyFloat exp_() {
+  private MyFloat exp_() { return expImpl(0); }
+  public MyFloat expm1() { return expImpl(1); }
+
+  private MyFloat expImpl(int k) { // k is the first term of the expansion
     if (isNan()) {
       return nan(format);
     }
@@ -1049,18 +1051,19 @@ public class MyFloat {
       x = x.withExponent(0);
     }
 
-    Stream.Builder<MyFloat> terms = Stream.builder();
-    for (int k = 0; k < 40; k++) {
-      MyFloat a = x.powInt_(BigInteger.valueOf(k));
-      terms.add(a.multiply(expTable.get(k).withPrecision(format)));
-    }
+    boolean done = false;
+    while(!done) {
+      MyFloat s = r;
 
-    // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
-    // some rounding issues.)
-    List<MyFloat> sorted =
-        terms.build().sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent)).toList();
-    for (MyFloat v : sorted) {
-      r = r.add(v);
+      // r(k+1) = r(k) +  x^k/k!
+      MyFloat a = x.powInt_(BigInteger.valueOf(k));
+      MyFloat b = expTable.get(k).withPrecision(format); // FIXME: Make sure k < expTable size
+
+      r = r.add(a.multiply(b));
+
+      // Abort if we have enough precision
+      done = r.equals(s);
+      k++;
     }
 
     // Square the result to recover the exponent
@@ -1068,36 +1071,6 @@ public class MyFloat {
       r = r.squared();
     }
     return r;
-  }
-
-  private MyFloat expm1() {
-    if (isNan()) {
-      return nan(format);
-    }
-    if (isInfinite()) {
-      return isNegative() ? zero(format) : infinity(format);
-    }
-
-    Format fp1 = new Format(format.expBits, format.sigBits + 3);
-
-    MyFloat x = this;
-    MyFloat r = zero(fp1); // Series expansion after k terms.
-
-    Stream.Builder<MyFloat> terms = Stream.builder();
-    for (int k = 1; k < 40; k++) {
-      MyFloat a = x.powInt_(BigInteger.valueOf(k));
-      terms.add(a.multiply(expTable.get(k).withPrecision(format)));
-    }
-
-    // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
-    // some rounding issues.)
-    List<MyFloat> sorted =
-        terms.build().sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent)).toList();
-    for (MyFloat v : sorted) {
-      r = r.add(v.withPrecision(fp1));
-    }
-
-    return r.withPrecision(format);
   }
 
   public MyFloat ln() {
