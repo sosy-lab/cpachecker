@@ -956,12 +956,24 @@ public class MyFloat {
     return equalModuloP(r, r.plus1Ulp());
   }
 
-  public MyFloat exp() {
-    ImmutableList.Builder<Format> builder = ImmutableList.builder();
-    builder.add(new Format(15, format.sigBits + 10));
-    builder.add(format.extended());
-    builder.add(format.extended().extended());
+  // Statistics for exp(...)
+  // public static final Map<Integer, Integer> expStats = new HashMap<>();
 
+  public MyFloat exp() {
+    if (isZero()) {
+      return one(format);
+    }
+
+    ImmutableList.Builder<Format> builder = ImmutableList.builder();
+    if (format.equals(Format.Float16)) {
+      builder.add(new Format(8, format.sigBits + 2));
+      builder.add(new Format(8, format.sigBits + 16));
+      builder.add(new Format(8, format.sigBits + 26));
+    } else {
+      builder.add(new Format(15, format.sigBits + 10));
+      builder.add(format.extended());
+      builder.add(format.extended().extended());
+    }
     ImmutableList<Format> formats = builder.build();
 
     MyFloat r = nan(format);
@@ -969,12 +981,26 @@ public class MyFloat {
 
     for (Format p : formats) {
       if (!done) {
-        MyFloat x = this.withPrecision(p);
-        MyFloat ex = x.exp_().validPart();
+        Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
+        MyFloat x = withPrecision(p_ext);
 
-        if (isStable(ex)) {
+        boolean isTiny = x.exp_().subtract(one(p_ext)).isZero();
+
+        MyFloat x1 = x.plus1Ulp().withPrecision(p);
+        MyFloat x2 = x.minus1Ulp().withPrecision(p);
+
+        MyFloat v1 = isTiny ? x1.expm1() : x1.exp_();
+        MyFloat v2 = isTiny ? x2.expm1() : x2.exp_();
+
+        if (equalModuloP(v1, v2)) {
           done = true;
-          r = ex;
+          r = isTiny ? one(p).add(v1) : v1;
+
+          /*
+          // Update statistics
+          Integer k = p.sigBits - format.sigBits;
+          expStats.put(k, expStats.getOrDefault(k, 0) + 1);
+          */
         }
       }
     }
@@ -1015,10 +1041,8 @@ public class MyFloat {
       return isNegative() ? zero(format) : infinity(format);
     }
 
-    Format fp1 = new Format(format.expBits, format.sigBits + 3);
-
-    MyFloat x = this.withPrecision(fp1);
-    MyFloat r = zero(fp1); // Series expansion after k terms.
+    MyFloat x = this;
+    MyFloat r = zero(format); // Series expansion after k terms.
 
     // Range reduction: exp(a * 2^k) = exp(a)^2k
     if (value.exponent > 0) {
@@ -1028,7 +1052,7 @@ public class MyFloat {
     Stream.Builder<MyFloat> terms = Stream.builder();
     for (int k = 0; k < 40; k++) {
       MyFloat a = x.powInt_(BigInteger.valueOf(k));
-      terms.add(a.multiply(expTable.get(k).withPrecision(fp1)));
+      terms.add(a.multiply(expTable.get(k).withPrecision(format)));
     }
 
     // Sort terms by their magnitude and start the sum with the smallest terms. (This helps avoid
@@ -1036,14 +1060,14 @@ public class MyFloat {
     List<MyFloat> sorted =
         terms.build().sorted((o1, o2) -> (int) (o1.value.exponent - o2.value.exponent)).toList();
     for (MyFloat v : sorted) {
-      r = r.add(v.withPrecision(fp1));
+      r = r.add(v);
     }
 
     // Square the result to recover the exponent
     for (int i = 0; i < value.exponent; i++) {
       r = r.squared();
     }
-    return r.withPrecision(format);
+    return r;
   }
 
   private MyFloat expm1() {

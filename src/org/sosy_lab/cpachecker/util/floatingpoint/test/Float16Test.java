@@ -97,9 +97,36 @@ public class Float16Test extends CFloatUnitTest {
   }
 
   @Test
-  public void mpfr_expBugTest() {
-    // 1 of 5 failed test values
-    String val = "-2.9668e+00";
+  public void hardExpTest() {
+    // Hardest instance for exp(...) in float16
+    /* {1=23042,
+        2=1541,
+        3=262,
+        4=140,
+        5=121,
+        6=2684,
+        7=3916,
+        8=4224,
+        9=4456,
+        10=4728,
+        11=5193,
+        12=5207,
+        13=2160,
+        14=2113,
+        15=1715,
+        16=1033,
+        17=457,
+        18=231,
+        19=133,
+        20=71,
+        21=36,
+        22=11,
+        23=9,
+        24=4,
+        25=2,
+        26=1 <- here
+    }*/
+    String val = "1.0969e+01";
 
     CFloat tested = toTestedImpl(val);
     CFloat reference = toReferenceImpl(val);
