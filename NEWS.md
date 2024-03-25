@@ -36,7 +36,7 @@ Changes from CPAchecker 2.2 to CPAchecker 2.3
   In addition to the existing LassoRanker-based analysis
   CPAchecker now has an analysis for termination that is based on transforming
   the property to a safety property.
-  This analysis can be used with `-predicateAnalysis--termination`.
+  This analysis can be used with `-terminationToSafety`.
 - New Yaml-based witness format.  
   CPAchecker now supports [version 2.0 of the witness format](https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/doc/README-YAML.md)
   (both as output and input).
