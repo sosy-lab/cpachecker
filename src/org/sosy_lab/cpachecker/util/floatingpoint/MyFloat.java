@@ -1073,23 +1073,54 @@ public class MyFloat {
     return r;
   }
 
+  public static final Map<Integer, Integer> lnStats = new HashMap<>();
+
   public MyFloat ln() {
-    // TODO: Make sure exponent size is always large enough
-    Format fp1 = new Format(15, format.sigBits + 10);
-    Format fp2 = format.extended();
-    Format fp3 = fp2.extended();
+    if (isZero()) {
+      return negativeInfinity(format);
+    }
+    if (isOne()) {
+      return zero(format);
+    }
+
+    ImmutableList.Builder<Format> builder = ImmutableList.builder();
+    if (format.equals(new Format(3, 4))) {
+      builder.add(new Format(8, format.sigBits + 2));
+      builder.add(new Format(8, format.sigBits + 9));
+      builder.add(new Format(8, format.sigBits + 12));
+    }
+    if (format.equals(Format.Float16)) {
+      builder.add(new Format(8, format.sigBits + 1));
+      builder.add(new Format(8, format.sigBits + 14));
+      builder.add(new Format(8, format.sigBits + 60));
+    } else {
+      builder.add(new Format(15, format.sigBits + 1));
+      builder.add(format.extended());
+      builder.add(format.extended().extended());
+    }
+    ImmutableList<Format> formats = builder.build();
 
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : ImmutableList.of(fp1, fp2, fp3)) {
+    for (Format p : formats) {
       if (!done) {
-        MyFloat x = this.withPrecision(p);
-        MyFloat lnx = x.ln_2().validPart();
+        Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
+        MyFloat x = withPrecision(p_ext);
 
-        if (isStable(lnx)) {
+        MyFloat x1 = x.plus1Ulp().withPrecision(p);
+        MyFloat x2 = x.minus1Ulp().withPrecision(p);
+
+        MyFloat v1 = x1.ln_pre(false, false);
+        MyFloat v2 = x2.ln_pre(false, false);
+
+        if (equalModuloP(v1, v2)) {
           done = true;
-          r = lnx;
+          r = v1;
+
+          // Update statistics
+          Integer k = p.sigBits - format.sigBits;
+          lnStats.put(k, lnStats.getOrDefault(k, 0) + 1);
         }
       }
     }
@@ -1108,7 +1139,7 @@ public class MyFloat {
   // Table contains terms 1/k for k=1..100
   private static final Map<Integer, MyFloat> lnTable = mkLnTable(Format.Float256);
 
-  private MyFloat ln_() {
+  private MyFloat ln_pre(boolean useSqrt, boolean useNewton) {
     if (isZero()) {
       return negativeInfinity(format);
     }
@@ -1121,95 +1152,66 @@ public class MyFloat {
     if (isOne()) {
       return zero(format);
     }
+    return useSqrt ? ln_pre1(useNewton) : ln_pre2(useNewton);
+  }
 
+  private MyFloat ln_pre1(boolean useNewton) {
     // TODO: These constants should be declared only once for each supported precision
     MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
     MyFloat c3d2 =
         new MyFloat(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
 
     MyFloat x = this;
+
     int preprocess = 0;
     while (x.greaterThan(c3d2) || c1d2.greaterThan(x)) {
       x = x.sqrt_();
       preprocess++;
     }
 
-    MyFloat r = x.subtract(one(format)).ln1p();
-    MyFloat p = r.withExponent(r.value.exponent + preprocess);
-
-    return p;
+    MyFloat r = useNewton ? x.lnNewton_() : x.subtract(one(format)).ln1p();
+    return r.withExponent(r.value.exponent + preprocess);
   }
 
-  public MyFloat ln_2() {
-    if (isZero()) {
-      return negativeInfinity(format);
-    }
-    if (isNan() || isNegative()) {
-      return nan(format);
-    }
-    if (isInfinite()) {
-      return infinity(format);
-    }
-    if (isOne()) {
-      return zero(format);
-    }
+  private static MyFloat const_ln2 = make_ln2(Format.Float256);
+
+  private static MyFloat make_ln2(Format pFormat) {
+    MyFloat r = constant(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
+    return r.withExponent(r.value.exponent + 1);
+  }
+
+  private MyFloat ln_pre2(boolean useNewton) {
     // ln(x) = ln(a * 2^k) = ln a + ln 2^k = ln a + k * ln 2
-    Format p = new Format(format.expBits, format.sigBits + 3);
-    MyFloat a = this.withPrecision(p);
+    MyFloat a = withExponent(-1);
+    MyFloat lna = useNewton ? a.lnNewton_() : a.subtract(one(format)).ln1p();
 
-    MyFloat r = constant(Format.Float256, 2).sqrt_().subtract(one(Format.Float256)).ln1p();
-    MyFloat ln2 = r.withExponent(r.value.exponent + 1).withPrecision(p);
+    MyFloat ln2 = const_ln2.withPrecision(format);
+    MyFloat nln2 = constant(format, (int) value.exponent + 1).multiply(ln2);
 
-    MyFloat lna = a.withExponent(-1).subtract(one(p)).ln1p();
-    MyFloat nln2 = constant(p, (int) a.value.exponent + 1).multiply(ln2);
-
-    return lna.add(nln2).withPrecision(format);
+    return lna.add(nln2);
   }
 
   public MyFloat ln1p() {
     MyFloat x = this;
     MyFloat r = zero(format);
 
-    for (int k = 1; k < 100; k++) { // fill the cache with values
+    for (int k = 1; k < 40; k++) { // fill the cache with values
       x.powInt_(BigInteger.valueOf(k));
     }
 
     // We calculate the sum backwards to avoid rounding errors
-    for (int k = 99; k >= 1; k--) { // TODO: Find a proper bound for the number of iterations.
-      // Calculate the next term x^k/k
+    for (int k = 39; k >= 1; k--) { // TODO: Find a proper bound for the number of iterations.
+      // r(k+1) = r(k) +  x^k/k
       MyFloat a = x.powInt_(BigInteger.valueOf(k));
       MyFloat b = a.multiply(lnTable.get(k).withPrecision(format));
 
-      r = r.add(k % 2 == 0 ? b.negate() : b); // Add the term to the sum
+      r = r.add(k % 2 == 0 ? b.negate() : b);
     }
     return r;
   }
 
   private MyFloat lnNewton_() {
-    if (isZero()) {
-      return negativeInfinity(format);
-    }
-    if (isNan() || isNegative()) {
-      return nan(format);
-    }
-    if (isInfinite()) {
-      return infinity(format);
-    }
-    if (isOne()) {
-      return zero(format);
-    }
-
-    // TODO: These constants should be declared only once for each supported precision
-    MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
-    MyFloat c3d2 =
-        new MyFloat(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
-
     MyFloat x = this;
-    int preprocess = 0;
-    while (x.greaterThan(c3d2) || c1d2.greaterThan(x)) {
-      x = x.sqrt_();
-      preprocess++;
-    }
 
     // Initial value: first term of taylor series for ln
     MyFloat r = x.subtract(one(format));
@@ -1228,7 +1230,7 @@ public class MyFloat {
       // Abort once we have enough precision
       done = partial.contains(r);
     }
-    return r.withExponent(r.value.exponent + preprocess);
+    return r;
   }
 
   public MyFloat pow(MyFloat exponent) {
@@ -1377,7 +1379,7 @@ public class MyFloat {
         MyFloat x = exponent.withPrecision(p_ext);
 
         // Calculate ln(a) with extra precision, then multiply with x and round down
-        MyFloat lna = a.ln_2();
+        MyFloat lna = a.ln_pre(false, false);
         MyFloat xlna = x.multiply(lna).withPrecision(p);
 
         // Probe to see if the result rounds to one. If so we'll use expm1 to avoid losing
