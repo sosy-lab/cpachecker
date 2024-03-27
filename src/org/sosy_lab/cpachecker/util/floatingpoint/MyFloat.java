@@ -83,7 +83,7 @@ public class MyFloat {
     public Format extended() {
       // TODO: Add support for arbitrary sizes
       if (equals(Format.Float8)) {
-        return Float16;
+        return Float32;
       }
       if (equals(Format.Float16)) {
         return Float32;
