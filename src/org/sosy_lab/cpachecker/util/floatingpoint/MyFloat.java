@@ -652,10 +652,12 @@ public class MyFloat {
 
   private MyFloat powInt_(BigInteger exp) {
     if (!powMap.containsKey(exp)) {
-      MyFloat r = powFast(exp.abs());
+      MyFloat x = this;
       if (exp.compareTo(BigInteger.ZERO) < 0) {
-        r = one(format).divide_(r);
+        // TODO: Find a bound for the number of extra bits needed
+        x = one(format.extended()).divide_(x.withPrecision(format.extended()));
       }
+      MyFloat r = x.powFast(exp.abs());
       powMap.put(exp, r);
     }
     return powMap.get(exp);
