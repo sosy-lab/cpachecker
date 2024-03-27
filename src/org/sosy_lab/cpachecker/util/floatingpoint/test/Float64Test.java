@@ -107,27 +107,21 @@ public class Float64Test extends CFloatUnitTest {
   }
 
   @Test
-  public void mpfr_powBugTest() {
-    // Same as in 32 bits before we increased precision
-    String val1 = "1.7976931348623157E308";
-    String val2 = "0.5";
+  public void mpfr_expBug1Test() {
+    String val = "-2.2250738585072014e-308";
 
-    CFloat tested1 = toTestedImpl(val1);
-    CFloat tested2 = toTestedImpl(val2);
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
 
-    CFloat reference1 = toReferenceImpl(val1);
-    CFloat reference2 = toReferenceImpl(val2);
-
-    CFloat r1 = tested1.powTo(tested2);
-    CFloat r2 = reference1.powTo(reference2);
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
 
     assertEqual1Ulp(r1, r2);
   }
 
   @Test
-  public void mpfr_expBugTest() {
-    // 1 of 13 failed values
-    String val = "-6.1242094341869169e+01";
+  public void mpfr_expBug2Test() {
+    String val = "2.2250738585072014e-308";
 
     CFloat tested = toTestedImpl(val);
     CFloat reference = toReferenceImpl(val);

@@ -1142,7 +1142,7 @@ public class MyFloat {
 
   private static Map<Integer, MyFloat> mkLnTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
-    for (int k = 1; k < 250; k++) { // TODO: Find a bound that depends on the precision
+    for (int k = 1; k < 1000; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k and store the values in the table
       builder.put(k, one(pFormat).divide_(constant(pFormat, k)));
     }
