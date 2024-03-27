@@ -869,6 +869,13 @@ public class MyFloat {
     long exponent = Math.max(value.exponent, format.minExp());
     BigInteger significand = value.significand;
 
+    // Normalize the argument
+    int shift = (format.sigBits + 1) - significand.bitLength();
+    if (shift > 0) {
+      significand = significand.shiftLeft(shift);
+      exponent -= shift;
+    }
+
     // Range reduction:
     // sqrt(f * 2^2m) = sqrt(f)*2^m
     MyFloat f = new MyFloat(format, value.sign, exponent % 2, significand);
@@ -897,7 +904,7 @@ public class MyFloat {
     x = x.multiply(f);
 
     // Restore the exponent by multiplying with 2^m
-    MyFloat r = one(format).withExponent(exponent / 2);
+    MyFloat r = constant(format, 2).powInt(BigInteger.valueOf(exponent/2));
     return x.multiply(r);
   }
 
