@@ -1616,6 +1616,7 @@ public class MyFloat {
       return isNegative() ? "-0.0" : "0.0";
     }
     String bits = value.significand.toString(2);
+    bits = bits + "0".repeat(format.sigBits + 1 - bits.length());
     return "%s%s.%s e%d"
         .formatted(value.sign ? "-" : "", bits.charAt(0), bits.substring(1), value.exponent);
   }
