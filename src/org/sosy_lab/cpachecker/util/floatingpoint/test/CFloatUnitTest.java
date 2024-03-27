@@ -14,6 +14,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Correspondence.BinaryPredicate;
+import com.google.common.truth.StringSubject;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
@@ -289,9 +290,12 @@ public abstract class CFloatUnitTest {
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader)
-            .that(printValue(result))
-            .isIn(errorRange(ulps, test.result()));
+        StringSubject value = assertWithMessage(testHeader).that(printValue(result));
+        if (ulps == 0) {
+          value.isEqualTo(printValue(test.result()));
+        } else {
+          value.isIn(errorRange(ulps, test.result()));
+        }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -328,9 +332,12 @@ public abstract class CFloatUnitTest {
         } catch (Throwable t) {
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader)
-            .that(printValue(result))
-            .isIn(errorRange(ulps, test.result()));
+        StringSubject value = assertWithMessage(testHeader).that(printValue(result));
+        if (ulps == 0) {
+          value.isEqualTo(printValue(test.result()));
+        } else {
+          value.isIn(errorRange(ulps, test.result()));
+        }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
