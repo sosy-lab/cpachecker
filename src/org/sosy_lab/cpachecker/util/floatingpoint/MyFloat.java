@@ -650,7 +650,8 @@ public class MyFloat {
       MyFloat x = this;
       if (exp.compareTo(BigInteger.ZERO) < 0) {
         // TODO: Find a bound for the number of extra bits needed
-        x = one(format.extended()).divide_(x.withPrecision(format.extended()));
+        Format ext = new Format(format.expBits, 2*format.sigBits + 1);
+        x = one(ext).divide_(x.withPrecision(ext));
       }
       MyFloat r = x.powFast(exp.abs());
       powMap.put(exp, r);
@@ -993,7 +994,7 @@ public class MyFloat {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         MyFloat x = withPrecision(p_ext);
 
-        boolean isTiny = x.exp_().subtract(one(p_ext)).isZero();
+        boolean isTiny = false;//x.exp_().subtract(one(p_ext)).isZero();
 
         MyFloat x1 = x.plus1Ulp().withPrecision(p);
         MyFloat x2 = x.minus1Ulp().withPrecision(p);
