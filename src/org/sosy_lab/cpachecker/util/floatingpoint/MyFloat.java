@@ -371,6 +371,10 @@ public class MyFloat {
       exponent += 1;
     }
 
+    // Return infinity if this caused the exponent to leave the range
+    if (exponent > targetFormat.maxExp()) {
+      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    }
     return new MyFloat(targetFormat, value.sign, exponent, significand);
   }
 
