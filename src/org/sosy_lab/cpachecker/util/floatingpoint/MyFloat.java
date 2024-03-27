@@ -995,7 +995,7 @@ public class MyFloat {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         MyFloat x = withPrecision(p_ext);
 
-        boolean isTiny = false;//x.exp_().subtract(one(p_ext)).isZero();
+        boolean isTiny = x.exp_().subtract(one(p_ext)).isZero();
 
         MyFloat x1 = x.plus1Ulp().withPrecision(p);
         MyFloat x2 = x.minus1Ulp().withPrecision(p);
