@@ -35,6 +35,7 @@ public class MyFloat {
       sigBits = pSigBits;
     }
 
+    public static final Format Float8 = new Format(4, 3);
     public static final Format Float16 = new Format(5, 10);
     public static final Format Float32 = new Format(8, 23);
     public static final Format Float64 = new Format(11, 52);
@@ -81,7 +82,7 @@ public class MyFloat {
     // Returns the next bigger format meant to be used for intermediate results.
     public Format extended() {
       // TODO: Add support for arbitrary sizes
-      if (equals(new Format(3, 4))) {
+      if (equals(Format.Float8)) {
         return Float16;
       }
       if (equals(Format.Float16)) {
@@ -96,7 +97,7 @@ public class MyFloat {
       if (equals(Format.Float128)) {
         return Float256;
       }
-      return new Format(20, 2 * sigBits);
+      return new Format(20, 2 * sigBits + 1);
     }
   }
 
@@ -837,7 +838,7 @@ public class MyFloat {
       x = x.multiply(constant(format, 2).subtract(d.multiply(x)));
     }
 
-    // Multiply 1/D with N and round down to single precision
+    // Multiply 1/D with N
     MyFloat r = x.multiply(n);
 
     // Set the sign bit and return the result
@@ -1100,7 +1101,7 @@ public class MyFloat {
     }
 
     ImmutableList.Builder<Format> builder = ImmutableList.builder();
-    if (format.equals(new Format(3, 4))) {
+    if (format.equals(Format.Float8)) {
       builder.add(new Format(8, format.sigBits + 2));
       builder.add(new Format(8, format.sigBits + 9));
       builder.add(new Format(8, format.sigBits + 12));
@@ -1383,10 +1384,10 @@ public class MyFloat {
 
   private static ImmutableList<Format> extendedFormats(Format p) {
     ImmutableList.Builder<Format> builder = ImmutableList.builder();
-    if (p.equals(new Format(3, 4))) {
-      builder.add(new Format(8, p.sigBits + 2));
-      builder.add(new Format(8, p.sigBits + 9));
-      builder.add(new Format(8, p.sigBits + 12));
+    if (p.equals(Format.Float8)) {
+      builder.add(new Format(p.expBits, p.sigBits + 2));
+      builder.add(new Format(p.expBits, p.sigBits + 9));
+      builder.add(new Format(p.expBits, p.sigBits + 12));
     }
     builder.add(p.extended());
     builder.add(p.extended().extended());

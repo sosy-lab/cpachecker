@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.MpfrFloat;
 public class Float8Test extends CFloatUnitTest {
   @Override
   protected BinaryMathContext getFloatType() {
-    return new BinaryMathContext(5, 3);
+    return new BinaryMathContext(4, 4);
   }
 
   @Parameters(name = "{0}")
