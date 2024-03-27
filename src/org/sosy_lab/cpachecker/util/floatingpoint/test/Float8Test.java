@@ -133,25 +133,40 @@ public class Float8Test extends CFloatUnitTest {
 
 
   @Test
-  public void mpfr_roundBugTest() {
-    // This is likely another a bug in MpfrFloat.round()
+  public void mpfr_roundBug1Test() {
+    // This is likely a bug in MpfrFloat.round()
     // May not be worth fixing?
     String val = "1.55e01";
 
     CFloat tested = toTestedImpl(val);
     CFloat reference = toReferenceImpl(val);
 
-    CFloat r1 = tested.exp();
-    CFloat r2 = reference.exp();
+    CFloat r1 = tested.round();
+    CFloat r2 = reference.round();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+
+  @Test
+  public void mpfr_roundBug2Test() {
+    // This is likely a bug in MpfrFloat.round()
+    // May not be worth fixing?
+    String val = "-1.55e01";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.round();
+    CFloat r2 = reference.round();
 
     assertEqual1Ulp(r1, r2);
   }
 
   @Test
-  public void mpfr_divideByBugTest() {
-    // Likely has the same cause as mpfr_expBugTest
-    String val1 = "2.75e+00";
-    String val2 = "1.72e-01";
+  public void powBug1Test() {
+    String val1 = "4e+00";
+    String val2 = "-3.5e+00";
 
     CFloat tested1 = toTestedImpl(val1);
     CFloat tested2 = toTestedImpl(val2);
@@ -159,8 +174,42 @@ public class Float8Test extends CFloatUnitTest {
     CFloat reference1 = toReferenceImpl(val1);
     CFloat reference2 = toReferenceImpl(val2);
 
-    CFloat r1 = tested1.divideBy(tested2);
-    CFloat r2 = reference1.divideBy(reference2);
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void powBug2Test() {
+    String val1 = "6.25e-02";
+    String val2 = "1.75e+00";
+
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void powBug3Test() {
+    String val1 = "2.5e-01";
+    String val2 = "3.5e+00";
+
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
 
     assertEqual1Ulp(r1, r2);
   }
