@@ -96,7 +96,7 @@ public class MyFloat {
       if (equals(Format.Float128)) {
         return Float256;
       }
-      throw new IllegalStateException();
+      return new Format(20, 2*sigBits);
     }
   }
 
@@ -949,7 +949,7 @@ public class MyFloat {
   }
 
   // Compare two m-float numbers for equality when rounded to lower precision p
-  private boolean equalModuloP(MyFloat a, MyFloat b) {
+  private static boolean equalModuloP(Format format, MyFloat a, MyFloat b) {
     return a.withPrecision(format).equals(b.withPrecision(format));
   }
 
@@ -958,7 +958,7 @@ public class MyFloat {
     if (r.format.sigBits == 0) {
       return false;
     }
-    return equalModuloP(r, r.plus1Ulp());
+    return equalModuloP(format, r, r.plus1Ulp());
   }
 
   // Statistics for exp(...)
@@ -997,7 +997,7 @@ public class MyFloat {
         MyFloat v1 = isTiny ? x1.expm1() : x1.exp_();
         MyFloat v2 = isTiny ? x2.expm1() : x2.exp_();
 
-        if (equalModuloP(v1, v2)) {
+        if (equalModuloP(format, v1, v2)) {
           done = true;
           r = isTiny ? one(p).add(v1) : v1;
 
@@ -1120,7 +1120,7 @@ public class MyFloat {
         MyFloat v1 = x1.ln_pre(false, false);
         MyFloat v2 = x2.ln_pre(false, false);
 
-        if (equalModuloP(v1, v2)) {
+        if (equalModuloP(format, v1, v2)) {
           done = true;
           r = v1;
 
@@ -1366,45 +1366,63 @@ public class MyFloat {
     return new MyFloat(format, value.sign, value.exponent, sig1.add(sig2));
   }
 
+  private static ImmutableList<Format> extendedFormats(Format p) {
+    ImmutableList.Builder<Format> builder = ImmutableList.builder();
+    if (p.equals(new Format(3, 4))) {
+      builder.add(new Format(8, p.sigBits + 2));
+      builder.add(new Format(8, p.sigBits + 9));
+      builder.add(new Format(8, p.sigBits + 12));
+    }
+    builder.add(p.extended());
+    builder.add(p.extended().extended());
+    return builder.build();
+  }
+
   private MyFloat pow_(MyFloat exponent) {
     // a^x = exp(x * ln a)
-    Format fp1 = new Format(20, format.sigBits + 20);
-    Format fp2 = format.extended();
-    Format fp3 = new Format(32, 200);
-
-    ImmutableList<Format> formats = ImmutableList.of(fp1, fp2, fp3);
-
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : formats) {
-      if (!done) {
-        Format p_ext = new Format(p.expBits, p.sigBits + 3);
+    for (Format p1 : extendedFormats(format)) {
+      for (Format p2 : extendedFormats(p1)) {
+        if (!done) {
+          Format p2_ext = new Format(p2.expBits, p2.sigBits - p1.sigBits);
+          MyFloat a = withPrecision(p2_ext);
 
-        MyFloat a = this.withPrecision(p_ext);
-        MyFloat x = exponent.withPrecision(p_ext);
+          // Calculate a bound for the value of ln(a)
+          MyFloat lna1 = a.plus1Ulp().withPrecision(p2).ln_pre(false, false);
+          MyFloat lna2 = a.minus1Ulp().withPrecision(p2).ln_pre(false, false);
 
-        // Calculate ln(a) with extra precision, then multiply with x and round down
-        MyFloat lna = a.ln_pre(false, false);
-        MyFloat xlna = x.multiply(lna).withPrecision(p);
+          MyFloat x = exponent.withPrecision(p1);
 
-        // Probe to see if the result rounds to one. If so we'll use expm1 to avoid losing
-        // significand digits.
-        // TODO: Avoid the call and check the argument instead
-        boolean collapses = xlna.exp_().subtract(one(p)).isZero();
+          // Proceed if the bound is stable with precision p1
+          if (equalModuloP(p1, lna1, lna2)) {
+            Format p1_ext = new Format(p1.expBits, p1.sigBits - format.sigBits);
 
-        // Get an interval for the true value of exp(..)
-        // TODO: Find a way to avoid calling exp() multiple times
-        MyFloat hi = collapses ? xlna.above().expm1() : xlna.above().exp_();
-        MyFloat lo = collapses ? xlna.below().expm1() : xlna.below().exp_();
+            MyFloat lna = lna1.withPrecision(p1);
+            MyFloat xlna = x.multiply(lna).withPrecision(p1_ext);
 
-        // Find the valid digits
-        MyFloat val = prefix(hi, lo).validPart();
+            // Check if we call e^x with x close to zero
+            // TODO: Check the argument instead
+            boolean nearZero = xlna.exp_().subtract(one(p1_ext)).isZero();
 
-        // Check if they're enough to round
-        if (isStable(val)) {
-          done = true;
-          r = collapses ? one(val.format).add(val) : val;
+            // Calculate a bound for the value of e^(x * ln a)
+            MyFloat xlna1 = xlna.plus1Ulp().withPrecision(p1);
+            MyFloat xlna2 = xlna.minus1Ulp().withPrecision(p1);
+
+            MyFloat exlna1 = nearZero ? xlna1.expm1() : xlna1.exp_();
+            MyFloat exlna2 = nearZero ? xlna2.expm1() : xlna2.exp_();
+
+            Format p0 = new Format(32, format.sigBits);
+
+            // Proceed if the result is stable in the original precision
+            // If the result was close to zero we have to use an extended format that allows larger
+            // exponents. Otherwise, the values are too small and will be flushed to zero.
+            if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2)) {
+              done = true;
+              r = nearZero ? one(p1).add(exlna1) : exlna1;
+            }
+          }
         }
       }
     }
