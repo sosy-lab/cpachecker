@@ -96,7 +96,7 @@ public class MyFloat {
       if (equals(Format.Float128)) {
         return Float256;
       }
-      return new Format(20, 2*sigBits);
+      return new Format(20, 2 * sigBits);
     }
   }
 
@@ -230,9 +230,8 @@ public class MyFloat {
   public boolean isZero() {
     boolean b1 = value.exponent == format.minExp() - 1;
     boolean b2 = value.significand.equals(BigInteger.ZERO);
-    return b1
-        && b2; // (value.exponent == format.minExp() - 1) &&
-               // value.significand.equals(BigInteger.ZERO);
+    return b1 && b2; // (value.exponent == format.minExp() - 1) &&
+    // value.significand.equals(BigInteger.ZERO);
   }
 
   public boolean isOne() {
@@ -779,7 +778,7 @@ public class MyFloat {
     MyFloat a = this;
     MyFloat b = number;
 
-    boolean sign = a.isNegative() ^ b.isNegative();  // Sign of the result
+    boolean sign = a.isNegative() ^ b.isNegative(); // Sign of the result
 
     // Handle special cases:
     // (1) Either argument is NaN
@@ -848,7 +847,7 @@ public class MyFloat {
     // The calculation will be done in a higher precision and the result is then rounded down.
     // 2p+2 bits are enough for the inverse square root.
     // See Table 12.6 in "Handbook of Floating-Point Arithmetic"
-    Format extended = new Format(format.expBits, 2*format.sigBits + 2);
+    Format extended = new Format(format.expBits, 2 * format.sigBits + 2);
     return withPrecision(extended).sqrt_().withPrecision(format);
   }
 
@@ -902,7 +901,7 @@ public class MyFloat {
     x = x.multiply(f);
 
     // Restore the exponent by multiplying with 2^m
-    MyFloat r = constant(format, 2).powInt(BigInteger.valueOf(exponent/2));
+    MyFloat r = constant(format, 2).powInt(BigInteger.valueOf(exponent / 2));
     return x.multiply(r);
   }
 
@@ -1043,8 +1042,13 @@ public class MyFloat {
   // Table contains terms 1/k! for 1..100
   private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.Float256);
 
-  private MyFloat exp_() { return expImpl(0); }
-  public MyFloat expm1() { return expImpl(1); }
+  private MyFloat exp_() {
+    return expImpl(0);
+  }
+
+  public MyFloat expm1() {
+    return expImpl(1);
+  }
 
   private MyFloat expImpl(int k) { // k is the first term of the expansion
     if (isNan()) {
@@ -1063,7 +1067,7 @@ public class MyFloat {
     }
 
     boolean done = false;
-    while(!done) {
+    while (!done) {
       MyFloat s = r;
 
       // r(k+1) = r(k) +  x^k/k!
@@ -1084,7 +1088,7 @@ public class MyFloat {
     return r;
   }
 
- // public static final Map<Integer, Integer> lnStats = new HashMap<>();
+  // public static final Map<Integer, Integer> lnStats = new HashMap<>();
 
   public MyFloat ln() {
     if (isZero()) {
@@ -1210,7 +1214,7 @@ public class MyFloat {
 
     int k = 1;
     boolean done = false;
-    while(!done) {
+    while (!done) {
       MyFloat r0 = r;
 
       // r(k+1) = r(k) +  x^k/k

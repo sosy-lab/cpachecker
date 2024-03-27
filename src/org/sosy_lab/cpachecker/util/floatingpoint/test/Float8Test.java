@@ -131,7 +131,6 @@ public class Float8Test extends CFloatUnitTest {
     assertEqual1Ulp(r1, r2);
   }
 
-
   @Test
   public void mpfr_roundBug1Test() {
     // This is likely a bug in MpfrFloat.round()
@@ -146,7 +145,6 @@ public class Float8Test extends CFloatUnitTest {
 
     assertEqual1Ulp(r1, r2);
   }
-
 
   @Test
   public void mpfr_roundBug2Test() {
