@@ -1086,7 +1086,7 @@ public class MyFloat {
     return r;
   }
 
-  public static final Map<Integer, Integer> lnStats = new HashMap<>();
+ // public static final Map<Integer, Integer> lnStats = new HashMap<>();
 
   public MyFloat ln() {
     if (isZero()) {
@@ -1131,9 +1131,11 @@ public class MyFloat {
           done = true;
           r = v1;
 
+          /*
           // Update statistics
           Integer k = p.sigBits - format.sigBits;
           lnStats.put(k, lnStats.getOrDefault(k, 0) + 1);
+          */
         }
       }
     }
