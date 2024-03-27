@@ -1144,7 +1144,7 @@ public class MyFloat {
 
   private static Map<Integer, MyFloat> mkLnTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
-    for (int k = 1; k < 100; k++) {
+    for (int k = 1; k < 250; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k and store the values in the table
       builder.put(k, one(pFormat).divide_(constant(pFormat, k)));
     }
@@ -1210,17 +1210,20 @@ public class MyFloat {
     MyFloat x = this;
     MyFloat r = zero(format);
 
-    for (int k = 1; k < 40; k++) { // fill the cache with values
-      x.powInt_(BigInteger.valueOf(k));
-    }
+    int k = 1;
+    boolean done = false;
+    while(!done) {
+      MyFloat r0 = r;
 
-    // We calculate the sum backwards to avoid rounding errors
-    for (int k = 39; k >= 1; k--) { // TODO: Find a proper bound for the number of iterations.
       // r(k+1) = r(k) +  x^k/k
       MyFloat a = x.powInt_(BigInteger.valueOf(k));
       MyFloat b = a.multiply(lnTable.get(k).withPrecision(format));
 
       r = r.add(k % 2 == 0 ? b.negate() : b);
+
+      // Abort if we have enough precision
+      done = r.equals(r0);
+      k++;
     }
     return r;
   }
