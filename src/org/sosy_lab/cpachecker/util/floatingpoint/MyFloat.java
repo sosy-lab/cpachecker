@@ -219,8 +219,7 @@ public class MyFloat {
   }
 
   public boolean isNan() {
-    return !value.sign
-        && (value.exponent == format.maxExp() + 1)
+    return (value.exponent == format.maxExp() + 1)
         && (value.significand.compareTo(BigInteger.ZERO) > 0);
   }
 
@@ -321,7 +320,7 @@ public class MyFloat {
       return this;
     }
     if (isNan()) {
-      return nan(targetFormat);
+      return value.sign ? nan(targetFormat).negate() : nan(targetFormat);
     }
     if (isInfinite()) {
       return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
@@ -383,9 +382,6 @@ public class MyFloat {
   }
 
   public MyFloat negate() {
-    if (isNan()) {
-      return nan(format);
-    }
     return new MyFloat(format, new FpValue(!value.sign, value.exponent, value.significand));
   }
 
@@ -783,6 +779,8 @@ public class MyFloat {
     MyFloat a = this;
     MyFloat b = number;
 
+    boolean sign = a.isNegative() ^ b.isNegative();  // Sign of the result
+
     // Handle special cases:
     // (1) Either argument is NaN
     if (a.isNan() || b.isNan()) {
@@ -792,25 +790,25 @@ public class MyFloat {
     if (a.isZero()) {
       if (b.isZero()) {
         // Divisor is zero or infinite
-        return nan(format);
+        return sign ? nan(format).negate() : nan(format);
       }
-      return (a.isNegative() ^ b.isNegative()) ? negativeZero(format) : zero(format);
+      return sign ? negativeZero(format) : zero(format);
     }
     // (3) Dividend is infinite
     if (a.isInfinite()) {
       if (b.isInfinite()) {
         // Divisor is infinite
-        return nan(format);
+        return sign ? nan(format).negate() : nan(format);
       }
-      return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(format) : infinity(format);
+      return sign ? negativeInfinity(format) : infinity(format);
     }
     // (4) Divisor is zero (and dividend is finite)
     if (b.isZero()) {
-      return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(format) : infinity(format);
+      return sign ? negativeInfinity(format) : infinity(format);
     }
     // (5) Divisor is infinite (and dividend is finite)
     if (b.isInfinite()) {
-      return (a.isNegative() ^ b.isNegative()) ? negativeZero(format) : zero(format);
+      return sign ? negativeZero(format) : zero(format);
     }
 
     // Extract exponents and significand bits
@@ -1610,7 +1608,9 @@ public class MyFloat {
   public BigFloat toBigFloat() {
     BinaryMathContext context = new BinaryMathContext(format.sigBits + 1, format.expBits);
     if (isNan()) {
-      return BigFloat.NaN(context.precision);
+      return isNegative()
+          ? BigFloat.NaN(context.precision).negate()
+          : BigFloat.NaN(context.precision);
     }
     if (isInfinite()) {
       return isNegative()
