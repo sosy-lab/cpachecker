@@ -13,14 +13,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
@@ -54,6 +54,26 @@ public class TaskRecord {
     language = pLanguage;
   }
 
+  private static String getSpecificationAsString(Specification pSpecification) throws IOException {
+    ImmutableList.Builder<String> unifiedSpecificationBuilder = new ImmutableList.Builder<>();
+
+    for (Path specFile : pSpecification.getFiles()) {
+      String contents = Files.readString(specFile, StandardCharsets.UTF_8);
+      ImmutableList.Builder<String> specificationBuilder = new ImmutableList.Builder<>();
+      for (String line : contents.split("\n")) {
+        // Remove comments and empty lines from specification file
+        if (line.startsWith("//") || line.trim().isEmpty()) {
+          continue;
+        }
+        specificationBuilder.add(line);
+      }
+      unifiedSpecificationBuilder.add(String.join("\n", specificationBuilder.build()));
+    }
+
+    // The unified specification is a conjunction of all specifications
+    return String.join(" && ", unifiedSpecificationBuilder.build());
+  }
+
   public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
       throws IOException {
     List<Path> inputFiles = pCFA.getFileNames();
@@ -62,10 +82,7 @@ public class TaskRecord {
       inputFileHashes.put(inputFile.toString(), AutomatonGraphmlCommon.computeHash(inputFile));
     }
 
-    String specification =
-        pSpecification.getProperties().stream()
-            .map(Property::toString)
-            .collect(Collectors.joining(" && "));
+    String specification = getSpecificationAsString(pSpecification);
 
     return new TaskRecord(
         Collections3.transformedImmutableListCopy(inputFiles, Path::toString),
