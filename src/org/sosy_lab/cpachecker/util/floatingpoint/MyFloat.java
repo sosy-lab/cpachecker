@@ -306,6 +306,12 @@ public class MyFloat {
 
   // Copy the value with a new exponent
   private MyFloat withExponent(long pExponent) {
+    if (pExponent > format.maxExp()) {
+      return value.sign ? negativeInfinity(format) : infinity(format);
+    }
+    if (pExponent < format.minExp()) {
+      throw new IllegalArgumentException(); // FIXME: Handle subnormal numbers
+    }
     return new MyFloat(format, value.sign, pExponent, value.significand);
   }
 
@@ -1324,18 +1330,49 @@ public class MyFloat {
       return nan(format);
     }
     if (x.isInteger()) {
-      // FIXME: Fix the rounding test and remove this workaround
       return a.powInt(x.toInteger());
     }
     MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
     if (x.equals(c1d2)) {
-      // FIXME: Remove this workaround
+      // TODO: Also include a^3/2 in this check?
       return a.sqrt();
     }
     MyFloat r = a.abs().pow_(exponent);
     if (a.isNegative()) {
       // Fix the sign if `a` was negative and x an integer
       r = r.withSign(x.isOddInteger());
+    }
+    if (r.isNan()) {
+      // If the result is NaN we assume that the real result is a floating point number (or a break
+      // point between two floating point number). Unlike exp and log, pow has many arguments where
+      // this is the case. Examples include a^0, a^1, a^k (where k is an integer), or a^0.5 (where
+      // 'a') is a square number.
+      // We still check some of the trivial cases earlier for performance reasons.
+      // The more general check is more costly, however, so it is only performed after the search
+      // in the main algorithm has failed.
+
+      // FIXME: NaN might also mean that we didn't use enough precision. This check should be moved
+      //  into the main loop of pow_
+      r = powExact(exponent);
+    }
+    return r;
+  }
+
+  private MyFloat powExact(MyFloat exp) {
+    MyFloat a = this;
+    MyFloat x = exp;
+
+    MyFloat r = nan(format);
+    boolean done = false;
+
+    while (!done && !x.isInfinite()) { // TODO: Derive better bounds based on the exponent range
+      // Rewrite a^x with a=b^2 and x=y/2 as b^y until we're left with an integer exponent
+      x = x.withExponent(x.value.exponent + 1);
+      a = a.sqrt(); // FIXME: We need to check if the sqrt is exact to guarantee correctness
+      if (x.isInteger()) {
+        done = true;
+        r = a.powInt(x.toInteger());
+      }
     }
     return r;
   }
@@ -1385,9 +1422,9 @@ public class MyFloat {
   private static ImmutableList<Format> extendedFormats(Format p) {
     ImmutableList.Builder<Format> builder = ImmutableList.builder();
     if (p.equals(Format.Float8)) {
-      builder.add(new Format(p.expBits, p.sigBits + 2));
-      builder.add(new Format(p.expBits, p.sigBits + 9));
-      builder.add(new Format(p.expBits, p.sigBits + 12));
+      builder.add(new Format(11, p.sigBits + 2));
+      builder.add(new Format(11, p.sigBits + 9));
+      builder.add(new Format(11, p.sigBits + 12));
     }
     builder.add(p.extended());
     builder.add(p.extended().extended());

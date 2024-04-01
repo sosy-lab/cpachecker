@@ -122,8 +122,48 @@ public class Float8Test extends CFloatUnitTest {
   public void powBug1Test() {
     // First kind of bug: The exponent is Z/2, Z/4 ... Z/2^k and the base is a square
     // We need a special test for these values
-    String val1 = "3.91e-03"; // 1/16
-    String val2 = "7.5e-01";
+    String val1 = "3.91e-03"; // 1/64 = (1/8)^2
+    String val2 = "7.5e-01"; // 15/2
+
+    // expected: 0 0001 000 [1.56e-02]
+    // but was : 0 1111 100 [nan],
+
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void powBug2Test() {
+    String val1 = "5.62e-01"; // 9/16 = (3/4)^2
+    String val2 = "1.5e+00"; // 3/2
+
+    // expected: 0 0001 000 [4.38e-01]
+    // but was : 0 1111 100 [nan],
+
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void powBug3Test() {
+    String val1 = "5.62e-01"; // 9/16 = (3/4)^2
+    String val2 = "1.5e+00"; // 3/2
 
     // expected: 0 0001 000 [1.56e-02]
     // but was : 0 1111 100 [nan],
