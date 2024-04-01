@@ -651,7 +651,7 @@ public class MyFloat {
       MyFloat x = this;
       if (exp.compareTo(BigInteger.ZERO) < 0) {
         // TODO: Find a bound for the number of extra bits needed
-        Format ext = new Format(format.expBits, 2*format.sigBits + 1);
+        Format ext = new Format(format.expBits, 2 * format.sigBits + 1);
         x = one(ext).divide_(x.withPrecision(ext));
       }
       MyFloat r = x.powFast(exp.abs());
@@ -1434,8 +1434,8 @@ public class MyFloat {
             // Proceed if the result is stable in the original precision
             // If the result was close to zero we have to use an extended format that allows larger
             // exponents. Otherwise, the values are too small and will be flushed to zero.
-            if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2) && isStable(
-                exlna1.validPart())) {
+            if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2)
+                && isStable(exlna1.validPart())) {
               done = true;
               r = nearZero ? one(p1).add(exlna1) : exlna1;
             }
