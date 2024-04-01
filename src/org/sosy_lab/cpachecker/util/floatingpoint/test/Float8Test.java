@@ -161,10 +161,18 @@ public class Float8Test extends CFloatUnitTest {
     assertEqual1Ulp(r1, r2);
   }
 
+  // TODO: Fix failing powToTest cases:
+  //  Failed on 27 (out of 59536) test inputs
+
   @Test
   public void powBug1Test() {
-    String val1 = "4e+00";
-    String val2 = "-3.5e+00";
+    // First kind of bug: The exponent is Z/2, Z/4 ... Z/2^k
+    // We need a special test for these values
+    String val1 = "3.91e-03";
+    String val2 = "7.5e-01";
+
+    // expected: 0 0001 000 [1.56e-02]
+    // but was : 0 1111 100 [nan],
 
     CFloat tested1 = toTestedImpl(val1);
     CFloat tested2 = toTestedImpl(val2);
@@ -179,9 +187,13 @@ public class Float8Test extends CFloatUnitTest {
   }
 
   @Test
-  public void powBug2Test() {
-    String val1 = "6.25e-02";
-    String val2 = "1.75e+00";
+  public void powBugType2Test() {
+    // Second type of bug: Result is close to 1 and we round incorrectly
+    String val1 = "9.38e-02";
+    String val2 = "1.37e-02";
+
+    // expected: 0 0110 111 [9.38e-01]
+    // but was : 0 0111 000 [1e+00],
 
     CFloat tested1 = toTestedImpl(val1);
     CFloat tested2 = toTestedImpl(val2);
@@ -197,8 +209,33 @@ public class Float8Test extends CFloatUnitTest {
 
   @Test
   public void powBug3Test() {
-    String val1 = "2.5e-01";
-    String val2 = "3.5e+00";
+    // Only instance for this bug
+    String val1 = "1.17e-02";
+    String val2 = "8.75e-01"; // 7/8
+
+    // expected: 0 0001 010 [1.95e-02]
+    // but was : 0 0001 011 [2.15e-02],
+
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void powBug4Test() {
+    // Similar to powBug3?
+    String val1 = "1.2e+02";
+    String val2 = "-8.12e-01";
+
+    // expected: 0 0001 010 [1.95e-02]
+    // but was : 0 0001 011 [2.15e-02],
 
     CFloat tested1 = toTestedImpl(val1);
     CFloat tested2 = toTestedImpl(val2);
