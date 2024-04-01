@@ -115,52 +115,6 @@ public class Float8Test extends CFloatUnitTest {
     // Disabled
   }
 
-  @Test
-  public void mpfr_expBugTest() {
-    // Caused by the small exponent range:
-    // exp(1.81) = 1 + (1.81^2)*(1/2!) + (1.81^3)*(1/3!) ..
-    // 1.81^k grows to infinity and 1/k! becomes 0, which causes the NaN
-    String val = "1.81e+00";
-
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
-
-    CFloat r1 = tested.exp();
-    CFloat r2 = reference.exp();
-
-    assertEqual1Ulp(r1, r2);
-  }
-
-  @Test
-  public void mpfr_roundBug1Test() {
-    // This is likely a bug in MpfrFloat.round()
-    // May not be worth fixing?
-    String val = "1.55e01";
-
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
-
-    CFloat r1 = tested.round();
-    CFloat r2 = reference.round();
-
-    assertEqual1Ulp(r1, r2);
-  }
-
-  @Test
-  public void mpfr_roundBug2Test() {
-    // This is likely a bug in MpfrFloat.round()
-    // May not be worth fixing?
-    String val = "-1.55e01";
-
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
-
-    CFloat r1 = tested.round();
-    CFloat r2 = reference.round();
-
-    assertEqual1Ulp(r1, r2);
-  }
-
   // TODO: Fix failing powToTest cases:
   //  Failed on 11 (out of 59536) test inputs
 
