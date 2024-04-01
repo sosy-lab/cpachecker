@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
@@ -60,7 +61,7 @@ public class TaskRecord {
     for (Path specFile : pSpecification.getFiles()) {
       String contents = Files.readString(specFile, StandardCharsets.UTF_8);
       ImmutableList.Builder<String> specificationBuilder = new ImmutableList.Builder<>();
-      for (String line : contents.split("\n")) {
+      for (String line : Splitter.on('\n').split(contents)) {
         // Remove comments and empty lines from specification file
         if (line.startsWith("//") || line.trim().isEmpty()) {
           continue;
