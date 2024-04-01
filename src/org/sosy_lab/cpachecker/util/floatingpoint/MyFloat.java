@@ -1434,7 +1434,8 @@ public class MyFloat {
             // Proceed if the result is stable in the original precision
             // If the result was close to zero we have to use an extended format that allows larger
             // exponents. Otherwise, the values are too small and will be flushed to zero.
-            if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2)) {
+            if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2) && isStable(
+                exlna1.validPart())) {
               done = true;
               r = nearZero ? one(p1).add(exlna1) : exlna1;
             }
