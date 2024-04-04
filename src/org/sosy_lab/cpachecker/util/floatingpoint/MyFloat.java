@@ -1465,48 +1465,6 @@ public class MyFloat {
     return r.withPrecision(format);
   }
 
-  private static MyFloat prefix(MyFloat lo, MyFloat hi) {
-    BigInteger sig1 = lo.value.significand;
-    BigInteger sig2 = hi.value.significand;
-
-    int diff = 0;
-    while (!sig1.equals(sig2)) {
-      sig1 = sig1.shiftRight(1);
-      sig2 = sig2.shiftRight(1);
-      diff++;
-    }
-    Format format = new Format(lo.format.expBits, lo.format.sigBits - diff);
-    return new MyFloat(format, lo.value.sign, lo.value.exponent, sig1);
-  }
-
-  // Largest value that will round down to the valid part of the number
-  private MyFloat above() {
-    MyFloat t = validPart();
-    int diff = format.sigBits - t.format.sigBits;
-    BigInteger sig1 = t.value.significand.shiftLeft(diff);
-    BigInteger sig2 = BigInteger.ONE;
-    if (sig1.testBit(0)) {
-      sig2 = sig2.shiftLeft(diff - 1).subtract(BigInteger.ONE);
-    } else {
-      sig2 = sig2.shiftLeft(diff - 1);
-    }
-    return new MyFloat(format, value.sign, value.exponent, sig1.add(sig2));
-  }
-
-  // Smallest value that will round up to the valid part of the number
-  private MyFloat below() {
-    MyFloat t = validPart().minus1Ulp();
-    int diff = format.sigBits - t.format.sigBits;
-    BigInteger sig1 = t.value.significand.shiftLeft(diff);
-    BigInteger sig2 = BigInteger.ONE;
-    if (sig1.testBit(0)) {
-      sig2 = sig2.shiftLeft(diff - 1);
-    } else {
-      sig2 = sig2.shiftLeft(diff - 1).add(BigInteger.ONE);
-    }
-    return new MyFloat(format, value.sign, value.exponent, sig1.add(sig2));
-  }
-
   public static final Map<Integer, Integer> powStats = new HashMap<>();
 
   private ImmutableList<Format> powExtFormats() {
