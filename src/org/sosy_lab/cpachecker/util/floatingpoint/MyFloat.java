@@ -1012,7 +1012,7 @@ public class MyFloat {
 
     significand = significand.shiftRight(1);
     return new MyFloat(
-        new Format(format.expBits, format.sigBits - trailing),
+        new Format(format.expBits, trailing > format.sigBits ? 0 : (format.sigBits - trailing)),
         value.sign,
         value.exponent,
         significand);
@@ -1049,7 +1049,7 @@ public class MyFloat {
   }
 
   // Statistics for exp(...)
-  // public static final Map<Integer, Integer> expStats = new HashMap<>();
+  public static final Map<Integer, Integer> expStats = new HashMap<>();
 
   public MyFloat exp() {
     if (isZero()) {
@@ -1088,11 +1088,9 @@ public class MyFloat {
           done = true;
           r = isTiny ? one(p).add(v1) : v1;
 
-          /*
           // Update statistics
           Integer k = p.sigBits - format.sigBits;
           expStats.put(k, expStats.getOrDefault(k, 0) + 1);
-          */
         }
       }
     }
@@ -1171,7 +1169,7 @@ public class MyFloat {
     return r;
   }
 
-  // public static final Map<Integer, Integer> lnStats = new HashMap<>();
+  public static final Map<Integer, Integer> lnStats = new HashMap<>();
 
   public MyFloat ln() {
     if (isZero()) {
@@ -1216,11 +1214,9 @@ public class MyFloat {
           done = true;
           r = v1;
 
-          /*
           // Update statistics
           Integer k = p.sigBits - format.sigBits;
           lnStats.put(k, lnStats.getOrDefault(k, 0) + 1);
-          */
         }
       }
     }
@@ -1511,92 +1507,75 @@ public class MyFloat {
     return new MyFloat(format, value.sign, value.exponent, sig1.add(sig2));
   }
 
-  private static ImmutableList<Map.Entry<Format, Format>> extendedFormats(Format p) {
-    ImmutableList.Builder<Map.Entry<Format, Format>> builder = ImmutableList.builder();
-    if (p.equals(Format.Float8)) {
-      for (int p1 = 1; p1 < 30; p1 += 8) {
-        builder.add(
-            Map.entry(new Format(11, p.sigBits + p1), new Format(11, 3 * (p.sigBits + p1) + 1)));
-      }
+  public static final Map<Integer, Integer> powStats = new HashMap<>();
+
+  private ImmutableList<Format> powExtFormats() {
+    if (format.equals(Format.Float8)) {
+      //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p    6     13     13     13     13     16     16     16     16     16
+      Format p = new Format(11, format.sigBits + 19);
+      return ImmutableList.of(p); // exhaustive, so we only need one
     }
-    if (p.equals(Format.Float16)) {
-      for (int p1 = 1; p1 < 50; p1 += 13) {
-        builder.add(
-            Map.entry(new Format(11, p.sigBits + p1), new Format(11, 3 * (p.sigBits + p1) + 1)));
-      }
+    if (format.equals(Format.Float16)) {
+      //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p    7     10     13     15     17     19     20     22     23     25
+      Format p = new Format(11, format.sigBits + 25);
+      return ImmutableList.of(p, p.extended());
     }
-    if (p.equals(Format.Float32)) {
-      for (int p1 = 1; p1 < 100; p1 += 17) {
-        builder.add(
-            Map.entry(new Format(15, p.sigBits + p1), new Format(15, 3 * (p.sigBits + p1) + 1)));
-      }
+    if (format.equals(Format.Float32)) {
+      //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p   13     18     22     25     29     31     34     36     39     41
+      Format p = new Format(15, format.sigBits + 41);
+      return ImmutableList.of(p, p.extended());
     }
-    if (p.equals(Format.Float64)) {
-      for (int p1 = 1; p1 < 250; p1 += 40) {
-        builder.add(
-            Map.entry(new Format(20, p.sigBits + p1), new Format(20, 3 * (p.sigBits + p1) + 1)));
-      }
+    if (format.equals(Format.Float64)) {
+      //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p   31     39     44     49     53     57     61     64     67     70
+      Format p = new Format(20, format.sigBits + 71);
+      return ImmutableList.of(p, p.extended());
     }
-    return builder.build();
+
+    Format p = new Format(32, 2 * format.sigBits);
+    return ImmutableList.of(p, p.extended());
   }
 
-  //public static final Table<Integer, Integer, Integer> powStats = HashBasedTable.create();
-
   private MyFloat pow_(MyFloat exponent) {
-    // a^x = exp(x * ln a)
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Map.Entry<Format, Format> p : extendedFormats(format)) {
-      Format p1 = p.getKey();
-      Format p2 = p.getValue();
-
+    for (Format p : powExtFormats()) {
       if (!done) {
-        Format p2_ext = new Format(p2.expBits, p2.sigBits - p1.sigBits);
-        MyFloat a = withPrecision(p2_ext);
+        // a^x = exp(x * ln a)
+        Format ext = new Format(p.expBits, p.sigBits - format.sigBits);
 
-        // Calculate a bound for the value of ln(a)
-        MyFloat lna1 = a.plus1Ulp().withPrecision(p2).ln_pre(false, false);
-        MyFloat lna2 = a.minus1Ulp().withPrecision(p2).ln_pre(false, false);
+        MyFloat a = this.withPrecision(p);
+        MyFloat x = exponent.withPrecision(p);
 
-        MyFloat x = exponent.withPrecision(p1);
+        MyFloat lna = a.ln();
+        MyFloat xlna = x.multiply(lna).withPrecision(ext);
 
-        // Proceed if the bound is stable with precision p1
-        if (equalModuloP(p1, lna1, lna2)) {
-          Format p1_ext = new Format(p1.expBits, p1.sigBits - format.sigBits);
+        // Check if we call e^x with x close to zero
+        // TODO: Check the argument instead
+        boolean nearZero = xlna.exp_().subtract(one(ext)).isZero();
 
-          MyFloat lna = lna1.withPrecision(p1);
-          MyFloat xlna = x.multiply(lna).withPrecision(p1_ext);
+        // Calculate a bound for the value of e^(x * ln a)
+        MyFloat xlna1 = xlna.plus1Ulp().withPrecision(p);
+        MyFloat xlna2 = xlna.minus1Ulp().withPrecision(p);
 
-          // Check if we call e^x with x close to zero
-          // TODO: Check the argument instead
-          boolean nearZero = xlna.exp_().subtract(one(p1_ext)).isZero();
+        MyFloat exlna1 = nearZero ? xlna1.expm1() : xlna1.exp_();
+        MyFloat exlna2 = nearZero ? xlna2.expm1() : xlna2.exp_();
 
-          // Calculate a bound for the value of e^(x * ln a)
-          MyFloat xlna1 = xlna.plus1Ulp().withPrecision(p1);
-          MyFloat xlna2 = xlna.minus1Ulp().withPrecision(p1);
+        // Proceed if the result is stable in the original precision
+        // If the result was close to zero we have to use an extended format that allows larger
+        // exponents. Otherwise, the values are too small and will be flushed to zero.
+        Format p0 = new Format(32, format.sigBits);
 
-          MyFloat exlna1 = nearZero ? xlna1.expm1() : xlna1.exp_();
-          MyFloat exlna2 = nearZero ? xlna2.expm1() : xlna2.exp_();
+        if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2) && isStable(exlna1.validPart())) {
+          done = true;
+          r = nearZero ? one(p).add(exlna1) : exlna1;
 
-          Format p0 = new Format(32, format.sigBits);
-
-          // Proceed if the result is stable in the original precision
-          // If the result was close to zero we have to use an extended format that allows larger
-          // exponents. Otherwise, the values are too small and will be flushed to zero.
-          if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2)
-              && isStable(exlna1.validPart())) {
-            done = true;
-            r = nearZero ? one(p1).add(exlna1) : exlna1;
-
-            // Update statistics
-            /*
-            Integer k1 = p1.sigBits;
-            Integer k2 = p2.sigBits;
-            Integer val = powStats.get(k1, k2);
-            powStats.put(k1, k2, val == null ? 0 : val + 1);
-            */
-          }
+          // Update statistics
+          powStats.put(ext.sigBits, powStats.getOrDefault(0, ext.sigBits) + 1);
         }
       }
     }

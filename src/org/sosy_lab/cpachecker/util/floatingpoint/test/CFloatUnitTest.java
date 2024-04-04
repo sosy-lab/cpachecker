@@ -13,11 +13,13 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.truth.Correspondence.BinaryPredicate;
 import com.google.common.truth.StringSubject;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -501,19 +503,59 @@ public abstract class CFloatUnitTest {
     testOperator("divideBy", 0, (CFloat a, CFloat b) -> a.divideBy(b));
   }
 
+  protected static int findClosest(Map<Integer, Float> accum, float p) {
+    for (Integer k : accum.keySet().stream().sorted().toList()) {
+      if (accum.get(k) >= p) {
+        return k;
+      }
+    }
+    throw new IllegalArgumentException();
+  }
+
+  // Print statistics about the required bit width in ln, exp and pow
+  protected static String printStatistics(Map<Integer, Integer> stats) {
+    int total = stats.values().stream().reduce(0, (acc, v) -> acc + v);
+
+    ImmutableMap.Builder<Integer, Float> accum = ImmutableMap.builder();
+    int sum = 0;
+    for (Integer k : stats.keySet().stream().sorted().toList()) {
+      sum += stats.get(k);
+      accum.put(k, ((float) sum) / total);
+    }
+    ImmutableMap<Integer, Float> accumMap = accum.build();
+
+    ImmutableList<Float> quantiles =
+        ImmutableList.of(0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f);
+    StringBuilder stdout = new StringBuilder();
+    for (Float p : quantiles) { // Header
+      String s = p.toString();
+      stdout.append(" ".repeat(7 - s.length()) + s);
+    }
+    stdout.append("\n");
+    for (Float p : quantiles) { // Values
+      String s = String.valueOf(findClosest(accumMap, p));
+      stdout.append(" ".repeat(7 - s.length()) + s);
+    }
+    return stdout.toString();
+  }
+
+
   @Test
   public void lnTest() {
     testOperator("ln", ulpError(), (CFloat a) -> a.ln());
+    //printStatistics(MyFloat.lnStats);
   }
 
   @Test
   public void expTest() {
     testOperator("exp", ulpError(), (CFloat a) -> a.exp());
+    //printStatistics(MyFloat.expStats);
   }
 
   @Test
   public void powToTest() {
     testOperator("powTo", ulpError(), (CFloat a, CFloat b) -> a.powTo(b));
+    //printStatistics(MyFloat.powStats);
   }
 
   @Test
