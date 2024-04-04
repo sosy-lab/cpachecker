@@ -1454,7 +1454,7 @@ public class MyFloat {
         // Abort if 'a' is not a square number
         break;
       }
-      a = val.get();
+      a = val.orElseThrow();
       x = x.withExponent(x.value.exponent + 1);
 
       if (x.isInteger()) {
