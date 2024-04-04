@@ -109,7 +109,7 @@ public class CMyFloat extends CFloat {
   }
 
   private int calculateExpWidth(BinaryMathContext pFormat) {
-    return (int) Math.ceil(lb((double) (2 * pFormat.maxExponent + 1)));
+    return (int) Math.ceil(lb(2 * pFormat.maxExponent + 1));
   }
 
   private MyFloat parseFloat(String repr, BinaryMathContext pFormat) {
