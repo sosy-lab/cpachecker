@@ -539,23 +539,22 @@ public abstract class CFloatUnitTest {
     return stdout.toString();
   }
 
-
   @Test
   public void lnTest() {
     testOperator("ln", ulpError(), (CFloat a) -> a.ln());
-    //printStatistics(MyFloat.lnStats);
+    // printStatistics(MyFloat.lnStats);
   }
 
   @Test
   public void expTest() {
     testOperator("exp", ulpError(), (CFloat a) -> a.exp());
-    //printStatistics(MyFloat.expStats);
+    // printStatistics(MyFloat.expStats);
   }
 
   @Test
   public void powToTest() {
     testOperator("powTo", ulpError(), (CFloat a, CFloat b) -> a.powTo(b));
-    //printStatistics(MyFloat.powStats);
+    // printStatistics(MyFloat.powStats);
   }
 
   @Test
