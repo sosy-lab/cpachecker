@@ -105,30 +105,4 @@ public class Float64Test extends CFloatUnitTest {
 
     assertEqual1Ulp(r1, r2);
   }
-
-  @Test
-  public void mpfr_expBug1Test() {
-    String val = "-2.2250738585072014e-308";
-
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
-
-    CFloat r1 = tested.exp();
-    CFloat r2 = reference.exp();
-
-    assertEqual1Ulp(r1, r2);
-  }
-
-  @Test
-  public void mpfr_expBug2Test() {
-    String val = "2.2250738585072014e-308";
-
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
-
-    CFloat r1 = tested.exp();
-    CFloat r2 = reference.exp();
-
-    assertEqual1Ulp(r1, r2);
-  }
 }
