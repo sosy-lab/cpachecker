@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
@@ -640,6 +642,79 @@ public class MyFloat {
 
     // Otherwise return the number
     return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
+  }
+
+  // Multiply two numbers and return the exact result (before rounding)
+  // The result may have between p and 2p+1 bits
+  private MyFloat multiplyExact(MyFloat number) {
+    // Make sure the first argument has the larger (or equal) exponent
+    MyFloat a = number;
+    MyFloat b = this;
+    if (value.exponent >= number.value.exponent) {
+      a = this;
+      b = number;
+    }
+
+    // Handle special cases:
+    // (1) Either argument is NaN
+    if (a.isNan() || b.isNan()) {
+      return nan(format);
+    }
+    // (2) One of the argument is infinite
+    if (a.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
+      if (b.isZero()) {
+        // Return NaN if we're trying to multiply infinity by zero
+        return nan(format);
+      }
+      return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(format) : infinity(format);
+    }
+    // (3) One of the arguments is zero (or negative zero)
+    if (a.isZero() || b.isZero()) {
+      return (a.isNegative() ^ b.isNegative()) ? negativeZero(format) : zero(format);
+    }
+
+    // We assume both arguments are normal
+    Preconditions.checkArgument(
+        a.value.exponent >= format.minExp() && b.value.exponent >= format.minExp());
+
+    // Calculate the sign of the result
+    boolean sign_ = value.sign ^ number.value.sign;
+
+    // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
+    // needs to be increased by one.
+    long exponent1 = a.value.exponent;
+    long exponent2 = b.value.exponent;
+
+    // Calculate the exponent of the result by adding the exponents of the two arguments.
+    // If the calculated exponent is out of range we can return infinity (or zero) immediately.
+    long exponent_ = exponent1 + exponent2;
+    if (exponent_ > format.maxExp()) {
+      return sign_ ? negativeInfinity(format) : infinity(format);
+    }
+    if (exponent_ < format.minExp() - format.sigBits - 2) {
+      return sign_ ? negativeZero(format) : zero(format);
+    }
+
+    // Multiply the significands
+    BigInteger significand1 = a.value.significand;
+    BigInteger significand2 = b.value.significand;
+
+    BigInteger significand_ = significand1.multiply(significand2);
+
+    // Normalize if the significand is too large:
+    if (significand_.testBit(2 * format.sigBits + 4)) {
+      exponent_ += 1;
+    }
+
+    // Return infinity if there is an overflow.
+    if (exponent_ > format.bias()) {
+      return sign_ ? negativeInfinity(format) : infinity(format);
+    }
+
+    // Otherwise return the number
+    return new MyFloat(
+        new Format(format.expBits, significand_.bitLength() - 1),
+        new FpValue(sign_, exponent_, significand_));
   }
 
   private MyFloat squared() {
@@ -1350,31 +1425,48 @@ public class MyFloat {
       // We still check some of the trivial cases earlier for performance reasons.
       // The more general check is more costly, however, so it is only performed after the search
       // in the main algorithm has failed.
-
-      // FIXME: NaN might also mean that we didn't use enough precision. This check should be moved
-      //  into the main loop of pow_
-      r = powExact(exponent);
+      r = a.powExact(x);
     }
     return r;
   }
 
-  private MyFloat powExact(MyFloat exp) {
+  // Check if the argument is a square number and, if so, return the root
+  private Optional<MyFloat> sqrtExact() {
     MyFloat a = this;
-    MyFloat x = exp;
+    MyFloat r = a.sqrt();
+    MyFloat b = r.multiplyExact(r);
+
+    MyFloat x = b.withPrecision(format).withPrecision(b.format);
+    MyFloat y = b.subtract(x);
+
+    return y.isZero() ? Optional.of(r) : Optional.empty();
+  }
+
+  // Handle cases in pow where a^x is a floating point number or a breakpoint
+  private MyFloat powExact(MyFloat exp) {
+    Format p = new Format(32, format.sigBits);
+    MyFloat a = this.withPrecision(p);
+    MyFloat x = exp.withPrecision(p);
 
     MyFloat r = nan(format);
     boolean done = false;
 
     while (!done && !x.isInfinite()) { // TODO: Derive better bounds based on the exponent range
       // Rewrite a^x with a=b^2 and x=y/2 as b^y until we're left with an integer exponent
+      Optional<MyFloat> val = a.sqrtExact();
+      if (val.isEmpty()) {
+        // Abort if 'a' is not a square number
+        break;
+      }
+      a = val.get();
       x = x.withExponent(x.value.exponent + 1);
-      a = a.sqrt(); // FIXME: We need to check if the sqrt is exact to guarantee correctness
+
       if (x.isInteger()) {
         done = true;
         r = a.powInt(x.toInteger());
       }
     }
-    return r;
+    return r.withPrecision(format);
   }
 
   private static MyFloat prefix(MyFloat lo, MyFloat hi) {
