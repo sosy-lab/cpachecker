@@ -1171,6 +1171,38 @@ public class MyFloat {
 
   public static final Map<Integer, Integer> lnStats = new HashMap<>();
 
+  private ImmutableList<Format> lnExtFormats() {
+    if (format.equals(Format.Float8)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      1      1      1      1      1      4      5      6      7     10
+      Format p = new Format(11, format.sigBits + 13);
+      return ImmutableList.of(p);
+    }
+    if (format.equals(Format.Float16)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      1      1      1      1      1      9     10     11     12     31
+      Format p1 = new Format(11, format.sigBits + 12);
+      Format p2 = new Format(11, format.sigBits + 31);
+      return ImmutableList.of(p1, p2);
+    }
+    if (format.equals(Format.Float32)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      1      1      1      1     18     19     20     21     22     35
+      Format p = new Format(15, format.sigBits + 22);
+      return ImmutableList.of(p, p.extended());
+    }
+    if (format.equals(Format.Float64)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      1      1      1      1     44     45     46     47     48     62
+      Format p = new Format(20, format.sigBits + 48);
+      return ImmutableList.of(p, p.extended());
+    }
+
+    // FIXME: Why is broken for 32bit exponents?
+    Format p = new Format(/*32*/ 11, 2 * format.sigBits);
+    return ImmutableList.of(p, p.extended());
+  }
+
   public MyFloat ln() {
     if (isZero()) {
       return negativeInfinity(format);
@@ -1179,27 +1211,10 @@ public class MyFloat {
       return zero(format);
     }
 
-    ImmutableList.Builder<Format> builder = ImmutableList.builder();
-    if (format.equals(Format.Float8)) {
-      builder.add(new Format(8, format.sigBits + 2));
-      builder.add(new Format(8, format.sigBits + 9));
-      builder.add(new Format(8, format.sigBits + 12));
-    }
-    if (format.equals(Format.Float16)) {
-      builder.add(new Format(8, format.sigBits + 1));
-      builder.add(new Format(8, format.sigBits + 14));
-      builder.add(new Format(8, format.sigBits + 60));
-    } else {
-      builder.add(new Format(15, format.sigBits + 1));
-      builder.add(format.extended());
-      builder.add(format.extended().extended());
-    }
-    ImmutableList<Format> formats = builder.build();
-
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : formats) {
+    for (Format p : lnExtFormats()) {
       if (!done) {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         MyFloat x = withPrecision(p_ext);
@@ -1210,7 +1225,7 @@ public class MyFloat {
         MyFloat v1 = x1.ln_pre(false, false);
         MyFloat v2 = x2.ln_pre(false, false);
 
-        if (equalModuloP(format, v1, v2)) {
+        if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
           done = true;
           r = v1;
 
