@@ -1081,8 +1081,8 @@ public class MyFloat {
         MyFloat x1 = x.plus1Ulp().withPrecision(p);
         MyFloat x2 = x.minus1Ulp().withPrecision(p);
 
-        MyFloat v1 = isTiny ? x1.expm1() : x1.exp_();
-        MyFloat v2 = isTiny ? x2.expm1() : x2.exp_();
+        MyFloat v1 = isTiny ? x1.expm1_() : x1.exp_();
+        MyFloat v2 = isTiny ? x2.expm1_() : x2.exp_();
 
         if (equalModuloP(format, v1, v2)) {
           done = true;
@@ -1127,7 +1127,7 @@ public class MyFloat {
     return expImpl(0);
   }
 
-  public MyFloat expm1() {
+  private MyFloat expm1_() {
     return expImpl(1);
   }
 
@@ -1302,7 +1302,7 @@ public class MyFloat {
     return lna.add(nln2);
   }
 
-  public MyFloat ln1p() {
+  private MyFloat ln1p() {
     MyFloat x = this;
     MyFloat r = zero(format);
 
@@ -1535,8 +1535,8 @@ public class MyFloat {
         MyFloat xlna1 = xlna.plus1Ulp().withPrecision(p);
         MyFloat xlna2 = xlna.minus1Ulp().withPrecision(p);
 
-        MyFloat exlna1 = nearZero ? xlna1.expm1() : xlna1.exp_();
-        MyFloat exlna2 = nearZero ? xlna2.expm1() : xlna2.exp_();
+        MyFloat exlna1 = nearZero ? xlna1.expm1_() : xlna1.exp_();
+        MyFloat exlna2 = nearZero ? xlna2.expm1_() : xlna2.exp_();
 
         // Proceed if the result is stable in the original precision
         // If the result was close to zero we have to use an extended format that allows larger
