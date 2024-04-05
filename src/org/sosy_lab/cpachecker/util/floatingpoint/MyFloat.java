@@ -1222,8 +1222,8 @@ public class MyFloat {
         MyFloat x1 = x.plus1Ulp().withPrecision(p);
         MyFloat x2 = x.minus1Ulp().withPrecision(p);
 
-        MyFloat v1 = x1.ln_pre(false, false);
-        MyFloat v2 = x2.ln_pre(false, false);
+        MyFloat v1 = x1.ln_();
+        MyFloat v2 = x2.ln_();
 
         if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
           done = true;
@@ -1250,7 +1250,14 @@ public class MyFloat {
   // Table contains terms 1/k for k=1..100
   private static final Map<Integer, MyFloat> lnTable = mkLnTable(Format.Float256);
 
-  private MyFloat ln_pre(boolean useSqrt, boolean useNewton) {
+  private static MyFloat make_ln2(Format pFormat) {
+    MyFloat r = constant(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
+    return r.withExponent(r.value.exponent + 1);
+  }
+
+  private static final MyFloat const_ln2 = make_ln2(Format.Float256);
+
+  private MyFloat ln_() {
     if (isZero()) {
       return negativeInfinity(format);
     }
@@ -1263,42 +1270,13 @@ public class MyFloat {
     if (isOne()) {
       return zero(format);
     }
-    return useSqrt ? ln_pre1(useNewton) : ln_pre2(useNewton);
-  }
 
-  private MyFloat ln_pre1(boolean useNewton) {
-    // TODO: These constants should be declared only once for each supported precision
-    MyFloat c1d2 = new MyFloat(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
-    MyFloat c3d2 =
-        new MyFloat(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
-
-    MyFloat x = this;
-
-    int preprocess = 0;
-    while (x.greaterThan(c3d2) || c1d2.greaterThan(x)) {
-      x = x.sqrt_();
-      preprocess++;
-    }
-
-    MyFloat r = useNewton ? x.lnNewton_() : x.subtract(one(format)).ln1p();
-    return r.withExponent(r.value.exponent + preprocess);
-  }
-
-  private static MyFloat const_ln2 = make_ln2(Format.Float256);
-
-  private static MyFloat make_ln2(Format pFormat) {
-    MyFloat r = constant(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
-    return r.withExponent(r.value.exponent + 1);
-  }
-
-  private MyFloat ln_pre2(boolean useNewton) {
     // ln(x) = ln(a * 2^k) = ln a + ln 2^k = ln a + k * ln 2
     MyFloat a = withExponent(-1);
-    MyFloat lna = useNewton ? a.lnNewton_() : a.subtract(one(format)).ln1p();
+    MyFloat lna = a.subtract(one(format)).ln1p();
 
     MyFloat ln2 = const_ln2.withPrecision(format);
     MyFloat nln2 = constant(format, (int) value.exponent + 1).multiply(ln2);
-
     return lna.add(nln2);
   }
 
@@ -1320,29 +1298,6 @@ public class MyFloat {
       // Abort if we have enough precision
       done = r.equals(r0);
       k++;
-    }
-    return r;
-  }
-
-  private MyFloat lnNewton_() {
-    MyFloat x = this;
-
-    // Initial value: first term of taylor series for ln
-    MyFloat r = x.subtract(one(format));
-
-    boolean done = false;
-    List<MyFloat> partial = new ArrayList<>();
-    while (!done) {
-      partial.add(r);
-
-      //  r(n+1) = r(n) + 2 * (x - e^r(n)) / (x + e^r(n))
-      MyFloat exp_y = r.exp_();
-      MyFloat t1 = x.subtract(exp_y);
-      MyFloat t2 = x.add(exp_y);
-      r = r.add(constant(format, 2).multiply(t1.divide_(t2)));
-
-      // Abort once we have enough precision
-      done = partial.contains(r);
     }
     return r;
   }
