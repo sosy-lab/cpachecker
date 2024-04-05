@@ -1084,7 +1084,9 @@ public class MyFloat {
         MyFloat v1 = isTiny ? x1.expm1_() : x1.exp_();
         MyFloat v2 = isTiny ? x2.expm1_() : x2.exp_();
 
-        if (equalModuloP(format, v1, v2)) {
+        Format p0 = new Format(32, format.sigBits);
+
+        if (equalModuloP(isTiny ? p0 : format, v1, v2) && isStable(v1.validPart())) {
           done = true;
           r = isTiny ? one(p).add(v1) : v1;
 
