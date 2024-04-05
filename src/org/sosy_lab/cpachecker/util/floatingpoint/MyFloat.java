@@ -1051,27 +1051,46 @@ public class MyFloat {
   // Statistics for exp(...)
   public static final Map<Integer, Integer> expStats = new HashMap<>();
 
+  private ImmutableList<Format> expExtFormats() {
+    if (format.equals(Format.Float8)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      1      1      1      4      4      5      5      6      7     13
+      Format p = new Format(11, format.sigBits + 13);
+      return ImmutableList.of(p);
+    }
+    if (format.equals(Format.Float16)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      1      1      1      6      8      9     10     12     13     26
+      Format p1 = new Format(11, format.sigBits + 13);
+      Format p2 = new Format(11, format.sigBits + 26);
+      return ImmutableList.of(p1, p2);
+    }
+    if (format.equals(Format.Float32)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      1      1      1      1     15     25     25     25     26     41
+      Format p = new Format(15, format.sigBits + 41);
+      return ImmutableList.of(p, p.extended());
+    }
+    if (format.equals(Format.Float64)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p     1      1      1      1     28     54     54     55     55     68
+      Format p = new Format(20, format.sigBits + 60);
+      return ImmutableList.of(p, p.extended());
+    }
+
+    Format p = new Format(32, 2 * format.sigBits);
+    return ImmutableList.of(p, p.extended());
+  }
+
   public MyFloat exp() {
     if (isZero()) {
       return one(format);
     }
 
-    ImmutableList.Builder<Format> builder = ImmutableList.builder();
-    if (format.equals(Format.Float16)) {
-      builder.add(new Format(8, format.sigBits + 2));
-      builder.add(new Format(8, format.sigBits + 16));
-      builder.add(new Format(8, format.sigBits + 26));
-    } else {
-      builder.add(new Format(15, format.sigBits + 10));
-      builder.add(format.extended());
-      builder.add(format.extended().extended());
-    }
-    ImmutableList<Format> formats = builder.build();
-
     MyFloat r = nan(format);
     boolean done = false;
 
-    for (Format p : formats) {
+    for (Format p : expExtFormats()) {
       if (!done) {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         MyFloat x = withPrecision(p_ext);
