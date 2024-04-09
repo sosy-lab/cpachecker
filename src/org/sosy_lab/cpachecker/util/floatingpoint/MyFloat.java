@@ -1712,6 +1712,58 @@ public class MyFloat {
     return new BigFloat(value.sign, value.significand, value.exponent, context);
   }
 
+  private static MyFloat makeValue(Format p, boolean sign, String digits, int exponent) {
+    // FIXME: Likely broken for large p? Make sure that we round correctly.
+    Format ext = p.extended();
+    MyFloat f = constant(ext, new BigInteger(digits));
+    MyFloat e = constant(ext, 10).powInt(BigInteger.valueOf(exponent - digits.length() + 1));
+    MyFloat val = f.multiply(e);
+    return (sign ? val.negate() : val).withPrecision(p);
+  }
+
+  public static MyFloat parseFloat(Format p, String input) {
+    // TODO: Add error handling for broken inputs.
+    if ("inf".equals(input)) {
+      return infinity(p);
+    }
+    if ("-inf".equals(input)) {
+      return negativeInfinity(p);
+    }
+    if ("nan".equals(input)) {
+      return nan(p);
+    }
+
+    // Split off the exponent part (if there is one)
+    int sep = Math.max(input.indexOf('e'), input.indexOf('E'));
+    String mantissa = sep > -1 ? input.substring(0, sep) : input;
+    String exponent = sep > -1 ? input.substring(sep + 1) : "0";
+
+    boolean sign = false;
+
+    // Determine the sign
+    char pre = mantissa.charAt(0);
+    if (!Character.isDigit(pre)) {
+      Preconditions.checkArgument(pre == '+' || pre == '-');
+      mantissa = mantissa.substring(1);
+      sign = pre == '-';
+    }
+
+    int expValue = Integer.parseInt(exponent);
+
+    // Get the fractional part of the number (and add ".0" if it has none)
+    int radix = mantissa.indexOf('.');
+    if (radix == -1) {
+      radix = mantissa.length();
+      mantissa = mantissa + ".0";
+    }
+
+    // Normalize the mantissa, then fix the exponent
+    expValue = (radix - 1) + expValue;
+    mantissa = mantissa.substring(0, radix) + mantissa.substring(radix + 1);
+
+    return makeValue(p, sign, mantissa, expValue);
+  }
+
   @Override
   public String toString() {
     if (isNan()) {
