@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import org.kframework.mpfr.BigFloat;
@@ -146,7 +147,8 @@ public class MpfrFloat extends CFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    return value.toString("%.6Re").replace(",", ".");
+    String repr = value.toString().replace(",", ".");
+    return new BigDecimal(repr).toPlainString();
   }
 
   @Override

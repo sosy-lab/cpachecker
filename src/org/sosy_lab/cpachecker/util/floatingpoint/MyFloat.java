@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -1768,6 +1770,14 @@ public class MyFloat {
     return buildValue(p, sign, mantissa, expValue);
   }
 
+  // We borrow this definition from MPFR:
+  // "Return the minimal integer m such that any number of p bits, when output with m digits
+  //  in radix b with rounding to nearest, can be recovered exactly when read again, still with
+  //  rounding to nearest."
+  private int neededDigits() {
+    return 1 + (int) Math.ceil((format.sigBits + 1) * Math.log(2) / Math.log(10));
+  }
+
   @Override
   public String toString() {
     if (isNan()) {
@@ -1779,8 +1789,39 @@ public class MyFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    // TODO: Return more digits if the bitwidth allows it
-    return String.format("%.6e", withPrecision(Format.Float64).toDouble());
+
+    // Get the exponent and the significand
+    BigInteger significand = value.significand;
+    long exponent = Math.max(value.exponent, format.minExp());
+
+    // Normalize the value if it is subnormal
+    int shift = (format.sigBits + 1) - significand.bitLength();
+    if (shift > 0) {
+      significand = significand.shiftLeft(shift);
+      exponent -= shift;
+    }
+
+    // Shift the exponent to make the significand an integer
+    exponent -= format.sigBits;
+
+    // Build a term for the exponent in decimal representation
+    // FIXME: Make sure we always use enough precision for the intermediate value
+    MathContext rm = new MathContext(30, java.math.RoundingMode.HALF_EVEN);
+    BigDecimal r = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) exponent)));
+    if (exponent < 0) {
+      r = BigDecimal.ONE.divide(r, rm);
+    }
+
+    // Multiply the significand with the decimal exponent term
+    BigDecimal a = new BigDecimal(significand);
+    BigDecimal b = a.multiply(r);
+
+    // Apply rounding and print the output string
+    String repr =
+        b.plus(new MathContext(neededDigits(), java.math.RoundingMode.HALF_EVEN))
+            .stripTrailingZeros()
+            .toPlainString();
+    return isNegative() ? "-" + repr : repr;
   }
 
   public String toBinaryString() {

@@ -458,6 +458,40 @@ public abstract class CFloatUnitTest {
     }
   }
 
+  protected void testStringFunction(String name, Function<CFloat, String> function) {
+    ImmutableList.Builder<TestValue<String>> testBuilder = ImmutableList.builder();
+    for (BigFloat arg : unaryTestValues()) {
+      CFloat ref = toReferenceImpl(toPlainString(arg));
+      String result = function.apply(ref);
+      testBuilder.add(new TestValue<>(arg, result));
+    }
+    ImmutableList<TestValue<String>> testCases = testBuilder.build();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
+    for (TestValue<String> test : testCases) {
+      try {
+        String testHeader = printTestHeader(name, test.arg1());
+        CFloat tested = toTestedImpl(toPlainString(test.arg1()));
+        String result = null;
+        try {
+          result = function.apply(tested);
+        } catch (Throwable t) {
+          assertWithMessage(testHeader + t).fail();
+        }
+        assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+      } catch (AssertionError e) {
+        logBuilder.add(e.getMessage());
+      }
+    }
+    ImmutableList<String> errorLog = logBuilder.build();
+
+    if (!errorLog.isEmpty()) {
+      assertWithMessage(
+          "Failed on %s (out of %s) test inputs:%s",
+          errorLog.size(), testCases.size(), errorLog)
+          .fail();
+    }
+  }
+
   protected void assertEqual1Ulp(CFloat r1, CFloat r2) {
     assertThat(printValue(r1.toBigFloat())).isIn(errorRange(ulpError(), r2.toBigFloat()));
   }
@@ -471,6 +505,11 @@ public abstract class CFloatUnitTest {
   @Test
   public void constTest() {
     testOperator("id", 0, (CFloat a) -> a);
+  }
+
+  @Test
+  public void printTest() {
+    testStringFunction("show", (CFloat a) -> a.toString());
   }
 
   @Test
