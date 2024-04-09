@@ -37,7 +37,7 @@ public class CMyFloat extends CFloat {
 
   public CMyFloat(String repr, BinaryMathContext pFormat) {
     Format format = new Format(calculateExpWidth(pFormat), pFormat.precision - 1);
-    delegate = MyFloat.parseFloat(format, repr);
+    delegate = MyFloat.fromString(format, repr);
     wrapper = null; // fromImpl(delegate);
   }
 

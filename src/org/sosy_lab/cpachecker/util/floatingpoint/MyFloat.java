@@ -1712,16 +1712,20 @@ public class MyFloat {
     return new BigFloat(value.sign, value.significand, value.exponent, context);
   }
 
-  private static MyFloat makeValue(Format p, boolean sign, String digits, int exponent) {
+  private static MyFloat buildValue(Format p, boolean sign, String digits, int exponent) {
+    BigInteger mantissa = new BigInteger(digits);
+    if (mantissa.equals(BigInteger.ZERO)) {
+      return sign ? negativeZero(p) : zero(p);
+    }
     // FIXME: Likely broken for large p? Make sure that we round correctly.
     Format ext = p.extended();
-    MyFloat f = constant(ext, new BigInteger(digits));
+    MyFloat f = constant(ext, mantissa);
     MyFloat e = constant(ext, 10).powInt(BigInteger.valueOf(exponent - digits.length() + 1));
     MyFloat val = f.multiply(e);
     return (sign ? val.negate() : val).withPrecision(p);
   }
 
-  public static MyFloat parseFloat(Format p, String input) {
+  public static MyFloat fromString(Format p, String input) {
     // TODO: Add error handling for broken inputs.
     if ("inf".equals(input)) {
       return infinity(p);
@@ -1761,7 +1765,7 @@ public class MyFloat {
     expValue = (radix - 1) + expValue;
     mantissa = mantissa.substring(0, radix) + mantissa.substring(radix + 1);
 
-    return makeValue(p, sign, mantissa, expValue);
+    return buildValue(p, sign, mantissa, expValue);
   }
 
   @Override
