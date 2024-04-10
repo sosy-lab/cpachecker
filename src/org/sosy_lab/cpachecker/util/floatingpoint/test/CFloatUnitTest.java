@@ -276,7 +276,7 @@ public abstract class CFloatUnitTest {
   protected void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
     ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
-      CFloat ref = toReferenceImpl(toPlainString(arg));
+      CFloat ref = toReferenceImpl(arg);
       BigFloat result = operator.apply(ref).toBigFloat();
       testBuilder.add(new TestValue<>(arg, result));
     }
@@ -285,7 +285,7 @@ public abstract class CFloatUnitTest {
     for (TestValue<BigFloat> test : testCases) {
       try {
         String testHeader = printTestHeader(name, test.arg1());
-        CFloat tested = toTestedImpl(toPlainString(test.arg1()));
+        CFloat tested = toTestedImpl(test.arg1());
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
           result = operator.apply(tested).toBigFloat();
@@ -315,8 +315,8 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
     for (BigFloat arg1 : binaryTestValues()) {
       for (BigFloat arg2 : binaryTestValues()) {
-        CFloat ref1 = toReferenceImpl(toPlainString(arg1));
-        CFloat ref2 = toReferenceImpl(toPlainString(arg2));
+        CFloat ref1 = toReferenceImpl(arg1);
+        CFloat ref2 = toReferenceImpl(arg2);
         BigFloat result = operator.apply(ref1, ref2).toBigFloat();
         testBuilder.add(new TestValue<>(arg1, arg2, result));
       }
@@ -326,8 +326,8 @@ public abstract class CFloatUnitTest {
     for (TestValue<BigFloat> test : testCases) {
       try {
         String testHeader = printTestHeader(name, test.arg1(), test.arg2());
-        CFloat tested1 = toTestedImpl(toPlainString(test.arg1()));
-        CFloat tested2 = toTestedImpl(toPlainString(test.arg2()));
+        CFloat tested1 = toTestedImpl(test.arg1());
+        CFloat tested2 = toTestedImpl(test.arg2());
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
           result = operator.apply(tested1, tested2).toBigFloat();
@@ -356,7 +356,7 @@ public abstract class CFloatUnitTest {
   protected void testPredicate(String name, Predicate<CFloat> predicate) {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
-      CFloat ref = toReferenceImpl(toPlainString(arg));
+      CFloat ref = toReferenceImpl(arg);
       boolean result = predicate.test(ref);
       testBuilder.add(new TestValue<>(arg, result));
     }
@@ -365,7 +365,7 @@ public abstract class CFloatUnitTest {
     for (TestValue<Boolean> test : testCases) {
       try {
         String testHeader = printTestHeader(name, test.arg1());
-        CFloat tested = toTestedImpl(toPlainString(test.arg1()));
+        CFloat tested = toTestedImpl(test.arg1());
         boolean result = true;
         try {
           result = predicate.test(tested);
@@ -391,8 +391,8 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
     for (BigFloat arg1 : binaryTestValues()) {
       for (BigFloat arg2 : binaryTestValues()) {
-        CFloat ref1 = toReferenceImpl(toPlainString(arg1));
-        CFloat ref2 = toReferenceImpl(toPlainString(arg2));
+        CFloat ref1 = toReferenceImpl(arg1);
+        CFloat ref2 = toReferenceImpl(arg2);
         boolean result = predicate.apply(ref1, ref2);
         testBuilder.add(new TestValue<>(arg1, arg2, result));
       }
@@ -402,8 +402,8 @@ public abstract class CFloatUnitTest {
     for (TestValue<Boolean> test : testCases) {
       try {
         String testHeader = printTestHeader(name, test.arg1(), test.arg2());
-        CFloat tested1 = toTestedImpl(toPlainString(test.arg1()));
-        CFloat tested2 = toTestedImpl(toPlainString(test.arg2()));
+        CFloat tested1 = toTestedImpl(test.arg1());
+        CFloat tested2 = toTestedImpl(test.arg2());
         boolean result = true;
         try {
           result = predicate.apply(tested1, tested2);
@@ -427,7 +427,7 @@ public abstract class CFloatUnitTest {
   protected void testIntegerFunction(String name, Function<CFloat, Number> function) {
     ImmutableList.Builder<TestValue<Number>> testBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
-      CFloat ref = toReferenceImpl(toPlainString(arg));
+      CFloat ref = toReferenceImpl(arg);
       Number result = function.apply(ref);
       testBuilder.add(new TestValue<>(arg, result));
     }
@@ -436,7 +436,7 @@ public abstract class CFloatUnitTest {
     for (TestValue<Number> test : testCases) {
       try {
         String testHeader = printTestHeader(name, test.arg1());
-        CFloat tested = toTestedImpl(toPlainString(test.arg1()));
+        CFloat tested = toTestedImpl(test.arg1());
         Number result = null;
         try {
           result = function.apply(tested);
@@ -461,7 +461,7 @@ public abstract class CFloatUnitTest {
   protected void testStringFunction(String name, Function<CFloat, String> function) {
     ImmutableList.Builder<TestValue<String>> testBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
-      CFloat ref = toReferenceImpl(toPlainString(arg));
+      CFloat ref = toReferenceImpl(arg);
       String result = function.apply(ref);
       testBuilder.add(new TestValue<>(arg, result));
     }
@@ -470,7 +470,7 @@ public abstract class CFloatUnitTest {
     for (TestValue<String> test : testCases) {
       try {
         String testHeader = printTestHeader(name, test.arg1());
-        CFloat tested = toTestedImpl(toPlainString(test.arg1()));
+        CFloat tested = toTestedImpl(test.arg1());
         String result = null;
         try {
           result = function.apply(tested);
@@ -496,9 +496,17 @@ public abstract class CFloatUnitTest {
     assertThat(printValue(r1.toBigFloat())).isIn(errorRange(ulpError(), r2.toBigFloat()));
   }
 
-  protected abstract CFloat toTestedImpl(String repr);
+  protected abstract CFloat toTestedImpl(BigFloat value);
 
-  protected abstract CFloat toReferenceImpl(String repr);
+  protected CFloat toTestedImpl(String repr) {
+    return toTestedImpl(new BigFloat(repr, getFloatType()));
+  }
+
+  protected abstract CFloat toReferenceImpl(BigFloat value);
+
+  protected CFloat toReferenceImpl(String repr) {
+    return toReferenceImpl(new BigFloat(repr, getFloatType()));
+  }
 
   // (This test is here to check that parsing and printing of values is handles correctly by the
   // implementation)

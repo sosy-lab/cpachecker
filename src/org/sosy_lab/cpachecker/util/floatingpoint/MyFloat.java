@@ -1699,6 +1699,18 @@ public class MyFloat {
         .doubleValueExact();
   }
 
+  public static MyFloat fromBigFloat(Format p, BigFloat pValue) {
+    if (pValue.isNaN()) {
+      return pValue.sign() ? nan(p).negate() : nan(p);
+    }
+    if (pValue.isInfinite()) {
+      return pValue.sign() ? negativeInfinity(p) : infinity(p);
+    }
+    long exp = pValue.exponent(p.minExp(), p.maxExp());
+    BigInteger sig = pValue.significand(p.minExp(), p.maxExp());
+    return new MyFloat(p, pValue.sign(), exp, sig);
+  }
+
   public BigFloat toBigFloat() {
     BinaryMathContext context = new BinaryMathContext(format.sigBits + 1, format.expBits);
     if (isNan()) {

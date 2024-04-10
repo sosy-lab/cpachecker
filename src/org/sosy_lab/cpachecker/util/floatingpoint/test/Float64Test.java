@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
@@ -43,16 +44,16 @@ public class Float64Test extends CFloatUnitTest {
   }
 
   @Override
-  public CFloat toTestedImpl(String repr) {
-    return new CMyFloat(repr, getFloatType());
+  public CFloat toTestedImpl(BigFloat value) {
+    return new CMyFloat(value, getFloatType());
   }
 
   @Override
-  public CFloat toReferenceImpl(String repr) {
+  public CFloat toReferenceImpl(BigFloat value) {
     return switch (refImpl) {
-      case MPFR -> new MpfrFloat(repr, getFloatType());
-      case JAVA -> new JDouble(repr);
-      case NATIVE -> new CFloatNative(repr, getFloatType());
+      case MPFR -> new MpfrFloat(value, getFloatType());
+      case JAVA -> new JDouble(value.doubleValue());
+      case NATIVE -> new CFloatNative(value.toString(), getFloatType());
     };
   }
 

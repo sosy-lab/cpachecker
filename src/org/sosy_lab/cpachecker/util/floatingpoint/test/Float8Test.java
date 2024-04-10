@@ -42,13 +42,13 @@ public class Float8Test extends CFloatUnitTest {
   }
 
   @Override
-  public CFloat toTestedImpl(String repr) {
-    return new CMyFloat(repr, getFloatType());
+  public CFloat toTestedImpl(BigFloat value) {
+    return new CMyFloat(value, getFloatType());
   }
 
   @Override
-  public CFloat toReferenceImpl(String repr) {
-    return new MpfrFloat(repr, getFloatType());
+  public CFloat toReferenceImpl(BigFloat value) {
+    return new MpfrFloat(value, getFloatType());
   }
 
   @Override
