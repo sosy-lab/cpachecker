@@ -24,6 +24,8 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 
+// FIXME: Add support for arguments with different bitwidths
+
 public class MyFloat {
   static {
     NativeLibraries.loadLibrary("mpfr_java");

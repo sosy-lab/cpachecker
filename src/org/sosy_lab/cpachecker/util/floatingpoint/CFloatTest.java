@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
@@ -171,8 +170,8 @@ public class CFloatTest {
     assertThat(zero.multiply(nZero).toString()).isEqualTo("-0");
   }
 
+  // FIXME: The test probably fails because the arguments have different bit sizes
   @Test
-  @Ignore // FIXME: Long double not supported yet
   public void additionTest() {
     CFloat ten = new CMyFloat("10", CFloatNativeAPI.FP_TYPE_DOUBLE);
     CFloat five = new CMyFloat("5", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -180,20 +179,20 @@ public class CFloatTest {
 
     CFloatNative p = new CFloatNative(ten.copyWrapper(), ten.getType());
     CFloatNative q = new CFloatNative(five.copyWrapper(), five.getType());
-    assertThat(p.toString()).isEqualTo("10.0");
-    assertThat(q.toString()).isEqualTo("5.0");
+    assertThat(p.toString()).isEqualTo("10");
+    assertThat(q.toString()).isEqualTo("5");
 
     CFloat res = ten.add(ten);
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.FP_TYPE_DOUBLE);
-    assertThat(p.toString()).isEqualTo("20.0");
+    assertThat(p.toString()).isEqualTo("20");
 
     res = res.add(ten, ten, five);
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.FP_TYPE_DOUBLE);
-    assertThat(p.toString()).isEqualTo("45.0");
+    assertThat(p.toString()).isEqualTo("45"); // FIXME: We get 40.0000000093132257
 
     res = res.add(nOne, nOne, nOne);
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    assertThat(p.toString()).isEqualTo("42.0");
+    assertThat(p.toString()).isEqualTo("42"); // FIXME: We get 'nan'
   }
 
   @Test
@@ -302,7 +301,6 @@ public class CFloatTest {
   }
 
   @Test
-  @Ignore // FIXME: Long double not supported yet
   public void createTest() {
     CFloat a = new CMyFloat("12345.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
     CFloat test = new CFloatNative(a.copyWrapper(), a.getType());
@@ -317,16 +315,16 @@ public class CFloatTest {
     a = new CMyFloat("1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
     b = new CFloatNative("1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
 
-    assertThat(b.toString()).isEqualTo("1235124567312171008.0");
+    assertThat(b.toString()).isEqualTo("1.23512457e+18");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString())
-        .isEqualTo("1235124567312171008");
+        .isEqualTo("1.23512457e+18");
 
     a = new CMyFloat("0.1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
     b = new CFloatNative("0.1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
 
-    assertThat(b.toString()).isEqualTo("0.123512454330921173095703125");
+    assertThat(b.toString()).isEqualTo("0.123512454");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString())
-        .isEqualTo("0.123512454330921173095703125");
+        .isEqualTo("0.123512454");
 
     a = new CMyFloat("8388609", CFloatNativeAPI.FP_TYPE_SINGLE);
     b = new CFloatNative("8388609", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -341,24 +339,23 @@ public class CFloatTest {
     a = new CMyFloat("36893488147419103233", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     b = new CFloatNative("36893488147419103233", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
-    assertThat(b.toString()).isEqualTo("36893488147419103232.0");
+    assertThat(b.toString()).isEqualTo("36893488147419103232");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CMyFloat("18446744073709551617", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     b = new CFloatNative("18446744073709551617", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
-    assertThat(b.toString()).isEqualTo("18446744073709551616.0");
+    assertThat(b.toString()).isEqualTo("18446744073709551616");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CMyFloat("36893488147419103235", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     b = new CFloatNative("36893488147419103235", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
-    assertThat(b.toString()).isEqualTo("36893488147419103236.0");
+    assertThat(b.toString()).isEqualTo("36893488147419103236");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
   }
 
   @Test
-  @Ignore // FIXME: Long double not supported yet
   public void nativeAdditionTest() {
     CFloat a =
         new CFloatNative(
@@ -373,7 +370,7 @@ public class CFloatTest {
 
     assertThat(a.add(b).toString())
         .isEqualTo(
-            "7524684765169677984239668825841657450662424665126641865225532990851629461374682772298163028925468467204048782456979919923963285225557620642055414520570450567718506657241077846861357026497412026813181329408.0");
+            "7.52468476516967798424e+204");
 
     b =
         new CFloatNative(
@@ -383,7 +380,7 @@ public class CFloatTest {
 
     assertThat(a.add(b).toString())
         .isEqualTo(
-            "15049369530339355967391567042394575883208572683233827981680059276598297544036903949561899567255911541278292760274770262798041223663282407204681034557628156709126316397968184796941747610323938741049383452672.0");
+            "1.50493695303393559674e+205");
 
     b =
         new CFloatNative(
@@ -393,7 +390,7 @@ public class CFloatTest {
 
     assertThat(a.add(b).toString())
         .isEqualTo(
-            "30098739060678711932607592866211673730184592072428744465818105142986672330648884709054946153321772296296975911271161371496311753750899146250502480148230824565631238962908427800321562335306106856944808493056.0");
+            "3.00987390606787119326e+205");
 
     a =
         new CMyFloat(
@@ -406,26 +403,27 @@ public class CFloatTest {
                 17063L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
             CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
+    // FIXME: We get 2.50822825505655932799e+204
     assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
         .isEqualTo(
             "7524684765169677984239668825841657450662424665126641865225532990851629461374682772298163028925468467204048782456979919923963285225557620642055414520570450567718506657241077846861357026497412026813181329408.0");
-
     b =
         new CMyFloat(
             new CFloatWrapper(
                 17064L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
             CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
+    // FIXME: We get 5.01645651011311865543e+204
     assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
         .isEqualTo(
             "15049369530339355967391567042394575883208572683233827981680059276598297544036903949561899567255911541278292760274770262798041223663282407204681034557628156709126316397968184796941747610323938741049383452672.0");
-
     b =
         new CMyFloat(
             new CFloatWrapper(
                 17065L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
             CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
+    // FIXME: We get 1.00329130202262373109e+205
     assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
         .isEqualTo(
             "30098739060678711932607592866211673730184592072428744465818105142986672330648884709054946153321772296296975911271161371496311753750899146250502480148230824565631238962908427800321562335306106856944808493056.0");
@@ -535,7 +533,6 @@ public class CFloatTest {
   }
 
   @Test
-  @Ignore // FIXME: Long double not supported yet
   public void divisionTest() {
     CFloat a = new CMyFloat("4", CFloatNativeAPI.FP_TYPE_DOUBLE);
     CFloat b = new CMyFloat("2", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -543,7 +540,7 @@ public class CFloatTest {
     CFloat c = a.divideBy(b).divideBy(a);
     c = new CFloatNative(a.divideBy(c).copyWrapper(), a.getType());
 
-    assertThat(c.toString()).isEqualTo("8.0");
+    assertThat(c.toString()).isEqualTo("8");
 
     CFloat d = new CMyFloat("12.5625", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     assertThat(new CFloatNative(d.copyWrapper(), d.getType()).toString()).isEqualTo("12.5625");

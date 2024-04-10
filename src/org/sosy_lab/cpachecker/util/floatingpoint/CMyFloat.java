@@ -331,6 +331,10 @@ public class CMyFloat extends CFloat {
     if (Format.Float64.equals(delegate.getFormat())) {
       return CNativeType.DOUBLE.getOrdinal();
     }
+    Format ext = new Format(15, 63);
+    if (ext.equals(delegate.getFormat())) {
+      return CNativeType.LONG_DOUBLE.getOrdinal();
+    }
     throw new IllegalStateException();
   }
 
