@@ -149,7 +149,7 @@ public class JDouble extends CFloat {
     double above = Math.ceil(posValue);
     double below = Math.floor(posValue);
     double rounded = posValue >= (above / 2 + below / 2) ? above : below;
-    return new JDouble(value > 0 ? rounded : -rounded);
+    return new JDouble(Double.compare(value, 0.0d) >= 0 ? rounded : -rounded);
   }
 
   @Override

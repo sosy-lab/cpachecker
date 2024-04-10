@@ -149,7 +149,7 @@ public class JFloat extends CFloat {
     double above = Math.ceil(posValue);
     double below = Math.floor(posValue);
     double rounded = posValue >= (above / 2 + below / 2) ? above : below;
-    return new JFloat((float) (value > 0 ? rounded : -rounded));
+    return new JFloat((float) (Float.compare(value, 0.0f) >= 0 ? rounded : -rounded));
   }
 
   @Override
