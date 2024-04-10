@@ -1802,6 +1802,10 @@ public class MyFloat {
       return isNegative() ? "-0.0" : "0.0";
     }
 
+    // Alternatively: Use MPFR for the conversion
+    // BinaryMathContext p = new BinaryMathContext(format.sigBits + 1, format.expBits);
+    // return new BigFloat(value.sign, value.significand, value.exponent, p).toString("%." + neededDigits() + "Rg");
+
     // Get the exponent and the significand
     BigInteger significand = value.significand;
     long exponent = Math.max(value.exponent, format.minExp());
@@ -1832,7 +1836,7 @@ public class MyFloat {
     String repr =
         b.plus(new MathContext(neededDigits(), java.math.RoundingMode.HALF_EVEN))
             .stripTrailingZeros()
-            .toPlainString();
+            .toString();
     return isNegative() ? "-" + repr : repr;
   }
 
