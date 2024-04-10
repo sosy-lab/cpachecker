@@ -508,16 +508,49 @@ public abstract class CFloatUnitTest {
     return toReferenceImpl(new BigFloat(repr, getFloatType()));
   }
 
-  // (This test is here to check that parsing and printing of values is handles correctly by the
-  // implementation)
+  // (This test checks that test values are correctly convert to values in the implementation)
   @Test
   public void constTest() {
-    testOperator("id", 0, (CFloat a) -> a);
+    testOperator("const", 0, (CFloat a) -> a);
   }
 
   @Test
-  public void printTest() {
-    testStringFunction("show", (CFloat a) -> a.toString());
+  public void fromStringTest() {
+    ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
+    for (BigFloat arg : unaryTestValues()) {
+      BigFloat result = toReferenceImpl(toPlainString(arg)).toBigFloat();
+      testBuilder.add(new TestValue<>(arg, result));
+    }
+    ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
+    for (TestValue<BigFloat> test : testCases) {
+      try {
+        String testHeader = printTestHeader("fromString", test.arg1());
+        BigFloat result = BigFloat.NaN(getFloatType().precision);
+        try {
+          result = toTestedImpl(toPlainString(test.arg1())).toBigFloat();
+        } catch (Throwable t) {
+          assertWithMessage(testHeader + t).fail();
+        }
+        assertWithMessage(testHeader).that(printValue(result)).isEqualTo(printValue(test.result()));
+
+      } catch (AssertionError e) {
+        logBuilder.add(e.getMessage());
+      }
+    }
+    ImmutableList<String> errorLog = logBuilder.build();
+
+    if (!errorLog.isEmpty()) {
+      assertWithMessage(
+          "Failed on %s (out of %s) test inputs:%s",
+          errorLog.size(), testCases.size(), errorLog)
+          .fail();
+    }
+  }
+
+  @Test
+  public void toStringTest() {
+    testStringFunction("toString", (CFloat a) -> a.toString());
   }
 
   @Test
