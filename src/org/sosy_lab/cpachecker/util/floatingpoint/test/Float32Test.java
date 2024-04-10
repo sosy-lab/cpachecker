@@ -158,7 +158,7 @@ public class Float32Test extends CFloatUnitTest {
 
   @Ignore
   @Test
-  public void native_lnTest() {
+  public void roundingBugLnTest() {
     // Example of a value that is not correctly rounded by logf
     String val = "1.10175121e+00";
 

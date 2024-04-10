@@ -106,4 +106,38 @@ public class Float64Test extends CFloatUnitTest {
 
     assertEqual1Ulp(r1, r2);
   }
+
+  @Ignore
+  @Test
+  public void roundingBugExpTest() {
+    // Example of a value that is not correctly rounded by either Math.exp() or exp() from math.h
+    String val = "-2.920024588250959e-01";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Ignore
+  @Test
+  public void roundingBugPowTest() {
+    // This value is not correctly rounded by C, but works in Java
+    String val1 = "3.5355339059327379e-01";
+    String val2 = "-2.2021710233624257e+00";
+
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
 }
