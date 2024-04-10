@@ -94,7 +94,7 @@ jobject transformWrapperToJava(JNIEnv* env, t_ld fp_obj, jint type) {
 			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 0xFFFFFFFFFFFFFL));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)fp_obj.bitmask.exp_sig_pad));
+			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)fp_obj.bitmask.exp_sig_pad &0xFFFF));
 			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa));
 			break;
 		default:
