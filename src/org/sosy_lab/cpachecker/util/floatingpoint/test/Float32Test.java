@@ -155,4 +155,19 @@ public class Float32Test extends CFloatUnitTest {
 
     assertEqual1Ulp(r1, r2);
   }
+
+  @Ignore
+  @Test
+  public void native_lnTest() {
+    // Example of a value that is not correctly rounded by logf
+    String val = "1.10175121e+00";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.ln();
+    CFloat r2 = reference.ln();
+
+    assertEqual1Ulp(r1, r2);
+  }
 }
