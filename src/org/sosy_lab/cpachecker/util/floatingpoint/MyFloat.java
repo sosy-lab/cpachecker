@@ -1851,4 +1851,12 @@ public class MyFloat {
     return "%s%s.%s e%d"
         .formatted(value.sign ? "-" : "", bits.charAt(0), bits.substring(1), value.exponent);
   }
+
+  long extractExpBits() {
+    return value.exponent + format.bias();
+  }
+
+  BigInteger extractSigBits() {
+    return value.significand;
+  }
 }

@@ -792,7 +792,6 @@ public class CFloatTest {
   }
 
   @Test
-  @Ignore // Long double not supported yet
   public void toStringTest_longDoubleValueWithLeadingZero() {
     CFloat a = new CMyFloat("0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     CFloat b = new CFloatNative("0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
@@ -803,7 +802,6 @@ public class CFloatTest {
   }
 
   @Test
-  @Ignore // Long double not supported yet
   public void toStringTest_negativeLongDoubleValueWithLeadingZero() {
     CFloat a = new CMyFloat("-0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
@@ -836,7 +834,6 @@ public class CFloatTest {
   }
 
   @Test
-  @Ignore // FIXME: Long double not supported yet
   public void toStringTest_longDoubleValueWithZeroExponent() {
     CFloat a = new CMyFloat("1.000001", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
@@ -847,7 +844,6 @@ public class CFloatTest {
   }
 
   @Test
-  @Ignore // FIXME: Long double not supported yet
   public void castFloatToLongDoubleTest() {
     CFloat a = new CMyFloat("893473.378465376", CFloatNativeAPI.FP_TYPE_SINGLE);
     CFloat b = new CFloatNative("893473.378465376", CFloatNativeAPI.FP_TYPE_SINGLE);

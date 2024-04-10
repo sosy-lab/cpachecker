@@ -102,6 +102,12 @@ public class CMyFloat extends CFloat {
       long mantissa = bits & 0xFFFFFFFFFFFFFL;
       return new CFloatWrapper(exponent, mantissa);
     }
+    if (new Format(15, 63).equals(floatValue.getFormat())) {
+      long signBit = floatValue.isNegative() ? 1 << 15 : 0;
+      long exponent = signBit + floatValue.extractExpBits();
+      long mantissa = floatValue.extractSigBits().longValue();
+      return new CFloatWrapper(exponent, mantissa);
+    }
     throw new IllegalArgumentException();
   }
 
@@ -281,7 +287,7 @@ public class CMyFloat extends CFloat {
       case HALF -> new CMyFloat(delegate.withPrecision(Format.Float16));
       case SINGLE -> new CMyFloat(delegate.withPrecision(Format.Float32));
       case DOUBLE -> new CMyFloat(delegate.withPrecision(Format.Float64));
-      case LONG_DOUBLE -> throw new UnsupportedOperationException();
+      case LONG_DOUBLE -> new CMyFloat(delegate.withPrecision(new Format(15, 63)));
       default -> throw new IllegalArgumentException();
     };
   }
