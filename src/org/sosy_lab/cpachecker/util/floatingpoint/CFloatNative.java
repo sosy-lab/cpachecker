@@ -278,7 +278,11 @@ public class CFloatNative extends CFloat {
 
   @Override
   public String toString() {
-    return CFloatNativeAPI.printFp(wrapper, type).replaceAll("(\\.[0-9]+?)0*$", "$1");
+    if (isZero()) {
+      return isNegative() ? "-0.0" : "0.0";
+    }
+    String repr = CFloatNativeAPI.printFp(wrapper, type);
+    return repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
   }
 
   @Override

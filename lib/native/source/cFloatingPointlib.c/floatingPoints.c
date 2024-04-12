@@ -147,14 +147,6 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 	return wrapper;
 }
 
-// We borrow this definition from MPFR:
-// "Return the minimal integer m such that any number of p bits, when output with m digits
-//  in radix b with rounding to nearest, can be recovered exactly when read again, still with
-//  rounding to nearest."
-int neededDigits(int p) {
-  return 1 + (int) ceil(p * log(2)/log(10));
-}
-
 /**
  * Function to create a string representation of a
  * floating point type, to be able to print it correctly
@@ -166,15 +158,13 @@ JNIEXPORT jstring JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 
 	switch(type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-		        // I've no idea why we need to use p+1 for neededDigits.
-		        // It works fine with p bits if %.*e is used.
-			snprintf(s, 100, "%.*g", neededDigits(24 + 1), fp_obj.f_value);
+		        snprintf(s, 100, "%.*e", 8, fp_obj.f_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			snprintf(s, 100, "%.*g", neededDigits(53 + 1), fp_obj.d_value);
+			snprintf(s, 100, "%.*e", 16, fp_obj.d_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			snprintf(s, 100, "%.*Lg", neededDigits(64 + 1), fp_obj.ld_value);
+			snprintf(s, 100, "%.*Le", 19, fp_obj.ld_value);
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);
