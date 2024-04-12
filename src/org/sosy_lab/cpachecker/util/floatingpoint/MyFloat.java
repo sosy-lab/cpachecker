@@ -1839,11 +1839,16 @@ public class MyFloat {
     BigDecimal a = new BigDecimal(significand);
     BigDecimal b = a.multiply(r);
 
-    // Apply rounding and print the output string
-    String repr =
+    // Apply rounding
+    BigDecimal rounded =
         b.plus(new MathContext(neededDigits(), java.math.RoundingMode.HALF_EVEN))
-            .stripTrailingZeros()
-            .toString();
+            .stripTrailingZeros();
+
+    // Print the output string
+    String repr = String.format("%." + neededDigits() + "e", rounded);
+    repr = repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
+
+    // Add the sign if necessary
     return isNegative() ? "-" + repr : repr;
   }
 
