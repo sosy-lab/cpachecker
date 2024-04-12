@@ -1536,9 +1536,13 @@ public class MyFloat {
   }
 
   public MyFloat roundToInteger(RoundingMode rm) {
-    // If we have a special value, just return it
-    if (isNan() || isInfinite()) {
+    // If the argument is infinite, just return it
+    if (isInfinite()) {
       return this;
+    }
+    // For -NaN we drop the sign to make the implementation in line with MPFR
+    if (isNan()) {
+      return this.abs();
     }
     // If the exponent is large enough we already have an integer and can return immediately
     if (value.exponent > format.sigBits) {
