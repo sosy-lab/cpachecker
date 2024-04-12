@@ -209,12 +209,10 @@ public abstract class CFloatUnitTest {
     }
   }
 
-  private static double lb(double number) {
-    return Math.log(number) / Math.log(2);
-  }
-
   private static int calculateExpWidth(BinaryMathContext pFormat) {
-    return (int) Math.ceil(lb(2 * pFormat.maxExponent + 1));
+    BigInteger val = BigInteger.valueOf(2 * pFormat.maxExponent + 1);
+    int r = val.bitLength() - 1;
+    return val.bitCount() > 1 ? r + 1 : r;
   }
 
   private static String toBits(BinaryMathContext format, BigFloat value) {
