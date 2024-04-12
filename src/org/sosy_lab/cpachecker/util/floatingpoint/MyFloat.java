@@ -1053,7 +1053,7 @@ public class MyFloat {
   }
 
   // Statistics for exp(...)
-  public static final Map<Integer, Integer> expStats = new HashMap<>();
+  static final Map<Integer, Integer> expStats = new HashMap<>();
 
   private ImmutableList<Format> expExtFormats() {
     if (format.equals(Format.Float8)) {
@@ -1194,7 +1194,7 @@ public class MyFloat {
     return r;
   }
 
-  public static final Map<Integer, Integer> lnStats = new HashMap<>();
+  static final Map<Integer, Integer> lnStats = new HashMap<>();
 
   private ImmutableList<Format> lnExtFormats() {
     if (format.equals(Format.Float8)) {
@@ -1460,7 +1460,7 @@ public class MyFloat {
     return r.withPrecision(format);
   }
 
-  public static final Map<Integer, Integer> powStats = new HashMap<>();
+  static final Map<Integer, Integer> powStats = new HashMap<>();
 
   private ImmutableList<Format> powExtFormats() {
     if (format.equals(Format.Float8)) {
