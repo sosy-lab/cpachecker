@@ -552,7 +552,8 @@ public abstract class CFloatUnitTest {
         }
         if (!result.equals(test.result())) {
           String testHeader = printTestHeader("fromString", test.arg1());
-          assertWithMessage(testHeader).that(printValue(result))
+          assertWithMessage(testHeader)
+              .that(printValue(result))
               .isEqualTo(printValue(test.result()));
         }
 

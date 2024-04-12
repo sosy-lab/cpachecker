@@ -1810,7 +1810,8 @@ public class MyFloat {
 
     // Alternatively: Use MPFR for the conversion
     // BinaryMathContext p = new BinaryMathContext(format.sigBits + 1, format.expBits);
-    // return new BigFloat(value.sign, value.significand, value.exponent, p).toString("%." + neededDigits() + "Rg");
+    // return new BigFloat(value.sign, value.significand, value.exponent, p).toString("%." +
+    // neededDigits() + "Rg");
 
     // Get the exponent and the significand
     BigInteger significand = value.significand;
