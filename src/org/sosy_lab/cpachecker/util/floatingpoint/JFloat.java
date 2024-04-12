@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 /* Implementation of the CFloat interface that uses Java floats */
@@ -74,7 +76,10 @@ public class JFloat extends CFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    return String.format("%.6e", value);
+    BigDecimal decimal =
+        BigDecimal.valueOf(value).plus(new MathContext(9, java.math.RoundingMode.HALF_EVEN));
+    String repr = String.format("%.9e", decimal);
+    return repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
   }
 
   @Override
