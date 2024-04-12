@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -249,26 +250,16 @@ public abstract class CFloatUnitTest {
 
   // Returns a list of all float values in the error range
   private List<String> errorRange(int pDistance, BigFloat pValue) {
-    ImmutableList.Builder<String> builder = ImmutableList.builder();
-    builder.add(printValue(pValue));
-    return builder.build();
-
-    /* FIXME: Translate to BigFloat
-    Preconditions.checkArgument(pDistance >= 0);
-    if (pValue.isNaN()) {
+    if (pDistance == 0 || pValue.isNaN()) {
       return ImmutableList.of(printValue(pValue));
     }
-    float ulp = Math.ulp(pValue);
-    if (pValue == 0.0f) { // for zero we look at the closest subnormal numbers
-      ulp = Float.MIN_VALUE;
+    if (pDistance == 1) {
+      BigFloat minus1Ulp = pValue.nextDown(getFloatType().minExponent, getFloatType().maxExponent);
+      BigFloat plus1Ulp = pValue.nextUp(getFloatType().minExponent, getFloatType().maxExponent);
+
+      return ImmutableList.of(printValue(minus1Ulp), printValue(pValue), printValue(plus1Ulp));
     }
-    ImmutableList.Builder<String> builder = ImmutableList.builder();
-    for (int p = -pDistance; p <= pDistance; p++) {
-      float value = p == 0 ? pValue : pValue + p * ulp; // adding 0 messes up the sign for -0.0
-      builder.add(printValue(value));
-    }
-    return builder.build();
-    */
+    throw new IllegalArgumentException();
   }
 
   protected void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
@@ -453,7 +444,7 @@ public abstract class CFloatUnitTest {
           String testHeader = printTestHeader(name, test.arg1(), test.arg2());
           assertWithMessage(testHeader + t).fail();
         }
-        if (!result.equals(test.result())) {
+        if (!Objects.equals(result, test.result())) {
           String testHeader = printTestHeader(name, test.arg1(), test.arg2());
           assertWithMessage(testHeader).that(result).isEqualTo(test.result());
         }
@@ -490,7 +481,7 @@ public abstract class CFloatUnitTest {
           String testHeader = printTestHeader(name, test.arg1());
           assertWithMessage(testHeader + t).fail();
         }
-        if (!result.equals(test.result())) {
+        if (!Objects.equals(result, test.result())) {
           String testHeader = printTestHeader(name, test.arg1());
           assertWithMessage(testHeader).that(result).isEqualTo(test.result());
         }
