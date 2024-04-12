@@ -284,19 +284,22 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (TestValue<BigFloat> test : testCases) {
       try {
-        String testHeader = printTestHeader(name, test.arg1());
         CFloat tested = toTestedImpl(test.arg1());
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
           result = operator.apply(tested).toBigFloat();
         } catch (Throwable t) {
+          String testHeader = printTestHeader(name, test.arg1());
           assertWithMessage(testHeader + t).fail();
         }
-        StringSubject value = assertWithMessage(testHeader).that(printValue(result));
-        if (ulps == 0) {
-          value.isEqualTo(printValue(test.result()));
-        } else {
-          value.isIn(errorRange(ulps, test.result()));
+        if (!result.equals(test.result())) {
+          String testHeader = printTestHeader(name, test.arg1());
+          StringSubject value = assertWithMessage(testHeader).that(printValue(result));
+          if (ulps == 0) {
+            value.isEqualTo(printValue(test.result()));
+          } else {
+            value.isIn(errorRange(ulps, test.result()));
+          }
         }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
@@ -325,20 +328,23 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (TestValue<BigFloat> test : testCases) {
       try {
-        String testHeader = printTestHeader(name, test.arg1(), test.arg2());
         CFloat tested1 = toTestedImpl(test.arg1());
         CFloat tested2 = toTestedImpl(test.arg2());
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
           result = operator.apply(tested1, tested2).toBigFloat();
         } catch (Throwable t) {
+          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
           assertWithMessage(testHeader + t).fail();
         }
-        StringSubject value = assertWithMessage(testHeader).that(printValue(result));
-        if (ulps == 0) {
-          value.isEqualTo(printValue(test.result()));
-        } else {
-          value.isIn(errorRange(ulps, test.result()));
+        if (!result.equals(test.result())) {
+          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+          StringSubject value = assertWithMessage(testHeader).that(printValue(result));
+          if (ulps == 0) {
+            value.isEqualTo(printValue(test.result()));
+          } else {
+            value.isIn(errorRange(ulps, test.result()));
+          }
         }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
@@ -364,15 +370,18 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (TestValue<Boolean> test : testCases) {
       try {
-        String testHeader = printTestHeader(name, test.arg1());
         CFloat tested = toTestedImpl(test.arg1());
         boolean result = true;
         try {
           result = predicate.test(tested);
         } catch (Throwable t) {
+          String testHeader = printTestHeader(name, test.arg1());
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        if (result != test.result()) {
+          String testHeader = printTestHeader(name, test.arg1());
+          assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -401,16 +410,19 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (TestValue<Boolean> test : testCases) {
       try {
-        String testHeader = printTestHeader(name, test.arg1(), test.arg2());
         CFloat tested1 = toTestedImpl(test.arg1());
         CFloat tested2 = toTestedImpl(test.arg2());
         boolean result = true;
         try {
           result = predicate.apply(tested1, tested2);
         } catch (Throwable t) {
+          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        if (result != test.result()) {
+          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+          assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -435,15 +447,18 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (TestValue<Number> test : testCases) {
       try {
-        String testHeader = printTestHeader(name, test.arg1());
         CFloat tested = toTestedImpl(test.arg1());
         Number result = null;
         try {
           result = function.apply(tested);
         } catch (Throwable t) {
+          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        if (!result.equals(test.result())) {
+          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+          assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -469,15 +484,18 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (TestValue<String> test : testCases) {
       try {
-        String testHeader = printTestHeader(name, test.arg1());
         CFloat tested = toTestedImpl(test.arg1());
         String result = null;
         try {
           result = function.apply(tested);
         } catch (Throwable t) {
+          String testHeader = printTestHeader(name, test.arg1());
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        if (!result.equals(test.result())) {
+          String testHeader = printTestHeader(name, test.arg1());
+          assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -525,14 +543,18 @@ public abstract class CFloatUnitTest {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (TestValue<BigFloat> test : testCases) {
       try {
-        String testHeader = printTestHeader("fromString", test.arg1());
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
           result = toTestedImpl(toPlainString(test.arg1())).toBigFloat();
         } catch (Throwable t) {
+          String testHeader = printTestHeader("fromString", test.arg1());
           assertWithMessage(testHeader + t).fail();
         }
-        assertWithMessage(testHeader).that(printValue(result)).isEqualTo(printValue(test.result()));
+        if (!result.equals(test.result())) {
+          String testHeader = printTestHeader("fromString", test.arg1());
+          assertWithMessage(testHeader).that(printValue(result))
+              .isEqualTo(printValue(test.result()));
+        }
 
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
