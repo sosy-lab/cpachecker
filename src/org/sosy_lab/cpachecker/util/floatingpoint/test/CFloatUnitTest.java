@@ -504,8 +504,8 @@ public abstract class CFloatUnitTest {
 
     if (!errorLog.isEmpty()) {
       assertWithMessage(
-          "Failed on %s (out of %s) test inputs:%s",
-          errorLog.size(), testCases.size(), errorLog)
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
   }
@@ -565,8 +565,8 @@ public abstract class CFloatUnitTest {
 
     if (!errorLog.isEmpty()) {
       assertWithMessage(
-          "Failed on %s (out of %s) test inputs:%s",
-          errorLog.size(), testCases.size(), errorLog)
+              "Failed on %s (out of %s) test inputs:%s",
+              errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
   }
