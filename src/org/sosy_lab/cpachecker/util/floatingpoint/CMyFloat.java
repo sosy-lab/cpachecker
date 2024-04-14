@@ -144,17 +144,25 @@ public class CMyFloat extends CFloat {
   @Override
   public CFloat add(CFloat pSummand) {
     if (pSummand instanceof CMyFloat mySummand) {
-      return new CMyFloat(delegate.add(mySummand.delegate));
+      Format p = delegate.getFormat().sup(mySummand.delegate.getFormat());
+      MyFloat arg1 = delegate.withPrecision(p);
+      MyFloat arg2 = mySummand.delegate.withPrecision(p);
+      return new CMyFloat(arg1.add(arg2));
     }
     throw new UnsupportedOperationException();
   }
 
   @Override
   public CFloat add(CFloat... pSummands) {
-    MyFloat r = delegate;
+    Format p = new Format(0, 0);
     for (CFloat f : pSummands) {
       CMyFloat mf = (CMyFloat) f;
-      r = r.add(mf.delegate);
+      p = p.sup(mf.delegate.getFormat());
+    }
+    MyFloat r = delegate.withPrecision(p);
+    for (CFloat f : pSummands) {
+      CMyFloat mf = (CMyFloat) f;
+      r = r.add(mf.delegate.withPrecision(p));
     }
     return new CMyFloat(r);
   }
@@ -162,17 +170,25 @@ public class CMyFloat extends CFloat {
   @Override
   public CFloat multiply(CFloat pFactor) {
     if (pFactor instanceof CMyFloat myFactor) {
-      return new CMyFloat(delegate.multiply(myFactor.delegate));
+      Format p = delegate.getFormat().sup(myFactor.delegate.getFormat());
+      MyFloat arg1 = delegate.withPrecision(p);
+      MyFloat arg2 = myFactor.delegate.withPrecision(p);
+      return new CMyFloat(arg1.multiply(arg2));
     }
     throw new UnsupportedOperationException();
   }
 
   @Override
   public CFloat multiply(CFloat... pFactors) {
-    MyFloat r = delegate;
+    Format p = new Format(0, 0);
     for (CFloat f : pFactors) {
       CMyFloat mf = (CMyFloat) f;
-      r = r.multiply(mf.delegate);
+      p = p.sup(mf.delegate.getFormat());
+    }
+    MyFloat r = delegate.withPrecision(p);
+    for (CFloat f : pFactors) {
+      CMyFloat mf = (CMyFloat) f;
+      r = r.multiply(mf.delegate.withPrecision(p));
     }
     return new CMyFloat(r);
   }
@@ -180,7 +196,10 @@ public class CMyFloat extends CFloat {
   @Override
   public CFloat subtract(CFloat pSubtrahend) {
     if (pSubtrahend instanceof CMyFloat mySubtrahend) {
-      return new CMyFloat(delegate.subtract(mySubtrahend.delegate));
+      Format p = delegate.getFormat().sup(mySubtrahend.delegate.getFormat());
+      MyFloat arg1 = delegate.withPrecision(p);
+      MyFloat arg2 = mySubtrahend.delegate.withPrecision(p);
+      return new CMyFloat(arg1.subtract(arg2));
     }
     throw new UnsupportedOperationException();
   }
@@ -188,7 +207,10 @@ public class CMyFloat extends CFloat {
   @Override
   public CFloat divideBy(CFloat pDivisor) {
     if (pDivisor instanceof CMyFloat myDivisor) {
-      return new CMyFloat(delegate.divide(myDivisor.delegate));
+      Format p = delegate.getFormat().sup(myDivisor.delegate.getFormat());
+      MyFloat arg1 = delegate.withPrecision(p);
+      MyFloat arg2 = myDivisor.delegate.withPrecision(p);
+      return new CMyFloat(arg1.divide(arg2));
     }
     throw new UnsupportedOperationException();
   }
@@ -206,7 +228,10 @@ public class CMyFloat extends CFloat {
   @Override
   public CFloat powTo(CFloat pExponent) {
     if (pExponent instanceof CMyFloat myExponent) {
-      return new CMyFloat(delegate.pow(myExponent.delegate));
+      Format p = delegate.getFormat().sup(myExponent.delegate.getFormat());
+      MyFloat arg1 = delegate.withPrecision(p);
+      MyFloat arg2 = myExponent.delegate.withPrecision(p);
+      return new CMyFloat(arg1.pow(arg2));
     }
     throw new UnsupportedOperationException();
   }

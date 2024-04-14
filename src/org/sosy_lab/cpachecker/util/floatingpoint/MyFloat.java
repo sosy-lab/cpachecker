@@ -105,6 +105,12 @@ public class MyFloat {
       }
       return new Format(20, 2 * sigBits + 1);
     }
+
+    public Format sup(Format other) {
+      int newExp = Math.max(expBits, other.expBits);
+      int newSig = Math.max(sigBits, other.sigBits);
+      return new Format(newExp, newSig);
+    }
   }
 
   // Stores a floating point value
@@ -235,10 +241,7 @@ public class MyFloat {
   }
 
   public boolean isZero() {
-    boolean b1 = value.exponent == format.minExp() - 1;
-    boolean b2 = value.significand.equals(BigInteger.ZERO);
-    return b1 && b2; // (value.exponent == format.minExp() - 1) &&
-    // value.significand.equals(BigInteger.ZERO);
+    return (value.exponent == format.minExp() - 1) && value.significand.equals(BigInteger.ZERO);
   }
 
   public boolean isOne() {
