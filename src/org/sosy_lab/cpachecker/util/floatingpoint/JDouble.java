@@ -78,7 +78,7 @@ public class JDouble extends CFloat {
     }
     BigDecimal decimal =
         BigDecimal.valueOf(value).plus(new MathContext(17, java.math.RoundingMode.HALF_EVEN));
-    String repr = String.format("%.16e", decimal);
+    String repr = String.format("%.17e", decimal);
     return repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
   }
 

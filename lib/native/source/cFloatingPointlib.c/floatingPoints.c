@@ -164,7 +164,7 @@ JNIEXPORT jstring JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			snprintf(s, 100, "%.*e", 16, fp_obj.d_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			snprintf(s, 100, "%.*Le", 19, fp_obj.ld_value);
+			snprintf(s, 100, "%.*Le", 20, fp_obj.ld_value);
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);

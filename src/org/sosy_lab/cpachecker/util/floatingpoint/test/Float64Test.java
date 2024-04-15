@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint.test;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -139,5 +141,18 @@ public class Float64Test extends CFloatUnitTest {
     CFloat r2 = reference1.powTo(reference2);
 
     assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void toStringBugTest() {
+    String val = "1.000001";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    String r1 = tested.toString();
+    String r2 = reference.toString();
+
+    assertThat(r1).isEqualTo(r2);
   }
 }
