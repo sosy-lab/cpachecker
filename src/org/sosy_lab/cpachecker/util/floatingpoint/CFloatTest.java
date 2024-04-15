@@ -166,7 +166,6 @@ public class CFloatTest {
     assertThat(zero.multiply(nZero).toString()).isEqualTo("-0.0");
   }
 
-  // FIXME: The test probably fails because the arguments have different bit sizes
   @Test
   public void additionTest() {
     CFloat ten = new CMyFloat("10", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -215,6 +214,9 @@ public class CFloatTest {
     assertThat(res.toString()).isEqualTo("1.00000036e+00");
 
     wrapper.setExponent(wrapper.getExponent() - 1);
+    // FIXME: We need to update the CFloat after the wrapper changed as our code is non-mutable
+    bIFractioned = new CMyFloat(wrapper, bI.getType());
+
     resI2 = resI.add(bI.add(bIFractioned));
     res = new CFloatNative(resI2.copyWrapper(), resI2.getType());
 
@@ -233,7 +235,7 @@ public class CFloatTest {
     resI = aI.add(bI);
     resI2 = aI.add(bI2);
 
-    assertThat(new CFloatNative(resI.copyWrapper(), resI.getType()).toString()).isEqualTo("1");
+    assertThat(new CFloatNative(resI.copyWrapper(), resI.getType()).toString()).isEqualTo("1e+00");
     assertThat(new CFloatNative(resI2.copyWrapper(), resI2.getType()).toString())
         .isEqualTo("1.00000012e+00");
   }
@@ -267,10 +269,12 @@ public class CFloatTest {
     assertThat(res.toString()).isEqualTo("1.0000000000000007e+00");
 
     wrapper.setExponent(wrapper.getExponent() - 1);
+    // FIXME: We need to update the CFloat after the wrapper changed as our code is non-mutable
+    bIFractioned = new CMyFloat(wrapper, bI.getType());
+
     resI2 = resI.add(bI.add(bIFractioned));
     res = new CFloatNative(resI2.copyWrapper(), resI2.getType());
 
-    // FIXME: We get 1.0000000000000007
     assertThat(res.toString()).isEqualTo("1.0000000000000004e+00");
   }
 
@@ -445,11 +449,9 @@ public class CFloatTest {
 
     wrapperB.setMantissa(
         0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L);
+    // FIXME: We need to update the CFloat after the wrapper changed as our code is non-mutable
+    bI = new CMyFloat(wrapperB, bI.getType());
 
-    // FIXME: Fails here:
-    //  value of: getMantissa()
-    //  expected: 1
-    //  but was : 0
     assertThat(aI.subtract(bI).copyWrapper().getMantissa()).isEqualTo(1);
     assertThat(bI.subtract(aI).copyWrapper().getMantissa()).isEqualTo(1);
 
@@ -477,6 +479,8 @@ public class CFloatTest {
 
     wrapperB.setMantissa(
         0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L);
+    // FIXME: We need to update the CFloat after the wrapper changed as our code is non-mutable
+    bI = new CMyFloat(wrapperB, bI.getType());
 
     assertThat(aI.subtract(bI).copyWrapper().getMantissa()).isEqualTo(-9223372036854775807L);
     assertThat(bI.subtract(aI).copyWrapper().getMantissa()).isEqualTo(-9223372036854775807L);
