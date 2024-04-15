@@ -77,12 +77,14 @@ public class CMyFloat extends CFloat {
     // Shift the exponent and convert the values
     boolean sign = signBit != 0;
     long exponent = exponentBits - format.bias();
-    BigInteger mantissa = BigInteger.valueOf(mantissaBits);
+    BigInteger mantissa = new BigInteger(Long.toUnsignedString(mantissaBits));
 
-    // Check that the value is "normal" (= not 0, Inf or NaN) and add the missing 1 to the mantissa
-    if (exponentBits != 0 && exponentBits != exponentMask) {
-      BigInteger leadingOne = BigInteger.ONE.shiftLeft(format.getSigBits());
-      mantissa = mantissa.add(leadingOne);
+    // Check if the value is "normal" (= not 0, Inf or NaN) and add the missing 1 to the mantissa.
+    if (pType != CNativeType.LONG_DOUBLE) { // Extended precision has no hidden bit
+      if (exponentBits != 0 && exponentBits != exponentMask) {
+        BigInteger leadingOne = BigInteger.ONE.shiftLeft(format.getSigBits());
+        mantissa = mantissa.add(leadingOne);
+      }
     }
     return new MyFloat(format, sign, exponent, mantissa);
   }
