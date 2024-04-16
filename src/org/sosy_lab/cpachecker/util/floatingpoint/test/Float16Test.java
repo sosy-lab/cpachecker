@@ -47,6 +47,11 @@ public class Float16Test extends CFloatUnitTest {
   }
 
   @Override
+  public CFloat toTestedImpl(String repr) {
+    return new CMyFloat(repr, getFloatType());
+  }
+
+  @Override
   public CFloat toReferenceImpl(BigFloat value) {
     return new MpfrFloat(value, getFloatType());
   }

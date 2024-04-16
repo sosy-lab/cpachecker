@@ -505,9 +505,7 @@ public abstract class CFloatUnitTest {
 
   protected abstract CFloat toTestedImpl(BigFloat value);
 
-  protected CFloat toTestedImpl(String repr) {
-    return toTestedImpl(new BigFloat(repr, getFloatType()));
-  }
+  protected abstract CFloat toTestedImpl(String repr);
 
   protected abstract CFloat toReferenceImpl(BigFloat value);
 

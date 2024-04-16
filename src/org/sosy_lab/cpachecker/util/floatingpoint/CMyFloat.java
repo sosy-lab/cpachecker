@@ -35,6 +35,11 @@ public class CMyFloat extends CFloat {
     wrapper = fromImpl(delegate);
   }
 
+  public CMyFloat(String repr, BinaryMathContext pFormat) {
+    delegate = parseFloat(repr, pFormat);
+    wrapper = fromImpl(delegate);
+  }
+
   public CMyFloat(BigFloat value, BinaryMathContext pFormat) {
     Format format = new Format(calculateExpWidth(pFormat), pFormat.precision - 1);
     delegate = MyFloat.fromBigFloat(format, value);
@@ -136,11 +141,7 @@ public class CMyFloat extends CFloat {
     if ("0.0".equals(repr)) {
       return MyFloat.zero(format);
     }
-    BigFloat floatValue = new BigFloat(repr, pFormat);
-    long min = pFormat.minExponent;
-    long max = pFormat.maxExponent;
-    return new MyFloat(
-        format, floatValue.sign(), floatValue.exponent(min, max), floatValue.significand(min, max));
+    return MyFloat.fromString(format, repr);
   }
 
   @Override

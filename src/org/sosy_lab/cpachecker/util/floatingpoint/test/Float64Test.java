@@ -51,6 +51,11 @@ public class Float64Test extends CFloatUnitTest {
   }
 
   @Override
+  public CFloat toTestedImpl(String repr) {
+    return new CMyFloat(repr, getFloatType());
+  }
+
+  @Override
   public CFloat toReferenceImpl(BigFloat value) {
     return switch (refImpl) {
       case MPFR -> new MpfrFloat(value, getFloatType());
