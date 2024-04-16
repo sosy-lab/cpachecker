@@ -1197,7 +1197,7 @@ public class MyFloat {
     return r;
   }
 
-  static final Map<Integer, Integer> lnStats = new HashMap<>();
+  public static final Map<Integer, Integer> lnStats = new HashMap<>();
 
   private ImmutableList<Format> lnExtFormats() {
     if (format.equals(Format.Float8)) {
@@ -1463,7 +1463,7 @@ public class MyFloat {
     return r.withPrecision(format);
   }
 
-  static final Map<Integer, Integer> powStats = new HashMap<>();
+  public static final Map<Integer, Integer> powStats = new HashMap<>();
 
   private ImmutableList<Format> powExtFormats() {
     if (format.equals(Format.Float8)) {
