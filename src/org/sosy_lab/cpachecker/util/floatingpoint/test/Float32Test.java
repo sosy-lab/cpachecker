@@ -59,7 +59,7 @@ public class Float32Test extends CFloatUnitTest {
     return switch (refImpl) {
       case MPFR -> new MpfrFloat(value, getFloatType());
       case JAVA -> new JFloat(value.floatValue());
-      case NATIVE -> new CFloatNative(value.toString(), getFloatType());
+      case NATIVE -> new CFloatNative(toPlainString(value), getFloatType());
     };
   }
 
