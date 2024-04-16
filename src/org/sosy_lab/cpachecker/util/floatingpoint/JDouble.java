@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
+import org.kframework.mpfr.BigFloat;
+import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 /* Implementation of the CFloat interface that uses Java doubles */
@@ -23,7 +23,7 @@ public class JDouble extends CFloat {
   }
 
   public JDouble(String repr, int floatType) {
-    assert floatType == 1;
+    assert floatType == 2;
     value = parseDouble(repr);
     wrapper = fromFloat(value);
   }
@@ -76,9 +76,12 @@ public class JDouble extends CFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    BigDecimal decimal =
-        BigDecimal.valueOf(value).plus(new MathContext(17, java.math.RoundingMode.HALF_EVEN));
-    String repr = String.format("%.17e", decimal);
+    // FIXME: Find a solution that doesn't require BigFloat
+    // Both of these return different results from MPFR:
+    // String repr = String.format("%.17e", BigDecimal.valueOf(value));
+    // String repr = Double.toString(value);
+    BigFloat v = new BigFloat(value, BinaryMathContext.BINARY64);
+    String repr = v.toString().replaceAll(",", ".");
     return repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
   }
 
