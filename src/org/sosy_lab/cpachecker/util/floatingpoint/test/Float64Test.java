@@ -20,6 +20,7 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatUnitTest;
 import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.JDouble;
 import org.sosy_lab.cpachecker.util.floatingpoint.MpfrFloat;

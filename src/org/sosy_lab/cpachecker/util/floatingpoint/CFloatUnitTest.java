@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.floatingpoint.test;
+package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.truth.Truth.assertThat;
@@ -30,8 +30,6 @@ import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 public abstract class CFloatUnitTest {
