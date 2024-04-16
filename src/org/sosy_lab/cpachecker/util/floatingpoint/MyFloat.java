@@ -1765,7 +1765,7 @@ public class MyFloat {
       builder.add(new Format(15, format.sigBits + 5));
       builder.add(new Format(15, format.sigBits + 15));
       for (int i = 16; i < 32; i++) {
-        builder.add(new Format(11, format.sigBits + i));
+        builder.add(new Format(15, format.sigBits + i));
       }
       return builder.build();
     }
@@ -1779,7 +1779,7 @@ public class MyFloat {
       builder.add(new Format(15, format.sigBits + 6));
       builder.add(new Format(15, format.sigBits + 12));
       for (int i = 13; i < 32; i++) {
-        builder.add(new Format(11, format.sigBits + i));
+        builder.add(new Format(15, format.sigBits + i));
       }
       return builder.build();
     }
@@ -1924,8 +1924,7 @@ public class MyFloat {
 
     // Round the result down to p significand digits
     BigDecimal rounded =
-        b.plus(new MathContext(p, java.math.RoundingMode.HALF_EVEN))
-            .stripTrailingZeros();
+        b.plus(new MathContext(p, java.math.RoundingMode.HALF_EVEN)).stripTrailingZeros();
 
     // Print the output string
     String repr = String.format("%." + p + "e", rounded);
