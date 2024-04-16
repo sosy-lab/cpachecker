@@ -1056,7 +1056,7 @@ public class MyFloat {
   }
 
   // Statistics for exp(...)
-  static final Map<Integer, Integer> expStats = new HashMap<>();
+  public static final Map<Integer, Integer> expStats = new HashMap<>();
 
   private ImmutableList<Format> expExtFormats() {
     if (format.equals(Format.Float8)) {
@@ -1735,17 +1735,47 @@ public class MyFloat {
     return new BigFloat(value.sign, value.significand, value.exponent, context);
   }
 
-  private static MyFloat buildValue(Format p, boolean sign, String digits, int exponent) {
+  private static ImmutableList<Format> fromStringExtFormats(Format p) {
+    ImmutableList.Builder<Format> builder = ImmutableList.builder();
+    for (int i = 1; i < 100; i++) {
+      builder.add(new Format(20, p.sigBits + i));
+    }
+    return builder.build();
+  }
+
+  // Statistics for fromString(...)
+  public static final Map<Integer, Integer> fromStringStats = new HashMap<>();
+
+  private static MyFloat buildValue(Format p, boolean sign, String digits, long exponent) {
     BigInteger mantissa = new BigInteger(digits);
     if (mantissa.equals(BigInteger.ZERO)) {
       return sign ? negativeZero(p) : zero(p);
     }
-    // FIXME: Likely broken for large p? Make sure that we round correctly.
-    Format ext = p.extended();
-    MyFloat f = constant(ext, mantissa);
-    MyFloat e = constant(ext, 10).powInt(BigInteger.valueOf(exponent - digits.length() + 1));
-    MyFloat val = f.multiply(e);
-    return (sign ? val.negate() : val).withPrecision(p);
+
+    boolean done = false;
+    MyFloat r = nan(p);
+
+    for (Format ext : fromStringExtFormats(p)) {
+      if (!done) {
+        int diff = ext.sigBits - p.sigBits;
+
+        MyFloat f = constant(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
+        MyFloat e =
+            constant(ext, 10).powInt(BigInteger.valueOf(exponent - (digits.length() + diff) + 1));
+
+        MyFloat val1 = f.plus1Ulp().multiply(e);
+        MyFloat val2 = f.minus1Ulp().multiply(e);
+
+        if (equalModuloP(p, val1, val2) && r.isStable(val1.validPart())) {
+          done = true;
+          r = sign ? val1.negate() : val1;
+
+          // Update statistics
+          fromStringStats.put(diff, fromStringStats.getOrDefault(diff, 0) + 1);
+        }
+      }
+    }
+    return r.withPrecision(p);
   }
 
   public static MyFloat fromString(Format p, String input) {

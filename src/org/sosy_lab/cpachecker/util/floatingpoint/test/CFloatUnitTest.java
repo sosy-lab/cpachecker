@@ -70,7 +70,7 @@ public abstract class CFloatUnitTest {
   }
 
   // Convert floating point value to its decimal representation
-  private static String toPlainString(BigFloat value) {
+  public static String toPlainString(BigFloat value) {
     String r = printBigFloat(value);
     if (r.contains("e")) {
       r = new BigDecimal(r).toPlainString();
@@ -523,7 +523,7 @@ public abstract class CFloatUnitTest {
   public void fromStringTest() {
     ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
-      BigFloat result = toReferenceImpl(toPlainString(arg)).toBigFloat();
+      BigFloat result = toReferenceImpl(printBigFloat(arg)).toBigFloat();
       testBuilder.add(new TestValue<>(arg, result));
     }
     ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
@@ -532,7 +532,7 @@ public abstract class CFloatUnitTest {
       try {
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
-          result = toTestedImpl(toPlainString(test.arg1())).toBigFloat();
+          result = toTestedImpl(printBigFloat(test.arg1())).toBigFloat();
         } catch (Throwable t) {
           String testHeader = printTestHeader("fromString", test.arg1());
           assertWithMessage(testHeader + t).fail();
@@ -556,6 +556,7 @@ public abstract class CFloatUnitTest {
               errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
+    // printStatistics(MyFloat.fromStringStats);
   }
 
   @Test
