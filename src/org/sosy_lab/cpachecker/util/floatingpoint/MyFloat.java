@@ -1735,10 +1735,58 @@ public class MyFloat {
     return new BigFloat(value.sign, value.significand, value.exponent, context);
   }
 
-  private static ImmutableList<Format> fromStringExtFormats(Format p) {
+  private static ImmutableList<Format> fromStringExtFormats(Format format) {
+    // Whereas for the transcendental functions we can find one extended format that will work for
+    // all inputs, here we need to use provide several as the rewrite in buildValue only works for
+    // powers of ten.
+    // TODO: Find a better solution
+
+    if (format.equals(Format.Float8)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      3      3      3      3      4      4      4      4      4      9
+      Format p = new Format(11, format.sigBits + 12);
+      return ImmutableList.of(p);
+    }
+    if (format.equals(Format.Float16)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      3      3      3      3      4      4      4      4      5     12
+      Format p1 = new Format(11, format.sigBits + 3);
+      Format p2 = new Format(11, format.sigBits + 4);
+      Format p3 = new Format(11, format.sigBits + 5);
+      Format p4 = new Format(11, format.sigBits + 12);
+      return ImmutableList.of(p1, p2, p3, p4);
+    }
+    if (format.equals(Format.Float32)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      3      3      3      3      4      4      4      4      5     11
+      ImmutableList.Builder<Format> builder = ImmutableList.builder();
+      builder.add(new Format(15, format.sigBits + 3));
+      builder.add(new Format(15, format.sigBits + 4));
+      builder.add(new Format(15, format.sigBits + 5));
+      builder.add(new Format(15, format.sigBits + 15));
+      for (int i = 16; i < 32; i++) {
+        builder.add(new Format(11, format.sigBits + i));
+      }
+      return builder.build();
+    }
+    if (format.equals(Format.Float64)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // p      3      3      3      4      4      4      4      5      6     10
+      ImmutableList.Builder<Format> builder = ImmutableList.builder();
+      builder.add(new Format(15, format.sigBits + 3));
+      builder.add(new Format(15, format.sigBits + 4));
+      builder.add(new Format(15, format.sigBits + 5));
+      builder.add(new Format(15, format.sigBits + 6));
+      builder.add(new Format(15, format.sigBits + 12));
+      for (int i = 13; i < 32; i++) {
+        builder.add(new Format(11, format.sigBits + i));
+      }
+      return builder.build();
+    }
+
     ImmutableList.Builder<Format> builder = ImmutableList.builder();
     for (int i = 1; i < 100; i++) {
-      builder.add(new Format(20, p.sigBits + i));
+      builder.add(new Format(15, format.sigBits + i));
     }
     return builder.build();
   }
