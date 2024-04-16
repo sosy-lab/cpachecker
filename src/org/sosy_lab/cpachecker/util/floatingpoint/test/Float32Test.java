@@ -176,4 +176,18 @@ public class Float32Test extends CFloatUnitTest {
 
     assertEqual1Ulp(r1, r2);
   }
+
+  @Test
+  public void fromStringBugTest() {
+    // String val = "1.6777217e10";
+    String val = "16777217";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested;
+    CFloat r2 = reference;
+
+    assertEqual1Ulp(r1, r2);
+  }
 }
