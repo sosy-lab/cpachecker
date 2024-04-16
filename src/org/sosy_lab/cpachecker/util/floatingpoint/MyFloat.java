@@ -995,7 +995,7 @@ public class MyFloat {
     return x.multiply(r);
   }
 
-  // Strip invalid digits from the significand. This assumes that the number is transcendent.
+  // Strip invalid digits from the significand. This assumes that the number is transcendental.
   private MyFloat validPart() {
     // In round to nearest invalid digits follow one of two patterns:
     // 1(0)+ or 1(0)+

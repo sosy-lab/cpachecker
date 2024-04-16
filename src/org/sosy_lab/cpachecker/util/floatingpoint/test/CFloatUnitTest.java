@@ -243,7 +243,7 @@ public abstract class CFloatUnitTest {
     return String.format("%n%nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
-  // Defines the maximum error (in ULPs) for transcendent functions
+  // Defines the maximum error (in ULPs) for transcendental functions
   protected int ulpError() {
     return getRefImpl() == ReferenceImpl.MPFR ? 0 : 1;
   }
