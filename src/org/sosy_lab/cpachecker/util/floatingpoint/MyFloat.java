@@ -1889,11 +1889,6 @@ public class MyFloat {
       return isNegative() ? "-0.0" : "0.0";
     }
 
-    // Alternatively: Use MPFR for the conversion
-    // BinaryMathContext p = new BinaryMathContext(format.sigBits + 1, format.expBits);
-    // return new BigFloat(value.sign, value.significand, value.exponent, p).toString("%." +
-    // neededDigits() + "Rg");
-
     // Get the exponent and the significand
     BigInteger significand = value.significand;
     long exponent = Math.max(value.exponent, format.minExp());
@@ -1908,25 +1903,32 @@ public class MyFloat {
     // Shift the exponent to make the significand an integer
     exponent -= format.sigBits;
 
+    // p is the number of decimal digits needed to recover the original number if the output of
+    // toString is read back with fromString
+    int p = neededDigits();
+
+    // We define an extended format that has enough precision to hold the intermediate result
+    // during the conversion from binary to decimal representation
+    int ext = 2 * p + 2; // FIXME: Make sure this is enough
+
     // Build a term for the exponent in decimal representation
-    // FIXME: Make sure we always use enough precision for the intermediate value
-    MathContext rm = new MathContext(30, java.math.RoundingMode.HALF_EVEN);
+    MathContext rm = new MathContext(ext, java.math.RoundingMode.HALF_EVEN);
     BigDecimal r = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) exponent)));
     if (exponent < 0) {
       r = BigDecimal.ONE.divide(r, rm);
     }
 
-    // Multiply the significand with the decimal exponent term
+    // Convert the significand to BigDecimal and multiply with the decimal exponent term
     BigDecimal a = new BigDecimal(significand);
     BigDecimal b = a.multiply(r);
 
-    // Apply rounding
+    // Round the result down to p significand digits
     BigDecimal rounded =
-        b.plus(new MathContext(neededDigits(), java.math.RoundingMode.HALF_EVEN))
+        b.plus(new MathContext(p, java.math.RoundingMode.HALF_EVEN))
             .stripTrailingZeros();
 
     // Print the output string
-    String repr = String.format("%." + neededDigits() + "e", rounded);
+    String repr = String.format("%." + p + "e", rounded);
     repr = repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
 
     // Add the sign if necessary
