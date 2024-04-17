@@ -199,13 +199,13 @@ public class ASTConverterTest {
         ImmutableList.of(
             new TestCase("0", "0.0", CNumericTypes.DOUBLE),
             new TestCase("-0", "0.0", CNumericTypes.DOUBLE),
-            new TestCase("0xf", "15.0", CNumericTypes.DOUBLE),
-            new TestCase("5e2f", "500.0", CNumericTypes.FLOAT),
-            new TestCase("5e+2f", "500.0", CNumericTypes.FLOAT),
-            new TestCase("0x5e2f", "24111.0", CNumericTypes.FLOAT),
-            new TestCase("0x5e-2f", "94.0", CNumericTypes.FLOAT),
+            new TestCase("0xf", "15", CNumericTypes.DOUBLE),
+            new TestCase("5e2f", "500", CNumericTypes.FLOAT),
+            new TestCase("5e+2f", "500", CNumericTypes.FLOAT),
+            new TestCase("0x5e2f", "24111", CNumericTypes.FLOAT),
+            new TestCase("0x5e-2f", "94", CNumericTypes.FLOAT),
             new TestCase(
-                "3.41E+38", "341000000000000000445911848520865808384.0", CNumericTypes.DOUBLE));
+                "3.41E+38", "341000000000000000000000000000000000000", CNumericTypes.DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
@@ -213,7 +213,7 @@ public class ASTConverterTest {
             (CFloatLiteralExpression)
                 converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
 
-        assertThat(literal.getValue().toString()).isEqualTo(test.expected());
+        assertThat(literal.getValue().toPlainString()).isEqualTo(test.expected());
         assertThat(test.type()).isSameInstanceAs(literal.getExpressionType());
       }
     }
