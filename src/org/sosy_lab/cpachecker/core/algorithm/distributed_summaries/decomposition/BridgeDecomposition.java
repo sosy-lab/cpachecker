@@ -51,7 +51,9 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
           cutNodes.add(blockNode);
         }
       }
-      if (cutNodes.equals(listOfAllNodes)) break;
+      if (cutNodes.equals(listOfAllNodes)) {
+        break;
+      }
       listOfAllNodes = new ArrayList<>(cutNodes);
       cutNodes.clear();
     }
