@@ -179,7 +179,7 @@ public class Float32Test extends CFloatUnitTest {
 
   @Test
   public void fromStringBugTest() {
-    // String val = "1.6777217e10";
+    // String val = "1.6777217e+07";
     String val = "16777217";
 
     CFloat tested = toTestedImpl(val);

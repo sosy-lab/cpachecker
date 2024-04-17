@@ -1809,12 +1809,12 @@ public class MyFloat {
 
         MyFloat f = constant(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
         MyFloat e =
-            constant(ext, 10).powInt(BigInteger.valueOf(exponent - (digits.length() + diff) + 1));
+            constant(ext, 10).powInt(BigInteger.valueOf(exponent - (digits.length() - 1) - diff));
 
         MyFloat val1 = f.plus1Ulp().multiply(e);
         MyFloat val2 = f.minus1Ulp().multiply(e);
 
-        if (equalModuloP(p, val1, val2) && r.isStable(val1.validPart())) {
+        if (equalModuloP(p, val1, val2)) {
           done = true;
           r = sign ? val1.negate() : val1;
 
