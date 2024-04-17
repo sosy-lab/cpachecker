@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.ImportDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.VerticalMergeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
@@ -222,14 +223,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
       case MERGE_DECOMPOSITION -> new MergeBlockNodesDecomposition(
           new LinearBlockNodeDecomposition(isBlockEnd),
-          0,
+          2,
           Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
           allowSingleBlockDecompositionWhenMerging);
-      case BRIDGE_DECOMPOSITION -> new MergeBlockNodesDecomposition(
-          new BridgeDecomposition(),
-          0,
-          Comparator.comparingInt(b -> b.getEdges().size()),
-          allowSingleBlockDecompositionWhenMerging);
+      case BRIDGE_DECOMPOSITION -> new VerticalMergeDecomposition(
+          new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }

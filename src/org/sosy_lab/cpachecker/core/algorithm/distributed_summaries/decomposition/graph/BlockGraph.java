@@ -208,7 +208,7 @@ public class BlockGraph {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodeToBlockNodes =
         ArrayListMultimap.create();
     pNodes.forEach(p -> startNodeToBlockNodes.put(p.getFirst(), p));
-    ImmutableList<ImmutableList<BlockNodeWithoutGraphInformation>> stronglyConnected =
+    ImmutableList<List<BlockNodeWithoutGraphInformation>> stronglyConnected =
         StronglyConnectedComponents.performTarjanAlgorithm(
             pRoot, n -> startNodeToBlockNodes.get(n.getLast()));
     for (List<BlockNodeWithoutGraphInformation> connections : stronglyConnected) {

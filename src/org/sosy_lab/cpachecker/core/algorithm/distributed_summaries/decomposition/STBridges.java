@@ -20,11 +20,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -73,6 +70,9 @@ public class STBridges {
               if (includes.contains(leavingEdge.getSuccessor())) {
                 connectionEdges.add(leavingEdge);
                 hasSuccessor = true;
+                if (cfaNode.isLoopStart()) {
+                  last = cfaNode;
+                }
               }
             }
             if (!hasSuccessor) {
@@ -87,6 +87,9 @@ public class STBridges {
             for (CFAEdge leavingEdge : CFAUtils.enteringEdges(cfaNode)) {
               if (includes.contains(leavingEdge.getPredecessor())) {
                 hasPredecessor = true;
+                if (cfaNode.isLoopStart()) {
+                  first = cfaNode;
+                }
                 break;
               }
             }
@@ -116,14 +119,17 @@ public class STBridges {
     }
   }
 
-  private static List<CFAEdge> findPathFromMainToExit(CFA pCFA) {
+  private static List<CFAEdge> findPathFromMainToExit(BlockNodeWithoutGraphInformation blockNode) {
     Deque<List<CFAEdge>> paths = new ArrayDeque<>();
-    FunctionEntryNode mainFunction = pCFA.getMainFunction();
-    FunctionExitNode exitNode = mainFunction.getExitNode().orElseThrow();
+    CFANode mainFunction = blockNode.getFirst();
+    CFANode exitNode = blockNode.getLast();
     for (CFAEdge leavingEdge : CFAUtils.leavingEdges(mainFunction)) {
-      List<CFAEdge> path = new ArrayList<>();
-      path.add(leavingEdge);
-      paths.add(path);
+
+      if (blockNode.getEdges().contains(leavingEdge)) {
+        List<CFAEdge> path = new ArrayList<>();
+        path.add(leavingEdge);
+        paths.add(path);
+      }
     }
     while (!paths.isEmpty()) {
       List<CFAEdge> currentPath = paths.removeFirst();
@@ -133,9 +139,11 @@ public class STBridges {
         return currentPath;
       }
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(lastNode)) {
-        List<CFAEdge> copy = new ArrayList<>(currentPath);
-        copy.add(leavingEdge);
-        paths.add(copy);
+        if (blockNode.getEdges().contains(leavingEdge)) {
+          List<CFAEdge> copy = new ArrayList<>(currentPath);
+          copy.add(leavingEdge);
+          paths.add(copy);
+        }
       }
     }
     return ImmutableList.of();
@@ -145,16 +153,17 @@ public class STBridges {
    * Finds all <a href="https://doi.org/10.1016/j.dam.2021.08.026">s-t bridges</a> in a given CFA.
    * An s-t bridge is a CFAEdge that all syntactic paths have to traverse.
    *
-   * @param pCFA CFA for which
+   * @param blockNode CFA for which
    * @return All s-t bridges in <code>pCFA</code>.
    */
-  public static BridgeComponents computeBridges(CFA pCFA) {
+  public static BridgeComponents computeBridges(BlockNodeWithoutGraphInformation blockNode) {
     Map<CFANode, Integer> comp = new LinkedHashMap<>();
-    FunctionExitNode exitNode = pCFA.getMainFunction().getExitNode().orElseThrow();
-    for (CFANode node : pCFA.nodes()) {
+    CFANode exitNode = blockNode.getLast();
+
+    for (CFANode node : blockNode.getNodes()) {
       comp.put(node, 0);
     }
-    List<CFAEdge> path = findPathFromMainToExit(pCFA);
+    List<CFAEdge> path = findPathFromMainToExit(blockNode);
     if (path.isEmpty()) {
       return new BridgeComponents(ImmutableList.of(), ImmutableList.of());
     }
@@ -164,9 +173,10 @@ public class STBridges {
     int association = 1;
     while (comp.get(exitNode) == 0) {
       if (association == 1) {
-        nodeQueue.add(pCFA.getMainFunction());
-        putOrUpdate(bridgeComponents, association, pCFA.getMainFunction());
-        comp.put(pCFA.getMainFunction(), 1);
+        nodeQueue.add(blockNode.getFirst());
+        putOrUpdate(bridgeComponents, association, blockNode.getFirst());
+        comp.put(blockNode.getFirst(), 1);
+
       } else {
         for (int i = path.size() - 1; i >= 0; i--) {
           CFAEdge currentEdge = path.get(i);
@@ -181,7 +191,7 @@ public class STBridges {
       }
       while (!nodeQueue.isEmpty()) {
         CFANode predecessor = nodeQueue.removeFirst();
-        for (CFANode successor : findFlippedSuccessors(predecessor, path)) {
+        for (CFANode successor : findFlippedSuccessors(predecessor, path, blockNode)) {
           if (comp.get(successor) == 0) {
             nodeQueue.add(successor);
             putOrUpdate(bridgeComponents, association, successor);
@@ -201,11 +211,12 @@ public class STBridges {
    * @param pFlipped these edges are flipped in the original CFA
    * @return successors of <code>pNode</code>
    */
-  private static Iterable<CFANode> findFlippedSuccessors(CFANode pNode, List<CFAEdge> pFlipped) {
+  private static Iterable<CFANode> findFlippedSuccessors(
+      CFANode pNode, List<CFAEdge> pFlipped, BlockNodeWithoutGraphInformation blockNode) {
     ImmutableSet<CFAEdge> copy = ImmutableSet.copyOf(pFlipped);
     ImmutableSet.Builder<CFANode> successors = ImmutableSet.builder();
     for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pNode)) {
-      if (!copy.contains(leavingEdge)) {
+      if (!copy.contains(leavingEdge) && blockNode.getEdges().contains(leavingEdge)) {
         successors.add(leavingEdge.getSuccessor());
       }
     }
