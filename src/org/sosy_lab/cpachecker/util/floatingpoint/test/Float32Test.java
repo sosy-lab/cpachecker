@@ -68,34 +68,6 @@ public class Float32Test extends CFloatUnitTest {
     return refImpl == ReferenceImpl.MPFR ? 0 : 1;
   }
 
-  @Ignore
-  @Override
-  @Test
-  public void castToByteTest() {
-    // Disabled
-  }
-
-  @Ignore
-  @Override
-  @Test
-  public void castToShortTest() {
-    // Disabled
-  }
-
-  @Ignore
-  @Override
-  @Test
-  public void castToIntTest() {
-    // Disabled
-  }
-
-  @Ignore
-  @Override
-  @Test
-  public void castToLongTest() {
-    // Disabled
-  }
-
   @Test
   public void overflowTest() {
     // Should overflow as the exponents add up to 127 in binary and the product of th significands

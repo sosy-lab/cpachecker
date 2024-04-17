@@ -440,11 +440,11 @@ public abstract class CFloatUnitTest {
         try {
           result = function.apply(tested);
         } catch (Throwable t) {
-          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+          String testHeader = printTestHeader(name, test.arg1());
           assertWithMessage(testHeader + t).fail();
         }
         if (!Objects.equals(result, test.result())) {
-          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+          String testHeader = printTestHeader(name, test.arg1());
           assertWithMessage(testHeader).that(result).isEqualTo(test.result());
         }
       } catch (AssertionError e) {
@@ -764,21 +764,25 @@ public abstract class CFloatUnitTest {
 
   @Test
   public void castToByteTest() {
+    assume().that(getRefImpl() == ReferenceImpl.NATIVE);
     testIntegerFunction("castToByteTest", (CFloat a) -> a.castToOther(CNativeType.CHAR));
   }
 
   @Test
   public void castToShortTest() {
+    assume().that(getRefImpl() == ReferenceImpl.NATIVE);
     testIntegerFunction("castToShortTest", (CFloat a) -> a.castToOther(CNativeType.SHORT));
   }
 
   @Test
   public void castToIntTest() {
+    assume().that(getRefImpl() == ReferenceImpl.NATIVE);
     testIntegerFunction("castToIntTest", (CFloat a) -> a.castToOther(CNativeType.INT));
   }
 
   @Test
   public void castToLongTest() {
+    assume().that(getRefImpl() == ReferenceImpl.NATIVE);
     testIntegerFunction("castToLongTest", (CFloat a) -> a.castToOther(CNativeType.LONG));
   }
 }

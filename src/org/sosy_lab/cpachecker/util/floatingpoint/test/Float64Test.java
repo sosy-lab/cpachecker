@@ -65,34 +65,6 @@ public class Float64Test extends CFloatUnitTest {
     };
   }
 
-  @Ignore
-  @Override
-  @Test
-  public void castToByteTest() {
-    // Disabled
-  }
-
-  @Ignore
-  @Override
-  @Test
-  public void castToShortTest() {
-    // Disabled
-  }
-
-  @Ignore
-  @Override
-  @Test
-  public void castToIntTest() {
-    // Disabled
-  }
-
-  @Ignore
-  @Override
-  @Test
-  public void castToLongTest() {
-    // Disabled
-  }
-
   @Test
   public void hardExpTest() {
     // Example of a "hard to round" input for the exponential function
