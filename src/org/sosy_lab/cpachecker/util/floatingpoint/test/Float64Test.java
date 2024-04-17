@@ -68,13 +68,6 @@ public class Float64Test extends CFloatUnitTest {
   @Ignore
   @Override
   @Test
-  public void powToIntegralTest() {
-    // TODO: Not implemented in BigFloat
-  }
-
-  @Ignore
-  @Override
-  @Test
   public void castToByteTest() {
     // Disabled
   }

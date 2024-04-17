@@ -71,13 +71,6 @@ public class Float32Test extends CFloatUnitTest {
   @Ignore
   @Override
   @Test
-  public void powToIntegralTest() {
-    // TODO: Not implemented in BigFloat
-  }
-
-  @Ignore
-  @Override
-  @Test
   public void castToByteTest() {
     // Disabled
   }

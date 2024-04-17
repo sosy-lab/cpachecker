@@ -204,8 +204,7 @@ public class MpfrFloat extends CFloat {
 
   @Override
   public CFloat powToIntegral(int exponent) {
-    // FIXME: Not implement in BigFloat (..but MPFR has mpfr_pow_sj)
-    throw new UnsupportedOperationException();
+    return new MpfrFloat(value.pow(parseBigFloat(String.valueOf(exponent)), format), format);
   }
 
   @Override

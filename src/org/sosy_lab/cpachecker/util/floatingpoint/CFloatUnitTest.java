@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -648,7 +649,13 @@ public abstract class CFloatUnitTest {
 
   @Test
   public void powToIntegralTest() {
-    testOperator("powToInteger", 0, (CFloat a, CFloat b) -> a.powToIntegral(b.toInteger()));
+    // Native implementation does not support negative exponents
+    assume().that(getRefImpl()).isNotEqualTo(ReferenceImpl.NATIVE);
+    testOperator(
+        "powToInteger",
+        0,
+        // FIXME: Find a better way to skip the test if x is NaN or infinite
+        (CFloat a, CFloat b) -> (b.isNan() || b.isInfinity()) ? a : a.powToIntegral(b.toInteger()));
   }
 
   @Test

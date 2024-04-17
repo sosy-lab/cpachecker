@@ -352,7 +352,7 @@ public abstract class CFloat {
   }
 
   public Integer toInteger() {
-    return toFloat().intValue();
+    return toBigFloat().intValue();
   }
 
   public final long getSignBitMask() {
