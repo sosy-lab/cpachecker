@@ -764,25 +764,25 @@ public abstract class CFloatUnitTest {
 
   @Test
   public void castToByteTest() {
-    assume().that(getRefImpl() == ReferenceImpl.NATIVE);
+    assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
     testIntegerFunction("castToByteTest", (CFloat a) -> a.castToOther(CNativeType.CHAR));
   }
 
   @Test
   public void castToShortTest() {
-    assume().that(getRefImpl() == ReferenceImpl.NATIVE);
+    assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
     testIntegerFunction("castToShortTest", (CFloat a) -> a.castToOther(CNativeType.SHORT));
   }
 
   @Test
   public void castToIntTest() {
-    assume().that(getRefImpl() == ReferenceImpl.NATIVE);
+    assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
     testIntegerFunction("castToIntTest", (CFloat a) -> a.castToOther(CNativeType.INT));
   }
 
   @Test
   public void castToLongTest() {
-    assume().that(getRefImpl() == ReferenceImpl.NATIVE);
+    assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
     testIntegerFunction("castToLongTest", (CFloat a) -> a.castToOther(CNativeType.LONG));
   }
 }
