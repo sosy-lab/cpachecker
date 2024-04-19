@@ -1151,7 +1151,7 @@ public class MyFloat {
   private static Map<Integer, MyFloat> mkExpTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
     builder.put(0, one(pFormat));
-    for (int k = 1; k < 100; k++) {  // TODO: Find a bound that depends on the precision
+    for (int k = 1; k < 100; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k! and store the values in the table
       builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k))));
     }
