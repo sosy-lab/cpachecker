@@ -1110,8 +1110,10 @@ public class MyFloat {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         MyFloat x = withPrecision(p_ext);
 
+        // TODO: Avoid this call and check the argument instead
         boolean isTiny = x.exp_().subtract(one(p_ext)).isZero();
 
+        // TODO: Call exp_ only once and *then* check if we're too close to a break point
         MyFloat x1 = x.plus1Ulp().withPrecision(p);
         MyFloat x2 = x.minus1Ulp().withPrecision(p);
 
@@ -1270,6 +1272,7 @@ public class MyFloat {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         MyFloat x = withPrecision(p_ext);
 
+        // TODO: Call ln only once and *then* check if we're too close to a break point
         MyFloat x1 = x.plus1Ulp().withPrecision(p);
         MyFloat x2 = x.minus1Ulp().withPrecision(p);
 
@@ -1552,6 +1555,7 @@ public class MyFloat {
         boolean nearZero = xlna.exp_().subtract(one(ext)).isZero();
 
         // Calculate a bound for the value of e^(x * ln a)
+        // TODO: Call exp only once and *then* check if we're too close to a break point
         MyFloat xlna1 = xlna.plus1Ulp().withPrecision(p);
         MyFloat xlna2 = xlna.minus1Ulp().withPrecision(p);
 
