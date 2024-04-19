@@ -111,7 +111,7 @@ public class MyFloat {
       if (equals(Format.Float128)) {
         return Float256;
       }
-      return new Format(20, 2 * sigBits + 1);
+      return new Format(Float256.expBits, 2 * sigBits + 1);
     }
 
     public Format sup(Format other) {
@@ -1089,11 +1089,11 @@ public class MyFloat {
     if (format.equals(Format.Float64)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p     1      1      1      1     28     54     54     55     55     68
-      Format p = new Format(20, format.sigBits + 60);
+      Format p = new Format(Format.Float256.expBits, format.sigBits + 60);
       return ImmutableList.of(p, p.extended());
     }
 
-    Format p = new Format(32, 2 * format.sigBits);
+    Format p = new Format(Format.Float256.expBits, 2 * format.sigBits);
     return ImmutableList.of(p, p.extended());
   }
 
@@ -1120,7 +1120,7 @@ public class MyFloat {
         MyFloat v1 = isTiny ? x1.expm1_() : x1.exp_();
         MyFloat v2 = isTiny ? x2.expm1_() : x2.exp_();
 
-        Format p0 = new Format(32, format.sigBits);
+        Format p0 = new Format(Format.Float256.expBits, format.sigBits);
 
         if (equalModuloP(isTiny ? p0 : format, v1, v2) && isStable(v1.validPart())) {
           done = true;
@@ -1247,12 +1247,12 @@ public class MyFloat {
     if (format.equals(Format.Float64)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      1      1      1      1     44     45     46     47     48     62
-      Format p = new Format(20, format.sigBits + 48);
+      Format p = new Format(Format.Float256.expBits, format.sigBits + 48);
       return ImmutableList.of(p, p.extended());
     }
 
     // FIXME: Why is broken for 32bit exponents?
-    Format p = new Format(/*32*/ 11, 2 * format.sigBits);
+    Format p = new Format(/*32*/ Format.Float256.expBits, 2 * format.sigBits);
     return ImmutableList.of(p, p.extended());
   }
 
@@ -1478,7 +1478,7 @@ public class MyFloat {
 
   // Handle cases in pow where a^x is a floating point number or a breakpoint
   private MyFloat powExact(MyFloat exp) {
-    Format p = new Format(32, format.sigBits);
+    Format p = new Format(Format.Float256.expBits, format.sigBits);
     MyFloat a = this.withPrecision(p);
     MyFloat x = exp.withPrecision(p);
 
@@ -1527,11 +1527,11 @@ public class MyFloat {
     if (format.equals(Format.Float64)) {
       //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p   31     39     44     49     53     57     61     64     67     70
-      Format p = new Format(20, format.sigBits + 71);
+      Format p = new Format(Format.Float256.expBits, format.sigBits + 71);
       return ImmutableList.of(p, p.extended());
     }
 
-    Format p = new Format(32, 2 * format.sigBits);
+    Format p = new Format(Format.Float256.expBits, 2 * format.sigBits);
     return ImmutableList.of(p, p.extended());
   }
 
@@ -1547,7 +1547,9 @@ public class MyFloat {
         MyFloat a = this.withPrecision(p);
         MyFloat x = exponent.withPrecision(p);
 
-        MyFloat lna = a.ln();
+        // The next call calculates ln with the current precision.
+        // TODO: Figure out why this is enough?
+        MyFloat lna = a.ln_();
         MyFloat xlna = x.multiply(lna).withPrecision(ext);
 
         // Check if we call e^x with x close to zero
@@ -1565,7 +1567,7 @@ public class MyFloat {
         // Proceed if the result is stable in the original precision
         // If the result was close to zero we have to use an extended format that allows larger
         // exponents. Otherwise, the values are too small and will be flushed to zero.
-        Format p0 = new Format(32, format.sigBits);
+        Format p0 = new Format(Format.Float256.expBits, format.sigBits);
 
         if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2) && isStable(exlna1.validPart())) {
           done = true;
@@ -1827,7 +1829,7 @@ public class MyFloat {
 
     ImmutableList.Builder<Format> builder = ImmutableList.builder();
     for (int i = 1; i < 100; i++) {
-      builder.add(new Format(15, format.sigBits + i));
+      builder.add(new Format(Format.Float256.expBits, format.sigBits + i));
     }
     return builder.build();
   }
