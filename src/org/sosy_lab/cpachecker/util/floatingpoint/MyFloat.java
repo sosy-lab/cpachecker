@@ -24,7 +24,15 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 
-// FIXME: Add support for arguments with different bitwidths
+// TODO: Add support for more rounding modes
+// TODO: Add more functions (like sin(x), etc)
+// TODO: Refactor and split off format as its own class
+//  This would allow us to created some of the constants (and tables) only once per bit size.
+//  On the other hand it may complicate the interface.
+// TODO: Make castToOther return an Optional
+//  This is needed when the target type for castToOther is too small for the integer value of the
+//  float. See the comment before toByte() for more details.
+// TODO: Add support for unsigned types
 
 public class MyFloat {
   static {
@@ -1141,7 +1149,7 @@ public class MyFloat {
   private static Map<Integer, MyFloat> mkExpTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
     builder.put(0, one(pFormat));
-    for (int k = 1; k < 100; k++) {
+    for (int k = 1; k < 100; k++) {  // TODO: Find a bound that depends on the precision
       // Calculate 1/k! and store the values in the table
       builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k))));
     }
@@ -1167,6 +1175,13 @@ public class MyFloat {
       return isNegative() ? zero(format) : infinity(format);
     }
 
+    if (!format.sup(Format.Float256).equals(Format.Float256)) {
+      // We created expTable with 256 bit precision. If the required precision is larger than that
+      // the table would have to be recalculated.
+      // TODO: Support arbitrary precisions by rebuilding the table when necessary
+      throw new IllegalArgumentException();
+    }
+
     MyFloat x = this;
     MyFloat r = zero(format); // Series expansion after k terms.
 
@@ -1179,9 +1194,17 @@ public class MyFloat {
     while (!done) {
       MyFloat s = r;
 
+      // Check that expTable was created with enough terms
+      if (!expTable.containsKey(k)) {
+        // We populated lnTable with the first 100 terms of the taylor expansion. If more is needed
+        // an exception is thrown.
+        // TODO: Support arbitrary precisions by rebuilding the table when necessary
+        throw new IllegalArgumentException();
+      }
+
       // r(k+1) = r(k) +  x^k/k!
       MyFloat a = x.powInt_(BigInteger.valueOf(k));
-      MyFloat b = expTable.get(k).withPrecision(format); // FIXME: Make sure k < expTable size
+      MyFloat b = expTable.get(k).withPrecision(format);
 
       r = r.add(a.multiply(b));
 
@@ -1309,6 +1332,12 @@ public class MyFloat {
   }
 
   private MyFloat ln1p() {
+    if (!format.sup(Format.Float256).equals(Format.Float256)) {
+      // We created expTable with 256 bit precision. If the required precision is larger than that
+      // the table would have to be recalculated.
+      // TODO: Support arbitrary precisions by rebuilding the table when necessary
+      throw new IllegalArgumentException();
+    }
     MyFloat x = this;
     MyFloat r = zero(format);
 
@@ -1316,6 +1345,14 @@ public class MyFloat {
     boolean done = false;
     while (!done) {
       MyFloat r0 = r;
+
+      // Check that lnTable was created with enough terms
+      if (!lnTable.containsKey(k)) {
+        // We populated lnTable with the first 1000 terms of the taylor expansion. If more is needed
+        // an exception is thrown.
+        // TODO: Support arbitrary precisions by rebuilding the table when necessary
+        throw new IllegalArgumentException();
+      }
 
       // r(k+1) = r(k) +  x^k/k
       MyFloat a = x.powInt_(BigInteger.valueOf(k));
