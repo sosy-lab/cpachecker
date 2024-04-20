@@ -1092,13 +1092,19 @@ public class MyFloat {
       Format p = new Format(Format.Float256.expBits, format.sigBits + 60);
       return ImmutableList.of(p, p.extended());
     }
-
     Format p = new Format(Format.Float256.expBits, 2 * format.sigBits);
     return ImmutableList.of(p, p.extended());
   }
 
   public MyFloat exp() {
     if (isZero()) {
+      return one(format);
+    }
+    if (isNan()) {
+      return nan(format);
+    }
+    if (!abs().greaterThan(minNormal(format))) {
+      // Return one immediately if the argument is close to zero
       return one(format);
     }
 
@@ -1110,21 +1116,13 @@ public class MyFloat {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         MyFloat x = withPrecision(p_ext);
 
-        // TODO: Avoid this call and check the argument instead
-        boolean isTiny = x.exp_().subtract(one(p_ext)).isZero();
-
         // TODO: Call exp_ only once and *then* check if we're too close to a break point
-        MyFloat x1 = x.plus1Ulp().withPrecision(p);
-        MyFloat x2 = x.minus1Ulp().withPrecision(p);
+        MyFloat v1 = x.plus1Ulp().withPrecision(p).exp_();
+        MyFloat v2 = x.minus1Ulp().withPrecision(p).exp_();
 
-        MyFloat v1 = isTiny ? x1.expm1_() : x1.exp_();
-        MyFloat v2 = isTiny ? x2.expm1_() : x2.exp_();
-
-        Format p0 = new Format(Format.Float256.expBits, format.sigBits);
-
-        if (equalModuloP(isTiny ? p0 : format, v1, v2) && isStable(v1.validPart())) {
+        if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
           done = true;
-          r = isTiny ? one(p).add(v1) : v1;
+          r = v1;
 
           // Update statistics
           Integer k = p.sigBits - format.sigBits;
