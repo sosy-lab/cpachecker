@@ -1551,8 +1551,7 @@ public class MyFloat {
         MyFloat xlna = x.multiply(lna).withPrecision(ext);
 
         // Check if we call e^x with x close to zero
-        // TODO: Check the argument instead
-        boolean nearZero = xlna.exp_().subtract(one(ext)).isZero();
+        boolean nearZero = !xlna.abs().greaterThan(minNormal(format));
 
         // Calculate a bound for the value of e^(x * ln a)
         // TODO: Call exp only once and *then* check if we're too close to a break point
