@@ -1929,6 +1929,8 @@ class ASTConverter {
                       + declaratorLocation.getNodeLength(),
                   fileLoc.getStartingLineNumber(),
                   declaratorLocation.getEndingLineNumber(),
+                  declaratorLocation.getStartColumnInLine(),
+                  declaratorLocation.getEndColumnInLine(),
                   fileLoc.getStartingLineInOrigin(),
                   fileLoc.getEndingLineInOrigin(),
                   fileLoc.isOffsetRelatedToOrigin());

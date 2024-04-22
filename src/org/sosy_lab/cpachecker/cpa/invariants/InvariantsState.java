@@ -37,11 +37,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -1116,7 +1118,9 @@ public class InvariantsState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
-      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
+      final FunctionEntryNode pFunctionEntryNode,
+      final CFANode pReferenceNode,
+      Optional<AIdExpression> pFunctionReturnVariable) {
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
         pFormula ->
             pFormula instanceof Variable

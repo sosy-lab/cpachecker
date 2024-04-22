@@ -102,7 +102,8 @@ public final class CArrayType extends AArrayType implements CType {
         + (isVolatile() ? "volatile " : "")
         + getType()
             .toASTString(
-                pDeclarator + ("[" + (length != null ? length.toASTString(pQualified) : "") + "]"));
+                pDeclarator
+                    + ("[" + (length != null ? length.toASTString(pQualified, false) : "") + "]"));
   }
 
   public String toQualifiedASTString(String pDeclarator) {

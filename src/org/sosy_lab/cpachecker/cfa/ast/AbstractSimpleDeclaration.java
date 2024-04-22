@@ -63,10 +63,12 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     String nameAsString;
     if (pQualified) {
       nameAsString = Strings.nullToEmpty(getQualifiedName()).replace("::", "__");
+    } else if (pOriginalVariableNames) {
+      nameAsString = Strings.nullToEmpty(getOrigName());
     } else {
       nameAsString = Strings.nullToEmpty(getName());
     }

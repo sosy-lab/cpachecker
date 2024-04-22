@@ -1944,6 +1944,6 @@ public class CFABuilder {
 
   private FileLocation getLocation(final Value pItem, final Path pFileName) {
     assert pItem != null;
-    return new FileLocation(pFileName, 0, 1, 0, 0);
+    return new FileLocation(pFileName, 0, 1, 0, 0, 0, 0);
   }
 }

@@ -21,7 +21,7 @@ public abstract class ALiteralExpression extends AbstractExpression {
   public abstract Object getValue();
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
+  public String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames) {
     // literal expression never need parentheses, are not qualified
     return toParenthesizedASTString();
   }
@@ -33,7 +33,7 @@ public abstract class ALiteralExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     // literal expression are never qualified
     return toASTString();
   }

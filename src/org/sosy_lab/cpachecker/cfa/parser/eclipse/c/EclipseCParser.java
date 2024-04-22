@@ -127,7 +127,7 @@ class EclipseCParser implements CParser {
       }
     }
 
-    return buildCFA(astUnits, parseContext, scope);
+    return buildCFA(astUnits, parseContext, scope, pSourceOriginMapping);
   }
 
   @Override
@@ -308,7 +308,10 @@ class EclipseCParser implements CParser {
    *     variables
    */
   private ParseResult buildCFA(
-      List<IASTTranslationUnit> asts, ParseContext parseContext, Scope pScope)
+      List<IASTTranslationUnit> asts,
+      ParseContext parseContext,
+      Scope pScope,
+      CSourceOriginMapping pSourceOriginMapping)
       throws CParserException, InterruptedException {
 
     checkArgument(!asts.isEmpty());
@@ -335,8 +338,14 @@ class EclipseCParser implements CParser {
         }
       }
 
-      return builder.createCFA();
+      ParseResult result = builder.createCFA();
 
+      result =
+          result.withASTStructure(
+              AstCfaRelationBuilder.getASTCFARelation(
+                  pSourceOriginMapping, result.getCFAEdges(), asts));
+
+      return result;
     } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);
     } finally {
@@ -434,6 +443,11 @@ class EclipseCParser implements CParser {
     @Override
     public boolean isMappingToIdenticalLineNumbers() {
       return delegate.isMappingToIdenticalLineNumbers();
+    }
+
+    @Override
+    public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
+      return delegate.getStartColumn(pAnalysisFileName, pAnalysisCodeLine, pOffset);
     }
   }
 }

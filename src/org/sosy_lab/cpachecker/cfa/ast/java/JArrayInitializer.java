@@ -47,12 +47,12 @@ public final class JArrayInitializer extends AbstractExpression implements JExpr
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
 
     StringBuilder astString = new StringBuilder("{");
 
     for (JExpression exp : initializerExpressions) {
-      astString.append(exp.toASTString(pQualified) + ", ");
+      astString.append(exp.toASTString(pQualified, pOriginalVariableNames) + ", ");
     }
 
     if (!initializerExpressions.isEmpty()) {

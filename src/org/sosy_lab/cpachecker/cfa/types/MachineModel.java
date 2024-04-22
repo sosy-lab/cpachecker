@@ -64,7 +64,12 @@ public enum MachineModel {
       8, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      return "ILP32";
+    }
+  },
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
@@ -98,7 +103,12 @@ public enum MachineModel {
       16, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      return "LP64";
+    }
+  },
 
   /** Machine model representing an ARM machine with alignment: */
   ARM(
@@ -132,7 +142,13 @@ public enum MachineModel {
       8, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      throw new AssertionError(
+          "ARM machine model is not yet defined in the YAML witness specification");
+    }
+  },
 
   /** Machine model representing an ARM64 machine with alignment: */
   ARM64(
@@ -166,7 +182,13 @@ public enum MachineModel {
       16, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      );
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      throw new AssertionError(
+          "ARM64 machine model is not yet defined in the YAML witness specification");
+    }
+  };
 
   // numeric types
   private final int sizeofShortInt;
@@ -752,4 +774,12 @@ public enum MachineModel {
     }
     return BigInteger.ZERO;
   }
+
+  /**
+   * This method returns a description of the machine model as defined by the YAML witness
+   * specification.
+   *
+   * @return a description of the machine model as defined by the YAML witness specification
+   */
+  public abstract String getMachineModelForYAMLWitnessSpecification();
 }

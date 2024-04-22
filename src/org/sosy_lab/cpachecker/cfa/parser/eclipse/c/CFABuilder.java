@@ -38,7 +38,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
@@ -372,12 +371,16 @@ class CFABuilder extends ASTVisitor {
           "Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    if (acslCommentPositions.isEmpty()) {
-      return new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+    ParseResult result;
+
+    if (!acslCommentPositions.isEmpty()) {
+      result =
+          new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
+    } else {
+      result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
     }
 
-    return new ParseResultWithCommentLocations(
-        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
+    return result;
   }
 
   private void handleFunctionDefinition(
