@@ -86,7 +86,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -337,7 +337,7 @@ public class SMGTransferRelation
                   offsetSource,
                   returnMemory,
                   BigInteger.ZERO,
-                  returnMemory.getSize().subtract(offsetSource)));
+                  SMGCPAExpressionEvaluator.subtractValues(returnMemory.getSize(), offsetSource)));
 
         } else {
           ValueAndSMGState valueAndStateToWrite =
@@ -728,7 +728,7 @@ public class SMGTransferRelation
       }
 
       BigInteger offsetSource;
-      BigInteger sizeOfNewVariable;
+      Value sizeOfNewVariable;
       SMGObject memorySource;
       if (paramValue instanceof AddressExpression addrParamValue) {
         // The SymbolicIdentifier might be wrapped in an AddressExpression,
@@ -753,7 +753,8 @@ public class SMGTransferRelation
         }
         offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
         memorySource = derefedPointerOffsetAndState.get(0).getSMGObject();
-        sizeOfNewVariable = memorySource.getSize().subtract(offsetSource);
+        sizeOfNewVariable =
+            SMGCPAExpressionEvaluator.subtractValues(memorySource.getSize(), offsetSource);
 
       } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
         // Local struct to local struct copy
@@ -774,7 +775,8 @@ public class SMGTransferRelation
 
         offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
         memorySource = maybeKnownMemory.orElseThrow();
-        sizeOfNewVariable = memorySource.getSize().subtract(offsetSource);
+        sizeOfNewVariable =
+            SMGCPAExpressionEvaluator.subtractValues(memorySource.getSize(), offsetSource);
       } else {
         throw new SMGException(
             "Unexpected argument evaluation for struct argument in function call: " + callEdge);
@@ -790,7 +792,7 @@ public class SMGTransferRelation
           offsetSource,
           newMemory,
           BigInteger.ZERO,
-          newMemory.getSize().subtract(offsetSource));
+          SMGCPAExpressionEvaluator.subtractValues(newMemory.getSize(), offsetSource));
     } else {
 
       return evaluator.writeValueToNewVariableBasedOnTypes(
@@ -855,43 +857,56 @@ public class SMGTransferRelation
       }
 
       if (!value.isExplicitlyKnown()) {
-        if (options.trackPredicates()) {
+        // Use the Explicit Value Analysis assigning value visitor,
+        // as we might be able to deterministically assume values (for example 0 == x -> x = 0).
+        // If this fails, revert to symbolic execution if possible.
+        SMGCPAAssigningValueVisitor avv =
+            new SMGCPAAssigningValueVisitor(
+                evaluator, currentState, cfaEdge, logger, truthValue, options, booleanVariables);
 
-          // Symbolic Execution for assumption edges
-          Collection<SMGState> statesWithConstraints =
-              computeNewStateByCreatingConstraint(currentState, cExpression, truthValue, cfaEdge);
+        for (ValueAndSMGState maybeUpdatedValueAndUpdatedState : cExpression.accept(avv)) {
+          SMGState maybeUpdatedState = maybeUpdatedValueAndUpdatedState.getState();
+          Value maybeUpdatedValue = maybeUpdatedValueAndUpdatedState.getValue();
 
-          for (SMGState stateWithConstraint : statesWithConstraints) {
-            if (options.isSatCheckStrategyAtAssume()) {
-              SolverResult solverResult =
-                  solver.checkUnsat(stateWithConstraint.getConstraints(), functionName);
-              if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
-                resultStateBuilder.add(
-                    stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
-                        solverResult.definiteAssignments(), solverResult.model()));
-              }
-              // We might add/return nothing here if the check was UNSAT
-            } else {
-              // If either we don't check SAT or the path is SAT we return the state
-              resultStateBuilder.add(stateWithConstraint);
+          if (maybeUpdatedValue.isExplicitlyKnown()) {
+            if (representsBoolean(maybeUpdatedValue, truthValue)) {
+              // We know more than before, and the assumption is fulfilled, so return the state
+              // from the value visitor
+              resultStateBuilder.add(maybeUpdatedState);
+              break;
             }
           }
 
-        } else {
+          if (options.trackPredicates()) {
 
-          // Explicit Value Analysis
-          // if unknown, try to assign a (boolean) value and maybe split into multiple states
-          SMGCPAAssigningValueVisitor avv =
-              new SMGCPAAssigningValueVisitor(
-                  evaluator, state, cfaEdge, logger, truthValue, options, booleanVariables);
+            // Symbolic Execution for assumption edges, use previous state and values
+            Collection<SMGState> statesWithConstraints =
+                computeNewStateByCreatingConstraint(currentState, cExpression, truthValue, cfaEdge);
 
-          for (ValueAndSMGState newValueAndUpdatedState : cExpression.accept(avv)) {
-            SMGState updatedState = newValueAndUpdatedState.getState();
+            for (SMGState stateWithConstraint : statesWithConstraints) {
+              if (options.isSatCheckStrategyAtAssume()) {
+                SolverResult solverResult =
+                    solver.checkUnsat(stateWithConstraint.getConstraints(), functionName);
+                if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
+                  resultStateBuilder.add(
+                      stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
+                          solverResult.definiteAssignments(), solverResult.model()));
+                }
+                // We might add/return nothing here if the check was UNSAT
+              } else {
+                // If either we don't check SAT or the path is SAT we return the state
+                resultStateBuilder.add(stateWithConstraint);
+              }
+            }
 
-            resultStateBuilder.add(updatedState);
+          } else {
+
+            // Explicit Value Analysis; if unknown,
+            // try to assign a (boolean) value and maybe split into multiple states
+            // (already done above)
+            resultStateBuilder.add(maybeUpdatedState);
           }
         }
-
       } else if (representsBoolean(value, truthValue)) {
         // We do not know more than before, and the assumption is fulfilled, so return the state
         // from the value visitor (we don't need a copy as every state operation generates a new
@@ -1033,7 +1048,8 @@ public class SMGTransferRelation
           // Init main parameters if there are any
           for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
             CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
-            BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, paramType);
+            Value paramSizeInBits =
+                new NumericValue(evaluator.getBitSizeof(currentState, paramType));
             if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
               currentState =
                   currentState.copyAndAddLocalVariable(
@@ -1203,7 +1219,8 @@ public class SMGTransferRelation
         for (ValueAndSMGState addressAndState :
             evaluator.createAddress(rValue, currentState, cfaEdge)) {
 
-          BigInteger sizeOfTypeLeft = evaluator.getBitSizeof(currentState, leftHandSideType);
+          Value sizeOfTypeLeft =
+              new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
           Value addressToAssign = addressAndState.getValue();
           currentState = addressAndState.getState();
 
@@ -1257,7 +1274,7 @@ public class SMGTransferRelation
     SMGState currentState = pCurrentState;
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
-    BigInteger sizeInBits = evaluator.getBitSizeof(currentState, leftHandSideType);
+    Value sizeInBits = new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
 
     if (valueToWrite instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
@@ -1307,13 +1324,13 @@ public class SMGTransferRelation
           properPointer = newAddressAndState.getValue();
         }
 
-        Optional<SMGObjectAndOffset> maybeRightHandSideMemoryAndOffset =
+        Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeRightHandSideMemoryAndOffset =
             currentState.getPointsToTarget(properPointer);
 
         if (maybeRightHandSideMemoryAndOffset.isEmpty()) {
           return currentState;
         }
-        SMGObjectAndOffset rightHandSideMemoryAndOffset =
+        SMGObjectAndOffsetMaybeNestingLvl rightHandSideMemoryAndOffset =
             maybeRightHandSideMemoryAndOffset.orElseThrow();
         // copySMGObjectContentToSMGObject checks for sizes etc.
 
@@ -1351,7 +1368,12 @@ public class SMGTransferRelation
           valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
-            sizeInBits.compareTo(evaluator.getBitSizeof(currentState, leftHandSideType)) == 0);
+            sizeInBits.isNumericValue()
+                && sizeInBits
+                        .asNumericValue()
+                        .bigIntegerValue()
+                        .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
+                    == 0);
 
         return currentState.writeValueWithChecks(
             addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);

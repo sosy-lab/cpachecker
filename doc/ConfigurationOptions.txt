@@ -158,6 +158,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -188,6 +189,10 @@ analysis.algorithm.BMC = false
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
+
+# use dual approximated reachability model checking algorithm, works only
+# with PredicateCPA and large-block encoding
+analysis.algorithm.DAR = false
 
 # use McMillan's interpolation-based model checking algorithm, works only
 # with PredicateCPA and large-block encoding
@@ -3157,6 +3162,17 @@ cpa.smg2.minimalSatCheck = true
 # one.
 cpa.smg2.optimizeBooleanVariables = true
 
+# If this Option is enabled, all values of a memory region that is written to
+# with a symbolic and non unique offset are deleted and the value itself is
+# overapproximated to unknown in the memory region.
+cpa.smg2.overapproximateForSymbolicWrite = true
+
+# If this Option is enabled, all values of a memory region that is written to
+# with a symbolic and non-unique offset in symbolically sized memory are
+# deleted and the value itself is overapproximated to unknown in the memory
+# region.
+cpa.smg2.overapproximateValuesForSymbolicSize = false
+
 # with this option enabled, we try to gather information on memory reads from
 # values that are overlapping but not exactly fitting to the read parameters.
 # Example: int value = 1111; char a = (char)((char[])&value)[1];
@@ -3702,6 +3718,18 @@ custominstructions.requirementsStateClassName = no default value
 # which are in turn also counted to the last loop.
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
+
+# toggle checking forward conditions
+dar.checkForwardConditions = true
+
+# toggle falling back if interpolation or forward-condition is disabled
+dar.fallBack = true
+
+# toggle removing unreachable stop states in ARG
+dar.removeUnreachableStopStates = false
+
+# toggle replace global phase with BMC
+dar.replaceGlobalPhaseWithBMC = false
 
 # When checking for the data race property, use this configuration file
 # instead of the current one.

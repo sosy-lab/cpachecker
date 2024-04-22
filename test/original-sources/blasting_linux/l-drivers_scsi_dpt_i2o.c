@@ -1,8 +1,11 @@
+// Copyright (C) 2000 by Adaptec
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
                           dpti.c  -  description
                              -------------------
     begin                : Thu Sep 7 2000
-    copyright            : (C) 2000 by Adaptec
 
 			   July 30, 2001 First version being submitted
 			   for inclusion in the kernel.  V2.4
@@ -11,14 +14,6 @@
     and credits
  ***************************************************************************/
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
 /***************************************************************************
  * Sat Dec 20 2003 Go Taniguchi <go@turbolinux.co.jp>
  - Support 2.6 kernel and DMA-mapping

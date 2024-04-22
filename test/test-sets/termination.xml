@@ -19,7 +19,7 @@
     </rundefinition>
 
     <rundefinition>
-        <option name="-predicateAnalysis--termination"/>
+        <option name="-terminationToSafety"/>
         <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 

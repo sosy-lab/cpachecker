@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.smg.graph;
 
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class SMGSinglyLinkedListSegment extends SMGObject {
 
@@ -17,9 +19,14 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   private final BigInteger headOffset;
   private final BigInteger nextOffset;
 
+  // Track the equality cache used in the latest creation of this abstraction.
+  // Can be used to argue about whether Values are equal or identical and need
+  //   to be copied or replicated when materializing this abstraction.
+  private EqualityCache<Value> relevantEqualities;
+
   public SMGSinglyLinkedListSegment(
       int pNestingLevel,
-      BigInteger pSize,
+      Value pSize,
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,
@@ -28,6 +35,22 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     minLength = pMinLength;
     headOffset = pHeadOffset;
     nextOffset = pNextOffset;
+    relevantEqualities = EqualityCache.of();
+  }
+
+  public SMGSinglyLinkedListSegment(
+      int pNestingLevel,
+      Value pSize,
+      BigInteger pOffset,
+      BigInteger pHeadOffset,
+      BigInteger pNextOffset,
+      int pMinLength,
+      EqualityCache<Value> pRelevantEqualities) {
+    super(pNestingLevel, pSize, pOffset);
+    minLength = pMinLength;
+    headOffset = pHeadOffset;
+    nextOffset = pNextOffset;
+    relevantEqualities = pRelevantEqualities;
   }
 
   public BigInteger getNextOffset() {
@@ -52,11 +75,53 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     return super.hashCode();
   }
 
+  /**
+   * Copies the object, but the new object has a new id. So size etc. will match, but never the ID!
+   *
+   * @param objectToCopy obj to copy.
+   * @return a new object with the same size etc. as the old.
+   */
+  public static SMGObject of(SMGSinglyLinkedListSegment objectToCopy) {
+    Preconditions.checkArgument(objectToCopy.isSLL());
+    return new SMGSinglyLinkedListSegment(
+        objectToCopy.getNestingLevel(),
+        objectToCopy.getSize(),
+        objectToCopy.getOffset(),
+        objectToCopy.headOffset,
+        objectToCopy.nextOffset,
+        objectToCopy.minLength,
+        objectToCopy.relevantEqualities);
+  }
+
   @Override
   public SMGObject copyWithNewLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);
     return new SMGSinglyLinkedListSegment(
-        newLevel, getSize(), getOffset(), headOffset, nextOffset, minLength);
+        newLevel, getSize(), getOffset(), headOffset, nextOffset, minLength, relevantEqualities);
+  }
+
+  public SMGSinglyLinkedListSegment copyWithNewMinimumLength(int newMinimumLength) {
+    Preconditions.checkArgument(newMinimumLength >= 0);
+    return new SMGSinglyLinkedListSegment(
+        getNestingLevel(),
+        getSize(),
+        getOffset(),
+        headOffset,
+        nextOffset,
+        newMinimumLength,
+        relevantEqualities);
+  }
+
+  public SMGSinglyLinkedListSegment copyWithNewRelevantEqualities(
+      EqualityCache<Value> pRelevantEqualities) {
+    return new SMGSinglyLinkedListSegment(
+        getNestingLevel(),
+        getSize(),
+        getOffset(),
+        headOffset,
+        nextOffset,
+        minLength,
+        pRelevantEqualities);
   }
 
   /**
@@ -71,13 +136,20 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        Integer.max(getMinLength() - 1, 0));
+        Integer.max(getMinLength() - 1, 0),
+        relevantEqualities);
   }
 
   @Override
   public SMGObject freshCopy() {
     return new SMGSinglyLinkedListSegment(
-        getNestingLevel(), getSize(), getOffset(), headOffset, nextOffset, minLength);
+        getNestingLevel(),
+        getSize(),
+        getOffset(),
+        headOffset,
+        nextOffset,
+        minLength,
+        relevantEqualities);
   }
 
   @Override
@@ -88,5 +160,9 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   @Override
   public boolean isSLL() {
     return true;
+  }
+
+  public EqualityCache<Value> getRelevantEqualities() {
+    return relevantEqualities;
   }
 }

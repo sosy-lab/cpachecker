@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -82,6 +83,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -148,6 +151,97 @@ public class SMGCPAValueVisitor
       result.add(ValueAndSMGState.of(castedValue, uncastedValueAndState.getState()));
     }
     return result.build();
+  }
+
+  /**
+   * Only use if this is the right hand side of an assignment. This matters because of abstracted
+   * lists, in that if the value is a pointer from an abstracted list next field to outside an
+   * abstracted list, we need special handling to getting the correct pointer. This method returns
+   * the value of an expression, reduced to match the type. This method handles overflows and casts.
+   * If necessary warnings for the user are printed. This method does not touch {@link
+   * AddressExpression}s or {@link SymbolicIdentifier}s with {@link MemoryLocation}s, as they carry
+   * location information for further evaluation.
+   *
+   * @param pExp expression to evaluate
+   * @param pTargetType the type of the left side of an assignment
+   * @return if evaluation successful, then value, else null
+   * @throws CPATransferException in case of critical visitor or SMG error
+   */
+  public List<ValueAndSMGState> evaluateAssignmentValue(
+      final CRightHandSide pExp, final CType pTargetType) throws CPATransferException {
+
+    // Look up the structure of the access, if we find something that might be ptr->next for
+    // abstracted lists with ptr being the last pointer, we might not want to materialize yet
+    if (pExp instanceof CFieldReference fieldRef
+        && fieldRef.getFieldOwner() instanceof CIdExpression ptrExpr) {
+      for (ValueAndSMGState pointerValuesAndState :
+          ptrExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options))) {
+        SMGState currentState = pointerValuesAndState.getState();
+        Value pointerValue = pointerValuesAndState.getValue();
+        Value ptrTargetOffset = new NumericValue(BigInteger.ZERO);
+        if (pointerValue instanceof AddressExpression addrValue) {
+          pointerValue = addrValue.getMemoryAddress();
+          ptrTargetOffset = addrValue.getOffset();
+        }
+        if (!currentState.getMemoryModel().isPointer(pointerValue)) {
+          break;
+        }
+
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> maybePtrTarget =
+            currentState.dereferencePointerWithoutMaterilization(pointerValue);
+        if (maybePtrTarget.isEmpty() || !maybePtrTarget.orElseThrow().hasSMGObjectAndOffset()) {
+          break;
+        }
+        SMGObject ptrTarget = maybePtrTarget.orElseThrow().getSMGObject();
+        ptrTargetOffset =
+            SMGCPAExpressionEvaluator.addOffsetValues(
+                ptrTargetOffset, maybePtrTarget.orElseThrow().getOffsetForObject());
+        currentState = maybePtrTarget.orElseThrow().getSMGState();
+
+        // Nesting level 0 means either no abstraction or the very end of the list
+        // TODO: use last indicator
+        int nestingLvl = currentState.getMemoryModel().getNestingLevel(pointerValue);
+
+        if (ptrTarget instanceof SMGSinglyLinkedListSegment linkedListObj && nestingLvl == 0) {
+          CFieldReference explicitFieldRef = fieldRef.withExplicitPointerDereference();
+          CType returnType =
+              SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef.getExpressionType());
+          BigInteger readSize = evaluator.getBitSizeof(currentState, returnType);
+          BigInteger fieldOffset =
+              evaluator.getFieldOffsetInBits(
+                  SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef),
+                  explicitFieldRef.getFieldName());
+          Value finalReadOffset =
+              SMGCPAExpressionEvaluator.addOffsetValues(ptrTargetOffset, fieldOffset);
+
+          if (finalReadOffset.isExplicitlyKnown()
+              && finalReadOffset
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .equals(linkedListObj.getNextOffset())
+              && finalReadOffset.isExplicitlyKnown()) {
+
+            ValueAndSMGState fieldReadAndState =
+                currentState.readValueWithoutMaterialization(
+                    linkedListObj,
+                    finalReadOffset.asNumericValue().bigIntegerValue(),
+                    readSize,
+                    returnType);
+            // This is now the next pointer from the last element of the list (this is the ptr->next
+            // part)
+            currentState = fieldReadAndState.getState();
+            Value readFieldValue = fieldReadAndState.getValue();
+            Value fieldTargetOffset = new NumericValue(BigInteger.ZERO);
+            if (!(readFieldValue instanceof AddressExpression)) {
+              readFieldValue = AddressExpression.of(readFieldValue, returnType, fieldTargetOffset);
+            }
+            return ImmutableList.of(ValueAndSMGState.of(readFieldValue, currentState));
+          }
+        }
+      }
+    }
+
+    return evaluate(pExp, pTargetType);
   }
 
   @Override
@@ -226,7 +320,8 @@ public class SMGCPAValueVisitor
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
         Value subscriptOffset =
-            SMGCPAExpressionEvaluator.multiplyOffsetValues(subscriptValue, typeSizeInBits);
+            SMGCPAExpressionEvaluator.multiplyValues(
+                subscriptValue, typeSizeInBits, returnType, state.getMachineModel());
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
@@ -281,12 +376,7 @@ public class SMGCPAValueVisitor
         ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readValueWithPointerDereference(
-                newState,
-                arrayAddr.getMemoryAddress(),
-                finalOffset,
-                typeSizeInBits,
-                returnType,
-                CNumericTypes.INT)) {
+                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType)) {
 
           newState = readPointerAndState.getState();
           if (readPointerAndState.getValue().isUnknown()) {
@@ -302,12 +392,7 @@ public class SMGCPAValueVisitor
 
       } else {
         return evaluator.readValueWithPointerDereference(
-            newState,
-            arrayAddr.getMemoryAddress(),
-            finalOffset,
-            typeSizeInBits,
-            returnType,
-            CNumericTypes.INT);
+            newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType);
       }
     } else if (arrayValue instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
@@ -1076,12 +1161,7 @@ public class SMGCPAValueVisitor
         readValueAndState =
             evaluator
                 .readValueWithPointerDereference(
-                    currentState,
-                    pointerValue.getMemoryAddress(),
-                    offset,
-                    sizeInBits,
-                    returnType,
-                    CNumericTypes.INT)
+                    currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType)
                 .get(0);
 
         if (returnType instanceof CPointerType) {
