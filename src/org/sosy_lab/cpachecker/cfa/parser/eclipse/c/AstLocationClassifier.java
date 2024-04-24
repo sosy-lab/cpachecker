@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
@@ -171,24 +173,28 @@ class AstLocationClassifier extends ASTVisitor {
     // body and cond are not null at this point.
     loopBody.put(loc, getLocation(body));
     assert controllingExpression != null;
-    FileLocation parenthesesBlockLocation = null;
+    FileLocation controllingExpressionLocation = null;
+    FileLocation initializerLocation = null;
+    FileLocation iterationLocation = null;
     if (controllingExpression.isPresent()) {
-      loopControllingExpression.put(loc, getLocation(controllingExpression.orElseThrow()));
-      parenthesesBlockLocation = getLocation(controllingExpression.orElseThrow());
+      controllingExpressionLocation = getLocation(controllingExpression.orElseThrow());
+      loopControllingExpression.put(loc, controllingExpressionLocation);
     }
     if (initializer.isPresent()) {
-      parenthesesBlockLocation =
-          FileLocation.merge(
-              Lists.newArrayList(parenthesesBlockLocation, getLocation(initializer.orElseThrow())));
-      loopInitializer.put(loc, getLocation(initializer.orElseThrow()));
+      initializerLocation = getLocation(initializer.orElseThrow());
+      loopInitializer.put(loc, initializerLocation);
     }
     if (iteration.isPresent()) {
-      parenthesesBlockLocation =
-          FileLocation.merge(
-              Lists.newArrayList(parenthesesBlockLocation, getLocation(iteration.orElseThrow())));
-      loopIterationStatement.put(loc, getLocation(iteration.orElseThrow()));
+      iterationLocation = getLocation(iteration.orElseThrow());
+      loopIterationStatement.put(loc, iterationLocation);
     }
-    if (parenthesesBlockLocation != null) {
+    if (controllingExpressionLocation != null || initializerLocation != null
+        || iterationLocation != null) {
+      FileLocation parenthesesBlockLocation =
+          FileLocation.merge(FluentIterable.from(
+                  Lists.newArrayList(controllingExpressionLocation, initializerLocation,
+                      iterationLocation))
+              .filter(Objects::nonNull).toList());
       loopParenthesesBlock.put(loc, parenthesesBlockLocation);
     }
   }
