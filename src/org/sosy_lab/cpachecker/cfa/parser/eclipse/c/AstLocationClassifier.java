@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,8 +35,10 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class AstLocationClassifier extends ASTVisitor {
-  private final ImmutableSortedMap.Builder<Integer, FileLocation> statementOffsetsToLocations =
-      ImmutableSortedMap.naturalOrder();
+  private final ImmutableMap.Builder<Integer, FileLocation> statementOffsetsToLocations =
+      new ImmutableMap.Builder<>();
+  private final HashMap<Integer, FileLocation> sanityCheckStatementOffsetsToLocations =
+      new HashMap<>();
 
   private final ImmutableSet.Builder<FileLocation> statementLocations =
       new ImmutableSet.Builder<>();
@@ -74,7 +78,11 @@ class AstLocationClassifier extends ASTVisitor {
   }
 
   public ImmutableSortedMap<Integer, FileLocation> getStatementOffsetsToLocations() {
-    return statementOffsetsToLocations.buildOrThrow();
+    // Using an ImmutableMap and then copying it into a ImmutableSortedMap is necessary,
+    // since ImmutableSortedMap does not implement buildKeepingLast, which is necessary
+    // when multiple statements are at the same initial offset. Currently, this is
+    // necessary for: test/programs/simple/builtin_types_compatible_void.c
+    return ImmutableSortedMap.copyOf(statementOffsetsToLocations.buildKeepingLast());
   }
 
   public void indexFileNames(List<Path> pFileNames) {
@@ -103,7 +111,13 @@ class AstLocationClassifier extends ASTVisitor {
       ifLocations.add(loc);
       handleIfStatement(statement);
     }
+
+    if (sanityCheckStatementOffsetsToLocations.containsKey(loc.getNodeOffset())) {
+      Verify.verify(sanityCheckStatementOffsetsToLocations.get(loc.getNodeOffset()).equals(loc));
+    }
+
     statementOffsetsToLocations.put(loc.getNodeOffset(), loc);
+    sanityCheckStatementOffsetsToLocations.put(loc.getNodeOffset(), loc);
     statementLocations.add(loc);
     return PROCESS_CONTINUE;
   }
@@ -188,13 +202,16 @@ class AstLocationClassifier extends ASTVisitor {
       iterationLocation = getLocation(iteration.orElseThrow());
       loopIterationStatement.put(loc, iterationLocation);
     }
-    if (controllingExpressionLocation != null || initializerLocation != null
+    if (controllingExpressionLocation != null
+        || initializerLocation != null
         || iterationLocation != null) {
       FileLocation parenthesesBlockLocation =
-          FileLocation.merge(FluentIterable.from(
-                  Lists.newArrayList(controllingExpressionLocation, initializerLocation,
-                      iterationLocation))
-              .filter(Objects::nonNull).toList());
+          FileLocation.merge(
+              FluentIterable.from(
+                      Lists.newArrayList(
+                          controllingExpressionLocation, initializerLocation, iterationLocation))
+                  .filter(Objects::nonNull)
+                  .toList());
       loopParenthesesBlock.put(loc, parenthesesBlockLocation);
     }
   }
