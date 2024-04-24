@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.smg;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -1329,12 +1331,9 @@ public class SMG {
    */
   public FluentIterable<SMGPointsToEdge> getPTEdgesByTarget(SMGObject pointingTo) {
     return FluentIterable.from(
-        objectsAndPointersPointingAtThem
+        transformedImmutableSetCopy(objectsAndPointersPointingAtThem
             .getOrDefault(pointingTo, PathCopyingPersistentTreeMap.of())
-            .keySet()
-            .stream()
-            .map(v -> pointsToEdges.get(v))
-            .collect(ImmutableSet.toImmutableSet()));
+            .keySet(), v->pointsToEdges.get(v)));
   }
 
   /**
