@@ -107,7 +107,9 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
             dlls1.getOffset(),
             dlls1.getHeadOffset(),
             dlls1.getNextOffset(),
+            null,
             dlls1.getPrevOffset(),
+            null,
             0);
     mapping1.addMapping(dlls1, freshCopyDLLS1);
     destSMG = destSMG.copyAndAddObject(freshCopyDLLS1);
