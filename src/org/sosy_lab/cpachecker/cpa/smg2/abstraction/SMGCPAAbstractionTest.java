@@ -942,7 +942,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = pointerToLeftmostConcreteAndState.getState();
       Value pointerToLeftMostConcrete = pointerToLeftmostConcreteAndState.getValue();
       SMGDoublyLinkedListSegment newDLLSegment =
-          new SMGDoublyLinkedListSegment(0, dllSizeValue, BigInteger.ZERO, hfo, nfo, pfo, 0);
+          new SMGDoublyLinkedListSegment(
+              0, dllSizeValue, BigInteger.ZERO, hfo, nfo, BigInteger.ZERO, pfo, BigInteger.ZERO, 0);
       ValueAndSMGState pointerToLeftmostZeroPlusAndState =
           currentState.searchOrCreateAddress(
               newDLLSegment, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_LAST_POINTER);
@@ -1871,7 +1872,16 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     BigInteger offset = BigInteger.ZERO;
 
     SMGDoublyLinkedListSegment currentAbstraction =
-        new SMGDoublyLinkedListSegment(0, dllSizeValue, offset, hfo, nfo, pfo, TEST_LIST_LENGTH);
+        new SMGDoublyLinkedListSegment(
+            0,
+            dllSizeValue,
+            offset,
+            hfo,
+            nfo,
+            BigInteger.ZERO,
+            pfo,
+            BigInteger.ZERO,
+            TEST_LIST_LENGTH);
 
     currentState = currentState.copyAndAddObjectToHeap(currentAbstraction);
     currentState =
@@ -2034,7 +2044,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     BigInteger offset = BigInteger.ZERO;
 
     SMGSinglyLinkedListSegment currentAbstraction =
-        new SMGSinglyLinkedListSegment(0, sllSizeValue, offset, hfo, nfo, TEST_LIST_LENGTH);
+        new SMGSinglyLinkedListSegment(
+            0, sllSizeValue, offset, hfo, nfo, BigInteger.ZERO, TEST_LIST_LENGTH);
 
     currentState = currentState.copyAndAddObjectToHeap(currentAbstraction);
     currentState =
@@ -2360,7 +2371,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       }
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-      state = state.abstractIntoSLL(firstObj.getObject(), nfo, ImmutableSet.of());
+      state = state.abstractIntoSLL(firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of());
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -2405,7 +2416,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       }
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-      state = state.abstractIntoSLL(firstObj.getObject(), nfo, ImmutableSet.of());
+      state = state.abstractIntoSLL(firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of());
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -2446,7 +2457,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       }
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-      state = state.abstractIntoDLL(firstObj.getObject(), nfo, pfo, ImmutableSet.of());
+      state =
+          state.abstractIntoDLL(
+              firstObj.getObject(), nfo, BigInteger.ZERO, pfo, BigInteger.ZERO, ImmutableSet.of());
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -2496,7 +2509,14 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         }
         SMGCandidate firstObj = candidates.iterator().next();
         assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-        state = state.abstractIntoDLL(firstObj.getObject(), nfo, pfo, ImmutableSet.of());
+        state =
+            state.abstractIntoDLL(
+                firstObj.getObject(),
+                nfo,
+                BigInteger.ZERO,
+                pfo,
+                BigInteger.ZERO,
+                ImmutableSet.of());
 
         Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
         // All should be invalid except our SLL here
