@@ -25,6 +25,10 @@ Changes since CPAchecker 2.3
 * The export of witnesses version 2.0
   was dependent on exporting witnesses version 1.0, this
   is no longer the case.
+* The SMG config (-smg) now uses the new and improved SMG2 analysis. 
+  The config should behave as previously for users.
+* The SMG package (org.sosy_lab.cpachecker.cpa.smg) will be removed 
+  in the next release and completely replaced by SMG2.
 
 Changes from CPAchecker 2.2 to CPAchecker 2.3
 ---------------------------------------------
