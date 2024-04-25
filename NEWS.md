@@ -27,8 +27,12 @@ Changes since CPAchecker 2.3
   is no longer the case.
 * The SMG config (-smg) now uses the new and improved SMG2 analysis. 
   The config should behave as previously for users.
+  The old SMG config can be found in the unmaintained folder as
+  smg-old. The old analysis can still be used with all other 
+  configs until the next release.
 * The SMG package (org.sosy_lab.cpachecker.cpa.smg) will be removed 
-  in the next release and completely replaced by SMG2.
+  in the next release and completely, replaced by SMG2.
+  This will include all configs related to SMG.
 
 Changes from CPAchecker 2.2 to CPAchecker 2.3
 ---------------------------------------------
