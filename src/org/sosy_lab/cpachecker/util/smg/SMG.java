@@ -1331,9 +1331,11 @@ public class SMG {
    */
   public FluentIterable<SMGPointsToEdge> getPTEdgesByTarget(SMGObject pointingTo) {
     return FluentIterable.from(
-        transformedImmutableSetCopy(objectsAndPointersPointingAtThem
-            .getOrDefault(pointingTo, PathCopyingPersistentTreeMap.of())
-            .keySet(), v->pointsToEdges.get(v)));
+        transformedImmutableSetCopy(
+            objectsAndPointersPointingAtThem
+                .getOrDefault(pointingTo, PathCopyingPersistentTreeMap.of())
+                .keySet(),
+            v -> pointsToEdges.get(v)));
   }
 
   /**

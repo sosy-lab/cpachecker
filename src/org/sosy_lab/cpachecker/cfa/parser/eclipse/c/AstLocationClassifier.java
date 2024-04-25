@@ -17,6 +17,7 @@ import com.google.common.collect.Lists;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -37,8 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 class AstLocationClassifier extends ASTVisitor {
   private final ImmutableMap.Builder<Integer, FileLocation> statementOffsetsToLocations =
       new ImmutableMap.Builder<>();
-  private final HashMap<Integer, FileLocation> sanityCheckStatementOffsetsToLocations =
-      new HashMap<>();
+  private final Map<Integer, FileLocation> sanityCheckStatementOffsetsToLocations = new HashMap<>();
 
   private final ImmutableSet.Builder<FileLocation> statementLocations =
       new ImmutableSet.Builder<>();

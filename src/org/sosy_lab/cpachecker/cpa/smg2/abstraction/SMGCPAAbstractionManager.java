@@ -302,7 +302,6 @@ public class SMGCPAAbstractionManager {
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> objsAndHVEs =
         smg.getSMGObjectsWithSMGHasValueEdges();
     Set<SMGObject> alreadySeenInChain = new HashSet<>(alreadySeen);
-    
 
     Optional<BigInteger> maybePfo = Optional.empty();
     Optional<BigInteger> maybePrevPointerTargetOffset = Optional.empty();
