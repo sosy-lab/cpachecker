@@ -19,6 +19,12 @@ Changes since CPAchecker 2.3
   proposed by Yakir Vizel, Orna Grumberg, and Sharon Shoham
   (cf. ["Intertwined Forward-Backward Reachability Analysis Using Interpolants", Proc. TACAS, 2013](https://doi.org/10.1007/978-3-642-36742-7_22))
   for software verification, has been added to CPAchecker.
+* The export for witnesses version 2.0 has been refactored. 
+  Now the options to export them are analogous to the ones
+  for exporting witnesses version 1.0. 
+* The export of witnesses version 2.0
+  was dependent on exporting witnesses version 1.0, this
+  is no longer the case.
 
 Changes from CPAchecker 2.2 to CPAchecker 2.3
 ---------------------------------------------
