@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.TestHelpers;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 
 public class SMGJoinSubSMGsForAbstractionTest {
 
