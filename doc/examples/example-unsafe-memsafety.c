@@ -6,12 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <stdlib.h>
 #include <assert.h>
+#include <stdlib.h>
 int main() {
   int size = 100;
   int num = __VERIFIER_nondet_int();
-  int * arr = malloc(sizeof(int) * size);
+  int *arr = malloc(sizeof(int) * size);
   for (int i = 0; i < size; i++) {
     arr[i] = num;
     num++;

@@ -7,14 +7,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern unsigned __VERIFIER_nondet_uint();
+extern void __assert_fail(const char *assertion, const char *file,
+                          unsigned int line, const char *function);
 int main() {
-  unsigned n =  __VERIFIER_nondet_uint();
-  unsigned x =  __VERIFIER_nondet_uint();
+  unsigned n = __VERIFIER_nondet_uint();
+  unsigned x = __VERIFIER_nondet_uint();
   unsigned y = n - x;
-  while(x > y) {
-    x--; y++;
-    if (x < y) {
-      ERROR: return 1;
+  while (x > y) {
+    x--;
+    y++;
+    if (x + y != n) {
+      __assert_fail("0", "example-safe.c", 20, "main");
     }
   }
   return 0;
