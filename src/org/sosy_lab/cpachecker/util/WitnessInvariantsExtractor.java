@@ -286,6 +286,10 @@ public class WitnessInvariantsExtractor {
    */
   public Set<ExpressionTreeLocationInvariant> extractInvariantsFromReachedSet()
       throws InterruptedException {
+    if (isYAMLWitness && potentialCandidatesYAMLWitness.isPresent()) {
+      return potentialCandidatesYAMLWitness.orElseThrow();
+    }
+
     Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
