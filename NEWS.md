@@ -8,31 +8,31 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 2.3
-----------------------------
-* Now by default, CPAchecker tries to generate a test harness when a property violation is found.
-  The test harness can reproduce the found violation through test execution.
-  See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
-* Dual Approximated Reachability (DAR)
+Changes from CPAchecker 2.3 to CPAchecker 2.3.1
+-----------------------------------------------
+* Dual Approximated Reachability (DAR)  
   A new reachability-safety analysis (config `-bmc-interpolationDualSequence`),
   which adopts a hardware model-checking algorithm
   proposed by Yakir Vizel, Orna Grumberg, and Sharon Shoham
   (cf. ["Intertwined Forward-Backward Reachability Analysis Using Interpolants", Proc. TACAS, 2013](https://doi.org/10.1007/978-3-642-36742-7_22))
   for software verification, has been added to CPAchecker.
-* The export for witnesses version 2.0 has been refactored. 
-  Now the options to export them are analogous to the ones
-  for exporting witnesses version 1.0. 
-* The export of witnesses version 2.0
-  was dependent on exporting witnesses version 1.0, this
-  is no longer the case.
-* The SMG config (-smg) now uses the new and improved SMG2 analysis. 
-  The config should behave as previously for users.
-  The old SMG config can be found in the unmaintained folder as
-  smg-old. The old analysis can still be used with all other 
-  configs until the next release.
-* The SMG package (org.sosy_lab.cpachecker.cpa.smg) will be removed 
-  in the next release and completely, replaced by SMG2.
-  This will include all configs related to SMG.
+* Export of test harnesses enabled by default for found property violations  
+  The test harness can reproduce the found violation through execution
+  of the input program linked against the test harness.
+  See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
+* Improved export for witnesses version 2.0  
+  The export of witnesses version 2.0 is now faster,
+  no longer depends on exporting witnesses version 1.0,
+  and shares its configuration options with the export of witnesses version 1.0.
+* Improved analysis for memory safety based on symbolic memory graphs (SMG)  
+  The SMG analysis (configuration `-smg`) was replaced with a reimplementation
+  that brings several improvements such as increased soundness,
+  a better list abstraction, and better performance.
+  The previous analysis is temporarily available as `-smg-old`,
+  but it will be removed in the next release
+  together with the previous implementation
+  and all other configurations based on it.
+
 
 Changes from CPAchecker 2.2 to CPAchecker 2.3
 ---------------------------------------------
