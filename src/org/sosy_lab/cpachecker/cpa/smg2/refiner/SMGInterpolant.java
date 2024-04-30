@@ -408,9 +408,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       try {
         return SMGState.of(machineModel, logger, options, evaluator, statistics)
             .reconstructStackFrames(stackFrameDeclarations);
-      } catch (SMGSolverException e) {
-        throw new RuntimeException(e);
-      } catch (SMGException e) {
+      } catch (SMGSolverException | SMGException e) {
         throw new RuntimeException(e);
       }
       /*.reconstructSMGStateFromNonHeapAssignments(
