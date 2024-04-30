@@ -29,7 +29,7 @@ public class FixpointNotifier {
   }
 
   public static void init(BlockSummaryConnection connection, int connections) {
-    checkState(instance == null, "FixPointNotifier already initialized");
+    // checkState(instance == null, "FixPointNotifier already initialized");
     instance = new FixpointNotifier(connection, connections);
   }
 
