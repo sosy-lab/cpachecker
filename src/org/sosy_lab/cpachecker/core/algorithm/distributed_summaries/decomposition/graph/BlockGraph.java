@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Preconditions;
@@ -230,13 +231,12 @@ public class BlockGraph {
               attributes.put("successors", ImmutableList.copyOf(n.getSuccessorIds()));
               attributes.put(
                   "edges",
-                  FluentIterable.from(n.getEdges())
-                      .transform(
-                          e ->
-                              ImmutableList.of(
-                                  e.getPredecessor().getNodeNumber(),
-                                  e.getSuccessor().getNodeNumber()))
-                      .toList());
+                  transformedImmutableListCopy(
+                      n.getEdges(),
+                      e ->
+                          ImmutableList.of(
+                              e.getPredecessor().getNodeNumber(),
+                              e.getSuccessor().getNodeNumber())));
               attributes.put("startNode", n.getFirst().getNodeNumber());
               attributes.put("endNode", n.getLast().getNodeNumber());
               attributes.put("loopPredecessors", n.getLoopPredecessorIds());

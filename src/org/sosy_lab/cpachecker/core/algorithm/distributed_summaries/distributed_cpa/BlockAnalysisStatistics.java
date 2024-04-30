@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.common.time.Tickers;
@@ -30,17 +32,13 @@ public class BlockAnalysisStatistics {
     }
 
     public void start() {
-      if (running) {
-        throw new IllegalStateException("Timer has already been started.");
-      }
+      checkState(!running, "Timer has already been started.");
       lastStart = Tickers.getCurrentThreadCputime().read();
       running = true;
     }
 
     public void stop() {
-      if (!running) {
-        throw new IllegalStateException("Timer needs to be started first.");
-      }
+      checkState(running, "Timer needs to be started first.");
       sum += Tickers.getCurrentThreadCputime().read() - lastStart;
       running = false;
     }

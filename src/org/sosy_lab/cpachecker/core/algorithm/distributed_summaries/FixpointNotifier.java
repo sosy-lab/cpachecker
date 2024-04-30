@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
@@ -27,16 +29,12 @@ public class FixpointNotifier {
   }
 
   public static void init(BlockSummaryConnection connection, int connections) {
-    if (instance != null) {
-      throw new IllegalStateException("FixPointNotifier already initialized");
-    }
+    checkState(instance == null, "FixPointNotifier already initialized");
     instance = new FixpointNotifier(connection, connections);
   }
 
   public static FixpointNotifier getInstance() {
-    if (instance == null) {
-      throw new IllegalStateException("FixPointNotifier not initialized");
-    }
+    checkState(instance != null, "FixPointNotifier not initialized");
     return instance;
   }
 

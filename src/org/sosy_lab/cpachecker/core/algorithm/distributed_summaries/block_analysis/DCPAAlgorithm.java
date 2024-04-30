@@ -283,10 +283,9 @@ public class DCPAAlgorithm {
         continue;
       }
       String prefix =
-          Joiner.on(",")
-              .join(
-                  FluentIterable.from(path.getFullPath())
-                      .transform(e -> e.getPredecessor() + "->" + e.getSuccessor()));
+          FluentIterable.from(path.getFullPath())
+              .transform(e -> e.getPredecessor() + "->" + e.getSuccessor())
+              .join(Joiner.on(","));
       if (!pPrefix.isBlank()) {
         prefix = pPrefix + "," + prefix;
       }
@@ -390,9 +389,9 @@ public class DCPAAlgorithm {
       ImmutableSet.Builder<BlockSummaryMessage> fixpointIteration = ImmutableSet.builder();
       for (BlockSummaryErrorConditionMessage value : errors.values()) {
         for (BlockSummaryMessage blockSummaryMessage : runAnalysisUnderCondition(value, false)) {
-          if (blockSummaryMessage.getType() == MessageType.BLOCK_POSTCONDITION
-              || blockSummaryMessage.getType() == MessageType.ERROR_CONDITION
-                  && soundPredecessors.containsAll(loopPredecessors)) {
+          if ((blockSummaryMessage.getType() == MessageType.BLOCK_POSTCONDITION
+                  || blockSummaryMessage.getType() == MessageType.ERROR_CONDITION)
+              && soundPredecessors.containsAll(loopPredecessors)) {
             fixpointIteration.add(blockSummaryMessage);
           }
         }
