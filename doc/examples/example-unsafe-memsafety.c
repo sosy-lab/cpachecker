@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+extern int __VERIFIER_nondet_int();
 int main() {
   int size = 100;
   int num = __VERIFIER_nondet_int();
