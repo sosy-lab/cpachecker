@@ -13,7 +13,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Lists;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -207,9 +206,8 @@ class AstLocationClassifier extends ASTVisitor {
         || iterationLocation != null) {
       FileLocation parenthesesBlockLocation =
           FileLocation.merge(
-              FluentIterable.from(
-                      Lists.newArrayList(
-                          controllingExpressionLocation, initializerLocation, iterationLocation))
+              FluentIterable.of(
+                      controllingExpressionLocation, initializerLocation, iterationLocation)
                   .filter(Objects::nonNull)
                   .toList());
       loopParenthesesBlock.put(loc, parenthesesBlockLocation);
