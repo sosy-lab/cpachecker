@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
+import org.sosy_lab.cpachecker.cfa.export.CfaToJson;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.export.FunctionCallDumper;
@@ -1163,6 +1164,7 @@ public class CFACreator {
       try {
         Path outdir = exportCfaFile.getParent().resolve("cfa");
         new DOTBuilder2(cfa).writeGraphs(outdir);
+        new CfaToJson(cfa).write(exportCfaFile.getParent());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to dot files");
         // continue with analysis
