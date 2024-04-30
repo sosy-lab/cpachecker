@@ -297,6 +297,12 @@ unit-tests:jdk-17:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
+unit-tests:jdk-21:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
+
 unit-tests:jdk-22:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
