@@ -31,20 +31,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(AbstractState pState)
-      throws InterruptedException, SolverException {
-    PredicateAbstractState predicateAbstractState =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
-    BooleanFormula formula;
-    if (predicateAbstractState.isAbstractionState()) {
-      formula = predicateAbstractState.getAbstractionFormula().asFormula();
-    } else {
-      formula = predicateAbstractState.getPathFormula().getFormula();
-    }
-    if (solver.isUnsat(formula)) {
-      return BlockSummaryMessageProcessing.stop();
-    }
+  public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
     return BlockSummaryMessageProcessing.proceed();
   }
 

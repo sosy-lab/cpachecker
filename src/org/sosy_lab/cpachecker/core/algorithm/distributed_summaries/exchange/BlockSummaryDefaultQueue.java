@@ -13,6 +13,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.FixpointNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 
@@ -66,6 +67,11 @@ public class BlockSummaryDefaultQueue extends ForwardingBlockingQueue<BlockSumma
     if (!next.isEmpty()) {
       return next.removeFirst();
     }
-    return queue.take();
+    FixpointNotifier.getInstance().waiting(Thread.currentThread().getName());
+    try {
+      return queue.take();
+    } finally {
+      FixpointNotifier.getInstance().active(Thread.currentThread().getName());
+    }
   }
 }

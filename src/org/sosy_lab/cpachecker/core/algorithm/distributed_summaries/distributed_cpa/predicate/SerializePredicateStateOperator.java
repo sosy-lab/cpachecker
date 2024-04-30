@@ -26,9 +26,13 @@ public class SerializePredicateStateOperator implements SerializeOperator {
   private final CFA cfa;
   private final PredicateCPA predicateCPA;
 
-  public SerializePredicateStateOperator(PredicateCPA pPredicateCPA, CFA pCFA) {
+  private final boolean writeReadableFormulas;
+
+  public SerializePredicateStateOperator(
+      PredicateCPA pPredicateCPA, CFA pCFA, boolean pWriteReadableFormulas) {
     cfa = pCFA;
     predicateCPA = pPredicateCPA;
+    writeReadableFormulas = pWriteReadableFormulas;
   }
 
   @Override
@@ -61,11 +65,15 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     } finally {
       SerializationInfoStorage.clear();
     }
-    return BlockSummaryMessagePayload.builder()
-        .addEntry(PredicateCPA.class.getName(), serializedFormula)
-        .addEntry("readable", booleanFormula.toString())
-        .addEntry(BlockSummaryMessagePayload.SSA, serializedSSAMap)
-        .addEntry(BlockSummaryMessagePayload.PTS, pts)
-        .buildPayload();
+
+    BlockSummaryMessagePayload.Builder payload =
+        BlockSummaryMessagePayload.builder()
+            .addEntry(PredicateCPA.class.getName(), serializedFormula)
+            .addEntry(BlockSummaryMessagePayload.SSA, serializedSSAMap)
+            .addEntry(BlockSummaryMessagePayload.PTS, pts);
+    if (writeReadableFormulas) {
+      payload.addEntry("readable", booleanFormula.toString());
+    }
+    return payload.buildPayload();
   }
 }

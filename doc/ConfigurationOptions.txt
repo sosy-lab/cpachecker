@@ -3782,6 +3782,9 @@ distributedSummaries.inputMessages = "input/"
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
 
+# Write readable formulas to log file.
+distributedSummaries.predicate.writeReadableFormulas = false
+
 # Change the queue type. ERRROR_CONDITION prioritizes the processing
 # ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
 # ErrorCondition messages.
@@ -4955,6 +4958,8 @@ witness.debug.checkForMissedInvariants = false
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
   enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
+witness.invariantsSpecificationAutomaton = no default value
+  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA]
 
 # Match the branching information at a branching location.
 witness.matchAssumeCase = true
@@ -5026,3 +5031,9 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# Export all information contained in the counterexample as a witness.
+witness.yamlexporter.exportCompleteCounterexample = no default value
+
+# The version for which to export the witness.
+witness.yamlexporter.witnessVersions = no default value

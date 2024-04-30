@@ -20,6 +20,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics.ThreadCPUTimer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
@@ -28,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
@@ -39,8 +40,8 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private final BlockSummaryConnection connection;
 
-  private final StatTimer forwardAnalysisTime = new StatTimer("Forward Analysis");
-  private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
+  private final ThreadCPUTimer forwardAnalysisTime = new ThreadCPUTimer("Forward Analysis");
+  private final ThreadCPUTimer backwardAnalysisTime = new ThreadCPUTimer("Backward Analysis");
 
   /**
    * {@link BlockSummaryAnalysisWorker}s trigger forward and backward analyses to find a
@@ -86,7 +87,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         try {
           backwardAnalysisTime.start();
           return dcpaAlgorithm.runAnalysisUnderCondition(
-              (BlockSummaryErrorConditionMessage) message);
+              (BlockSummaryErrorConditionMessage) message, true);
         } catch (Exception | Error e) {
           return ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e));
         } finally {
@@ -148,16 +149,14 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private Map<String, Object> getStats() {
     DistributedCompositeCPA forwardDCPA = null;
-    if (dcpaAlgorithm.getDCPA() instanceof DistributedCompositeCPA) {
-      forwardDCPA = (DistributedCompositeCPA) dcpaAlgorithm.getDCPA();
+    if (dcpaAlgorithm.getDCPA() instanceof DistributedARGCPA arg) {
+      if (arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
+        forwardDCPA = composite;
+      }
     }
     return ImmutableMap.<String, Object>builder()
-        .put(
-            BlockSummaryStatisticType.FORWARD_TIME.name(),
-            forwardAnalysisTime.getConsumedTime().asNanos())
-        .put(
-            BlockSummaryStatisticType.BACKWARD_TIME.name(),
-            backwardAnalysisTime.getConsumedTime().asNanos())
+        .put(BlockSummaryStatisticType.FORWARD_TIME.name(), forwardAnalysisTime.nanos())
+        .put(BlockSummaryStatisticType.BACKWARD_TIME.name(), backwardAnalysisTime.nanos())
         .put(BlockSummaryStatisticType.MESSAGES_SENT.name(), Integer.toString(getSentMessages()))
         .put(
             BlockSummaryStatisticType.MESSAGES_RECEIVED.name(),

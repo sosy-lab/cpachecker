@@ -155,11 +155,13 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
-      boolean pFirst) {
+      boolean pFirst,
+      String pOrigin) {
     BlockSummaryMessagePayload newPayload =
         BlockSummaryMessagePayload.builder()
             .addAllEntries(pPayload)
             .addEntry(BlockSummaryMessagePayload.FIRST, Boolean.toString(pFirst))
+            .addEntry(BlockSummaryMessagePayload.ORIGIN, pOrigin)
             .buildPayload();
     return new BlockSummaryErrorConditionMessage(
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());

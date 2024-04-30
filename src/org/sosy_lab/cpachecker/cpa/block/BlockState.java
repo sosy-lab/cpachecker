@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -108,20 +107,6 @@ public class BlockState
       return manager.getBooleanFormulaManager().and(approximations.toList());
     }
     return manager.getBooleanFormulaManager().makeTrue();
-  }
-
-  // error condition intentionally left out as it is mutable
-  @Override
-  public boolean equals(Object pO) {
-    if (pO instanceof BlockState that) {
-      return Objects.equals(node, that.node) && type == that.type;
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(node, type);
   }
 
   @Override
