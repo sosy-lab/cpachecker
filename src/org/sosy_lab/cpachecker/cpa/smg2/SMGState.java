@@ -3078,8 +3078,7 @@ public class SMGState
       if (!addressExpr.getOffset().isNumericValue()) {
         // return a freed and an unfreed state for not numeric values
         return ImmutableList.of(
-            this,
-            this.withInvalidFree("Invalid free of unallocated object is found.", addressToFree));
+            this, withInvalidFree("Invalid free of unallocated object is found.", addressToFree));
       }
       baseOffset = addressExpr.getOffset().asNumericValue().bigIntegerValue();
     }
@@ -3529,7 +3528,7 @@ public class SMGState
               < 0
           || sourceOffset.compareTo(BigInteger.ZERO) < 0) {
         // This would be an invalid read
-        SMGState currentState = this.withInvalidRead(sourceObject);
+        SMGState currentState = withInvalidRead(sourceObject);
         if (targetObjSize
                     .asNumericValue()
                     .bigIntegerValue()
@@ -4266,7 +4265,7 @@ public class SMGState
       // TODO: assert specifier
       return this;
     }
-    assert this.getMemoryModel().getSmg().checkSMGSanity();
+    assert getMemoryModel().getSmg().checkSMGSanity();
     SMGObject nextObj = maybeNext.orElseThrow();
     if (alreadyVisited.contains(nextObj)) {
       // We check for next as this might happen:

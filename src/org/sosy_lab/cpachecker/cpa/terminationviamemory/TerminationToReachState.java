@@ -127,12 +127,12 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       return true;
     }
     return pOther instanceof TerminationToReachState
-        && this.storedValues.equals(((TerminationToReachState) pOther).getStoredValues());
+        && storedValues.equals(((TerminationToReachState) pOther).getStoredValues());
   }
 
   private String getReadableStoredValues() {
     StringBuilder sb = new StringBuilder();
-    for (Map.Entry<LocationState, List<BooleanFormula>> entry : this.getStoredValues().entrySet()) {
+    for (Map.Entry<LocationState, List<BooleanFormula>> entry : getStoredValues().entrySet()) {
       sb.append(entry);
     }
     return sb.toString();

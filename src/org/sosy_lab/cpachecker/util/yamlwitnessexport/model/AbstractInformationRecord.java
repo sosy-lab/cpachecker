@@ -28,9 +28,9 @@ public abstract class AbstractInformationRecord {
       @JsonProperty("value") String string,
       @JsonProperty("type") String pType,
       @JsonProperty("format") String pFormat) {
-    this.value = string;
-    this.type = pType;
-    this.format = pFormat;
+    value = string;
+    type = pType;
+    format = pFormat;
   }
 
   public String getValue() {
