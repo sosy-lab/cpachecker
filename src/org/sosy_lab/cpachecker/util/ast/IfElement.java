@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class IfElement extends StatementElement {
+public final class IfElement extends StatementElement {
   private final ASTElement conditionElement;
   private final ASTElement thenElement;
   private final Optional<ASTElement> maybeElseElement;

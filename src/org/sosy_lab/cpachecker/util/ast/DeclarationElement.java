@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public class DeclarationElement {
+public final class DeclarationElement {
 
   private final ASTElement completeElement;
 

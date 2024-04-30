@@ -13,7 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public class IterationElement extends BranchingElement {
+public final class IterationElement extends BranchingElement {
 
   private final Optional<ASTElement> clause;
   private final ASTElement body;

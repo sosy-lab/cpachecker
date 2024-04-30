@@ -10,14 +10,13 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public class ASTElement {
+public final class ASTElement {
   private final FileLocation location;
   private ImmutableSet<CFAEdge> allEdges;
-  @LazyInit private Set<CFAEdge> edges = null;
+  @LazyInit private ImmutableSet<CFAEdge> edges = null;
 
   public ASTElement(FileLocation pLocation, ImmutableSet<CFAEdge> pAllEdges) {
     location = pLocation;
@@ -29,7 +28,7 @@ public class ASTElement {
   }
 
   /** Returns the set of CFA edges belonging to this ASTElement. */
-  public Set<CFAEdge> edges() {
+  public ImmutableSet<CFAEdge> edges() {
     // we calculate this set lazily upon the first invocation
     if (edges == null) {
       edges =

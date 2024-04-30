@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Contains information relating the CFA to the AST of the program. */
-public class AstCfaRelation {
+public final class AstCfaRelation {
 
   private record StartingLocation(int column, int line) implements Comparable<StartingLocation> {
     @Override
@@ -37,7 +37,7 @@ public class AstCfaRelation {
 
   private final ImmutableSet<IterationElement> iterationStructures;
 
-  private ImmutableSet<StatementElement> statementElements;
+  private final ImmutableSet<StatementElement> statementElements;
 
   @LazyInit
   private ImmutableSortedMap<StartingLocation, ASTElement> startingLocationToTightestStatement =
