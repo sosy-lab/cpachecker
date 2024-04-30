@@ -13,8 +13,8 @@ import static org.sosy_lab.cpachecker.util.Precisions.extractPrecisionByType;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -361,7 +361,7 @@ public class SMGRefiner implements Refiner {
     for (Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
       shutdownNotifier.shutdownIfNecessary();
       List<Predicate<? super Precision>> precisionTypes =
-          Lists.newArrayList(Predicates.instanceOf(SMGPrecision.class));
+          ImmutableList.of(Predicates.instanceOf(SMGPrecision.class));
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
   }
