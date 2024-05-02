@@ -20,7 +20,7 @@ import org.sosy_lab.common.configuration.Options;
 public class BlockSummaryAnalysisOptions {
 
   @Option(
-      description = "Configuration for forward analysis in computation of distributed summaries")
+      description = "Configuration for forward analysis in computation of distributed summaries", secure = true)
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path forwardConfiguration =
       Path.of("config/distributed-block-summaries/predicateAnalysis-block-forward.properties");
@@ -28,7 +28,7 @@ public class BlockSummaryAnalysisOptions {
   @Option(
       description =
           "Destination directory for the logfiles of all BlockSummaryWorkers. The logfiles have the"
-              + " same name as the ID of the worker.")
+              + " same name as the ID of the worker.", secure = true)
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path logDirectory = Path.of("block_summary/logfiles");
 
