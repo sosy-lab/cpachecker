@@ -24,8 +24,16 @@ public class TimeLimitSelection {
     CONTEXT_TIMELIMIT.put(init(0, 0, 1, 0, 1, 0), Pair.of(250, 250));
     CONTEXT_TIMELIMIT.put(init(0, 1, 0, 0, 1, 0), Pair.of(250, 250));
     CONTEXT_TIMELIMIT.put(init(0, 1, 0, 0, 1, 1), Pair.of(250, 250));
-    //TODO
+
     CONTEXT_TIMELIMIT.put(init(0, 0, 0, 0, 1, 0), Pair.of(50, 50));
+    CONTEXT_TIMELIMIT.put(init(0, 0, 0, 1, 1, 0), Pair.of(50, 50));
+    CONTEXT_TIMELIMIT.put(init(0, 0, 0, 1, 1, 1), Pair.of(50, 50));
+    CONTEXT_TIMELIMIT.put(init(1, 0, 1, 0, 1, 1), Pair.of(50, 50));
+
+    CONTEXT_TIMELIMIT.put(init(0, 1, 0, 1, 0, 0), Pair.of(10, 10));
+    CONTEXT_TIMELIMIT.put(init(0, 1, 0, 1, 1, 1), Pair.of(10, 10));
+    CONTEXT_TIMELIMIT.put(init(1, 0, 0, 0, 1, 1), Pair.of(10, 10));
+    CONTEXT_TIMELIMIT.put(init(1, 0, 1, 0, 1, 0), Pair.of(10, 10));
   }
 
   public static Pair<Integer, Integer> getTimeLimits(final AlgSelectionBooleanVector selectionContext) {
