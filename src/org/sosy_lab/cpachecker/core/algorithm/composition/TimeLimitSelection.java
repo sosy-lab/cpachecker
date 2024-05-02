@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.composition;
 
 
@@ -31,6 +39,7 @@ public class TimeLimitSelection {
         put(init(0, 1, 0, 0, 1, 1), Pair.of(250, 250));
         //TODO
         put(init(0, 0, 0, 0, 1, 0), Pair.of(50, 50));
+
     }};
 
     public static Pair<Integer, Integer> getTimeLimits(final AlgSelectionBooleanVector selectionContext) {
