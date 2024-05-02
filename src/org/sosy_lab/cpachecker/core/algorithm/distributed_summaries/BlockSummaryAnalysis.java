@@ -109,8 +109,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   @Option(
       description =
           "How workers should behave. Unlike DSS, INVARIANTS works with guessed summaries.",
-          secure = true)
-      
+      secure = true)
   private Strategy strategy = Strategy.DSS;
 
   @Option(
@@ -120,7 +119,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + " MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION. The final"
               + " number of blocks should converge to the number of functions in the program."
               + " NO_DECOMPOSITION creates one block around the CFA.",
-              secure = true)
+      secure = true)
   private DecompositionType decompositionType = DecompositionType.MERGE_DECOMPOSITION;
 
   @Option(
@@ -128,7 +127,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           "Whether to spawn util workers. "
               + "Util workers listen to every message and create visual output for debugging. "
               + "Workers consume resources and should not be used for benchmarks.",
-              secure = true)
+      secure = true)
   private boolean spawnUtilWorkers = false;
 
   @Option(
@@ -136,14 +135,14 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           "Change the queue type. ERRROR_CONDITION prioritizes the processing"
               + " ofErrorConditionMessages. DEFAULT does not differ between PostCondition and"
               + " ErrorCondition messages.",
-              secure = true)
+      secure = true)
   private QueueType queue = QueueType.DEFAULT;
 
   @Option(
       description =
           "The number of blocks is dependent by the number of functions in the program."
               + "A tolerance of 1 means, that we subtract 1 of the total number of functions.",
-              secure = true)
+      secure = true)
   private boolean allowSingleBlockDecompositionWhenMerging = false;
 
   @Option(
@@ -151,7 +150,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           "Abstraction nodes are added to each block after they are created. "
               + "They are needed to strengthen the preconditions of blocks. "
               + "Missing blocks make the analysis slower but not impossible.",
-              secure = true)
+      secure = true)
   private boolean allowMissingAbstractionNodes = true;
 
   @FileOption(Type.OUTPUT_FILE)
@@ -161,8 +160,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   @Option(description = "Whether to stop after exporting the blockgraph", secure = true)
   private boolean generateBlockGraphOnly = false;
 
-  @Option(description = "Import an existing decomposition from a file", 
-    secure = true)
+  @Option(description = "Import an existing decomposition from a file", secure = true)
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path importDecomposition = null;
 
