@@ -502,7 +502,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private ArrayList<AnnotatedValue<Path>> getTimeLimitAnnotatedValues(Pair<Integer, Integer> timeLimits) {
+  private List<AnnotatedValue<Path>> getTimeLimitAnnotatedValues(Pair<Integer, Integer> timeLimits) {
     var newConfigs = new ArrayList<AnnotatedValue<Path>>();
     for (int currentConfigFile = 0; currentConfigFile < configFiles.size(); currentConfigFile++) {
       var currentConfig = configFiles.get(currentConfigFile);
