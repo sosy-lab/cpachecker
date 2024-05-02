@@ -108,7 +108,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
   @Option(
       description =
-          "How workers should behave. Unlike DSS, INVARIANTS works with guessed summaries.")
+          "How workers should behave. Unlike DSS, INVARIANTS works with guessed summaries.",
+          secure = true)
+      
   private Strategy strategy = Strategy.DSS;
 
   @Option(
@@ -117,56 +119,62 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + " from each merge/branching point to the next merge/branching point."
               + " MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION. The final"
               + " number of blocks should converge to the number of functions in the program."
-              + " NO_DECOMPOSITION creates one block around the CFA.")
+              + " NO_DECOMPOSITION creates one block around the CFA.",
+              secure = true)
   private DecompositionType decompositionType = DecompositionType.MERGE_DECOMPOSITION;
 
   @Option(
       description =
           "Whether to spawn util workers. "
               + "Util workers listen to every message and create visual output for debugging. "
-              + "Workers consume resources and should not be used for benchmarks.")
+              + "Workers consume resources and should not be used for benchmarks.",
+              secure = true)
   private boolean spawnUtilWorkers = false;
 
   @Option(
       description =
           "Change the queue type. ERRROR_CONDITION prioritizes the processing"
               + " ofErrorConditionMessages. DEFAULT does not differ between PostCondition and"
-              + " ErrorCondition messages.")
+              + " ErrorCondition messages.",
+              secure = true)
   private QueueType queue = QueueType.DEFAULT;
 
   @Option(
       description =
           "The number of blocks is dependent by the number of functions in the program."
-              + "A tolerance of 1 means, that we subtract 1 of the total number of functions.")
+              + "A tolerance of 1 means, that we subtract 1 of the total number of functions.",
+              secure = true)
   private boolean allowSingleBlockDecompositionWhenMerging = false;
 
   @Option(
       description =
           "Abstraction nodes are added to each block after they are created. "
               + "They are needed to strengthen the preconditions of blocks. "
-              + "Missing blocks make the analysis slower but not impossible.")
+              + "Missing blocks make the analysis slower but not impossible.",
+              secure = true)
   private boolean allowMissingAbstractionNodes = true;
 
   @FileOption(Type.OUTPUT_FILE)
-  @Option(description = "Where to store the block graph in JSON format")
+  @Option(description = "Where to store the block graph in JSON format", secure = true)
   private Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
-  @Option(description = "Whether to stop after exporting the blockgraph")
+  @Option(description = "Whether to stop after exporting the blockgraph", secure = true)
   private boolean generateBlockGraphOnly = false;
 
-  @Option(description = "Import an existing decomposition from a file")
+  @Option(description = "Import an existing decomposition from a file", 
+    secure = true)
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path importDecomposition = null;
 
-  @Option(description = "Whether to spawn a worker for only one block id")
+  @Option(description = "Whether to spawn a worker for only one block id", secure = true)
   private String spawnWorkerForId = "";
 
   @FileOption(Type.OUTPUT_DIRECTORY)
-  @Option(description = "Where to find messages in a file format")
+  @Option(description = "Where to find messages in a file format", secure = true)
   private Path inputMessages = Path.of("input/");
 
   @FileOption(Type.OUTPUT_DIRECTORY)
-  @Option(description = "Where to write responses")
+  @Option(description = "Where to write responses", secure = true)
   private Path outputMessages = Path.of("messages/");
 
   private enum DecompositionType {

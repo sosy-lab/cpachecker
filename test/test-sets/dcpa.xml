@@ -21,7 +21,7 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-disable-java-assertions"/>
 		<option name="-predicateAnalysis-block"/>
 		<option name="-stats"/>
-	  <option name="-setprop">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
+	  <option name="-setprop">distributedSummaries.decompositionType=BRIDGE_DECOMPOSITION</option>
 
 	  <tasks name="ReachSafety-BitVectors">
 		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
