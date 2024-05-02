@@ -33,7 +33,7 @@ public abstract class AlgorithmCompositionStrategy {
 
   protected void initializeAlgorithmContexts(List<AnnotatedValue<Path>> pConfigFiles) {
     com.google.common.collect.ImmutableList.Builder<AlgorithmContext> contextBuilder =
-        ImmutableList.<AlgorithmContext>builder();
+            ImmutableList.<AlgorithmContext>builder();
 
     for (AnnotatedValue<Path> configFile : pConfigFiles) {
       contextBuilder.add(new AlgorithmContext(configFile));
@@ -48,9 +48,9 @@ public abstract class AlgorithmCompositionStrategy {
   public void finalCleanUp(final AlgorithmContext pLastContextRun) {
     for (AlgorithmContext context : algorithmContexts) {
       if (context != pLastContextRun
-          && context != null
-          && context.getCPA() != null
-          && context.reuseCPA()) {
+              && context != null
+              && context.getCPA() != null
+              && context.reuseCPA()) {
         CPAs.closeCpaIfPossible(context.getCPA(), logger);
       }
     }
@@ -58,12 +58,12 @@ public abstract class AlgorithmCompositionStrategy {
 
   interface Factory {
     AlgorithmCompositionStrategy create(
-        Configuration config,
-        LogManager logger,
-        ShutdownNotifier shutdownNotifier,
-        CFA cfa,
-        Specification specification)
-        throws InvalidConfigurationException;
+            Configuration config,
+            LogManager logger,
+            ShutdownNotifier shutdownNotifier,
+            CFA cfa,
+            Specification specification)
+            throws InvalidConfigurationException;
   }
 
   public void setRecursionFound() {

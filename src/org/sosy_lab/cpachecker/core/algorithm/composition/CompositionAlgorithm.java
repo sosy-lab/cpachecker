@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -11,14 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.composition;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.algorithm.composition.AlgorithmContext.MODE_LIMIT_DELIMITER;
+import static org.sosy_lab.cpachecker.core.algorithm.composition.AlgorithmContext.REPETITIONMODE.MODUS_LIMIT;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.*;
 import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -26,10 +24,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import javax.management.JMException;
 import javax.xml.transform.TransformerException;
@@ -49,7 +44,21 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -77,10 +86,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.*;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
@@ -88,6 +94,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "compositionAlgorithm")
 public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
@@ -206,6 +213,13 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
       secure = true,
+      name = "useTimeSelection",
+      description = "Enable when time selection algorithm is used")
+  private boolean useTimeSelection = true;
+
+
+  @Option(
+      secure = true,
       name = "condition.file",
       description = "where to store initial condition, when generated")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -221,6 +235,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   private final Specification specification;
   private final CompositionAlgorithmStatistics stats;
 
+  private final TimeSelectionStrategy timeSelectionStrategy;
+
   public CompositionAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
@@ -235,6 +251,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           "Need at least one configuration for composition algorithm!");
     }
     cfa = pCfa;
+    this.timeSelectionStrategy = new TimeSelectionStrategy(cfa);
     globalConfig = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -288,6 +305,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
             + " set");
     checkArgument(!pReached.isEmpty(), "CompositionAlgorithm needs non-empty reached set");
 
+
     stats.totalTimer.start();
     try {
 
@@ -296,7 +314,18 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
       CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
 
-      selectionStrategy.initializeAlgorithmContexts(configFiles);
+      if (useTimeSelection && configFiles.size() == 2) {
+
+        final AlgSelectionBooleanVector selectionContext = timeSelectionStrategy.extractStatisticsFromCfa();
+        final Pair<Integer, Integer> timeLimits = TimeLimitSelection.getTimeLimits(selectionContext);
+
+        var newConfigs = getTimeLimitAnnotatedValues(timeLimits);
+        selectionStrategy.initializeAlgorithmContexts(newConfigs);
+      } else {
+        selectionStrategy.initializeAlgorithmContexts(configFiles );
+      }
+
+
 
       AlgorithmStatus status;
       if (isPropertyChecked) {
@@ -325,8 +354,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
         currentContext.startTimer();
         stats.noOfRuns++;
-        logger.log(Level.INFO, "Current run: " + stats.noOfRuns);
-
         try {
           currentConfig =
               currentContext.getAndCreateConfigIfNecessary(globalConfig, logger, shutdownNotifier);
@@ -473,6 +500,19 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
+  }
+
+  private ArrayList<AnnotatedValue<Path>> getTimeLimitAnnotatedValues(Pair<Integer, Integer> timeLimits) {
+    var newConfigs = new ArrayList<AnnotatedValue<Path>>();
+    for (int currentConfigFile = 0; currentConfigFile < configFiles.size(); currentConfigFile++) {
+      var currentConfig = configFiles.get(currentConfigFile);
+      if (currentConfigFile == 0) {
+        newConfigs.add(AnnotatedValue.create(currentConfig.value(), MODUS_LIMIT.getCode() + MODE_LIMIT_DELIMITER + timeLimits.getFirst()));
+      } else if (currentConfigFile == 1) {
+        newConfigs.add(AnnotatedValue.create(currentConfig.value(), MODUS_LIMIT.getCode() + MODE_LIMIT_DELIMITER + timeLimits.getSecond()));
+      }
+    }
+    return newConfigs;
   }
 
   @SuppressFBWarnings(
