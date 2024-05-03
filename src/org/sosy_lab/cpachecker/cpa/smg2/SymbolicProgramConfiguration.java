@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -1941,7 +1942,10 @@ public class SymbolicProgramConfiguration {
       } else {
         memoryString = memoryString + "invalid " + memory;
       }
-      for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
+      for (SMGHasValueEdge valueEdge :
+          smg.getEdges(memory).stream()
+              .sorted(Comparator.comparing(o -> o.getOffset()))
+              .collect(ImmutableList.toImmutableList())) {
         SMGValue smgValue = valueEdge.hasValue();
         Preconditions.checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
@@ -1984,7 +1988,10 @@ public class SymbolicProgramConfiguration {
             .append(funName)
             .append(" return object ")
             .append(":" + retObjString + " with values: ");
-        for (SMGHasValueEdge valueEdge : smg.getEdges(stackframe.getReturnObject().orElseThrow())) {
+        for (SMGHasValueEdge valueEdge :
+            smg.getEdges(stackframe.getReturnObject().orElseThrow()).stream()
+                .sorted(Comparator.comparing(o -> o.getOffset()))
+                .collect(ImmutableList.toImmutableList())) {
           MemoryLocation memLoc =
               MemoryLocation.fromQualifiedName(
                   funName + "::__retval__", valueEdge.getOffset().longValueExact());
@@ -2032,7 +2039,10 @@ public class SymbolicProgramConfiguration {
               .append(memoryString)
               .append("\n");
         }
-        for (SMGHasValueEdge valueEdge : edges) {
+        for (SMGHasValueEdge valueEdge :
+            edges.stream()
+                .sorted(Comparator.comparing(o -> o.getOffset()))
+                .collect(ImmutableList.toImmutableList())) {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
@@ -2065,11 +2075,19 @@ public class SymbolicProgramConfiguration {
       if (!smg.isValid(entry.getValue().pointsTo())) {
         validity = " (invalid object)";
       }
+      ImmutableList<SMGHasValueEdge> orderedHVes =
+          smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true).stream()
+              .sorted(Comparator.comparing(o -> o.getOffset()))
+              .collect(ImmutableList.toImmutableList());
+
       builder
           .append(entry.getKey())
           .append(" (" + smg.getNestingLevel(entry.getKey()) + ")")
           .append(entry.getValue())
-          .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true))
+          .append(
+              orderedHVes.stream()
+                  .map(hve -> (smg.isPointer(hve.hasValue()) ? "(ptr) " : "") + hve.toString())
+                  .collect(ImmutableList.toImmutableList()))
           .append(validity);
       builder.append("\n");
     }
