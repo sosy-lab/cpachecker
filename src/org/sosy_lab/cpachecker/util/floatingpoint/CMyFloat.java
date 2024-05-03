@@ -12,11 +12,16 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.RoundingMode;
 
 public class CMyFloat extends CFloat {
+  static {
+    NativeLibraries.loadLibrary("mpfr_java");
+  }
+
   private final CFloatWrapper wrapper;
   private final MyFloat delegate;
 
