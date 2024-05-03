@@ -22,7 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.common.NativeLibraries;
 
 // TODO: Add support for more rounding modes
 // TODO: Add more functions (like sin(x), etc)
@@ -35,10 +34,6 @@ import org.sosy_lab.common.NativeLibraries;
 // TODO: Add support for unsigned types
 
 public class MyFloat {
-  static {
-    NativeLibraries.loadLibrary("mpfr_java");
-  }
-
   // Defines the width of the significand and the exponent range
   public static class Format {
     private final Integer expBits;
