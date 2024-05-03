@@ -2067,7 +2067,8 @@ public class SymbolicProgramConfiguration {
       builder.append("\n");
     }
     builder.append("\n");
-    builder.append("Pointers -> [pointer offset] targets[offset, size in bits) with values:");
+    builder.append(
+        "Pointers -> (spec) [pointer offset] targets[offset, size in bits) with values:");
     builder.append("\n");
 
     for (Entry<SMGValue, SMGPointsToEdge> entry : smg.getPTEdgeMapping().entrySet()) {
