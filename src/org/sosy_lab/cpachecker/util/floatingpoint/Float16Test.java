@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.floatingpoint.test;
+package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.util.List;
 import org.junit.Ignore;
@@ -17,16 +17,12 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatUnitTest;
-import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.MpfrFloat;
 
 @RunWith(Parameterized.class)
-public class Float8Test extends CFloatUnitTest {
+public class Float16Test extends CFloatUnitTest {
   @Override
   protected BinaryMathContext getFloatType() {
-    return new BinaryMathContext(4, 4);
+    return BinaryMathContext.BINARY16;
   }
 
   @Parameters(name = "{0}")
@@ -63,27 +59,8 @@ public class Float8Test extends CFloatUnitTest {
   }
 
   @Override
-  protected List<BigFloat> binaryTestValues() {
-    return allFloats(getFloatType());
-  }
-
-  @Override
   protected int ulpError() {
     return 0;
-  }
-
-  @Ignore
-  @Override
-  @Test
-  public void castToTest() {
-    // Not implemented
-  }
-
-  @Ignore
-  @Override
-  @Test
-  public void castToRoundingTest() {
-    // Not implemented
   }
 
   @Ignore
@@ -112,5 +89,46 @@ public class Float8Test extends CFloatUnitTest {
   @Test
   public void castToLongTest() {
     // Disabled
+  }
+
+  @Test
+  public void hardExpTest() {
+    // Hardest instance for exp(...) in float16
+    /* {1=23042,
+        2=1541,
+        3=262,
+        4=140,
+        5=121,
+        6=2684,
+        7=3916,
+        8=4224,
+        9=4456,
+        10=4728,
+        11=5193,
+        12=5207,
+        13=2160,
+        14=2113,
+        15=1715,
+        16=1033,
+        17=457,
+        18=231,
+        19=133,
+        20=71,
+        21=36,
+        22=11,
+        23=9,
+        24=4,
+        25=2,
+        26=1 <- here
+    }*/
+    String val = "1.0969e+01";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual1Ulp(r1, r2);
   }
 }

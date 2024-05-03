@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.floatingpoint.test;
+package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -18,12 +18,6 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatUnitTest;
-import org.sosy_lab.cpachecker.util.floatingpoint.CMyFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.JDouble;
-import org.sosy_lab.cpachecker.util.floatingpoint.MpfrFloat;
 
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
