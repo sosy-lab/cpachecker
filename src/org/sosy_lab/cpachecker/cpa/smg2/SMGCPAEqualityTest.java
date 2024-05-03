@@ -639,6 +639,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersConcreteDifferentList = buildConcreteList(false, sllSize, listLength);
+      // Adds sublists equal sublists (0 value in all)
       Value[][] nestedDifferentLists =
           addSubListsToList(listLength, pointersConcreteDifferentList, false);
       SMGObject ithObj =
@@ -646,6 +647,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               .dereferencePointerWithoutMaterilization(nestedDifferentLists[i][i])
               .orElseThrow()
               .getSMGObject();
+      // Write -1 as value in ith element to prevent abstraction of this sublist and the toplist
       currentState =
           currentState.writeValueWithChecks(
               ithObj,
