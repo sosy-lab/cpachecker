@@ -4355,7 +4355,7 @@ public class SMGState
             new HashSet<>(),
             true)
         || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)
-        || !isPointerTargetOffsetEqualTo(root, pfo, prevPointerTargetOffset)) {
+        || !isPointerTargetOffsetEqualTo(nextObj, pfo, prevPointerTargetOffset)) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoDLL(
           nextObj,
