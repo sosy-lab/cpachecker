@@ -509,19 +509,11 @@ public class SMG {
           pointsToEdgesBuilder.put(entry);
         } else {
           pointsToEdgesBuilder.put(newSource, edge);
-          // Check if the pte is actually used and increment PointerToObjectMap only for pointers
-          // existing in memory
-          for (int i = 0;
-              i
-                  < valuesToRegionsTheyAreSavedIn
-                      .getOrDefault(newSource, PathCopyingPersistentTreeMap.of())
-                      .size();
-              i++) {
-            newSMG =
-                newSMG.decrementPointerToObjectMap(
-                    newSource, pointsToEdges.get(newSource).pointsTo());
-            newSMG = newSMG.incrementPointerToObjectMap(newSource, edge.pointsTo());
-          }
+          // increment PointerToObjectMap only for pointers existing in memory
+
+          newSMG =
+              newSMG.switchAllPointerToObjectMap(
+                  newSource, pointsToEdges.get(newSource).pointsTo(), edge.pointsTo());
         }
       }
     } else {
@@ -649,6 +641,67 @@ public class SMG {
             objectsAndPointersPointingAtThem.putAndCopy(target, innerMap.removeAndCopy(pointer));
       }
     }
+    return new SMG(
+        smgObjects,
+        smgValuesAndNestingLvl,
+        hasValueEdges,
+        valuesToRegionsTheyAreSavedIn,
+        pointsToEdges,
+        newObjectsAndPointersPointingAtThem,
+        sizeOfPointer);
+  }
+
+  /**
+   * Switches ALL pointers pointerToSwitch that pointed towards oldTarget to newTarget.
+   *
+   * @param pointerToSwitch the pointer to switch
+   * @param oldTarget the old target of the ptr
+   * @param newTarget the new target of the ptr
+   * @return a new SMG with all ptrs given switched
+   */
+  private SMG switchAllPointerToObjectMap(
+      SMGValue pointerToSwitch, SMGObject oldTarget, SMGObject newTarget) {
+    if (pointerToSwitch.isZero()) {
+      return this;
+    }
+    PersistentMap<SMGValue, Integer> oldTargetInnerMap =
+        objectsAndPointersPointingAtThem.get(oldTarget);
+    if (oldTargetInnerMap == null) {
+      // Can happen for example in tests when there are pointers not saved in objects
+      return this;
+    }
+
+    Integer switchNum = oldTargetInnerMap.get(pointerToSwitch);
+    Preconditions.checkNotNull(switchNum);
+    if (switchNum == 0) {
+      return this;
+    }
+    PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> newObjectsAndPointersPointingAtThem;
+
+    if (oldTargetInnerMap.size() == 1) {
+      // remove whole entry
+      newObjectsAndPointersPointingAtThem =
+          objectsAndPointersPointingAtThem.removeAndCopy(oldTarget);
+    } else {
+      // Remove only inner entry
+      newObjectsAndPointersPointingAtThem =
+          objectsAndPointersPointingAtThem.putAndCopy(
+              oldTarget, oldTargetInnerMap.removeAndCopy(pointerToSwitch));
+    }
+
+    PersistentMap<SMGValue, Integer> newTargetInnerMap =
+        newObjectsAndPointersPointingAtThem.getOrDefault(
+            newTarget, PathCopyingPersistentTreeMap.of());
+    int existingNumInNewTarget = newTargetInnerMap.getOrDefault(pointerToSwitch, 0);
+    newObjectsAndPointersPointingAtThem =
+        newObjectsAndPointersPointingAtThem
+            .removeAndCopy(newTarget)
+            .putAndCopy(
+                newTarget,
+                newTargetInnerMap
+                    .removeAndCopy(pointerToSwitch)
+                    .putAndCopy(pointerToSwitch, switchNum + existingNumInNewTarget));
+
     return new SMG(
         smgObjects,
         smgValuesAndNestingLvl,
