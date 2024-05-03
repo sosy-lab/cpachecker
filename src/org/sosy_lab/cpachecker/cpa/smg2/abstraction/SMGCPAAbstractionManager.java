@@ -428,9 +428,12 @@ public class SMGCPAAbstractionManager {
       Set<SMGObject> alreadySeenInChain)
       throws SMGException {
     SMG smg = state.getMemoryModel().getSmg();
-    int minimumLengthForLists = minimumLengthForListsForAbstraction;
+    int minimumLengthForLists;
+    // We count the currentObj as being the first valid candidate
     if (currentObj instanceof SMGSinglyLinkedListSegment sllHeapObj) {
-      minimumLengthForLists = minimumLengthForLists - sllHeapObj.getMinLength();
+      minimumLengthForLists = minimumLengthForListsForAbstraction - sllHeapObj.getMinLength();
+    } else {
+      minimumLengthForLists = minimumLengthForListsForAbstraction - 1;
     }
     // Also collect all list segments to the left, as otherwise we might use the prev
     // pointer instead as the next pointer (as we might be at the end of the list for next
