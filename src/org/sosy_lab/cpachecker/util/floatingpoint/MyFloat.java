@@ -1141,7 +1141,7 @@ public class MyFloat {
     return fac(k - 1).multiply(BigInteger.valueOf(k));
   }
 
-  private static Map<Integer, MyFloat> mkExpTable(Format pFormat) {
+  private static ImmutableMap<Integer, MyFloat> mkExpTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
     builder.put(0, one(pFormat));
     for (int k = 1; k < 100; k++) { // TODO: Find a bound that depends on the precision
@@ -1152,7 +1152,7 @@ public class MyFloat {
   }
 
   // Table contains terms 1/k! for 1..100
-  private static final Map<Integer, MyFloat> expTable = mkExpTable(Format.Float256);
+  private static final ImmutableMap<Integer, MyFloat> expTable = mkExpTable(Format.Float256);
 
   private MyFloat exp_() {
     return expImpl(0);
@@ -1285,7 +1285,7 @@ public class MyFloat {
     return r.withPrecision(format);
   }
 
-  private static Map<Integer, MyFloat> mkLnTable(Format pFormat) {
+  private static ImmutableMap<Integer, MyFloat> mkLnTable(Format pFormat) {
     ImmutableMap.Builder<Integer, MyFloat> builder = ImmutableMap.builder();
     for (int k = 1; k < 1000; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k and store the values in the table
@@ -1295,7 +1295,7 @@ public class MyFloat {
   }
 
   // Table contains terms 1/k for k=1..100
-  private static final Map<Integer, MyFloat> lnTable = mkLnTable(Format.Float256);
+  private static final ImmutableMap<Integer, MyFloat> lnTable = mkLnTable(Format.Float256);
 
   private static MyFloat make_ln2(Format pFormat) {
     MyFloat r = constant(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
