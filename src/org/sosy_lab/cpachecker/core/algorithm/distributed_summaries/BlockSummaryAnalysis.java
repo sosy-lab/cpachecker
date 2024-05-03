@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -170,9 +169,16 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   @Option(description = "Whether to spawn a worker for only one block id", secure = true)
   private String spawnWorkerForId = "";
 
-  @FileOption(Type.OUTPUT_DIRECTORY)
-  @Option(description = "Where to find messages in a file format", secure = true)
-  private Path inputMessages = Path.of("input/");
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  @Option(
+      description =
+          "List of input preconditions, formatted as JSON BlockSummaryPostConditionMessage."
+              + " If at least one file is provided, the block-summary analysis assumes"
+              + " the disjunction of all provided preconditions."
+              + " If no file is provided, the block-summary analysis assumes"
+              + " the precondition 'true'.",
+      secure = true)
+  private List<Path> inputMessages = ImmutableList.of();
 
   @FileOption(Type.OUTPUT_DIRECTORY)
   @Option(description = "Where to write responses", secure = true)
@@ -210,6 +216,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     specification = pSpecification;
     options = new BlockSummaryAnalysisOptions(configuration);
     stats = new HashMap<>();
+
+    if (inputMessages.stream().anyMatch(f -> !Files.isRegularFile(f))) {
+      throw new InvalidConfigurationException(
+          "All input messages must be files that exist: " + inputMessages);
+    }
   }
 
   private Supplier<BlockingQueue<BlockSummaryMessage>> getQueueSupplier() {
@@ -304,14 +315,13 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                 .build();
         BlockSummaryAnalysisWorker actor =
             (BlockSummaryAnalysisWorker) Iterables.getOnlyElement(build.actors());
-        File[] messages = inputMessages.toFile().listFiles(File::isFile);
         ImmutableSet.Builder<BlockSummaryMessage> response = ImmutableSet.builder();
-        if (messages == null || messages.length == 0) {
+        if (inputMessages.isEmpty()) {
           response.addAll(actor.runInitialAnalysis());
         } else {
-          for (File message : messages) {
+          for (Path message : inputMessages) {
             response.addAll(
-                actor.processMessage(converter.jsonToMessage(Files.readString(message.toPath()))));
+                actor.processMessage(converter.jsonToMessage(Files.readString(message))));
           }
         }
         for (BlockSummaryMessage blockSummaryMessage : response.build()) {

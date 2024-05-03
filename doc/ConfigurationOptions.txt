@@ -3858,8 +3858,12 @@ distributedSummaries.generateBlockGraphOnly = false
 # Import an existing decomposition from a file
 distributedSummaries.importDecomposition = no default value
 
-# Where to find messages in a file format
-distributedSummaries.inputMessages = "input/"
+# List of input preconditions, formatted as JSON
+# BlockSummaryPostConditionMessage. If at least one file is provided, the
+# block-summary analysis assumes the disjunction of all provided
+# preconditions. If no file is provided, the block-summary analysis assumes
+# the precondition 'true'.
+distributedSummaries.inputMessages = []
 
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
