@@ -316,7 +316,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         }
         for (BlockSummaryMessage blockSummaryMessage : response.build()) {
           Files.createDirectories(outputMessages);
-          Path message = outputMessages.resolve("M" + counter++ + ".txt");
+          Path message = outputMessages.resolve("M" + counter++ + ".json");
           Files.writeString(message, converter.messageToJson(blockSummaryMessage));
         }
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
