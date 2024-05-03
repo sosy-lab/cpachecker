@@ -94,11 +94,11 @@ public class BlockNodeWithoutGraphInformation {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof BlockNodeWithoutGraphInformation that) {
-      return id.equals(that.getId());
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
     }
-    return false;
+    return pOther instanceof BlockNodeWithoutGraphInformation other && id.equals(other.getId());
   }
 
   @Override

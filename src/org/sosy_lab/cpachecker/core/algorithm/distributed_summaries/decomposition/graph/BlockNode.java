@@ -66,12 +66,11 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof BlockNode) {
-      // based on id (but ensures same class)
-      return super.equals(obj);
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
     }
-    return false;
+    return pOther instanceof BlockNode other && super.equals(other);
   }
 
   @Override

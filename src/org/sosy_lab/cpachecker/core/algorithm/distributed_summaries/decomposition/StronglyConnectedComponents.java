@@ -115,11 +115,11 @@ public class StronglyConnectedComponents {
     }
 
     @Override
-    public boolean equals(Object pO) {
-      if (pO instanceof Vertex vertex) {
-        return wrapped.equals(vertex.getWrapped());
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
       }
-      return false;
+      return pOther instanceof Vertex other && wrapped.equals(other.getWrapped());
     }
 
     @Override
