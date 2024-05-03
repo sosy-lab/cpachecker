@@ -434,6 +434,15 @@ public class SMGCPAAbstractionManager {
       }
       return SMGCandidateOrRejectedObject.ofSMGCandidate(newCandidate);
     } else {
+      if (!currentObj.equals(leftMostObj)) {
+        return lookThroughPrevAndThenSearchForList(
+            currentObj,
+            suspectedNfo,
+            nextPointerTargetOffset,
+            maybePfo,
+            maybePrevPointerTargetOffset,
+            alreadySeenInChain);
+      }
       // NONE case, add leftMostObj to seen, restart the chain w next
       return SMGCandidateOrRejectedObject.ofRejectedObject(leftMostObj);
     }
@@ -523,6 +532,26 @@ public class SMGCPAAbstractionManager {
                   equalityCache,
                   objectCache,
                   true)) {
+
+                // filter out DLLs where we accidentally used the pfo as nfo and are at the "end"
+                if (maybeNfo.subtract(smg.getSizeOfPointer()).compareTo(BigInteger.ZERO) >= 0) {
+                  // We assume nfo to follow pfo directly
+                  SMGHasValueEdge maybeRealNext =
+                      smg.readValue(
+                              potentialNextObj,
+                              maybeNfo.subtract(smg.getSizeOfPointer()),
+                              smg.getSizeOfPointer(),
+                              false)
+                          .getHvEdges()
+                          .get(0);
+                  if (smg.isPointer(maybeRealNext.hasValue())
+                      && smg.getPTEdge(maybeRealNext.hasValue())
+                          .orElseThrow()
+                          .pointsTo()
+                          .equals(prevObj)) {
+                    return ListType.NONE;
+                  }
+                }
 
                 return lookThroughNext(
                     potentialNextObj,
