@@ -518,7 +518,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 pointersSmallerAbstractedList[0],
                 currentState,
                 pointersAbstractedList[0],
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                EqualityCache.of()))
         .isFalse();
     assertThat(
             currentState.areValuesEqual(
@@ -526,7 +527,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 pointersAbstractedList[0],
                 currentState,
                 pointersSmallerAbstractedList[0],
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                EqualityCache.of()))
         .isTrue();
   }
 
