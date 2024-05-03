@@ -342,7 +342,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 10;
     Value[] pointersFirstHalf = buildConcreteList(false, sllSize, listLength);
     // Distinct middle segment
-    Value[] pointersConcrete = buildConcreteListWithValueStartingAt(false, sllSize, 1, 111);
+    Value[] pointersConcrete =
+        buildConcreteListWithEqualValues(false, sllSize, 1, 111, BigInteger.ZERO, Optional.empty());
     Value[] pointersSecondHalf = buildConcreteList(false, sllSize, listLength);
     // Now combine to 1 list
     assertThat(pointersConcrete).hasLength(1);
@@ -456,7 +457,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 10;
     Value[] pointersFirstHalf = buildConcreteList(true, dllSize, listLength);
     // Distinct middle segment
-    Value[] pointersConcrete = buildConcreteListWithValueStartingAt(true, dllSize, 1, 111);
+    Value[] pointersConcrete =
+        buildConcreteListWithEqualValues(
+            true, dllSize, 1, 111, BigInteger.ZERO, Optional.of(BigInteger.ZERO));
     Value[] pointersSecondHalf = buildConcreteList(true, dllSize, listLength);
     // Now combine to 1 list
     assertThat(pointersConcrete).hasLength(1);
@@ -2338,7 +2341,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       resetSMGStateAndVisitor();
-      SMGState state = createXLongExplicitDLLOnHeap(i);
+      SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
@@ -2362,7 +2365,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       resetSMGStateAndVisitor();
-      SMGState state = createXLongExplicitSLLOnHeap(i);
+      SMGState state = createXLongExplicitSLLOnHeap(i, 1, 0);
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
@@ -2407,7 +2410,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       resetSMGStateAndVisitor();
-      SMGState state = createXLongExplicitSLLOnHeap(i);
+      SMGState state = createXLongExplicitSLLOnHeap(i, 1, 0);
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
@@ -2448,7 +2451,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       resetSMGStateAndVisitor();
-      SMGState state = createXLongExplicitDLLOnHeap(i);
+      SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
@@ -2499,7 +2502,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         minLength = minLength + 10) {
       for (int i = 1; i < TEST_LIST_LENGTH; i++) {
         resetSMGStateAndVisitor();
-        SMGState state = createXLongExplicitDLLOnHeap(i);
+        SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
         SMGCPAAbstractionManager absFinder =
             new SMGCPAAbstractionManager(state, minLength, new SMGCPAStatistics());
         ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
@@ -2546,18 +2549,33 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     }
   }
 
-  // The next pointer at the end points to 0. nfo offset 32. value at 0 is 1.
-  private SMGState createXLongExplicitSLLOnHeap(int length)
+  //
+
+  /**
+   * The next pointer at the end points to 0. nfo offset 32. Values are equal each list segment, but
+   * increment based on list segment size (0,1,2... until nfo is reached).
+   */
+  private SMGState createXLongExplicitSLLOnHeap(int length, int value, int nextPtrTargetOffset)
       throws SMGException, SMGSolverException {
-    buildConcreteListWithValueStartingAt(false, sllSize, length, 1);
+    buildConcreteListWithEqualValues(
+        false, sllSize, length, value, BigInteger.valueOf(nextPtrTargetOffset), Optional.empty());
     return currentState;
   }
 
-  // The next and prev pointers at the end point to 0. The nfo is offset 32, pfo 64.
-  // value at offset 0 is 1
-  private SMGState createXLongExplicitDLLOnHeap(int length)
+  /**
+   * The next pointer at the end points to 0. nfo offset 32. Values are equal each list segment, but
+   * increment based on list segment size (0,1,2... until nfo is reached).
+   */
+  private SMGState createXLongExplicitDLLOnHeap(
+      int length, int value, int nextPtrTargetOffset, int prevPtrTargetOffset)
       throws SMGException, SMGSolverException {
-    buildConcreteListWithValueStartingAt(true, dllSize, length, 1);
+    buildConcreteListWithEqualValues(
+        true,
+        dllSize,
+        length,
+        value,
+        BigInteger.valueOf(nextPtrTargetOffset),
+        Optional.of(BigInteger.valueOf(prevPtrTargetOffset)));
     return currentState;
   }
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.After;
@@ -291,17 +292,30 @@ public class SMGCPATest0 {
    */
   protected Value[] buildConcreteList(boolean dll, BigInteger sizeOfSegment, int listLength)
       throws SMGException, SMGSolverException {
-    return buildConcreteListWithValueStartingAt(dll, sizeOfSegment, listLength, 0);
+    return buildConcreteListWithEqualValues(
+        dll,
+        sizeOfSegment,
+        listLength,
+        0,
+        BigInteger.ZERO,
+        dll ? Optional.of(BigInteger.ZERO) : Optional.empty());
   }
 
-  /*
-   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same every list segment.
-   * The data is numeric starting from valueStart, +1 each new value such that the space until nfo is filled.
-   * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
+  /**
+   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same
+   * every list segment. The data is numeric starting from valueStart, +1 each new value such that
+   * the space until nfo is filled. Valid sizes are divisible by 32. The nfo for the last and pfo
+   * for the first segment are 0.
    */
-  protected Value[] buildConcreteListWithValueStartingAt(
-      boolean dll, BigInteger sizeOfSegment, int listLength, int valueStart)
+  protected Value[] buildConcreteListWithEqualValues(
+      boolean dll,
+      BigInteger sizeOfSegment,
+      int listLength,
+      int valueStart,
+      BigInteger nextPointerTargetOffset,
+      Optional<BigInteger> prevPointerTargetOffset)
       throws SMGSolverException, SMGException {
+    Preconditions.checkArgument(!dll || prevPointerTargetOffset.isPresent());
     Value[] pointerArray = new Value[listLength];
     SMGObject prevObject = null;
 
@@ -333,7 +347,7 @@ public class SMGCPATest0 {
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
-            currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
+            currentState.searchOrCreateAddress(listSegment, nextPointerTargetOffset);
         currentState = pointerAndState.getState();
         currentState =
             currentState.writeValueWithChecks(
@@ -352,7 +366,7 @@ public class SMGCPATest0 {
           prevPointer = new NumericValue(0);
         } else {
           ValueAndSMGState pointerAndState =
-              currentState.searchOrCreateAddress(prevObject, BigInteger.ZERO);
+              currentState.searchOrCreateAddress(prevObject, prevPointerTargetOffset.orElseThrow());
           prevPointer = pointerAndState.getValue();
           currentState = pointerAndState.getState();
         }
