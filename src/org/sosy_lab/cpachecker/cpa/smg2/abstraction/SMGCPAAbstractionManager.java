@@ -296,27 +296,79 @@ public class SMGCPAAbstractionManager {
 
     ImmutableSet.Builder<SMGCandidate> foundChainsWRoot = ImmutableSet.builder();
     // Find good roots
-    outerLoop:
     for (SMGCandidate candidate : foundChains) {
-      if (candidate.isLooping()) {
-        for (SMGObject maybeRoot : candidate.suspectedElements) {
-          Set<SMGValue> ptrsTowardsHeapObj = smg.getPointerValuesForTarget(maybeRoot);
-          for (SMGValue ptrValue : ptrsTowardsHeapObj) {
-            Set<SMGObject> objsWithPtrsTowardsHeapObj =
-                smg.getValuesToRegionsTheyAreSavedIn().get(ptrValue).keySet();
-            if (!candidate.suspectedElements.containsAll(objsWithPtrsTowardsHeapObj)) {
-              foundChainsWRoot.add(SMGCandidate.moveCandidateTo(maybeRoot, candidate));
-              continue outerLoop;
-            }
-          }
-        }
-      } else {
-        foundChainsWRoot.add(candidate);
-      }
+      foundChainsWRoot.add(searchAndSetRootForCandidate(candidate));
     }
 
     // Order the candidates and check for equality of non-linking pointers
     return findNestingOfCandidates(foundChainsWRoot.build());
+  }
+
+  /**
+   * Candidates might have "bad" roots. We want the leftmost object in the list (assuming next goes
+   * right) or roots with external pointers for looping lists.
+   */
+  private SMGCandidate searchAndSetRootForCandidate(SMGCandidate pCandidate) throws SMGException {
+    SMG smg = state.getMemoryModel().getSmg();
+
+    if (pCandidate.isLooping()) {
+      for (SMGObject maybeRoot : pCandidate.suspectedElements) {
+        Set<SMGValue> ptrsTowardsHeapObj = smg.getPointerValuesForTarget(maybeRoot);
+        for (SMGValue ptrValue : ptrsTowardsHeapObj) {
+          Set<SMGObject> objsWithPtrsTowardsHeapObj =
+              smg.getValuesToRegionsTheyAreSavedIn().get(ptrValue).keySet();
+          if (!pCandidate.suspectedElements.containsAll(objsWithPtrsTowardsHeapObj)) {
+            return SMGCandidate.moveCandidateTo(maybeRoot, pCandidate);
+          }
+        }
+      }
+    }
+
+    // Sanity check/change that the "first" candidate is really the first for the nfo found
+    Map<SMGObject, Integer> lengthOfList = new HashMap<>();
+    for (SMGObject canObj : pCandidate.getMaximalListElements()) {
+      int len =
+          getLengthOfList(
+              canObj, pCandidate.suspectedNfo, pCandidate.suspectedElements, lengthOfList);
+
+      if (len == pCandidate.maximalSizeOfList) {
+        // Correct object for len
+        return SMGCandidate.moveCandidateTo(canObj, pCandidate);
+      }
+    }
+    // Should never happen
+    throw new SMGException("Could not determine correct root for list abstraction.");
+  }
+
+  private int getLengthOfList(
+      SMGObject currObj,
+      BigInteger suspectedNfo,
+      Set<SMGObject> allowedObjects,
+      Map<SMGObject, Integer> knownLength)
+      throws SMGException {
+    int currentLength = currObj instanceof SMGSinglyLinkedListSegment sll ? sll.getMinLength() : 1;
+    int nestedLength = 0;
+    SMGValue nextOfCandidate =
+        state
+            .readSMGValue(currObj, suspectedNfo, state.getMemoryModel().getSizeOfPointer())
+            .getSMGValue();
+    if (!nextOfCandidate.isZero() && state.getMemoryModel().getSmg().isPointer(nextOfCandidate)) {
+      SMGObject target =
+          state.getMemoryModel().getSmg().getPTEdge(nextOfCandidate).orElseThrow().pointsTo();
+      if (allowedObjects.contains(target)) {
+        // target is a part of the list
+        if (knownLength.containsKey(target)) {
+          // Rest is known
+          nestedLength = knownLength.get(target);
+        } else {
+          // Continue traverse
+          nestedLength = getLengthOfList(target, suspectedNfo, allowedObjects, knownLength);
+        }
+        Preconditions.checkArgument(nestedLength > 0);
+      }
+    }
+    knownLength.put(currObj, nestedLength + currentLength);
+    return nestedLength + currentLength;
   }
 
   private SMGCandidateOrRejectedObject lookThroughObject(
