@@ -1711,12 +1711,6 @@ public class SMGState
       Set<Value> thisPointerValuesAlreadyVisited,
       boolean treatSymbolicsAsEqualWEqualConstrains) {
 
-    if (objectCache.isEqualityKnown(thisObject, otherObject)) {
-      // This might be an assumption based on the fact that those 2 are currently already being
-      // checked!
-      return true;
-    }
-
     Preconditions.checkArgument(
         thisState.getMemoryModel().getSmg().getObjects().contains(thisObject));
     Preconditions.checkArgument(
