@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
@@ -77,6 +78,11 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     dcpaAlgorithm =
         new DCPAAlgorithm(
             getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
+  }
+
+  public Collection<BlockSummaryMessage> runInitialAnalysis()
+      throws CPAException, SolverException, InterruptedException {
+    return dcpaAlgorithm.runInitialAnalysis();
   }
 
   @Override

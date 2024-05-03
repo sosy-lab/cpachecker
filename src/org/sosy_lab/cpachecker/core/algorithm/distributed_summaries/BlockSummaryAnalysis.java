@@ -25,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -87,6 +86,7 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "distributedSummaries")
 public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
@@ -298,12 +298,19 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                 .build();
         BlockSummaryAnalysisWorker actor =
             (BlockSummaryAnalysisWorker) Iterables.getOnlyElement(build.actors());
-        for (File file : Objects.requireNonNull(inputMessages.toFile().listFiles(File::isFile))) {
-          for (BlockSummaryMessage blockSummaryMessage :
-              actor.processMessage(converter.jsonToMessage(Files.readString(file.toPath())))) {
-            Path message = outputMessages.resolve("M" + counter++ + ".txt");
-            Files.writeString(message, converter.messageToJson(blockSummaryMessage));
+        File[] messages = inputMessages.toFile().listFiles(File::isFile);
+        ImmutableSet.Builder<BlockSummaryMessage> response = ImmutableSet.builder();
+        if (messages == null || messages.length == 0) {
+          response.addAll(actor.runInitialAnalysis());
+        } else {
+          for (File message : messages) {
+            response.addAll(
+                actor.processMessage(converter.jsonToMessage(Files.readString(message.toPath()))));
           }
+        }
+        for (BlockSummaryMessage blockSummaryMessage : response.build()) {
+          Path message = outputMessages.resolve("M" + counter++ + ".txt");
+          Files.writeString(message, converter.messageToJson(blockSummaryMessage));
         }
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
@@ -348,6 +355,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     } catch (InvalidConfigurationException | IOException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
+    } catch (SolverException pE) {
+      throw new RuntimeException(pE);
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
