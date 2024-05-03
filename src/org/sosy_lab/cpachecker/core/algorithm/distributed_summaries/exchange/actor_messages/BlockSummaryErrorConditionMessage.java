@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
 
   private final boolean first;
+  private final String origin;
 
   BlockSummaryErrorConditionMessage(
       String pUniqueBlockId,
@@ -26,6 +27,7 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
       Instant pInstant) {
     super(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
     first = extractFlag(BlockSummaryMessagePayload.FIRST, false);
+    origin = (String) getPayload().getOrDefault(BlockSummaryMessagePayload.ORIGIN, "");
   }
 
   public SSAMap getSSAMap() {
@@ -44,6 +46,10 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
           PointerTargetSet.class);
     }
     return PointerTargetSet.emptyPointerTargetSet();
+  }
+
+  public String getOrigin() {
+    return origin;
   }
 
   public boolean isFirst() {

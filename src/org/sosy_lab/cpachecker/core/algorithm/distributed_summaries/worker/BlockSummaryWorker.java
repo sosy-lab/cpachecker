@@ -54,7 +54,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
 
   @Override
   public void broadcast(Collection<BlockSummaryMessage> pMessage) throws InterruptedException {
-    pMessage.forEach(m -> logger.log(Level.INFO, m));
+    // pMessage.forEach(m -> logger.log(Level.INFO, m));
     for (BlockSummaryMessage message : pMessage) {
       sentMessages.inc();
       getConnection().write(message);

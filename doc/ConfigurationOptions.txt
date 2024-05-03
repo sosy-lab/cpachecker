@@ -3864,6 +3864,9 @@ distributedSummaries.inputMessages = "input/"
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
 
+# Write readable formulas to log file.
+distributedSummaries.predicate.writeReadableFormulas = false
+
 # Change the queue type. ERRROR_CONDITION prioritizes the processing
 # ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
 # ErrorCondition messages.

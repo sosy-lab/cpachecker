@@ -15,6 +15,8 @@ import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -42,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.java_smt.api.SolverException;
 
+@Options(prefix = "distributedSummaries.predicate")
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   private final PredicateCPA predicateCPA;
@@ -54,6 +57,10 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final PathFormulaManager backwardManager;
   private final boolean hasRootAsPredecessor;
+  private final ProceedPredicateStateOperator proceedOperator;
+
+  @Option(secure = true, description = "Write readable formulas to log file.")
+  private boolean writeReadableFormulas = false;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -64,9 +71,10 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       ShutdownNotifier pShutdownNotifier,
       Map<Integer, CFANode> pIdToNodeMap)
       throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     predicateCPA = pPredicateCPA;
     hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
-    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA);
+    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
@@ -74,6 +82,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
+    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver(), pNode);
     backwardManager =
         new PathFormulaManagerImpl(
             pPredicateCPA.getSolver().getFormulaManager(),
@@ -106,7 +115,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public ProceedOperator getProceedOperator() {
-    return ProceedOperator.always();
+    return proceedOperator;
   }
 
   @Override

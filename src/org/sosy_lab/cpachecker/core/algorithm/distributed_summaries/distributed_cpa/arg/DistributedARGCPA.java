@@ -105,4 +105,8 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
     return new ARGState(
         wrappedCPA.computeVerificationCondition(pARGPath, pPreviousCondition), null);
   }
+
+  public DistributedConfigurableProgramAnalysis getWrappedCPA() {
+    return wrappedCPA;
+  }
 }

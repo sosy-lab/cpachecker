@@ -8,65 +8,85 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BlockAnalysisStatistics {
 
+  public static class ThreadCPUTimer {
+    private long sum;
+    private long lastStart;
+    private final String name;
+    private boolean running;
+
+    public ThreadCPUTimer(String pName) {
+      sum = 0;
+      lastStart = 0;
+      name = pName;
+      running = false;
+    }
+
+    public void start() {
+      checkState(!running, "Timer has already been started.");
+      lastStart = Tickers.getCurrentThreadCputime().read();
+      running = true;
+    }
+
+    public void stop() {
+      checkState(running, "Timer needs to be started first.");
+      sum += Tickers.getCurrentThreadCputime().read() - lastStart;
+      running = false;
+    }
+
+    public long nanos() {
+      return sum;
+    }
+
+    public String getName() {
+      return name;
+    }
+  }
+
   private final StatCounter serializationCount;
   private final StatCounter deserializationCount;
-  private final StatCounter combineCount;
-  private final StatCounter proceedCount;
 
-  private final StatTimer serializationTime;
-  private final StatTimer deserializationTime;
-  private final StatTimer combineTime;
-  private final StatTimer proceedTime;
+  private final ThreadCPUTimer serializationTime;
+  private final ThreadCPUTimer deserializationTime;
+  private final StatCounter proceedCount;
+  private final ThreadCPUTimer proceedTime;
 
   public BlockAnalysisStatistics(String pId) {
     serializationCount = new StatCounter("Serialization Count " + pId);
     deserializationCount = new StatCounter("Deserialization Count " + pId);
     proceedCount = new StatCounter("Proceed Count " + pId);
-    combineCount = new StatCounter("Combine Count " + pId);
 
-    serializationTime = new StatTimer("Serialization Time " + pId);
-    deserializationTime = new StatTimer("Deserialization Time " + pId);
-    proceedTime = new StatTimer("Proceed Time " + pId);
-    combineTime = new StatTimer("Combine Time " + pId);
-  }
-
-  public StatCounter getCombineCount() {
-    return combineCount;
+    serializationTime = new ThreadCPUTimer("Serialization Time " + pId);
+    deserializationTime = new ThreadCPUTimer("Deserialization Time " + pId);
+    proceedTime = new ThreadCPUTimer("Proceed Time " + pId);
   }
 
   public StatCounter getDeserializationCount() {
     return deserializationCount;
   }
 
-  public StatCounter getProceedCount() {
-    return proceedCount;
-  }
-
   public StatCounter getSerializationCount() {
     return serializationCount;
   }
 
-  public StatTimer getCombineTime() {
-    return combineTime;
-  }
-
-  public StatTimer getDeserializationTime() {
+  public ThreadCPUTimer getDeserializationTime() {
     return deserializationTime;
   }
 
-  public StatTimer getProceedTime() {
+  public ThreadCPUTimer getProceedTime() {
     return proceedTime;
   }
 
-  public StatTimer getSerializationTime() {
+  public ThreadCPUTimer getSerializationTime() {
     return serializationTime;
   }
 
@@ -81,17 +101,9 @@ public class BlockAnalysisStatistics {
         .put(
             BlockSummaryStatisticType.PROCEED_COUNT.name(),
             Integer.toString(proceedCount.getUpdateCount()))
-        .put(
-            BlockSummaryStatisticType.COMBINE_COUNT.name(),
-            Integer.toString(combineCount.getUpdateCount()))
-        .put(
-            BlockSummaryStatisticType.SERIALIZATION_TIME.name(),
-            serializationTime.getConsumedTime().asNanos())
-        .put(
-            BlockSummaryStatisticType.DESERIALIZATION_TIME.name(),
-            deserializationTime.getConsumedTime().asNanos())
-        .put(BlockSummaryStatisticType.PROCEED_TIME.name(), proceedTime.getConsumedTime().asNanos())
-        .put(BlockSummaryStatisticType.COMBINE_TIME.name(), combineTime.getConsumedTime().asNanos())
+        .put(BlockSummaryStatisticType.SERIALIZATION_TIME.name(), serializationTime.nanos())
+        .put(BlockSummaryStatisticType.DESERIALIZATION_TIME.name(), deserializationTime.nanos())
+        .put(BlockSummaryStatisticType.PROCEED_TIME.name(), proceedTime.nanos())
         .buildOrThrow();
   }
 }

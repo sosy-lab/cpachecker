@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -105,6 +106,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       new StatInt(StatKind.AVG, "Average number of edges in block");
   private final StatInt numberWorkersWithoutAbstraction =
       new StatInt(StatKind.MAX, "Worker without abstraction");
+
+  private final StatTimer decompositionTimer = new StatTimer("Decomposition time");
+  private final StatTimer instrumentationTimer = new StatTimer("Instrumentation time");
 
   @Option(
       description =
@@ -246,15 +250,19 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     try {
       // create blockGraph and reduce to relevant parts
       BlockSummaryCFADecomposer decomposer = getDecomposer();
+      decompositionTimer.start();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
+      decompositionTimer.stop();
       blockGraph.checkConsistency(shutdownManager.getNotifier());
       if (generateBlockGraphOnly) {
         blockGraph.export(blockCFAFile);
         logger.logf(Level.INFO, "Block graph exported to %s.", blockCFAFile);
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
+      instrumentationTimer.start();
       Modification modification =
           BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
+      instrumentationTimer.stop();
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
       numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
       if (!abstractionDeadEnds.isEmpty() && !allowMissingAbstractionNodes) {
@@ -284,7 +292,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();
       if (!spawnWorkerForId.isBlank()) {
-        FileUtils.deleteDirectory(outputMessages.toFile());
+        FileUtils.cleanDirectory(outputMessages.toFile());
         int counter = 0;
         MessageConverter converter = new MessageConverter();
         BlockNode blockNode =
@@ -322,15 +330,16 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
       numberWorkers.setNextValue(components.actors().size());
 
-      // run workers
-      for (BlockSummaryActor worker : components.actors()) {
-        Thread thread = new Thread(worker, worker.getId());
-        thread.setDaemon(true);
-        thread.start();
-      }
-
       // listen to messages
       try (BlockSummaryConnection mainThreadConnection = components.connections().get(0)) {
+        FixpointNotifier.init(
+            mainThreadConnection, components.connections().size() + components.actors().size());
+        // run workers
+        for (BlockSummaryActor worker : components.actors()) {
+          Thread thread = new Thread(worker, worker.getId());
+          thread.setDaemon(true);
+          thread.start();
+        }
         BlockSummaryObserverWorker observer =
             new BlockSummaryObserverWorker(
                 "observer", mainThreadConnection, options, blocks.size());
@@ -380,7 +389,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
-    builder = builder.addResultCollectorWorker(blocks, options);
     if (spawnUtilWorkers) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
@@ -409,7 +417,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       int coresForBlock = Integer.max(1, (int) Math.round(percentage * cores));
       builder = builder.addHubWorker(distinctNode, options, shutdownManager, coresForBlock);
     }
-    builder = builder.addResultCollectorWorker(blocks, options);
     if (spawnUtilWorkers) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
@@ -448,10 +455,16 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     for (Entry<String, Object> stringObjectEntry : overall.entrySet()) {
       writer =
           writer.put(
-              BlockSummaryStatisticType.valueOf(stringObjectEntry.getKey()).getName(),
+              BlockSummaryStatisticType.valueOf(stringObjectEntry.getKey()).getName()
+                  + " (overall)",
               convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
     }
-    writer.put(numberWorkers).put(numberWorkersWithoutAbstraction).put(averageNumberOfEdges);
+    writer
+        .put(numberWorkers)
+        .put(numberWorkersWithoutAbstraction)
+        .put(averageNumberOfEdges)
+        .put(instrumentationTimer)
+        .put(decompositionTimer);
   }
 
   private String convert(String pKey, String pNumber) {

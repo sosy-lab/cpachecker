@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -80,13 +79,6 @@ public class BlockSummaryWorkerBuilder {
                 cfa,
                 specification,
                 ShutdownManager.create()));
-    return this;
-  }
-
-  @CanIgnoreReturnValue
-  public BlockSummaryWorkerBuilder addResultCollectorWorker(
-      Collection<BlockNode> nodes, BlockSummaryAnalysisOptions pOptions) {
-    workerGenerators.add(connection -> new BlockSummaryResultWorker(nodes, connection, pOptions));
     return this;
   }
 
