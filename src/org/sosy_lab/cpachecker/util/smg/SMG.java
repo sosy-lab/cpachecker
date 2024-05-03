@@ -2327,8 +2327,9 @@ public class SMG {
       if (entry.getKey() instanceof SMGSinglyLinkedListSegment sll) {
         for (SMGValue ptr : entry.getValue().keySet()) {
           SMGPointsToEdge pte = pointsToEdges.get(ptr);
+          int ptrNestingLevel = getNestingLevel(ptr);
           if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)
-              && getNestingLevel(ptr) != Integer.max(0, sll.getMinLength() - 1)) {
+              && ptrNestingLevel != Integer.max(0, sll.getMinLength() - 1)) {
             return false;
           }
         }
