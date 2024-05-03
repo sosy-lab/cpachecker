@@ -1688,28 +1688,6 @@ public class SMGState
         false);
   }
 
-  // Test only version of checkEqualValuesForTwoStatesWithExemptions
-  private boolean checkEqualValuesForTwoStatesWithExemptions(
-      SMGObject thisObject,
-      SMGObject otherObject,
-      ImmutableList<BigInteger> exemptOffsets,
-      SMGState thisState,
-      SMGState otherState,
-      EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValuesAlreadyVisited,
-      boolean treatSymbolicsAsEqualWEqualConstrains) {
-    return checkEqualValuesForTwoStatesWithExemptions(
-        thisObject,
-        otherObject,
-        exemptOffsets,
-        thisState,
-        otherState,
-        equalityCache,
-        EqualityCache.of(),
-        thisPointerValuesAlreadyVisited,
-        treatSymbolicsAsEqualWEqualConstrains);
-  }
-
   /**
    * Compare 2 values, but do not compare the exempt offsets. Compares pointers by shape of the
    * memory they point to. Needed for lists and their next/prev pointers.
