@@ -154,6 +154,7 @@ public class SMGCPAAbstractionManager {
         stateAfterAbstraction.getMemoryModel().getHeapObjects();
     for (Set<SMGCandidate> set : orderedListCandidatesByNesting) {
       for (SMGCandidate candidate : set) {
+        // Check that the old root is gone
         if (objectsAfterAbstr.contains(candidate.getObject())) {
           if (!stateAfterAbstraction.getMemoryModel().getSmg().isValid(candidate.getObject())) {
             throw new SMGException(
@@ -161,6 +162,27 @@ public class SMGCPAAbstractionManager {
                     + " not a critical error and can be ignored.");
           } else {
             return false;
+          }
+        }
+        // Check that the new abstracted lists have the correct length
+        Set<SMGValue> shouldPointToAbstrList =
+            state.getMemoryModel().getSmg().getPointerValuesForTarget(candidate.getObject());
+
+        for (SMGValue ptrToAbstr : shouldPointToAbstrList) {
+          Optional<SMGPointsToEdge> pte =
+              stateAfterAbstraction.getMemoryModel().getSmg().getPTEdge(ptrToAbstr);
+          PersistentMap<SMGObject, Integer> sourceObjMap =
+              state.getMemoryModel().getSmg().getValuesToRegionsTheyAreSavedIn().get(ptrToAbstr);
+          if (sourceObjMap != null) {
+            for (SMGObject sourceObj : sourceObjMap.keySet()) {
+              // Only stack obj pointers
+              if (!state.getMemoryModel().isHeapObject(sourceObj)
+                  && (pte.isEmpty()
+                      || !(pte.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment sll)
+                      || sll.getMinLength() != candidate.maximalSizeOfList)) {
+                return false;
+              }
+            }
           }
         }
       }
@@ -310,7 +332,6 @@ public class SMGCPAAbstractionManager {
    */
   private SMGCandidate searchAndSetRootForCandidate(SMGCandidate pCandidate) throws SMGException {
     SMG smg = state.getMemoryModel().getSmg();
-
     if (pCandidate.isLooping()) {
       for (SMGObject maybeRoot : pCandidate.suspectedElements) {
         Set<SMGValue> ptrsTowardsHeapObj = smg.getPointerValuesForTarget(maybeRoot);
@@ -596,7 +617,6 @@ public class SMGCPAAbstractionManager {
         }
 
         // potentialNextObj is a valid list segment
-        alreadySeenInChain.add(potentialNextObj);
         int reduce = 1;
         if (prevObj instanceof SMGSinglyLinkedListSegment targetSLL) {
           reduce = targetSLL.getMinLength();
@@ -620,6 +640,7 @@ public class SMGCPAAbstractionManager {
               BigInteger pointerTargetOffset = pointsToEdge.getOffset();
               if (nextPointerTargetOffset.equals(pointerTargetOffset)) {
                 // viable next pointer and possibly viable next obj
+                alreadySeenInChain.add(potentialNextObj);
                 return lookThroughNext(
                     potentialNextObj,
                     targetOfPtrInNextObj,
@@ -1672,6 +1693,16 @@ public class SMGCPAAbstractionManager {
 
     public boolean isLooping() {
       return looping;
+    }
+
+    @Override
+    public String toString() {
+      return "SMGCandidate with root "
+          + object
+          + ", length "
+          + getMaximalListElements()
+          + ", is looping: "
+          + looping;
     }
   }
 }
