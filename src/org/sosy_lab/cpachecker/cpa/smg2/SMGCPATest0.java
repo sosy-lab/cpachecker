@@ -11,7 +11,10 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import org.junit.After;
 import org.junit.Before;
@@ -166,6 +169,135 @@ public class SMGCPATest0 {
     }
   }
 
+  /**
+   * Builds an abstractable list size listLength - 2 with offsets internalListPtrNextOffset and prev
+   * offset in between. Then 2 objects that are equal but have other ptr offsets in the beginning
+   * and end. Returns pointers to all objects in order. The values saved in non ptr locations are 0
+   * and then +1 for each int sized space until the nfo.
+   */
+  public Value[] buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
+      boolean dll,
+      BigInteger segmentSize,
+      int listLength,
+      BigInteger otherPtrOffset,
+      BigInteger internalListPtrNextOffset,
+      Optional<BigInteger> internalListPtrPrevOffset,
+      boolean createStackObjsAndPtrs)
+      throws SMGException, SMGSolverException {
+    // Build listLength-2 length list with ptr offsets given
+    Value[] listPtrs =
+        buildConcreteListWithEqualValues(
+            dll,
+            segmentSize,
+            listLength - 2,
+            0,
+            internalListPtrNextOffset,
+            internalListPtrPrevOffset,
+            createStackObjsAndPtrs);
+
+    // Add 1 new element in front and back with ptr nesting 0
+    SMGObject listSegmentFront = SMGObject.of(0, segmentSize, BigInteger.ZERO);
+    currentState = currentState.copyAndAddObjectToHeap(listSegmentFront);
+    ValueAndSMGState ptrToFrontAndState =
+        currentState.searchOrCreateAddress(listSegmentFront, otherPtrOffset);
+    currentState = ptrToFrontAndState.getState();
+    currentState =
+        currentState.writeValueWithChecks(
+            listSegmentFront,
+            new NumericValue(BigInteger.valueOf(0)),
+            numericPointerSizeInBits,
+            new NumericValue(0),
+            null,
+            dummyCDAEdge);
+
+    // Pointer to the next list segment
+    currentState =
+        currentState.writeValueWithChecks(
+            listSegmentFront,
+            new NumericValue(nfo),
+            numericPointerSizeInBits,
+            listPtrs[0],
+            null,
+            dummyCDAEdge);
+    if (dll) {
+      currentState =
+          currentState.writeValueWithChecks(
+              listSegmentFront,
+              new NumericValue(pfo),
+              numericPointerSizeInBits,
+              new NumericValue(0),
+              null,
+              dummyCDAEdge);
+      List<SMGStateAndOptionalSMGObjectAndOffset> derefedFirstAbstrListElem =
+          currentState.dereferencePointer(listPtrs[0]);
+      ValueAndSMGState ptrToFirstNotAbstrAndState =
+          currentState.searchOrCreateAddress(listSegmentFront, otherPtrOffset);
+      currentState = ptrToFirstNotAbstrAndState.getState();
+      Value ptrToFirstNotAbstr = ptrToFirstNotAbstrAndState.getValue();
+      currentState =
+          currentState.writeValueWithChecks(
+              derefedFirstAbstrListElem.get(0).getSMGObject(),
+              new NumericValue(pfo),
+              numericPointerSizeInBits,
+              ptrToFirstNotAbstr,
+              null,
+              dummyCDAEdge);
+    }
+
+    SMGObject listSegmentBack = SMGObject.of(0, segmentSize, BigInteger.ZERO);
+    currentState = currentState.copyAndAddObjectToHeap(listSegmentBack);
+    currentState =
+        currentState.writeValueWithChecks(
+            listSegmentBack,
+            new NumericValue(BigInteger.valueOf(0)),
+            numericPointerSizeInBits,
+            new NumericValue(0),
+            null,
+            dummyCDAEdge);
+    currentState =
+        currentState.writeValueWithChecks(
+            listSegmentBack,
+            new NumericValue(nfo),
+            numericPointerSizeInBits,
+            new NumericValue(0),
+            null,
+            dummyCDAEdge);
+    if (dll) {
+      currentState =
+          currentState.writeValueWithChecks(
+              listSegmentBack,
+              new NumericValue(pfo),
+              numericPointerSizeInBits,
+              listPtrs[listLength - 3],
+              null,
+              dummyCDAEdge);
+    }
+
+    // Pointer from the last to be abstracted list to the last
+    List<SMGStateAndOptionalSMGObjectAndOffset> derefedLastAbstrListElem =
+        currentState.dereferencePointer(listPtrs[listLength - 3]);
+    assertThat(derefedLastAbstrListElem).hasSize(1);
+    assertThat(derefedLastAbstrListElem.get(0).hasSMGObjectAndOffset()).isTrue();
+    ValueAndSMGState ptrToLastAndState =
+        currentState.searchOrCreateAddress(listSegmentBack, otherPtrOffset);
+    currentState = ptrToLastAndState.getState();
+    currentState =
+        currentState.writeValueWithChecks(
+            derefedLastAbstrListElem.get(0).getSMGObject(),
+            new NumericValue(nfo),
+            numericPointerSizeInBits,
+            ptrToLastAndState.getValue(),
+            null,
+            dummyCDAEdge);
+
+    return ImmutableList.builder()
+        .add(ptrToFrontAndState.getValue())
+        .addAll(Arrays.asList(listPtrs))
+        .add(ptrToLastAndState.getValue())
+        .build()
+        .toArray(new Value[0]);
+  }
+
   /*
    * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same every list segment.
    * The data is numeric starting from 0, +1 each new value such that the space until nfo is filled.
@@ -285,10 +417,11 @@ public class SMGCPATest0 {
     return pointerArray;
   }
 
-  /*
-   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same every list segment.
-   * The data is numeric starting from 0, +1 each new value such that the space until nfo is filled.
-   * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
+  /**
+   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same
+   * every list segment. The data is numeric starting from 0, +1 each new value such that the space
+   * until nfo is filled. Valid sizes are divisible by 32. The nfo for the last and pfo for the
+   * first segment are 0. This always creates a stack obj and a pointer towards ALL created objects.
    */
   protected Value[] buildConcreteList(boolean dll, BigInteger sizeOfSegment, int listLength)
       throws SMGException, SMGSolverException {
@@ -298,14 +431,15 @@ public class SMGCPATest0 {
         listLength,
         0,
         BigInteger.ZERO,
-        dll ? Optional.of(BigInteger.ZERO) : Optional.empty());
+        dll ? Optional.of(BigInteger.ZERO) : Optional.empty(),
+        true);
   }
 
   /**
    * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same
    * every list segment. The data is numeric starting from valueStart, +1 each new value such that
    * the space until nfo is filled. Valid sizes are divisible by 32. The nfo for the last and pfo
-   * for the first segment are 0.
+   * for the first segment are 0. The returned pointers are always offset 0.
    */
   protected Value[] buildConcreteListWithEqualValues(
       boolean dll,
@@ -313,7 +447,8 @@ public class SMGCPATest0 {
       int listLength,
       int valueStart,
       BigInteger nextPointerTargetOffset,
-      Optional<BigInteger> prevPointerTargetOffset)
+      Optional<BigInteger> prevPointerTargetOffset,
+      boolean createStackObjsAndPtrs)
       throws SMGSolverException, SMGException {
     Preconditions.checkArgument(!dll || prevPointerTargetOffset.isPresent());
     Value[] pointerArray = new Value[listLength];
@@ -388,19 +523,21 @@ public class SMGCPATest0 {
       prevObject = listSegment;
     }
     // Save all pointers in objects to not confuse the internal SMG assertions
-    for (Value pointer : pointerArray) {
-      SMGObjectAndSMGState stackObjAndState =
-          currentState.copyAndAddStackObject(numericPointerSizeInBits);
-      currentState = stackObjAndState.getState();
-      SMGObject dummyStackObject = stackObjAndState.getSMGObject();
-      currentState =
-          currentState.writeValueWithChecks(
-              dummyStackObject,
-              new NumericValue(BigInteger.ZERO),
-              numericPointerSizeInBits,
-              pointer,
-              null,
-              dummyCDAEdge);
+    if (createStackObjsAndPtrs) {
+      for (Value pointer : pointerArray) {
+        SMGObjectAndSMGState stackObjAndState =
+            currentState.copyAndAddStackObject(numericPointerSizeInBits);
+        currentState = stackObjAndState.getState();
+        SMGObject dummyStackObject = stackObjAndState.getSMGObject();
+        currentState =
+            currentState.writeValueWithChecks(
+                dummyStackObject,
+                new NumericValue(BigInteger.ZERO),
+                numericPointerSizeInBits,
+                pointer,
+                null,
+                dummyCDAEdge);
+      }
     }
     if (valueStart == 0) {
       checkListDataIntegrity(pointerArray, dll);
