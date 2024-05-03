@@ -39,6 +39,7 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializa
 
   private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
+  private final ImmutableSet<CFAEdge> allEdges;
 
   private final CfaMetadata metadata;
 
@@ -60,12 +61,14 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializa
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
             new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+    allEdges = ImmutableSet.copyOf(super.edges());
   }
 
   public ImmutableCFA(
       Map<String, FunctionEntryNode> pFunctions, Set<CFANode> pAllNodes, CfaMetadata pCfaMetadata) {
     functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes);
+    allEdges = ImmutableSet.copyOf(super.edges());
 
     metadata = pCfaMetadata;
 
@@ -75,6 +78,11 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializa
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
             new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+  }
+
+  @Override
+  public Set<CFAEdge> edges() {
+    return allEdges;
   }
 
   @Override

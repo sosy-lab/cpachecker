@@ -46,7 +46,7 @@ public class WitnessJoinerPrecisionAdjustment implements PrecisionAdjustment {
             pPrecision,
             pStates,
             Functions.compose(
-                (state) -> ((WitnessJoinerState) state).getWrappedState(), pStateProjection),
+                state -> ((WitnessJoinerState) state).getWrappedState(), pStateProjection),
             pFullState);
 
     if (!optionalUnwrappedResult.isPresent()) {

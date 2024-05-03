@@ -26,8 +26,8 @@ public abstract class APointerExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return "*" + operand.toParenthesizedASTString(pQualified);
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return "*" + operand.toParenthesizedASTString(pQualified, pOriginalVariableNames);
   }
 
   @Override
@@ -45,12 +45,8 @@ public abstract class APointerExpression extends AbstractLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof APointerExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    APointerExpression other = (APointerExpression) obj;
-
-    return Objects.equals(other.operand, operand);
+    return obj instanceof APointerExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand, operand);
   }
 }

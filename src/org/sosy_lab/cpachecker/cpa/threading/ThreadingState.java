@@ -234,11 +234,8 @@ public class ThreadingState
 
   @Override
   public boolean equals(Object other) {
-    if (!(other instanceof ThreadingState)) {
-      return false;
-    }
-    ThreadingState ts = (ThreadingState) other;
-    return threads.equals(ts.threads)
+    return other instanceof ThreadingState ts
+        && threads.equals(ts.threads)
         && locks.equals(ts.locks)
         && Objects.equals(activeThread, ts.activeThread)
         && threadIdsForWitness.equals(ts.threadIdsForWitness);
@@ -409,11 +406,8 @@ public class ThreadingState
 
     @Override
     public boolean equals(Object o) {
-      if (!(o instanceof ThreadState)) {
-        return false;
-      }
-      ThreadState other = (ThreadState) o;
-      return location.equals(other.location)
+      return o instanceof ThreadState other
+          && location.equals(other.location)
           && callstack.equals(other.callstack)
           && num == other.num;
     }

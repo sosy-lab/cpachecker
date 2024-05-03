@@ -81,10 +81,6 @@ public final class CFunctionCallExpression extends AFunctionCallExpression
       return true;
     }
 
-    if (!(obj instanceof CFunctionCallExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CFunctionCallExpression && super.equals(obj);
   }
 }

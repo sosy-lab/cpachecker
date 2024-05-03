@@ -51,10 +51,6 @@ public final class JMethodInvocationStatement extends AFunctionCallStatement
       return true;
     }
 
-    if (!(obj instanceof JMethodInvocationStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JMethodInvocationStatement && super.equals(obj);
   }
 }

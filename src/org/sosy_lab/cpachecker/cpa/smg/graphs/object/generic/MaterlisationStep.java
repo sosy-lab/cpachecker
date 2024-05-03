@@ -278,7 +278,7 @@ public class MaterlisationStep {
 
   public Set<SMGRegion> getEntryRegions() {
     return FluentIterable.from(targetAdressTemplateOfPointer)
-        .transform(edge -> edge.getObjectTemplate())
+        .transform(SMGEdgePointsToTemplate::getObjectTemplate)
         .filter(SMGRegion.class)
         .toSet();
   }

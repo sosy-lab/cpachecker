@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -41,13 +43,29 @@ public class CtoFormulaTypeHandler {
   }
 
   /**
-   * Returns the size in bytes of the given type. Always use this method instead of
-   * machineModel.getSizeOf, because this method can handle dereference-types.
+   * Compute size of type. Always use this instead of {@link MachineModel#getSizeof(CType)} to
+   * benefit from the caching and guard against #361.
+   *
+   * <p>This method returns the size only if it is known. If this method throws, use one of the
+   * {@code getSizeExpression} methods or {@link #getApproximatedSizeof(CType)}.
    *
    * @param pType the type to calculate the size of.
    * @return the size in bytes of the given type.
+   * @throws IllegalArgumentException if size of type is not known statically
    */
-  public long getSizeof(CType pType) {
+  public final long getExactSizeof(CType pType) {
+    checkArgument(pType.hasKnownConstantSize());
+    return getApproximatedSizeof(pType);
+  }
+
+  /**
+   * Returns the size in bytes of the given type, or a default value if the size is not known
+   * statically.
+   *
+   * @param pType the type to calculate the size of, or a default value
+   * @return the size in bytes of the given type.
+   */
+  public long getApproximatedSizeof(CType pType) {
     long size = machineModel.getSizeof(pType).longValueExact();
     if (size == 0) {
       CType type = pType.getCanonicalType();
@@ -66,17 +84,35 @@ public class CtoFormulaTypeHandler {
   }
 
   /**
-   * Returns the size in bits of the given type. Always use this method instead of
-   * machineModel.getSizeOf, because this method can handle dereference-types.
+   * Compute size in bits of type. Always use this instead of {@link
+   * MachineModel#getSizeofInBits(CType)} to benefit from the caching and guard against #361.
+   *
+   * <p>This method returns the size only if it is known. If this method throws, use one of the
+   * {@code getSizeExpression} methods or {@link #getApproximatedBitSizeof(CType)}.
    *
    * @param pType the type to calculate the size of.
    * @return the size in bits of the given type.
+   * @throws IllegalArgumentException if size of type is not known statically
    */
-  public long getBitSizeof(CType pType) {
+  public final long getExactBitSizeof(CType pType) {
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
     }
-    return getSizeof(pType) * machineModel.getSizeofCharInBits();
+    return getExactSizeof(pType) * machineModel.getSizeofCharInBits();
+  }
+
+  /**
+   * Returns the size in bits of the given type, or a default value if the size is not known
+   * statically.
+   *
+   * @param pType the type to calculate the size of, or a default value
+   * @return the size in bits of the given type.
+   */
+  public final long getApproximatedBitSizeof(CType pType) {
+    if (pType instanceof CBitFieldType) {
+      return ((CBitFieldType) pType).getBitFieldSize();
+    }
+    return getApproximatedSizeof(pType) * machineModel.getSizeofCharInBits();
   }
 
   /**

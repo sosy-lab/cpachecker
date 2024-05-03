@@ -59,7 +59,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     private final boolean useFunctionPreds;
     private final boolean useLocalPreds;
 
-    private PredicatePrecisionConverterStrategy(
+    PredicatePrecisionConverterStrategy(
         final boolean pUseGlobalPreds,
         final boolean pUseFunctionPreds,
         final boolean pUseLocalPreds) {

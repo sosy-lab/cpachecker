@@ -188,12 +188,10 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
   private void dumpCommonInfoForEdge(GraphMlBuilder builder, Element result, CFAEdge pEdge) {
 
-    if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
+    if (pEdge.getSuccessor() instanceof FunctionEntryNode in) {
       builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, in.getFunctionName());
     }
-    if (pEdge.getSuccessor() instanceof FunctionExitNode) {
-      FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
+    if (pEdge.getSuccessor() instanceof FunctionExitNode out) {
       builder.addDataElementChild(result, KeyDef.FUNCTIONEXIT, out.getFunctionName());
     }
 

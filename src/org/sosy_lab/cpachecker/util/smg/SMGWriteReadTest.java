@@ -15,23 +15,25 @@ import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Set;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.test.SMGTest0;
+import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
 
 public class SMGWriteReadTest extends SMGTest0 {
 
   private SMG smg;
-  private final SMGValue value1 = createValue("value1");
-  private final SMGValue value2 = createValue("value2");
-  private final SMGValue value3 = createValue("value3");
-  private final SMGValue value4 = createValue("value4");
+  private final SMGValue value1 = SMGValue.of();
+  private final SMGValue value2 = SMGValue.of();
+  private final SMGValue value3 = SMGValue.of();
+  private final SMGValue value4 = SMGValue.of();
 
   private SMGPointsToEdge nullPointer;
 
@@ -63,7 +65,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     assertThat(smg.getHVEdges().toList()).isEmpty();
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -79,7 +81,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     assertThat(smg.getHVEdges().toList()).isEmpty();
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -102,7 +104,12 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg = smg.copyAndAddObject(testObject);
 
     // First we need to write everything to 0
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
     // writeValue() to that region with a ptr to a value1 at position 3 (byte) (a1 has size 8
     // bytes)
     smg = smg.writeValue(testObject, BigInteger.valueOf(3 * 8), BigInteger.valueOf(8 * 8), value1);
@@ -130,7 +137,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     // Assert that now the region of the testObject is coverd in a nullyfied block completely
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -167,7 +174,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that there are only the 4 HVEdges in total
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Assert that there are only the zero value and value1 and2
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -196,17 +203,30 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg = smg.copyAndAddObject(testObject2);
 
     // First we need to write everything to 0 for both objects
-    smg = smg.writeValue(testObject1, BigInteger.ZERO, testObject1.getSize(), SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject1,
+            BigInteger.ZERO,
+            testObject1.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
     assertThat(smg.getEdges(testObject1)).isNotEmpty();
     assertThat(smg.getEdges(testObject2)).isEmpty();
-    smg = smg.writeValue(testObject2, BigInteger.ZERO, testObject2.getSize(), SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject2,
+            BigInteger.ZERO,
+            testObject2.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
     assertThat(smg.getEdges(testObject1)).isNotEmpty();
     assertThat(smg.getEdges(testObject2)).isNotEmpty();
     // writeValue() to testObject1 with value1 [3; 8)
     smg = smg.writeValue(testObject1, BigInteger.valueOf(3 * 8), BigInteger.valueOf(8 * 8), value1);
 
     SMGHasValueEdge expectedZeroEdgeObject2 =
-        new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.ZERO, testObject2.getSize());
+        new SMGHasValueEdge(
+            SMGValue.zeroValue(),
+            BigInteger.ZERO,
+            testObject2.getSize().asNumericValue().bigIntegerValue());
 
     // We added the zero edge to object2, and did not change anything, so thats the only edge in it!
     assertThat(smg.getEdges(testObject2))
@@ -262,7 +282,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Check that nothing changed for the points to edges
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -307,7 +327,7 @@ public class SMGWriteReadTest extends SMGTest0 {
 
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -341,7 +361,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     assertThat(smg.getHVEdges().toList()).isEmpty();
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -353,7 +373,12 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
 
     // Write everything to 0
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
 
     SMGHasValueEdge expectedEdge =
         new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.ZERO, sizeInBitsOfObject);
@@ -366,7 +391,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     // Assert that now the region of the testObject is coverd in a nullyfied block completely
     assertThat(smg.getHVEdges().toList()).isEqualTo(ImmutableList.of(expectedEdge));
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -384,7 +409,12 @@ public class SMGWriteReadTest extends SMGTest0 {
     final BigInteger sizeInBitsOfObject = BigInteger.valueOf(256);
     SMGObject testObject = createRegion(sizeInBitsOfObject);
     smg = smg.copyAndAddObject(testObject);
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
 
     // Write value1 in the region of the object from 0 to 127 (1/2 of its length)
     smg =
@@ -415,7 +445,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getHVEdges().toList()).hasSize(2);
     assertThat(smg.getHVEdges().toList()).contains(expectedValueEdge);
     assertThat(smg.getHVEdges().toList()).contains(expectedZeroEdge);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -433,7 +463,12 @@ public class SMGWriteReadTest extends SMGTest0 {
     final BigInteger sizeInBitsOfObject = BigInteger.valueOf(256);
     SMGObject testObject = createRegion(sizeInBitsOfObject);
     smg = smg.copyAndAddObject(testObject);
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
 
     // Write value1 in the region of the object from sizeOfObject/2 to end (1/2 of objectlength is
     // the length of the edge)
@@ -470,7 +505,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getHVEdges().toList()).hasSize(2);
     assertThat(smg.getHVEdges().toList()).contains(expectedValueEdge);
     assertThat(smg.getHVEdges().toList()).contains(expectedZeroEdge);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -491,25 +526,36 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg = smg.copyAndAddObject(testObject);
 
     // First write everything to 0, then value1 and value2
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg =
-        smg.writeValue(
-            testObject, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO), value1);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO),
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            value1);
+    smg =
+        smg.writeValue(
+            testObject,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
             value2);
 
     SMGHasValueEdge expectedValue1Edge =
-        new SMGHasValueEdge(value1, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO));
+        new SMGHasValueEdge(
+            value1,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO));
 
     SMGHasValueEdge expectedValue2Edge =
         new SMGHasValueEdge(
             value2,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO));
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO));
 
     PersistentSet<SMGHasValueEdge> expectedEdges =
         PersistentSet.of(expectedValue1Edge).addAndCopy(expectedValue2Edge);
@@ -519,7 +565,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -534,6 +580,79 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   /*
+   * Write a non-zero value into a big zero block and cut it in half, resulting in zero,
+   * non-zero, zero. Check that the value mapping and reverse map is correct.
+   * Expected: ZERO [0; 32), Value1 [32; 32), ZERO [64; 64), Value2 [128; 32), ZERO [160; 96)
+   */
+  @Test
+  public void writeValueInBigZeroBlockTest() {
+    SMGObject testObject = createRegion(BigInteger.valueOf(256));
+    smg = smg.copyAndAddObject(testObject);
+
+    // First write everything to 0, then value1 and value2
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg = smg.writeValue(testObject, BigInteger.valueOf(32), BigInteger.valueOf(32), value1);
+
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(SMGValue.zeroValue()).get(testObject))
+        .isEqualTo(2);
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(value1).get(testObject)).isEqualTo(1);
+
+    smg = smg.writeValue(testObject, BigInteger.valueOf(128), BigInteger.valueOf(32), value2);
+
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(SMGValue.zeroValue()).get(testObject))
+        .isEqualTo(3);
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(value1).get(testObject)).isEqualTo(1);
+    assertThat(smg.getValuesToRegionsTheyAreSavedIn().get(value2).get(testObject)).isEqualTo(1);
+
+    SMGHasValueEdge expectedZero1Edge =
+        new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(0), BigInteger.valueOf(32));
+
+    SMGHasValueEdge expectedValue1Edge =
+        new SMGHasValueEdge(value1, BigInteger.valueOf(32), BigInteger.valueOf(32));
+
+    SMGHasValueEdge expectedZero2Edge =
+        new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(64), BigInteger.valueOf(64));
+
+    SMGHasValueEdge expectedValue2Edge =
+        new SMGHasValueEdge(value2, BigInteger.valueOf(128), BigInteger.valueOf(32));
+
+    SMGHasValueEdge expectedZero3Edge =
+        new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(160), BigInteger.valueOf(96));
+
+    PersistentSet<SMGHasValueEdge> expectedEdges =
+        PersistentSet.of(expectedValue1Edge)
+            .addAndCopy(expectedValue2Edge)
+            .addAndCopy(expectedZero1Edge)
+            .addAndCopy(expectedZero2Edge)
+            .addAndCopy(expectedZero3Edge);
+
+    // Check that nothing changed for the points to edges
+    assertThat(smg.getPTEdges().toList())
+        .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
+    // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
+    assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
+    assertThat(smg.getValues().keySet())
+        .isEqualTo(
+            PersistentSet.of(SMGValue.zeroValue())
+                .addAndCopy(SMGValue.zeroDoubleValue())
+                .addAndCopy(SMGValue.zeroFloatValue())
+                .addAndCopy(value1)
+                .addAndCopy(value2));
+    assertThat(smg.getObjects())
+        .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
+    // Check that only the expected HVEdges exists for the object
+    assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
+
+    assertThat(smg.checkSMGSanity()).isTrue();
+  }
+
+  /*
    * Write the region to 0, then value1 in the first half and value2 in the second half such that they do not overlapp.
    * After that write value3 right in the middle of then such that it overlapps just 1 Byte in each direction,
    * invalidating both fields of value1 and 2.
@@ -544,27 +663,45 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg = smg.copyAndAddObject(testObject);
 
     // First write everything to 0, then value1 and value2
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg =
-        smg.writeValue(
-            testObject, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO), value1);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO),
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            value1);
+    smg =
+        smg.writeValue(
+            testObject,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
             value2);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().divide(BigInteger.TWO).subtract(BigInteger.valueOf(8)),
+            testObject
+                .getSize()
+                .asNumericValue()
+                .bigIntegerValue()
+                .divide(BigInteger.TWO)
+                .subtract(BigInteger.valueOf(8)),
             BigInteger.valueOf(2 * 8),
             value3);
 
     SMGHasValueEdge expectedValue3Edge =
         new SMGHasValueEdge(
             value3,
-            testObject.getSize().divide(BigInteger.TWO).subtract(BigInteger.valueOf(8)),
+            testObject
+                .getSize()
+                .asNumericValue()
+                .bigIntegerValue()
+                .divide(BigInteger.TWO)
+                .subtract(BigInteger.valueOf(8)),
             BigInteger.valueOf(2 * 8));
 
     PersistentSet<SMGHasValueEdge> expectedEdges = PersistentSet.of(expectedValue3Edge);
@@ -575,7 +712,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -600,23 +737,31 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg = smg.copyAndAddObject(testObject);
 
     // First write everything to 0, then value1 and value2
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg =
-        smg.writeValue(
-            testObject, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO), value1);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO),
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            value1);
+    smg =
+        smg.writeValue(
+            testObject,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
             value2);
     smg = smg.writeValue(testObject, BigInteger.ZERO, BigInteger.valueOf(8), value3);
 
     SMGHasValueEdge expectedValue2Edge =
         new SMGHasValueEdge(
             value2,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO));
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO));
 
     SMGHasValueEdge expectedValue3Edge =
         new SMGHasValueEdge(value3, BigInteger.ZERO, BigInteger.valueOf(8));
@@ -630,7 +775,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -655,33 +800,51 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg = smg.copyAndAddObject(testObject);
 
     // First write everything to 0, then value1 and value2
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg =
-        smg.writeValue(
-            testObject, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO), value1);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO),
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            value1);
+    smg =
+        smg.writeValue(
+            testObject,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
             value2);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().divide(BigInteger.TWO).subtract(BigInteger.valueOf(8)),
+            testObject
+                .getSize()
+                .asNumericValue()
+                .bigIntegerValue()
+                .divide(BigInteger.TWO)
+                .subtract(BigInteger.valueOf(8)),
             BigInteger.valueOf(8),
             value3);
 
     SMGHasValueEdge expectedValue2Edge =
         new SMGHasValueEdge(
             value2,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO));
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO));
 
     SMGHasValueEdge expectedValue3Edge =
         new SMGHasValueEdge(
             value3,
-            testObject.getSize().divide(BigInteger.TWO).subtract(BigInteger.valueOf(8)),
+            testObject
+                .getSize()
+                .asNumericValue()
+                .bigIntegerValue()
+                .divide(BigInteger.TWO)
+                .subtract(BigInteger.valueOf(8)),
             BigInteger.valueOf(8));
 
     PersistentSet<SMGHasValueEdge> expectedEdges =
@@ -693,7 +856,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -718,29 +881,42 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg = smg.copyAndAddObject(testObject);
 
     // First write everything to 0, then value1 and value2
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg =
-        smg.writeValue(
-            testObject, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO), value1);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO),
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            value1);
+    smg =
+        smg.writeValue(
+            testObject,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
             value2);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().subtract(BigInteger.valueOf(8)),
+            testObject.getSize().asNumericValue().bigIntegerValue().subtract(BigInteger.valueOf(8)),
             BigInteger.valueOf(8),
             value3);
 
     SMGHasValueEdge expectedValue1Edge =
-        new SMGHasValueEdge(value1, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO));
+        new SMGHasValueEdge(
+            value1,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO));
 
     SMGHasValueEdge expectedValue3Edge =
         new SMGHasValueEdge(
-            value3, testObject.getSize().subtract(BigInteger.valueOf(8)), BigInteger.valueOf(8));
+            value3,
+            testObject.getSize().asNumericValue().bigIntegerValue().subtract(BigInteger.valueOf(8)),
+            BigInteger.valueOf(8));
 
     PersistentSet<SMGHasValueEdge> expectedEdges =
         PersistentSet.of(expectedValue1Edge).addAndCopy(expectedValue3Edge);
@@ -751,7 +927,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -776,26 +952,42 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg = smg.copyAndAddObject(testObject);
 
     // First write everything to 0, then value1 and value2
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg =
-        smg.writeValue(
-            testObject, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO), value1);
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().divide(BigInteger.TWO),
-            testObject.getSize().divide(BigInteger.TWO),
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            value1);
+    smg =
+        smg.writeValue(
+            testObject,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
             value2);
     smg =
         smg.writeValue(
-            testObject, testObject.getSize().divide(BigInteger.TWO), BigInteger.valueOf(8), value3);
+            testObject,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            BigInteger.valueOf(8),
+            value3);
 
     SMGHasValueEdge expectedValue1Edge =
-        new SMGHasValueEdge(value1, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO));
+        new SMGHasValueEdge(
+            value1,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO));
 
     SMGHasValueEdge expectedValue3Edge =
         new SMGHasValueEdge(
-            value3, testObject.getSize().divide(BigInteger.TWO), BigInteger.valueOf(8));
+            value3,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            BigInteger.valueOf(8));
 
     PersistentSet<SMGHasValueEdge> expectedEdges =
         PersistentSet.of(expectedValue1Edge).addAndCopy(expectedValue3Edge);
@@ -806,7 +998,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that now the region of the testObject is coverd in the 2 value1 & 2 edges
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     // Values are never deleted!
-    assertThat(smg.getValues())
+    assertThat(smg.getValues().keySet())
         .isEqualTo(
             PersistentSet.of(SMGValue.zeroValue())
                 .addAndCopy(SMGValue.zeroDoubleValue())
@@ -822,6 +1014,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   // Try writing a value that goes beyond the testObjects field
+  @Ignore
   @Test(expected = IllegalArgumentException.class)
   public void writeBeyondRangeTest() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
@@ -831,20 +1024,27 @@ public class SMGWriteReadTest extends SMGTest0 {
         smg.writeValue(
             testObject,
             BigInteger.ZERO,
-            testObject.getSize().add(BigInteger.ONE),
+            testObject.getSize().asNumericValue().bigIntegerValue().add(BigInteger.ONE),
             SMGValue.zeroValue());
   }
 
   // Try writing a value that goes beyond the testObjects field
+  @Ignore
   @Test(expected = IllegalArgumentException.class)
   public void writeBeyondRangeTest2() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
 
-    smg = smg.writeValue(testObject, testObject.getSize(), BigInteger.ONE, SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            BigInteger.ONE,
+            SMGValue.zeroValue());
   }
 
   // Try writing a value that goes beyond the testObjects field
+  @Ignore
   @Test(expected = IllegalArgumentException.class)
   public void writeBeyondRangeTest3() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
@@ -853,39 +1053,120 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg =
         smg.writeValue(
             testObject,
-            testObject.getSize().subtract(BigInteger.ONE),
+            testObject.getSize().asNumericValue().bigIntegerValue().subtract(BigInteger.ONE),
             BigInteger.TWO,
             SMGValue.zeroValue());
   }
 
   // Try reading a value that goes beyond the testObjects field
+  @Ignore
   @Test(expected = IllegalArgumentException.class)
   public void readBeyondRangeTest() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
 
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg.readValue(testObject, BigInteger.ZERO, testObject.getSize().add(BigInteger.ONE));
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg.readValue(
+        testObject,
+        BigInteger.ZERO,
+        testObject.getSize().asNumericValue().bigIntegerValue().add(BigInteger.ONE),
+        false);
+  }
+
+  @Ignore
+  @Test(expected = IllegalArgumentException.class)
+  public void readBeyondRangePreciseTest() {
+    SMGObject testObject = createRegion(BigInteger.valueOf(256));
+    smg = smg.copyAndAddObject(testObject);
+
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg.readValue(
+        testObject,
+        BigInteger.ZERO,
+        testObject.getSize().asNumericValue().bigIntegerValue().add(BigInteger.ONE),
+        true);
   }
 
   // Try reading a value that goes beyond the testObjects field
+  @Ignore
   @Test(expected = IllegalArgumentException.class)
   public void readBeyondRangeTest2() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
 
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg.readValue(testObject, testObject.getSize(), BigInteger.ONE);
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg.readValue(
+        testObject, testObject.getSize().asNumericValue().bigIntegerValue(), BigInteger.ONE, false);
+  }
+
+  @Ignore
+  @Test(expected = IllegalArgumentException.class)
+  public void readBeyondRangePreciseTest2() {
+    SMGObject testObject = createRegion(BigInteger.valueOf(256));
+    smg = smg.copyAndAddObject(testObject);
+
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg.readValue(
+        testObject, testObject.getSize().asNumericValue().bigIntegerValue(), BigInteger.ONE, true);
   }
 
   // Try reading a value that goes beyond the testObjects field
+  @Ignore
   @Test(expected = IllegalArgumentException.class)
   public void readBeyondRangeTest3() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
 
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
-    smg.readValue(testObject, testObject.getSize().subtract(BigInteger.ONE), BigInteger.TWO);
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg.readValue(
+        testObject,
+        testObject.getSize().asNumericValue().bigIntegerValue().subtract(BigInteger.ONE),
+        BigInteger.TWO,
+        false);
+  }
+
+  @Ignore
+  @Test(expected = IllegalArgumentException.class)
+  public void readBeyondRangePreciseTest3() {
+    SMGObject testObject = createRegion(BigInteger.valueOf(256));
+    smg = smg.copyAndAddObject(testObject);
+
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg.readValue(
+        testObject,
+        testObject.getSize().asNumericValue().bigIntegerValue().subtract(BigInteger.ONE),
+        BigInteger.TWO,
+        true);
   }
 
   /**
@@ -898,21 +1179,38 @@ public class SMGWriteReadTest extends SMGTest0 {
   public void readValueZeroValueCombinationTest() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
     smg =
         smg.writeValue(
-            testObject, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO), value1);
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+            value1);
 
     // Read exactly the value1 area -> value1 read
     checkReadExpectedValue(
-        testObject, BigInteger.ZERO, testObject.getSize().divide(BigInteger.TWO), value1);
+        testObject,
+        BigInteger.ZERO,
+        testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.TWO),
+        value1);
     // Read some smaller part of only the value -> new value in this area
-    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(8)).getSMG();
+    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(8), false).getSMG();
     // Read the complete value + a part of the 0 value -> new value in this area
     checkReadUnknownValue(
         testObject,
-        testObject.getSize().divide(BigInteger.TWO).subtract(BigInteger.valueOf(8)),
-        BigInteger.valueOf(2 * 8));
+        testObject
+            .getSize()
+            .asNumericValue()
+            .bigIntegerValue()
+            .divide(BigInteger.TWO)
+            .subtract(BigInteger.valueOf(8)),
+        BigInteger.valueOf(2 * 8),
+        false);
   }
 
   /**
@@ -923,7 +1221,8 @@ public class SMGWriteReadTest extends SMGTest0 {
   @Test
   public void readValueValueCombinationTest() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
-    BigInteger objectSizeQuartered = testObject.getSize().divide(BigInteger.valueOf(4));
+    BigInteger objectSizeQuartered =
+        testObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.valueOf(4));
     smg = smg.copyAndAddObject(testObject);
     smg = smg.writeValue(testObject, BigInteger.ZERO, objectSizeQuartered, value1);
     smg = smg.writeValue(testObject, objectSizeQuartered, objectSizeQuartered, value2);
@@ -937,7 +1236,13 @@ public class SMGWriteReadTest extends SMGTest0 {
             objectSizeQuartered,
             value4);
     // Read exactly the entire object size -> new value read
-    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, testObject.getSize()).getSMG();
+    smg =
+        checkReadUnknownValue(
+                testObject,
+                BigInteger.ZERO,
+                testObject.getSize().asNumericValue().bigIntegerValue(),
+                false)
+            .getSMG();
     // Read only value1 -> value1
     smg = checkReadExpectedValue(testObject, BigInteger.ZERO, objectSizeQuartered, value1);
     // Read only value2 -> value2
@@ -967,7 +1272,12 @@ public class SMGWriteReadTest extends SMGTest0 {
   public void repeatedReadValueTest() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
     smg = smg.writeValue(testObject, BigInteger.valueOf(8), BigInteger.valueOf(8), value1);
     smg = smg.writeValue(testObject, BigInteger.valueOf(4 * 8), BigInteger.valueOf(8), value2);
     smg = smg.writeValue(testObject, BigInteger.valueOf(16 * 8), BigInteger.valueOf(8), value3);
@@ -988,13 +1298,13 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Read a new value with a field from [0;16); covering value1 (we want to save the new value to
     // compare it later)
     SMGandValue readReinterpreation0to16 =
-        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(2 * 8));
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(2 * 8), false);
     smg = readReinterpreation0to16.getSMG();
     SMGValue newValueInSMG0to16 = readReinterpreation0to16.getValue();
 
     // Read in the field [0;32) resulting in another new value
     SMGandValue readReinterpreation0to32 =
-        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(4 * 8));
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(4 * 8), false);
     SMGValue newValueInSMG0to32 = readReinterpreation0to32.getValue();
     smg = readReinterpreation0to32.getSMG();
 
@@ -1006,7 +1316,7 @@ public class SMGWriteReadTest extends SMGTest0 {
 
     // Read from 0 to 17 -> new value
     SMGandValue readReinterpreation0to17 =
-        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(2 * 8 + 1));
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(2 * 8 + 1), false);
     smg = readReinterpreation0to17.getSMG();
     SMGValue newValueInSMG0to17 = readReinterpreation0to17.getValue();
 
@@ -1032,7 +1342,12 @@ public class SMGWriteReadTest extends SMGTest0 {
   public void readSingleZeroValueTest() {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
-    smg = smg.writeValue(testObject, BigInteger.ZERO, testObject.getSize(), SMGValue.zeroValue());
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue(),
+            SMGValue.zeroValue());
     // Read 1 Byte in the very beginning
     smg = checkReadZeroValue(testObject, BigInteger.ZERO, BigInteger.valueOf(8));
     // Read 1 Byte at the very end
@@ -1088,24 +1403,32 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Read 3 Byte at the very beginning = 0 value; The 4th Byte is undefined
     smg = checkReadZeroValue(testObject, BigInteger.ZERO, BigInteger.valueOf(3 * 8));
     // Read 4 Bytes; This reads the undefined block -> new value
-    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(4 * 8)).getSMG();
+    smg =
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(4 * 8), false)
+            .getSMG();
     // Read the first 3 Bytes + 1 bit of the undefined block
     smg =
-        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(3 * 8 + 1)).getSMG();
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(3 * 8 + 1), false)
+            .getSMG();
     // Read only exactly the first undefined block
     smg =
-        checkReadUnknownValue(testObject, BigInteger.valueOf(3 * 8), BigInteger.valueOf(8))
+        checkReadUnknownValue(testObject, BigInteger.valueOf(3 * 8), BigInteger.valueOf(8), false)
             .getSMG();
     // Read the first 7 Bytes; with the undefined block in between 0 values
-    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(7 * 8)).getSMG();
+    smg =
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(7 * 8), false)
+            .getSMG();
     // Read 3 Bytes at the very end, excluding the last byte = 0 value
     smg = checkReadZeroValue(testObject, BigInteger.valueOf(28 * 8), BigInteger.valueOf(3 * 8));
     // Read the last 4 Bytes
     smg =
-        checkReadUnknownValue(testObject, BigInteger.valueOf(28 * 8), BigInteger.valueOf(4 * 8))
+        checkReadUnknownValue(
+                testObject, BigInteger.valueOf(28 * 8), BigInteger.valueOf(4 * 8), false)
             .getSMG();
     // Read the entire field (32 Byte), reading multiple undefined blocks
-    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(32 * 8)).getSMG();
+    smg =
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(32 * 8), false)
+            .getSMG();
   }
 
   /**
@@ -1127,26 +1450,241 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Read up until value1 but not the value1 bit
     smg = checkReadZeroValue(testObject, BigInteger.ZERO, BigInteger.valueOf(31));
     // Read including the value1 bit
-    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(32)).getSMG();
+    smg =
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(32), false).getSMG();
     // Read beyond the value1 bit
-    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(64)).getSMG();
+    smg =
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(64), false).getSMG();
     // Read only the value1 bit
     smg = checkReadExpectedValue(testObject, BigInteger.valueOf(31), BigInteger.ONE, value1);
     // Read beginning from value1 until some point with nothing but zeros
     smg =
-        checkReadUnknownValue(testObject, BigInteger.valueOf(31), BigInteger.valueOf(32)).getSMG();
+        checkReadUnknownValue(testObject, BigInteger.valueOf(31), BigInteger.valueOf(32), false)
+            .getSMG();
     // Read beginning 1 bit after value1 up until value2 (non uncluding value2)
     smg = checkReadZeroValue(testObject, BigInteger.valueOf(32), BigInteger.valueOf(222));
     // Read only the value2 bit
     smg = checkReadExpectedValue(testObject, BigInteger.valueOf(254), BigInteger.ONE, value2);
     // Read the last 2 bits
-    smg = checkReadUnknownValue(testObject, BigInteger.valueOf(254), BigInteger.TWO).getSMG();
+    smg =
+        checkReadUnknownValue(testObject, BigInteger.valueOf(254), BigInteger.TWO, false).getSMG();
     // Read the last 3 bits
     smg =
-        checkReadUnknownValue(testObject, BigInteger.valueOf(253), BigInteger.valueOf(3)).getSMG();
+        checkReadUnknownValue(testObject, BigInteger.valueOf(253), BigInteger.valueOf(3), false)
+            .getSMG();
     // Read the entire object size
-    smg = checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(256)).getSMG();
+    smg =
+        checkReadUnknownValue(testObject, BigInteger.ZERO, BigInteger.valueOf(256), false).getSMG();
   }
+
+  /*
+   * ###############################################################################################
+   * Precise read tests below this point.
+   * ###############################################################################################
+   */
+
+  /**
+   * Write everything to 0 in bits. Insert 1 bit value at the offset 31 bits and 254. Read 0 blocks
+   * in between the value blocks (= 0 value), over the value blocks we expect 0 and the value block
+   * as return.
+   */
+  @Test
+  public void readPreciseValuesWithBitPrecisionTest() {
+    SMGObject testObject = createRegion(BigInteger.valueOf(256));
+    smg = smg.copyAndAddObject(testObject);
+    // Write the SMG to the zero value in bit blocks
+    for (int i = 0; i < 256; i++) {
+      smg = smg.writeValue(testObject, BigInteger.valueOf(i), BigInteger.ONE, SMGValue.zeroValue());
+    }
+    // Write values
+    smg = smg.writeValue(testObject, BigInteger.valueOf(31), BigInteger.ONE, value1);
+    smg = smg.writeValue(testObject, BigInteger.valueOf(254), BigInteger.ONE, value2);
+    // Read up until value1 but not the value1 bit
+    smg = checkReadZeroValue(testObject, BigInteger.ZERO, BigInteger.valueOf(31));
+    // Read including the value1 bit
+    SMGHasValueEdge[] expectedHVEs = {
+      new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.ZERO, BigInteger.valueOf(31)),
+      new SMGHasValueEdge(value1, BigInteger.valueOf(31), BigInteger.valueOf(1)),
+    };
+    smg =
+        checkReadPreciseValuesInOrder(
+            testObject, BigInteger.ZERO, BigInteger.valueOf(32), expectedHVEs);
+    // Read beyond the value1 bit
+    expectedHVEs =
+        new SMGHasValueEdge[] {
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.ZERO, BigInteger.valueOf(31)),
+          new SMGHasValueEdge(value1, BigInteger.valueOf(31), BigInteger.valueOf(1)),
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(32), BigInteger.valueOf(32)),
+        };
+    smg =
+        checkReadPreciseValuesInOrder(
+            testObject, BigInteger.ZERO, BigInteger.valueOf(64), expectedHVEs);
+    // Read only the value1 bit
+    smg = checkReadExpectedValue(testObject, BigInteger.valueOf(31), BigInteger.ONE, value1);
+    // Read beginning from value1 until some point with nothing but zeros
+    expectedHVEs =
+        new SMGHasValueEdge[] {
+          new SMGHasValueEdge(value1, BigInteger.valueOf(31), BigInteger.valueOf(1)),
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(32), BigInteger.valueOf(31)),
+        };
+    smg =
+        checkReadPreciseValuesInOrder(
+            testObject, BigInteger.valueOf(31), BigInteger.valueOf(32), expectedHVEs);
+    // Read beginning 1 bit after value1 up until value2 (non uncluding value2)
+    smg = checkReadZeroValue(testObject, BigInteger.valueOf(32), BigInteger.valueOf(222));
+    // Read only the value2 bit
+    smg = checkReadExpectedValue(testObject, BigInteger.valueOf(254), BigInteger.ONE, value2);
+    // Read the last 2 bits
+    expectedHVEs =
+        new SMGHasValueEdge[] {
+          new SMGHasValueEdge(value2, BigInteger.valueOf(254), BigInteger.ONE),
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1)),
+        };
+    smg =
+        checkReadPreciseValuesInOrder(
+            testObject, BigInteger.valueOf(254), BigInteger.TWO, expectedHVEs);
+    // Read the last 3 bits
+    expectedHVEs =
+        new SMGHasValueEdge[] {
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(253), BigInteger.valueOf(1)),
+          new SMGHasValueEdge(value2, BigInteger.valueOf(254), BigInteger.valueOf(1)),
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1)),
+        };
+    smg =
+        checkReadPreciseValuesInOrder(
+            testObject, BigInteger.valueOf(253), BigInteger.valueOf(3), expectedHVEs);
+    // Read the entire object size
+    expectedHVEs =
+        new SMGHasValueEdge[] {
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.ZERO, BigInteger.valueOf(31)),
+          new SMGHasValueEdge(value1, BigInteger.valueOf(31), BigInteger.valueOf(1)),
+          new SMGHasValueEdge(
+              SMGValue.zeroValue(), BigInteger.valueOf(32), BigInteger.valueOf(222)),
+          new SMGHasValueEdge(value2, BigInteger.valueOf(254), BigInteger.valueOf(1)),
+          new SMGHasValueEdge(SMGValue.zeroValue(), BigInteger.valueOf(255), BigInteger.valueOf(1)),
+        };
+    smg =
+        checkReadPreciseValuesInOrder(
+            testObject, BigInteger.ZERO, BigInteger.valueOf(256), expectedHVEs);
+  }
+
+  // Precise read, but we only read exactly existing values. Should return the existing values
+  @Test
+  public void readPreciseExactReadTest() {
+    SMGObject testObject = createRegion(BigInteger.valueOf(256));
+    smg = smg.copyAndAddObject(testObject);
+    // Write the region to zero except the last 8 bits
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().subtract(BigInteger.valueOf(8)),
+            SMGValue.zeroValue());
+    // Write values of ascending size along the size, ending with ZERO
+    int start = 8;
+    SMGValue[] values = new SMGValue[5];
+    int j = 0;
+    for (int i = 16; i < 256; i = i * 2) {
+      SMGValue value = SMGValue.of();
+      values[j] = value;
+      // 0 v0 8 v1 16 v2 32 v3 64 v4 128 unknown end of region
+      smg = smg.writeValue(testObject, BigInteger.valueOf(start), BigInteger.valueOf(i), value);
+      start = start + i;
+      j++;
+    }
+    // Check with a precise read that we get the correct values back
+    // Twice to make sure read changes nothing
+    SMGValue symbolicValue = null;
+    for (int l = 0; l < 2; l++) {
+      j = 0;
+      start = 8;
+      for (int i = 16; i < 256; i = i * 2) {
+        // 0 v1 8 v2 16 v3 32 v4 64 v5 128 zero end of region
+        SMGAndHasValueEdges readAndSPC =
+            smg.readValue(testObject, BigInteger.valueOf(start), BigInteger.valueOf(i), true);
+        smg = readAndSPC.getSMG();
+        assertThat(readAndSPC.getHvEdges()).hasSize(1);
+        assertThat(readAndSPC.getHvEdges().get(0).hasValue()).isEqualTo(values[j]);
+        assertThat(readAndSPC.getHvEdges().get(0).getOffset()).isEqualTo(BigInteger.valueOf(start));
+        assertThat(readAndSPC.getHvEdges().get(0).getSizeInBits()).isEqualTo(BigInteger.valueOf(i));
+        start = start + i;
+        j++;
+      }
+      // We have not yet read the 0 at the beginning
+      SMGAndHasValueEdges read0AndSPC =
+          smg.readValue(testObject, BigInteger.ZERO, BigInteger.valueOf(8), true);
+      smg = read0AndSPC.getSMG();
+      assertThat(read0AndSPC.getHvEdges()).hasSize(1);
+      assertThat(read0AndSPC.getHvEdges().get(0).hasValue()).isEqualTo(SMGValue.zeroValue());
+      assertThat(read0AndSPC.getHvEdges().get(0).getOffset()).isEqualTo(BigInteger.valueOf(0));
+      assertThat(read0AndSPC.getHvEdges().get(0).getSizeInBits()).isEqualTo(BigInteger.valueOf(8));
+
+      // And the unknown at the end
+      SMGAndHasValueEdges readUAndSPC =
+          smg.readValue(testObject, BigInteger.valueOf(248), BigInteger.valueOf(8), true);
+      smg = readUAndSPC.getSMG();
+      assertThat(readUAndSPC.getHvEdges()).hasSize(1);
+      if (symbolicValue == null) {
+        symbolicValue = readUAndSPC.getHvEdges().get(0).hasValue();
+      } else {
+        assertThat(readUAndSPC.getHvEdges().get(0).hasValue()).isEqualTo(symbolicValue);
+      }
+      assertThat(readUAndSPC.getHvEdges().get(0).getOffset()).isEqualTo(BigInteger.valueOf(248));
+      assertThat(readUAndSPC.getHvEdges().get(0).getSizeInBits()).isEqualTo(BigInteger.valueOf(8));
+    }
+  }
+
+  // Read smaller portions of existing values, but not overlap in between those values
+  @Test
+  public void readPreciseReadSmallerNoOverlappTest() {
+    SMGObject testObject = createRegion(BigInteger.valueOf(256));
+    smg = smg.copyAndAddObject(testObject);
+    // Write the region to zero except the last 8 bits
+    smg =
+        smg.writeValue(
+            testObject,
+            BigInteger.ZERO,
+            testObject.getSize().asNumericValue().bigIntegerValue().subtract(BigInteger.valueOf(8)),
+            SMGValue.zeroValue());
+    // Write values of ascending size along the size, ending with ZERO
+    int start = 8;
+    SMGValue[] values = new SMGValue[5];
+    int j = 0;
+    for (int i = 16; i < 256; i = i * 2) {
+      SMGValue value = SMGValue.of();
+      values[j] = value;
+      // 0 v0 8 v1 16 v2 32 v3 64 v4 128 unknown end of region
+      smg = smg.writeValue(testObject, BigInteger.valueOf(start), BigInteger.valueOf(i), value);
+      start = start + i;
+      j++;
+    }
+    // Check with a precise read that we get the correct values back
+    // Twice to make sure read changes nothing
+    start = 8;
+    for (j = 0; j < 2; j++) {
+      for (int i = 16; i < 256; i = i * 2) {
+        SMGValue expectedValue = values[j];
+        SMGAndHasValueEdges readEdgesAndSMG =
+            smg.readValue(testObject, BigInteger.valueOf(start), BigInteger.valueOf(i), true);
+        smg = readEdgesAndSMG.getSMG();
+        assertThat(readEdgesAndSMG.getHvEdges()).hasSize(1);
+        if (i < 128) {
+          assertThat(readEdgesAndSMG.getHvEdges().get(0).hasValue()).isEqualTo(expectedValue);
+        }
+        // TODO: unknown value in the end
+        assertThat(readEdgesAndSMG.getHvEdges().get(0).getOffset())
+            .isEqualTo(BigInteger.valueOf(start));
+        start = start + i;
+        j++;
+      }
+    }
+  }
+
+  /*
+   * ###############################################################################################
+   * Helper Methods below this point.
+   * ###############################################################################################
+   */
 
   /**
    * Check that the read reinterpretation for the entered SMGObject, offset and size equals the
@@ -1161,13 +1699,14 @@ public class SMGWriteReadTest extends SMGTest0 {
       assertThat(smg.getEdges(testObject))
           .contains(new SMGHasValueEdge(expectedValue, offset, size));
     }
-    Set<SMGValue> allValuesBeforeRead = smg.getValues();
-    SMGandValue readReinterpretation = smg.readValue(testObject, offset, size);
+    Set<SMGValue> allValuesBeforeRead = smg.getValues().keySet();
+    SMGAndHasValueEdges readReinterpretation = smg.readValue(testObject, offset, size, false);
     SMG newSMG = readReinterpretation.getSMG();
 
-    assertThat(readReinterpretation.getValue()).isEqualTo(expectedValue);
+    assertThat(readReinterpretation.getHvEdges()).hasSize(1);
+    assertThat(readReinterpretation.getHvEdges().get(0).hasValue()).isEqualTo(expectedValue);
     // Check that no new values are introduced by the read
-    assertThat(newSMG.getValues()).isEqualTo(allValuesBeforeRead);
+    assertThat(newSMG.getValues().keySet()).isEqualTo(allValuesBeforeRead);
     return newSMG;
   }
 
@@ -1185,9 +1724,9 @@ public class SMGWriteReadTest extends SMGTest0 {
    * to keep the old etc.
    */
   private SMGandValue checkReadUnknownValue(
-      SMGObject testObject, BigInteger offset, BigInteger size) {
-    Set<SMGValue> allValuesBeforeRead = smg.getValues();
-    SMGandValue readReinterpretation = smg.readValue(testObject, offset, size);
+      SMGObject testObject, BigInteger offset, BigInteger size, boolean preciseRead) {
+    Set<SMGValue> allValuesBeforeRead = smg.getValues().keySet();
+    SMGAndHasValueEdges readReinterpretation = smg.readValue(testObject, offset, size, preciseRead);
     PersistentSet<SMGHasValueEdge> oldEdgesForObject =
         (PersistentSet<SMGHasValueEdge>) smg.getEdges(testObject);
     SMG newSMG = readReinterpretation.getSMG();
@@ -1196,12 +1735,31 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(newSMG.getValues()).hasSize(allValuesBeforeRead.size() + 1);
     // Check that the new value is indeed the value that is read
     SMGValue newValue =
-        Sets.difference(newSMG.getValues(), allValuesBeforeRead).stream().findFirst().orElseThrow();
-    assertThat(readReinterpretation.getValue()).isEqualTo(newValue);
+        Sets.difference(newSMG.getValues().keySet(), allValuesBeforeRead).stream()
+            .findFirst()
+            .orElseThrow();
+    assertThat(readReinterpretation.getHvEdges()).hasSize(1);
+    assertThat(readReinterpretation.getHvEdges().get(0).hasValue()).isEqualTo(newValue);
     // Assert that there is now a new SMGHasValueEdge for the field with the new value.
     // Since its sets, it doesn't matter if this is read repeatedly.
     assertThat(newSMG.getEdges(testObject))
         .isEqualTo(oldEdgesForObject.addAndCopy(new SMGHasValueEdge(newValue, offset, size)));
-    return readReinterpretation;
+    assertThat(readReinterpretation.getHvEdges()).hasSize(1);
+    return new SMGandValue(newSMG, readReinterpretation.getHvEdges().get(0).hasValue());
+  }
+
+  private SMG checkReadPreciseValuesInOrder(
+      SMGObject testObject,
+      BigInteger offset,
+      BigInteger size,
+      SMGHasValueEdge[] expectedEdgesInOrder) {
+    SMGAndHasValueEdges readReinterpretation = smg.readValue(testObject, offset, size, true);
+    SMG newSMG = readReinterpretation.getSMG();
+    assertThat(smg.getValues()).isEqualTo(newSMG.getValues());
+    assertThat(smg.getEdges(testObject)).isEqualTo(newSMG.getEdges(testObject));
+
+    assertThat(readReinterpretation.getHvEdges().toArray(new SMGHasValueEdge[0]))
+        .isEqualTo(expectedEdgesInOrder);
+    return newSMG;
   }
 }

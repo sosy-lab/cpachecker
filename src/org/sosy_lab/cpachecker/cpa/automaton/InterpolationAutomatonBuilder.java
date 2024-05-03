@@ -322,7 +322,7 @@ public class InterpolationAutomatonBuilder {
         MoreStrings.lazyString(
             () ->
                 FluentIterable.from(pPredicates)
-                    .transform(x -> x.getSymbolicAtom())
+                    .transform(AbstractionPredicate::getSymbolicAtom)
                     .join(Joiner.on(", ")));
     logger.logf(
         Level.FINE,

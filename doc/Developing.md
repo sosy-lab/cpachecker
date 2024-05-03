@@ -160,16 +160,16 @@ in various configurations on every commit to `trunk` and checks for regression.
 All major projects and configurations within CPAchecker should be part of this test suite.
 Please refer to [`Test.md`](Test.md) for more information.
 
+
 Refaster Setup
 --------------
-(Note that the current version of Refaster has trouble with Java 17
- and is not expected to work with our full rule set.)
 
 [Refaster](https://errorprone.info/docs/refaster) is a way to extend Google Error Prone
 with custom rules, and we have a [collection of such rules](https://gitlab.com/sosy-lab/software/refaster).
 To apply them to CPAchecker, the following setup is required:
 - Checkout rule repository with `git clone https://gitlab.com/sosy-lab/software/refaster.git` to some directory.
-- Add the following line to `build.properties` in the CPAchecker project directory:
+- Add the following line to `build.properties` in the CPAchecker project directory
+  (create the file if you do not have it already):
   ```
   refaster.rule.file=/PATH_TO_YOUR_REFASTER_RULES_CHECKOUT/rule.refaster
   ```
@@ -202,6 +202,23 @@ Our JS code is postprocessed with [webpack](https://webpack.js.org/). Webpack bu
 
 During development, we also have a small development server that can be started via `npm run start`. This server automatically opens an example report file in the browser and enables live updates for any changes to the JS code. Since a fully rendered HTML file is necessary for this server, the example file was created by CPAchecker and can be found under `development_data/index.html`. Therefore, changes to the `report.html` file will not be updated automatically. It is important to keep this file up to date by hand after any changes to the `report.html` file.
 
+
+Offline Development
+-------------------
+
+Dependencies for CPAchecker are downloaded from an Ivy repository
+hosted at sosy-lab.org during build.
+Once all dependencies are cached locally, builds work offline.
+
+It is also possible to override the path to the Ivy repository
+and to use a fully local copy of the Ivy repository.
+Instructions for doing so can be found in our cross-project
+[wiki](https://gitlab.com/sosy-lab/doc/-/wikis/Using-a-Different-Ivy-Repository-for-Development).
+
+As a last resort for offline builds even if not all dependencies are available,
+one can disable Ivy with `ant -Divy.disable=true`.
+But of course, as soon as a missing dependency is required,
+this may not work.
 
 Releasing a New Version
 -----------------------

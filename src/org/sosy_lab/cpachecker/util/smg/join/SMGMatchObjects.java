@@ -6,11 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains utility classes for program slicing.
- *
- * @see org.sosy_lab.cpachecker.util.dependencegraph
- */
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -112,7 +107,7 @@ public class SMGMatchObjects extends SMGAbstractJoin {
         .collect(
             ImmutableMap.toImmutableMap(
                 hvEdge -> new OffsetAndSize(hvEdge.getOffset(), hvEdge.getSizeInBits()),
-                hvEdge -> hvEdge.hasValue()));
+                SMGHasValueEdge::hasValue));
   }
 
   /**

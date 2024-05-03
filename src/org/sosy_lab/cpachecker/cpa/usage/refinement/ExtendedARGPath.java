@@ -57,11 +57,10 @@ public class ExtendedARGPath extends ARGPath {
 
   @Override
   public boolean equals(Object obj) {
-    if (super.equals(obj) && obj instanceof ExtendedARGPath other) {
-      return isUnreachable == other.isUnreachable
-          && Objects.equals(refinedAsTrueBy, other.refinedAsTrueBy)
-          && Objects.equals(usage, other.usage);
-    }
-    return false;
+    return super.equals(obj)
+        && obj instanceof ExtendedARGPath other
+        && isUnreachable == other.isUnreachable
+        && Objects.equals(refinedAsTrueBy, other.refinedAsTrueBy)
+        && Objects.equals(usage, other.usage);
   }
 }

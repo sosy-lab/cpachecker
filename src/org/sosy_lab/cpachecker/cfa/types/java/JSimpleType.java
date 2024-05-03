@@ -140,21 +140,16 @@ public final class JSimpleType implements JType {
       return true;
     }
 
-    if (!(obj instanceof JSimpleType)) {
-      return false;
-    }
-
-    JSimpleType other = (JSimpleType) obj;
-    return type == other.type && isPrimitive == other.isPrimitive;
+    return obj instanceof JSimpleType other
+        && type == other.type
+        && isPrimitive == other.isPrimitive;
   }
 
   @Override
   public String toString() {
-    switch (type) {
-      case UNSPECIFIED:
-        return "unspecified";
-      default:
-        return type.toASTString();
-    }
+    return switch (type) {
+      case UNSPECIFIED -> "unspecified";
+      default -> type.toASTString();
+    };
   }
 }

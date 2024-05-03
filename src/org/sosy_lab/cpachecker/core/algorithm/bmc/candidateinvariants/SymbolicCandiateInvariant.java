@@ -110,12 +110,10 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof SymbolicCandiateInvariant other) {
-      return stateFilter.equals(other.stateFilter)
-          && invariant.equals(other.invariant)
-          && applicableLocations.equals(other.applicableLocations);
-    }
-    return false;
+    return pOther instanceof SymbolicCandiateInvariant other
+        && stateFilter.equals(other.stateFilter)
+        && invariant.equals(other.invariant)
+        && applicableLocations.equals(other.applicableLocations);
   }
 
   @Override
@@ -158,7 +156,8 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       if (cause != null) {
-        Throwables.propagateIfPossible(cause, InterruptedException.class);
+        Throwables.throwIfInstanceOf(cause, InterruptedException.class);
+        Throwables.throwIfUnchecked(cause);
         throw new UncheckedExecutionException(cause);
       }
       throw new UncheckedExecutionException(e);

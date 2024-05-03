@@ -52,12 +52,8 @@ public class Octagon {
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof Octagon)) {
-      return false;
-    }
-    Octagon otherOct = (Octagon) pObj;
-
-    return manager.dimension(this) == otherOct.manager.dimension(otherOct)
+    return pObj instanceof Octagon otherOct
+        && manager.dimension(this) == otherOct.manager.dimension(otherOct)
         && manager.isEqual(this, otherOct);
   }
 

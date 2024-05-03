@@ -66,12 +66,9 @@ public final class CParameterDeclaration extends AParameterDeclaration
       return true;
     }
 
-    if (!(obj instanceof CParameterDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    CParameterDeclaration other = (CParameterDeclaration) obj;
-    return Objects.equals(qualifiedName, other.qualifiedName);
+    return obj instanceof CParameterDeclaration other
+        && super.equals(obj)
+        && Objects.equals(qualifiedName, other.qualifiedName);
   }
 
   @Override

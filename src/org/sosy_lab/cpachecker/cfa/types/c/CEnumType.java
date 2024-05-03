@@ -150,13 +150,8 @@ public final class CEnumType implements CComplexType {
       return true;
     }
 
-    if (!(obj instanceof CEnumType)) {
-      return false;
-    }
-
-    CEnumType other = (CEnumType) obj;
-
-    return isConst == other.isConst
+    return obj instanceof CEnumType other
+        && isConst == other.isConst
         && isVolatile == other.isVolatile
         && Objects.equals(name, other.name)
         && Objects.equals(enumerators, other.enumerators);
@@ -168,13 +163,8 @@ public final class CEnumType implements CComplexType {
       return true;
     }
 
-    if (!(obj instanceof CEnumType)) {
-      return false;
-    }
-
-    CEnumType other = (CEnumType) obj;
-
-    return isConst == other.isConst
+    return obj instanceof CEnumType other
+        && isConst == other.isConst
         && isVolatile == other.isVolatile
         && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
         && Objects.equals(enumerators, other.enumerators);

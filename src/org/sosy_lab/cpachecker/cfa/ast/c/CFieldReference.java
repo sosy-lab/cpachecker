@@ -136,11 +136,11 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     String left =
         (owner instanceof CFieldReference)
-            ? owner.toASTString(pQualified)
-            : owner.toParenthesizedASTString(pQualified);
+            ? owner.toASTString(pQualified, pOriginalVariableNames)
+            : owner.toParenthesizedASTString(pQualified, pOriginalVariableNames);
     String op = isPointerDereference ? "->" : ".";
     return left + op + name;
   }
@@ -156,13 +156,9 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
       return true;
     }
 
-    if (!(obj instanceof CFieldReference) || !super.equals(obj)) {
-      return false;
-    }
-
-    CFieldReference other = (CFieldReference) obj;
-
-    return other.isPointerDereference == isPointerDereference
+    return obj instanceof CFieldReference other
+        && super.equals(obj)
+        && other.isPointerDereference == isPointerDereference
         && Objects.equals(other.name, name)
         && Objects.equals(other.owner, owner);
   }

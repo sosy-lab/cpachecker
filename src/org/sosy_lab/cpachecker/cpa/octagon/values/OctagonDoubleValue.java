@@ -122,6 +122,11 @@ public class OctagonDoubleValue extends OctagonNumericValue<Double> {
     return new OctagonDoubleValue(value.doubleValue() / pDivisor);
   }
 
+  // FIXME Several of these methods seem wrong, because for example greaterEqual delegates to
+  // inverted lessEqual, but it should be inverted less.
+  // Furthermore, comparing long and double in this way has rounding errors and can give wrong
+  // results.
+
   @Override
   public boolean greaterEqual(OctagonNumericValue pVal) {
     return pVal.lessEqual(value);
@@ -199,13 +204,7 @@ public class OctagonDoubleValue extends OctagonNumericValue<Double> {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof OctagonDoubleValue)) {
-      return false;
-    }
-
-    OctagonDoubleValue other = (OctagonDoubleValue) obj;
-
-    return value.equals(other.value);
+    return obj instanceof OctagonDoubleValue other && value.equals(other.value);
   }
 
   @Override
@@ -218,6 +217,7 @@ public class OctagonDoubleValue extends OctagonNumericValue<Double> {
 
   @Override
   public int compareTo(OctagonNumericValue val) {
+    // Delegate to existing methods
     if (val.isEqual(value)) {
       return 0;
     } else if (val.lessThan(value)) {

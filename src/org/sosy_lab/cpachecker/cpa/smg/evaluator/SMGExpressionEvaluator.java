@@ -90,7 +90,7 @@ public class SMGExpressionEvaluator {
    * @return The size of the given type in bits.
    */
   public long getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState, CExpression pExpression)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
     return getBitSizeof(pEdge, pType, pState, Optional.of(pExpression));
   }
 
@@ -110,29 +110,23 @@ public class SMGExpressionEvaluator {
    * @return The size of the given type in bits.
    */
   public long getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
     return getBitSizeof(pEdge, pType, pState, Optional.empty());
   }
 
   private long getBitSizeof(
       CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
 
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
     }
 
     CSizeOfVisitor v = getSizeOfVisitor(edge, pState, pExpression);
-
-    try {
-      return pType
-          .accept(v)
-          .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()))
-          .longValueExact();
-    } catch (IllegalArgumentException e) {
-      logger.logDebugException(e);
-      throw new UnrecognizedCodeException("Could not resolve type.", edge);
-    }
+    return pType
+        .accept(v)
+        .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()))
+        .longValueExact();
   }
 
   List<SMGAddressAndState> getAddressOfField(
@@ -178,7 +172,7 @@ public class SMGExpressionEvaluator {
 
   public SMGValueAndState readValue(
       SMGState pSmgState, SMGObject pObject, SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCodeException {
+      throws CPATransferException {
 
     if (pOffset.isUnknown() || pObject == null) {
       return SMGValueAndState.withUnknownValue(pSmgState);
@@ -273,11 +267,8 @@ public class SMGExpressionEvaluator {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CCompositeType type) {
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    return false;
+    return rValueType instanceof CCompositeType type
+        && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
   }
 
   public SMGExplicitValue evaluateExplicitValueV2(

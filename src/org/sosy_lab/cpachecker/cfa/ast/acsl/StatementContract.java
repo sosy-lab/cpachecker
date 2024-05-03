@@ -133,7 +133,7 @@ public final class StatementContract implements ACSLAnnotation {
     if (!enclosingBehaviors.isEmpty()) {
       builder.append("for ");
       Joiner.on(", ")
-          .appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
+          .appendTo(builder, enclosingBehaviors.stream().map(Behavior::getName).iterator());
       builder.append(":\n");
     }
     builder.append(requiresClause.toString()).append('\n').append(ensuresClause.toString());
@@ -178,13 +178,11 @@ public final class StatementContract implements ACSLAnnotation {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof StatementContract other) {
-      return requiresClause.equals(other.requiresClause)
-          && ensuresClause.equals(other.ensuresClause)
-          && enclosingBehaviors.equals(other.enclosingBehaviors)
-          && ownBehaviors.equals(other.ownBehaviors)
-          && completenessClauses.equals(other.completenessClauses);
-    }
-    return false;
+    return obj instanceof StatementContract other
+        && requiresClause.equals(other.requiresClause)
+        && ensuresClause.equals(other.ensuresClause)
+        && enclosingBehaviors.equals(other.enclosingBehaviors)
+        && ownBehaviors.equals(other.ownBehaviors)
+        && completenessClauses.equals(other.completenessClauses);
   }
 }

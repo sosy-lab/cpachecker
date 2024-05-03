@@ -77,11 +77,11 @@ public final class CComplexCastExpression extends AbstractExpression implements 
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     if (isReal) {
-      return "__real__ " + operand.toASTString(pQualified);
+      return "__real__ " + operand.toASTString(pQualified, pOriginalVariableNames);
     } else {
-      return "__imag__ " + operand.toASTString(pQualified);
+      return "__imag__ " + operand.toASTString(pQualified, pOriginalVariableNames);
     }
   }
 
@@ -96,13 +96,9 @@ public final class CComplexCastExpression extends AbstractExpression implements 
       return true;
     }
 
-    if (!(obj instanceof CComplexCastExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    CComplexCastExpression other = (CComplexCastExpression) obj;
-
-    return Objects.equals(other.operand, operand)
+    return obj instanceof CComplexCastExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand, operand)
         && Objects.equals(other.type, type)
         && other.isReal == isReal;
   }

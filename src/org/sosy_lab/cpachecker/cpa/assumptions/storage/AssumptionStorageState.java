@@ -112,12 +112,9 @@ public class AssumptionStorageState implements AbstractState, Serializable {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof AssumptionStorageState otherElement) {
-      return assumption.equals(otherElement.assumption)
-          && stopFormula.equals(otherElement.stopFormula);
-    } else {
-      return false;
-    }
+    return other instanceof AssumptionStorageState otherElement
+        && assumption.equals(otherElement.assumption)
+        && stopFormula.equals(otherElement.stopFormula);
   }
 
   @Override

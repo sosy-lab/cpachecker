@@ -21,8 +21,8 @@ public abstract class AInitializerExpression extends AbstractInitializer {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return expression.toASTString(pQualified);
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return expression.toASTString(pQualified, pOriginalVariableNames);
   }
 
   public AExpression getExpression() {
@@ -44,12 +44,8 @@ public abstract class AInitializerExpression extends AbstractInitializer {
       return true;
     }
 
-    if (!(obj instanceof AInitializerExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AInitializerExpression other = (AInitializerExpression) obj;
-
-    return Objects.equals(other.expression, expression);
+    return obj instanceof AInitializerExpression other
+        && super.equals(obj)
+        && Objects.equals(other.expression, expression);
   }
 }

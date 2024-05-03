@@ -33,7 +33,7 @@ public class AssumptionToEdgeAllocatorTest {
   private ConcreteState full;
   private static final String MEMORYNAME = "Test_Heap";
 
-  private MemoryName memoryName = (pExp) -> MEMORYNAME;
+  private MemoryName memoryName = pExp -> MEMORYNAME;
 
   @Before
   public void setUp() throws Exception {

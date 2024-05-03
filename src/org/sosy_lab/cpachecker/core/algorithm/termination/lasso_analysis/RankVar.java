@@ -83,12 +83,7 @@ public class RankVar implements IProgramVar {
     if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof RankVar)) {
-      return false;
-    }
-
-    RankVar that = (RankVar) pObj;
-    return getGloballyUniqueId().equals(that.getGloballyUniqueId());
+    return pObj instanceof RankVar that && getGloballyUniqueId().equals(that.getGloballyUniqueId());
   }
 
   @Override

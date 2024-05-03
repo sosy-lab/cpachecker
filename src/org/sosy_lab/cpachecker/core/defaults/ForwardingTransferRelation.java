@@ -631,6 +631,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   private S notImplemented() throws AssertionError {
     throw new AssertionError(
-        "this method is not implemented in subclass " + this.getClass().getSimpleName());
+        "this method is not implemented in subclass " + getClass().getSimpleName());
   }
 }

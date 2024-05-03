@@ -21,7 +21,6 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -108,14 +107,21 @@ public final class Solver implements AutoCloseable {
    * satisfiable. If a set of constraints is unsatisfiable, any superset of it is also
    * unsatisfiable.
    */
-  private final Map<Object, Map<Set<BooleanFormula>, Boolean>> groupedUnsatCache = new HashMap<>();
+  private final Map<Object, Map<ImmutableSet<BooleanFormula>, Boolean>> groupedUnsatCache =
+      new HashMap<>();
 
   private final LogManager logger;
 
   // stats
   public final Timer solverTime = new Timer();
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int satChecks = 0;
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int trivialSatChecks = 0;
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int cachedSatChecks = 0;
 
   private Solver(Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier)
@@ -425,10 +431,10 @@ public final class Solver implements AutoCloseable {
       throws InterruptedException, SolverException {
     satChecks++;
 
-    Map<Set<BooleanFormula>, Boolean> stored = groupedUnsatCache.get(cacheKey);
+    Map<ImmutableSet<BooleanFormula>, Boolean> stored = groupedUnsatCache.get(cacheKey);
     if (stored != null) {
-      for (Entry<Set<BooleanFormula>, Boolean> isUnsatResults : stored.entrySet()) {
-        Set<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
+      for (var isUnsatResults : stored.entrySet()) {
+        ImmutableSet<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
         boolean cachedIsUnsat = isUnsatResults.getValue();
 
         if (cachedIsUnsat && lemmas.containsAll(cachedConstraints)) {
@@ -471,7 +477,7 @@ public final class Solver implements AutoCloseable {
         }
         return true;
       } else {
-        stored.put(lemmas, false);
+        stored.put(ImmutableSet.copyOf(lemmas), false);
         return false;
       }
     } finally {

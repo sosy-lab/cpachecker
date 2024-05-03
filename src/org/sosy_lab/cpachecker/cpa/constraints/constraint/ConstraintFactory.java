@@ -117,17 +117,10 @@ public class ConstraintFactory {
   }
 
   private boolean isConstraint(CBinaryExpression pExpression) {
-    switch (pExpression.getOperator()) {
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_EQUAL:
-      case GREATER_THAN:
-      case LESS_EQUAL:
-      case LESS_THAN:
-        return true;
-      default:
-        return false;
-    }
+    return switch (pExpression.getOperator()) {
+      case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> true;
+      default -> false;
+    };
   }
 
   public Constraint createPositiveConstraint(JUnaryExpression pExpression)
@@ -146,18 +139,10 @@ public class ConstraintFactory {
   }
 
   private boolean isConstraint(JBinaryExpression pExpression) {
-    switch (pExpression.getOperator()) {
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-      case NOT_EQUALS:
-      case EQUALS:
-        return true;
-
-      default:
-        return false;
-    }
+    return switch (pExpression.getOperator()) {
+      case GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL, NOT_EQUALS, EQUALS -> true;
+      default -> false;
+    };
   }
 
   public Constraint createPositiveConstraint(AIdExpression pExpression) {

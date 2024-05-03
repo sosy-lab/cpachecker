@@ -59,12 +59,8 @@ public abstract class AbstractDeclaration extends AbstractSimpleDeclaration
       return true;
     }
 
-    if (!(obj instanceof AbstractDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    AbstractDeclaration other = (AbstractDeclaration) obj;
-
-    return other.isGlobal == isGlobal;
+    return obj instanceof AbstractDeclaration other
+        && super.equals(obj)
+        && other.isGlobal == isGlobal;
   }
 }

@@ -50,14 +50,9 @@ public final class LabelledFormula {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (!(obj instanceof LabelledFormula)) {
-      return false;
-    }
-    LabelledFormula other = (LabelledFormula) obj;
-    return formula.equals(other.formula) && atomicPropositions.equals(other.atomicPropositions);
+    return obj instanceof LabelledFormula other
+        && formula.equals(other.formula)
+        && atomicPropositions.equals(other.atomicPropositions);
   }
 
   @Override

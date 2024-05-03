@@ -88,19 +88,21 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append(cStorageClass.toASTString());
     if (pQualified) {
       lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
+    } else if (pOriginalVariableNames) {
+      lASTString.append(getType().toASTString(getOrigName()));
     } else {
       lASTString.append(getType().toASTString(getName()));
     }
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString(pQualified));
+      lASTString.append(getInitializer().toASTString(pQualified, false));
     }
 
     lASTString.append(";");
@@ -123,13 +125,9 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
       return true;
     }
 
-    if (!(obj instanceof CVariableDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    CVariableDeclaration other = (CVariableDeclaration) obj;
-
-    return Objects.equals(other.cStorageClass, cStorageClass);
+    return obj instanceof CVariableDeclaration other
+        && super.equals(obj)
+        && Objects.equals(other.cStorageClass, cStorageClass);
   }
 
   public int hashCodeWithOutStorageClass() {

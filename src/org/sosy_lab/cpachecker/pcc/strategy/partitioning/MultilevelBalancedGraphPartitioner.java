@@ -260,7 +260,7 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
       int newNode = oldToNewNode.getValue();
       int oldNode = oldToNewNode.getKey(); // this node is mapped to new node
       if (!inverseMap.containsKey(newNode)) {
-        inverseMap.put(newNode, new HashSet<Integer>(2));
+        inverseMap.put(newNode, new HashSet<>(2));
       }
       inverseMap
           .get(newNode)

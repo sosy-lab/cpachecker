@@ -40,6 +40,12 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
       @Override
       public Iterator<CFAEdge> iterator() {
+        // UnmodifiableSetView does not ensure to be free of duplicates(!)
+        // this here only works and is faster than
+        // return FluentIterable.from(nodes()).transformAndConcat(node -> outEdges(node)).toSet();
+        // because there are no duplicate checks. Here they are not necessary because each
+        // edge should be an outgoing edge to exactly one node.
+        // TODO: rethink UnmodifiableSetView
         return Iterators.unmodifiableIterator(
             Iterables.concat(Iterables.transform(nodes(), node -> outEdges(node))).iterator());
       }

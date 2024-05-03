@@ -78,12 +78,8 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
       return true;
     }
 
-    if (!(obj instanceof JBooleanLiteralExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    JBooleanLiteralExpression other = (JBooleanLiteralExpression) obj;
-
-    return other.value == value;
+    return obj instanceof JBooleanLiteralExpression other
+        && super.equals(obj)
+        && other.value == value;
   }
 }

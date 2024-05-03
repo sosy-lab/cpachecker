@@ -297,10 +297,8 @@ public class IntervalAnalysisState
       return true;
     }
 
-    if (other instanceof IntervalAnalysisState otherElement) {
-      return intervals.equals(otherElement.intervals);
-    }
-    return false;
+    return other instanceof IntervalAnalysisState otherElement
+        && intervals.equals(otherElement.intervals);
   }
 
   @Override
@@ -458,12 +456,9 @@ public class IntervalAnalysisState
         return true;
       }
 
-      if (!(pObj instanceof IntervalPseudoPartitionKey)) {
-        return false;
-      }
-
-      IntervalPseudoPartitionKey other = (IntervalPseudoPartitionKey) pObj;
-      return size == other.size && absoluteDistance.equals(other.absoluteDistance);
+      return pObj instanceof IntervalPseudoPartitionKey other
+          && size == other.size
+          && absoluteDistance.equals(other.absoluteDistance);
     }
 
     @Override

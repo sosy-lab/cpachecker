@@ -37,10 +37,7 @@ public class SylvanBDDRegion implements Region {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof SylvanBDDRegion) {
-      return bddRepr == ((SylvanBDDRegion) o).bddRepr;
-    }
-    return false;
+    return o instanceof SylvanBDDRegion && bddRepr == ((SylvanBDDRegion) o).bddRepr;
   }
 
   @Override

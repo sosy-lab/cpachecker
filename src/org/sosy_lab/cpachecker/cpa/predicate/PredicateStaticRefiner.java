@@ -183,23 +183,33 @@ public class PredicateStaticRefiner extends StaticRefiner
       return delegate.performRefinementForPath(pReached, allStatesTrace);
     }
 
+    // create path with all abstraction location elements (excluding the initial element)
+    // the last element is the element corresponding to the error location
+    final List<ARGState> abstractionStatesTrace =
+        PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
+    if (abstractionStatesTrace.size() == 1) {
+      // For single-block paths, static refinement is useless,
+      // there are no meaningful predicates to discover. So we use regular refinement and maybe
+      // later on perform the static refinement (if we find another path that has more blocks).
+      logger.log(Level.FINEST, "Skipping heuristics-based refinement for single-block error path.");
+      return delegate.performRefinementForPath(pReached, allStatesTrace);
+    }
+
     totalTime.start();
     try {
-      return performStaticRefinementForPath(pReached, allStatesTrace);
+      return performStaticRefinementForPath(pReached, allStatesTrace, abstractionStatesTrace);
     } finally {
       totalTime.stop();
     }
   }
 
   private CounterexampleInfo performStaticRefinementForPath(
-      final ARGReachedSet pReached, final ARGPath allStatesTrace)
+      final ARGReachedSet pReached,
+      final ARGPath allStatesTrace,
+      List<ARGState> abstractionStatesTrace)
       throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting heuristics-based refinement.");
 
-    // create path with all abstraction location elements (excluding the initial element)
-    // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace =
-        PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
     BlockFormulas formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);

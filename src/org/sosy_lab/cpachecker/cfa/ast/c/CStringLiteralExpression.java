@@ -104,11 +104,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof CStringLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CStringLiteralExpression && super.equals(obj);
   }
 
   /**

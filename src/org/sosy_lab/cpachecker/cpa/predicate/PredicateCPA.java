@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
@@ -122,6 +123,12 @@ public class PredicateCPA
           "whether to include the symbolic path formula in the "
               + "coverage checks or do only the fast abstract checks")
   private boolean symbolicCoverageCheck = false;
+
+  @Option(
+      secure = true,
+      name = "enableSharedInformation",
+      description = "Enable to share the information via serialization storage.")
+  private boolean enableSharedInformation = false;
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -241,6 +248,12 @@ public class PredicateCPA
             abstractionManager,
             abstractionStats,
             statistics);
+
+    // TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to
+    // be fixed !
+    if (enableSharedInformation) {
+      SerializationInfoStorage.storeSerializationInformation(this, cfa);
+    }
   }
 
   @Override
@@ -263,29 +276,28 @@ public class PredicateCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "ABE":
-        return new PredicateMergeOperator(
-            logger, pathFormulaManager, statistics, mergeAbstractionStates, getPredicateManager());
-      default:
-        throw new AssertionError("Update list of allowed merge operators");
-    }
+    return switch (mergeType) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "ABE" ->
+          new PredicateMergeOperator(
+              logger,
+              pathFormulaManager,
+              statistics,
+              mergeAbstractionStates,
+              getPredicateManager());
+      default -> throw new AssertionError("Update list of allowed merge operators");
+    };
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopType) {
-      case "SEP":
-        return new PredicateStopOperator(getAbstractDomain());
-      case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
-      case "SEPNAA":
-        return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("Update list of allowed stop operators");
-    }
+    return switch (stopType) {
+      case "SEP" -> new PredicateStopOperator(getAbstractDomain());
+      case "SEPPCC" ->
+          new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
+      case "SEPNAA" -> new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
+      default -> throw new AssertionError("Update list of allowed stop operators");
+    };
   }
 
   public PredicateAbstractionManager getPredicateManager() {

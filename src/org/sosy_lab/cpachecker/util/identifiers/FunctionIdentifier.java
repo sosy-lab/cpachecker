@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class FunctionIdentifier extends SingleIdentifier {
+public final class FunctionIdentifier extends SingleIdentifier {
 
   public FunctionIdentifier(String nm, CType tp, int deref) {
     super(nm, tp, deref);
@@ -20,6 +20,7 @@ public class FunctionIdentifier extends SingleIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof FunctionIdentifier) {
       return super.compareTo(pO);
     } else {

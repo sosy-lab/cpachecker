@@ -282,7 +282,7 @@ public class CFACreatorTest {
 
   private JMethodDeclaration createFunctionDefinition(
       String methodName, String parametersSubString) {
-    String name = TEST_CLASS.getName() + "_" + methodName;
+    StringBuilder name = new StringBuilder(TEST_CLASS.getName()).append("_").append(methodName);
     List<String> parameters = Splitter.on('_').splitToList(parametersSubString);
     List<JParameterDeclaration> jParameterDeclarations = new ArrayList<>(parameters.size());
     for (String parameter : parameters) {
@@ -291,13 +291,13 @@ public class CFACreatorTest {
               FileLocation.DUMMY, JSimpleType.getInt(), parameter, "stub", false));
     }
     if (!parametersSubString.isEmpty()) {
-      name = name + "_" + parametersSubString;
+      name.append("_").append(parametersSubString);
     }
 
     return new JConstructorDeclaration(
         FileLocation.DUMMY,
         null,
-        name,
+        name.toString(),
         methodName,
         jParameterDeclarations,
         VisibilityModifier.PUBLIC,

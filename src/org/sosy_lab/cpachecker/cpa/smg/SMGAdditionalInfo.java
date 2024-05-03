@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 public class SMGAdditionalInfo {
-  enum Level {
+  public enum Level {
     ERROR,
     WARNING,
     NOTE,
@@ -36,6 +36,6 @@ public class SMGAdditionalInfo {
 
   @Override
   public String toString() {
-    return "level=\"" + level.ordinal() + "\" hide=\"" + hide + "\" value=\"" + value + "\"";
+    return "level=\"" + level + "\" hide=\"" + hide + "\" value=\"" + value + "\"";
   }
 }

@@ -172,7 +172,8 @@ parser code {:
     try {
       return (List<Automaton>) automatonParser.parse().value;
     } catch (Exception e) {
-      Throwables.propagateIfPossible(e, InvalidConfigurationException.class);
+      Throwables.throwIfInstanceOf(e, InvalidConfigurationException.class);
+      Throwables.throwIfUnchecked(e);
       throw new InvalidConfigurationException(
           String.format(
               "Could not load automaton from file (%s)",

@@ -28,13 +28,13 @@ public final class CArrayDesignator extends CDesignator {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return "[" + getSubscriptExpression().toASTString(pQualified) + "]";
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return "[" + getSubscriptExpression().toASTString(pQualified, pOriginalVariableNames) + "]";
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return toASTString(pQualified);
+  public String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return toASTString(pQualified, pOriginalVariableNames);
   }
 
   @Override
@@ -58,16 +58,12 @@ public final class CArrayDesignator extends CDesignator {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CArrayDesignator) || !super.equals(obj)) {
-      return false;
-    }
-
-    CArrayDesignator other = (CArrayDesignator) obj;
-
-    return Objects.equals(other.subscriptExpression, subscriptExpression);
+    return obj instanceof CArrayDesignator other
+        && super.equals(obj)
+        && Objects.equals(other.subscriptExpression, subscriptExpression);
   }
 }

@@ -41,22 +41,18 @@ public class ApronMergeOperator {
       throws InvalidConfigurationException {
     ApronMergeOperator mergeOp = new ApronMergeOperator(domain, config);
 
-    switch (mergeOp.type) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "JOIN":
-        return mergeOp.new ApronMergeJoinOperator(domain, config);
-      case "WIDENING":
-        return mergeOp.new ApronMergeWideningOperator(domain, config);
-      default:
-        throw new InvalidConfigurationException("Unknown type for merge operator");
-    }
+    return switch (mergeOp.type) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "JOIN" -> mergeOp.new ApronMergeJoinOperator(domain, config);
+      case "WIDENING" -> mergeOp.new ApronMergeWideningOperator(domain, config);
+      default -> throw new InvalidConfigurationException("Unknown type for merge operator");
+    };
   }
 
   private ApronMergeOperator(ApronDomain pDomain, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.domain = pDomain;
+    domain = pDomain;
   }
 
   @Options(prefix = "cpa.apron.mergeop")

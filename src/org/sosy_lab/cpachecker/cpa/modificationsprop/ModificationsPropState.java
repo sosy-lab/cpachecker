@@ -115,7 +115,7 @@ public final class ModificationsPropState
         getLocationInModCfa(),
         getLocationInOriginalCfa(),
         ImmutableSet.of(),
-        new ArrayDeque<CFANode>(),
+        new ArrayDeque<>(),
         true);
   }
 
@@ -181,13 +181,12 @@ public final class ModificationsPropState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
-      case "is_bad":
-        return isBad;
-      default:
-        throw new InvalidQueryException(
-            "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
-    }
+    return switch (pProperty) {
+      case "is_bad" -> isBad;
+      default ->
+          throw new InvalidQueryException(
+              "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
+    };
   }
 
   @Override

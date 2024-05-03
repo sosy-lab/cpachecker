@@ -14,8 +14,8 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -408,6 +408,10 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                   + stats.noOfRuns
                   + " not completed.");
 
+          if (e.getMessage().contains("recursion")) {
+            selectionStrategy.setRecursionFound();
+          }
+
         } catch (InterruptedException e) {
           logger.logUserException(
               Level.FINE,
@@ -713,7 +717,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     if (constrPrec != null) {
       try {
         if (!(constrPrec instanceof RefinableConstraintsPrecision)) {
-
           constrPrec = new RefinableConstraintsPrecision(pConfig, cfa, logger);
         }
         ConstraintsPrecision constrPrecInter;
@@ -754,7 +757,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     if (predPrec != null && pPreviousReachedSets.get(0) != null) {
       Iterable<Precision> allPrecisions =
-          from(ImmutableList.of(resultPrec)).append(pPreviousReachedSets.get(0).getPrecisions());
+          FluentIterable.of(resultPrec).append(pPreviousReachedSets.get(0).getPrecisions());
 
       resultPrec =
           Precisions.replaceByType(

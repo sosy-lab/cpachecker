@@ -285,10 +285,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       try {
         resultState =
             new SMGCPAAbstractionManager(
-                    resultState, options.getListAbstractionMinimumLengthThreshhold())
+                    resultState, options.getListAbstractionMinimumLengthThreshhold(), stats)
                 .findAndAbstractLists();
       } catch (SMGException e) {
         // Do nothing. This should never happen anyway
+        throw new RuntimeException(e);
       }
     }
 
@@ -296,17 +297,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   private boolean isLoopHead(LocationState location) {
-    if (maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode())) {
-      return true;
-    }
-    return false;
+    return maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode());
   }
 
   private boolean checkAbstractListAt(LocationState location) {
-    if (options.abstractAtFunction(location) || isLoopHead(location)) {
-      return true;
-    }
-    return false;
+    return options.abstractAtFunction(location) || isLoopHead(location);
   }
 
   /**

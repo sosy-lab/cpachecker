@@ -13,10 +13,12 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
@@ -53,7 +55,9 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
 
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      Optional<AIdExpression> pFunctionReturnVariable) {
     return toExpressionTree();
   }
 
@@ -88,10 +92,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     if (this == pO) {
       return true;
     }
-    if (pO instanceof ACSLState that) {
-      return annotations.equals(that.annotations);
-    }
-    return false;
+    return pO instanceof ACSLState that && annotations.equals(that.annotations);
   }
 
   @Override

@@ -243,13 +243,8 @@ class AutomatonTransition {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof AutomatonTransition)) {
-      return false;
-    }
-
-    AutomatonTransition other = (AutomatonTransition) obj;
-
-    return Objects.equals(actions, other.actions)
+    return obj instanceof AutomatonTransition other
+        && Objects.equals(actions, other.actions)
         && Objects.equals(assertion, other.assertion)
         && Objects.equals(assumptions, other.assumptions)
         && Objects.equals(followStateName, other.followStateName)

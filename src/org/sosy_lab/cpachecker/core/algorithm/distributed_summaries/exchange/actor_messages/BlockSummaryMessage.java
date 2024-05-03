@@ -253,13 +253,11 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   @Override
   public boolean equals(Object pO) {
-    if (pO instanceof BlockSummaryMessage message) {
-      return targetNodeNumber == message.targetNodeNumber
-          && Objects.equals(uniqueBlockId, message.uniqueBlockId)
-          && type == message.type
-          && Objects.equals(payload, message.payload);
-    }
-    return false;
+    return pO instanceof BlockSummaryMessage message
+        && targetNodeNumber == message.targetNodeNumber
+        && Objects.equals(uniqueBlockId, message.uniqueBlockId)
+        && type == message.type
+        && Objects.equals(payload, message.payload);
   }
 
   @Override

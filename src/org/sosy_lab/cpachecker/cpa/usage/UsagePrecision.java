@@ -120,12 +120,12 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
-    return adjust(pOtherPrecision, (a, b) -> a.add(b));
+    return adjust(pOtherPrecision, AdjustablePrecision::add);
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
-    return adjust(pOtherPrecision, (a, b) -> a.subtract(b));
+    return adjust(pOtherPrecision, AdjustablePrecision::subtract);
   }
 
   private AdjustablePrecision adjust(

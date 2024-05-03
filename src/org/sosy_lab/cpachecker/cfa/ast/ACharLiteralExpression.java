@@ -60,12 +60,8 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
       return true;
     }
 
-    if (!(obj instanceof ACharLiteralExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    ACharLiteralExpression other = (ACharLiteralExpression) obj;
-
-    return other.character == character;
+    return obj instanceof ACharLiteralExpression other
+        && super.equals(obj)
+        && other.character == character;
   }
 }

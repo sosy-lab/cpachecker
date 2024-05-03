@@ -360,8 +360,7 @@ public class IntervalAnalysisTransferRelation
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
 
     IntervalAnalysisState newState = state;
-    if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-      CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
+    if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
 
       // ignore pointer variables
       if (decl.getType() instanceof CPointerType) {

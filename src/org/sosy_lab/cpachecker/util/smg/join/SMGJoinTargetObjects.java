@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -156,7 +157,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
       headOffset = ((SMGDoublyLinkedListSegment) obj1).getHeadOffset();
       nextOffset = ((SMGDoublyLinkedListSegment) obj1).getNextOffset();
       prevOffset = ((SMGDoublyLinkedListSegment) obj1).getPrevOffset();
-      pSize = obj1.getSize();
+      pSize = obj1.getSize().asNumericValue().bigIntegerValue();
       pOffset = obj1.getOffset();
     }
     if (isDLLS(obj2)) {
@@ -165,17 +166,19 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
         headOffset = ((SMGDoublyLinkedListSegment) obj2).getHeadOffset();
         nextOffset = ((SMGDoublyLinkedListSegment) obj2).getNextOffset();
         prevOffset = ((SMGDoublyLinkedListSegment) obj2).getPrevOffset();
-        pSize = obj2.getSize();
+        pSize = obj2.getSize().asNumericValue().bigIntegerValue();
         pOffset = obj2.getOffset();
       }
     }
     return new SMGDoublyLinkedListSegment(
         pNestingLevel,
-        pSize,
+        new NumericValue(pSize),
         pOffset,
         headOffset,
         nextOffset,
+        null,
         prevOffset,
+        null,
         Integer.min(length1, length2));
   }
 
@@ -209,7 +212,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
       return true;
     }
     // step 5
-    if (!targetObject1.getClass().equals(targetObject2.getClass())
+    if (targetObject1.getClass() != targetObject2.getClass()
         && mapping1
             .getMappedObject(targetObject1)
             .equals(mapping2.getMappedObject(targetObject1))) {
@@ -262,7 +265,8 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
       SMGValue pValue1,
       SMGValue pValue2,
       int pNestingLevelDiff) {
-    if (pValue1.getNestingLevel() - pValue2.getNestingLevel() != pNestingLevelDiff) {
+    if (inputSMG1.getNestingLevel(pValue1) - inputSMG2.getNestingLevel(pValue2)
+        != pNestingLevelDiff) {
       return false;
     }
 

@@ -58,9 +58,11 @@ public final class FreshValueProvider implements Serializable {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return other instanceof FreshValueProvider
-        && ((other == this) || vars.equals(((FreshValueProvider) other).vars));
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof FreshValueProvider other && vars.equals(other.vars);
   }
 
   @Override

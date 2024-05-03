@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
@@ -34,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Utility class for initializer-related tasks. */
@@ -428,8 +427,8 @@ public final class CInitializers {
       final CType currentType = currentSubobject.getExpressionType().getCanonicalType();
 
       // Ignore modifiers const and volatile for equality checks.
-      CType currentTypeWithoutModifier = withoutConst(withoutVolatile(currentType));
-      CType targetTypeWithoutModifier = withoutConst(withoutVolatile(targetType));
+      CType currentTypeWithoutModifier = CTypes.copyDequalified(currentType);
+      CType targetTypeWithoutModifier = CTypes.copyDequalified(targetType);
       if (targetTypeWithoutModifier.equals(currentTypeWithoutModifier)) {
         break;
       }

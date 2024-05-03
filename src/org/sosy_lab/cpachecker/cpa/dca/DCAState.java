@@ -97,11 +97,8 @@ public class DCAState
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof DCAState)) {
-      return false;
-    }
-    DCAState other = (DCAState) obj;
-    return Objects.equals(buechiState, other.buechiState)
+    return obj instanceof DCAState other
+        && Objects.equals(buechiState, other.buechiState)
         && Objects.equals(compositeStates, other.compositeStates);
   }
 

@@ -167,8 +167,7 @@ class CheckBindingVisitor
 
   @Override
   public Void visit(CFunctionCallExpression e) {
-    if (e.getFunctionNameExpression() instanceof CIdExpression) {
-      CIdExpression f = (CIdExpression) e.getFunctionNameExpression();
+    if (e.getFunctionNameExpression() instanceof CIdExpression f) {
       CType expressionType = f.getExpressionType().getCanonicalType();
       assert expressionType instanceof CFunctionType
               || (expressionType instanceof CPointerType

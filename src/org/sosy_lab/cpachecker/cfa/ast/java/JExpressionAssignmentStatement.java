@@ -62,10 +62,6 @@ public final class JExpressionAssignmentStatement extends AExpressionAssignmentS
       return true;
     }
 
-    if (!(obj instanceof JExpressionAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JExpressionAssignmentStatement && super.equals(obj);
   }
 }

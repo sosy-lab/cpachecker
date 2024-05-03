@@ -25,14 +25,10 @@ public abstract class AbstractStatement extends AbstractAstNode implements AStat
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof AbstractStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof AbstractStatement && super.equals(obj);
   }
 }

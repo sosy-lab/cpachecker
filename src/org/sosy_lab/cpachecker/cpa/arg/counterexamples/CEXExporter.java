@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -105,6 +107,7 @@ public class CEXExporter {
   private final CEXExportOptions options;
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
+  private final CounterexampleToWitness cexToWitness;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
@@ -114,6 +117,7 @@ public class CEXExporter {
       Configuration config,
       CEXExportOptions pOptions,
       LogManager pLogger,
+      Specification pSpecification,
       CFA cfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
@@ -131,11 +135,17 @@ public class CEXExporter {
       harnessExporter = new HarnessExporter(config, pLogger, cfa);
       testExporter = new TestCaseExporter(cfa, logger, config);
       faultExporter = new FaultLocalizationInfoExporter(config);
+      if (options.getYamlWitnessPathTemplate() != null) {
+        cexToWitness = new CounterexampleToWitness(config, cfa, pSpecification, pLogger);
+      } else {
+        cexToWitness = null;
+      }
     } else {
       cexFilter = null;
       harnessExporter = null;
       testExporter = null;
       faultExporter = null;
+      cexToWitness = null;
     }
   }
 
@@ -237,8 +247,9 @@ public class CEXExporter {
       if (options.getSourceFile() != null) {
         pathProgram =
             switch (codeStyle) {
-              case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
-                  targetPath, counterexample.getCFAPathWithAssignments());
+              case CONCRETE_EXECUTION ->
+                  PathToConcreteProgramTranslator.translateSinglePath(
+                      targetPath, counterexample.getCFAPathWithAssignments());
               case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
             };
       }
@@ -301,30 +312,36 @@ public class CEXExporter {
       }
     }
 
-    try {
-      final Witness witness =
-          witnessExporter.generateErrorWitness(
-              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+    if (options.getWitnessFile() != null
+        || options.getWitnessDotFile() != null
+        || options.getYamlWitnessPathTemplate() != null) {
+      try {
+        final Witness witness =
+            witnessExporter.generateErrorWitness(
+                rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-      writeErrorPathFile(
-          options.getWitnessFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
-              },
-          compressWitness);
+        writeErrorPathFile(
+            options.getWitnessFile(),
+            uniqueId,
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+            compressWitness);
 
-      writeErrorPathFile(
-          options.getWitnessDotFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
-              },
-          compressWitness);
-    } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+        writeErrorPathFile(
+            options.getWitnessDotFile(),
+            uniqueId,
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+            compressWitness);
+
+        if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
+          try {
+            cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
+          }
+        }
+      } catch (InterruptedException e) {
+        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+      }
     }
 
     if (options.getExtendedWitnessFile() != null) {
@@ -336,26 +353,20 @@ public class CEXExporter {
             options.getExtendedWitnessFile(),
             uniqueId,
             (Appender)
-                pAppendable -> {
-                  WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
-                },
+                pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable),
             compressWitness);
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
       }
     }
 
-    writeErrorPathFile(
-        options.getTestHarnessFile(),
-        uniqueId,
-        (Appender)
-            pAppendable ->
-                harnessExporter.writeHarness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample));
+    if (options.getTestHarnessFile() != null) {
+      Optional<String> harness =
+          harnessExporter.writeHarness(
+              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+      harness.ifPresent(
+          content -> writeErrorPathFile(options.getTestHarnessFile(), uniqueId, content));
+    }
 
     if (options.exportToTest() && testExporter != null) {
       testExporter.writeTestCaseFiles(counterexample, Optional.empty());

@@ -54,10 +54,6 @@ public final class JNullLiteralExpression extends ALiteralExpression implements 
       return true;
     }
 
-    if (!(obj instanceof JNullLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JNullLiteralExpression && super.equals(obj);
   }
 }

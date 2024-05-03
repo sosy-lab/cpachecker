@@ -15,15 +15,15 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 
 /**
  * A view on a CLangSMG, where no modifications are allowed.
  *
  * <p>All returned Collections are unmodifiable.
  */
-public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
+public sealed interface UnmodifiableCLangSMG extends UnmodifiableSMG permits CLangSMG {
 
   @Override
   CLangSMG copyOf();

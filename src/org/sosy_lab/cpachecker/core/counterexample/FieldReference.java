@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Is used to represent a field reference without pointer dereferences.
@@ -38,35 +37,17 @@ public final class FieldReference extends LeftHandSide {
     if (this == obj) {
       return true;
     }
-
-    if (obj == null) {
-      return false;
-    }
-
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-
-    FieldReference other = (FieldReference) obj;
-
-    if (isGlobal()) {
-      if (!other.isGlobal()) {
-        return false;
-      }
-    } else if (!getFunctionName().equals(!other.isGlobal() ? other.getFunctionName() : null)) {
-      return false;
-    }
-
-    return Objects.equals(getName(), other.getName()) && fieldNames.equals(other.fieldNames);
+    return obj instanceof FieldReference other
+        && super.equals(obj)
+        && fieldNames.equals(other.fieldNames);
   }
 
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + (isGlobal() ? 0 : getFunctionName().hashCode());
-    result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
-    result = prime * result + ((fieldNames == null) ? 0 : fieldNames.hashCode());
+    result = prime * result + super.hashCode();
+    result = prime * result + fieldNames.hashCode();
     return result;
   }
 

@@ -51,12 +51,8 @@ public abstract class AFloatLiteralExpression extends ALiteralExpression {
       return true;
     }
 
-    if (!(obj instanceof AFloatLiteralExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AFloatLiteralExpression other = (AFloatLiteralExpression) obj;
-
-    return Objects.equals(other.value, value);
+    return obj instanceof AFloatLiteralExpression other
+        && super.equals(obj)
+        && Objects.equals(other.value, value);
   }
 }

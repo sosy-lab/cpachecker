@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import java.math.BigInteger;
 
@@ -33,6 +34,9 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
    */
   public SMGPointsToEdge(
       SMGObject pPointsToObject, BigInteger pOffset, SMGTargetSpecifier pTargetSpecifier) {
+    Preconditions.checkNotNull(pPointsToObject);
+    Preconditions.checkNotNull(pOffset);
+    Preconditions.checkNotNull(pTargetSpecifier);
     pointsToObject = pPointsToObject;
     offset = pOffset;
     targetSpecifier = pTargetSpecifier;
@@ -63,25 +67,23 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   @Override
   public boolean equals(Object other) {
-    if (!(other instanceof SMGPointsToEdge)) {
-      return false;
-    }
-    SMGPointsToEdge otherEdge = (SMGPointsToEdge) other;
-    if (otherEdge.offset.equals(offset)
+    return other instanceof SMGPointsToEdge otherEdge
+        && otherEdge.offset.equals(offset)
         && otherEdge.pointsToObject.equals(pointsToObject)
-        && targetSpecifier.equals(otherEdge.targetSpecifier)) {
-      return true;
-    }
-    return false;
+        && targetSpecifier.equals(otherEdge.targetSpecifier);
   }
 
   @Override
   public int hashCode() {
-    return super.hashCode() + 31 * pointsToObject.hashCode() + 41 * offset.intValue();
+    return targetSpecifier.hashCode() + 31 * pointsToObject.hashCode() + 41 * offset.intValue();
   }
 
   public void setTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
     targetSpecifier = pTargetSpecifier;
+  }
+
+  public SMGPointsToEdge copyAndSetTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
+    return new SMGPointsToEdge(pointsToObject, offset, pTargetSpecifier);
   }
 
   @Override

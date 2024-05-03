@@ -154,17 +154,10 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
 
   @Override
   public boolean equals(Object pOther) {
-    if (super.equals(pOther)) {
+    if (this == pOther) {
       return true;
     }
-    StatisticsState other = (StatisticsState) pOther;
-    if (other == null) {
-      return false;
-    }
-    if (locationNode.equals(other.locationNode)
-    /*&& covered.equals(other.covered)*/ ) {
-      return true;
-    }
-    return false;
+    return pOther instanceof StatisticsState other && locationNode.equals(other.locationNode);
+    // && covered.equals(other.covered)
   }
 }

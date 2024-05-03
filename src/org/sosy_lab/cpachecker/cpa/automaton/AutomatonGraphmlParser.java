@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
@@ -30,6 +31,7 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -139,7 +141,7 @@ public class AutomatonGraphmlParser {
    * The name of the variable that stores the distance of each automaton state to the nearest
    * violation state.
    */
-  private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
+  public static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
 
@@ -270,9 +272,7 @@ public class AutomatonGraphmlParser {
   public Automaton parseAutomatonFile(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pInputFile),
-        inputStream -> parseAutomatonFile(inputStream),
-        e -> new WitnessParseException(e));
+        MoreFiles.asByteSource(pInputFile), this::parseAutomatonFile, WitnessParseException::new);
   }
 
   /**
@@ -1040,12 +1040,12 @@ public class AutomatonGraphmlParser {
 
     // Extract the information on the automaton ----
     Node nameAttribute = docDat.getGraph().getAttributes().getNamedItem("name");
-    String automatonName = WITNESS_AUTOMATON_NAME;
+    StringBuilder automatonName = new StringBuilder(WITNESS_AUTOMATON_NAME);
     if (nameAttribute != null) {
-      automatonName += "_" + nameAttribute.getTextContent();
+      automatonName.append("_").append(nameAttribute.getTextContent());
     }
     if (useUniqueName) {
-      automatonName += "_" + idGen.getFreshId();
+      automatonName.append("_").append(idGen.getFreshId());
     }
 
     Map<String, GraphMLState> states = new LinkedHashMap<>();
@@ -1073,7 +1073,7 @@ public class AutomatonGraphmlParser {
 
     AutomatonGraphmlParserState state =
         AutomatonGraphmlParserState.initialize(
-            automatonName,
+            automatonName.toString(),
             graphType,
             specType,
             states.values(),
@@ -1107,7 +1107,7 @@ public class AutomatonGraphmlParser {
     return state;
   }
 
-  private GraphMLDocumentData parseXML(InputStream pInputStream)
+  public static GraphMLDocumentData parseXML(InputStream pInputStream)
       throws WitnessParseException, IOException {
 
     // Parse the XML document ----
@@ -1601,7 +1601,10 @@ public class AutomatonGraphmlParser {
           properties.add(getProperty(prop));
         } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
           logger.logf(
-              Level.WARNING, "Cannot map specification %s to property type. Will ignore it.", prop);
+              Level.WARNING,
+              "Cannot map specification %s to property type. Will ignore it (would only be"
+                  + " problematic if this were the termination property).",
+              prop);
         }
       }
       return properties.build();
@@ -1960,9 +1963,9 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
+  public static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
+    public TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
       super(pBuilder);
     }
 
@@ -1994,7 +1997,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private static class GraphMLDocumentData {
+  public static class GraphMLDocumentData {
 
     private final Node graph;
 
@@ -2027,7 +2030,7 @@ public class AutomatonGraphmlParser {
       return transitions;
     }
 
-    public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
+    public ImmutableSet<NodeFlag> getNodeFlags(Element pStateNode) {
       EnumSet<NodeFlag> result = EnumSet.noneOf(NodeFlag.class);
 
       NodeList dataChilds = pStateNode.getElementsByTagName(GraphMLTag.DATA.toString());
@@ -2042,7 +2045,7 @@ public class AutomatonGraphmlParser {
         }
       }
 
-      return result;
+      return Sets.immutableEnumSet(result);
     }
 
     private static String getAttributeValue(Node of, String attributeName, String exceptionMessage)
@@ -2140,12 +2143,27 @@ public class AutomatonGraphmlParser {
     }
   }
 
+  public static Optional<AutomatonGraphmlCommon.WitnessType> getWitnessTypeIfXML(Path pPath)
+      throws InvalidConfigurationException, InterruptedException, IOException {
+    try {
+      return Optional.of(getWitnessType(pPath));
+    } catch (WitnessParseException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof NoSuchFileException exception) {
+        throw exception;
+      } else if (cause instanceof FileNotFoundException exception) {
+        throw exception;
+      }
+      return Optional.empty();
+    }
+  }
+
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
         MoreFiles.asByteSource(pPath),
-        inputStream -> getWitnessType(inputStream),
-        e -> new WitnessParseException(e));
+        AutomatonGraphmlParser::getWitnessType,
+        WitnessParseException::new);
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
@@ -2253,12 +2271,12 @@ public class AutomatonGraphmlParser {
   }
 
   @FunctionalInterface
-  private interface InputHandler<T, E extends Throwable> {
+  public interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;
   }
 
-  private static <T, E extends Throwable> T handlePotentiallyGZippedInput(
+  public static <T, E extends Throwable> T handlePotentiallyGZippedInput(
       ByteSource pInputSource,
       InputHandler<T, E> pInputHandler,
       Function<IOException, E> pExceptionHandler)

@@ -161,10 +161,7 @@ public class SignState
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof SignState)) {
-      return false;
-    }
-    return ((SignState) pObj).signMap.equals(signMap);
+    return pObj instanceof SignState && ((SignState) pObj).signMap.equals(signMap);
   }
 
   @Override

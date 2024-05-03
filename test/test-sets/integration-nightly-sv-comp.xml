@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-noout" />
 
   <rundefinition>
-    <option name="-svcomp23"/>
+    <option name="-svcomp24"/>
   </rundefinition>
 
   <!--

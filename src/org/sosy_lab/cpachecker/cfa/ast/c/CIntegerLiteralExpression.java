@@ -52,21 +52,21 @@ public final class CIntegerLiteralExpression extends AIntegerLiteralExpression
 
   @Override
   public String toASTString() {
-    String suffix = "";
+    StringBuilder result = new StringBuilder(getValue().toString());
 
     CType cType = getExpressionType();
     if (cType instanceof CSimpleType type) {
-      if (type.isUnsigned()) {
-        suffix += "U";
+      if (type.hasUnsignedSpecifier()) {
+        result.append("U");
       }
-      if (type.isLong()) {
-        suffix += "L";
-      } else if (type.isLongLong()) {
-        suffix += "LL";
+      if (type.hasLongSpecifier()) {
+        result.append("L");
+      } else if (type.hasLongLongSpecifier()) {
+        result.append("LL");
       }
     }
 
-    return getValue().toString() + suffix;
+    return result.toString();
   }
 
   @Override
@@ -80,10 +80,6 @@ public final class CIntegerLiteralExpression extends AIntegerLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof CIntegerLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CIntegerLiteralExpression && super.equals(obj);
   }
 }

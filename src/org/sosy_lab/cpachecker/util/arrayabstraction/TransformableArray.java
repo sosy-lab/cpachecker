@@ -300,12 +300,8 @@ final class TransformableArray {
       return true;
     }
 
-    if (!(pObject instanceof TransformableArray)) {
-      return false;
-    }
-
-    TransformableArray other = (TransformableArray) pObject;
-    return arrayDeclarationEdge.equals(other.arrayDeclarationEdge);
+    return pObject instanceof TransformableArray other
+        && arrayDeclarationEdge.equals(other.arrayDeclarationEdge);
   }
 
   @Override

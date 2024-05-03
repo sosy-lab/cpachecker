@@ -75,7 +75,7 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
             And.of(
                 stateInvariant,
                 expressionTreeReportingState.getFormulaApproximation(
-                    cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+                    cfa.getFunctionHead(pLocation.getFunctionName()), pLocation, Optional.empty()));
       }
       locationInvariants.add(stateInvariant);
     }
@@ -102,7 +102,9 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
               Or.of(
                   locationInvariant,
                   state.getFormulaApproximation(
-                      cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+                      cfa.getFunctionHead(pLocation.getFunctionName()),
+                      pLocation,
+                      Optional.empty()));
         }
       }
     }

@@ -18,12 +18,17 @@ com.google.common.base.Objects @ use java.util.Objects instead
 com.google.common.collect.ImmutableMap$Builder#build(**) @ use buildOrThrow() or buildKeepingLast() depending on whether duplicate keys are expected or not
 com.google.common.io.Files#createTempDir(**) @ Uses inappropriate permissions, cf. JavaDoc
 java.lang.InternalError @ This refers to JVM-internal errors, throw AssertionError instead
+java.lang.Throwable#printStackTrace() @ We do not want raw output on stderr, use proper logging (cf. doc/Logging.md)
 java.nio.file.Paths @ use Path.of() instead (can be applied automatically with Refaster)
 
 @defaultMessage CPAchecker should be deterministic, use Random with constant seed
 java.lang.Math#random()
 java.util.Collections#shuffle(java.util.List)
 java.util.Random#<init>()
+
+@defaultMessage String.split() has surprising behavior, use Guava's Splitter instead
+java.lang.String#split(java.lang.String)
+java.lang.String#split(java.lang.String, int)
 
 @defaultMessage useless utility method, use constructor directly (can be applied automatically with Refaster)
 com.google.common.collect.Lists#newArrayList()

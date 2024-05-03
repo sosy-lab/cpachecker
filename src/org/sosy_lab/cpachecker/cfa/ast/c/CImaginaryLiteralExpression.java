@@ -61,13 +61,9 @@ public final class CImaginaryLiteralExpression extends ALiteralExpression
       return true;
     }
 
-    if (!(obj instanceof CImaginaryLiteralExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    CImaginaryLiteralExpression other = (CImaginaryLiteralExpression) obj;
-
-    return Objects.equals(other.value, value);
+    return obj instanceof CImaginaryLiteralExpression other
+        && super.equals(obj)
+        && Objects.equals(other.value, value);
   }
 
   @Override

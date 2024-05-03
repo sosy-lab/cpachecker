@@ -49,9 +49,9 @@ public final class FunctionContract implements ACSLAnnotation {
         .append('\n')
         .append(ensuresClause.toString())
         .append('\n');
-    Joiner.on('\n').appendTo(builder, behaviors.stream().map(x -> x.toString()).iterator());
+    Joiner.on('\n').appendTo(builder, behaviors.stream().map(Object::toString).iterator());
     Joiner.on('\n')
-        .appendTo(builder, completenessClauses.stream().map(x -> x.toString()).iterator());
+        .appendTo(builder, completenessClauses.stream().map(Object::toString).iterator());
     return builder.toString();
   }
 
@@ -155,12 +155,10 @@ public final class FunctionContract implements ACSLAnnotation {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof FunctionContract other) {
-      return requiresClause.equals(other.requiresClause)
-          && ensuresClause.equals(other.ensuresClause)
-          && behaviors.equals(other.behaviors)
-          && completenessClauses.equals(other.completenessClauses);
-    }
-    return false;
+    return obj instanceof FunctionContract other
+        && requiresClause.equals(other.requiresClause)
+        && ensuresClause.equals(other.ensuresClause)
+        && behaviors.equals(other.behaviors)
+        && completenessClauses.equals(other.completenessClauses);
   }
 }

@@ -52,14 +52,10 @@ public abstract sealed class CTypeDeclaration extends AbstractDeclaration implem
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CTypeDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CTypeDeclaration && super.equals(obj);
   }
 }

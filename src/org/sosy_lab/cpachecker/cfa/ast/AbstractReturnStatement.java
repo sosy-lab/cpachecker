@@ -28,8 +28,12 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return "return" + (expression != null ? " " + expression.toASTString(pQualified) : "") + ";";
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return "return"
+        + (expression != null
+            ? " " + expression.toASTString(pQualified, pOriginalVariableNames)
+            : "")
+        + ";";
   }
 
   @Override
@@ -57,12 +61,8 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
       return true;
     }
 
-    if (!(obj instanceof AbstractReturnStatement) || !super.equals(obj)) {
-      return false;
-    }
-
-    AbstractReturnStatement other = (AbstractReturnStatement) obj;
-
-    return Objects.equals(other.expression, expression);
+    return obj instanceof AbstractReturnStatement other
+        && super.equals(obj)
+        && Objects.equals(other.expression, expression);
   }
 }

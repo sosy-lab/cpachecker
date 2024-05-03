@@ -14,7 +14,8 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 @SuppressWarnings("EqualsGetClass") // should be refactored
-public class StructureFieldIdentifier extends StructureIdentifier {
+public sealed class StructureFieldIdentifier extends StructureIdentifier
+    permits GeneralStructureFieldIdentifier {
 
   public StructureFieldIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
     super(pNm, pTp, dereference, own);
@@ -67,6 +68,7 @@ public class StructureFieldIdentifier extends StructureIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof GlobalVariableIdentifier || pO instanceof LocalVariableIdentifier) {
       return -1;
     } else if (pO instanceof StructureFieldIdentifier) {

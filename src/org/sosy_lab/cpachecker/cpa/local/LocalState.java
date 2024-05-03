@@ -93,10 +93,8 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
   }
 
   public boolean checkIsAlwaysLocal(AbstractIdentifier name) {
-    if (name instanceof SingleIdentifier) {
-      return alwaysLocalData.contains(((SingleIdentifier) name).getName());
-    }
-    return false;
+    return name instanceof SingleIdentifier
+        && alwaysLocalData.contains(((SingleIdentifier) name).getName());
   }
 
   private void putIntoDataInfo(AbstractIdentifier name, DataType type) {

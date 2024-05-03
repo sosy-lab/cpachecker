@@ -60,7 +60,7 @@ public sealed class JVariableDeclaration extends AVariableDeclaration implements
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isFinal) {
@@ -69,13 +69,15 @@ public sealed class JVariableDeclaration extends AVariableDeclaration implements
 
     if (pQualified) {
       lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
+    } else if (pOriginalVariableNames) {
+      lASTString.append(getType().toASTString(getOrigName()));
     } else {
       lASTString.append(getType().toASTString(getName()));
     }
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString(pQualified));
+      lASTString.append(getInitializer().toASTString(pQualified, pOriginalVariableNames));
     }
 
     lASTString.append(";");
@@ -106,12 +108,8 @@ public sealed class JVariableDeclaration extends AVariableDeclaration implements
       return true;
     }
 
-    if (!(obj instanceof JVariableDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JVariableDeclaration other = (JVariableDeclaration) obj;
-
-    return other.isFinal == isFinal;
+    return obj instanceof JVariableDeclaration other
+        && super.equals(obj)
+        && other.isFinal == isFinal;
   }
 }

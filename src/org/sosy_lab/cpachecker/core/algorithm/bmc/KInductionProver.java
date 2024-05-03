@@ -547,7 +547,7 @@ class KInductionProver implements AutoCloseable {
         }
       } else {
         AssertCandidate assertSuccessorViolation =
-            (candidate) -> {
+            candidate -> {
               Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
                   getSuccessorViolationAssertions(
                       pCandidateInvariant, pK + 1, inductionHypothesis, pLifting.canLift());

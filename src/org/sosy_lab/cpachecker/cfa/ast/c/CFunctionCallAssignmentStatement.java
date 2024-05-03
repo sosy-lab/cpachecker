@@ -49,10 +49,10 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return getLeftHandSide().toASTString(pQualified)
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return getLeftHandSide().toASTString(pQualified, pOriginalVariableNames)
         + " = "
-        + getRightHandSide().toASTString(pQualified)
+        + getRightHandSide().toASTString(pQualified, pOriginalVariableNames)
         + ";";
   }
 
@@ -69,10 +69,6 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
       return true;
     }
 
-    if (!(obj instanceof CFunctionCallAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CFunctionCallAssignmentStatement && super.equals(obj);
   }
 }

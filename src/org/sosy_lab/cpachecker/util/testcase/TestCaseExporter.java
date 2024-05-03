@@ -256,8 +256,12 @@ public class TestCaseExporter {
 
               switch (type) {
                 case HARNESS:
-                  harnessExporter.writeHarness(
-                      writer, rootState, relevantStates, relevantEdges, pCexInfo);
+                  Optional<String> harness =
+                      harnessExporter.writeHarness(
+                          rootState, relevantStates, relevantEdges, pCexInfo);
+                  if (harness.isPresent()) {
+                    writer.write(harness.orElseThrow());
+                  }
                   break;
                 default:
                   throw new AssertionError("Unknown test case format.");
@@ -267,14 +271,16 @@ public class TestCaseExporter {
         } else {
           Object content =
               switch (type) {
-                case HARNESS -> (Appender)
-                    appendable ->
-                        harnessExporter.writeHarness(
-                            appendable, rootState, relevantStates, relevantEdges, pCexInfo);
+                case HARNESS ->
+                    harnessExporter
+                        .writeHarness(rootState, relevantStates, relevantEdges, pCexInfo)
+                        .orElse(null);
                 default -> throw new AssertionError("Unknown test case format.");
               };
 
-          IO.writeFile(pTestCaseFiles.get(0), Charset.defaultCharset(), content);
+          if (content != null) {
+            IO.writeFile(pTestCaseFiles.get(0), Charset.defaultCharset(), content);
+          }
         }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write test case to file");
@@ -354,10 +360,11 @@ public class TestCaseExporter {
                       inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
                   yield (Appender) appendable -> appendable.append(plainOutput);
                 }
-                case METADATA -> (Appender)
-                    appendable ->
-                        XMLTestCaseExport.writeXMLMetadata(
-                            appendable, cfa, pSpec.orElse(null), producerString);
+                case METADATA ->
+                    (Appender)
+                        appendable ->
+                            XMLTestCaseExport.writeXMLMetadata(
+                                appendable, cfa, pSpec.orElse(null), producerString);
                 case XML -> {
                   String xmlOutput =
                       inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);

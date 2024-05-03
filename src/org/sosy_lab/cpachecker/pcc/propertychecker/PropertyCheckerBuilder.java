@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
+import com.google.common.base.Splitter;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
+import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 
@@ -26,11 +28,8 @@ public final class PropertyCheckerBuilder {
     if (pCheckerParamList.isEmpty()) {
       param = new String[0];
     } else {
-      String[] result = pCheckerParamList.split(",", -1);
-      param = new String[result.length - 1];
-      for (int i = 0; i < param.length; i++) {
-        param[i] = result[i];
-      }
+      List<String> result = Splitter.on(',').splitToList(pCheckerParamList);
+      param = result.subList(0, result.size() - 1).toArray(new String[0]);
     }
 
     // construct property checker instance

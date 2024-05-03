@@ -392,8 +392,7 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       switch (pCfaEdge.getEdgeType()) {
         case DeclarationEdge:
           CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-          if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
-            CVariableDeclaration declaration = (CVariableDeclaration) declEdge.getDeclaration();
+          if (declEdge.getDeclaration() instanceof CVariableDeclaration declaration) {
             nextState =
                 handleDeclarationEdge(
                     declEdge, declaration, nextState, oldReachDefState, oldPointerState);

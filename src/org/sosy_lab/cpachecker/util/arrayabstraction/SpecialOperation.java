@@ -172,12 +172,8 @@ abstract class SpecialOperation {
         return true;
       }
 
-      if (!(pObject instanceof ExpressionAssign)) {
-        return false;
-      }
-
-      ExpressionAssign other = (ExpressionAssign) pObject;
-      return Objects.equals(getDeclaration(), other.getDeclaration())
+      return pObject instanceof ExpressionAssign other
+          && Objects.equals(getDeclaration(), other.getDeclaration())
           && Objects.equals(expression, other.expression);
     }
 
@@ -262,12 +258,8 @@ abstract class SpecialOperation {
         return true;
       }
 
-      if (!(pObject instanceof ConstantAssign)) {
-        return false;
-      }
-
-      ConstantAssign other = (ConstantAssign) pObject;
-      return Objects.equals(getDeclaration(), other.getDeclaration())
+      return pObject instanceof ConstantAssign other
+          && Objects.equals(getDeclaration(), other.getDeclaration())
           && Objects.equals(value, other.value);
     }
 
@@ -383,12 +375,8 @@ abstract class SpecialOperation {
         return true;
       }
 
-      if (!(pObject instanceof UpdateAssign)) {
-        return false;
-      }
-
-      UpdateAssign other = (UpdateAssign) pObject;
-      return Objects.equals(getDeclaration(), other.getDeclaration())
+      return pObject instanceof UpdateAssign other
+          && Objects.equals(getDeclaration(), other.getDeclaration())
           && Objects.equals(stepValue, other.stepValue);
     }
 
@@ -538,12 +526,8 @@ abstract class SpecialOperation {
         return true;
       }
 
-      if (!(pObject instanceof ConstantComparison)) {
-        return false;
-      }
-
-      ConstantComparison other = (ConstantComparison) pObject;
-      return Objects.equals(getDeclaration(), other.getDeclaration())
+      return pObject instanceof ConstantComparison other
+          && Objects.equals(getDeclaration(), other.getDeclaration())
           && operator == other.operator
           && Objects.equals(value, other.value);
     }

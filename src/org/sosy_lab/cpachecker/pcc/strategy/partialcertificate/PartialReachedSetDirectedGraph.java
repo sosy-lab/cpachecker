@@ -53,7 +53,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
   private static ImmutableList<ImmutableList<Integer>> buildAdjacencyList(final ARGState[] pNodes) {
     List<List<Integer>> adjacencyList = new ArrayList<>(pNodes.length);
     for (@SuppressWarnings("unused") AbstractState node : pNodes) {
-      adjacencyList.add(new ArrayList<Integer>());
+      adjacencyList.add(new ArrayList<>());
     }
 
     SuccessorEdgeConstructor edgeConstructor = new SuccessorEdgeConstructor(pNodes, adjacencyList);

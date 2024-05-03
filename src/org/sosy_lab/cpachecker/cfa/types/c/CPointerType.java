@@ -107,17 +107,12 @@ public final class CPointerType implements CType, Serializable {
    */
   @Override
   public boolean equals(@Nullable Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CPointerType)) {
-      return false;
-    }
-
-    CPointerType other = (CPointerType) obj;
-
-    return isConst == other.isConst
+    return obj instanceof CPointerType other
+        && isConst == other.isConst
         && isVolatile == other.isVolatile
         && Objects.equals(type, other.type);
   }

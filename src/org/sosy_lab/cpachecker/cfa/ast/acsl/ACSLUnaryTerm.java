@@ -28,10 +28,9 @@ public final class ACSLUnaryTerm implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLUnaryTerm other) {
-      return term.equals(other.term) && operator.equals(other.operator);
-    }
-    return false;
+    return o instanceof ACSLUnaryTerm other
+        && term.equals(other.term)
+        && operator.equals(other.operator);
   }
 
   @Override

@@ -117,11 +117,8 @@ public final class PolicyIntermediateState extends PolicyState {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof PolicyIntermediateState)) {
-      return false;
-    }
-    PolicyIntermediateState that = (PolicyIntermediateState) pO;
-    return Objects.equals(pathFormula, that.pathFormula)
+    return pO instanceof PolicyIntermediateState that
+        && Objects.equals(pathFormula, that.pathFormula)
         && Objects.equals(startingAbstraction, that.startingAbstraction)
         && Objects.equals(mergedInto, that.mergedInto)
         && Objects.equals(getNode(), that.getNode());

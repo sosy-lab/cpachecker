@@ -336,6 +336,8 @@ public class CFACreator {
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
     private final Timer exportTime = new Timer();
+    private final Timer loopStructureTime = new Timer();
+    private final Timer astStructureTime = new Timer();
     private final List<Statistics> statisticsCollection;
     private final LogManager logger;
 
@@ -357,6 +359,8 @@ public class CFACreator {
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
+      out.println("    Time for loop structure:  " + loopStructureTime);
+      out.println("    Time for AST structure:   " + astStructureTime);
 
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -459,7 +463,7 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.getFunctions().get(mainFunctionName);
+      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
       CFA cfa = createCFA(parseResult, mainFunction);
@@ -499,11 +503,11 @@ public class CFACreator {
 
       switch (language) {
         case JAVA:
-          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.getFunctions());
-          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.getFunctions());
+          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.functions());
+          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
           break;
         case C:
-          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          mainFunction = getCMainFunction(sourceFiles, c.functions());
           break;
         default:
           throw new AssertionError();
@@ -578,11 +582,10 @@ public class CFACreator {
         CfaMetadata.forMandatoryAttributes(
             machineModel,
             language,
-            pParseResult.getFileNames(),
+            pParseResult.fileNames(),
             mainFunction,
             CfaConnectedness.UNCONNECTED_FUNCTIONS);
-    MutableCFA cfa =
-        new MutableCFA(pParseResult.getFunctions(), pParseResult.getCFANodes(), cfaMetadata);
+    MutableCFA cfa = new MutableCFA(pParseResult.functions(), pParseResult.cfaNodes(), cfaMetadata);
 
     stats.checkTime.start();
 
@@ -596,7 +599,7 @@ public class CFACreator {
     // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
     stats.processingTime.start();
 
-    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.getGlobalDeclarations());
+    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.globalDeclarations());
 
     // Check CFA again after post-processings
     stats.checkTime.start();
@@ -614,7 +617,9 @@ public class CFACreator {
     // get loop information
     // (needs post-order information)
     if (useLoopStructure) {
+      stats.loopStructureTime.start();
       addLoopStructure(cfa);
+      stats.loopStructureTime.stop();
     }
 
     // FOURTH, insert call and return edges and build the supergraph
@@ -650,16 +655,20 @@ public class CFACreator {
         && (cfa.getVarClassification().isPresent() || cfa.getLanguage() != Language.C)) {
       cfa.setLiveVariables(
           LiveVariables.create(
-              pParseResult.getGlobalDeclarations(), cfa, logger, shutdownNotifier, config));
+              pParseResult.globalDeclarations(), cfa, logger, shutdownNotifier, config));
     }
 
     stats.processingTime.stop();
 
+    if (pParseResult.astStructure().isPresent()) {
+      cfa.setASTStructure(pParseResult.astStructure().orElseThrow());
+    }
+
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
-    if (pParseResult instanceof ParseResultWithCommentLocations withCommentLocations) {
-      commentPositions.addAll(withCommentLocations.getCommentLocations());
-      blocks.addAll(withCommentLocations.getBlocks());
+    if (pParseResult.blocks().isPresent() && pParseResult.commentLocations().isPresent()) {
+      commentPositions.addAll(pParseResult.commentLocations().orElseThrow());
+      blocks.addAll(pParseResult.blocks().orElseThrow());
     }
 
     // check the super CFA starting at the main function
@@ -854,7 +863,7 @@ public class CFACreator {
     if (mainMethodValues.size() >= 2) {
       StringBuilder exceptionMessage = new StringBuilder();
       mainMethodValues.forEach(
-          (k) ->
+          k ->
               exceptionMessage
                   .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
                   .append("\n"));
@@ -1037,10 +1046,10 @@ public class CFACreator {
 
       final CFAEdge newEdge =
           switch (cfa.getLanguage()) {
-            case C -> new CDeclarationEdge(
-                rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
-            case JAVA -> new JDeclarationEdge(
-                rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+            case C ->
+                new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
+            case JAVA ->
+                new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
             default -> throw new AssertionError("unknown language");
           };
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
@@ -1068,8 +1077,7 @@ public class CFACreator {
     // first, collect all variables which do have an explicit initializer
     Set<String> initializedVariables = new HashSet<>();
     for (Pair<ADeclaration, String> p : globalVars) {
-      if (p.getFirst() instanceof AVariableDeclaration) {
-        AVariableDeclaration v = (AVariableDeclaration) p.getFirst();
+      if (p.getFirst() instanceof AVariableDeclaration v) {
         if (v.getInitializer() != null) {
           initializedVariables.add(v.getName());
         }

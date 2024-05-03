@@ -6,11 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains utility classes for program slicing.
- *
- * @see org.sosy_lab.cpachecker.util.dependencegraph
- */
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;

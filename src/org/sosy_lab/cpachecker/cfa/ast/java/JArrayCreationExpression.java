@@ -57,7 +57,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     if (initializer != null) {
       return initializer.toASTString();
     } else {
@@ -67,7 +67,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
 
       for (JExpression exp : length) {
         astString.append("[");
-        astString.append(exp.toASTString(pQualified));
+        astString.append(exp.toASTString(pQualified, pOriginalVariableNames));
         astString.append("]");
       }
 
@@ -104,12 +104,9 @@ public final class JArrayCreationExpression extends AbstractExpression implement
       return true;
     }
 
-    if (!(obj instanceof JArrayCreationExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    JArrayCreationExpression other = (JArrayCreationExpression) obj;
-
-    return Objects.equals(other.initializer, initializer) && Objects.equals(other.length, length);
+    return obj instanceof JArrayCreationExpression other
+        && super.equals(obj)
+        && Objects.equals(other.initializer, initializer)
+        && Objects.equals(other.length, length);
   }
 }

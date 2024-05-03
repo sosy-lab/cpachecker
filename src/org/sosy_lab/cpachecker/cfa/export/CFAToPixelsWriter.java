@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.pixelexport.SimpleGraphLevel;
 public class CFAToPixelsWriter extends GraphToPixelsWriter<CFANode> {
 
   public CFAToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
-    super(pConfig);
+    super(new PixelsWriterOptions(pConfig));
   }
 
   @Override

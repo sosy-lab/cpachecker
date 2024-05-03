@@ -152,12 +152,9 @@ public class ReachingDefState
 
   @Override
   public boolean equals(Object pO) {
-    if (pO instanceof ReachingDefState other) {
-      return Objects.equals(globalReachDefs, other.globalReachDefs)
-          && Objects.equals(localReachDefs, other.localReachDefs);
-    } else {
-      return false;
-    }
+    return pO instanceof ReachingDefState other
+        && Objects.equals(globalReachDefs, other.globalReachDefs)
+        && Objects.equals(localReachDefs, other.localReachDefs);
   }
 
   @Override
@@ -397,11 +394,9 @@ public class ReachingDefState
       if (this == obj) {
         return true;
       }
-      if (!(obj instanceof ProgramDefinitionPoint)) {
-        return false;
-      }
-      ProgramDefinitionPoint other = (ProgramDefinitionPoint) obj;
-      return Objects.equals(entry, other.entry) && Objects.equals(exit, other.exit);
+      return obj instanceof ProgramDefinitionPoint other
+          && Objects.equals(entry, other.entry)
+          && Objects.equals(exit, other.exit);
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {

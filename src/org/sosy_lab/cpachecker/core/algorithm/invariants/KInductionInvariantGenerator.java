@@ -196,13 +196,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener =
-      new ShutdownRequestListener() {
-
-        @Override
-        public void shutdownRequested(String pReason) {
-          invariantGenerationFuture.cancel(true);
-        }
-      };
+      pReason -> invariantGenerationFuture.cancel(true);
 
   public static KInductionInvariantGenerator create(
       final Configuration pConfig,
@@ -401,8 +395,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       try {
         return invariantGenerationFuture.get().getFirst();
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(
-            e.getCause(), CPAException.class, InterruptedException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), CPAException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+        Throwables.throwIfUnchecked(e.getCause());
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
         shutdownManager.getNotifier().shutdownIfNecessary();
@@ -424,8 +419,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       try {
         return invariantGenerationFuture.get().getSecond();
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(
-            e.getCause(), CPAException.class, InterruptedException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), CPAException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+        Throwables.throwIfUnchecked(e.getCause());
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
         shutdownManager.getNotifier().shutdownIfNecessary();
@@ -955,8 +951,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       Iterable<AssumeEdge> pAssumeEdges, Set<CFANode> pLoopHeads) {
     return FluentIterable.from(pAssumeEdges)
         .transformAndConcat(
-            e -> {
-              return FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e));
-            });
+            e -> FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e)));
   }
 }

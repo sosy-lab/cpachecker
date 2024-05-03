@@ -117,7 +117,7 @@ public class FaultReportWriter {
     if (!distinctRelevantStatements.isEmpty()) {
       html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
       distinctRelevantStatements.entrySet().stream()
-          .sorted(Comparator.comparingInt(e -> e.getKey()))
+          .sorted(Map.Entry.comparingByKey())
           .forEach(
               e ->
                   html.append(

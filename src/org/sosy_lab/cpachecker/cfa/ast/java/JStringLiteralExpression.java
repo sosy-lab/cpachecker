@@ -45,10 +45,6 @@ public final class JStringLiteralExpression extends AStringLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof JStringLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JStringLiteralExpression && super.equals(obj);
   }
 }

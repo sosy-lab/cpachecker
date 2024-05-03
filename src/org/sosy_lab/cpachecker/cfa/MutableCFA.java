@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class MutableCFA extends ForwardingCfaNetwork implements CFA {
@@ -144,6 +145,10 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
   public NavigableSet<CFANode> getFunctionNodes(String pName) {
     return Collections.unmodifiableNavigableSet(allNodes.get(pName));
+  }
+
+  public void setASTStructure(AstCfaRelation pAstCfaRelation) {
+    metadata = metadata.withASTStructure(pAstCfaRelation);
   }
 
   public void setLoopStructure(LoopStructure pLoopStructure) {

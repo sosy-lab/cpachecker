@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /** Class for representation of casting values to different types for SMG predicate relations */
 public class SMGType {
@@ -44,7 +44,7 @@ public class SMGType {
 
   public static SMGType constructSMGType(
       CType pType, SMGState pState, CFAEdge pEdge, SMGExpressionEvaluator smgExpressionEvaluator)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
     boolean isSigned = false;
     if (pType instanceof CSimpleType) {
       isSigned = pState.getHeap().getMachineModel().isSigned((CSimpleType) pType);

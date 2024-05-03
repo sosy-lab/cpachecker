@@ -8,11 +8,55 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 2.2
-----------------------------
-* Java 17 required  
-  Since revision r42803 CPAchecker requires Java 17 or newer
-  in order to be built or executed.
+Changes from CPAchecker 2.3 to CPAchecker 2.3.1
+-----------------------------------------------
+* Dual Approximated Reachability (DAR)  
+  A new reachability-safety analysis (config `-bmc-interpolationDualSequence`),
+  which adopts a hardware model-checking algorithm
+  proposed by Yakir Vizel, Orna Grumberg, and Sharon Shoham
+  (cf. ["Intertwined Forward-Backward Reachability Analysis Using Interpolants", Proc. TACAS, 2013](https://doi.org/10.1007/978-3-642-36742-7_22))
+  for software verification, has been added to CPAchecker.
+* Export of test harnesses enabled by default for found property violations  
+  The test harness can reproduce the found violation through execution
+  of the input program linked against the test harness.
+  See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
+* Improved export for witnesses version 2.0  
+  The export of witnesses version 2.0 is now faster,
+  no longer depends on exporting witnesses version 1.0,
+  and shares its configuration options with the export of witnesses version 1.0.
+* Improved analysis for memory safety based on symbolic memory graphs (SMG)  
+  The SMG analysis (configuration `-smg`) was replaced with a reimplementation
+  that brings several improvements such as increased soundness,
+  a better list abstraction, and better performance.
+  The previous analysis is temporarily available as `-smg-old`,
+  but it will be removed in the next release
+  together with the previous implementation
+  and all other configurations based on it.
+
+
+Changes from CPAchecker 2.2 to CPAchecker 2.3
+---------------------------------------------
+* Java 17 or later is required now.
+* More precise heap encoding in predicate analysis.  
+  The predicate analysis now optionally supports sound modeling
+  of aliasing with char pointers as well as functions like memset/memcmp.
+  So far this is not turned on by default yet, but can be enabled
+  with `cpa.predicate.enableMemoryAssignmentFunctions = true`
+  and `cpa.predicate.useByteArrayForHeap = true`.
+* New analysis for memory safety based on memory graphs.  
+  Because the existing analysis for this has some hard-to-fix problems,
+  a new analysis has been added that can be used with `-smg2`.
+* New termination analysis.  
+  In addition to the existing LassoRanker-based analysis
+  CPAchecker now has an analysis for termination that is based on transforming
+  the property to a safety property.
+  This analysis can be used with `-terminationToSafety`.
+- New Yaml-based witness format.  
+  CPAchecker now supports [version 2.0 of the witness format](https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/doc/README-YAML.md)
+  (both as output and input).
+- More functions from standard library supported.  
+  We have continued to extend our support for extern standard functions
+  and now for example have support for standard `fscanf` uses.
 
 
 Changes from CPAchecker 2.1.1 to CPAchecker 2.2

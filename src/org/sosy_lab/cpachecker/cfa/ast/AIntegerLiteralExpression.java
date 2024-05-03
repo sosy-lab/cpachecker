@@ -52,12 +52,8 @@ public abstract class AIntegerLiteralExpression extends ALiteralExpression {
       return true;
     }
 
-    if (!(obj instanceof AIntegerLiteralExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AIntegerLiteralExpression other = (AIntegerLiteralExpression) obj;
-
-    return Objects.equals(other.value, value);
+    return obj instanceof AIntegerLiteralExpression other
+        && super.equals(obj)
+        && Objects.equals(other.value, value);
   }
 }

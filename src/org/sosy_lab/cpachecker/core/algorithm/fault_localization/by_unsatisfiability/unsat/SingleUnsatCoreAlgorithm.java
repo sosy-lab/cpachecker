@@ -54,8 +54,7 @@ public class SingleUnsatCoreAlgorithm
     BooleanFormula booleanTraceFormula = tf.toFormula(new ConjunctionTraceInterpreter(bmgr), true);
 
     Map<BooleanFormula, TraceAtom> formulaToAtom =
-        HashBiMap.create(
-                Maps.asMap(ImmutableSet.copyOf(tf.getTrace()), entry -> entry.getFormula()))
+        HashBiMap.create(Maps.asMap(ImmutableSet.copyOf(tf.getTrace()), TraceAtom::getFormula))
             .inverse();
 
     // calculate an arbitrary UNSAT-core and filter the ones with selectors

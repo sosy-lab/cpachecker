@@ -62,10 +62,6 @@ public final class CPointerExpression extends APointerExpression implements CLef
       return true;
     }
 
-    if (!(obj instanceof CPointerExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CPointerExpression && super.equals(obj);
   }
 }

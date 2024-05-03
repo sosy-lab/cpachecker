@@ -12,9 +12,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.google.common.html.HtmlEscapers;
@@ -120,7 +120,8 @@ public final class DOTBuilder2 {
     private final Map<Integer, Set<Integer>> comboNodes = new HashMap<>();
     private final Map<Integer, StringBuilder> comboNodesLabels = new HashMap<>();
     private final Set<Integer> mergedNodes = new LinkedHashSet<>();
-    private final Map<Integer, List<Integer>> virtFuncCallEdges = new HashMap<>();
+    // every inner list has exactly two elements (from and to)
+    private final Map<Integer, ImmutableList<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
 
     // local state per function
@@ -229,7 +230,7 @@ public final class DOTBuilder2 {
         if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
           int from = edge.getPredecessor().getNodeNumber();
           int to = edge.getSuccessor().getNodeNumber();
-          virtFuncCallEdges.put(from, Lists.newArrayList(++virtFuncCallNodeIdCounter, to));
+          virtFuncCallEdges.put(from, ImmutableList.of(++virtFuncCallNodeIdCounter, to));
         }
       }
     }
@@ -280,18 +281,21 @@ public final class DOTBuilder2 {
         int from = edge.getPredecessor().getNodeNumber();
         Integer virtFuncCallNodeId = virtFuncCallEdges.get(from).get(0);
 
-        String ret =
-            virtFuncCallNodeId + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
-        ret +=
+        StringBuilder sb = new StringBuilder();
+        sb.append(virtFuncCallNodeId);
+        sb.append(" [shape=\"component\" label=\"");
+        sb.append(calledFunction);
+        sb.append("\"]\n");
+        sb.append(
             String.format(
                 "%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
-                from, virtFuncCallNodeId, getEdgeText(edge));
+                from, virtFuncCallNodeId, getEdgeText(edge)));
 
         int to = edge.getSuccessor().getNodeNumber();
-        ret +=
+        sb.append(
             String.format(
-                "%d -> %d [label=\"\" fontname=\"Courier New\"]%n", virtFuncCallNodeId, to);
-        return ret;
+                "%d -> %d [label=\"\" fontname=\"Courier New\"]%n", virtFuncCallNodeId, to));
+        return sb.toString();
       }
 
       return String.format(

@@ -32,8 +32,8 @@ public final class CTypeDefDeclaration extends CTypeDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return "typedef " + super.toASTString(pQualified);
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return "typedef " + super.toASTString(pQualified, pOriginalVariableNames);
   }
 
   @Override
@@ -49,11 +49,7 @@ public final class CTypeDefDeclaration extends CTypeDeclaration {
       return true;
     }
 
-    if (!(obj instanceof CTypeDefDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CTypeDefDeclaration && super.equals(obj);
   }
 
   @Override

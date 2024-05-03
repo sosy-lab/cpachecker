@@ -287,7 +287,7 @@ public class CFAToCTranslator {
 
   private FluentIterable<CFANode> getPredecessorNodes(CFANode pN) {
     FluentIterable<CFANode> predecessors =
-        getRelevantEnteringEdges(pN).transform(e -> e.getPredecessor());
+        getRelevantEnteringEdges(pN).transform(CFAEdge::getPredecessor);
     if (pN.getEnteringSummaryEdge() != null) {
       predecessors = predecessors.append(pN.getEnteringSummaryEdge().getPredecessor());
     }
@@ -296,7 +296,10 @@ public class CFAToCTranslator {
 
   private FunctionDefinition startFunction(CFunctionEntryNode pFunctionStartNode) {
     String lFunctionHeader =
-        pFunctionStartNode.getFunctionDefinition().toASTString(NAMES_QUALIFIED).replace(";", "");
+        pFunctionStartNode
+            .getFunctionDefinition()
+            .toASTString(NAMES_QUALIFIED, false)
+            .replace(";", "");
     return new FunctionDefinition(
         lFunctionHeader, createCompoundStatement(pFunctionStartNode, null));
   }
@@ -352,9 +355,9 @@ public class CFAToCTranslator {
           // must be if-branch, first in list
           assert ifAndElseEdge.get(0) == currentEdge;
           if (assumeEdge.getTruthAssumption()) {
-            cond = "if (" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + ")";
+            cond = "if (" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED, false) + ")";
           } else {
-            cond = "if (!(" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + "))";
+            cond = "if (!(" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED, false) + "))";
           }
         } else {
           // must be else-branch, second in list
@@ -476,12 +479,12 @@ public class CFAToCTranslator {
           // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
           if (lDeclarationEdge
               .getDeclaration()
-              .toASTString(NAMES_QUALIFIED)
+              .toASTString(NAMES_QUALIFIED, false)
               .contains("__CPAchecker_TMP_")) {
-            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED);
+            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED, false);
           } else {
             // TODO check if works without lDeclarationEdge.getRawStatement();
-            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED);
+            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED, false);
 
             if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
               CVariableDeclaration varDecl =

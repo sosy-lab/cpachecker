@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
@@ -328,14 +328,20 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    String str = "value_" + pEdge.getValue().asDotId() + " -> ";
+    StringBuilder str =
+        new StringBuilder("value_").append(pEdge.getValue().asDotId()).append(" -> ");
     SMGObjectNode oi = objectIndex.get(pEdge.getObject());
     if (oi != null) {
-      str += oi.getName();
+      str.append(oi.getName());
     } else {
-      str += "\"<invalid object reference>\"";
+      str.append("\"<invalid object reference>\"");
     }
-    return str + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
+    return str.append("[label=\"+")
+        .append(pEdge.getOffset())
+        .append("b, ")
+        .append(pEdge.getTargetSpecifier())
+        .append("\"];")
+        .toString();
   }
 
   private static String smgValueAsDot(

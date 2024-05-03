@@ -129,10 +129,9 @@ interface AutomatonExpression<T> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery other) {
-        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
-      }
-      return false;
+      return o instanceof CPAQuery other
+          && cpaName.equals(other.cpaName)
+          && queryString.equals(other.queryString);
     }
   }
 

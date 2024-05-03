@@ -597,54 +597,54 @@ public class ConstraintManager {
 
   private static boolean initFiringRelation(String firingRelation) {
 
-    String qStr = "assert((less(C1,C2)";
+    StringBuilder qStr = new StringBuilder("assert((less(C1,C2)");
 
     switch (firingRelation) {
       case "Always":
         break;
       case "Maxcoeff":
-        qStr += ":-less_maxcoeff_cns(C1,C2)";
+        qStr.append(":-less_maxcoeff_cns(C1,C2)");
         break;
       case "Sumcoeff":
-        qStr += ":-less_maxsum_cns(C1,C2)";
+        qStr.append(":-less_maxsum_cns(C1,C2)");
         break;
       case "Homeocoeff":
-        qStr += ":-homeo_embedded_cns(C1,C2)";
+        qStr.append(":-homeo_embedded_cns(C1,C2)");
         break;
       default:
         throw new AssertionError("Not valid value for the firing relation");
     }
 
-    qStr += "))";
+    qStr.append("))");
 
-    Query q = new Query(qStr);
+    Query q = new Query(qStr.toString());
 
     return q.hasSolution();
   }
 
   private static boolean initGeneralizationOperator(String generalizationOperator) {
 
-    String qStr = "assert((generalize(C1,C2,C3)";
+    StringBuilder qStr = new StringBuilder("assert((generalize(C1,C2,C3)");
 
     switch (generalizationOperator) {
       case "Top":
         break;
       case "Widen":
-        qStr += ":-plain_cns_widening(C1,C2,C3)";
+        qStr.append(":-plain_cns_widening(C1,C2,C3)");
         break;
       case "WidenMax":
-        qStr += ":-e_leq_maxcoeff(C1,C2,C3)";
+        qStr.append(":-e_leq_maxcoeff(C1,C2,C3)");
         break;
       case "WidenSum":
-        qStr += ":-e_leq_maxsum(C1,C2,C3)";
+        qStr.append(":-e_leq_maxsum(C1,C2,C3)");
         break;
       default:
         throw new AssertionError("invalid value for the firing relation");
     }
 
-    qStr += "))";
+    qStr.append("))");
 
-    Query q = new Query(qStr);
+    Query q = new Query(qStr.toString());
 
     return q.hasSolution();
   }

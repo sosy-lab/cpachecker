@@ -45,6 +45,7 @@ public class AlgorithmContext {
   private int timeLimit;
   private final REPETITIONMODE mode;
   private final Timer timer;
+  private final boolean ifRecursive;
 
   private @Nullable ConfigurableProgramAnalysis cpa;
   private @Nullable Configuration config;
@@ -56,6 +57,15 @@ public class AlgorithmContext {
     timer = new Timer();
     timeLimit = extractLimitFromAnnotation(pConfigFile.annotation());
     mode = extractModeFromAnnotation(pConfigFile.annotation());
+    ifRecursive = extractApplicationContext(pConfigFile.annotation());
+  }
+
+  private boolean extractApplicationContext(final Optional<String> annotation) {
+    if (annotation.isPresent()) {
+      String str = annotation.orElseThrow();
+      return str.endsWith("_if-recursive");
+    }
+    return false;
   }
 
   private int extractLimitFromAnnotation(final Optional<String> annotation) {
@@ -85,24 +95,16 @@ public class AlgorithmContext {
       val = val.toLowerCase(Locale.ROOT);
     }
 
-    switch (val) {
-      case "continue":
-        return REPETITIONMODE.CONTINUE;
-      case "reuse-own-precision":
-        return REPETITIONMODE.REUSEOWNPRECISION;
-      case "reuse-pred-precision":
-        return REPETITIONMODE.REUSEPREDPRECISION;
-      case "reuse-precisions":
-        return REPETITIONMODE.REUSEOWNANDPREDPRECISION;
-      case "reuse-cpa-own-precision":
-        return REPETITIONMODE.REUSECPA_OWNPRECISION;
-      case "reuse-cpa-pred-precision":
-        return REPETITIONMODE.REUSECPA_PREDPRECISION;
-      case "reuse-cpa-precisions":
-        return REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
-      default:
-        return REPETITIONMODE.NOREUSE;
-    }
+    return switch (val) {
+      case "continue" -> REPETITIONMODE.CONTINUE;
+      case "reuse-own-precision" -> REPETITIONMODE.REUSEOWNPRECISION;
+      case "reuse-pred-precision" -> REPETITIONMODE.REUSEPREDPRECISION;
+      case "reuse-precisions" -> REPETITIONMODE.REUSEOWNANDPREDPRECISION;
+      case "reuse-cpa-own-precision" -> REPETITIONMODE.REUSECPA_OWNPRECISION;
+      case "reuse-cpa-pred-precision" -> REPETITIONMODE.REUSECPA_PREDPRECISION;
+      case "reuse-cpa-precisions" -> REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
+      default -> REPETITIONMODE.NOREUSE;
+    };
   }
 
   public boolean reuseCPA() {
@@ -148,6 +150,10 @@ public class AlgorithmContext {
 
   public double getProgress() {
     return progress;
+  }
+
+  public boolean isRecursiveOnlyConfiguration() {
+    return ifRecursive;
   }
 
   public @Nullable Configuration getConfig() {

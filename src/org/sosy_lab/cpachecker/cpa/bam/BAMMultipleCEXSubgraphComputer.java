@@ -12,6 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -47,7 +48,8 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer {
     getStateId = idExtractor;
   }
 
-  private ARGState findPath(BackwardARGState newTreeTarget, Set<List<Integer>> pProcessedStates)
+  private ARGState findPath(
+      BackwardARGState newTreeTarget, Set<ImmutableList<Integer>> pProcessedStates)
       throws InterruptedException, MissingBlockException {
 
     Map<ARGState, BackwardARGState> elementsMap = new HashMap<>();
@@ -183,7 +185,8 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer {
     return false;
   }
 
-  ARGPath restorePathFrom(BackwardARGState pLastElement, Set<List<Integer>> pRefinedStates) {
+  ARGPath restorePathFrom(
+      BackwardARGState pLastElement, Set<ImmutableList<Integer>> pRefinedStates) {
     // Note pLastElement may not be the last indeed
     // The path may be recomputed from the middle
 
@@ -209,11 +212,11 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer {
     return computePath(pLastElement, ImmutableSet.of());
   }
 
-  public ARGPath computePath(ARGState pLastElement, Set<List<Integer>> pRefinedStates) {
+  public ARGPath computePath(ARGState pLastElement, Set<ImmutableList<Integer>> pRefinedStates) {
     return restorePathFrom(new BackwardARGState(pLastElement), pRefinedStates);
   }
 
-  boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
+  boolean checkThePathHasRepeatedStates(ARGPath path, Set<ImmutableList<Integer>> pRefinedStates) {
     List<Integer> ids = transformedImmutableListCopy(path.asStatesList(), getStateId);
 
     return from(pRefinedStates).anyMatch(ids::containsAll);

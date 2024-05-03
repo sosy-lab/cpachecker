@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,13 +54,13 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   private final UsageStatisticsRefinementStrategy strategy;
   private ARGReachedSet ARGReached;
 
-  private final Map<Set<CFAEdge>, PredicatePrecision> falseCache = new HashMap<>();
-  private final Map<Set<CFAEdge>, PredicatePrecision> falseCacheForCurrentIteration =
+  private final Map<ImmutableSet<CFAEdge>, PredicatePrecision> falseCache = new HashMap<>();
+  private final Map<ImmutableSet<CFAEdge>, PredicatePrecision> falseCacheForCurrentIteration =
       new HashMap<>();
   // private final Multimap<SingleIdentifier, Set<CFAEdge>> idCached = LinkedHashMultimap.create();
-  private final Set<Set<CFAEdge>> trueCache = new HashSet<>();
+  private final Set<ImmutableSet<CFAEdge>> trueCache = new HashSet<>();
 
-  private final Set<Set<CFAEdge>> potentialLoopTraces = new HashSet<>();
+  private final Set<ImmutableSet<CFAEdge>> potentialLoopTraces = new HashSet<>();
   // Statistics
   private StatCounter solverFailures = new StatCounter("Solver failures");
   private StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
@@ -107,13 +108,13 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   public RefinementResult call(ExtendedARGPath pInput) throws CPAException, InterruptedException {
     RefinementResult result;
 
-    Set<CFAEdge> currentPath = new HashSet<>(pInput.getInnerEdges());
+    ImmutableSet<CFAEdge> currentPath = ImmutableSet.copyOf(pInput.getInnerEdges());
 
     if (trueCache.contains(currentPath)) {
       // Somewhen we have already refined this path as true
       result = RefinementResult.createTrue();
     } else {
-      Set<CFAEdge> edgeSet = new HashSet<>(currentPath);
+      ImmutableSet<CFAEdge> edgeSet = currentPath;
       if (falseCache.containsKey(edgeSet)) {
         PredicatePrecision previousPreds = falseCache.get(edgeSet);
         Precision currentPrecision = getCurrentPrecision();
@@ -170,7 +171,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     try {
       numberOfrefinedPaths.inc();
       CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, path);
-      Set<CFAEdge> edgeSet = new HashSet<>(path.getInnerEdges());
+      ImmutableSet<CFAEdge> edgeSet = ImmutableSet.copyOf(path.getInnerEdges());
 
       if (!cex.isSpurious()) {
         trueCache.add(edgeSet);

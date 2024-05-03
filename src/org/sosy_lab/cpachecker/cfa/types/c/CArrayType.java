@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
@@ -26,6 +27,14 @@ public final class CArrayType extends AArrayType implements CType {
   private final boolean isConst;
   private final boolean isVolatile;
 
+  public CArrayType(boolean pConst, boolean pVolatile, CType pType) {
+    this(pConst, pVolatile, pType, null);
+  }
+
+  /**
+   * Create an array type. Most callers should ensure that the length is either null, a {@link
+   * CIntegerLiteralExpression}, or a {@link CIdExpression} referring to a const variable.
+   */
   public CArrayType(boolean pConst, boolean pVolatile, CType pType, @Nullable CExpression pLength) {
     super(pType);
 
@@ -43,6 +52,25 @@ public final class CArrayType extends AArrayType implements CType {
     return (CType) super.getType();
   }
 
+  /**
+   * Get the length expression of the array. This can be one of the following cases:
+   *
+   * <ul>
+   *   <li>null: array has no specified length (should not happen for regular array declarations,
+   *       cf. #265)
+   *   <li>{@link CIntegerLiteralExpression}: array has constant length
+   *   <li>{@link CIdExpression} with const type: variable-length array (frontend ensures that a
+   *       const variable is added to store the length)
+   *   <li>anything else: We would like to simplify this but in function parameters this is too
+   *       tricky right now (cf. #1146). Note that for variable-length arrays any reference to a
+   *       variable captures the value of the variable at declaration time of the array and does not
+   *       refer to the current value of this variable!
+   * </ul>
+   *
+   * Note that if you would like to get all length expressions even for cases like multi-dimensional
+   * arrays of structs that again contain arrays, use {@link
+   * CTypes#getArrayLengthExpressions(CType)}.
+   */
   public @Nullable CExpression getLength() {
     return length;
   }
@@ -74,7 +102,8 @@ public final class CArrayType extends AArrayType implements CType {
         + (isVolatile() ? "volatile " : "")
         + getType()
             .toASTString(
-                pDeclarator + ("[" + (length != null ? length.toASTString(pQualified) : "") + "]"));
+                pDeclarator
+                    + ("[" + (length != null ? length.toASTString(pQualified, false) : "") + "]"));
   }
 
   public String toQualifiedASTString(String pDeclarator) {
@@ -132,26 +161,21 @@ public final class CArrayType extends AArrayType implements CType {
       return true;
     }
 
-    if (!(obj instanceof CArrayType) || !super.equals(obj)) {
-      return false;
-    }
+    if (obj instanceof CArrayType other
+        && isConst == other.isConst
+        && isVolatile == other.isVolatile
+        && super.equals(obj)) {
 
-    CArrayType other = (CArrayType) obj;
-
-    if (length instanceof CIntegerLiteralExpression
-        && other.length instanceof CIntegerLiteralExpression) {
-      if (!((CIntegerLiteralExpression) length)
-          .getValue()
-          .equals(((CIntegerLiteralExpression) other.length).getValue())) {
-        return false;
-      }
-    } else {
-      if (!Objects.equals(length, other.length)) {
-        return false;
+      // If lengths are constants, compare their values directly (ignores type of expression).
+      if (length instanceof CIntegerLiteralExpression lengthValue
+          && other.length instanceof CIntegerLiteralExpression otherLengthValue) {
+        return lengthValue.getValue().equals(otherLengthValue.getValue());
+      } else {
+        return Objects.equals(length, other.length);
       }
     }
 
-    return isConst == other.isConst && isVolatile == other.isVolatile;
+    return false;
   }
 
   @Override

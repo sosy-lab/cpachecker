@@ -60,7 +60,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     UnmodifiableReachedSet elements =
         new UnmodifiableReachedSetView(
             pElements,
-            (state) -> ((MonitorState) state).getWrappedState(),
+            state -> ((MonitorState) state).getWrappedState(),
             Functions.<Precision>identity());
     // TODO we really would have to filter out all TimeoutElements in this view
 
@@ -72,7 +72,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
             oldElement,
             oldPrecision,
             elements,
-            Functions.compose((state) -> ((MonitorState) state).getWrappedState(), projection),
+            Functions.compose(state -> ((MonitorState) state).getWrappedState(), projection),
             fullState);
     totalTimeOfPrecAdj.stop();
     long totalTimeOfExecution = totalTimeOfPrecAdj.getLengthOfLastInterval().asMillis();

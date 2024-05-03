@@ -6,17 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains utility classes for program slicing.
- *
- * @see org.sosy_lab.cpachecker.util.dependencegraph
- */
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -24,11 +20,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.util.smg.SMG;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 /** Class implementing joinSPC algorithm10 from FIT-TR-2013-4 (Appendix C.7) */
@@ -118,7 +114,8 @@ public class SMGJoinSPC extends SMGAbstractJoin {
             ImmutableBiMap.of(),
             PathCopyingPersistentTreeMap.of(),
             PathCopyingPersistentTreeMap.of(),
-            PathCopyingPersistentTreeMap.of());
+            PathCopyingPersistentTreeMap.of(),
+            ImmutableSet.of());
   }
 
   /** Apply joinSubSMG on the two input SMG and the SMGObjects connected to a certain variable. */
