@@ -19,24 +19,12 @@ public class JDouble extends CFloat {
 
   public JDouble(double pValue) {
     value = pValue;
-    wrapper = fromFloat(value);
-  }
-
-  public JDouble(String repr, int floatType) {
-    assert floatType == 2;
-    value = parseDouble(repr);
-    wrapper = fromFloat(value);
+    wrapper = fromDouble(value);
   }
 
   public JDouble(String repr) {
     value = parseDouble(repr);
-    wrapper = fromFloat(value);
-  }
-
-  public JDouble(CFloatWrapper pWrapper, int floatType) {
-    assert floatType == 1;
-    value = toDouble(pWrapper);
-    wrapper = pWrapper;
+    wrapper = fromDouble(value);
   }
 
   private double toDouble(CFloatWrapper pWrapper) {
@@ -45,7 +33,7 @@ public class JDouble extends CFloat {
     return Double.longBitsToDouble((exponent << 52) + mantissa);
   }
 
-  private CFloatWrapper fromFloat(double pValue) {
+  private CFloatWrapper fromDouble(double pValue) {
     long bits = Double.doubleToLongBits(pValue);
     long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFF;
     long mantissa = bits & 0xFFFFFFFFFFFFFL;
