@@ -168,7 +168,7 @@ public class SMGCPAAbstractionManager {
     return true;
   }
 
-  private List<Set<SMGCandidate>> getListCandidates() throws SMGException {
+  List<Set<SMGCandidate>> getListCandidates() throws SMGException {
 
     SymbolicProgramConfiguration memModel = state.getMemoryModel();
     SMG smg = memModel.getSmg();
@@ -467,9 +467,9 @@ public class SMGCPAAbstractionManager {
             minimumLengthForLists);
     if (!listType.equals(ListType.NONE)) {
       Preconditions.checkArgument(ListType.DLL != listType || !maybePfo.isEmpty());
-      maybePfo = listType.equals(ListType.DLL) ? maybePfo : Optional.empty();
-      maybePrevPointerTargetOffset =
-          listType.equals(ListType.DLL) ? maybePrevPointerTargetOffset : Optional.empty();
+      boolean isDll = listType.equals(ListType.DLL) || listType.equals(ListType.LOOPINGDLL);
+      maybePfo = isDll ? maybePfo : Optional.empty();
+      maybePrevPointerTargetOffset = isDll ? maybePrevPointerTargetOffset : Optional.empty();
       // found list. Remember chain (to not search for it again) and find a good root later
       int size = 0;
       // TODO: extract this into lookThroughNext as we have the info there already
@@ -518,14 +518,9 @@ public class SMGCPAAbstractionManager {
       Optional<BigInteger> maybePfo,
       Optional<BigInteger> maybePrevPointerTargetOffset,
       Set<SMGObject> alreadySeenInChain,
-      int remainingMinLength)
-      throws SMGException {
+      int remainingMinLength) {
     alreadySeenInChain.add(prevObj);
-    int reduce = 1;
-    if (prevObj instanceof SMGSinglyLinkedListSegment targetSLL) {
-      reduce = targetSLL.getMinLength();
-    }
-    remainingMinLength = remainingMinLength - reduce;
+
     SMG smg = state.getMemoryModel().getSmg();
     if (!alreadySeenInChain.contains(potentialNextObj)
         && smg.isValid(potentialNextObj)
@@ -537,84 +532,91 @@ public class SMGCPAAbstractionManager {
             .asNumericValue()
             .bigIntegerValue()
             .equals(prevObj.getSize().asNumericValue().bigIntegerValue())) {
-      Set<SMGHasValueEdge> valuesInPotentialNextObj =
-          smg.getSMGObjectsWithSMGHasValueEdges()
-              .getOrDefault(potentialNextObj, PersistentSet.of());
 
-      // Prev checking
+      ImmutableList<BigInteger> exemptOffsetsOfList = ImmutableList.of(maybeNfo);
       if (maybePfo.isPresent()) {
+        exemptOffsetsOfList = ImmutableList.of(maybeNfo, maybePfo.orElseThrow());
+      }
+      if (state.checkEqualValuesForTwoStatesWithExemptions(
+          prevObj,
+          potentialNextObj,
+          exemptOffsetsOfList,
+          state,
+          state,
+          equalityCache,
+          objectCache,
+          true)) {
+
+        // filter out DLLs where we accidentally used the pfo as nfo and are at the "end"
+        if (maybeNfo.subtract(smg.getSizeOfPointer()).compareTo(BigInteger.ZERO) >= 0) {
+          // We assume nfo to follow pfo directly
+          SMGHasValueEdge maybeRealNext =
+              smg.readValue(
+                      potentialNextObj,
+                      maybeNfo.subtract(smg.getSizeOfPointer()),
+                      smg.getSizeOfPointer(),
+                      false)
+                  .getHvEdges()
+                  .get(0);
+          if (smg.isPointer(maybeRealNext.hasValue())
+              && smg.getPTEdge(maybeRealNext.hasValue()).orElseThrow().pointsTo().equals(prevObj)) {
+            return ListType.NONE;
+          }
+        }
+
+        Set<SMGHasValueEdge> valuesInPotentialNextObj =
+            smg.getSMGObjectsWithSMGHasValueEdges()
+                .getOrDefault(potentialNextObj, PersistentSet.of());
+
+        // Prev checking
+        if (maybePfo.isPresent()) {
+          for (SMGHasValueEdge hve : valuesInPotentialNextObj) {
+            if (hve.getOffset().equals(maybePfo.orElseThrow())) {
+              Optional<SMGPointsToEdge> maybePTE = smg.getPTEdge(hve.hasValue());
+
+              if (maybePTE.isPresent()) {
+                SMGPointsToEdge pointsToEdge = maybePTE.orElseThrow();
+                // if there is a pointer and that pointer points to another valid heap obj of the
+                // same
+                // size, this might be a list. If that other obj is not equal to this obj and has a
+                // chain at the same offset as this one at least threshold long, it's a list.
+                SMGObject targetOfPtrInNextObj = pointsToEdge.pointsTo();
+                if (targetOfPtrInNextObj != prevObj) {
+                  // TODO: this is bad. Might allow sll interpretation of dlls
+                  maybePfo = Optional.empty();
+                  maybePrevPointerTargetOffset = Optional.empty();
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        // potentialNextObj is a valid list segment
+        alreadySeenInChain.add(potentialNextObj);
+        int reduce = 1;
+        if (prevObj instanceof SMGSinglyLinkedListSegment targetSLL) {
+          reduce = targetSLL.getMinLength();
+        }
+        remainingMinLength = remainingMinLength - reduce;
+
+        // Next checking
         for (SMGHasValueEdge hve : valuesInPotentialNextObj) {
-          if (hve.getOffset().equals(maybePfo.orElseThrow())) {
+          if (hve.getOffset().equals(maybeNfo)) {
             Optional<SMGPointsToEdge> maybePTE = smg.getPTEdge(hve.hasValue());
 
             if (maybePTE.isPresent()) {
               SMGPointsToEdge pointsToEdge = maybePTE.orElseThrow();
               // if there is a pointer and that pointer points to another valid heap obj of the same
               // size, this might be a list. If that other obj is not equal to this obj and has a
-              // chain at the same offset as this one at least threshold long, it's a list.
+              // chain
+              // at the same offset as this one at least threshold long, it's a list.
               SMGObject targetOfPtrInNextObj = pointsToEdge.pointsTo();
-              if (targetOfPtrInNextObj != prevObj) {
-                // TODO: this is bad. Might allow sll interpretation of dlls
-                maybePfo = Optional.empty();
-                maybePrevPointerTargetOffset = Optional.empty();
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      // Next checking
-      for (SMGHasValueEdge hve : valuesInPotentialNextObj) {
-        if (hve.getOffset().equals(maybeNfo)) {
-          Optional<SMGPointsToEdge> maybePTE = smg.getPTEdge(hve.hasValue());
-
-          if (maybePTE.isPresent()) {
-            SMGPointsToEdge pointsToEdge = maybePTE.orElseThrow();
-            // if there is a pointer and that pointer points to another valid heap obj of the same
-            // size, this might be a list. If that other obj is not equal to this obj and has a
-            // chain
-            // at the same offset as this one at least threshold long, it's a list.
-            SMGObject targetOfPtrInNextObj = pointsToEdge.pointsTo();
-            // pointerTargetOffset is the offset of the pointer towards to target, not the offset
-            // of any value! This has to be the same for all ptrs between list elements!
-            BigInteger pointerTargetOffset = pointsToEdge.getOffset();
-
-            if (nextPointerTargetOffset.equals(pointerTargetOffset)) {
-              ImmutableList<BigInteger> exemptOffsetsOfList = ImmutableList.of(maybeNfo);
-              if (maybePfo.isPresent()) {
-                exemptOffsetsOfList = ImmutableList.of(maybeNfo, maybePfo.orElseThrow());
-              }
-              if (state.checkEqualValuesForTwoStatesWithExemptions(
-                  prevObj,
-                  potentialNextObj,
-                  exemptOffsetsOfList,
-                  state,
-                  state,
-                  equalityCache,
-                  objectCache,
-                  true)) {
-
-                // filter out DLLs where we accidentally used the pfo as nfo and are at the "end"
-                if (maybeNfo.subtract(smg.getSizeOfPointer()).compareTo(BigInteger.ZERO) >= 0) {
-                  // We assume nfo to follow pfo directly
-                  SMGHasValueEdge maybeRealNext =
-                      smg.readValue(
-                              potentialNextObj,
-                              maybeNfo.subtract(smg.getSizeOfPointer()),
-                              smg.getSizeOfPointer(),
-                              false)
-                          .getHvEdges()
-                          .get(0);
-                  if (smg.isPointer(maybeRealNext.hasValue())
-                      && smg.getPTEdge(maybeRealNext.hasValue())
-                          .orElseThrow()
-                          .pointsTo()
-                          .equals(prevObj)) {
-                    return ListType.NONE;
-                  }
-                }
-
+              // pointerTargetOffset is the offset of the pointer towards to target, not the offset
+              // of any value! This has to be the same for all ptrs between list elements!
+              BigInteger pointerTargetOffset = pointsToEdge.getOffset();
+              if (nextPointerTargetOffset.equals(pointerTargetOffset)) {
+                // viable next pointer and possibly viable next obj
                 return lookThroughNext(
                     potentialNextObj,
                     targetOfPtrInNextObj,
@@ -643,7 +645,7 @@ public class SMGCPAAbstractionManager {
   // Searches for list elements to the left of currentObj with currentObj suspected of being a list
   // segment. Fills alreadySeenInChain so that all suspected list elements to the left are present
   // in the end. This method only checks that the size, validity, nfo, pfo and pointer offsets
-  // match. Does not check values inside of the lists! Also does not check the length of the list!
+  // match. Does not check values inside the lists! Also does not check the length of the list!
   private SMGObject lookThroughPrev(
       SMGObject currentObj,
       BigInteger maybeNfo,
@@ -782,28 +784,45 @@ public class SMGCPAAbstractionManager {
     return currentObj;
   }
 
-  private List<Set<SMGCandidate>> findNestingOfCandidates(Set<SMGCandidate> trueListStarts) {
+  List<Set<SMGCandidate>> findNestingOfCandidates(Set<SMGCandidate> allListCandidates)
+      throws SMGException {
+    // Search by traversing the SMG starting from non-heap objs
     Map<SMGCandidate, Integer> nestingMap = new HashMap<>();
     List<Set<SMGCandidate>> currentOrdering = new ArrayList<>();
     Map<SMGObject, SMGCandidate> objToCandidateMap = new HashMap<>();
+    Set<SMGObject> allPossibleListObjects = new HashSet<>();
+    SymbolicProgramConfiguration memModel = state.getMemoryModel();
+    SMG smg = memModel.getSmg();
 
-    for (SMGCandidate candidate : trueListStarts) {
+    for (SMGCandidate candidate : allListCandidates) {
       nestingMap.put(candidate, 0);
       objToCandidateMap.put(candidate.getObject(), candidate);
+      allPossibleListObjects.addAll(candidate.getMaximalListElements());
       for (SMGObject candidateListObj : candidate.getMaximalListElements()) {
         objToCandidateMap.put(candidateListObj, candidate);
       }
     }
 
-    for (SMGCandidate candidate : trueListStarts) {
-      findNestingOfCandidates(
-          candidate,
-          candidate.getObject(),
-          candidate.getSuspectedNfo(),
-          candidate.getSuspectedPfo(),
-          new HashSet<>(),
-          nestingMap,
-          objToCandidateMap);
+    Set<SMGObject> oldChain = new HashSet<>();
+    for (SMGObject obj : smg.getObjects()) {
+      if (smg.isValid(obj) && !state.getMemoryModel().isHeapObject(obj)) {
+        for (SMGHasValueEdge edge : smg.getEdges(obj)) {
+          if (smg.isPointer(edge.hasValue())) {
+            SMGObject target = smg.getPTEdge(edge.hasValue()).orElseThrow().pointsTo();
+            // Non-Heap "root" from which we search
+            // Get all pointers in this and traverse them until we either end or find a loop
+            int level = 0;
+            recursiveNestingSearch(
+                target,
+                oldChain,
+                new HashSet<>(),
+                nestingMap,
+                allPossibleListObjects,
+                objToCandidateMap,
+                level);
+          }
+        }
+      }
     }
 
     for (Entry<SMGCandidate, Integer> objToNestingLevel : nestingMap.entrySet()) {
@@ -818,61 +837,164 @@ public class SMGCPAAbstractionManager {
     return currentOrdering;
   }
 
-  // TODO: do this also for non-candidates in between candidates
-  private void findNestingOfCandidates(
-      SMGCandidate start,
+  private void recursiveNestingSearch(
       SMGObject currentObj,
-      BigInteger nfo,
-      Optional<BigInteger> maybePfo,
-      Set<SMGObject> alreadySeen,
+      Set<SMGObject> oldChain,
+      Set<SMGCandidate> alreadyFoundCandidates,
       Map<SMGCandidate, Integer> nestingMap,
-      Map<SMGObject, SMGCandidate> objToCandidateMap) {
-    if (alreadySeen.contains(currentObj)) {
-      return;
-    }
+      Set<SMGObject> allPossibleListObjects,
+      Map<SMGObject, SMGCandidate> objToCandidateMap,
+      int level)
+      throws SMGException {
     SMG smg = state.getMemoryModel().getSmg();
+    // Reject stack objs, invalid objs and already visited in this chain
+    if (smg.isValid(currentObj)
+        && state.getMemoryModel().isHeapObject(currentObj)
+        && !oldChain.contains(currentObj)) {
+      if (allPossibleListObjects.contains(currentObj)) {
+        // list candidate found, determine which one, set nesting level and remember level
+        SMGCandidate correctCandidate = objToCandidateMap.get(currentObj);
+        Preconditions.checkNotNull(correctCandidate);
+        // Don't count this candidate twice
+        if (!alreadyFoundCandidates.contains(correctCandidate)) {
+          if (level == 0 && correctCandidate.getObject().toString().contains("SMGObject99")) {
+            alreadyFoundCandidates.add(correctCandidate);
+          }
+          nestingMap.put(
+              correctCandidate,
+              Integer.max(nestingMap.getOrDefault(correctCandidate, level), level));
+          alreadyFoundCandidates.add(correctCandidate);
+          level++;
+        }
 
-    SMGPointsToEdge pointsToNext = null;
-    // Get next pointer (read would do the same thing...., this way we don't care about sizes)
-    for (SMGHasValueEdge hve : smg.getEdges(currentObj)) {
-      SMGValue value = hve.hasValue();
-
-      if (smg.isPointer(value)) {
-        if (hve.getOffset().compareTo(nfo) == 0) {
-          pointsToNext = smg.getPTEdge(value).orElseThrow();
-          alreadySeen.add(currentObj);
-        } else if (maybePfo.isPresent() && hve.getOffset().compareTo(maybePfo.orElseThrow()) == 0) {
-          // Ignore prev pointers
-        } else {
-          // Points somewhere else, possibly nested list
-          SMGPointsToEdge pointsToOther = smg.getPTEdge(value).orElseThrow();
-
-          // This does take into account pointers pointing to nested lists that are not to the
-          // root node or some structure that leads to a nested list below
-          if (objToCandidateMap.containsKey(pointsToOther.pointsTo())) {
-            SMGCandidate candidateForObj = objToCandidateMap.get(pointsToOther.pointsTo());
-            if (nestingMap.containsKey(candidateForObj)) {
-              // Nesting level of the source of the pointer + 1 or the old if its larger
-              int nestingLevelOfNestedList = nestingMap.get(candidateForObj);
-              int nestingLevelOfSource = nestingMap.get(start);
-              nestingMap.put(
-                  candidateForObj, Integer.max(nestingLevelOfNestedList, nestingLevelOfSource) + 1);
+      } else {
+        // Reset level when non-heap objs point to the current only if it's not currently in a list
+        for (SMGObject possibleOutsideObj :
+            smg.getAllSourcesForPointersPointingTowards(currentObj)) {
+          if (smg.isValid(possibleOutsideObj)) {
+            if (!state.getMemoryModel().isHeapObject(possibleOutsideObj)) {
+              // Stack obj points to it, reset nesting level
+              level = 0;
+              break;
+            } else {
+              // Heap obj, if a found list is connected to this, we decrement the nesting by 1,
+              // as we are still on the level of an already found nested list,
+              // but not in the abstracted list
+              if (allPossibleListObjects.contains(possibleOutsideObj)) {
+                SMGCandidate maybeConnectedCandidate = objToCandidateMap.get(possibleOutsideObj);
+                if (maybeConnectedCandidate != null
+                    && alreadyFoundCandidates.contains(maybeConnectedCandidate)) {
+                  // NFO or PFO for the pointers have to match in either direction
+                  if (connectedAsList(currentObj, maybeConnectedCandidate)) {
+                    alreadyFoundCandidates.remove(maybeConnectedCandidate);
+                    level--;
+                  }
+                }
+              }
             }
+          }
+        }
+      }
+
+      for (SMGHasValueEdge edge : smg.getEdges(currentObj)) {
+        if (smg.isPointer(edge.hasValue())) {
+          SMGObject target = smg.getPTEdge(edge.hasValue()).orElseThrow().pointsTo();
+          // Repeat with targets
+          Set<SMGObject> newChain = new HashSet<>();
+          newChain.addAll(oldChain);
+          newChain.add(currentObj);
+          recursiveNestingSearch(
+              target,
+              newChain,
+              new HashSet<>(alreadyFoundCandidates),
+              nestingMap,
+              allPossibleListObjects,
+              objToCandidateMap,
+              level);
+        }
+      }
+    }
+  }
+
+  private boolean connectedAsList(SMGObject pCurrentObj, SMGCandidate pMaybeConnectedCandidate)
+      throws SMGException {
+    BigInteger nfo = pMaybeConnectedCandidate.getSuspectedNfo();
+
+    if (!state.getMemoryModel().getSmg().isValid(pCurrentObj)
+        || !pCurrentObj.getSize().isNumericValue()
+        || !pMaybeConnectedCandidate.object.isSizeEqual(pCurrentObj)) {
+      return false;
+    }
+
+    // "Easy" direction first, pCurrentObj -> pMaybeConnectedCandidate via nfo or pfo
+    SMGValue nfoOfCurrent =
+        state
+            .readSMGValue(pCurrentObj, nfo, state.getMemoryModel().getSizeOfPointer())
+            .getSMGValue();
+    if (!nfoOfCurrent.isZero() && state.getMemoryModel().getSmg().isPointer(nfoOfCurrent)) {
+      SMGObject nfoTarget =
+          state.getMemoryModel().getSmg().getPTEdge(nfoOfCurrent).orElseThrow().pointsTo();
+      if (pMaybeConnectedCandidate.getMaximalListElements().contains(nfoTarget)) {
+        return true;
+      }
+    }
+
+    if (pMaybeConnectedCandidate.isDLL()) {
+      SMGValue pfoOfCurrent =
+          state
+              .readSMGValue(
+                  pCurrentObj,
+                  pMaybeConnectedCandidate.getSuspectedPfo().orElseThrow(),
+                  state.getMemoryModel().getSizeOfPointer())
+              .getSMGValue();
+      if (!pfoOfCurrent.isZero() && state.getMemoryModel().getSmg().isPointer(pfoOfCurrent)) {
+        SMGObject pfoTarget =
+            state.getMemoryModel().getSmg().getPTEdge(pfoOfCurrent).orElseThrow().pointsTo();
+        if (pMaybeConnectedCandidate.getMaximalListElements().contains(pfoTarget)) {
+          return true;
+        }
+      }
+    }
+
+    // Now we need to check every list element the same way
+    for (SMGObject candidate : pMaybeConnectedCandidate.getMaximalListElements()) {
+      SMGValue nfoOfCurrentCandidate =
+          state
+              .readSMGValue(candidate, nfo, state.getMemoryModel().getSizeOfPointer())
+              .getSMGValue();
+      if (!nfoOfCurrentCandidate.isZero()
+          && state.getMemoryModel().getSmg().isPointer(nfoOfCurrentCandidate)) {
+        SMGObject nfoOfCurrentTarget =
+            state
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(nfoOfCurrentCandidate)
+                .orElseThrow()
+                .pointsTo();
+        if (pCurrentObj.equals(nfoOfCurrentTarget)) {
+          return true;
+        }
+      }
+
+      if (pMaybeConnectedCandidate.isDLL()) {
+        SMGValue pfoOfCurrent =
+            state
+                .readSMGValue(
+                    candidate,
+                    pMaybeConnectedCandidate.getSuspectedPfo().orElseThrow(),
+                    state.getMemoryModel().getSizeOfPointer())
+                .getSMGValue();
+        if (!pfoOfCurrent.isZero() && state.getMemoryModel().getSmg().isPointer(pfoOfCurrent)) {
+          SMGObject pfoTarget =
+              state.getMemoryModel().getSmg().getPTEdge(pfoOfCurrent).orElseThrow().pointsTo();
+          if (pCurrentObj.equals(pfoTarget)) {
+            return true;
           }
         }
       }
     }
 
-    if (pointsToNext != null) {
-      findNestingOfCandidates(
-          start,
-          pointsToNext.pointsTo(),
-          nfo,
-          maybePfo,
-          alreadySeen,
-          nestingMap,
-          objToCandidateMap);
-    }
+    return false;
   }
 
   private SMGCandidate getLinkedCandidateLength(
