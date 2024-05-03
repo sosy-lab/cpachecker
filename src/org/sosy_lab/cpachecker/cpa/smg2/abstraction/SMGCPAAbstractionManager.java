@@ -203,7 +203,7 @@ public class SMGCPAAbstractionManager {
         smg.getSMGObjectsWithSMGHasValueEdges();
 
     Set<SMGObject> alreadySeen = new HashSet<>();
-    Set<SMGCandidate> foundChains = new HashSet<>();
+    ImmutableSet.Builder<SMGCandidate> foundChains = ImmutableSet.builder();
     for (SMGObject heapObj : heapObjs) {
       if (!smg.isValid(heapObj)
           || !heapObj.getSize().isNumericValue()
@@ -318,7 +318,7 @@ public class SMGCPAAbstractionManager {
 
     ImmutableSet.Builder<SMGCandidate> foundChainsWRoot = ImmutableSet.builder();
     // Find good roots
-    for (SMGCandidate candidate : foundChains) {
+    for (SMGCandidate candidate : foundChains.build()) {
       foundChainsWRoot.add(searchAndSetRootForCandidate(candidate));
     }
 
@@ -546,7 +546,8 @@ public class SMGCPAAbstractionManager {
     alreadySeenInChain.add(prevObj);
 
     SMG smg = state.getMemoryModel().getSmg();
-    if (!alreadySeenInChain.contains(potentialNextObj)
+    boolean looping = alreadySeenInChain.contains(potentialNextObj);
+    if (!looping
         && smg.isValid(potentialNextObj)
         && state.getMemoryModel().isHeapObject(potentialNextObj)
         && state.getMemoryModel().isHeapObject(prevObj)
@@ -622,6 +623,7 @@ public class SMGCPAAbstractionManager {
           reduce = targetSLL.getMinLength();
         }
         remainingMinLength = remainingMinLength - reduce;
+        alreadySeenInChain.add(potentialNextObj);
 
         // Next checking
         for (SMGHasValueEdge hve : valuesInPotentialNextObj) {
@@ -640,7 +642,6 @@ public class SMGCPAAbstractionManager {
               BigInteger pointerTargetOffset = pointsToEdge.getOffset();
               if (nextPointerTargetOffset.equals(pointerTargetOffset)) {
                 // viable next pointer and possibly viable next obj
-                alreadySeenInChain.add(potentialNextObj);
                 return lookThroughNext(
                     potentialNextObj,
                     targetOfPtrInNextObj,
@@ -658,7 +659,7 @@ public class SMGCPAAbstractionManager {
     }
     // We do this to get the complete list chain in alreadySeenInChain
     if (remainingMinLength <= 0) {
-      if (alreadySeenInChain.contains(potentialNextObj)) {
+      if (looping) {
         return maybePfo.isPresent() ? ListType.LOOPINGDLL : ListType.LOOPINGSLL;
       }
       return maybePfo.isPresent() ? ListType.DLL : ListType.SLL;
