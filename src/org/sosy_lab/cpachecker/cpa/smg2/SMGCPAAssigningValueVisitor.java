@@ -229,7 +229,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
           if (booleans.contains(leftMemLocName) || options.isInitAssumptionVars()) {
 
-            CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
+            CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
             Value size = new NumericValue(evaluator.getBitSizeof(currentState, type));
             currentState =
                 currentState.writeValueWithChecks(
@@ -263,7 +263,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
           if (isAssignable(rightHandSideAssignments)) {
 
-            CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+            CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
             Value size = new NumericValue(evaluator.getBitSizeof(currentState, type));
             currentState =
                 currentState.writeValueWithChecks(
