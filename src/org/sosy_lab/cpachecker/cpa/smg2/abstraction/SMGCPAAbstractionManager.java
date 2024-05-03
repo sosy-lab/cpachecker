@@ -67,6 +67,9 @@ public class SMGCPAAbstractionManager {
     state = pState;
     minimumLengthForListsForAbstraction = pMinimumLengthForListsForAbstraction;
     statistics = pStatistics;
+    // Set caches for tests
+    equalityCache = EqualityCache.of();
+    objectCache = EqualityCache.of();
   }
 
   /*
@@ -145,13 +148,20 @@ public class SMGCPAAbstractionManager {
   }
 
   private boolean candidatesHaveBeenAbstracted(
-      List<Set<SMGCandidate>> orderedListCandidatesByNesting, SMGState stateAfterAbstraction) {
+      List<Set<SMGCandidate>> orderedListCandidatesByNesting, SMGState stateAfterAbstraction)
+      throws SMGException {
     PersistentSet<SMGObject> objectsAfterAbstr =
         stateAfterAbstraction.getMemoryModel().getHeapObjects();
     for (Set<SMGCandidate> set : orderedListCandidatesByNesting) {
       for (SMGCandidate candidate : set) {
         if (objectsAfterAbstr.contains(candidate.getObject())) {
-          return false;
+          if (!stateAfterAbstraction.getMemoryModel().getSmg().isValid(candidate.getObject())) {
+            throw new SMGException(
+                "Internal error; Memory has not been cleaned correctly after abstraction. This is"
+                    + " not a critical error and can be ignored.");
+          } else {
+            return false;
+          }
         }
       }
     }
