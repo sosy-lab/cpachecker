@@ -352,11 +352,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         }
         return resultPair.status();
       }
-    } catch (InvalidConfigurationException | IOException e) {
+    } catch (InvalidConfigurationException | IOException | SolverException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
-    } catch (SolverException pE) {
-      throw new RuntimeException(pE);
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
