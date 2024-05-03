@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -292,7 +291,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();
       if (!spawnWorkerForId.isBlank()) {
-        FileUtils.cleanDirectory(outputMessages.toFile());
         int counter = 0;
         MessageConverter converter = new MessageConverter();
         BlockNode blockNode =
@@ -317,6 +315,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           }
         }
         for (BlockSummaryMessage blockSummaryMessage : response.build()) {
+          Files.createDirectories(outputMessages);
           Path message = outputMessages.resolve("M" + counter++ + ".txt");
           Files.writeString(message, converter.messageToJson(blockSummaryMessage));
         }
