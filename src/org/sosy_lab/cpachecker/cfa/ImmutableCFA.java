@@ -68,7 +68,6 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializa
       Map<String, FunctionEntryNode> pFunctions, Set<CFANode> pAllNodes, CfaMetadata pCfaMetadata) {
     functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes);
-    allEdges = ImmutableSet.copyOf(super.edges());
 
     metadata = pCfaMetadata;
 
@@ -78,6 +77,8 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializa
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
             new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+    // this must happen after 'network' is assigned. Network is the delegate of this class.
+    allEdges = ImmutableSet.copyOf(super.edges());
   }
 
   @Override
