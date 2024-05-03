@@ -48,6 +48,8 @@ public class SMGCPAAbstractionManager {
 
   private EqualityCache<Value> equalityCache;
 
+  private EqualityCache<SMGObject> objectCache;
+
   private int minimumLengthForListsForAbstraction;
 
   private final SMGCPAStatistics statistics;
@@ -101,16 +103,17 @@ public class SMGCPAAbstractionManager {
   public SMGState findAndAbstractLists() throws SMGException {
     SMGState currentState = state;
     equalityCache = EqualityCache.of();
+    objectCache = EqualityCache.of();
     statistics.startTotalListSearchTime();
 
     // Sort in DLL and SLL candidates and also order by nesting
-    List<Set<SMGCandidate>> orderListCandidatesByNesting2 = getListCandidates();
+    List<Set<SMGCandidate>> orderedListCandidatesByNesting = getListCandidates();
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     statistics.stopTotalListSearchTime();
     statistics.startTotalAbstractionTime();
     // Abstract top level nesting first
-    for (Set<SMGCandidate> candidates : orderListCandidatesByNesting2) {
+    for (Set<SMGCandidate> candidates : orderedListCandidatesByNesting) {
       for (SMGCandidate candidate : candidates) {
         // Not valid means kicked out by abstraction
         if (!currentState.getMemoryModel().isObjectValid(candidate.getObject())) {
@@ -137,7 +140,22 @@ public class SMGCPAAbstractionManager {
       }
     }
     statistics.stopTotalAbstractionTime();
+    assert candidatesHaveBeenAbstracted(orderedListCandidatesByNesting, currentState);
     return currentState;
+  }
+
+  private boolean candidatesHaveBeenAbstracted(
+      List<Set<SMGCandidate>> orderedListCandidatesByNesting, SMGState stateAfterAbstraction) {
+    PersistentSet<SMGObject> objectsAfterAbstr =
+        stateAfterAbstraction.getMemoryModel().getHeapObjects();
+    for (Set<SMGCandidate> set : orderedListCandidatesByNesting) {
+      for (SMGCandidate candidate : set) {
+        if (objectsAfterAbstr.contains(candidate.getObject())) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   private List<Set<SMGCandidate>> getListCandidates() throws SMGException {
@@ -503,6 +521,7 @@ public class SMGCPAAbstractionManager {
                   state,
                   state,
                   equalityCache,
+                  objectCache,
                   true)) {
 
                 return lookThroughNext(
