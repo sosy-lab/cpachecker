@@ -227,13 +227,15 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
     return switch (decompositionType) {
       case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
-      case MERGE_DECOMPOSITION -> new MergeBlockNodesDecomposition(
-          new LinearBlockNodeDecomposition(isBlockEnd),
-          2,
-          Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-          allowSingleBlockDecompositionWhenMerging);
-      case BRIDGE_DECOMPOSITION -> new VerticalMergeDecomposition(
-          new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
+      case MERGE_DECOMPOSITION ->
+          new MergeBlockNodesDecomposition(
+              new LinearBlockNodeDecomposition(isBlockEnd),
+              2,
+              Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+              allowSingleBlockDecompositionWhenMerging);
+      case BRIDGE_DECOMPOSITION ->
+          new VerticalMergeDecomposition(
+              new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }
@@ -298,9 +300,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             (BlockSummaryAnalysisWorker) Iterables.getOnlyElement(build.actors());
         for (File file : Objects.requireNonNull(inputMessages.toFile().listFiles(File::isFile))) {
           for (BlockSummaryMessage blockSummaryMessage :
-              actor.processMessage(converter.jsonToMessage(Files.readAllBytes(file.toPath())))) {
+              actor.processMessage(converter.jsonToMessage(Files.readString(file.toPath())))) {
             Path message = outputMessages.resolve("M" + counter++ + ".txt");
-            Files.write(message, converter.messageToJson(blockSummaryMessage));
+            Files.writeString(message, converter.messageToJson(blockSummaryMessage));
           }
         }
         return AlgorithmStatus.NO_PROPERTY_CHECKED;

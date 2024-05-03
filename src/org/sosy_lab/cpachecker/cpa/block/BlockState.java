@@ -113,9 +113,7 @@ public class BlockState
   // error condition intentionally left out as it is mutable
   @Override
   public boolean equals(Object pO) {
-    return pO instanceof BlockState that
-        && Objects.equals(node, that.node)
-        && type == that.type;
+    return pO instanceof BlockState that && Objects.equals(node, that.node) && type == that.type;
   }
 
   @Override

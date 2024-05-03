@@ -22,16 +22,11 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
@@ -319,46 +314,12 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       mapper.registerModule(deserializer);
     }
 
-    public byte[] messageToJson(BlockSummaryMessage pMessage) throws IOException {
-      // return mapper.writeValueAsBytes(pMessage);
-      return Base64.getEncoder().encode(mapper.writeValueAsBytes(pMessage));
+    public String messageToJson(BlockSummaryMessage pMessage) throws IOException {
+      return mapper.writeValueAsString(pMessage);
     }
 
-    public BlockSummaryMessage jsonToMessage(byte[] pBytes) throws IOException {
-      // return mapper.readValue(pBytes, Message.class);
-      return mapper.readValue(Base64.getDecoder().decode(pBytes), BlockSummaryMessage.class);
-    }
-  }
-
-  /** Mimics a MessageConverter but it zips messages. */
-  public static class CompressedMessageConverter extends MessageConverter {
-
-    @Override
-    public byte[] messageToJson(BlockSummaryMessage pMessage) throws IOException {
-      try (ByteArrayOutputStream output = new ByteArrayOutputStream();
-          GZIPOutputStream writer = new GZIPOutputStream(output)) {
-        byte[] message = super.messageToJson(pMessage);
-        writer.write(message);
-        return output.toByteArray();
-      }
-    }
-
-    @Override
-    public BlockSummaryMessage jsonToMessage(byte[] pBytes) throws IOException {
-      try (GZIPInputStream reader = new GZIPInputStream(new ByteArrayInputStream(pBytes));
-          ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-
-        byte[] buf = new byte[4096];
-        while (true) {
-          int n = reader.read(buf);
-          if (n < 0) {
-            break;
-          }
-          output.write(buf, 0, n);
-        }
-        byte[] data = output.toByteArray();
-        return super.jsonToMessage(data);
-      }
+    public BlockSummaryMessage jsonToMessage(String pBytes) throws IOException {
+      return mapper.readValue(pBytes, BlockSummaryMessage.class);
     }
   }
 
@@ -386,16 +347,17 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       Instant timestamp = Instant.parse(node.get("timestamp").asText());
 
       return switch (type) {
-        case FOUND_RESULT -> new BlockSummaryResultMessage(
-            uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR -> new BlockSummaryExceptionMessage(
-            uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR_CONDITION_UNREACHABLE -> new BlockSummaryErrorConditionUnreachableMessage(
-            uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR_CONDITION -> new BlockSummaryErrorConditionMessage(
-            uniqueBlockId, nodeNumber, payload, timestamp);
-        case BLOCK_POSTCONDITION -> new BlockSummaryPostConditionMessage(
-            uniqueBlockId, nodeNumber, payload, timestamp);
+        case FOUND_RESULT ->
+            new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR ->
+            new BlockSummaryExceptionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR_CONDITION_UNREACHABLE ->
+            new BlockSummaryErrorConditionUnreachableMessage(
+                uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR_CONDITION ->
+            new BlockSummaryErrorConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case BLOCK_POSTCONDITION ->
+            new BlockSummaryPostConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
         default -> throw new AssertionError("Unknown MessageType " + type);
       };
     }
