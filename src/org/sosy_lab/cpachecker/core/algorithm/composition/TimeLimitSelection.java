@@ -36,7 +36,8 @@ public class TimeLimitSelection {
     CONTEXT_TIMELIMIT.put(init(1, 0, 1, 0, 1, 0), Pair.of(10, 10));
   }
 
-  public static Pair<Integer, Integer> getTimeLimits(final AlgSelectionBooleanVector selectionContext) {
+  public static Pair<Integer, Integer> getTimeLimits(
+      final AlgSelectionBooleanVector selectionContext) {
     return CONTEXT_TIMELIMIT.getOrDefault(selectionContext, Pair.of(20, 80));
   }
 }
