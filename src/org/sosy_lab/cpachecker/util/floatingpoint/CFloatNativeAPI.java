@@ -100,17 +100,17 @@ public class CFloatNativeAPI {
   public static final int TYPE_ULONG_LONG = 12;
 
   static {
-    ZERO_SINGLE = new CMyFloat(createFp("0.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
-    ONE_SINGLE = new CMyFloat(createFp("1.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
-    TEN_SINGLE = new CMyFloat(createFp("10.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
+    ZERO_SINGLE = new CFloatImpl(createFp("0.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
+    ONE_SINGLE = new CFloatImpl(createFp("1.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
+    TEN_SINGLE = new CFloatImpl(createFp("10.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
 
-    ZERO_DOUBLE = new CMyFloat(createFp("0.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
-    ONE_DOUBLE = new CMyFloat(createFp("1.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
-    TEN_DOUBLE = new CMyFloat(createFp("10.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
+    ZERO_DOUBLE = new CFloatImpl(createFp("0.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
+    ONE_DOUBLE = new CFloatImpl(createFp("1.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
+    TEN_DOUBLE = new CFloatImpl(createFp("10.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
 
-    ZERO_LONG_DOUBLE = new CMyFloat(createFp("0.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
-    ONE_LONG_DOUBLE = new CMyFloat(createFp("1.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
-    TEN_LONG_DOUBLE = new CMyFloat(createFp("10.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
+    ZERO_LONG_DOUBLE = new CFloatImpl(createFp("0.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
+    ONE_LONG_DOUBLE = new CFloatImpl(createFp("1.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
+    TEN_LONG_DOUBLE = new CFloatImpl(createFp("10.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
   }
 
   public static native CFloatWrapper createFp(String stringRepresentation, int fp_type);

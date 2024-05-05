@@ -14,39 +14,47 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
-import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.Format;
-import org.sosy_lab.cpachecker.util.floatingpoint.MyFloat.RoundingMode;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.RoundingMode;
 
-public class CMyFloat extends CFloat {
+/**
+ * Adapter class for {@link FloatP} that implements the CFloat interface.
+ *
+ * <p>This class provides an entirely Java based implementation of the CFloat interface and should
+ * be used over the now deprecated {@link CFloatNative}.
+ *
+ * <p>Unlike {@link FloatP} this class does not expect arguments to have the same precision.
+ */
+public class CFloatImpl extends CFloat {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
   }
 
   private final CFloatWrapper wrapper;
-  private final MyFloat delegate;
+  private final FloatP delegate;
 
-  public CMyFloat(CFloatWrapper pWrapper, int pType) {
+  public CFloatImpl(CFloatWrapper pWrapper, int pType) {
     wrapper = pWrapper;
     delegate = toMyFloat(pWrapper, CFloatNativeAPI.toNativeType(pType));
   }
 
-  public CMyFloat(String repr, int pType) {
+  public CFloatImpl(String repr, int pType) {
     delegate = parseFloat(repr, toMathContext(CFloatNativeAPI.toNativeType(pType)));
     wrapper = fromImpl(delegate);
   }
 
-  public CMyFloat(String repr, BinaryMathContext pFormat) {
+  public CFloatImpl(String repr, BinaryMathContext pFormat) {
     delegate = parseFloat(repr, pFormat);
     wrapper = fromImpl(delegate);
   }
 
-  public CMyFloat(BigFloat value, BinaryMathContext pFormat) {
+  public CFloatImpl(BigFloat value, BinaryMathContext pFormat) {
     Format format = new Format(calculateExpWidth(pFormat), pFormat.precision - 1);
-    delegate = MyFloat.fromBigFloat(format, value);
+    delegate = FloatP.fromBigFloat(format, value);
     wrapper = null; // fromImpl(delegate);
   }
 
-  public CMyFloat(MyFloat pValue) {
+  public CFloatImpl(FloatP pValue) {
     delegate = pValue;
     wrapper = fromImpl(pValue);
   }
@@ -69,7 +77,7 @@ public class CMyFloat extends CFloat {
     };
   }
 
-  private MyFloat toMyFloat(CFloatWrapper floatWrapper, CNativeType pType) {
+  private FloatP toMyFloat(CFloatWrapper floatWrapper, CNativeType pType) {
     Format format = toFormat(pType);
     long signMask = 1L << format.getExpBits();
     long exponentMask = signMask - 1;
@@ -91,10 +99,10 @@ public class CMyFloat extends CFloat {
         mantissa = mantissa.add(leadingOne);
       }
     }
-    return new MyFloat(format, sign, exponent, mantissa);
+    return new FloatP(format, sign, exponent, mantissa);
   }
 
-  private CFloatWrapper fromImpl(MyFloat floatValue) {
+  private CFloatWrapper fromImpl(FloatP floatValue) {
     ImmutableList<Format> tiny = ImmutableList.of(Format.Float8, Format.Float16, Format.Float32);
     if (tiny.contains(floatValue.getFormat())) {
       // FIXME: In Float8 and Float16 this may be broken for subnormal numbers
@@ -124,33 +132,33 @@ public class CMyFloat extends CFloat {
     return val.bitCount() > 1 ? r + 1 : r;
   }
 
-  private MyFloat parseFloat(String repr, BinaryMathContext pFormat) {
+  private FloatP parseFloat(String repr, BinaryMathContext pFormat) {
     Format format = new Format(calculateExpWidth(pFormat), pFormat.precision - 1);
     if ("nan".equals(repr)) {
-      return MyFloat.nan(format);
+      return FloatP.nan(format);
     }
     if ("-inf".equals(repr)) {
-      return MyFloat.negativeInfinity(format);
+      return FloatP.negativeInfinity(format);
     }
     if ("inf".equals(repr)) {
-      return MyFloat.infinity(format);
+      return FloatP.infinity(format);
     }
     if ("-0.0".equals(repr)) {
-      return MyFloat.negativeZero(format);
+      return FloatP.negativeZero(format);
     }
     if ("0.0".equals(repr)) {
-      return MyFloat.zero(format);
+      return FloatP.zero(format);
     }
-    return MyFloat.fromString(format, repr);
+    return FloatP.fromString(format, repr);
   }
 
   @Override
   public CFloat add(CFloat pSummand) {
-    if (pSummand instanceof CMyFloat mySummand) {
+    if (pSummand instanceof CFloatImpl mySummand) {
       Format p = delegate.getFormat().sup(mySummand.delegate.getFormat());
-      MyFloat arg1 = delegate.withPrecision(p);
-      MyFloat arg2 = mySummand.delegate.withPrecision(p);
-      return new CMyFloat(arg1.add(arg2));
+      FloatP arg1 = delegate.withPrecision(p);
+      FloatP arg2 = mySummand.delegate.withPrecision(p);
+      return new CFloatImpl(arg1.add(arg2));
     }
     throw new UnsupportedOperationException();
   }
@@ -159,24 +167,24 @@ public class CMyFloat extends CFloat {
   public CFloat add(CFloat... pSummands) {
     Format p = new Format(0, 0);
     for (CFloat f : pSummands) {
-      CMyFloat mf = (CMyFloat) f;
+      CFloatImpl mf = (CFloatImpl) f;
       p = p.sup(mf.delegate.getFormat());
     }
-    MyFloat r = delegate.withPrecision(p);
+    FloatP r = delegate.withPrecision(p);
     for (CFloat f : pSummands) {
-      CMyFloat mf = (CMyFloat) f;
+      CFloatImpl mf = (CFloatImpl) f;
       r = r.add(mf.delegate.withPrecision(p));
     }
-    return new CMyFloat(r);
+    return new CFloatImpl(r);
   }
 
   @Override
   public CFloat multiply(CFloat pFactor) {
-    if (pFactor instanceof CMyFloat myFactor) {
+    if (pFactor instanceof CFloatImpl myFactor) {
       Format p = delegate.getFormat().sup(myFactor.delegate.getFormat());
-      MyFloat arg1 = delegate.withPrecision(p);
-      MyFloat arg2 = myFactor.delegate.withPrecision(p);
-      return new CMyFloat(arg1.multiply(arg2));
+      FloatP arg1 = delegate.withPrecision(p);
+      FloatP arg2 = myFactor.delegate.withPrecision(p);
+      return new CFloatImpl(arg1.multiply(arg2));
     }
     throw new UnsupportedOperationException();
   }
@@ -185,93 +193,93 @@ public class CMyFloat extends CFloat {
   public CFloat multiply(CFloat... pFactors) {
     Format p = new Format(0, 0);
     for (CFloat f : pFactors) {
-      CMyFloat mf = (CMyFloat) f;
+      CFloatImpl mf = (CFloatImpl) f;
       p = p.sup(mf.delegate.getFormat());
     }
-    MyFloat r = delegate.withPrecision(p);
+    FloatP r = delegate.withPrecision(p);
     for (CFloat f : pFactors) {
-      CMyFloat mf = (CMyFloat) f;
+      CFloatImpl mf = (CFloatImpl) f;
       r = r.multiply(mf.delegate.withPrecision(p));
     }
-    return new CMyFloat(r);
+    return new CFloatImpl(r);
   }
 
   @Override
   public CFloat subtract(CFloat pSubtrahend) {
-    if (pSubtrahend instanceof CMyFloat mySubtrahend) {
+    if (pSubtrahend instanceof CFloatImpl mySubtrahend) {
       Format p = delegate.getFormat().sup(mySubtrahend.delegate.getFormat());
-      MyFloat arg1 = delegate.withPrecision(p);
-      MyFloat arg2 = mySubtrahend.delegate.withPrecision(p);
-      return new CMyFloat(arg1.subtract(arg2));
+      FloatP arg1 = delegate.withPrecision(p);
+      FloatP arg2 = mySubtrahend.delegate.withPrecision(p);
+      return new CFloatImpl(arg1.subtract(arg2));
     }
     throw new UnsupportedOperationException();
   }
 
   @Override
   public CFloat divideBy(CFloat pDivisor) {
-    if (pDivisor instanceof CMyFloat myDivisor) {
+    if (pDivisor instanceof CFloatImpl myDivisor) {
       Format p = delegate.getFormat().sup(myDivisor.delegate.getFormat());
-      MyFloat arg1 = delegate.withPrecision(p);
-      MyFloat arg2 = myDivisor.delegate.withPrecision(p);
-      return new CMyFloat(arg1.divide(arg2));
+      FloatP arg1 = delegate.withPrecision(p);
+      FloatP arg2 = myDivisor.delegate.withPrecision(p);
+      return new CFloatImpl(arg1.divide(arg2));
     }
     throw new UnsupportedOperationException();
   }
 
   @Override
   public CFloat ln() {
-    return new CMyFloat(delegate.ln());
+    return new CFloatImpl(delegate.ln());
   }
 
   @Override
   public CFloat exp() {
-    return new CMyFloat(delegate.exp());
+    return new CFloatImpl(delegate.exp());
   }
 
   @Override
   public CFloat powTo(CFloat pExponent) {
-    if (pExponent instanceof CMyFloat myExponent) {
+    if (pExponent instanceof CFloatImpl myExponent) {
       Format p = delegate.getFormat().sup(myExponent.delegate.getFormat());
-      MyFloat arg1 = delegate.withPrecision(p);
-      MyFloat arg2 = myExponent.delegate.withPrecision(p);
-      return new CMyFloat(arg1.pow(arg2));
+      FloatP arg1 = delegate.withPrecision(p);
+      FloatP arg2 = myExponent.delegate.withPrecision(p);
+      return new CFloatImpl(arg1.pow(arg2));
     }
     throw new UnsupportedOperationException();
   }
 
   @Override
   public CFloat powToIntegral(int exponent) {
-    return new CMyFloat(delegate.powInt(BigInteger.valueOf(exponent)));
+    return new CFloatImpl(delegate.powInt(BigInteger.valueOf(exponent)));
   }
 
   @Override
   public CFloat sqrt() {
-    return new CMyFloat(delegate.sqrt());
+    return new CFloatImpl(delegate.sqrt());
   }
 
   @Override
   public CFloat round() {
-    return new CMyFloat(delegate.roundToInteger(RoundingMode.NEAREST_AWAY));
+    return new CFloatImpl(delegate.roundToInteger(RoundingMode.NEAREST_AWAY));
   }
 
   @Override
   public CFloat trunc() {
-    return new CMyFloat(delegate.roundToInteger(RoundingMode.TRUNCATE));
+    return new CFloatImpl(delegate.roundToInteger(RoundingMode.TRUNCATE));
   }
 
   @Override
   public CFloat ceil() {
-    return new CMyFloat(delegate.roundToInteger(RoundingMode.CEILING));
+    return new CFloatImpl(delegate.roundToInteger(RoundingMode.CEILING));
   }
 
   @Override
   public CFloat floor() {
-    return new CMyFloat(delegate.roundToInteger(RoundingMode.FLOOR));
+    return new CFloatImpl(delegate.roundToInteger(RoundingMode.FLOOR));
   }
 
   @Override
   public CFloat abs() {
-    return new CMyFloat(delegate.abs());
+    return new CFloatImpl(delegate.abs());
   }
 
   @Override
@@ -301,8 +309,8 @@ public class CMyFloat extends CFloat {
 
   @Override
   public CFloat copySignFrom(CFloat source) {
-    if (source instanceof CMyFloat mySource) {
-      return new CMyFloat(mySource.isNegative() ? delegate.abs().negate() : delegate.abs());
+    if (source instanceof CFloatImpl mySource) {
+      return new CFloatImpl(mySource.isNegative() ? delegate.abs().negate() : delegate.abs());
     }
     throw new UnsupportedOperationException();
   }
@@ -310,10 +318,10 @@ public class CMyFloat extends CFloat {
   @Override
   public CFloat castTo(CNativeType toType) {
     return switch (toType) {
-      case HALF -> new CMyFloat(delegate.withPrecision(Format.Float16));
-      case SINGLE -> new CMyFloat(delegate.withPrecision(Format.Float32));
-      case DOUBLE -> new CMyFloat(delegate.withPrecision(Format.Float64));
-      case LONG_DOUBLE -> new CMyFloat(delegate.withPrecision(new Format(15, 63)));
+      case HALF -> new CFloatImpl(delegate.withPrecision(Format.Float16));
+      case SINGLE -> new CFloatImpl(delegate.withPrecision(Format.Float32));
+      case DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Float64));
+      case LONG_DOUBLE -> new CFloatImpl(delegate.withPrecision(new Format(15, 63)));
       default -> throw new IllegalArgumentException();
     };
   }
@@ -342,7 +350,7 @@ public class CMyFloat extends CFloat {
     return wrapper;
   }
 
-  public MyFloat getValue() {
+  public FloatP getValue() {
     return delegate;
   }
 
@@ -366,7 +374,7 @@ public class CMyFloat extends CFloat {
 
   @Override
   public boolean greaterThan(CFloat other) {
-    if (other instanceof CMyFloat myOther) {
+    if (other instanceof CFloatImpl myOther) {
       return delegate.greaterThan(myOther.delegate);
     }
     throw new UnsupportedOperationException();
