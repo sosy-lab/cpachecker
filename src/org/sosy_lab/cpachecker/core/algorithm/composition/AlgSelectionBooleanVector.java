@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.composition;
 
-public class AlgSelectionBooleanVector {
+class AlgSelectionBooleanVector {
     private final boolean hasAliasing;
     private final boolean hasArray;
     private final boolean hasComposite;
@@ -25,11 +25,23 @@ public class AlgSelectionBooleanVector {
         this.hasSingleLoop = hasSingleLoop;
     }
 
-    public static AlgSelectionBooleanVector init(boolean hasAliasing, boolean hasArray, boolean hasComposite, boolean hasFloat, boolean hasLoop, boolean hasSingleLoop){
+    static AlgSelectionBooleanVector init(boolean hasAliasing, boolean hasArray, boolean hasComposite, boolean hasFloat, boolean hasLoop, boolean hasSingleLoop){
         return new AlgSelectionBooleanVector(hasAliasing,  hasArray,  hasComposite,  hasFloat,  hasLoop,  hasSingleLoop);
     }
 
-    public static AlgSelectionBooleanVector init(int hasAliasing, int hasArray, int hasComposite, int hasFloat, int hasLoop, int hasSingleLoop){
+    static AlgSelectionBooleanVector init(int hasAliasing, int hasArray, int hasComposite, int hasFloat, int hasLoop, int hasSingleLoop){
         return new AlgSelectionBooleanVector(hasAliasing == 1,  hasArray== 1,  hasComposite== 1,  hasFloat== 1,  hasLoop== 1,  hasSingleLoop== 1);
+    }
+
+    @Override
+    public String toString() {
+        return "AlgSelectionBooleanVector{" +
+            "hasAliasing=" + hasAliasing +
+            ", hasArray=" + hasArray +
+            ", hasComposite=" + hasComposite +
+            ", hasFloat=" + hasFloat +
+            ", hasLoop=" + hasLoop +
+            ", hasSingleLoop=" + hasSingleLoop +
+            '}';
     }
 }
