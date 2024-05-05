@@ -8,13 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.composition;
 
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -28,13 +30,9 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-import java.util.*;
-
 public class TimeSelectionStrategy implements CFATraversal.CFAVisitor {
 
     private final CFA cfa;
-
-    private final Set<String> functionNames = new HashSet<>();
     private final Set<String> arrayVariables = new HashSet<>();
     private final Set<String> floatVariables = new HashSet<>();
 
@@ -45,17 +43,6 @@ public class TimeSelectionStrategy implements CFATraversal.CFAVisitor {
     @Override
     public CFATraversal.TraversalProcess visitEdge(CFAEdge pEdge) {
         switch (pEdge.getEdgeType()) {
-            case StatementEdge: {
-                final AStatementEdge edge = (AStatementEdge) pEdge;
-                if (edge.getStatement() instanceof AFunctionCall) {
-                    final AFunctionCall call = (AFunctionCall) edge.getStatement();
-                    final AExpression exp = call.getFunctionCallExpression().getFunctionNameExpression();
-                    if (exp instanceof AIdExpression id) {
-                        functionNames.add(id.getName());
-                    }
-                }
-                break;
-            }
             case DeclarationEdge: {
                 final ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
                 ADeclaration declaration = declarationEdge.getDeclaration();

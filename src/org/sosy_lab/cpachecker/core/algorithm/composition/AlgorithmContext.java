@@ -113,7 +113,7 @@ public class AlgorithmContext {
     }
 
     private REPETITIONMODE extractModeFromAnnotation(final Optional<String> annotation) {
-        return annotation.map(enumVal->{
+        return annotation.map(enumVal -> {
             var val = "";
             if (enumVal.contains(MODE_LIMIT_DELIMITER)) {
                 val = enumVal.substring(0, enumVal.indexOf(MODE_LIMIT_DELIMITER));
