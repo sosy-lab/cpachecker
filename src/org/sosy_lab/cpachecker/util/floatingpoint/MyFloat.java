@@ -127,58 +127,27 @@ public class MyFloat {
     }
   }
 
-  // Stores a floating point value
-  public static class FpValue {
-    private final boolean sign;
-    private final long exponent;
-    private final BigInteger significand;
-
-    /**
-     * Build a new floating point value
-     *
-     * @param pSign Sign of the float
-     * @param pExponent Exponent, without the IEEE bias
-     * @param pSignificand Significand, including the leading bit that is hidden in the IEEE format
-     */
-    public FpValue(boolean pSign, long pExponent, BigInteger pSignificand) {
-      sign = pSign;
-      exponent = pExponent;
-      significand = pSignificand;
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      return pOther instanceof FpValue other
-          && sign == other.sign
-          && exponent == other.exponent
-          && significand.equals(other.significand);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(sign, exponent, significand);
-    }
-  }
-
+  // Format, defines the precision of the value and the allowed exponent range
   private final Format format;
-  private final FpValue value;
 
-  public MyFloat(Format pFormat, FpValue pValue) {
-    format = pFormat;
-    value = pValue;
-  }
+  // Sign, exponent and significand of the float value
+  private final boolean sign;
+  private final long exponent;
+  private final BigInteger significand;
 
-  public MyFloat(Format pFormat, BigInteger pValue) {
-    format = pFormat;
-    value = fromInteger(pValue);
-  }
-
+  /**
+   * Create a floating point value.
+   *
+   * @param pFormat      Format, defines the precision and the width of the exponent field
+   * @param pSign        Sign of the value
+   * @param pExponent    Exponent, without the IEEE bias
+   * @param pSignificand Significand, including the leading bit that is hidden in the IEEE format
+   */
   public MyFloat(Format pFormat, boolean pSign, long pExponent, BigInteger pSignificand) {
     format = pFormat;
-    value = new FpValue(pSign, pExponent, pSignificand);
+    sign = pSign;
+    exponent = pExponent;
+    significand = pSignificand;
   }
 
   public Format getFormat() {
@@ -186,76 +155,65 @@ public class MyFloat {
   }
 
   public static MyFloat nan(Format pFormat) {
-    FpValue value =
-        new FpValue(false, pFormat.maxExp() + 1, BigInteger.ONE.shiftLeft(pFormat.sigBits - 1));
-    return new MyFloat(pFormat, value);
+    return new MyFloat(
+        pFormat, false, pFormat.maxExp() + 1, BigInteger.ONE.shiftLeft(pFormat.sigBits - 1));
   }
 
   public static MyFloat infinity(Format pFormat) {
-    FpValue value = new FpValue(false, pFormat.maxExp() + 1, BigInteger.ZERO);
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, false, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
   public static MyFloat maxValue(Format pFormat) {
     BigInteger allOnes = BigInteger.ONE.shiftLeft(pFormat.sigBits + 1).subtract(BigInteger.ONE);
-    FpValue value = new FpValue(false, pFormat.maxExp(), allOnes);
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, false, pFormat.maxExp(), allOnes);
   }
 
   public static MyFloat constant(Format pFormat, BigInteger number) {
-    return new MyFloat(pFormat, number);
+    return fromInteger(pFormat, number);
   }
 
   public static MyFloat constant(Format pFormat, int number) {
-    return new MyFloat(pFormat, BigInteger.valueOf(number));
+    return fromInteger(pFormat, BigInteger.valueOf(number));
   }
 
   public static MyFloat one(Format pFormat) {
-    FpValue value = new FpValue(false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
   public static MyFloat minNormal(Format pFormat) {
-    FpValue value = new FpValue(false, pFormat.minExp(), BigInteger.ONE.shiftLeft(pFormat.sigBits));
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, false, pFormat.minExp(), BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
   public static MyFloat minValue(Format pFormat) {
-    FpValue value = new FpValue(false, pFormat.minExp() - 1, BigInteger.ONE);
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, false, pFormat.minExp() - 1, BigInteger.ONE);
   }
 
   public static MyFloat zero(Format pFormat) {
-    FpValue value = new FpValue(false, pFormat.minExp() - 1, BigInteger.ZERO);
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, false, pFormat.minExp() - 1, BigInteger.ZERO);
   }
 
   public static MyFloat negativeZero(Format pFormat) {
-    FpValue value = new FpValue(true, pFormat.minExp() - 1, BigInteger.ZERO);
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, true, pFormat.minExp() - 1, BigInteger.ZERO);
   }
 
   public static MyFloat negativeOne(Format pFormat) {
-    FpValue value = new FpValue(true, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, true, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
   public static MyFloat negativeInfinity(Format pFormat) {
-    FpValue value = new FpValue(true, pFormat.maxExp() + 1, BigInteger.ZERO);
-    return new MyFloat(pFormat, value);
+    return new MyFloat(pFormat, true, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
   public boolean isNan() {
-    return (value.exponent == format.maxExp() + 1)
-        && (value.significand.compareTo(BigInteger.ZERO) > 0);
+    return (exponent == format.maxExp() + 1) && (significand.compareTo(BigInteger.ZERO) > 0);
   }
 
   public boolean isInfinite() {
-    return (value.exponent == format.maxExp() + 1) && value.significand.equals(BigInteger.ZERO);
+    return (exponent == format.maxExp() + 1) && significand.equals(BigInteger.ZERO);
   }
 
   public boolean isZero() {
-    return (value.exponent == format.minExp() - 1) && value.significand.equals(BigInteger.ZERO);
+    return (exponent == format.minExp() - 1) && significand.equals(BigInteger.ZERO);
   }
 
   public boolean isOne() {
@@ -267,17 +225,17 @@ public class MyFloat {
   }
 
   public boolean isNegative() {
-    return value.sign;
+    return sign;
   }
 
   public boolean isInteger() {
     BigInteger intValue = toInteger();
-    return value.equals(fromInteger(intValue));
+    return equals(fromInteger(format, intValue));
   }
 
   public boolean isOddInteger() {
     BigInteger intValue = toInteger();
-    return value.equals(fromInteger(intValue)) && intValue.testBit(0);
+    return equals(fromInteger(format, intValue)) && intValue.testBit(0);
   }
 
   @Override
@@ -287,19 +245,21 @@ public class MyFloat {
     }
     return pOther instanceof MyFloat other
         && format.equals(other.format)
-        && value.equals(other.value);
+        && sign == other.sign
+        && exponent == other.exponent
+        && significand.equals(other.significand);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(format, value);
+    return Objects.hash(format, sign, exponent, significand);
   }
 
   // Shift the significand to the right while preserving the sticky bit
-  private BigInteger truncate(BigInteger significand, int bits) {
+  private static BigInteger truncate(BigInteger pSignificand, int bits) {
     BigInteger mask = BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE);
-    BigInteger r = significand.and(mask);
-    BigInteger l = significand.shiftRight(bits);
+    BigInteger r = pSignificand.and(mask);
+    BigInteger l = pSignificand.shiftRight(bits);
     return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
@@ -313,34 +273,34 @@ public class MyFloat {
 
   // Round the significand
   // For internal use only. We expect the significand to be followed by 3 grs bits
-  private BigInteger applyRounding(RoundingMode rm, boolean negative, BigInteger significand) {
-    long grs = significand.and(new BigInteger("111", 2)).longValue();
-    significand = significand.shiftRight(3);
-    BigInteger plusOne = significand.add(BigInteger.ONE);
+  private BigInteger applyRounding(RoundingMode rm, boolean negative, BigInteger pSignificand) {
+    long grs = pSignificand.and(new BigInteger("111", 2)).longValue();
+    pSignificand = pSignificand.shiftRight(3);
+    BigInteger plusOne = pSignificand.add(BigInteger.ONE);
     return switch (rm) {
-      case NEAREST_AWAY -> (grs >= 4) ? plusOne : significand;
+      case NEAREST_AWAY -> (grs >= 4) ? plusOne : pSignificand;
       case NEAREST_EVEN ->
-          ((grs == 4 && significand.testBit(0)) || grs > 4) ? plusOne : significand;
-      case CEILING -> (grs > 0 && !negative) ? plusOne : significand;
-      case FLOOR -> (grs > 0 && negative) ? plusOne : significand;
-      case TRUNCATE -> significand;
+          ((grs == 4 && pSignificand.testBit(0)) || grs > 4) ? plusOne : pSignificand;
+      case CEILING -> (grs > 0 && !negative) ? plusOne : pSignificand;
+      case FLOOR -> (grs > 0 && negative) ? plusOne : pSignificand;
+      case TRUNCATE -> pSignificand;
     };
   }
 
   // Copy the value with a new exponent
   private MyFloat withExponent(long pExponent) {
     if (pExponent > format.maxExp()) {
-      return value.sign ? negativeInfinity(format) : infinity(format);
+      return sign ? negativeInfinity(format) : infinity(format);
     }
     if (pExponent < format.minExp()) {
       throw new IllegalArgumentException(); // FIXME: Handle subnormal numbers
     }
-    return new MyFloat(format, value.sign, pExponent, value.significand);
+    return new MyFloat(format, sign, pExponent, significand);
   }
 
   // Copy the value with a new sign
   private MyFloat withSign(boolean pSign) {
-    return new MyFloat(format, pSign, value.exponent, value.significand);
+    return new MyFloat(format, pSign, exponent, significand);
   }
 
   // Convert the value to a different precision (uses round to nearest, ties to even for now)
@@ -349,69 +309,69 @@ public class MyFloat {
       return this;
     }
     if (isNan()) {
-      return value.sign ? nan(targetFormat).negate() : nan(targetFormat);
+      return sign ? nan(targetFormat).negate() : nan(targetFormat);
     }
     if (isInfinite()) {
-      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+      return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
     }
     if (isZero()) {
-      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
+      return sign ? negativeZero(targetFormat) : zero(targetFormat);
     }
 
-    long exponent = Math.max(value.exponent, format.minExp());
-    BigInteger significand = value.significand;
+    long exponent_ = Math.max(exponent, format.minExp());
+    BigInteger significand_ = significand;
 
     // Normalization
     // If the number is subnormal shift it upward and adjust the exponent
-    int shift = (format.sigBits + 1) - significand.bitLength();
+    int shift = (format.sigBits + 1) - significand_.bitLength();
     if (shift > 0) {
-      significand = significand.shiftLeft(shift);
-      exponent -= shift;
+      significand_ = significand_.shiftLeft(shift);
+      exponent_ -= shift;
     }
 
     // Return infinity if the exponent is too large for the new encoding
-    if (exponent > targetFormat.maxExp()) {
-      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    if (exponent_ > targetFormat.maxExp()) {
+      return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
     }
     // Return zero if the exponent is below the subnormal range
-    if (exponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
-      return value.sign ? negativeZero(targetFormat) : zero(targetFormat);
+    if (exponent_ < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
+      return sign ? negativeZero(targetFormat) : zero(targetFormat);
     }
 
     // Extend the significand with 3 grs bits
-    significand = significand.shiftLeft(targetFormat.sigBits + 3);
+    significand_ = significand_.shiftLeft(targetFormat.sigBits + 3);
 
     // Use the lowest possible exponent and move the rest into the significand by shifting
     // it to the right.
     int leading = 0;
-    if (exponent < targetFormat.minExp()) {
-      leading = (int) Math.abs(targetFormat.minExp() - exponent);
-      exponent = targetFormat.minExp() - 1;
+    if (exponent_ < targetFormat.minExp()) {
+      leading = (int) Math.abs(targetFormat.minExp() - exponent_);
+      exponent_ = targetFormat.minExp() - 1;
     }
 
     // Truncate the value and round the result
-    significand = truncate(significand, format.sigBits + leading);
-    significand = applyRounding(RoundingMode.NEAREST_EVEN, value.sign, significand);
+    significand_ = truncate(significand_, format.sigBits + leading);
+    significand_ = applyRounding(RoundingMode.NEAREST_EVEN, sign, significand_);
 
     // Normalize if rounding caused an overflow
-    if (significand.testBit(targetFormat.sigBits + 1)) {
-      significand = significand.shiftRight(1); // The last bit is zero
-      exponent += 1;
+    if (significand_.testBit(targetFormat.sigBits + 1)) {
+      significand_ = significand_.shiftRight(1); // The last bit is zero
+      exponent_ += 1;
     }
 
     // Return infinity if this caused the exponent to leave the range
-    if (exponent > targetFormat.maxExp()) {
-      return value.sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    if (exponent_ > targetFormat.maxExp()) {
+      return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
     }
-    return new MyFloat(targetFormat, value.sign, exponent, significand);
+    return new MyFloat(targetFormat, sign, exponent_, significand_);
   }
 
   public MyFloat abs() {
-    return new MyFloat(format, false, value.exponent, value.significand);
+    return new MyFloat(format, false, exponent, significand);
   }
 
   public MyFloat negate() {
-    return new MyFloat(format, new FpValue(!value.sign, value.exponent, value.significand));
+    return new MyFloat(format, !sign, exponent, significand);
   }
 
   public boolean greaterThan(MyFloat number) {
@@ -440,7 +400,7 @@ public class MyFloat {
     // Make sure the first argument has the larger (or equal) exponent
     MyFloat a = number;
     MyFloat b = this;
-    if (value.exponent >= number.value.exponent) {
+    if (exponent >= number.exponent) {
       a = this;
       b = number;
     }
@@ -475,8 +435,8 @@ public class MyFloat {
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
-    long exponent1 = Math.max(a.value.exponent, format.minExp());
-    long exponent2 = Math.max(b.value.exponent, format.minExp());
+    long exponent1 = Math.max(a.exponent, format.minExp());
+    long exponent2 = Math.max(b.exponent, format.minExp());
 
     // Calculate the difference between the exponents. If it is larger than the mantissa size we can
     // skip the add and return immediately.
@@ -486,8 +446,8 @@ public class MyFloat {
     }
 
     // Get the significands and apply the sign
-    BigInteger significand1 = a.value.sign ? a.value.significand.negate() : a.value.significand;
-    BigInteger significand2 = b.value.sign ? b.value.significand.negate() : b.value.significand;
+    BigInteger significand1 = a.sign ? a.significand.negate() : a.significand;
+    BigInteger significand2 = b.sign ? b.significand.negate() : b.significand;
 
     // Expand the significand with (empty) guard, round and sticky bits
     significand1 = significand1.shiftLeft(3);
@@ -551,7 +511,7 @@ public class MyFloat {
     }
 
     // Otherwise return the number
-    return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
+    return new MyFloat(format, sign_, exponent_, significand_);
   }
 
   public MyFloat subtract(MyFloat number) {
@@ -562,7 +522,7 @@ public class MyFloat {
     // Make sure the first argument has the larger (or equal) exponent
     MyFloat a = number;
     MyFloat b = this;
-    if (value.exponent >= number.value.exponent) {
+    if (exponent >= number.exponent) {
       a = this;
       b = number;
     }
@@ -586,12 +546,12 @@ public class MyFloat {
     }
 
     // Calculate the sign of the result
-    boolean sign_ = value.sign ^ number.value.sign;
+    boolean sign_ = sign ^ number.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
-    long exponent1 = Math.max(a.value.exponent, format.minExp());
-    long exponent2 = Math.max(b.value.exponent, format.minExp());
+    long exponent1 = Math.max(a.exponent, format.minExp());
+    long exponent2 = Math.max(b.exponent, format.minExp());
 
     // Calculate the exponent of the result by adding the exponents of the two arguments.
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
@@ -604,8 +564,8 @@ public class MyFloat {
     }
 
     // Multiply the significands
-    BigInteger significand1 = a.value.significand;
-    BigInteger significand2 = b.value.significand;
+    BigInteger significand1 = a.significand;
+    BigInteger significand2 = b.significand;
 
     BigInteger result = significand1.multiply(significand2);
 
@@ -662,7 +622,7 @@ public class MyFloat {
     }
 
     // Otherwise return the number
-    return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
+    return new MyFloat(format, sign_, exponent_, significand_);
   }
 
   // Multiply two numbers and return the exact result (before rounding)
@@ -671,7 +631,7 @@ public class MyFloat {
     // Make sure the first argument has the larger (or equal) exponent
     MyFloat a = number;
     MyFloat b = this;
-    if (value.exponent >= number.value.exponent) {
+    if (exponent >= number.exponent) {
       a = this;
       b = number;
     }
@@ -695,16 +655,15 @@ public class MyFloat {
     }
 
     // We assume both arguments are normal
-    Preconditions.checkArgument(
-        a.value.exponent >= format.minExp() && b.value.exponent >= format.minExp());
+    Preconditions.checkArgument(a.exponent >= format.minExp() && b.exponent >= format.minExp());
 
     // Calculate the sign of the result
-    boolean sign_ = value.sign ^ number.value.sign;
+    boolean sign_ = sign ^ number.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
-    long exponent1 = a.value.exponent;
-    long exponent2 = b.value.exponent;
+    long exponent1 = a.exponent;
+    long exponent2 = b.exponent;
 
     // Calculate the exponent of the result by adding the exponents of the two arguments.
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
@@ -717,8 +676,8 @@ public class MyFloat {
     }
 
     // Multiply the significands
-    BigInteger significand1 = a.value.significand;
-    BigInteger significand2 = b.value.significand;
+    BigInteger significand1 = a.significand;
+    BigInteger significand2 = b.significand;
 
     BigInteger significand_ = significand1.multiply(significand2);
 
@@ -734,8 +693,7 @@ public class MyFloat {
 
     // Otherwise return the number
     return new MyFloat(
-        new Format(format.expBits, significand_.bitLength() - 1),
-        new FpValue(sign_, exponent_, significand_));
+        new Format(format.expBits, significand_.bitLength() - 1), sign_, exponent_, significand_);
   }
 
   private MyFloat squared() {
@@ -785,22 +743,22 @@ public class MyFloat {
   // Newton's method.
   private MyFloat divideSlow(MyFloat number) {
     // Calculate the sign of the result
-    boolean sign_ = value.sign ^ number.value.sign;
+    boolean sign_ = sign ^ number.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
-    long exponent1 = Math.max(value.exponent, format.minExp());
-    long exponent2 = Math.max(number.value.exponent, format.minExp());
+    long exponent1 = Math.max(exponent, format.minExp());
+    long exponent2 = Math.max(number.exponent, format.minExp());
 
     // Normalize both arguments.
-    BigInteger significand1 = value.significand;
+    BigInteger significand1 = significand;
     int shift1 = (format.sigBits + 1) - significand1.bitLength();
     if (shift1 > 0) {
       significand1 = significand1.shiftLeft(shift1);
       exponent1 -= shift1;
     }
 
-    BigInteger significand2 = number.value.significand;
+    BigInteger significand2 = number.significand;
     int shift2 = (format.sigBits + 1) - significand2.bitLength();
     if (shift2 > 0) {
       significand2 = significand2.shiftLeft(shift2);
@@ -862,7 +820,7 @@ public class MyFloat {
     }
 
     // Return the number
-    return new MyFloat(format, new FpValue(sign_, exponent_, significand_));
+    return new MyFloat(format, sign_, exponent_, significand_);
   }
 
   // These constants are needed for division with Newton's approach.
@@ -882,7 +840,7 @@ public class MyFloat {
     MyFloat a = this;
     MyFloat b = number;
 
-    boolean sign = a.isNegative() ^ b.isNegative(); // Sign of the result
+    boolean sign_ = a.isNegative() ^ b.isNegative(); // Sign of the result
 
     // Handle special cases:
     // (1) Either argument is NaN
@@ -893,33 +851,33 @@ public class MyFloat {
     if (a.isZero()) {
       if (b.isZero()) {
         // Divisor is zero or infinite
-        return sign ? nan(format).negate() : nan(format);
+        return sign_ ? nan(format).negate() : nan(format);
       }
-      return sign ? negativeZero(format) : zero(format);
+      return sign_ ? negativeZero(format) : zero(format);
     }
     // (3) Dividend is infinite
     if (a.isInfinite()) {
       if (b.isInfinite()) {
         // Divisor is infinite
-        return sign ? nan(format).negate() : nan(format);
+        return sign_ ? nan(format).negate() : nan(format);
       }
-      return sign ? negativeInfinity(format) : infinity(format);
+      return sign_ ? negativeInfinity(format) : infinity(format);
     }
     // (4) Divisor is zero (and dividend is finite)
     if (b.isZero()) {
-      return sign ? negativeInfinity(format) : infinity(format);
+      return sign_ ? negativeInfinity(format) : infinity(format);
     }
     // (5) Divisor is infinite (and dividend is finite)
     if (b.isInfinite()) {
-      return sign ? negativeZero(format) : zero(format);
+      return sign_ ? negativeZero(format) : zero(format);
     }
 
     // Extract exponents and significand bits
-    int exponent1 = (int) Math.max(a.value.exponent, format.minExp());
-    int exponent2 = (int) Math.max(b.value.exponent, format.minExp());
+    int exponent1 = (int) Math.max(a.exponent, format.minExp());
+    int exponent2 = (int) Math.max(b.exponent, format.minExp());
 
-    BigInteger significand1 = a.value.significand;
-    BigInteger significand2 = b.value.significand;
+    BigInteger significand1 = a.significand;
+    BigInteger significand2 = b.significand;
 
     // Shift numerator and divisor by pulling out common factors in the exponent.
     // This will put the divisor in the range of 0.5 to 1.0
@@ -944,7 +902,7 @@ public class MyFloat {
     MyFloat r = x.multiply(n);
 
     // Set the sign bit and return the result
-    return r.withSign(a.value.sign ^ b.value.sign);
+    return r.withSign(a.sign ^ b.sign);
   }
 
   public MyFloat sqrt() {
@@ -967,19 +925,19 @@ public class MyFloat {
     }
 
     // Get the exponent and the significand
-    long exponent = Math.max(value.exponent, format.minExp());
-    BigInteger significand = value.significand;
+    long exponent_ = Math.max(exponent, format.minExp());
+    BigInteger significand_ = significand;
 
     // Normalize the argument
-    int shift = (format.sigBits + 1) - significand.bitLength();
+    int shift = (format.sigBits + 1) - significand_.bitLength();
     if (shift > 0) {
-      significand = significand.shiftLeft(shift);
-      exponent -= shift;
+      significand_ = significand_.shiftLeft(shift);
+      exponent_ -= shift;
     }
 
     // Range reduction:
     // sqrt(f * 2^2m) = sqrt(f)*2^m
-    MyFloat f = new MyFloat(format, value.sign, exponent % 2, significand);
+    MyFloat f = new MyFloat(format, sign, exponent_ % 2, significand_);
 
     // Define constants
     // TODO: These constants should be declared only once for each supported precision
@@ -1005,7 +963,7 @@ public class MyFloat {
     x = x.multiply(f);
 
     // Restore the exponent by multiplying with 2^m
-    MyFloat r = constant(format, 2).powInt(BigInteger.valueOf(exponent / 2));
+    MyFloat r = constant(format, 2).powInt(BigInteger.valueOf(exponent_ / 2));
     return x.multiply(r);
   }
 
@@ -1018,32 +976,32 @@ public class MyFloat {
     if (isZero() || isNan() || isInfinite()) {
       return this;
     }
-    if (BigInteger.ONE.shiftLeft(format.sigBits).equals(value.significand)) {
+    if (BigInteger.ONE.shiftLeft(format.sigBits).equals(significand)) {
       return this;
     }
-    BigInteger significand = value.significand;
-    boolean last = significand.testBit(0);
+    BigInteger significand_ = significand;
+    boolean last = significand_.testBit(0);
 
     // Search for the pattern
     int trailing = 1;
     do {
-      significand = significand.shiftRight(1);
+      significand_ = significand_.shiftRight(1);
       trailing++;
-    } while (significand.testBit(0) == last);
+    } while (significand_.testBit(0) == last);
 
-    significand = significand.shiftRight(1);
+    significand_ = significand_.shiftRight(1);
     return new MyFloat(
         new Format(format.expBits, trailing > format.sigBits ? 0 : (format.sigBits - trailing)),
-        value.sign,
-        value.exponent,
-        significand);
+        sign,
+        exponent,
+        significand_);
   }
 
   // The minimal distance between two float with the same exponent
   private MyFloat oneUlp() {
-    BigInteger significand = BigInteger.ONE.shiftLeft(format.sigBits);
-    long exponent = value.exponent - format.sigBits;
-    return new MyFloat(format, value.sign, exponent, significand);
+    BigInteger significand_ = BigInteger.ONE.shiftLeft(format.sigBits);
+    long exponent_ = exponent - format.sigBits;
+    return new MyFloat(format, sign, exponent_, significand_);
   }
 
   // Returns the next larger floating point number
@@ -1192,7 +1150,7 @@ public class MyFloat {
     MyFloat r = zero(format); // Series expansion after k terms.
 
     // Range reduction: exp(a * 2^k) = exp(a)^2k
-    if (value.exponent > 0) {
+    if (exponent > 0) {
       x = x.withExponent(0);
     }
 
@@ -1220,7 +1178,7 @@ public class MyFloat {
     }
 
     // Square the result to recover the exponent
-    for (int i = 0; i < value.exponent; i++) {
+    for (int i = 0; i < exponent; i++) {
       r = r.squared();
     }
     return r;
@@ -1310,7 +1268,7 @@ public class MyFloat {
 
   private static MyFloat make_ln2(Format pFormat) {
     MyFloat r = constant(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
-    return r.withExponent(r.value.exponent + 1);
+    return r.withExponent(r.exponent + 1);
   }
 
   private static final MyFloat const_ln2 = make_ln2(Format.Float256);
@@ -1334,7 +1292,7 @@ public class MyFloat {
     MyFloat lna = a.subtract(one(format)).ln1p();
 
     MyFloat ln2 = const_ln2.withPrecision(format);
-    MyFloat nln2 = constant(format, (int) value.exponent + 1).multiply(ln2);
+    MyFloat nln2 = constant(format, (int) exponent + 1).multiply(ln2);
     return lna.add(nln2);
   }
 
@@ -1374,9 +1332,9 @@ public class MyFloat {
     return r;
   }
 
-  public MyFloat pow(MyFloat exponent) {
+  public MyFloat pow(MyFloat pExponent) {
     MyFloat a = this;
-    MyFloat x = exponent;
+    MyFloat x = pExponent;
 
     // Handle special cases
     // See https://en.cppreference.com/w/c/numeric/math/pow for the full definition
@@ -1450,7 +1408,7 @@ public class MyFloat {
       // TODO: Also include a^3/2 in this check?
       return a.sqrt();
     }
-    MyFloat r = a.abs().pow_(exponent);
+    MyFloat r = a.abs().pow_(pExponent);
     if (a.isNegative()) {
       // Fix the sign if `a` was negative and x an integer
       r = r.withSign(x.isOddInteger());
@@ -1497,7 +1455,7 @@ public class MyFloat {
         break;
       }
       a = val.orElseThrow();
-      x = x.withExponent(x.value.exponent + 1);
+      x = x.withExponent(x.exponent + 1);
 
       if (x.isInteger()) {
         done = true;
@@ -1539,7 +1497,7 @@ public class MyFloat {
     return ImmutableList.of(p, p.extended());
   }
 
-  private MyFloat pow_(MyFloat exponent) {
+  private MyFloat pow_(MyFloat pExponent) {
     MyFloat r = nan(format);
     boolean done = false;
 
@@ -1549,7 +1507,7 @@ public class MyFloat {
         Format ext = new Format(p.expBits, p.sigBits - format.sigBits);
 
         MyFloat a = this.withPrecision(p);
-        MyFloat x = exponent.withPrecision(p);
+        MyFloat x = pExponent.withPrecision(p);
 
         // The next call calculates ln with the current precision.
         // TODO: Figure out why this is enough?
@@ -1594,40 +1552,40 @@ public class MyFloat {
       return this.abs();
     }
     // If the exponent is large enough we already have an integer and can return immediately
-    if (value.exponent > format.sigBits) {
+    if (exponent > format.sigBits) {
       return this;
     }
 
     // Get the significand and add grs bits
-    BigInteger significand = value.significand;
-    significand = significand.shiftLeft(3);
+    BigInteger significand_ = significand;
+    significand_ = significand_.shiftLeft(3);
 
     // Shift the fractional part to the right and then round the result
-    significand = truncate(significand, (int) (format.sigBits - value.exponent));
-    significand = applyRounding(rm, value.sign, significand);
+    significand_ = truncate(significand_, (int) (format.sigBits - exponent));
+    significand_ = applyRounding(rm, sign, significand_);
 
     // Recalculate the exponent
-    int exponent = significand.bitLength() - 1;
+    int exponent_ = significand_.bitLength() - 1;
 
     // Normalize the significand if there was an overflow. The last bit is then always zero and can
     // simply be dropped.
-    significand = significand.shiftLeft(format.sigBits - exponent);
+    significand_ = significand_.shiftLeft(format.sigBits - exponent_);
 
     // Check if the result is zero
-    if (significand.equals(BigInteger.ZERO)) {
+    if (significand_.equals(BigInteger.ZERO)) {
       return isNegative() ? negativeZero(format) : zero(format);
     }
     // Check if we need to round to infinity
-    if (exponent > format.maxExp()) {
+    if (exponent_ > format.maxExp()) {
       return isNegative() ? negativeInfinity(format) : infinity(format);
     }
-    return new MyFloat(format, value.sign, exponent, significand);
+    return new MyFloat(format, sign, exponent_, significand_);
   }
 
-  private FpValue fromInteger(BigInteger number) {
+  private static MyFloat fromInteger(Format format, BigInteger number) {
     // Return +0.0 for input 0
     if (number.equals(BigInteger.ZERO)) {
-      return new FpValue(false, 0, BigInteger.ZERO);
+      return new MyFloat(format, false, 0, BigInteger.ZERO);
     }
 
     // Get the sign and calculate the exponent
@@ -1645,21 +1603,21 @@ public class MyFloat {
       significand = significand.add(BigInteger.ONE);
     }
 
-    return new FpValue(sign, exponent, significand);
+    return new MyFloat(format, sign, exponent, significand);
   }
 
   private BigInteger toInteger() {
-    if (value.exponent < -1) {
+    if (exponent < -1) {
       return BigInteger.ZERO;
     }
     // Shift the significand to truncate the fractional part. For large exponents the expression
-    // 'format.sigBits - value.exponent' will become negative, and the shift is to the left, adding
+    // 'format.sigBits - exponent' will become negative, and the shift is to the left, adding
     // additional zeroes.
-    BigInteger significand = value.significand.shiftRight((int) (format.sigBits - value.exponent));
-    if (value.sign) {
-      significand = significand.negate();
+    BigInteger significand_ = significand.shiftRight((int) (format.sigBits - exponent));
+    if (sign) {
+      significand_ = significand_.negate();
     }
-    return significand;
+    return significand_;
   }
 
   // NOTE: toByte, toShort, toInt and toLong depend on undefined behaviour
@@ -1739,8 +1697,7 @@ public class MyFloat {
     if (isInfinite()) {
       return isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
     }
-    return new BigFloat(value.sign, value.significand, value.exponent, BinaryMathContext.BINARY32)
-        .floatValueExact();
+    return new BigFloat(sign, significand, exponent, BinaryMathContext.BINARY32).floatValueExact();
   }
 
   public double toDouble() {
@@ -1750,8 +1707,7 @@ public class MyFloat {
     if (isInfinite()) {
       return isNegative() ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
     }
-    return new BigFloat(value.sign, value.significand, value.exponent, BinaryMathContext.BINARY64)
-        .doubleValueExact();
+    return new BigFloat(sign, significand, exponent, BinaryMathContext.BINARY64).doubleValueExact();
   }
 
   public static MyFloat fromBigFloat(Format p, BigFloat pValue) {
@@ -1778,7 +1734,7 @@ public class MyFloat {
           ? BigFloat.negativeInfinity(context.precision)
           : BigFloat.positiveInfinity(context.precision);
     }
-    return new BigFloat(value.sign, value.significand, value.exponent, context);
+    return new BigFloat(sign, significand, exponent, context);
   }
 
   private static ImmutableList<Format> fromStringExtFormats(Format format) {
@@ -1936,18 +1892,18 @@ public class MyFloat {
     }
 
     // Get the exponent and the significand
-    BigInteger significand = value.significand;
-    long exponent = Math.max(value.exponent, format.minExp());
+    BigInteger significand_ = significand;
+    long exponent_ = Math.max(exponent, format.minExp());
 
     // Normalize the value if it is subnormal
-    int shift = (format.sigBits + 1) - significand.bitLength();
+    int shift = (format.sigBits + 1) - significand_.bitLength();
     if (shift > 0) {
-      significand = significand.shiftLeft(shift);
-      exponent -= shift;
+      significand_ = significand_.shiftLeft(shift);
+      exponent_ -= shift;
     }
 
     // Shift the exponent to make the significand an integer
-    exponent -= format.sigBits;
+    exponent_ -= format.sigBits;
 
     // p is the number of decimal digits needed to recover the original number if the output of
     // toString is read back with fromString
@@ -1959,13 +1915,13 @@ public class MyFloat {
 
     // Build a term for the exponent in decimal representation
     MathContext rm = new MathContext(ext, java.math.RoundingMode.HALF_EVEN);
-    BigDecimal r = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) exponent)));
-    if (exponent < 0) {
+    BigDecimal r = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) exponent_)));
+    if (exponent_ < 0) {
       r = BigDecimal.ONE.divide(r, rm);
     }
 
     // Convert the significand to BigDecimal and multiply with the decimal exponent term
-    BigDecimal a = new BigDecimal(significand);
+    BigDecimal a = new BigDecimal(significand_);
     BigDecimal b = a.multiply(r);
 
     // Round the result down to p significand digits
@@ -1990,17 +1946,16 @@ public class MyFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    String bits = value.significand.toString(2);
+    String bits = significand.toString(2);
     bits = "0".repeat(format.sigBits + 1 - bits.length()) + bits;
-    return "%s%s.%s e%d"
-        .formatted(value.sign ? "-" : "", bits.charAt(0), bits.substring(1), value.exponent);
+    return "%s%s.%s e%d".formatted(sign ? "-" : "", bits.charAt(0), bits.substring(1), exponent);
   }
 
   long extractExpBits() {
-    return value.exponent + format.bias();
+    return exponent + format.bias();
   }
 
   BigInteger extractSigBits() {
-    return value.significand;
+    return significand;
   }
 }
