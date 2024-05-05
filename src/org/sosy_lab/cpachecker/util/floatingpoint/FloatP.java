@@ -671,7 +671,7 @@ public class FloatP {
   /**
    * Multiply two numbers and return the exact result.
    *
-   * <p>This variant of {@ling FloatP#multiply} skips the rounding steps at the end and returns
+   * <p>This variant of {@link FloatP#multiply} skips the rounding steps at the end and returns
    * directly. The result may have between p and 2p+1 bits.
    */
   private FloatP multiplyExact(FloatP number) {
