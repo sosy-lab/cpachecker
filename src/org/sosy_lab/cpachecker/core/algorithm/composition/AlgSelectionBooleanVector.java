@@ -35,13 +35,7 @@ class AlgSelectionBooleanVector {
 
     @Override
     public String toString() {
-        return "AlgSelectionBooleanVector{" +
-            "hasAliasing=" + hasAliasing +
-            ", hasArray=" + hasArray +
-            ", hasComposite=" + hasComposite +
-            ", hasFloat=" + hasFloat +
-            ", hasLoop=" + hasLoop +
-            ", hasSingleLoop=" + hasSingleLoop +
-            '}';
+        return hasAliasing + " " + hasArray + " " + hasComposite + " " + hasFloat + " "
+            + hasLoop + " " + hasSingleLoop ;
     }
 }
