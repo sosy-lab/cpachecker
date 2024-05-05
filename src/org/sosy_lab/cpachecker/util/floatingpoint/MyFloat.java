@@ -45,6 +45,12 @@ public class MyFloat {
     private final Integer sigBits;
 
     public Format(int pExpBits, int pSigBits) {
+      // Check that the arguments are valid. We expect the format to be at least as big as Float8.
+      Preconditions.checkArgument(
+          pExpBits >= 0 && pExpBits <= 64, "Exponent field must be between 0 and 64 bits wide.");
+      Preconditions.checkArgument(
+          pSigBits >= 0, "Significand field must not have negative bit width.");
+
       expBits = pExpBits;
       sigBits = pSigBits;
     }
