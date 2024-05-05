@@ -121,7 +121,7 @@ public class AlgorithmContext {
       }
       val = val.toLowerCase(Locale.ROOT);
       return REPETITIONMODE.fromString(val);
-    }).orElseThrow();
+    }).orElse(REPETITIONMODE.NOREUSE);
   }
 
   public boolean reuseCPA() {
