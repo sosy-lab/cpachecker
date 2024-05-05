@@ -163,6 +163,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -954,6 +955,9 @@ compositionAlgorithm.propertyChecked = true
 # Qualified name for class which implements strategy that decides how to
 # compose given analyses
 compositionAlgorithm.strategy = no default value
+
+# Enable when time selection algorithm is used
+compositionAlgorithm.useTimeSelection = true
 
 # let each analysis part of the composition algorithm write output files and
 # not only the last one that is executed
