@@ -122,9 +122,7 @@ public class FloatP {
       return rawExp - bias();
     }
 
-    /**
-     * Returns the next bigger format meant to be used for intermediate results.
-     */
+    /** Returns the next bigger format meant to be used for intermediate results. */
     public Format extended() {
       // TODO: Add support for arbitrary sizes
       if (equals(Format.Float8)) {
