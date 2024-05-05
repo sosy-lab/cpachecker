@@ -59,3 +59,8 @@ as supported by the `reuse` tool.
 
 - `z3`: [SMT Solver Z3](https://github.com/Z3Prover/z3)
   The command-line binary is necessary because Ultimate LassoRanker calls it.
+
+- `mpfr_java.jar`
+  and `libmpfr_java.so`: [MPFR Java Bindings](https://github.com/runtimeverification/mpfr-java/)
+  Java bindings for the [MPFR](https://www.mpfr.org/), a C library for multiple-precision
+  floating-point computations with correct rounding.
