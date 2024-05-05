@@ -101,6 +101,13 @@ public class FloatP {
       return Objects.hash(expBits, sigBits);
     }
 
+    /**
+     * The exponent 'bias' of a FloatP value in this format.
+     *
+     * <p>Useful when converting to the IEEE representation of the value where an unsigned integer
+     * is used to represent the exponent. Adding the bias converts to IEEE, subtracting it returns
+     * the value to our representation.
+     */
     public long bias() {
       return (1L << (expBits - 1)) - 1;
     }
@@ -138,6 +145,12 @@ public class FloatP {
       return new Format(Float256.expBits, 2 * sigBits + 1);
     }
 
+    /**
+     * Least upper bound of the two formats.
+     *
+     * <p>Used when implementing binary operations on FloatP values, where a common format large
+     * enough for both arguments needs to be found.
+     */
     public Format sup(Format other) {
       int newExp = Math.max(expBits, other.expBits);
       int newSig = Math.max(sigBits, other.sigBits);
@@ -198,10 +211,17 @@ public class FloatP {
     return new FloatP(pFormat, false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
+  /** Smallest normal value that can be represented in this format. */
   public static FloatP minNormal(Format pFormat) {
     return new FloatP(pFormat, false, pFormat.minExp(), BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
+  /**
+   * Smallest absolute value (other than zero) that can be represented in this format.
+   *
+   * <p>Note that this value will be sub-normal. To get the smallest normal value use {@link
+   * FloatP#minNormal} instead.
+   */
   public static FloatP minValue(Format pFormat) {
     return new FloatP(pFormat, false, pFormat.minExp() - 1, BigInteger.ONE);
   }
@@ -230,6 +250,7 @@ public class FloatP {
     return (exponent == format.maxExp() + 1) && significand.equals(BigInteger.ZERO);
   }
 
+  /** True if the value is equal to zero (or negative zero). */
   public boolean isZero() {
     return (exponent == format.minExp() - 1) && significand.equals(BigInteger.ZERO);
   }
@@ -273,7 +294,7 @@ public class FloatP {
     return Objects.hash(format, sign, exponent, significand);
   }
 
-  // Shift the significand to the right while preserving the sticky bit
+  /** Shift the significand to the right while preserving the sticky bit. */
   private static BigInteger truncate(BigInteger pSignificand, int bits) {
     BigInteger mask = BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE);
     BigInteger r = pSignificand.and(mask);
@@ -289,8 +310,9 @@ public class FloatP {
     TRUNCATE // Round toward 0
   }
 
-  // Round the significand
-  // For internal use only. We expect the significand to be followed by 3 grs bits
+  /* Round the significand.<p>
+   * We expect the significand to be followed by 3 grs bits.
+   */
   private BigInteger applyRounding(RoundingMode rm, boolean negative, BigInteger pSignificand) {
     long grs = pSignificand.and(new BigInteger("111", 2)).longValue();
     pSignificand = pSignificand.shiftRight(3);
@@ -305,7 +327,7 @@ public class FloatP {
     };
   }
 
-  // Copy the value with a new exponent
+  /** Clone the value with a new exponent. */
   private FloatP withExponent(long pExponent) {
     if (pExponent > format.maxExp()) {
       return sign ? negativeInfinity(format) : infinity(format);
@@ -316,12 +338,15 @@ public class FloatP {
     return new FloatP(format, sign, pExponent, significand);
   }
 
-  // Copy the value with a new sign
+  /** Clone the value with a new sign. */
   private FloatP withSign(boolean pSign) {
     return new FloatP(format, pSign, exponent, significand);
   }
 
-  // Convert the value to a different precision (uses round to nearest, ties to even for now)
+  /**
+   * Convert the value to a different precision. Uses "round to nearest, ties to even" for rounding
+   * when the value can not be represented exactly in the new format.
+   */
   public FloatP withPrecision(Format targetFormat) {
     if (format.equals(targetFormat)) {
       return this;
@@ -643,8 +668,12 @@ public class FloatP {
     return new FloatP(format, sign_, exponent_, significand_);
   }
 
-  // Multiply two numbers and return the exact result (before rounding)
-  // The result may have between p and 2p+1 bits
+  /**
+   * Multiply two numbers and return the exact result.
+   *
+   * <p>This variant of {@ling FloatP#multiply} skips the rounding steps at the end and returns
+   * directly. The result may have between p and 2p+1 bits.
+   */
   private FloatP multiplyExact(FloatP number) {
     // Make sure the first argument has the larger (or equal) exponent
     FloatP a = number;
@@ -720,6 +749,7 @@ public class FloatP {
 
   private final Map<BigInteger, FloatP> powMap = new HashMap<>();
 
+  /** Calculate the power function a^x where x is an integer. */
   public FloatP powInt(BigInteger exp) {
     return withPrecision(format.extended()).powInt_(exp).withPrecision(format);
   }
@@ -756,9 +786,11 @@ public class FloatP {
     return a.divide_(b).withPrecision(format);
   }
 
-  // This version of divide is slower and does not check for corner cases. It is still needed to
-  // calculate the constants that are needed for the other, faster version of divide that uses
-  // Newton's method.
+  /* Divide the value by another number.
+   * This version of divide is slower and does not check for corner cases. It is still needed to
+   * calculate the constants that are needed for the other, faster version of divide that uses
+   * Newton's method.
+   */
   private FloatP divideSlow(FloatP number) {
     // Calculate the sign of the result
     boolean sign_ = sign ^ number.sign;
@@ -1014,29 +1046,34 @@ public class FloatP {
         significand_);
   }
 
-  // The minimal distance between two float with the same exponent
+  /** The minimal distance between two floating point values with the same exponent. */
   private FloatP oneUlp() {
     BigInteger significand_ = BigInteger.ONE.shiftLeft(format.sigBits);
     long exponent_ = exponent - format.sigBits;
     return new FloatP(format, sign, exponent_, significand_);
   }
 
-  // Returns the next larger floating point number
+  /** Returns the next larger floating point number. */
   private FloatP plus1Ulp() {
     return add(oneUlp());
   }
 
-  // Returns the floating point number immediately below this number
+  /** Returns the floating point number immediately below this number. */
   private FloatP minus1Ulp() {
     return add(oneUlp().negate());
   }
 
-  // Compare two m-float numbers for equality when rounded to lower precision p
+  /** Compare two floating point numbers for equality when rounded to a lower precision p. * */
   private static boolean equalModuloP(Format format, FloatP a, FloatP b) {
     return a.withPrecision(format).equals(b.withPrecision(format));
   }
 
-  // Check if an m-float number is stable in precision p
+  /**
+   * Check if a floating point number is stable in precision p.
+   *
+   * <p>Needed as part of the "rounding test": we have to make sure that the number is not too close
+   * to a break point before rounding.
+   */
   private boolean isStable(FloatP r) {
     if (r.format.sigBits == 0) {
       return false;
@@ -1047,6 +1084,16 @@ public class FloatP {
   // Statistics for exp(...)
   static final Map<Integer, Integer> expStats = new HashMap<>();
 
+  /**
+   * Returns a list of formats for the calculation of exp(x).
+   *
+   * <p>For transcendental functions like exp(x) the calculation has to be repeated with increasing
+   * precision until enough (valid) digits are available to round the value correctly. This method
+   * returns a list of intermediate formats with increasing precision that was specially optimized
+   * for the precision of the input. The idea is that we only have to try 2-3 different precisions
+   * before the right one is found, which is much more efficient than increasing the precision one
+   * bit at a time.
+   */
   private ImmutableList<Format> expExtFormats() {
     if (format.equals(Format.Float8)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
@@ -1443,7 +1490,7 @@ public class FloatP {
     return r;
   }
 
-  // Check if the argument is a square number and, if so, return the root
+  /** Check if the argument is a square number and, if so, return its square root. */
   private Optional<FloatP> sqrtExact() {
     FloatP a = this;
     FloatP r = a.sqrt();
@@ -1455,7 +1502,7 @@ public class FloatP {
     return y.isZero() ? Optional.of(r) : Optional.empty();
   }
 
-  // Handle cases in pow where a^x is a floating point number or a breakpoint
+  /** Handle cases in pow where a^x is a floating point number or a breakpoint. */
   private FloatP powExact(FloatP exp) {
     Format p = new Format(Format.Float256.expBits, format.sigBits);
     FloatP a = this.withPrecision(p);
@@ -1813,7 +1860,46 @@ public class FloatP {
   // Statistics for fromString(...)
   static final Map<Integer, Integer> fromStringStats = new HashMap<>();
 
-  private static FloatP buildValue(Format p, boolean sign, String digits, long exponent) {
+  public static FloatP fromString(Format p, String input) {
+    // TODO: Add error handling for broken inputs.
+    if ("inf".equals(input)) {
+      return infinity(p);
+    }
+    if ("-inf".equals(input)) {
+      return negativeInfinity(p);
+    }
+    if ("nan".equals(input)) {
+      return nan(p);
+    }
+
+    // Split off the exponent part (if there is one)
+    int sep = Math.max(input.indexOf('e'), input.indexOf('E'));
+    String digits = sep > -1 ? input.substring(0, sep) : input;
+    String exponent = sep > -1 ? input.substring(sep + 1) : "0";
+
+    boolean sign = false;
+
+    // Determine the sign
+    char pre = digits.charAt(0);
+    if (!Character.isDigit(pre)) {
+      Preconditions.checkArgument(pre == '+' || pre == '-');
+      digits = digits.substring(1);
+      sign = pre == '-';
+    }
+
+    int expValue = Integer.parseInt(exponent);
+
+    // Get the fractional part of the number (and add ".0" if it has none)
+    int radix = digits.indexOf('.');
+    if (radix == -1) {
+      radix = digits.length();
+      digits = digits + ".0";
+    }
+
+    // Normalize the mantissa, then fix the exponent
+    expValue = (radix - 1) + expValue;
+    digits = digits.substring(0, radix) + digits.substring(radix + 1);
+
     BigInteger mantissa = new BigInteger(digits);
     if (mantissa.equals(BigInteger.ZERO)) {
       return sign ? negativeZero(p) : zero(p);
@@ -1828,7 +1914,7 @@ public class FloatP {
 
         FloatP f = constant(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
         FloatP e =
-            constant(ext, 10).powInt(BigInteger.valueOf(exponent - (digits.length() - 1) - diff));
+            constant(ext, 10).powInt(BigInteger.valueOf(expValue - (digits.length() - 1) - diff));
 
         FloatP val1 = f.plus1Ulp().multiply(e);
         FloatP val2 = f.minus1Ulp().multiply(e);
@@ -1845,53 +1931,17 @@ public class FloatP {
     return r.withPrecision(p);
   }
 
-  public static FloatP fromString(Format p, String input) {
-    // TODO: Add error handling for broken inputs.
-    if ("inf".equals(input)) {
-      return infinity(p);
-    }
-    if ("-inf".equals(input)) {
-      return negativeInfinity(p);
-    }
-    if ("nan".equals(input)) {
-      return nan(p);
-    }
-
-    // Split off the exponent part (if there is one)
-    int sep = Math.max(input.indexOf('e'), input.indexOf('E'));
-    String mantissa = sep > -1 ? input.substring(0, sep) : input;
-    String exponent = sep > -1 ? input.substring(sep + 1) : "0";
-
-    boolean sign = false;
-
-    // Determine the sign
-    char pre = mantissa.charAt(0);
-    if (!Character.isDigit(pre)) {
-      Preconditions.checkArgument(pre == '+' || pre == '-');
-      mantissa = mantissa.substring(1);
-      sign = pre == '-';
-    }
-
-    int expValue = Integer.parseInt(exponent);
-
-    // Get the fractional part of the number (and add ".0" if it has none)
-    int radix = mantissa.indexOf('.');
-    if (radix == -1) {
-      radix = mantissa.length();
-      mantissa = mantissa + ".0";
-    }
-
-    // Normalize the mantissa, then fix the exponent
-    expValue = (radix - 1) + expValue;
-    mantissa = mantissa.substring(0, radix) + mantissa.substring(radix + 1);
-
-    return buildValue(p, sign, mantissa, expValue);
-  }
-
-  // We borrow this definition from MPFR:
-  // "Return the minimal integer m such that any number of p bits, when output with m digits
-  //  in radix b with rounding to nearest, can be recovered exactly when read again, still with
-  //  rounding to nearest."
+  /**
+   * The number of digits needed to represent this value as a string.
+   *
+   * <p>We borrow the definition from MPFR:
+   *
+   * <pre>
+   * "Return the minimal integer m such that any number of p bits, when output with m digits
+   *  in radix b with rounding to nearest, can be recovered exactly when read again, still
+   *  with rounding to nearest."
+   *  </pre>
+   */
   private int neededDigits() {
     return 1 + (int) Math.ceil((format.sigBits + 1) * Math.log(2) / Math.log(10));
   }
@@ -1953,6 +2003,7 @@ public class FloatP {
     return isNegative() ? "-" + repr : repr;
   }
 
+  /** Print the number in base2 representation. */
   public String toBinaryString() {
     if (isNan()) {
       return "nan";
