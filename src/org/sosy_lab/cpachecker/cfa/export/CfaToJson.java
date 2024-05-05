@@ -10,9 +10,13 @@ package org.sosy_lab.cpachecker.cfa.export;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.io.MoreFiles;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,9 +33,11 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 
-/*
- * Enables the export of CFA metadata and information about the main function entry node.
- * The export format is JSON and the target is a cfa.json file.
+/**
+ * Enables the export of all CFA {@link FunctionEntryNode}s, {@link CFANode}s, {@link CFAEdge}s and
+ * relevant Metadata.
+ *
+ * <p>The export format is JSON.
  */
 public class CfaToJson {
   private final Set<CFANode> nodes;
@@ -40,9 +46,10 @@ public class CfaToJson {
   public CfaToJson(CFA pCfa) {
     CFA cfa = checkNotNull(pCfa);
 
-    // Collect all nodes and edges by traversing the cfa
+    /** Collect all nodes and edges by traversing the CFA. */
     NodeCollectingCFAVisitor nodeVisitor = new NodeCollectingCFAVisitor();
     EdgeCollectingCFAVisitor edgeVisitor = new EdgeCollectingCFAVisitor();
+
     CFAVisitor visitor =
         new NodeCollectingCFAVisitor(new CompositeCFAVisitor(nodeVisitor, edgeVisitor));
 
@@ -54,15 +61,22 @@ public class CfaToJson {
     edges = edgeVisitor.getVisitedEdges();
   }
 
-  /** output the CFA as JSON file */
+  /**
+   * Write the {@link CFA} to file.
+   *
+   * @param pOutdir Directory to which the JSON file is to be written.
+   * @throws IOException If an error with {@link FileOutputStream} or {@link JsonGenerator} occurs.
+   */
   public void write(Path pOutdir) throws IOException {
-    // ObjectMapper objectMapper = new ObjectMapper();
-    // objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-    // objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
+    ObjectMapper objectMapper = new ObjectMapper();
+    /** Only map fields of objects. */
+    objectMapper.setVisibility(PropertyAccessor.ALL, Visibility.NONE);
+    objectMapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
+    /** Enable JSON serialization with indentation and newlines. */
+    objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+
     JsonFactory jsonFactory = new JsonFactory();
 
-    // for (FunctionEntryNode entryNode : cfa.entryNodes()) {
-    // .resolve("functions").resolve(entryNode.getFunctionName() + ".json");
     Path jsonFilePath = pOutdir.resolve("cfa.json");
     MoreFiles.createParentDirectories(jsonFilePath);
 
@@ -70,54 +84,27 @@ public class CfaToJson {
         JsonGenerator jsonGenerator =
             jsonFactory.createGenerator(fileOutputStream, JsonEncoding.UTF8); ) {
 
-      // Nodes
       jsonGenerator.writeStartObject();
-      jsonGenerator.writeNumberField("nodeCount", nodes.size());
+
+      /** Write all Nodes. */
       jsonGenerator.writeFieldName("nodes");
       jsonGenerator.writeStartArray();
       for (CFANode node : nodes) {
-        jsonGenerator.writeNumber(node.getNodeNumber());
+        objectMapper.writeValue(jsonGenerator, node);
       }
       jsonGenerator.writeEndArray();
-      jsonGenerator.writeEndObject();
 
-      // Edges
-      jsonGenerator.writeStartObject();
-      jsonGenerator.writeNumberField("edgeCount", edges.size());
+      /** Write all Edges. */
       jsonGenerator.writeFieldName("edges");
       jsonGenerator.writeStartArray();
       for (CFAEdge edge : edges) {
-        jsonGenerator.writeNumber(edge.getLineNumber());
+        objectMapper.writeValue(jsonGenerator, edge);
       }
       jsonGenerator.writeEndArray();
+
       jsonGenerator.writeEndObject();
     }
   }
-
-  //  private static class CFAVisitorJSON extends DefaultCFAVisitor {
-  //    private final Set<CFANode> nodes = new HashSet<>();
-  //    private final Set<CFAEdge> edges = new HashSet<>();
-  //
-  //    @Override
-  //    public TraversalProcess visitNode(CFANode node) {
-  //      nodes.add(node);
-  //
-  //      return TraversalProcess.CONTINUE;
-  //    }
-  //
-  //    @Override
-  //    public TraversalProcess visitEdge(CFAEdge edge) {
-  //      edges.add(edge);
-  //
-  //      return TraversalProcess.CONTINUE;
-  //    }
-  //
-  //    Set<CFANode> getNodes() {
-  //      return nodes;
-  //    }
-  //
-  //    Set<CFAEdge> getEdges() {
-  //      return edges;
-  //    }
-  //  }
 }
+    // TODO for (FunctionEntryNode entryNode : cfa.entryNodes()) {
+    // .resolve("functions").resolve(entryNode.getFunctionName() + ".json");
