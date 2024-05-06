@@ -56,19 +56,13 @@ public class FloatP {
    * <p>The precision of a FloatP is equivalent to the length of its significand. Here the 'hidden
    * bit' is not counted. The exponent range can be derived from the width of the exponent field.
    */
-  public static class Format {
-    private final int expBits;
-    private final int sigBits;
-
-    public Format(int pExpBits, int pSigBits) {
+  public record Format(int expBits, int sigBits) {
+    public Format {
       // Check that the arguments are valid. We expect the format to be at least as big as Float8.
       Preconditions.checkArgument(
-          pExpBits >= 0 && pExpBits <= 64, "Exponent field must be between 0 and 64 bits wide.");
+          expBits >= 0 && expBits <= 64, "Exponent field must be between 0 and 64 bits wide.");
       Preconditions.checkArgument(
-          pSigBits >= 0, "Significand field must not have negative bit width.");
-
-      expBits = pExpBits;
-      sigBits = pSigBits;
+          sigBits >= 0, "Significand field must not have negative bit width.");
     }
 
     public static final Format Float8 = new Format(4, 3);
@@ -77,27 +71,6 @@ public class FloatP {
     public static final Format Float64 = new Format(11, 52);
     public static final Format Float128 = new Format(15, 112);
     public static final Format Float256 = new Format(19, 236);
-
-    public int getExpBits() {
-      return expBits;
-    }
-
-    public int getSigBits() {
-      return sigBits;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (this == other) {
-        return true;
-      }
-      return other instanceof Format that && expBits == that.expBits && sigBits == that.sigBits;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(expBits, sigBits);
-    }
 
     /**
      * The exponent 'bias' of a FloatP value in this format.

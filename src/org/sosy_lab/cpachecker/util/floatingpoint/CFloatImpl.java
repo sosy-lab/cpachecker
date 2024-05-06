@@ -79,7 +79,7 @@ public class CFloatImpl extends CFloat {
 
   private FloatP toMyFloat(CFloatWrapper floatWrapper, CNativeType pType) {
     Format format = toFormat(pType);
-    long signMask = 1L << format.getExpBits();
+    long signMask = 1L << format.expBits();
     long exponentMask = signMask - 1;
 
     // Extract bits for sign, exponent and mantissa from the wrapper
@@ -95,7 +95,7 @@ public class CFloatImpl extends CFloat {
     // Check if the value is "normal" (= not 0, Inf or NaN) and add the missing 1 to the mantissa.
     if (pType != CNativeType.LONG_DOUBLE) { // Extended precision has no hidden bit
       if (exponentBits != 0 && exponentBits != exponentMask) {
-        BigInteger leadingOne = BigInteger.ONE.shiftLeft(format.getSigBits());
+        BigInteger leadingOne = BigInteger.ONE.shiftLeft(format.sigBits());
         mantissa = mantissa.add(leadingOne);
       }
     }
