@@ -46,10 +46,9 @@ class AlgSelectionBooleanVector {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof AlgSelectionBooleanVector)) {
+    if (!(obj instanceof AlgSelectionBooleanVector that)) {
       return false;
     }
-    AlgSelectionBooleanVector that = (AlgSelectionBooleanVector) obj;
     return hasAliasing == that.hasAliasing
         && hasArray == that.hasArray
         && hasComposite == that.hasComposite
