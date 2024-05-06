@@ -60,7 +60,7 @@ public class ExportAssumeEdges implements Algorithm {
                 assume ->
                     assume.getLineNumber()
                         + ": "
-                        + assume.getExpression().toParenthesizedASTString(false))
+                        + assume.getExpression().toParenthesizedASTString())
             .toSet();
     try {
       if (outputPath != null) {
