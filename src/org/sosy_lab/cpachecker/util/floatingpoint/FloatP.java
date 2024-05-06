@@ -330,52 +330,52 @@ public class FloatP {
       return sign ? negativeZero(targetFormat) : zero(targetFormat);
     }
 
-    long exponent_ = Math.max(exponent, format.minExp());
-    BigInteger significand_ = significand;
+    long resultExponent = Math.max(exponent, format.minExp());
+    BigInteger resultSignificand = significand;
 
     // Normalization
     // If the number is subnormal shift it upward and adjust the exponent
-    int shift = (format.sigBits + 1) - significand_.bitLength();
+    int shift = (format.sigBits + 1) - resultSignificand.bitLength();
     if (shift > 0) {
-      significand_ = significand_.shiftLeft(shift);
-      exponent_ -= shift;
+      resultSignificand = resultSignificand.shiftLeft(shift);
+      resultExponent -= shift;
     }
 
     // Return infinity if the exponent is too large for the new encoding
-    if (exponent_ > targetFormat.maxExp()) {
+    if (resultExponent > targetFormat.maxExp()) {
       return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
     }
     // Return zero if the exponent is below the subnormal range
-    if (exponent_ < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
+    if (resultExponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
       return sign ? negativeZero(targetFormat) : zero(targetFormat);
     }
 
     // Extend the significand with 3 grs bits
-    significand_ = significand_.shiftLeft(targetFormat.sigBits + 3);
+    resultSignificand = resultSignificand.shiftLeft(targetFormat.sigBits + 3);
 
     // Use the lowest possible exponent and move the rest into the significand by shifting
     // it to the right.
     int leading = 0;
-    if (exponent_ < targetFormat.minExp()) {
-      leading = (int) Math.abs(targetFormat.minExp() - exponent_);
-      exponent_ = targetFormat.minExp() - 1;
+    if (resultExponent < targetFormat.minExp()) {
+      leading = (int) Math.abs(targetFormat.minExp() - resultExponent);
+      resultExponent = targetFormat.minExp() - 1;
     }
 
     // Truncate the value and round the result
-    significand_ = truncate(significand_, format.sigBits + leading);
-    significand_ = applyRounding(RoundingMode.NEAREST_EVEN, sign, significand_);
+    resultSignificand = truncate(resultSignificand, format.sigBits + leading);
+    resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, sign, resultSignificand);
 
     // Normalize if rounding caused an overflow
-    if (significand_.testBit(targetFormat.sigBits + 1)) {
-      significand_ = significand_.shiftRight(1); // The last bit is zero
-      exponent_ += 1;
+    if (resultSignificand.testBit(targetFormat.sigBits + 1)) {
+      resultSignificand = resultSignificand.shiftRight(1); // The last bit is zero
+      resultExponent += 1;
     }
 
     // Return infinity if this caused the exponent to leave the range
-    if (exponent_ > targetFormat.maxExp()) {
+    if (resultExponent > targetFormat.maxExp()) {
       return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
     }
-    return new FloatP(targetFormat, sign, exponent_, significand_);
+    return new FloatP(targetFormat, sign, resultExponent, resultSignificand);
   }
 
   public FloatP abs() {
@@ -472,58 +472,58 @@ public class FloatP {
     BigInteger result = significand1.add(significand2);
 
     // Extract the sign and value of the significand from the result
-    boolean sign_ = result.signum() < 0;
-    BigInteger significand_ = result.abs();
+    boolean resultSign = result.signum() < 0;
+    BigInteger resultSignificand = result.abs();
 
     // The result has the same exponent as the larger of the two arguments
-    long exponent_ = exponent1;
+    long resultExponent = exponent1;
 
     // Normalize
     // (1) Significand is too large: shift to the right by one bit
     //     This can happen if two numbers with equal exponent are added:
     //     f.ex 1.0e3 + 1.0e3 = 10.0e3
     //     (here we normalize the result to 1.0e4)
-    if (significand_.testBit(format.sigBits + 4)) {
-      significand_ = truncate(significand_, 1);
-      exponent_ += 1;
+    if (resultSignificand.testBit(format.sigBits + 4)) {
+      resultSignificand = truncate(resultSignificand, 1);
+      resultExponent += 1;
     }
 
     // (2) Significand is too small: shift left unless the number is subnormal
     //     This can happen if digits have canceled out:
     //     f.ex 1.01001e2 + (-1.01e2) = 0.00001e2
     //     (here we normalize to 1.0e-3)
-    int leading = (format.sigBits + 4) - significand_.bitLength();
-    int maxValue = (int) (exponent_ - format.minExp()); // format.minExp() <= exponent
+    int leading = (format.sigBits + 4) - resultSignificand.bitLength();
+    int maxValue = (int) (resultExponent - format.minExp()); // format.minExp() <= exponent
     if (leading > maxValue) {
       // If the exponent would get too small only shift to the left until the minimal exponent is
       // reached and return a subnormal number.
-      significand_ = significand_.shiftLeft(maxValue);
-      exponent_ = format.minExp() - 1;
+      resultSignificand = resultSignificand.shiftLeft(maxValue);
+      resultExponent = format.minExp() - 1;
     } else {
-      significand_ = significand_.shiftLeft(leading);
-      exponent_ -= leading;
+      resultSignificand = resultSignificand.shiftLeft(leading);
+      resultExponent -= leading;
     }
 
     // Round the result according to the grs bits
-    significand_ = applyRounding(RoundingMode.NEAREST_EVEN, sign_, significand_);
+    resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
 
     // Shift the significand to the right if rounding has caused an overflow
-    if (significand_.bitLength() > format.sigBits + 1) {
-      significand_ = significand_.shiftRight(1); // The dropped bit is zero
-      exponent_ += 1;
+    if (resultSignificand.bitLength() > format.sigBits + 1) {
+      resultSignificand = resultSignificand.shiftRight(1); // The dropped bit is zero
+      resultExponent += 1;
     }
 
     // Check if the result is zero
-    if (significand_.equals(BigInteger.ZERO)) {
-      return sign_ ? negativeZero(format) : zero(format);
+    if (resultSignificand.equals(BigInteger.ZERO)) {
+      return resultSign ? negativeZero(format) : zero(format);
     }
     // Return infinity if there is an overflow.
-    if (exponent_ > format.bias()) {
-      return sign_ ? negativeInfinity(format) : infinity(format);
+    if (resultExponent > format.bias()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
     // Otherwise return the number
-    return new FloatP(format, sign_, exponent_, significand_);
+    return new FloatP(format, resultSign, resultExponent, resultSignificand);
   }
 
   public FloatP subtract(FloatP number) {
@@ -558,7 +558,7 @@ public class FloatP {
     }
 
     // Calculate the sign of the result
-    boolean sign_ = sign ^ number.sign;
+    boolean resultSign = sign ^ number.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
@@ -567,12 +567,12 @@ public class FloatP {
 
     // Calculate the exponent of the result by adding the exponents of the two arguments.
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
-    long exponent_ = exponent1 + exponent2;
-    if (exponent_ > format.maxExp()) {
-      return sign_ ? negativeInfinity(format) : infinity(format);
+    long resultExponent = exponent1 + exponent2;
+    if (resultExponent > format.maxExp()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
-    if (exponent_ < format.minExp() - format.sigBits - 2) {
-      return sign_ ? negativeZero(format) : zero(format);
+    if (resultExponent < format.minExp() - format.sigBits - 2) {
+      return resultSign ? negativeZero(format) : zero(format);
     }
 
     // Multiply the significands
@@ -582,34 +582,34 @@ public class FloatP {
     BigInteger result = significand1.multiply(significand2);
 
     // Add guard, round and sticky bits
-    BigInteger significand_ = result.shiftLeft(3);
+    BigInteger resultSignificand = result.shiftLeft(3);
 
     // Normalize
     // (1) Significand is too large: shift to the right by one bit
     //     This can happen if two numbers with significand greater 1 are multiplied:
     //     f.ex 1.1e3 x 1.1e1 = 10.01e4
     //     (here we normalize the result to 1.001e5)
-    if (significand_.testBit(2 * format.sigBits + 4)) {
-      significand_ = significand_.shiftRight(1);
-      exponent_ += 1;
+    if (resultSignificand.testBit(2 * format.sigBits + 4)) {
+      resultSignificand = resultSignificand.shiftRight(1);
+      resultExponent += 1;
     }
 
     // (2) Significand is too small: shift left unless the number is subnormal
     //     This can happen if one of the numbers was subnormal:
     //     f.ex 1.0e3 x 0.1e-1 = 0.10e2
     //     (here we normalize to 1.0e1)
-    int shift = (2 * format.sigBits + 4) - significand_.bitLength();
+    int shift = (2 * format.sigBits + 4) - resultSignificand.bitLength();
     if (shift > 0) {
-      significand_ = significand_.shiftLeft(shift);
-      exponent_ -= shift;
+      resultSignificand = resultSignificand.shiftLeft(shift);
+      resultExponent -= shift;
     }
 
     // Otherwise use the lowest possible exponent and move the rest into the significand by shifting
     // it to the right. Here we calculate haw many digits we need to shift:
     int leading = 0;
-    if (exponent_ < format.minExp()) {
-      leading = (int) Math.abs(format.minExp() - exponent_);
-      exponent_ = format.minExp() - 1;
+    if (resultExponent < format.minExp()) {
+      leading = (int) Math.abs(format.minExp() - resultExponent);
+      resultExponent = format.minExp() - 1;
     }
 
     // Truncate the value:
@@ -617,24 +617,24 @@ public class FloatP {
     // at the end. We need to shift by at least |precision of the significand| bits.
     // If one of the factors was subnormal the results may have leading zeroes as well, and we need
     // to shift further by 'leading' bits.
-    significand_ = truncate(significand_, format.sigBits + leading);
+    resultSignificand = truncate(resultSignificand, format.sigBits + leading);
 
     // Round the result
-    significand_ = applyRounding(RoundingMode.NEAREST_EVEN, sign_, significand_);
+    resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
 
     // Shift the significand to the right if rounding has caused an overflow
-    if (significand_.bitLength() > format.sigBits + 1) {
-      significand_ = significand_.shiftRight(1); // The dropped bit is zero
-      exponent_ += 1;
+    if (resultSignificand.bitLength() > format.sigBits + 1) {
+      resultSignificand = resultSignificand.shiftRight(1); // The dropped bit is zero
+      resultExponent += 1;
     }
 
     // Return infinity if there is an overflow.
-    if (exponent_ > format.bias()) {
-      return sign_ ? negativeInfinity(format) : infinity(format);
+    if (resultExponent > format.bias()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
     // Otherwise return the number
-    return new FloatP(format, sign_, exponent_, significand_);
+    return new FloatP(format, resultSign, resultExponent, resultSignificand);
   }
 
   /**
@@ -674,7 +674,7 @@ public class FloatP {
     Preconditions.checkArgument(a.exponent >= format.minExp() && b.exponent >= format.minExp());
 
     // Calculate the sign of the result
-    boolean sign_ = sign ^ number.sign;
+    boolean resultSign = sign ^ number.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
@@ -683,33 +683,36 @@ public class FloatP {
 
     // Calculate the exponent of the result by adding the exponents of the two arguments.
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
-    long exponent_ = exponent1 + exponent2;
-    if (exponent_ > format.maxExp()) {
-      return sign_ ? negativeInfinity(format) : infinity(format);
+    long resultExponent = exponent1 + exponent2;
+    if (resultExponent > format.maxExp()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
-    if (exponent_ < format.minExp() - format.sigBits - 2) {
-      return sign_ ? negativeZero(format) : zero(format);
+    if (resultExponent < format.minExp() - format.sigBits - 2) {
+      return resultSign ? negativeZero(format) : zero(format);
     }
 
     // Multiply the significands
     BigInteger significand1 = a.significand;
     BigInteger significand2 = b.significand;
 
-    BigInteger significand_ = significand1.multiply(significand2);
+    BigInteger resultSignificand = significand1.multiply(significand2);
 
     // Normalize if the significand is too large:
-    if (significand_.testBit(2 * format.sigBits + 4)) {
-      exponent_ += 1;
+    if (resultSignificand.testBit(2 * format.sigBits + 4)) {
+      resultExponent += 1;
     }
 
     // Return infinity if there is an overflow.
-    if (exponent_ > format.bias()) {
-      return sign_ ? negativeInfinity(format) : infinity(format);
+    if (resultExponent > format.bias()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
     // Otherwise return the number
     return new FloatP(
-        new Format(format.expBits, significand_.bitLength() - 1), sign_, exponent_, significand_);
+        new Format(format.expBits, resultSignificand.bitLength() - 1),
+        resultSign,
+        resultExponent,
+        resultSignificand);
   }
 
   private FloatP squared() {
@@ -762,7 +765,7 @@ public class FloatP {
    */
   private FloatP divideSlow(FloatP number) {
     // Calculate the sign of the result
-    boolean sign_ = sign ^ number.sign;
+    boolean resultSign = sign ^ number.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
@@ -786,34 +789,34 @@ public class FloatP {
 
     // Calculate the exponent of the result by subtracting the exponent of the divisor from the
     // exponent of the dividend.
-    long exponent_ = exponent1 - exponent2;
+    long resultExponent = exponent1 - exponent2;
 
     // Calculate how many digits need to be calculated. If the result is <1 we need one additional
     // digit to normalize it.
     int digits = (1 + 2 * format.sigBits) + 3; // 2p-1 (+ 3 grs bits)
     if (significand1.compareTo(significand2) < 0) {
       digits += 1;
-      exponent_ -= 1;
+      resultExponent -= 1;
     }
 
     // If the exponent of the result is beyond the exponent range, skip the calculation and return
     // infinity immediately.
-    if (exponent_ > format.maxExp()) {
-      return sign_ ? negativeInfinity(format) : infinity(format);
+    if (resultExponent > format.maxExp()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
     // If it is below the subnormal range, return zero immediately.
-    if (exponent_ < format.minExp() - (format.sigBits + 1)) {
-      return sign_ ? negativeZero(format) : zero(format);
+    if (resultExponent < format.minExp() - (format.sigBits + 1)) {
+      return resultSign ? negativeZero(format) : zero(format);
     }
 
     // Divide the significands
-    BigInteger significand_ = BigInteger.ZERO;
+    BigInteger resultSignificand = BigInteger.ZERO;
     for (int i = 0; i < digits; i++) {
       // Calculate the next digit of the result
-      significand_ = significand_.shiftLeft(1);
+      resultSignificand = resultSignificand.shiftLeft(1);
       if (significand1.compareTo(significand2) >= 0) {
         significand1 = significand1.subtract(significand2);
-        significand_ = significand_.add(BigInteger.ONE);
+        resultSignificand = resultSignificand.add(BigInteger.ONE);
       }
 
       // Shift the dividend
@@ -823,23 +826,23 @@ public class FloatP {
     // Fix the exponent if it is too small. Use the lowest possible exponent for the format and then
     // move the rest into the significand by shifting it to the right.
     int leading = 0;
-    if (exponent_ < format.minExp()) {
-      leading = (int) Math.abs(format.minExp() - exponent_);
-      exponent_ = format.minExp() - 1;
+    if (resultExponent < format.minExp()) {
+      leading = (int) Math.abs(format.minExp() - resultExponent);
+      resultExponent = format.minExp() - 1;
     }
 
     // Truncate the value and round the result
-    significand_ = truncate(significand_, format.sigBits + leading);
-    significand_ = applyRounding(RoundingMode.NEAREST_EVEN, sign_, significand_);
+    resultSignificand = truncate(resultSignificand, format.sigBits + leading);
+    resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
 
     // Shift the significand to the right if rounding has caused an overflow
-    if (significand_.bitLength() > format.sigBits + 1) {
-      significand_ = significand_.shiftRight(1); // Last bit is zero
-      exponent_ += 1;
+    if (resultSignificand.bitLength() > format.sigBits + 1) {
+      resultSignificand = resultSignificand.shiftRight(1); // Last bit is zero
+      resultExponent += 1;
     }
 
     // Return the number
-    return new FloatP(format, sign_, exponent_, significand_);
+    return new FloatP(format, resultSign, resultExponent, resultSignificand);
   }
 
   // These constants are needed for division with Newton's approach.
@@ -859,7 +862,7 @@ public class FloatP {
     FloatP a = this;
     FloatP b = number;
 
-    boolean sign_ = a.isNegative() ^ b.isNegative(); // Sign of the result
+    boolean resultSign = a.isNegative() ^ b.isNegative(); // Sign of the result
 
     // Handle special cases:
     // (1) Either argument is NaN
@@ -870,25 +873,25 @@ public class FloatP {
     if (a.isZero()) {
       if (b.isZero()) {
         // Divisor is zero or infinite
-        return sign_ ? nan(format).negate() : nan(format);
+        return resultSign ? nan(format).negate() : nan(format);
       }
-      return sign_ ? negativeZero(format) : zero(format);
+      return resultSign ? negativeZero(format) : zero(format);
     }
     // (3) Dividend is infinite
     if (a.isInfinite()) {
       if (b.isInfinite()) {
         // Divisor is infinite
-        return sign_ ? nan(format).negate() : nan(format);
+        return resultSign ? nan(format).negate() : nan(format);
       }
-      return sign_ ? negativeInfinity(format) : infinity(format);
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
     // (4) Divisor is zero (and dividend is finite)
     if (b.isZero()) {
-      return sign_ ? negativeInfinity(format) : infinity(format);
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
     // (5) Divisor is infinite (and dividend is finite)
     if (b.isInfinite()) {
-      return sign_ ? negativeZero(format) : zero(format);
+      return resultSign ? negativeZero(format) : zero(format);
     }
 
     // Extract exponents and significand bits
@@ -944,19 +947,19 @@ public class FloatP {
     }
 
     // Get the exponent and the significand
-    long exponent_ = Math.max(exponent, format.minExp());
-    BigInteger significand_ = significand;
+    long resultExponent = Math.max(exponent, format.minExp());
+    BigInteger resultSignificand = significand;
 
     // Normalize the argument
-    int shift = (format.sigBits + 1) - significand_.bitLength();
+    int shift = (format.sigBits + 1) - resultSignificand.bitLength();
     if (shift > 0) {
-      significand_ = significand_.shiftLeft(shift);
-      exponent_ -= shift;
+      resultSignificand = resultSignificand.shiftLeft(shift);
+      resultExponent -= shift;
     }
 
     // Range reduction:
     // sqrt(f * 2^2m) = sqrt(f)*2^m
-    FloatP f = new FloatP(format, sign, exponent_ % 2, significand_);
+    FloatP f = new FloatP(format, sign, resultExponent % 2, resultSignificand);
 
     // Define constants
     // TODO: These constants should be declared only once for each supported precision
@@ -981,7 +984,7 @@ public class FloatP {
     x = x.multiply(f);
 
     // Restore the exponent by multiplying with 2^m
-    FloatP r = constant(format, 2).powInt(BigInteger.valueOf(exponent_ / 2));
+    FloatP r = constant(format, 2).powInt(BigInteger.valueOf(resultExponent / 2));
     return x.multiply(r);
   }
 
@@ -997,29 +1000,29 @@ public class FloatP {
     if (BigInteger.ONE.shiftLeft(format.sigBits).equals(significand)) {
       return this;
     }
-    BigInteger significand_ = significand;
-    boolean last = significand_.testBit(0);
+    BigInteger resultSignificand = significand;
+    boolean last = resultSignificand.testBit(0);
 
     // Search for the pattern
     int trailing = 1;
     do {
-      significand_ = significand_.shiftRight(1);
+      resultSignificand = resultSignificand.shiftRight(1);
       trailing++;
-    } while (significand_.testBit(0) == last);
+    } while (resultSignificand.testBit(0) == last);
 
-    significand_ = significand_.shiftRight(1);
+    resultSignificand = resultSignificand.shiftRight(1);
     return new FloatP(
         new Format(format.expBits, trailing > format.sigBits ? 0 : (format.sigBits - trailing)),
         sign,
         exponent,
-        significand_);
+        resultSignificand);
   }
 
   /** The minimal distance between two floating point values with the same exponent. */
   private FloatP oneUlp() {
-    BigInteger significand_ = BigInteger.ONE.shiftLeft(format.sigBits);
-    long exponent_ = exponent - format.sigBits;
-    return new FloatP(format, sign, exponent_, significand_);
+    BigInteger resultSignificand = BigInteger.ONE.shiftLeft(format.sigBits);
+    long resultExponent = exponent - format.sigBits;
+    return new FloatP(format, sign, resultExponent, resultSignificand);
   }
 
   /** Returns the next larger floating point number. */
@@ -1590,29 +1593,29 @@ public class FloatP {
     }
 
     // Get the significand and add grs bits
-    BigInteger significand_ = significand;
-    significand_ = significand_.shiftLeft(3);
+    BigInteger resultSignificand = significand;
+    resultSignificand = resultSignificand.shiftLeft(3);
 
     // Shift the fractional part to the right and then round the result
-    significand_ = truncate(significand_, (int) (format.sigBits - exponent));
-    significand_ = applyRounding(rm, sign, significand_);
+    resultSignificand = truncate(resultSignificand, (int) (format.sigBits - exponent));
+    resultSignificand = applyRounding(rm, sign, resultSignificand);
 
     // Recalculate the exponent
-    int exponent_ = significand_.bitLength() - 1;
+    int resultExponent = resultSignificand.bitLength() - 1;
 
     // Normalize the significand if there was an overflow. The last bit is then always zero and can
     // simply be dropped.
-    significand_ = significand_.shiftLeft(format.sigBits - exponent_);
+    resultSignificand = resultSignificand.shiftLeft(format.sigBits - resultExponent);
 
     // Check if the result is zero
-    if (significand_.equals(BigInteger.ZERO)) {
+    if (resultSignificand.equals(BigInteger.ZERO)) {
       return isNegative() ? negativeZero(format) : zero(format);
     }
     // Check if we need to round to infinity
-    if (exponent_ > format.maxExp()) {
+    if (resultExponent > format.maxExp()) {
       return isNegative() ? negativeInfinity(format) : infinity(format);
     }
-    return new FloatP(format, sign, exponent_, significand_);
+    return new FloatP(format, sign, resultExponent, resultSignificand);
   }
 
   private static FloatP fromInteger(Format format, BigInteger number) {
@@ -1646,11 +1649,11 @@ public class FloatP {
     // Shift the significand to truncate the fractional part. For large exponents the expression
     // 'format.sigBits - exponent' will become negative, and the shift is to the left, adding
     // additional zeroes.
-    BigInteger significand_ = significand.shiftRight((int) (format.sigBits - exponent));
+    BigInteger resultSignificand = significand.shiftRight((int) (format.sigBits - exponent));
     if (sign) {
-      significand_ = significand_.negate();
+      resultSignificand = resultSignificand.negate();
     }
-    return significand_;
+    return resultSignificand;
   }
 
   // NOTE: toByte, toShort, toInt and toLong depend on undefined behaviour
@@ -1928,18 +1931,18 @@ public class FloatP {
     }
 
     // Get the exponent and the significand
-    BigInteger significand_ = significand;
-    long exponent_ = Math.max(exponent, format.minExp());
+    BigInteger resultSignificand = significand;
+    long resultExponent = Math.max(exponent, format.minExp());
 
     // Normalize the value if it is subnormal
-    int shift = (format.sigBits + 1) - significand_.bitLength();
+    int shift = (format.sigBits + 1) - resultSignificand.bitLength();
     if (shift > 0) {
-      significand_ = significand_.shiftLeft(shift);
-      exponent_ -= shift;
+      resultSignificand = resultSignificand.shiftLeft(shift);
+      resultExponent -= shift;
     }
 
     // Shift the exponent to make the significand an integer
-    exponent_ -= format.sigBits;
+    resultExponent -= format.sigBits;
 
     // p is the number of decimal digits needed to recover the original number if the output of
     // toString is read back with fromString
@@ -1951,13 +1954,13 @@ public class FloatP {
 
     // Build a term for the exponent in decimal representation
     MathContext rm = new MathContext(ext, java.math.RoundingMode.HALF_EVEN);
-    BigDecimal r = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) exponent_)));
-    if (exponent_ < 0) {
+    BigDecimal r = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) resultExponent)));
+    if (resultExponent < 0) {
       r = BigDecimal.ONE.divide(r, rm);
     }
 
     // Convert the significand to BigDecimal and multiply with the decimal exponent term
-    BigDecimal a = new BigDecimal(significand_);
+    BigDecimal a = new BigDecimal(resultSignificand);
     BigDecimal b = a.multiply(r);
 
     // Round the result down to p significand digits
