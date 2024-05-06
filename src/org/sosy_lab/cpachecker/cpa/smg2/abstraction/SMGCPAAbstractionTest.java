@@ -1194,7 +1194,6 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     SMGState stateWoNested = currentState;
     for (int rolling = 0; rolling < listLength + 2; rolling++) {
-      currentState = stateWoNested;
       for (int all = 0; all < listLength + 2; all++) {
         // put in nested in all, but 1 (rolling) is not abstractable
         Value[] nestedListPtrs =
@@ -1374,6 +1373,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         checkAbstractionOfLLWithConcreteFirstAndLast(
             false, listLength, topListPtrs, otherPtrOffset, internalListPtrOffset);
       }
+      currentState = stateWoNested;
     }
   }
 
@@ -1398,7 +1398,6 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     SMGState stateWoNested = currentState;
     for (int rolling = 0; rolling < listLength + 2; rolling++) {
-      currentState = stateWoNested;
       for (int all = 0; all < listLength + 2; all++) {
         // put in nested in all, but 1 (rolling) is not abstractable
         Value[] nestedListPtrs =
@@ -1599,6 +1598,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         checkConcreteSLLWithDiffPtrOffsetsFirstAndLast(
             false, listLength, topListPtrs, otherPtrOffset, internalListPtrOffset);
       }
+      currentState = stateWoNested;
     }
   }
 
