@@ -1074,9 +1074,8 @@ public class SMG {
       if (foundReturnEdges.size() > 1) {
         // Sort by offset and merge zero edges
         foundReturnEdges =
-            foundReturnEdges.stream()
-                .sorted(Comparator.comparingInt(x -> x.getOffset().intValueExact()))
-                .collect(ImmutableList.toImmutableList());
+            ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(x -> x.getOffset().intValueExact()), foundReturnEdges);
         returnEdgeBuilder = ImmutableList.builder();
         SMGHasValueEdge zeroEdgeBuffer = null;
         for (SMGHasValueEdge hve : foundReturnEdges) {

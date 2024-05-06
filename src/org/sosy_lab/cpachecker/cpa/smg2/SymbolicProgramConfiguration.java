@@ -1945,9 +1945,8 @@ public class SymbolicProgramConfiguration {
         memoryString = memoryString + "invalid " + memory;
       }
       for (SMGHasValueEdge valueEdge :
-          smg.getEdges(memory).stream()
-              .sorted(Comparator.comparing(o -> o.getOffset()))
-              .collect(ImmutableList.toImmutableList())) {
+          ImmutableList.sortedCopyOf(
+              Comparator.comparing(o -> o.getOffset()), smg.getEdges(memory))) {
         SMGValue smgValue = valueEdge.hasValue();
         Preconditions.checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
@@ -1991,9 +1990,9 @@ public class SymbolicProgramConfiguration {
             .append(" return object ")
             .append(":" + retObjString + " with values: ");
         for (SMGHasValueEdge valueEdge :
-            smg.getEdges(stackframe.getReturnObject().orElseThrow()).stream()
-                .sorted(Comparator.comparing(o -> o.getOffset()))
-                .collect(ImmutableList.toImmutableList())) {
+            ImmutableList.sortedCopyOf(
+                Comparator.comparing(o -> o.getOffset()),
+                smg.getEdges(stackframe.getReturnObject().orElseThrow()))) {
           MemoryLocation memLoc =
               MemoryLocation.fromQualifiedName(
                   funName + "::__retval__", valueEdge.getOffset().longValueExact());
@@ -2042,9 +2041,7 @@ public class SymbolicProgramConfiguration {
               .append("\n");
         }
         for (SMGHasValueEdge valueEdge :
-            edges.stream()
-                .sorted(Comparator.comparing(o -> o.getOffset()))
-                .collect(ImmutableList.toImmutableList())) {
+            ImmutableList.sortedCopyOf(Comparator.comparing(o -> o.getOffset()), edges)) {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
@@ -2079,9 +2076,9 @@ public class SymbolicProgramConfiguration {
         validity = " (invalid object)";
       }
       ImmutableList<SMGHasValueEdge> orderedHVes =
-          smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true).stream()
-              .sorted(Comparator.comparing(o -> o.getOffset()))
-              .collect(ImmutableList.toImmutableList());
+          ImmutableList.sortedCopyOf(
+              Comparator.comparing(o -> o.getOffset()),
+              smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
 
       builder
           .append(entry.getKey())

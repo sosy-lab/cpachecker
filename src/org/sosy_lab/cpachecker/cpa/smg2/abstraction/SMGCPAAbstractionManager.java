@@ -262,9 +262,9 @@ public class SMGCPAAbstractionManager {
 
       } else {
         List<SMGHasValueEdge> valuesInHeapObj =
-            objsAndHVEs.getOrDefault(heapObj, PersistentSet.of()).stream()
-                .sorted(Comparator.comparing(SMGHasValueEdge::getOffset))
-                .collect(ImmutableList.toImmutableList());
+            ImmutableList.sortedCopyOf(
+                Comparator.comparing(SMGHasValueEdge::getOffset),
+                objsAndHVEs.getOrDefault(heapObj, PersistentSet.of()));
         if (valuesInHeapObj.isEmpty()) {
           // Can't be a list if there is no pointers
           continue;
@@ -412,9 +412,9 @@ public class SMGCPAAbstractionManager {
       maybePrevPointerTargetOffset = Optional.of(dllTarget.getPrevPointerTargetOffset());
     } else {
       List<SMGHasValueEdge> valuesInTargetObj =
-          objsAndHVEs.getOrDefault(nextObj, PersistentSet.of()).stream()
-              .sorted(Comparator.comparing(SMGHasValueEdge::getOffset))
-              .collect(ImmutableList.toImmutableList());
+          ImmutableList.sortedCopyOf(
+              Comparator.comparing(SMGHasValueEdge::getOffset),
+              objsAndHVEs.getOrDefault(nextObj, PersistentSet.of()));
       int j = 0;
       for (SMGHasValueEdge targetHVE : valuesInTargetObj) {
         if (targetHVE.getOffset().equals(suspectedNfo)) {
@@ -723,12 +723,10 @@ public class SMGCPAAbstractionManager {
           // }
         }
         List<SMGHasValueEdge> valuesInMaybePrevHeapObj =
-            smg
-                .getSMGObjectsWithSMGHasValueEdges()
-                .getOrDefault(maybePrevObj, PersistentSet.of())
-                .stream()
-                .sorted(Comparator.comparing(SMGHasValueEdge::getOffset))
-                .collect(ImmutableList.toImmutableList());
+            ImmutableList.sortedCopyOf(
+                Comparator.comparing(SMGHasValueEdge::getOffset),
+                smg.getSMGObjectsWithSMGHasValueEdges()
+                    .getOrDefault(maybePrevObj, PersistentSet.of()));
 
         // Next checking
         for (SMGHasValueEdge maybePrevHVE : valuesInMaybePrevHeapObj) {
@@ -774,12 +772,10 @@ public class SMGCPAAbstractionManager {
             continue;
           }
           List<SMGHasValueEdge> valuesInMaybePrevHeapObj =
-              smg
-                  .getSMGObjectsWithSMGHasValueEdges()
-                  .getOrDefault(maybePrevObj, PersistentSet.of())
-                  .stream()
-                  .sorted(Comparator.comparing(SMGHasValueEdge::getOffset))
-                  .collect(ImmutableList.toImmutableList());
+              ImmutableList.sortedCopyOf(
+                  Comparator.comparing(SMGHasValueEdge::getOffset),
+                  smg.getSMGObjectsWithSMGHasValueEdges()
+                      .getOrDefault(maybePrevObj, PersistentSet.of()));
 
           // Next checking
           for (SMGHasValueEdge maybePrevHVE : valuesInMaybePrevHeapObj) {
