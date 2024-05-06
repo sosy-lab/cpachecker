@@ -313,8 +313,9 @@ public class FloatP {
   }
 
   /**
-   * Convert the value to a different precision. Uses "round to nearest, ties to even" for rounding
-   * when the value can not be represented exactly in the new format.
+   * Convert the value to a different precision.<p>
+   * Uses "round to nearest, ties to even" for rounding when the value can not be represented
+   * exactly in the new format.
    */
   public FloatP withPrecision(Format targetFormat) {
     if (format.equals(targetFormat)) {
