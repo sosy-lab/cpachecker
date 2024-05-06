@@ -135,14 +135,19 @@ public class Parsers {
       logger.log(Level.INFO, "Repeated loading of Eclipse source parser");
     }
 
-    classLoader = Parsers.class.getClassLoader();
-    if (classLoader instanceof URLClassLoader) {
+    if (Parsers.class.getClassLoader() instanceof URLClassLoader parentClassLoader) {
       classLoader =
           Classes.makeExtendedURLClassLoader()
-              .setParent(classLoader)
-              .setUrls(((URLClassLoader) classLoader).getURLs())
+              .setParent(parentClassLoader)
+              .setUrls(parentClassLoader.getURLs())
               .setDirectLoadClasses(OUR_CLASSES)
               .build();
+    } else {
+      classLoader = Parsers.class.getClassLoader();
+      logger.logf(
+          Level.FINE,
+          "Parent class loader is of type %s, cannot unload Eclipse after parsing.",
+          classLoader.getClass().getName());
     }
     loadedClassLoader = new WeakReference<>(classLoader);
     return classLoader;

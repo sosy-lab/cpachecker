@@ -201,7 +201,7 @@ public class CFloatImpl extends CFloat {
       rep = pRep;
     }
 
-    List<String> digits = Arrays.asList(rep.split(""));
+    List<String> digits = Splitter.fixedLength(1).splitToList(rep);
 
     CFloat result = fromString(pType, digits);
 
@@ -447,7 +447,7 @@ public class CFloatImpl extends CFloat {
   }
 
   private CFloat makeFractionalPart(final String pRep, final int pType) {
-    List<String> digits = Arrays.asList(pRep.split(""));
+    List<String> digits = Splitter.fixedLength(1).splitToList(pRep);
     CFloat ten = new CFloatImpl("10", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     CFloat divisor = new CFloatImpl("1", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 

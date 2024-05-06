@@ -675,26 +675,25 @@ public class SMGTransferRelation
     }
 
     CBinaryExpression binExpOp1 = (CBinaryExpression) op1;
-    switch (binExpOp1.getOperator()) {
-      case EQUALS:
-        return new CBinaryExpression(
-            binExpOp1.getFileLocation(),
-            binExpOp1.getExpressionType(),
-            binExpOp1.getCalculationType(),
-            binExpOp1.getOperand1(),
-            binExpOp1.getOperand2(),
-            op == BinaryOperator.EQUALS ? BinaryOperator.NOT_EQUALS : BinaryOperator.EQUALS);
-      case NOT_EQUALS:
-        return new CBinaryExpression(
-            binExpOp1.getFileLocation(),
-            binExpOp1.getExpressionType(),
-            binExpOp1.getCalculationType(),
-            binExpOp1.getOperand1(),
-            binExpOp1.getOperand2(),
-            op == BinaryOperator.EQUALS ? BinaryOperator.EQUALS : BinaryOperator.NOT_EQUALS);
-      default:
-        return pExpression;
-    }
+    return switch (binExpOp1.getOperator()) {
+      case EQUALS ->
+          new CBinaryExpression(
+              binExpOp1.getFileLocation(),
+              binExpOp1.getExpressionType(),
+              binExpOp1.getCalculationType(),
+              binExpOp1.getOperand1(),
+              binExpOp1.getOperand2(),
+              op == BinaryOperator.EQUALS ? BinaryOperator.NOT_EQUALS : BinaryOperator.EQUALS);
+      case NOT_EQUALS ->
+          new CBinaryExpression(
+              binExpOp1.getFileLocation(),
+              binExpOp1.getExpressionType(),
+              binExpOp1.getCalculationType(),
+              binExpOp1.getOperand1(),
+              binExpOp1.getOperand2(),
+              op == BinaryOperator.EQUALS ? BinaryOperator.EQUALS : BinaryOperator.NOT_EQUALS);
+      default -> pExpression;
+    };
   }
 
   @Override

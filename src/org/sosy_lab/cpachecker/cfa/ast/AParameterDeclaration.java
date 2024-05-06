@@ -29,7 +29,7 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     if (pQualified) {
       return getType().toASTString(getQualifiedName().replace("::", "__"));
     } else {

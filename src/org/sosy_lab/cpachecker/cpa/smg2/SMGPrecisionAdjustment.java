@@ -285,10 +285,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       try {
         resultState =
             new SMGCPAAbstractionManager(
-                    resultState, options.getListAbstractionMinimumLengthThreshhold())
+                    resultState, options.getListAbstractionMinimumLengthThreshhold(), stats)
                 .findAndAbstractLists();
       } catch (SMGException e) {
         // Do nothing. This should never happen anyway
+        throw new RuntimeException(e);
       }
     }
 

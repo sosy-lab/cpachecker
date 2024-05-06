@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.math.BigInteger;
+import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -47,31 +49,39 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGHasValueEdgesAndSPC;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -80,11 +90,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState;
 import org.sosy_lab.cpachecker.util.smg.SMG;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinSPC;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -101,6 +114,7 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 public class SMGState
     implements ImmutableForgetfulState<SMGInformation>,
         LatticeAbstractState<SMGState>,
+        Partitionable,
         AbstractQueryableState,
         Graphable {
 
@@ -123,71 +137,67 @@ public class SMGState
   private final SymbolicProgramConfiguration memoryModel;
 
   private final MachineModel machineModel;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final List<SMGErrorInfo> errorInfo;
   private final SMGOptions options;
   // Transformer for abstracted heap into concrete heap
   private final SMGCPAMaterializer materializer;
 
-  /** The constraints of this state */
-  private final ImmutableList<Constraint> constraints;
+  // Tracks the last checked memory access Constraint
+  private final Optional<Constraint> lastCheckedMemoryAccess;
 
-  /**
-   * The last constraint added to this state. This does not have to be the last constraint in {@link
-   * #constraints}.
-   */
-  // It does not have to be the last constraint contained in 'constraints' because we only
-  // add a constraint to 'constraints' if it's not yet in this list.
-  private final Optional<Constraint> lastAddedConstraint;
+  // Holds the constraints and the model/definite value assignment
+  private final ConstraintsState constraintsState;
 
-  private final ImmutableList<ValueAssignment> definiteAssignment;
-  private final ImmutableList<ValueAssignment> lastModelAsAssignment;
+  private final SMGCPAExpressionEvaluator evaluator;
+
+  private final SMGCPAStatistics statistics;
 
   // Constructor only for NEW/EMPTY SMGStates!
   private SMGState(
       MachineModel pMachineModel,
       SymbolicProgramConfiguration spc,
-      LogManager logManager,
-      SMGOptions opts) {
+      LogManagerWithoutDuplicates logManager,
+      SMGOptions opts,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
     errorInfo = ImmutableList.of();
-    materializer = new SMGCPAMaterializer(logger);
-    lastAddedConstraint = Optional.empty();
-    constraints = ImmutableList.of();
-    definiteAssignment = ImmutableList.of();
-    lastModelAsAssignment = ImmutableList.of();
+    statistics = pStatistics;
+    materializer = new SMGCPAMaterializer(logger, statistics);
+    lastCheckedMemoryAccess = Optional.empty();
+    evaluator = pEvaluator;
+    constraintsState = new ConstraintsState();
   }
 
   private SMGState(
       MachineModel pMachineModel,
       SymbolicProgramConfiguration spc,
-      LogManager logManager,
+      LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
       List<SMGErrorInfo> errorInf,
       SMGCPAMaterializer pMaterializer,
-      ImmutableList<Constraint> pConstraints,
-      Optional<Constraint> pLastAddedConstraint,
-      ImmutableList<ValueAssignment> pDefiniteAssignment,
-      ImmutableList<ValueAssignment> pLastModelAsAssignment) {
+      Optional<Constraint> pLastCheckedMemoryAccess,
+      ConstraintsState pConstraintsState,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
     errorInfo = errorInf;
     materializer = pMaterializer;
-    constraints = pConstraints;
-    lastAddedConstraint = pLastAddedConstraint;
-    definiteAssignment = pDefiniteAssignment;
-    lastModelAsAssignment = pLastModelAsAssignment;
+    lastCheckedMemoryAccess = pLastCheckedMemoryAccess;
+    evaluator = pEvaluator;
+    constraintsState = pConstraintsState;
+    statistics = pStatistics;
   }
 
-  private SMGState of(
-      ImmutableList<Constraint> pConstraints, Optional<Constraint> pLastAddedConstraint) {
+  private SMGState of(ImmutableList<Constraint> pConstraints) {
     checkNotNull(pConstraints);
-    checkNotNull(pLastAddedConstraint);
     return new SMGState(
         machineModel,
         memoryModel,
@@ -195,14 +205,14 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        pConstraints,
-        pLastAddedConstraint,
-        definiteAssignment,
-        lastModelAsAssignment);
+        lastCheckedMemoryAccess,
+        constraintsState.copyWithNew(pConstraints),
+        evaluator,
+        statistics);
   }
 
   private SMGState ofModelAssignment(
-      ImmutableList<ValueAssignment> pDefiniteAssignment,
+      ImmutableCollection<ValueAssignment> pDefiniteAssignment,
       ImmutableList<ValueAssignment> pLastModelAsAssignment) {
     return new SMGState(
         machineModel,
@@ -211,13 +221,15 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
-        pDefiniteAssignment,
-        pLastModelAsAssignment);
+        lastCheckedMemoryAccess,
+        constraintsState
+            .copyWithDefiniteAssignment(pDefiniteAssignment)
+            .copyWithSatisfyingModel(pLastModelAsAssignment),
+        evaluator,
+        statistics);
   }
 
-  private SMGState of(Optional<Constraint> pLastAddedConstraint) {
+  private SMGState ofLastCheckedMemoryBounds(Optional<Constraint> pLastCheckedMemoryAccess) {
     return new SMGState(
         machineModel,
         memoryModel,
@@ -225,67 +237,44 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        constraints,
-        pLastAddedConstraint,
-        definiteAssignment,
-        lastModelAsAssignment);
-  }
-
-  private SMGState of(
-      ImmutableList<Constraint> pConstraints, ImmutableList<ValueAssignment> pDefiniteAssignment) {
-    checkNotNull(pConstraints);
-    checkNotNull(pDefiniteAssignment);
-    return new SMGState(
-        machineModel,
-        memoryModel,
-        logger,
-        options,
-        errorInfo,
-        materializer,
-        pConstraints,
-        lastAddedConstraint,
-        pDefiniteAssignment,
-        lastModelAsAssignment);
+        pLastCheckedMemoryAccess,
+        constraintsState,
+        evaluator,
+        statistics);
   }
 
   public SMGState addConstraint(Constraint pConstraint) {
     checkNotNull(pConstraint);
-    if (constraints.contains(pConstraint)) {
-      return of(Optional.of(pConstraint));
-    }
-
-    return of(listAndElement(constraints, pConstraint), Optional.of(pConstraint));
+    return of(listAndElement(constraintsState, pConstraint));
   }
 
-  public SMGState removeConstraint(Constraint pConstraintToRemove) {
-    if (!constraints.contains(pConstraintToRemove)) {
-      return this;
-    }
-
-    ImmutableList.Builder<Constraint> builder = ImmutableList.builder();
-    for (Constraint oldConst : constraints) {
-      if (!oldConst.equals(pConstraintToRemove)) {
-        builder.add(oldConst);
-      }
-    }
-
-    return of(builder.build(), ImmutableList.of());
+  public SMGState updateLastCheckedMemoryBounds(Constraint pConstraint) {
+    checkNotNull(pConstraint);
+    return ofLastCheckedMemoryBounds(Optional.of(pConstraint));
   }
 
   public boolean isEmptyConstraints() {
-    return constraints.isEmpty();
+    return constraintsState.isEmpty();
   }
 
   public Optional<Constraint> getLastAddedConstraint() {
-    return lastAddedConstraint;
+    return constraintsState.getLastAddedConstraint();
   }
 
+  public SMGState replaceModelAndDefAssignmentAndCopy(
+      Optional<ImmutableCollection<ValueAssignment>> pDefiniteAssignment,
+      Optional<ImmutableList<ValueAssignment>> pLastModelAsAssignment) {
+    return ofModelAssignment(
+        pDefiniteAssignment.orElse(ImmutableList.of()), pLastModelAsAssignment.orElseThrow());
+  }
+
+  public ConstraintsState getConstraints() {
+    return constraintsState;
+  }
+
+  @SuppressWarnings("unused")
   public boolean containsConstraint(Constraint o) {
-    return constraints.contains(o);
-  }
-
-  public ImmutableList<Constraint> getConstraint() {
-    return constraints;
+    return constraintsState.contains(o);
   }
 
   /**
@@ -296,33 +285,23 @@ public class SMGState
    * @return the known assignment of variables that have no other fulfilling assignment
    */
   public ImmutableCollection<ValueAssignment> getDefiniteAssignment() {
-    return definiteAssignment;
-  }
-
-  public SMGState copyAndSetDefiniteAssignment(ImmutableCollection<ValueAssignment> pAssignment) {
-    return ofModelAssignment(pAssignment.asList(), lastModelAsAssignment);
+    return constraintsState.getDefiniteAssignment();
   }
 
   /** Returns the last model computed for this constraints state. */
   public ImmutableList<ValueAssignment> getModel() {
-    return lastModelAsAssignment;
-  }
-
-  public SMGState copyAndSetModel(List<ValueAssignment> pModel) {
-    return ofModelAssignment(definiteAssignment, ImmutableList.copyOf(pModel));
+    return constraintsState.getModel();
   }
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
-      case "toString":
-        return toString();
-      case "heapObjects":
-        return memoryModel.getHeapObjects();
-      default:
-        // try boolean properties
-        return checkProperty(pProperty);
-    }
+    return switch (pProperty) {
+      case "toString" -> toString();
+      case "heapObjects" -> memoryModel.getHeapObjects();
+      default ->
+          // try boolean properties
+          checkProperty(pProperty);
+    };
   }
 
   @Override
@@ -361,7 +340,7 @@ public class SMGState
         // However, when combined with program exit, we can detect property MemCleanup.
         PersistentSet<SMGObject> heapObs = memoryModel.getHeapObjects();
         Preconditions.checkState(
-            heapObs.size() >= 1 && heapObs.contains(SMGObject.nullInstance()),
+            !heapObs.isEmpty() && heapObs.contains(SMGObject.nullInstance()),
             "NULL must always be a heap object");
         // TODO: check the validity check!
         for (SMGObject object : heapObs) {
@@ -414,7 +393,7 @@ public class SMGState
     return false;
   }
 
-  private boolean hasMemoryLeak() {
+  public boolean hasMemoryLeak() {
     for (SMGErrorInfo errorInf : errorInfo) {
       if (errorInf.hasMemoryLeak()) {
         return true;
@@ -434,12 +413,19 @@ public class SMGState
    * @return a newly created {@link SMGState} with a new and empty {@link
    *     SymbolicProgramConfiguration} inside.
    */
-  public static SMGState of(MachineModel pMachineModel, LogManager logManager, SMGOptions opts) {
+  public static SMGState of(
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates logManager,
+      SMGOptions opts,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     return new SMGState(
         pMachineModel,
         SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits())),
         logManager,
-        opts);
+        opts,
+        pEvaluator,
+        pStatistics);
   }
 
   /**
@@ -457,9 +443,14 @@ public class SMGState
    *     possible.
    */
   public static SMGState of(
-      MachineModel pMachineModel, LogManager logManager, SMGOptions opts, CFA pCfa) {
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates logManager,
+      SMGOptions opts,
+      CFA pCfa,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     FunctionEntryNode pNode = pCfa.getMainFunction();
-    return of(pMachineModel, logManager, opts, pNode);
+    return of(pMachineModel, logManager, opts, pNode, pEvaluator, pStatistics);
   }
 
   /**
@@ -478,10 +469,12 @@ public class SMGState
    */
   public static SMGState of(
       MachineModel pMachineModel,
-      LogManager logManager,
+      LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
-      FunctionEntryNode cfaFunEntryNode) {
-    SMGState newState = of(pMachineModel, logManager, opts);
+      FunctionEntryNode cfaFunEntryNode,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
+    SMGState newState = of(pMachineModel, logManager, opts, pEvaluator, pStatistics);
     if (cfaFunEntryNode instanceof CFunctionEntryNode functionNode) {
       return newState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
     }
@@ -504,10 +497,13 @@ public class SMGState
    */
   public static SMGState of(
       MachineModel pMachineModel,
-      LogManager logManager,
+      LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
-      CFunctionDeclaration cfaEntryFunDecl) {
-    return of(pMachineModel, logManager, opts).copyAndAddStackFrame(cfaEntryFunDecl);
+      CFunctionDeclaration cfaEntryFunDecl,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
+    return of(pMachineModel, logManager, opts, pEvaluator, pStatistics)
+        .copyAndAddStackFrame(cfaEntryFunDecl);
   }
 
   /**
@@ -524,9 +520,11 @@ public class SMGState
   public SMGState off(
       MachineModel pMachineModel,
       SymbolicProgramConfiguration pSPC,
-      LogManager logManager,
+      LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
-      List<SMGErrorInfo> pErrorInfo) {
+      List<SMGErrorInfo> pErrorInfo,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     return new SMGState(
         pMachineModel,
         pSPC,
@@ -534,10 +532,14 @@ public class SMGState
         opts,
         pErrorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
-        definiteAssignment,
-        lastModelAsAssignment);
+        lastCheckedMemoryAccess,
+        constraintsState,
+        pEvaluator,
+        pStatistics);
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   /**
@@ -554,10 +556,10 @@ public class SMGState
         options,
         errorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
-        definiteAssignment,
-        lastModelAsAssignment);
+        lastCheckedMemoryAccess,
+        constraintsState,
+        evaluator,
+        statistics);
   }
 
   /**
@@ -581,7 +583,7 @@ public class SMGState
    * empty is returned.
    *
    * @param qualifiedName name of the variable.
-   * @return true if valid, flase if invalid, empty for variable not found.
+   * @return Optional.of(true) if valid, flase if invalid, empty for variable not found.
    */
   public Optional<Boolean> isLocalOrGlobalVariableValid(String qualifiedName) {
     if (isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName)) {
@@ -601,8 +603,9 @@ public class SMGState
   private SMGState assignReturnValue(
       MemoryLocation memLoc,
       ValueAndValueSize valueAndSize,
-      Map<String, BigInteger> variableNameToMemorySizeInBits,
-      Map<String, CType> variableTypeMap) {
+      Map<String, Value> variableNameToMemorySizeInBits,
+      Map<String, CType> variableTypeMap)
+      throws SMGSolverException, SMGException {
     SMGState currentState = this;
     SMGObject obj = getReturnObjectForMemoryLocation(memLoc);
     BigInteger offsetToWriteToInBits = BigInteger.valueOf(memLoc.getOffset());
@@ -617,8 +620,13 @@ public class SMGState
     }
     // TODO: use variableTypeMap and deconstruct struct and array types to the correct ones
     // This is only needed for floats nested in these types btw.
-    return currentState.writeValue(
-        obj, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
+    return currentState.writeValueWithChecks(
+        obj,
+        new NumericValue(offsetToWriteToInBits),
+        new NumericValue(sizeOfWriteInBits),
+        valueToWrite,
+        typeOfUnknown,
+        null);
   }
 
   /*
@@ -648,9 +656,9 @@ public class SMGState
   public SMGState assignNonHeapConstant(
       MemoryLocation memLoc,
       ValueAndValueSize valueAndSize,
-      Map<String, BigInteger> variableNameToMemorySizeInBits,
+      Map<String, Value> variableNameToMemorySizeInBits,
       Map<String, CType> variableTypeMap)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
 
     if (isFunctionReturnVariableAndPresent(memLoc)) {
       return assignReturnValue(
@@ -664,7 +672,7 @@ public class SMGState
     String qualifiedName = memLoc.getQualifiedName();
     if (!isLocalOrGlobalVariablePresent(memLoc)) {
       // Create the variable first
-      BigInteger sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
+      Value sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
       if (memLoc.isOnFunctionStack()) {
         // Add depending on function stack!
         currentState =
@@ -695,11 +703,16 @@ public class SMGState
     // TODO: use variableTypeMap and deconstruct struct and array types to the correct ones
     // This is only needed for floats nested in these types btw.
     return currentState.writeToAnyStackOrGlobalVariable(
-        qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
+        qualifiedName,
+        offsetToWriteToInBits,
+        new NumericValue(sizeOfWriteInBits),
+        valueToWrite,
+        typeOfUnknown);
   }
 
   public SMGState reconstructStackFrames(
-      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations) {
+      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
+      throws SMGSolverException, SMGException {
     SMGState currentState = this;
     // the given stack is reversed! We can
     Iterator<StackFrame> existingFrames = currentState.memoryModel.getStackFrames().iterator();
@@ -736,8 +749,9 @@ public class SMGState
    * @return true if the Values match with respect to their numeric interpretation without types.
    *     False else.
    */
+  @SuppressWarnings("unused")
   public boolean verifyVariableEqualityWithValueAt(
-      MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) {
+      MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) throws SMGException {
     Value expectedValue = valueAndSize.getValue();
     Value readValue = getValueToVerify(variableAndOffset, valueAndSize);
     // Note: asNumericValue() returns null for non numerics
@@ -745,7 +759,8 @@ public class SMGState
   }
 
   /* public for debugging purposes in interpolation only! */
-  public Value getValueToVerify(MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) {
+  public Value getValueToVerify(MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize)
+      throws SMGException {
     String variableName = variableAndOffset.getQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(variableAndOffset.getOffset());
     // Null for new interpolants, return unknown
@@ -773,10 +788,10 @@ public class SMGState
    */
   public SMGState reconstructSMGStateFromNonHeapAssignments(
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
-      @Nullable Map<String, BigInteger> variableNameToMemorySizeInBits,
+      @Nullable Map<String, Value> variableNameToMemorySizeInBits,
       @Nullable Map<String, CType> variableTypeMap,
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
     if (nonHeapAssignments == null || pStackDeclarations == null) {
       return this;
     }
@@ -819,7 +834,8 @@ public class SMGState
    */
   public SMGState copyAndAddGlobalVariable(int pTypeSizeInBits, String pVarName, CType type) {
     // TODO: do we really need this for ints?
-    return copyAndAddGlobalVariable(BigInteger.valueOf(pTypeSizeInBits), pVarName, type);
+    return copyAndAddGlobalVariable(
+        new NumericValue(BigInteger.valueOf(pTypeSizeInBits)), pVarName, type);
   }
 
   /**
@@ -830,9 +846,11 @@ public class SMGState
    * @param pVarName Name of the global variable.
    * @return Newly created {@link SMGState} with the object added for the name specified.
    */
-  public SMGState copyAndAddGlobalVariable(
-      BigInteger pTypeSizeInBits, String pVarName, CType type) {
-    SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
+  public SMGState copyAndAddGlobalVariable(Value pTypeSizeInBits, String pVarName, CType type) {
+    SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO, pVarName);
+    if (pVarName.endsWith("_STRING_LITERAL")) {
+      newObject = newObject.copyAsConstStringInBinary();
+    }
     return copyAndReplaceMemoryModel(memoryModel.copyAndAddGlobalObject(newObject, pVarName, type));
   }
 
@@ -841,11 +859,40 @@ public class SMGState
    * SMGObject} with the size specified in bits. Make sure that you reuse the {@link SMGObject}
    * right away to create a points-to-edge and not just use SMGObjects in the code.
    *
-   * @param pTypeSizeInBits Size of the type of the new global variable.
+   * @param pTypeSizeInBits Size of the type of the new memory.
    * @return Newly created object + state with it.
    */
-  public SMGObjectAndSMGState copyAndAddHeapObject(BigInteger pTypeSizeInBits) {
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(Value pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
+    return SMGObjectAndSMGState.of(
+        newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
+  }
+
+  /**
+   * Copy SMGState with a newly created {@link SMGObject} and returns the new state + the new {@link
+   * SMGObject} with the size and type of the given. Make sure that you reuse the {@link SMGObject}
+   * right away to create a points-to-edge and not just use SMGObjects in the code.
+   *
+   * @param objectToCopy The object copied. Size, type, nfo, pfo etc. are all copied.
+   * @return Newly created object + state with it.
+   */
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(SMGObject objectToCopy) {
+    SMGObject newObject;
+    if (objectToCopy instanceof SMGSinglyLinkedListSegment sllToCopy) {
+      if (objectToCopy instanceof SMGDoublyLinkedListSegment dllToCopy) {
+        // DLL
+        newObject = SMGDoublyLinkedListSegment.of(dllToCopy);
+      } else {
+        // SLL
+        Preconditions.checkArgument(sllToCopy.isSLL());
+        newObject = SMGSinglyLinkedListSegment.of(sllToCopy);
+      }
+    } else {
+      Preconditions.checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
+      newObject =
+          SMGObject.of(
+              objectToCopy.getNestingLevel(), objectToCopy.getSize(), objectToCopy.getOffset());
+    }
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
   }
@@ -875,7 +922,7 @@ public class SMGState
    * @param pTypeSizeInBits Size of the type of the new global variable.
    * @return Newly created object + state with it.
    */
-  public SMGObjectAndSMGState copyAndAddStackObject(BigInteger pTypeSizeInBits) {
+  public SMGObjectAndSMGState copyAndAddStackObject(Value pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject)));
@@ -899,9 +946,6 @@ public class SMGState
    */
   private boolean isLocalVariablePresentAnywhere(String pVarName) {
     PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
-    if (frames == null) {
-      return false;
-    }
     for (StackFrame stackframe : frames) {
       if (stackframe.getVariables().containsKey(pVarName)) {
         return true;
@@ -919,9 +963,6 @@ public class SMGState
    */
   private boolean isLocalVariablePresent(String pVarName) {
     PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
-    if (frames == null) {
-      return false;
-    }
     StackFrame stackframe = frames.peek();
     return stackframe.getVariables().containsKey(pVarName);
   }
@@ -936,7 +977,7 @@ public class SMGState
    */
   protected boolean isLocalVariablePresentOnPreviousStackFrame(String pVarName) {
     PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
-    if (frames == null || frames.size() < 2) {
+    if (frames.size() < 2) {
       return false;
     }
     StackFrame stackframe = frames.popAndCopy().peek();
@@ -945,29 +986,6 @@ public class SMGState
     }
 
     return false;
-  }
-
-  /**
-   * Copy SMGState with a newly created object with the size given and put it into the current stack
-   * frame. If there is no stack frame this throws an exception!
-   *
-   * <p>Keeps consistency: yes
-   *
-   * @param pTypeSize Size of the type the new local variable in bits.
-   * @param pVarName Name of the local variable
-   * @return {@link SMGState} with the new variables searchable by the name given.
-   * @throws SMGException thrown if the stack frame is empty.
-   */
-  public SMGState copyAndAddLocalVariable(int pTypeSize, String pVarName, CType type)
-      throws SMGException {
-    if (memoryModel.getStackFrames().isEmpty()) {
-      throw new SMGException(
-          "Can't add a variable named "
-              + pVarName
-              + " to the memory model because there is no stack frame.");
-    }
-    SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
-    return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject, pVarName, type));
   }
 
   /**
@@ -1001,20 +1019,38 @@ public class SMGState
    * @return {@link SMGState} with the new variables searchable by the name given.
    * @throws SMGException thrown if the stack frame is empty.
    */
-  public SMGState copyAndAddLocalVariable(BigInteger pTypeSize, String pVarName, CType type)
+  public SMGState copyAndAddLocalVariable(Value pTypeSize, String pVarName, CType type)
       throws SMGException {
+    return copyAndAddLocalVariable(pTypeSize, pVarName, type, false);
+  }
+
+  /**
+   * Copy SMGState with a newly created object with the size given and put it into the current stack
+   * frame. If there is no stack frame this throws an exception!
+   *
+   * <p>Keeps consistency: yes
+   *
+   * @param pTypeSize Size of the type the new local variable in bits.
+   * @param pVarName Name of the local variable
+   * @param exceptionOnRead throws an exception if this object is ever read
+   * @return {@link SMGState} with the new variables searchable by the name given.
+   * @throws SMGException thrown if the stack frame is empty.
+   */
+  public SMGState copyAndAddLocalVariable(
+      Value pTypeSize, String pVarName, CType type, boolean exceptionOnRead) throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
       throw new SMGException(
           "Can't add a variable named "
               + pVarName
               + " to the memory model because there is no stack frame.");
     }
-    SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
-    return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackObject(newObject, pVarName, type));
+    SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO, pVarName);
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddStackObject(newObject, pVarName, type, exceptionOnRead));
   }
 
   private SMGState copyAndAddLocalVariableToSpecificStackframe(
-      String functionNameForStackFrame, BigInteger pTypeSize, String pVarName, CType type)
+      String functionNameForStackFrame, Value pTypeSize, String pVarName, CType type)
       throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
       throw new SMGException(
@@ -1118,7 +1154,7 @@ public class SMGState
   }
 
   private boolean checkStackFrameEqualityForTwoStates(
-      SMGState pOther, EqualityCache<Value> equalityCache) {
+      SMGState pOther, EqualityCache<Value> equalityCache, EqualityCache<SMGObject> objectCache) {
     Iterator<CFunctionDeclarationAndOptionalValue> thisStackFrames =
         memoryModel.getFunctionDeclarationsFromStackFrames().iterator();
     Iterator<CFunctionDeclarationAndOptionalValue> otherStackFrames =
@@ -1137,7 +1173,7 @@ public class SMGState
         Value thisRetVal = thisFrame.getReturnValue();
         // TODO: overapproximation is OK! We can accept that a concrete value is covered by a
         // overapproximation
-        if (!areValuesEqual(this, thisRetVal, pOther, otherRetVal, equalityCache)) {
+        if (!areValuesEqual(this, thisRetVal, pOther, otherRetVal, equalityCache, objectCache)) {
           return false;
         }
       } else {
@@ -1150,7 +1186,7 @@ public class SMGState
   }
 
   private boolean checkEqualityOfMemoryForTwoStates(
-      SMGState pOther, EqualityCache<Value> equalityCache) {
+      SMGState pOther, EqualityCache<Value> equalityCache, EqualityCache<SMGObject> objectCache) {
     // We check the tolerant way; i.e. ignore all type information
     // Get all (global and local) variables
     PersistentMap<MemoryLocation, ValueAndValueSize> thisAllMemLocAndValues =
@@ -1160,13 +1196,14 @@ public class SMGState
       MemoryLocation otherMemLoc = otherMemLocAndValue.getKey();
       Value otherValue = otherMemLocAndValue.getValue().getValue();
       ValueAndValueSize thisValueAndType = thisAllMemLocAndValues.get(otherMemLoc);
-
+      if (thisValueAndType == null) {
+        return false;
+      }
       // Now check the equality of all values. For concrete values, we allow overapproximations.
       // Pointers/memory is compared by shape, subsumtion is allowed for equal linked lists, such
       // that the smaller subsumes the larger (5+ >= 6+)
-      if (thisValueAndType == null
-          || !areValuesEqual(
-              this, thisValueAndType.getValue(), pOther, otherValue, equalityCache)) {
+      if (!areValuesEqual(
+          this, thisValueAndType.getValue(), pOther, otherValue, equalityCache, objectCache)) {
         return false;
       }
       // Remove the checked values (don't double-check later)
@@ -1189,10 +1226,25 @@ public class SMGState
     return true;
   }
 
+  public int getNumberOfValueUsages(Value value) {
+    return memoryModel.getNumberOfValueUsages(value);
+  }
+
   @Override
   public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
     // This state needs the same amount of variables as the other state
     if (getSize() != pOther.getSize()) {
+      return false;
+    }
+
+    if (getMemoryModel().getSmg().getNumberOfAbstractedLists() < 1
+        && pOther.getMemoryModel().getSmg().getNumberOfAbstractedLists() < 1) {
+      // return false;
+      // TODO: think about this more
+    }
+
+    if (!pOther.constraintsState.containsAll(constraintsState)) {
+      // TODO: kick out constraints of outdated (unused) values and look into merge of constraints
       return false;
     }
 
@@ -1202,10 +1254,11 @@ public class SMGState
       return false;
     }
 
-    // Cache equalities that we already found
-    EqualityCache<Value> equalityCache = EqualityCache.<Value>of();
+    // Cache value equalities and object (shape) equalities that we already found
+    EqualityCache<Value> equalityCache = EqualityCache.of();
+    EqualityCache<SMGObject> objectCache = EqualityCache.of();
     // Check that both have the same stack frames
-    if (!checkStackFrameEqualityForTwoStates(pOther, equalityCache)) {
+    if (!checkStackFrameEqualityForTwoStates(pOther, equalityCache, objectCache)) {
       return false;
     }
 
@@ -1214,7 +1267,7 @@ public class SMGState
     // pointers is lessOrEqual)
     // Validity is checked while checking values and the shape!
     // There might linger some invalidated memory with no connection and that's fine.
-    return checkEqualityOfMemoryForTwoStates(pOther, equalityCache);
+    return checkEqualityOfMemoryForTwoStates(pOther, equalityCache, objectCache);
   }
 
   /**
@@ -1234,9 +1287,17 @@ public class SMGState
       @Nullable Value thisValue,
       SMGState otherState,
       @Nullable Value otherValue,
-      EqualityCache<Value> equalityCache) {
+      EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache) {
     return areValuesEqual(
-        thisState, thisValue, otherState, otherValue, equalityCache, new HashSet<>());
+        thisState,
+        thisValue,
+        otherState,
+        otherValue,
+        equalityCache,
+        objectCache,
+        new HashSet<>(),
+        false);
   }
 
   /**
@@ -1256,7 +1317,14 @@ public class SMGState
       SMGState otherState,
       @Nullable Value otherValue) {
     return thisState.areValuesEqual(
-        thisState, thisValue, otherState, otherValue, new EqualityCache<>(), new HashSet<>());
+        thisState,
+        thisValue,
+        otherState,
+        otherValue,
+        new EqualityCache<>(),
+        new EqualityCache<>(),
+        new HashSet<>(),
+        false);
   }
 
   /**
@@ -1276,7 +1344,9 @@ public class SMGState
       SMGState otherState,
       @Nullable Value otherValue,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisAlreadyCheckedPointers) {
+      EqualityCache<SMGObject> objectCache,
+      Set<Value> thisAlreadyCheckedPointers,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
     // Comparing pointers leads to == true, but they may be not equal because of the heap!!!
     if (thisValue == otherValue && thisValue.isExplicitlyKnown()) {
       return true;
@@ -1318,10 +1388,14 @@ public class SMGState
           otherState,
           otherValue,
           equalityCache,
-          thisAlreadyCheckedPointers)) {
+          objectCache,
+          thisAlreadyCheckedPointers,
+          treatSymbolicsAsEqualWEqualConstrains)) {
         equalityCache.addEquality(thisValue, otherValue);
         return true;
       }
+      // Possibly 2 symbolic values that are equal by constraints
+
       return false;
     }
 
@@ -1329,19 +1403,36 @@ public class SMGState
     // Each state generates a unique ConstantSymbolicExpression id (as its statically generated)
     // Comparable is only that both are ConstantSymbolicExpressions and the type matches and
     // that they do represent the same location
-    if (thisValue instanceof SymbolicExpression
-        && otherValue instanceof SymbolicExpression
-        && ((SymbolicExpression) thisValue)
-            .getType()
-            .equals(((SymbolicExpression) otherValue).getType())) {
-      if (options.isAssignSymbolicValues()) {
+    if ((thisValue instanceof SymbolicExpression thisSymExpr
+        && otherValue instanceof SymbolicExpression otherSymExpr
+        && thisSymExpr.getType().equals(otherSymExpr.getType()))) {
+      // Note: SymbolicIdentifier without const expr wrapper are pointers,
+      //   while those with wrapper are values
+      if (thisValue.equals(otherValue)) {
         return true;
-      } else {
-        return thisValue.equals(otherValue);
+      } else if (treatSymbolicsAsEqualWEqualConstrains
+          && equalConstraintsInSymbolicValues(thisValue, thisState, otherValue, otherState)) {
+        // Check matching constraints
+        equalityCache.addEquality(thisValue, otherValue);
+        return true;
+      } else if (options.isTreatSymbolicValuesAsUnknown()) {
+        return true;
       }
     }
 
     return thisValue.equals(otherValue);
+  }
+
+  private boolean equalConstraintsInSymbolicValues(
+      Value pThisValue, SMGState thisState, Value pOtherValue, SMGState otherState) {
+    return !thisState.valueContainedInConstraints(pThisValue)
+        && !otherState.valueContainedInConstraints(pOtherValue);
+    // TODO: find a way to find Constraints with specific symbolic values in them
+    // TODO: build visitor that replaces symbolic values in constraints
+    // TODO: carry a SymbolicGenerator Object with all found SymbolicValues that can be replaced by
+    // it
+    //  Important/Difficulty: make sure the symbolic value relations to occurrences outside of the
+    // list are respected somehow
   }
 
   /* Check heap equality as far as possible. This has some limitations.
@@ -1365,7 +1456,9 @@ public class SMGState
       SMGState otherState,
       Value otherAddress,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisAlreadyCheckedPointers) {
+      EqualityCache<SMGObject> objectCache,
+      Set<Value> thisAlreadyCheckedPointers,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
     // Careful, dereference might materialize new memory out of abstractions!
     Optional<SMGStateAndOptionalSMGObjectAndOffset> thisDeref =
         thisState.dereferencePointerWithoutMaterilization(thisAddress);
@@ -1388,17 +1481,18 @@ public class SMGState
         return false;
       }
 
-      if (thisDerefObjAndOffset
-              .getOffsetForObject()
-              .compareTo(otherDerefObjAndOffset.getOffsetForObject())
-          != 0) {
+      Value thisObjSize = thisObj.getSize();
+      Value otherObjSize = otherObj.getSize();
+      Value thisDerefOffset = thisDerefObjAndOffset.getOffsetForObject();
+      Value otherDerefOffset = otherDerefObjAndOffset.getOffsetForObject();
+      if (!thisDerefOffset.equals(otherDerefOffset)) {
         return false;
       } else if (!thisState
           .memoryModel
           .getPointerSpecifier(thisAddress)
           .equals(otherState.memoryModel.getPointerSpecifier(otherAddress))) {
         return false;
-      } else if (!(thisObj.getSize().compareTo(otherObj.getSize()) == 0
+      } else if (!(thisObjSize.equals(otherObjSize)
           && thisObj.getNestingLevel() == otherObj.getNestingLevel()
           && thisObj.getOffset().compareTo(otherObj.getOffset()) == 0)) {
         return false;
@@ -1407,7 +1501,14 @@ public class SMGState
       if (thisObj instanceof SMGSinglyLinkedListSegment
           || otherObj instanceof SMGSinglyLinkedListSegment) {
         return checkAbstractedListEquality(
-            thisState, thisObj, otherState, otherObj, equalityCache, thisAlreadyCheckedPointers);
+            thisState,
+            thisObj,
+            otherState,
+            otherObj,
+            equalityCache,
+            objectCache,
+            thisAlreadyCheckedPointers,
+            treatSymbolicsAsEqualWEqualConstrains);
       }
 
       if (!getMemoryModel().isObjectValid(thisObj)
@@ -1416,14 +1517,27 @@ public class SMGState
         return true;
       }
 
-      return checkEqualValuesForTwoStatesWithExemptions(
+      if (objectCache.isEqualityKnown(thisObj, otherObj)) {
+        return true;
+      } else {
+        // Assume them to be equal from here on, this way we don't check them multiple times
+        // This also means we need to remove it if its found to be not equal!
+        objectCache.addEquality(thisObj, otherObj);
+      }
+
+      if (checkEqualValuesForTwoStatesWithExemptions(
           thisObj,
           otherObj,
           ImmutableList.of(),
           thisState,
           otherState,
           equalityCache,
-          thisAlreadyCheckedPointers);
+          objectCache,
+          thisAlreadyCheckedPointers,
+          treatSymbolicsAsEqualWEqualConstrains)) {
+        return true;
+      }
+      objectCache.removeEquality(thisObj, otherObj);
     }
     return false;
   }
@@ -1437,8 +1551,13 @@ public class SMGState
       SMGState otherState,
       SMGObject otherObj,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValueAlreadyVisited) {
+      EqualityCache<SMGObject> objectCache,
+      Set<Value> thisPointerValueAlreadyVisited,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
 
+    if (objectCache.isEqualityKnown(thisObj, otherObj)) {
+      return true;
+    }
     // If one is DLL and the other is SLL, something is wrong
     if ((otherObj instanceof SMGDoublyLinkedListSegment
             && !(thisObj instanceof SMGDoublyLinkedListSegment)
@@ -1470,136 +1589,15 @@ public class SMGState
             thisState,
             otherState,
             equalityCache,
-            thisPointerValueAlreadyVisited);
+            objectCache,
+            thisPointerValueAlreadyVisited,
+            treatSymbolicsAsEqualWEqualConstrains);
       }
     } else {
       // Don't check for equality of abstracted and concrete lists for lessOrEqual!
       return false;
     }
 
-    return false;
-  }
-
-  // Saved for later usage; State comparison
-  @SuppressWarnings("unused")
-  private boolean abstractedAndConcreteListEquality(
-      SMGState thisState,
-      Value thisAddress,
-      SMGObject thisObj,
-      SMGState otherState,
-      Value otherAddress,
-      SMGObject otherObj,
-      EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValuesAlreadyVisited)
-      throws SMGException {
-    // one is an abstracted list, the other is not, we check this by materializing the abstracted
-    // as long as the concrete allows
-    if (thisObj instanceof SMGSinglyLinkedListSegment thisSLL) {
-      if (thisSLL.getMinLength() <= 1) {
-        // TODO: merge with the case below (important: don't switch this and other!!!)
-        // For == 1 the next pointer might not be correct as the list materializes for reads as
-        // well
-        // hence why we need <= 1
-        // We create more than 1 state in those cases by reading the next pointer
-        // One extends the list, the other does not, only 1 has to be equal
-        List<SMGStateAndOptionalSMGObjectAndOffset> derefs =
-            thisState.dereferencePointer(thisAddress);
-        for (SMGStateAndOptionalSMGObjectAndOffset deref : derefs) {
-          List<ValueAndSMGState> readStatesAndUseless =
-              deref
-                  .getSMGState()
-                  .readValue(
-                      deref.getSMGObject(),
-                      thisSLL.getNextOffset(),
-                      memoryModel.getSizeOfPointer(),
-                      null);
-
-          for (ValueAndSMGState stateAndUseless : readStatesAndUseless) {
-            if (stateAndUseless
-                .getState()
-                .areValuesEqual(
-                    stateAndUseless.getState(),
-                    thisAddress,
-                    otherState,
-                    otherAddress,
-                    equalityCache,
-                    thisPointerValuesAlreadyVisited)) {
-              equalityCache.addEquality(thisAddress, otherAddress);
-              return true;
-            }
-          }
-        }
-
-      } else {
-
-        // This list only ever has 1 element
-        for (SMGStateAndOptionalSMGObjectAndOffset deref :
-            thisState.dereferencePointer(thisAddress)) {
-          // At least one of deref has to be true
-          return deref
-              .getSMGState()
-              .areValuesEqual(
-                  deref.getSMGState(),
-                  thisAddress,
-                  otherState,
-                  otherAddress,
-                  equalityCache,
-                  thisPointerValuesAlreadyVisited);
-        }
-      }
-    }
-
-    if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
-      if (otherSLL.getMinLength() <= 1) {
-        // For == 1 the next pointer might not be correct as the list materializes for reads as
-        // well
-        // hence why we need <= 1
-        // At least one of deref has to be true
-        // Check the stop case first (nfo == otherAddress) (cheaper)
-        List<SMGStateAndOptionalSMGObjectAndOffset> derefs =
-            otherState.dereferencePointer(otherAddress);
-        for (SMGStateAndOptionalSMGObjectAndOffset deref : derefs) {
-          List<ValueAndSMGState> readStatesAndUseless =
-              deref
-                  .getSMGState()
-                  .readValue(
-                      deref.getSMGObject(),
-                      otherSLL.getNextOffset(),
-                      memoryModel.getSizeOfPointer(),
-                      null);
-
-          for (ValueAndSMGState stateAndUseless : readStatesAndUseless) {
-            if (stateAndUseless
-                .getState()
-                .areValuesEqual(
-                    thisState,
-                    thisAddress,
-                    stateAndUseless.getState(),
-                    otherAddress,
-                    equalityCache,
-                    thisPointerValuesAlreadyVisited)) {
-              equalityCache.addEquality(thisAddress, otherAddress);
-              return true;
-            }
-          }
-        }
-      } else {
-        // this has only 1 list element always
-        for (SMGStateAndOptionalSMGObjectAndOffset deref :
-            otherState.dereferencePointer(otherAddress)) {
-          // At least one of deref has to be true
-          return deref
-              .getSMGState()
-              .areValuesEqual(
-                  thisState,
-                  thisAddress,
-                  deref.getSMGState(),
-                  otherAddress,
-                  equalityCache,
-                  thisPointerValuesAlreadyVisited);
-        }
-      }
-    }
     return false;
   }
 
@@ -1613,8 +1611,9 @@ public class SMGState
    * @param thisState the state to which the this object belongs.
    * @param otherState the state to which the other object belongs.
    * @param equalityCache basic value check cache.
+   * @param treatSymbolicsAsEqualWEqualConstrains true if you want 2 non-equal symbolic variables
+   *     with the same constraints to be treated as equals.
    * @return true if the 2 memory sections given are equal. False else.
-   * @throws SMGException for critical errors.
    */
   public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
@@ -1622,8 +1621,9 @@ public class SMGState
       ImmutableList<BigInteger> exemptOffsets,
       SMGState thisState,
       SMGState otherState,
-      EqualityCache<Value> equalityCache)
-      throws SMGException {
+      EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
     return checkEqualValuesForTwoStatesWithExemptions(
         thisObject,
         otherObject,
@@ -1631,7 +1631,61 @@ public class SMGState
         thisState,
         otherState,
         equalityCache,
-        new HashSet<>());
+        objectCache,
+        new HashSet<>(),
+        treatSymbolicsAsEqualWEqualConstrains);
+  }
+
+  /**
+   * Compare 2 values, but do not compare the exempt offsets. Compares pointers by shape of the
+   * memory they point to. Needed for lists and their next/prev pointers.
+   *
+   * @param thisObject object of the this state to compare.
+   * @param otherObject object of the other state to compare.
+   * @param exemptOffsets exempt offsets, e.g. nfo, pfo offsets.
+   * @param thisState the state to which the this object belongs.
+   * @param otherState the state to which the other object belongs.
+   * @param equalityCache basic value check cache.
+   * @return true if the 2 memory sections given are equal. False else.
+   */
+  public boolean checkEqualValuesForTwoStatesWithExemptions(
+      SMGObject thisObject,
+      SMGObject otherObject,
+      ImmutableList<BigInteger> exemptOffsets,
+      SMGState thisState,
+      SMGState otherState,
+      EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache) {
+    return checkEqualValuesForTwoStatesWithExemptions(
+        thisObject,
+        otherObject,
+        exemptOffsets,
+        thisState,
+        otherState,
+        equalityCache,
+        objectCache,
+        new HashSet<>(),
+        false);
+  }
+
+  // Test only version of checkEqualValuesForTwoStatesWithExemptions
+  public boolean checkEqualValuesForTwoStatesWithExemptions(
+      SMGObject thisObject,
+      SMGObject otherObject,
+      ImmutableList<BigInteger> exemptOffsets,
+      SMGState thisState,
+      SMGState otherState,
+      EqualityCache<Value> equalityCache) {
+    return checkEqualValuesForTwoStatesWithExemptions(
+        thisObject,
+        otherObject,
+        exemptOffsets,
+        thisState,
+        otherState,
+        equalityCache,
+        EqualityCache.of(),
+        new HashSet<>(),
+        false);
   }
 
   /**
@@ -1653,7 +1707,14 @@ public class SMGState
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache,
-      Set<Value> thisPointerValuesAlreadyVisited) {
+      EqualityCache<SMGObject> objectCache,
+      Set<Value> thisPointerValuesAlreadyVisited,
+      boolean treatSymbolicsAsEqualWEqualConstrains) {
+
+    Preconditions.checkArgument(
+        thisState.getMemoryModel().getSmg().getObjects().contains(thisObject));
+    Preconditions.checkArgument(
+        otherState.getMemoryModel().getSmg().getObjects().contains(otherObject));
 
     Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
     for (SMGHasValueEdge hve :
@@ -1669,6 +1730,7 @@ public class SMGState
 
     Map<BigInteger, SMGHasValueEdge> thisOffsetToHVEdgeMap = new HashMap<>();
 
+    // Check all HVEs for this object are present in other object
     for (SMGHasValueEdge hve :
         thisState
             .memoryModel
@@ -1679,7 +1741,8 @@ public class SMGState
         thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
         if (memoryModel.getSmg().isPointer(hve.hasValue())) {
           // Pointers are necessary!!!!
-          if (otherOffsetToHVEdgeMap.get(hve.getOffset()) == null) {
+          SMGHasValueEdge otherHVE = otherOffsetToHVEdgeMap.get(hve.getOffset());
+          if (otherHVE == null) {
             return false;
           }
         }
@@ -1692,6 +1755,10 @@ public class SMGState
       SMGHasValueEdge thisHVE = thisOffsetToHVEdgeMap.get(otherOffset);
       if (thisHVE == null || thisHVE.getSizeInBits().compareTo(otherHVE.getSizeInBits()) != 0) {
         return false;
+      }
+      if (thisObject instanceof SMGSinglyLinkedListSegment
+          && otherObject instanceof SMGSinglyLinkedListSegment) {
+        treatSymbolicsAsEqualWEqualConstrains = true;
       }
       // Check the Value (not the SMGValue!). If a SMGValue exists, a Value mapping exists.
       Value otherHVEValue =
@@ -1706,7 +1773,9 @@ public class SMGState
           otherState,
           otherHVEValue,
           equalityCache,
-          thisPointerValuesAlreadyVisited)) {
+          objectCache,
+          thisPointerValuesAlreadyVisited,
+          treatSymbolicsAsEqualWEqualConstrains)) {
         return false;
       }
       // They are equal, we don't need to check it again later
@@ -1718,7 +1787,7 @@ public class SMGState
       BigInteger thisOffset = thisHVEAndOffset.getKey();
       SMGHasValueEdge thisHVE = thisHVEAndOffset.getValue();
       SMGHasValueEdge otherHVE = otherOffsetToHVEdgeMap.get(thisOffset);
-      if (otherHVE == null || thisHVE.getSizeInBits().compareTo(thisHVE.getSizeInBits()) != 0) {
+      if (otherHVE == null || thisHVE.getSizeInBits().compareTo(otherHVE.getSizeInBits()) != 0) {
         return false;
       }
       // Check the Value (not the SMGValue!). If a SMGValue exists, a Value mapping exists.
@@ -1735,7 +1804,9 @@ public class SMGState
           otherState,
           otherHVEValue,
           equalityCache,
-          thisPointerValuesAlreadyVisited)) {
+          objectCache,
+          thisPointerValuesAlreadyVisited,
+          treatSymbolicsAsEqualWEqualConstrains)) {
         return false;
       }
       equalityCache.addEquality(thisHVEValue, otherHVEValue);
@@ -1746,15 +1817,6 @@ public class SMGState
   public boolean hasMemoryErrors() {
     for (SMGErrorInfo info : errorInfo) {
       if (info.hasMemoryErrors()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public boolean hasMemoryLeaks() {
-    for (SMGErrorInfo info : errorInfo) {
-      if (info.hasMemoryLeak()) {
         return true;
       }
     }
@@ -1775,6 +1837,57 @@ public class SMGState
       return true;
     }
     return memoryModel.proveInequality(smgValue1.orElseThrow(), smgValue2.orElseThrow());
+  }
+
+  /**
+   * True iff both values are pointers pointing to the same memory region. Offset does not matter!
+   *
+   * @param pValue1 a pointer {@link Value}
+   * @param pValue2 a pointer {@link Value}
+   * @return true iff both point to the same memory region.
+   */
+  public boolean pointsToSameMemoryRegion(Value pValue1, Value pValue2) {
+    if (!memoryModel.isPointer(pValue1) || !memoryModel.isPointer(pValue2)) {
+      return false;
+    }
+
+    Optional<SMGValue> maybeSmgValue1 = memoryModel.getSMGValueFromValue(pValue1);
+    Optional<SMGValue> maybeSmgValue2 = memoryModel.getSMGValueFromValue(pValue2);
+    if (maybeSmgValue1.isEmpty() || maybeSmgValue2.isEmpty()) {
+      return false;
+    }
+
+    SMGValue smgValue1 = maybeSmgValue1.orElseThrow();
+    SMGValue smgValue2 = maybeSmgValue2.orElseThrow();
+
+    SMGPointsToEdge targetEdge1 = memoryModel.getSmg().getPTEdge(smgValue1).orElseThrow();
+    SMGPointsToEdge targetEdge2 = memoryModel.getSmg().getPTEdge(smgValue2).orElseThrow();
+    if (targetEdge1.pointsTo().equals(targetEdge2.pointsTo())) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Returns the offset of a pointer in relation to the beginning of a memory region. Or UNKNOWN if
+   * some error happens.
+   *
+   * @param pValue some {@link Value} that may be a pointer.
+   * @return UNKNOWN or a {@link NumericValue} that is the offset.
+   */
+  public Value getPointerOffset(Value pValue) {
+    if (!memoryModel.isPointer(pValue)) {
+      return UnknownValue.getInstance();
+    }
+
+    Optional<SMGValue> maybeSmgValue1 = memoryModel.getSMGValueFromValue(pValue);
+    if (maybeSmgValue1.isEmpty()) {
+      return UnknownValue.getInstance();
+    }
+
+    SMGValue smgValue = maybeSmgValue1.orElseThrow();
+    SMGPointsToEdge targetEdge = memoryModel.getSmg().getPTEdge(smgValue).orElseThrow();
+    return new NumericValue(targetEdge.getOffset());
   }
 
   /** Logs the error entered using the states logger. */
@@ -1812,24 +1925,51 @@ public class SMGState
       return this;
     }
 
-    return copyAndReplaceMemoryModel(newHeap).copyWithMemLeak(unreachableObjects);
+    return copyAndReplaceMemoryModel(newHeap).copyWithMemLeak(unreachableObjects, null);
+  }
+
+  public SMGState copyAndPruneUnreachable(CFAEdge edge) {
+    SPCAndSMGObjects newHeapAndUnreachables = memoryModel.copyAndPruneUnreachable();
+    SymbolicProgramConfiguration newHeap = newHeapAndUnreachables.getSPC();
+    Collection<SMGObject> unreachableObjects =
+        newHeapAndUnreachables.getSMGObjects().stream()
+            .filter(o -> !o.isConstStringMemory())
+            .collect(ImmutableList.toImmutableList());
+
+    if (unreachableObjects.isEmpty()) {
+      return this;
+    }
+    for (SMGObject unreachable : unreachableObjects) {
+      if (unreachable instanceof SMGSinglyLinkedListSegment sll && sll.getMinLength() == 0) {
+        throw new UnsupportedOperationException(
+            "Error in tracking abstracted list memory for materialization.");
+      }
+    }
+
+    return copyAndReplaceMemoryModel(newHeap).copyWithMemLeak(unreachableObjects, edge);
   }
 
   /*
-   * Remove the entered object from the heap and general memory mappings.
-   * Also all has-value-edges are pruned. Nothing else.
+   * Remove the entered object from the heap and delete it internally and general memory mappings.
+   * Also, all has-value-edges are pruned. Nothing else.
    */
-  public SMGState copyAndRemoveObjectFromHeap(SMGObject obj) {
-    return copyAndReplaceMemoryModel(memoryModel.copyAndRemoveObjectFromHeap(obj));
+  public SMGState copyAndRemoveAbstractedObjectFromHeap(SMGObject obj) {
+    return copyAndReplaceMemoryModel(memoryModel.copyAndRemoveAbstractedObjectFromHeap(obj));
   }
 
   /*
-   * Copy the state with an error attached. This method is used for memory leaks, meaning its a non fatal error.
+   * Copy the state with an error attached. This method is used for memory leaks, meaning it is a
+   *  non-fatal error.
    */
-  private SMGState copyWithMemLeak(Collection<SMGObject> leakedObjects) {
+  private SMGState copyWithMemLeak(Collection<SMGObject> leakedObjects, @Nullable CFAEdge edge) {
+
     String leakedObjectsLabels =
         leakedObjects.stream().map(Object::toString).collect(Collectors.joining(","));
-    String errorMSG = "Memory leak of " + leakedObjectsLabels + " is detected.";
+    String errorMSG = "Memory leak of " + leakedObjectsLabels + " is detected";
+    if (edge != null) {
+      errorMSG = errorMSG + " in line " + edge.getFileLocation().getStartingLineInOrigin();
+    }
+    errorMSG = errorMSG + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_HEAP)
@@ -1874,6 +2014,19 @@ public class SMGState
    */
   public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress) {
     String errorMSG = "Unknown value pointer dereference for value: " + unknownAddress + ".";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(unknownAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress, CFAEdge edge) {
+    String errorMSG =
+        "Unknown value pointer dereference for value: " + unknownAddress + " at " + edge;
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
@@ -2117,11 +2270,7 @@ public class SMGState
    * @return A new SMGState with the error info.
    */
   public SMGState withOutOfRangeWrite(
-      SMGObject objectWrittenTo,
-      BigInteger writeOffset,
-      BigInteger writeSize,
-      Value pValue,
-      CFAEdge edge) {
+      SMGObject objectWrittenTo, Value writeOffset, Value writeSize, Value pValue, CFAEdge edge) {
 
     if (getMemoryModel().isHeapObject(objectWrittenTo)) {
       // Invalid deref
@@ -2130,9 +2279,60 @@ public class SMGState
 
     int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
     String errorMSG =
-        String.format(
-            "Try writing value %s with size %d at offset %d bit to object sized %d bit in line %d.",
-            pValue.toString(), writeSize, writeOffset, objectWrittenTo.getSize(), lineInOrigin);
+        "Try writing value "
+            + pValue
+            + " with size "
+            + writeSize
+            + " at offset "
+            + writeOffset
+            + " bit to object sized "
+            + objectWrittenTo.getSize()
+            + " bit in line "
+            + lineInOrigin
+            + ".";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_WRITE)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectWrittenTo));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  /**
+   * Copy and update this {@link SMGState} with an error resulting from trying to write outside of
+   * the range of the {@link SMGObject}. Returns an updated state with the error in it.
+   *
+   * @param objectWrittenTo the {@link SMGObject} that should have been written to.
+   * @param writeOffset The offset in bits where you want to write the {@link Value} to.
+   * @param writeSize the size of the {@link Value} in bits.
+   * @param pValue the {@link Value} you wanted to write.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withOutOfRangeWrite(
+      SMGObject objectWrittenTo,
+      Value writeOffset,
+      BigInteger writeSize,
+      Value pValue,
+      CFAEdge edge) {
+
+    if (writeOffset.isNumericValue()) {
+      return withOutOfRangeWrite(objectWrittenTo, writeOffset, writeSize, pValue, edge);
+    }
+
+    // TODO: get model for offset
+    int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
+    String errorMSG =
+        "Try writing value "
+            + pValue
+            + " with size "
+            + writeSize
+            + " at unknown possible offset bit to object sized "
+            + objectWrittenTo.getSize()
+            + " bit in line "
+            + lineInOrigin
+            + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
@@ -2150,10 +2350,11 @@ public class SMGState
 
     int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
     String errorMSG =
-        String.format("valid-deref: invalid pointer dereference in line %d", lineInOrigin);
+        String.format(
+            "valid-deref: invalid pointer dereference in line %d with: " + edge, lineInOrigin);
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
-            .withProperty(Property.INVALID_HEAP)
+            .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(objectDerefed));
     // Log the error in the logger
@@ -2166,16 +2367,82 @@ public class SMGState
    * the range of the {@link SMGObject}. Returns an updated state with the error in it.
    *
    * @param objectRead the {@link SMGObject} that should have been read.
-   * @param readOffset The offset in bits as {@link BigInteger} where you want to read.
+   * @param readOffset The offset in bits as {@link Value} where you want to read. Might be
+   *     symbolic!
    * @param readSize the size of the type in bits to read as {@link BigInteger}.
    * @return A new SMGState with the error info.
    */
+  public SMGState withOutOfRangeRead(SMGObject objectRead, Value readOffset, Value readSize) {
+    // TODO: extract model for readOffset and print here
+    if (readOffset.isNumericValue() && readSize.isNumericValue()) {
+      return withOutOfRangeRead(
+          objectRead,
+          readOffset.asNumericValue().bigIntegerValue(),
+          readSize.asNumericValue().bigIntegerValue());
+    }
+    String errorMSG =
+        "Try reading object "
+            + objectRead
+            + " with size "
+            + objectRead.getSize()
+            + " bits at offset "
+            + readOffset
+            + " bit with read type size "
+            + readSize
+            + " bit";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectRead));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
   public SMGState withOutOfRangeRead(
       SMGObject objectRead, BigInteger readOffset, BigInteger readSize) {
+    // TODO: extract model for readOffset and print here
+    String sizeToPrint = objectRead.getSize().toString();
+    if (objectRead.getSize().isNumericValue()) {
+      sizeToPrint = objectRead.getSize().asNumericValue().bigIntegerValue().toString();
+    }
     String errorMSG =
-        String.format(
-            "Try reading object %s with size %d bits at offset %d bit with read type size %d bit",
-            objectRead, objectRead.getSize(), readOffset, readSize);
+        "Try reading object "
+            + objectRead
+            + " with size "
+            + sizeToPrint
+            + " bits at offset "
+            + readOffset
+            + " bit with read type size "
+            + readSize
+            + " bit";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectRead));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  public SMGState withOutOfRangeRead(SMGObject objectRead, Value readOffset, BigInteger readSize) {
+    // TODO: extract model for readOffset and print here
+    if (readOffset.isNumericValue()) {
+      return withOutOfRangeRead(
+          objectRead, readOffset.asNumericValue().bigIntegerValue(), readSize);
+    }
+    String errorMSG =
+        "Try reading object "
+            + objectRead
+            + " with size "
+            + objectRead.getSize()
+            + " bits at offset "
+            + readOffset
+            + " bit with read type size "
+            + readSize
+            + " bit";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
@@ -2258,10 +2525,10 @@ public class SMGState
         options,
         pNewErrorInfo,
         materializer,
-        constraints,
-        lastAddedConstraint,
-        definiteAssignment,
-        lastModelAsAssignment);
+        lastCheckedMemoryAccess,
+        constraintsState,
+        evaluator,
+        statistics);
   }
 
   /** Returns memory model, including Heap, stack and global vars. */
@@ -2272,7 +2539,7 @@ public class SMGState
   /**
    * Add the {@link Value} mapping if it was not mapped to a {@link SMGValue}, if it was already
    * present the state is unchanged and the known {@link SMGValue} returned. The {@link SMGValue} is
-   * not added to the SPC yet, writeValue() will do that.
+   * also added to the SMG with nesting level 0 if not present.
    *
    * @param pValue the {@link Value} you want to add to the SPC.
    * @return a copy of the current {@link SMGState} with the mapping of the {@link Value} to its
@@ -2286,8 +2553,53 @@ public class SMGState
     } else {
       SMGValue newSMGValue = SMGValue.of();
       return SMGValueAndSMGState.of(
-          copyAndReplaceMemoryModel(memoryModel.copyAndPutValue(pValue, newSMGValue)), newSMGValue);
+          copyAndReplaceMemoryModel(memoryModel.copyAndPutValue(pValue, newSMGValue, 0)),
+          newSMGValue);
     }
+  }
+
+  public boolean valueContainedInConstraints(Value pValue) {
+    // TODO: this currently is a quick and dirty fix. Do properly.
+    Set<SymbolicIdentifier> symIdents = ImmutableSet.of();
+    if (pValue instanceof SymbolicExpression symExpr) {
+      symIdents = symExpr.accept(SymbolicIdentifierLocator.getInstance());
+    }
+    Set<Constraint> constraints = getConstraints();
+    if (!symIdents.isEmpty()) {
+      for (Constraint co : constraints) {
+        Set<SymbolicIdentifier> symIdentsConstr =
+            co.accept(SymbolicIdentifierLocator.getInstance());
+        if (!Collections.disjoint(symIdentsConstr, symIdents)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Add the {@link Value} mapping if it was not mapped to a {@link SMGValue}, if it was already
+   * present the state is changed to the new nesting level and the known {@link SMGValue} returned.
+   * The {@link SMGValue} is also added to the SMG with the nesting level given if not already in
+   * the SMG.
+   *
+   * @param pValue the {@link Value} you want to add to the SPC.
+   * @param nestingLevel the new nesting level for the SMG value.
+   * @return a copy of the current {@link SMGState} with the mapping of the {@link Value} to its
+   *     {@link SMGValue} entered if it was not mapped, if it was already present the state is
+   *     changed so that the nesting level is updated and the known {@link SMGValue} is returned.
+   */
+  public SMGValueAndSMGState copyAndAddValue(Value pValue, int nestingLevel) {
+    Optional<SMGValue> maybeValue = memoryModel.getSMGValueFromValue(pValue);
+    SMGValue newSMGValue;
+    if (maybeValue.isPresent()) {
+      newSMGValue = maybeValue.orElseThrow();
+    } else {
+      newSMGValue = SMGValue.of();
+    }
+    return SMGValueAndSMGState.of(
+        copyAndReplaceMemoryModel(memoryModel.copyAndPutValue(pValue, newSMGValue, nestingLevel)),
+        newSMGValue);
   }
 
   public List<SMGErrorInfo> getErrorInfo() {
@@ -2302,16 +2614,16 @@ public class SMGState
    * @param pValue - the given Value representation of the address.
    * @return the SMGObject which the address points to, or empty if none is found.
    */
-  public Optional<SMGObjectAndOffset> getPointsToTarget(Value pValue) {
+  public Optional<SMGObjectAndOffsetMaybeNestingLvl> getPointsToTarget(Value pValue) {
     Optional<SMGValue> addressOptional = memoryModel.getSMGValueFromValue(pValue);
     if (addressOptional.isPresent()) {
       Optional<SMGPointsToEdge> pointerEdgeOptional =
           memoryModel.getSmg().getPTEdge(addressOptional.orElseThrow());
       if (pointerEdgeOptional.isPresent()) {
         return Optional.of(
-            SMGObjectAndOffset.of(
+            SMGObjectAndOffsetMaybeNestingLvl.of(
                 pointerEdgeOptional.orElseThrow().pointsTo(),
-                pointerEdgeOptional.orElseThrow().getOffset()));
+                new NumericValue(pointerEdgeOptional.orElseThrow().getOffset())));
       }
     }
     return Optional.empty();
@@ -2329,16 +2641,20 @@ public class SMGState
       if (offsetAddr.isNumericValue()) {
         BigInteger offsetAddrBI = offsetAddr.asNumericValue().bigIntegerValue();
         if (offsetAddrBI.compareTo(BigInteger.ZERO) != 0) {
-          Optional<SMGObjectAndOffset> maybeTargetAndOffset =
+          Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
               getPointsToTarget(addressExprValue.getMemoryAddress());
           if (maybeTargetAndOffset.isEmpty()) {
             return ValueAndSMGState.ofUnknownValue(this);
           }
-          SMGObjectAndOffset targetAndOffset = maybeTargetAndOffset.orElseThrow();
+          SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeTargetAndOffset.orElseThrow();
 
           SMGObject target = targetAndOffset.getSMGObject();
-          BigInteger offsetPointer = targetAndOffset.getOffsetForObject();
-          BigInteger offsetOverall = offsetPointer.add(offsetAddrBI);
+          Value offsetPointer = targetAndOffset.getOffsetForObject();
+          if (!offsetPointer.isNumericValue()) {
+            return ValueAndSMGState.ofUnknownValue(this);
+          }
+          BigInteger offsetOverall =
+              offsetPointer.asNumericValue().bigIntegerValue().add(offsetAddrBI);
           // search for existing pointer first and return if found; else make a new one
           ValueAndSMGState addressAndState = searchOrCreateAddress(target, offsetOverall);
           return ValueAndSMGState.of(
@@ -2354,29 +2670,49 @@ public class SMGState
   }
 
   /**
+   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them.
+   * If none can be found a new address (SMGPointsToEdge) is created and returned as Value (Not
+   * AddressExpression).
+   *
+   * @param targetObject {@link SMGObject} target.
+   * @param offsetInBits Offset in the target as BigInt.
+   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
+   */
+  public ValueAndSMGState searchOrCreateAddress(SMGObject targetObject, BigInteger offsetInBits) {
+    assert !targetObject.isSLL();
+    return searchOrCreateAddress(targetObject, offsetInBits, 0);
+  }
+
+  /**
    * Takes a target and offset and tries to find a address (not AddressExpression) that fits them.
    * If none can be found a new address (SMGPointsToEdge) is created and returned as Value (Not
    * AddressExpression).
    *
    * @param targetObject {@link SMGObject} target.
    * @param offsetInBits Offset as BigInt.
+   * @param pointerNestingLevel new pointer nesting level
    * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
    */
-  public ValueAndSMGState searchOrCreateAddress(SMGObject targetObject, BigInteger offsetInBits) {
+  public ValueAndSMGState searchOrCreateAddress(
+      SMGObject targetObject, BigInteger offsetInBits, int pointerNestingLevel) {
+    Preconditions.checkArgument(pointerNestingLevel >= 0);
     // search for existing pointer first and return if found
     Optional<SMGValue> maybeAddressValue =
-        getMemoryModel().getAddressValueForPointsToTarget(targetObject, offsetInBits);
+        getMemoryModel()
+            .getAddressValueForPointsToTarget(targetObject, offsetInBits, pointerNestingLevel);
 
     if (maybeAddressValue.isPresent()) {
       Optional<Value> valueForSMGValue =
           getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
+      Preconditions.checkArgument(
+          memoryModel.getNestingLevel(valueForSMGValue.orElseThrow()) == pointerNestingLevel);
       // Reuse pointer; there should never be a SMGValue without counterpart!
-      // TODO: this might actually be expensive, check once this runs!
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
     }
 
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
-    SMGState newState = createAndAddPointer(addressValue, targetObject, offsetInBits);
+    SMGState newState =
+        createAndAddPointer(addressValue, targetObject, offsetInBits, pointerNestingLevel);
     return ValueAndSMGState.of(addressValue, newState);
   }
 
@@ -2384,13 +2720,14 @@ public class SMGState
    * Read the value in the {@link SMGObject} at the position specified by the offset and size.
    * Checks for validity of the object and if its externally allocated and may fail because of that.
    * The read {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the
-   * known value is used, unknown symbolic else. Might materialize a list if a abstracted 0+ list is
-   * read.
+   * known value is used, unknown symbolic else. Might materialize a list if an abstracted list is
+   * read (Materializes if we read a pointer to an abstract list that does not point towards the
+   * head).
    *
    * @param pObject {@link SMGObject} where to read. May not be 0.
    * @param pFieldOffset {@link BigInteger} offset.
    * @param pSizeofInBits {@link BigInteger} sizeInBits.
-   * @param readType the {@link CType} of the read. Not casted! Null for irrelevant types.
+   * @param readType the {@link CType} of the read. Not cast! Null for irrelevant types.
    * @return The {@link Value} read and the {@link SMGState} after the read.
    * @throws SMGException for critical errors if a list is materialized.
    */
@@ -2400,20 +2737,71 @@ public class SMGState
       BigInteger pSizeofInBits,
       @Nullable CType readType)
       throws SMGException {
+
+    return readValue(
+        pObject, pFieldOffset, pSizeofInBits, readType, options.isPreciseSMGRead(), true);
+  }
+
+  /**
+   * Read the value in the {@link SMGObject} at the position specified by the offset and size.
+   * Checks for validity of the object and if its externally allocated and may fail because of that.
+   * The read {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the
+   * known value is used, unknown symbolic else. Might materialize a list if an abstracted list is
+   * read (Materializes if we read a pointer to an abstract list that does not point towards the
+   * head).
+   *
+   * @param pObject {@link SMGObject} where to read. May not be 0.
+   * @param pFieldOffset {@link BigInteger} offset.
+   * @param pSizeofInBits {@link BigInteger} sizeInBits.
+   * @param readType the {@link CType} of the read. Not cast! Null for irrelevant types.
+   * @param preciseRead if true, tries to read partial has value edges (e.g. read a short from an
+   *     int)
+   * @param materialize if true, materializes correctly. Never materializes on false.
+   * @return The {@link Value} read and the {@link SMGState} after the read.
+   * @throws SMGException for critical errors if a list is materialized.
+   */
+  public List<ValueAndSMGState> readValue(
+      SMGObject pObject,
+      BigInteger pFieldOffset,
+      BigInteger pSizeofInBits,
+      @Nullable CType readType,
+      boolean preciseRead,
+      boolean materialize)
+      throws SMGException {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ImmutableList.of(
           ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject)));
     }
-    SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
+    SMGHasValueEdgesAndSPC valueAndNewSPC =
+        memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits, preciseRead);
     // Try to translate the SMGValue to a Value or create a new mapping (the same read on the same
     // object/offset/size yields the same SMGValue, so it should return the same Value)
     SMGState currentState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
     // Only use the new state for changes!
-    SMGValue readSMGValue = valueAndNewSPC.getSMGValue();
+    // Only 1 for now, change once we support more
+    if (valueAndNewSPC.getSMGHasValueEdges().size() > 1) {
+      // TODO: implement all cases
+      logger.log(
+          Level.FINE,
+          "Failed to accurately read type "
+              + readType
+              + " from memory, as multiple values would need to be combined. The analysis defaulted"
+              + " back to symbolic read.");
+      return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
+    }
+    SMGHasValueEdge readSMGValueEdge = valueAndNewSPC.getSMGHasValueEdges().get(0);
+    boolean exactRead =
+        readSMGValueEdge.getOffset().equals(pFieldOffset)
+            && readSMGValueEdge.getSizeInBits().equals(pSizeofInBits);
+    SMGValue readSMGValue = readSMGValueEdge.hasValue();
     ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     if (memoryModel.getSmg().isPointer(readSMGValue)
-        && memoryModel.getSmg().pointsToZeroPlus(readSMGValue)) {
-      // 0+ needs Materialization as we generate 2 states, one of which deleted the 0+, and for this
+        && memoryModel.getSmg().pointsToMaterializableList(readSMGValue, pFieldOffset)
+        && exactRead
+        && materialize) {
+      // TODO: do we need to materialize if the object read is abstract (and we read non head)?
+      // Materialize for all pointers towards an abstracted list, excluding the hfo offset
+      // Materialization might generate 2 states, one of which deleted the 0+, and for this
       // state the read value is wrong!
       for (SMGStateAndOptionalSMGObjectAndOffset newState :
           materializeLinkedList(
@@ -2422,35 +2810,79 @@ public class SMGState
               currentState)) {
         // This is expected not to Materialize again
         List<ValueAndSMGState> readAfterMat =
-            newState.getSMGState().readValue(pObject, pFieldOffset, pSizeofInBits, readType);
+            newState
+                .getSMGState()
+                .readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
         Preconditions.checkArgument(readAfterMat.size() == 1);
         returnBuilder.addAll(readAfterMat);
       }
     } else {
+      Optional<Value> maybeValue = getMemoryModel().getValueFromSMGValue(readSMGValue);
+      if (!exactRead) {
+        if (maybeValue.isEmpty()) {
+          return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
+        } else {
+          // Interpret the larger value as a smaller
+          // TODO: general case with overlapping values
+          Value valueInterpretation =
+              currentState.transformSingleHVEdgeToTargetValue(
+                  readSMGValueEdge, pFieldOffset, pSizeofInBits);
+          if (valueInterpretation.isUnknown()) {
+            logger.log(
+                Level.FINE,
+                "Failed to accurately read type "
+                    + readType
+                    + " from memory and default back to symbolic read.");
+            return readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
+          }
+          returnBuilder.add(ValueAndSMGState.of(valueInterpretation, currentState));
+          return returnBuilder.build();
+        }
+      }
       returnBuilder.add(currentState.handleReadSMGValue(readSMGValue, readType));
     }
     return returnBuilder.build();
   }
 
-  // Similar to readValue but without materialization. For internal == comparisons.
+  /**
+   * This method does not check the boundaries of the read! Reads without materialization. Read the
+   * value in the {@link SMGObject} at the position specified by the offset and size. Checks for
+   * validity of the object and if its externally allocated and may fail because of that. The read
+   * {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the known
+   * value is used, unknown symbolic else.
+   *
+   * @param pObject {@link SMGObject} where to read. May not be 0.
+   * @param pFieldOffset {@link BigInteger} offset.
+   * @param pSizeofInBits {@link BigInteger} sizeInBits.
+   * @param readType the {@link CType} of the read. Not cast! Null for irrelevant types.
+   * @return The {@link Value} read and the {@link SMGState} after the read.
+   * @throws SMGException for critical errors if a list is materialized.
+   */
   public ValueAndSMGState readValueWithoutMaterialization(
       SMGObject pObject,
       BigInteger pFieldOffset,
       BigInteger pSizeofInBits,
-      @Nullable CType readType) {
+      @Nullable CType readType)
+      throws SMGException {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject));
     }
-    SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
+    // TODO: it is a assumption that we don't need precise reads here, as the top value needs to be
+    // the same?
+    SMGHasValueEdgesAndSPC valueAndNewSPC =
+        memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits, false);
     // Try to translate the SMGValue to a Value or create a new mapping (the same read on the same
     // object/offset/size yields the same SMGValue, so it should return the same Value)
     SMGState currentState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
     // Only use the new state for changes!
-    SMGValue readSMGValue = valueAndNewSPC.getSMGValue();
+    assert valueAndNewSPC.getSMGHasValueEdges().get(0).getOffset().equals(pFieldOffset)
+        && valueAndNewSPC.getSMGHasValueEdges().get(0).getSizeInBits().equals(pSizeofInBits);
+    SMGValue readSMGValue = valueAndNewSPC.getSMGHasValueEdges().get(0).hasValue();
 
     return currentState.handleReadSMGValue(readSMGValue, readType);
   }
 
+  // Expects an exact read
   private ValueAndSMGState handleReadSMGValue(SMGValue readSMGValue, @Nullable CType readType) {
     Optional<Value> maybeValue = getMemoryModel().getValueFromSMGValue(readSMGValue);
     if (maybeValue.isPresent()) {
@@ -2463,30 +2895,126 @@ public class SMGState
         valueRead = castValueForUnionFloatConversion(valueRead, readType);
       }
       return ValueAndSMGState.of(valueRead, this);
+
+    } else {
+      // If there is no Value for the SMGValue, we need to create it as an unknown, map it and
+      // return
+      Value unknownValue = getNewSymbolicValueForType(readType);
+      return ValueAndSMGState.of(
+          unknownValue,
+          copyAndReplaceMemoryModel(
+              getMemoryModel().copyAndPutValue(unknownValue, readSMGValue, 0)));
     }
-    // If there is no Value for the SMGValue, we need to create it as an unknown, map it and return
-    Value unknownValue = getNewSymbolicValueForType(readType);
-    return ValueAndSMGState.of(
-        unknownValue,
-        copyAndReplaceMemoryModel(getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
+  }
+
+  // Expects a (single) read SMGHasValueEdge that was not exact (to the offset/size read) and needs
+  // to be cut to size
+  private Value transformSingleHVEdgeToTargetValue(
+      SMGHasValueEdge readSMGHVValue, BigInteger readOffset, BigInteger readSizeInBits)
+      throws SMGException {
+    Value value = getMemoryModel().getValueFromSMGValue(readSMGHVValue.hasValue()).orElseThrow();
+    int shiftRight;
+    if (machineModel.getEndianness().equals(ByteOrder.LITTLE_ENDIAN)) {
+      // Little Endian = Least significant value is stored first
+      shiftRight = readOffset.intValueExact() - readSMGHVValue.getOffset().intValueExact();
+      if (shiftRight < 0) {
+        // Read larger edge on smaller, not supported
+        return UnknownValue.getInstance();
+      }
+      assert shiftRight >= 0;
+      assert shiftRight <= readSMGHVValue.getSizeInBits().intValueExact();
+    } else {
+      // Big Endian = Most significant value is stored first in big endian
+      // example: 00000001 is 1
+      int offsetDif = readOffset.intValueExact() - readSMGHVValue.getOffset().intValueExact();
+      Preconditions.checkArgument(offsetDif >= 0);
+      shiftRight =
+          readSMGHVValue
+              .getOffset()
+              .add(readSMGHVValue.getSizeInBits())
+              .subtract(readOffset.add(readSizeInBits))
+              .intValueExact();
+      assert readSMGHVValue.getOffset().add(readSMGHVValue.getSizeInBits()).intValueExact()
+          >= readOffset.add(readSizeInBits).intValueExact();
+      assert machineModel.getEndianness().equals(ByteOrder.BIG_ENDIAN);
+    }
+
+    // We have a partial read of the value given. We can just shift the value a few times until only
+    // the relevant bits are left.
+    if (value.isNumericValue()) {
+      if (value.asNumericValue().bigIntegerValue().compareTo(BigInteger.valueOf(Long.MAX_VALUE))
+              <= 0
+          && value.asNumericValue().bigIntegerValue().compareTo(BigInteger.valueOf(Long.MIN_VALUE))
+              >= 0) {
+        // long
+        long longValue = value.asNumericValue().bigIntegerValue().longValueExact();
+        long mask = getMask(readSizeInBits);
+        return new NumericValue(BigInteger.valueOf(((longValue >>> shiftRight) & mask)));
+
+      } else {
+        // larger than long
+        // TODO: can we handle this in Java?
+
+      }
+    } else if (!value.isUnknown()) {
+      // Some symbolic value. Wrap in symbolic shift operations
+      // TODO:
+      String msg =
+          "Partial read of symbolic value detected. Overapproximated due to missing"
+              + " implementation.";
+      logger.log(Level.INFO, msg);
+      throw new UnsupportedOperationException(
+          "Symbolic handling of partial reads are not supported at the moment.");
+      // SymbolicValueFactory vF = SymbolicValueFactory.getInstance();
+      // asConstant needed?
+      /*
+      return vF.binaryAnd(vF.shiftRightUnsigned(value, new NumericValue(shiftRight), , ),
+              new NumericValue(getMask(readSizeInBits), , ));
+              */
+
+      // TODO: As we are interpreting this as BV, we could use extract()
+    }
+
+    // Fallthrough. Unknown value -> unknown value
+    return UnknownValue.getInstance();
+  }
+
+  private static long getMask(BigInteger readSizeInBits) throws SMGException {
+    int readSize = readSizeInBits.intValueExact();
+    long mask;
+    switch (readSize) {
+      case 1 -> mask = 1;
+      case 2 -> mask = 3;
+      case 4 -> mask = 0x0000000F;
+      case 8 -> mask = 0x000000FF;
+      case 16 -> mask = 0x0000FFFF;
+      case 32 -> mask = 0xFFFFFFFF;
+      case 64 -> mask = -1;
+      default -> throw new SMGException("Unhandled bit size in partial memory read.");
+    }
+    return mask;
   }
 
   /*
    * Only to be used by abstraction and tests! This will not materialize anything!
    */
   public SMGValueAndSMGState readSMGValue(
-      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
-    SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
+      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) throws SMGException {
+    SMGHasValueEdgesAndSPC valueAndNewSPC =
+        memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits, false);
     SMGState newState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
-    SMGValue readSMGValue = valueAndNewSPC.getSMGValue();
+    SMGValue readSMGValue = valueAndNewSPC.getSMGHasValueEdges().get(0).hasValue();
     // This might create SMGValues without Value counterparts as part of this read (the abstraction
     // might have deleted a previous value)
     if (newState.memoryModel.getValueFromSMGValue(readSMGValue).isEmpty()) {
-      // TODO: clean this dirty fix
-      Value unknownValue = getNewSymbolicValueForType(null);
+      // The type should always be a pointer
+      CType pointerType = CPointerType.POINTER_TO_VOID;
+      BigInteger sizeOfPointer = machineModel.getSizeofInBits(pointerType);
+      Preconditions.checkArgument(sizeOfPointer.equals(pSizeofInBits));
+      Value unknownValue = getNewSymbolicValueForType(pointerType);
       return SMGValueAndSMGState.of(
           copyAndReplaceMemoryModel(
-              newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)),
+              newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue, 0)),
           readSMGValue);
     }
     return SMGValueAndSMGState.of(newState, readSMGValue);
@@ -2514,6 +3042,18 @@ public class SMGState
     }
     Number num = value.asNumericValue().getNumber();
     return num instanceof Float || num instanceof Double || num == NegativeNaN.VALUE;
+  }
+
+  public boolean isLastPtr(SMGValue pointer) {
+    Preconditions.checkArgument(memoryModel.getSmg().isPointer(pointer));
+    return memoryModel.getSmg().getPTEdge(pointer).orElseThrow().targetSpecifier()
+        == SMGTargetSpecifier.IS_LAST_POINTER;
+  }
+
+  public boolean isFirstPtr(SMGValue pointer) {
+    Preconditions.checkArgument(memoryModel.getSmg().isPointer(pointer));
+    return memoryModel.getSmg().getPTEdge(pointer).orElseThrow().targetSpecifier()
+        == SMGTargetSpecifier.IS_FIRST_POINTER;
   }
 
   /**
@@ -2601,8 +3141,9 @@ public class SMGState
       sanitizedAddressToFree = addressExpr.getMemoryAddress();
 
       if (!addressExpr.getOffset().isNumericValue()) {
-        // TODO: return a freed and a unfreed state?
-        return ImmutableList.of(this);
+        // return a freed and an unfreed state for not numeric values
+        return ImmutableList.of(
+            this, withInvalidFree("Invalid free of unallocated object is found.", addressToFree));
       }
       baseOffset = addressExpr.getOffset().asNumericValue().bigIntegerValue();
     }
@@ -2642,7 +3183,16 @@ public class SMGState
       SMGState currentState = maybeRegion.getSMGState();
       SymbolicProgramConfiguration currentMemModel = currentState.getMemoryModel();
       SMGObject regionToFree = maybeRegion.getSMGObject();
-      BigInteger offsetInBits = baseOffset.add(maybeRegion.getOffsetForObject());
+      Value regionOffset = maybeRegion.getOffsetForObject();
+
+      if (!regionOffset.isNumericValue()) {
+        // TODO: check that baseOffset == 0 and regionOffset == 0 (or targeting initial pointer)
+        // with SMT solver
+        returnBuilder.add(
+            currentState.withInvalidFree("Invalid free of of object is found.", addressToFree));
+        continue;
+      }
+      BigInteger offsetInBits = baseOffset.add(regionOffset.asNumericValue().bigIntegerValue());
 
       // free(0) is a nop in C
       if (regionToFree.isZero()) {
@@ -2708,41 +3258,135 @@ public class SMGState
   /**
    * Don't use this method outside of this class or tests! Writes into the given {@link SMGObject}
    * at the specified offset in bits with the size in bits the value given. This method adds the
-   * Value <-> SMGValue mapping if none is known, else it uses a existing mapping. Make sure that
-   * all checks are made before using this! I.e. size checks. (The reason why they are not made here
-   * is that sometimes you need to write a lot of values but only need 1 check for the size)
+   * Value <-> SMGValue mapping if none is known, else it uses an existing mapping. This method
+   * makes all checks (write to 0, sizes, validity).
    *
    * @param object the memory {@link SMGObject} to write to.
    * @param writeOffsetInBits offset in bits to be written
    * @param sizeInBits size in bits to be written
    * @param valueToWrite the value to write. Is automatically either translated to a known SMGValue
    *     or a new SMGValue is added to the returned state.
+   * @param valueType type of the valueToWrite.
+   * @param edge {@link CFAEdge} if possible. Null otherwise. (i.e. CEGAR)
    * @return a new SMGState with the value written.
    */
-  protected SMGState writeValue(
+  public SMGState writeValueWithChecks(
       SMGObject object,
-      BigInteger writeOffsetInBits,
-      BigInteger sizeInBits,
+      Value writeOffsetInBits,
+      Value sizeInBits,
       Value valueToWrite,
-      CType type) {
+      CType valueType,
+      @Nullable CFAEdge edge)
+      throws SMGSolverException, SMGException {
     if (object.isZero()) {
       // Write to 0
       return withInvalidWriteToZeroObject(object);
+    } else if (!memoryModel.isObjectValid(object)) {
+      // Write to an object that is invalidated (already freed)
+      // If object part of the heap -> invalid deref
+      return this.withInvalidWrite(object);
     }
-    SMGState currentState;
+    SMGState currentState = this;
     if (valueToWrite instanceof AddressExpression) {
       ValueAndSMGState valueToWriteAndState = transformAddressExpression(valueToWrite);
       valueToWrite = valueToWriteAndState.getValue();
       currentState = valueToWriteAndState.getState();
     }
+
     if (valueToWrite.isUnknown()) {
-      valueToWrite = getNewSymbolicValueForType(type);
+      Preconditions.checkNotNull(valueType);
+      valueToWrite = getNewSymbolicValueForType(valueType);
     }
+
+    BigInteger numericOffsetInBits = null;
+    Value objSize = object.getSize();
+    if (writeOffsetInBits.isNumericValue()
+        && objSize.isNumericValue()
+        && sizeInBits.isNumericValue()) {
+      numericOffsetInBits = writeOffsetInBits.asNumericValue().bigIntegerValue();
+      // Check that the target can hold the value
+      if (object.getOffset().compareTo(numericOffsetInBits) > 0
+          || object
+                  .getSize()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .compareTo(sizeInBits.asNumericValue().bigIntegerValue().add(numericOffsetInBits))
+              < 0) {
+        // Out of range write
+        // If object part if heap -> invalid deref
+        return withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite, edge);
+      }
+
+    } else if (options.trackErrorPredicates()) {
+      CType calcTypeForMemAccess =
+          SMGCPAExpressionEvaluator.calculateSymbolicMemoryBoundaryCheckType(
+              object.getSize(), writeOffsetInBits, machineModel);
+      // Use an SMT solver to argue about the offset/size validity
+      final ConstraintFactory constraintFactory =
+          ConstraintFactory.getInstance(
+              currentState, machineModel, logger, options, evaluator, edge);
+      final Collection<Constraint> newConstraints =
+          constraintFactory.checkValidMemoryAccess(
+              writeOffsetInBits, sizeInBits, object.getSize(), calcTypeForMemAccess, currentState);
+
+      String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
+
+      // Iff SAT -> memory-safety is violated
+      SatisfiabilityAndSMGState SatisfiabilityAndState =
+          evaluator.checkMemoryConstraintsAreUnsatIndividually(
+              newConstraints, stackFrameFunctionName, currentState);
+      currentState = SatisfiabilityAndState.getState();
+
+      if (SatisfiabilityAndState.isSAT()) {
+        // Unknown value that should not be used with an error state that should stop the analysis
+        // Stop the analysis, error found
+        return currentState.withOutOfRangeWrite(
+            object, writeOffsetInBits, sizeInBits, valueToWrite, edge);
+      }
+
+      if (!writeOffsetInBits.isNumericValue()) {
+        if (!options.isOverapproximateForSymbolicWrite()) {
+          throw new SMGException(
+              "Stop analysis because of symbolic offset in write operation. Enable the option"
+                  + " overapproximateForSymbolicWrite if you want to continue.");
+        } else if (!objSize.isNumericValue() && !options.isOverapproximateValuesForSymbolicSize()) {
+          throw new SMGException(
+              "Stop analysis because of symbolic offset in write operation towards symbolically"
+                  + " sized memory. Enable the option isOverapproximateValuesForSymbolicSize if you"
+                  + " want to continue.");
+        }
+        // delete ALL edges in the target region, as they may all be now different
+        return currentState.copyAndReplaceMemoryModel(
+            currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of()));
+      } else {
+        // offset numeric, but size symbolic, but write range is inside the size, -> write
+        numericOffsetInBits = writeOffsetInBits.asNumericValue().bigIntegerValue();
+      }
+
+    } else {
+      if (!writeOffsetInBits.isNumericValue()) {
+        // offset symbolic in value analysis, overapproximate
+        return currentState.withUnknownOffsetMemoryAccess();
+
+      } else if (!objSize.isNumericValue() || !sizeInBits.isNumericValue()) {
+        // obj size symbolic in value analysis, overapproximate
+        // or sizeInBits symbolic
+        return currentState.withOutOfRangeRead(object, writeOffsetInBits, sizeInBits);
+      }
+    }
+    if (!sizeInBits.isNumericValue()) {
+      // sizeInBits symbolic, can't write, invalidate the whole obj starting from the numeric offset
+      throw new SMGException("Symbolic memory write size found that could not be handled.");
+    }
+
     Preconditions.checkArgument(!(valueToWrite instanceof AddressExpression));
+    Preconditions.checkNotNull(numericOffsetInBits);
+    Preconditions.checkArgument(sizeInBits.isNumericValue());
     SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
     SMGValue smgValue = valueAndState.getSMGValue();
     currentState = valueAndState.getSMGState();
-    return currentState.writeValue(object, writeOffsetInBits, sizeInBits, smgValue);
+    return currentState.writeValueWithoutChecks(
+        object, numericOffsetInBits, sizeInBits.asNumericValue().bigIntegerValue(), smgValue);
   }
 
   /*
@@ -2751,7 +3395,7 @@ public class SMGState
    * Value <-> SMGValue mappings. I don't want to do unneeded checks multiple times.
    * This is public only for abstraction and tests!!!!.
    */
-  public SMGState writeValue(
+  public SMGState writeValueWithoutChecks(
       SMGObject object,
       BigInteger writeOffsetInBits,
       BigInteger sizeInBits,
@@ -2773,73 +3417,38 @@ public class SMGState
    *     written to the return memory.
    */
   public SMGState writeToReturn(
-      BigInteger sizeInBits, Value valueToWrite, CType returnValueType, CFAEdge edge) {
+      BigInteger sizeInBits, Value valueToWrite, CType returnValueType, CFAEdge edge)
+      throws SMGSolverException, SMGException {
     SMGObject returnObject = getMemoryModel().getReturnObjectForCurrentStackFrame().orElseThrow();
     if (valueToWrite.isUnknown()) {
       valueToWrite = getNewSymbolicValueForType(returnValueType);
     }
     // Check that the target can hold the value
     if (returnObject.getOffset().compareTo(BigInteger.ZERO) > 0
-        || returnObject.getSize().compareTo(sizeInBits) < 0) {
+        || returnObject.getSize().asNumericValue().bigIntegerValue().compareTo(sizeInBits) < 0) {
       // Out of range write
-      return withOutOfRangeWrite(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, edge);
+      return withOutOfRangeWrite(
+          returnObject, new NumericValue(BigInteger.ZERO), sizeInBits, valueToWrite, edge);
     }
-    return writeValue(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, returnValueType);
+    return writeValueWithChecks(
+        returnObject,
+        new NumericValue(BigInteger.ZERO),
+        new NumericValue(sizeInBits),
+        valueToWrite,
+        returnValueType,
+        edge);
   }
 
   /** Writes the value exactly to the size of the return of the current stack frame. */
-  private SMGState writeToReturn(Value valueToWrite) {
+  private SMGState writeToReturn(Value valueToWrite) throws SMGSolverException, SMGException {
     SMGObject returnObject = memoryModel.getReturnObjectForCurrentStackFrame().orElseThrow();
-    return writeValue(returnObject, BigInteger.ZERO, returnObject.getSize(), valueToWrite, null);
-  }
-
-  /**
-   * Writes the entered {@link Value} to the {@link SMGObject} at the specified offset with the
-   * specified size both in bits. It can be used for heap and stack, it jsut assumes that the {@link
-   * SMGObject} exist in the SPC, so make sure beforehand! The Value will either add or find its
-   * {@link SMGValue} counterpart automatically. Also this checks that the {@link SMGObject} is
-   * large enough for the write. If something fails, this throws an exception with an error info
-   * inside the state thrown with.
-   *
-   * @param object the {@link SMGObject} to write to.
-   * @param writeOffsetInBits the offset in bits for the write of the value.
-   * @param sizeInBits size of the written value in bits.
-   * @param valueToWrite {@link Value} that gets written into the SPC. Will be mapped to a {@link
-   *     SMGValue} automatically.
-   * @param valueType {@link CType} of the value to be written. Use the expression type, not the
-   *     canonical!
-   * @return new {@link SMGState} with the value written to the object.
-   * @throws SMGException if something goes wrong. I.e. the sizes of the write don't match with the
-   *     size of the object.
-   */
-  public SMGState writeValueTo(
-      SMGObject object,
-      BigInteger writeOffsetInBits,
-      BigInteger sizeInBits,
-      Value valueToWrite,
-      CType valueType,
-      CFAEdge edge)
-      throws SMGException {
-    if (object.isZero()) {
-      // Write to 0
-      return withInvalidWriteToZeroObject(object);
-    } else if (!memoryModel.isObjectValid(object)) {
-      // Write to an object that is invalidated (already freed)
-      // If object part if heap -> invalid deref
-      return this.withInvalidWrite(object);
-    }
-    if (valueToWrite.isUnknown()) {
-      valueToWrite = getNewSymbolicValueForType(valueType);
-    }
-    // Check that the target can hold the value
-    if (object.getOffset().compareTo(writeOffsetInBits) > 0
-        || object.getSize().compareTo(sizeInBits.add(writeOffsetInBits)) < 0) {
-      // Out of range write
-      // If object part if heap -> invalid deref
-      return withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite, edge);
-    }
-
-    return writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite, valueType);
+    return writeValueWithChecks(
+        returnObject,
+        new NumericValue(BigInteger.ZERO),
+        returnObject.getSize(),
+        valueToWrite,
+        null,
+        null);
   }
 
   /**
@@ -2864,11 +3473,11 @@ public class SMGState
   public List<SMGState> writeValueTo(
       Value addressToMemory,
       BigInteger writeOffsetInBits,
-      BigInteger sizeInBits,
+      Value sizeInBits,
       Value valueToWrite,
       CType valueType,
       CFAEdge edge)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
     ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
       if (!maybeRegion.hasSMGObjectAndOffset()) {
@@ -2888,11 +3497,13 @@ public class SMGState
       }
 
       // TODO: check if this is truly correct
-      writeOffsetInBits = writeOffsetInBits.add(maybeRegion.getOffsetForObject());
+      Value writeOffset =
+          SMGCPAExpressionEvaluator.addOffsetValues(
+              maybeRegion.getOffsetForObject(), writeOffsetInBits);
 
       returnBuilder.add(
-          currentState.writeValueTo(
-              memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite, valueType, edge));
+          currentState.writeValueWithChecks(
+              memoryRegion, writeOffset, sizeInBits, valueToWrite, valueType, edge));
     }
     return returnBuilder.build();
   }
@@ -2906,7 +3517,8 @@ public class SMGState
    *     completely.
    * @throws SMGException if there is no memory/or pointer for the given Value.
    */
-  public List<SMGState> writeToZero(Value addressToMemory, CType type) throws SMGException {
+  public List<SMGState> writeToZero(Value addressToMemory, CType type, CFAEdge edge)
+      throws SMGException, SMGSolverException {
     ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
       if (!maybeRegion.hasSMGObjectAndOffset()) {
@@ -2919,22 +3531,114 @@ public class SMGState
 
       SMGState currentState = maybeRegion.getSMGState();
       SMGObject memoryRegion = maybeRegion.getSMGObject();
-      Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+      Preconditions.checkArgument(
+          maybeRegion
+              .getOffsetForObject()
+              .asNumericValue()
+              .bigIntegerValue()
+              .equals(BigInteger.ZERO));
       returnBuilder.add(
-          currentState.writeValue(
+          currentState.writeValueWithChecks(
               memoryRegion,
               maybeRegion.getOffsetForObject(),
               memoryRegion.getSize(),
               new NumericValue(0),
-              type));
+              type,
+              edge));
     }
     return returnBuilder.build();
   }
 
   /**
+   * Copies all (complete) has-value-edges from source to target, starting from source offset,
+   * targeting target offset, for the size given. This method checks validity/correct sizes etc.
+   *
+   * @param sourceObject {@link SMGObject} to copy from.
+   * @param sourceStartOffset {@link Value} offset to start the copy from the source object. Might
+   *     be symbolic.
+   * @param targetObject {@link SMGObject} to copy to.
+   * @param targetStartOffset {@link Value} offset to start the copy to the source object. Might be
+   *     symbolic.
+   * @param copySize {@link Value} size of the copy.
+   * @return a {@link SMGState} with either an error state in case of errors, a valid state with the
+   *     values written, or a state in which all values in the offset range of the target are
+   *     deleted, making them unknown, for symbolic values.
+   * @throws SMGException in case of critical errors or solver errors. You need to unpack solver
+   *     errors!
+   */
+  public SMGState copySMGObjectContentToSMGObject(
+      SMGObject sourceObject,
+      Value sourceStartOffset,
+      SMGObject targetObject,
+      Value targetStartOffset,
+      Value copySize)
+      throws SMGException {
+    Value targetObjSize = targetObject.getSize();
+    Value sourceObjSize = sourceObject.getSize();
+    if (sourceStartOffset.isNumericValue()
+        && targetStartOffset.isNumericValue()
+        && copySize.isNumericValue()
+        && targetObjSize.isNumericValue()
+        && sourceObjSize.isNumericValue()) {
+      BigInteger copySizeInBits = copySize.asNumericValue().bigIntegerValue();
+      BigInteger sourceOffset = sourceStartOffset.asNumericValue().bigIntegerValue();
+      BigInteger targetOffset = targetStartOffset.asNumericValue().bigIntegerValue();
+      // Check that we don't read beyond the source size and don't write beyonde the target size
+      // and that we don't start before the object begins
+      if (sourceObjSize
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .subtract(sourceOffset)
+                  .compareTo(copySizeInBits)
+              < 0
+          || sourceOffset.compareTo(BigInteger.ZERO) < 0) {
+        // This would be an invalid read
+        SMGState currentState = withInvalidRead(sourceObject);
+        if (targetObjSize
+                    .asNumericValue()
+                    .bigIntegerValue()
+                    .subtract(targetOffset)
+                    .compareTo(copySizeInBits)
+                < 0
+            || targetOffset.compareTo(BigInteger.ZERO) < 0) {
+          // That would be an invalid write
+          currentState = currentState.withInvalidWrite(sourceObject);
+        }
+        return currentState;
+      }
+      if (targetObjSize
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .subtract(targetOffset)
+                  .compareTo(copySizeInBits)
+              < 0
+          || targetOffset.compareTo(BigInteger.ZERO) < 0) {
+        // That would be an invalid write
+        return this.withInvalidWrite(sourceObject);
+      }
+      return copySMGObjectContentToSMGObject(
+          sourceObject,
+          sourceStartOffset.asNumericValue().bigIntegerValue(),
+          targetObject,
+          targetStartOffset.asNumericValue().bigIntegerValue(),
+          copySize);
+    }
+    // Unknown/Symbolic offset Values, we need to check them using a SMT solver
+    // TODO:
+    if (options.trackErrorPredicates()) {
+      // TODO: we can check the ranges etc. symbolically and make all possible targets unknown
+      throw new SMGException(
+          "Failure to copy a structure based on symbolic offsets or size. Report this case to"
+              + " CPAchecker issue tracker please.");
+    } else {
+      return this.withInvalidWrite(sourceObject);
+    }
+  }
+
+  /**
    * Copies the content (Values) of the source {@link SMGObject} starting from the sourceOffset into
    * the target {@link SMGObject} starting from the target offset. This copies until the size limit
-   * is reached. If a edge starts within the size, but ends outside, its not copied. This expects
+   * is reached. If an edge starts within the size, but ends outside, it is not copied. This expects
    * that both the source and target exist in the SPC and all checks are made before calling this.
    * These checks should include range checks, overlapping memorys etc.
    *
@@ -2951,9 +3655,14 @@ public class SMGState
       BigInteger sourceStartOffset,
       SMGObject targetObject,
       BigInteger targetStartOffset,
-      BigInteger copySizeInBits) {
+      Value copySizeInBits)
+      throws SMGException {
+    if (!copySizeInBits.isNumericValue()) {
+      throw new SMGException("Symbolic size of internal memory copy operation.");
+    }
     SMGState currentState = this;
-    BigInteger maxReadOffsetPlusSize = sourceStartOffset.add(copySizeInBits);
+    BigInteger maxReadOffsetPlusSize =
+        sourceStartOffset.add(copySizeInBits.asNumericValue().bigIntegerValue());
     // Removal of edges in the target is not necessary as the write deletes old overlapping edges
     // Get all source edges and copy them
     Set<SMGHasValueEdge> sourceContents = memoryModel.getSmg().getEdges(sourceObject);
@@ -2969,7 +3678,8 @@ public class SMGState
             edgeOffsetInBits.subtract(sourceStartOffset).add(targetStartOffset);
         SMGValue value = edge.hasValue();
         currentState =
-            currentState.writeValue(targetObject, finalWriteOffsetInBits, edgeSizeInBits, value);
+            currentState.writeValueWithoutChecks(
+                targetObject, finalWriteOffsetInBits, edgeSizeInBits, value);
       }
     }
 
@@ -2992,12 +3702,12 @@ public class SMGState
    */
   public SMGState writeToStackOrGlobalVariable(
       String variableName,
-      BigInteger writeOffsetInBits,
-      BigInteger writeSizeInBits,
+      Value writeOffsetInBits,
+      Value writeSizeInBits,
       Value valueToWrite,
       CType valueType,
       CFAEdge edge)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
     Optional<SMGObject> maybeVariableMemory =
         getMemoryModel().getObjectForVisibleVariable(variableName);
 
@@ -3007,30 +3717,30 @@ public class SMGState
     }
 
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
-    if (variableMemory.getOffset().compareTo(writeOffsetInBits) > 0
-        || variableMemory.getSize().compareTo(writeSizeInBits.add(writeOffsetInBits)) < 0) {
-      // Out of range write
-      throw new SMGException(
-          withOutOfRangeWrite(
-              variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, edge));
-    }
-
-    return writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, valueType);
+    return writeValueWithChecks(
+        variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, valueType, edge);
   }
 
   /* Helper method to reconstruct the state after interpolation. This writes to ANY local variable, independent of stack frame */
   private SMGState writeToAnyStackOrGlobalVariable(
       String variableName,
       BigInteger writeOffsetInBits,
-      BigInteger writeSizeInBits,
+      Value writeSizeInBits,
       Value valueToWrite,
-      @Nullable CType valueType) {
+      @Nullable CType valueType)
+      throws SMGSolverException, SMGException {
     // expected to never be empty!
     Optional<SMGObject> maybeVariableMemory = getMemoryModel().getObjectForVariable(variableName);
 
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
     // Expected to be always in range
-    return writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, valueType);
+    return writeValueWithChecks(
+        variableMemory,
+        new NumericValue(writeOffsetInBits),
+        writeSizeInBits,
+        valueToWrite,
+        valueType,
+        null);
   }
 
   /**
@@ -3073,8 +3783,8 @@ public class SMGState
    *     given.
    * @throws SMGException in case of errors like write to not declared variable.
    */
-  public SMGState writeToStackOrGlobalVariableToZero(String variableName, CType type)
-      throws SMGException {
+  public SMGState writeToStackOrGlobalVariableToZero(String variableName, CType type, CFAEdge edge)
+      throws SMGException, SMGSolverException {
     Optional<SMGObject> maybeVariableMemory =
         getMemoryModel().getObjectForVisibleVariable(variableName);
 
@@ -3084,19 +3794,20 @@ public class SMGState
     }
 
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
-    return writeValue(
+    return writeValueWithChecks(
         variableMemory,
-        variableMemory.getOffset(),
+        new NumericValue(variableMemory.getOffset()),
         variableMemory.getSize(),
         new NumericValue(0),
-        type);
+        type,
+        edge);
   }
 
   /**
    * Creates a pointer (points-to-edge) from the value to the target at the specified offset. The
    * Value is mapped to a SMGValue if no mapping exists, else the existing will be used. This does
-   * not check whether or not a pointer already exists but will override the target if the value
-   * already has a mapping!
+   * not check whether a pointer already exists but will override the target if the value already
+   * has a mapping!
    *
    * @param addressValue {@link Value} used as address pointing to the target at the offset.
    * @param target {@link SMGObject} where the pointer points to.
@@ -3105,35 +3816,112 @@ public class SMGState
    */
   public SMGState createAndAddPointer(
       Value addressValue, SMGObject target, BigInteger offsetInBits) {
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndAddPointerFromAddressToRegion(addressValue, target, offsetInBits));
+    return createAndAddPointer(addressValue, target, offsetInBits, 0);
   }
 
-  /*
-   * Same as createAndAddPointer but with a specific nesting level in the SMGObject
+  /**
+   * Creates a pointer (points-to-edge) from the value to the target at the specified offset. The
+   * Value is mapped to a SMGValue if no mapping exists, else the existing will be used. This does
+   * not check whether a pointer already exists but will override the target if the value already
+   * has a mapping!
+   *
+   * @param addressValue {@link Value} used as address pointing to the target at the offset.
+   * @param target {@link SMGObject} where the pointer points to.
+   * @param offsetInBits offset in the object.
+   * @return the new {@link SMGState} with the pointer and mapping added.
    */
-  public ValueAndSMGState createAndAddPointerWithNestingLevel(
-      SMGObject target, BigInteger offsetInBits, int nestingLevel) {
+  public SMGState createAndAddPointer(
+      Value addressValue, SMGObject target, BigInteger offsetInBits, SMGTargetSpecifier specifier) {
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddPointerFromAddressToMemory(
+            addressValue, target, offsetInBits, 0, specifier));
+  }
+
+  /**
+   * Creates a pointer (points-to-edge) from the value to the target at the specified offset. The
+   * Value is mapped to a SMGValue if no mapping exists, else the existing will be used. This does
+   * not check whether a pointer already exists but will override the target if the value already
+   * has a mapping!
+   *
+   * @param addressValue {@link Value} used as address pointing to the target at the offset.
+   * @param target {@link SMGObject} where the pointer points to.
+   * @param offsetInBits offset in the object.
+   * @param nestingLevel nestingLevel of the new ptr.
+   * @return the new {@link SMGState} with the pointer and mapping added.
+   */
+  public SMGState createAndAddPointer(
+      Value addressValue, SMGObject target, BigInteger offsetInBits, int nestingLevel) {
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddPointerFromAddressToRegion(
+            addressValue, target, offsetInBits, nestingLevel));
+  }
+
+  /**
+   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them
+   * (with nesting level and specifier). If none can be found a new address (SMGPointsToEdge) is
+   * created and returned as Value (Not AddressExpression).
+   *
+   * @param targetObject {@link SMGObject} target.
+   * @param offsetInBits Offset as BigInt.
+   * @param nestingLevel nesting level that the pointer needs to have.
+   * @param specifier specifier that the ptr needs to have.
+   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
+   */
+  public ValueAndSMGState searchOrCreateAddress(
+      SMGObject targetObject,
+      BigInteger offsetInBits,
+      int nestingLevel,
+      SMGTargetSpecifier specifier) {
+    return searchOrCreateAddress(
+        targetObject, offsetInBits, nestingLevel, specifier, ImmutableSet.of());
+  }
+
+  /**
+   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them
+   * (with nesting level and specifier). If none can be found a new address (SMGPointsToEdge) is
+   * created and returned as Value (Not AddressExpression).
+   *
+   * @param targetObject {@link SMGObject} target.
+   * @param offsetInBits Offset as BigInt.
+   * @param nestingLevel nesting level that the pointer needs to have.
+   * @param finalSpecifier specifier that the ptr needs to have.
+   * @param specifierAllowedToOverride set of specifiers allowed to be changed to the new specifier.
+   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
+   */
+  public ValueAndSMGState searchOrCreateAddress(
+      SMGObject targetObject,
+      BigInteger offsetInBits,
+      int nestingLevel,
+      SMGTargetSpecifier finalSpecifier,
+      Set<SMGTargetSpecifier> specifierAllowedToOverride) {
+    Preconditions.checkArgument(nestingLevel >= 0);
     // search for existing pointer first and return if found
     Optional<SMGValue> maybeAddressValue =
-        getMemoryModel()
-            .getAddressValueForPointsToTargetWithNestingLevel(target, offsetInBits, nestingLevel);
+        memoryModel.getAddressValueForPointsToTargetWithNestingLevel(
+            targetObject, offsetInBits, nestingLevel, finalSpecifier, specifierAllowedToOverride);
 
     if (maybeAddressValue.isPresent()) {
-      Optional<Value> valueForSMGValue =
-          getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
-      if (maybeAddressValue.orElseThrow().getNestingLevel() != nestingLevel) {
-        Preconditions.checkArgument(
-            maybeAddressValue.orElseThrow().getNestingLevel() == nestingLevel);
+      SMGValue addressValue = maybeAddressValue.orElseThrow();
+      Optional<Value> valueForSMGValue = getMemoryModel().getValueFromSMGValue(addressValue);
+      Preconditions.checkArgument(memoryModel.getNestingLevel(addressValue) == nestingLevel);
+      SMGState currentState = this;
+      if (!getMemoryModel()
+          .getPointerSpecifier(valueForSMGValue.orElseThrow())
+          .equals(finalSpecifier)) {
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState.memoryModel.copyAndSetTargetSpecifierForPointer(
+                    addressValue, finalSpecifier));
       }
-      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
+
+      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), currentState);
     }
     Value newAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     return ValueAndSMGState.of(
         newAddressValue,
         copyAndReplaceMemoryModel(
             memoryModel.copyAndAddPointerFromAddressToRegionWithNestingLevel(
-                newAddressValue, target, offsetInBits, nestingLevel)));
+                newAddressValue, targetObject, offsetInBits, nestingLevel, finalSpecifier)));
   }
 
   /**
@@ -3160,6 +3948,22 @@ public class SMGState
   private Value getNewSymbolicValueForType(CType valueType) {
     // For unknown values we use a new symbolic value without memory location as this is
     // handled by the SMGs
+    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    return factory.asConstant(factory.newIdentifier(null), valueType);
+  }
+
+  /**
+   * Returns a new symbolic constant value based on the type of another.
+   *
+   * @param valueToTakeTypeFrom the {@link CType} will be extracted from this {@link Value} if
+   *     possible.
+   * @return a new symbolic Value.
+   */
+  public Value getNewSymbolicValue(Value valueToTakeTypeFrom) {
+    CType valueType = null;
+    if (valueToTakeTypeFrom instanceof ConstantSymbolicExpression constSym) {
+      valueType = (CType) constSym.getType();
+    }
     SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     return factory.asConstant(factory.newIdentifier(null), valueType);
   }
@@ -3241,8 +4045,10 @@ public class SMGState
     return trackedHeapValues.build();
   }
 
-  /*
-   * Returns the number of variables in the memory model
+  /**
+   * Returns the number of global and local variables in the memory model.
+   *
+   * @return num of vars.
    */
   @Override
   public int getSize() {
@@ -3267,7 +4073,9 @@ public class SMGState
         funDeclsIter.next().getCFunctionDeclaration(),
         getTrackedHeapValues(),
         memoryModel,
-        isMemorySafety ? errorInfo : ImmutableList.of());
+        isMemorySafety ? errorInfo : ImmutableList.of(),
+        evaluator,
+        statistics);
   }
 
   /**
@@ -3402,7 +4210,7 @@ public class SMGState
       return new StateAndInfo<>(
           this,
           new SMGInformation(
-              PathCopyingPersistentTreeMap.<MemoryLocation, ValueAndValueSize>of(),
+              PathCopyingPersistentTreeMap.of(),
               getMemoryModel().getSizeObMemoryForSPCWithoutHeap(),
               memoryModel.getVariableTypeMap(),
               memoryModel.getFunctionDeclarationsFromStackFrames()));
@@ -3451,8 +4259,9 @@ public class SMGState
               valueAndSize,
               pForgottenInformation.getSizeInformationForVariablesMap(),
               pForgottenInformation.getTypeOfVariablesMap());
-    } catch (SMGException e) {
-      // Should never happen
+    } catch (SMGException | SMGSolverException e) {
+      // The interface forces me to add this. However, this should never be thrown, as we remember
+      // by concrete values, so e.g. no solver is ever used here
       throw new RuntimeException(e);
     }
     return newState;
@@ -3503,34 +4312,65 @@ public class SMGState
 
   /*
    * Abstracts candidates into a DLL. May abstract the chain behind the first root into more than 1 list! Depending on == values.
-   * Only abstracts lists with == values.
+   * Only abstracts lists with equal values.
    */
   public SMGState abstractIntoDLL(
-      SMGObject root, BigInteger nfo, BigInteger pfo, Set<SMGObject> alreadyVisited)
+      SMGObject root,
+      BigInteger nfo,
+      BigInteger nextPointerTargetOffset,
+      BigInteger pfo,
+      BigInteger prevPointerTargetOffset,
+      Set<SMGObject> alreadyVisited)
       throws SMGException {
+    statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
-    if (maybeNext.isEmpty()
-        || maybeNext.orElseThrow().equals(root)
-        || alreadyVisited.contains(maybeNext.orElseThrow())) {
+
+    if (maybeNext.isEmpty() || maybeNext.orElseThrow().equals(root)) {
+      // TODO: assert specifier
       return this;
     }
+    assert getMemoryModel().getSmg().checkSMGSanity();
     SMGObject nextObj = maybeNext.orElseThrow();
+    if (alreadyVisited.contains(nextObj)) {
+      // We check for next as this might happen:
+      // list1 -> list2 -> loop1 -> loop to leftmost
+      // We check list1 -> list2, can't merge
+      // We check list2 -> loop1, can't merge
+      // We check list1 -> list1, CAN merge
+      // Now list2 is found again (first next) and abort
+      return this;
+    }
     // Values not equal, continue traverse
+    EqualityCache<Value> eqCache = EqualityCache.of();
+    EqualityCache<SMGObject> objectCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        root,
-        nextObj,
-        ImmutableList.of(nfo, pfo),
-        this,
-        this,
-        EqualityCache.<Value>of(),
-        new HashSet<>())) {
+            nextObj,
+            root,
+            ImmutableList.of(nfo, pfo),
+            this,
+            this,
+            eqCache,
+            objectCache,
+            new HashSet<>(),
+            true)
+        || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)
+        || !isPointerTargetOffsetEqualTo(nextObj, pfo, prevPointerTargetOffset)) {
+      // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoDLL(
           nextObj,
           nfo,
+          nextPointerTargetOffset,
           pfo,
-          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
+          prevPointerTargetOffset,
+          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(nextObj).build());
     }
+    // When the equality cache is empty, identical values were found.
+    // If it has values, those are equal but not identical.
+    // (right = root, left = next)
+    // (order in the cache is important, as we carry over the values/pointers of the next element
+    //   and want to easily check them later on)
+
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
     SMGDoublyLinkedListSegment newDLL;
@@ -3547,15 +4387,8 @@ public class SMGState
       } else {
         newMinLength++;
       }
-      newDLL =
-          new SMGDoublyLinkedListSegment(
-              oldDLL.getNestingLevel(),
-              oldDLL.getSize(),
-              oldDLL.getOffset(),
-              oldDLL.getHeadOffset(),
-              oldDLL.getNextOffset(),
-              oldDLL.getPrevOffset(),
-              newMinLength);
+      newDLL = oldDLL.copyWithNewMinimumLength(newMinLength).copyWithNewRelevantEqualities(eqCache);
+
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
       // not at 0, or right behind the pfo if the pfo is right behind nfo
@@ -3589,10 +4422,15 @@ public class SMGState
               root.getOffset(),
               headOffset,
               nfo,
+              nextPointerTargetOffset,
               pfo,
-              newMinLength);
+              prevPointerTargetOffset,
+              newMinLength,
+              eqCache);
     }
     SMGState currentState = copyAndAddObjectToHeap(newDLL);
+    // TODO: check that the other values are not pointers, if they are we want to merge the pointers
+    // and increment the pointer level
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newDLL);
     // Write prev from root into the current prev
     SMGValueAndSMGState prevPointer =
@@ -3600,7 +4438,8 @@ public class SMGState
     currentState =
         prevPointer
             .getSMGState()
-            .writeValue(newDLL, pfo, memoryModel.getSizeOfPointer(), prevPointer.getSMGValue());
+            .writeValueWithoutChecks(
+                newDLL, pfo, memoryModel.getSizeOfPointer(), prevPointer.getSMGValue());
 
     // Replace ALL pointers that previously pointed to the root or the next object to the SLL
     // This currently simply changes where the pointers point to, the values are the same
@@ -3612,7 +4451,6 @@ public class SMGState
       // to the new Obj, as it already exists from the previous segment (same nesting level)
       // There can never be more than 1 pointer to a 0+, and that is the next pointer
       // Since we override the next pointer anyway, we can just ignore the pointer
-
       // Assert that it truly only points towards the 0+
       assert (currentState
               .getMemoryModel()
@@ -3627,7 +4465,7 @@ public class SMGState
           currentState.copyAndReplaceMemoryModel(
               currentState
                   .getMemoryModel()
-                  .removePointerFromSMGAndCopy(nextPointerFromRoot.getSMGValue()));
+                  .removeLastPointerFromSMGAndCopy(nextPointerFromRoot.getSMGValue()));
 
       // Switch all other pointers
       currentState =
@@ -3638,6 +4476,28 @@ public class SMGState
       currentState =
           currentState.copyAndReplaceMemoryModel(
               currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newDLL));
+
+      if (nextObj instanceof SMGDoublyLinkedListSegment nextDLL) {
+        // There is a first pointer of the old DLL towards nextObj that needs removal
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState
+                    .getMemoryModel()
+                    .copyAndSetSpecifierOfPtrsTowards(
+                        newDLL,
+                        nextDLL.getMinLength() - 1,
+                        SMGTargetSpecifier.IS_ALL_POINTER,
+                        ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER)));
+      } else {
+        // The last ptr from nextObj that are linked lists is retained
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState
+                    .getMemoryModel()
+                    .copyAndSetSpecifierOfPtrsTowards(
+                        newDLL, 0, SMGTargetSpecifier.IS_LAST_POINTER));
+      }
+
       currentState =
           currentState.copyAndReplaceMemoryModel(
               currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
@@ -3645,12 +4505,25 @@ public class SMGState
     }
 
     // Remove the 2 old objects and continue
+    // For this to work without issues, we rewrite the next/prev pointers to 0 in them
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, pfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, pfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.copyAndRemoveObjectFromHeap(nextObj));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(root));
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(nextObj));
 
     if (incrementAmount == 0) {
       assert (currentState
@@ -3661,22 +4534,35 @@ public class SMGState
       assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
           == 0);
     }
+
+    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    assert currentState.getMemoryModel().getSmg().checkFirstPointerNestingLevelConsistency();
+
     return currentState.abstractIntoDLL(
         newDLL,
         nfo,
+        nextPointerTargetOffset,
         pfo,
+        prevPointerTargetOffset,
         ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build());
   }
 
   /*
-   * Abstracts candidates into a SLL. May abstract the chain behind the first root into more than 1 list! Depending on == values.
+   * Abstracts candidates into an SLL. May abstract the chain behind the first root into more than 1 list! Depending on == values.
    * Only abstracts lists with == values.
+   * Last pointers are only set for concrete next segments (each ptr towards a concrete next is set to last)
+   * First pointers are only set for each concrete root.
    */
-  public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo, Set<SMGObject> alreadyVisited)
+  public SMGState abstractIntoSLL(
+      SMGObject root,
+      BigInteger nfo,
+      BigInteger nextPointerTargetOffset,
+      Set<SMGObject> alreadyVisited)
       throws SMGException {
-
+    statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
+
     if (maybeNext.isEmpty()
         || maybeNext.orElseThrow().equals(root)
         || alreadyVisited.contains(maybeNext.orElseThrow())) {
@@ -3684,28 +4570,49 @@ public class SMGState
     }
     SMGObject nextObj = maybeNext.orElseThrow();
 
-    // Values not equal, continue traverse
-    if (!checkEqualValuesForTwoStatesWithExemptions(
-        root,
-        nextObj,
-        ImmutableList.of(nfo),
-        this,
-        this,
-        EqualityCache.<Value>of(),
-        new HashSet<>())) {
-      return abstractIntoSLL(
-          nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
+    if (alreadyVisited.contains(nextObj)) {
+      // We check for next as this might happen:
+      // list1 -> list2 -> loop1 -> loop to leftmost
+      // We check list1 -> list2, can't merge
+      // We check list2 -> loop1, can't merge
+      // We check list1 -> list1, CAN merge
+      // Now list2 is found again (first next) and abort
+      return this;
     }
+
+    // Values not equal, continue traverse
+    EqualityCache<Value> eqCache = EqualityCache.of();
+    EqualityCache<SMGObject> objectCache = EqualityCache.of();
+    if (!checkEqualValuesForTwoStatesWithExemptions(
+            nextObj,
+            root,
+            ImmutableList.of(nfo),
+            this,
+            this,
+            eqCache,
+            objectCache,
+            new HashSet<>(),
+            true)
+        || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)) {
+      // split lists, e.g. for 3+, 3+ -> concrete -> 3+ -> 0
+      return abstractIntoSLL(
+          nextObj,
+          nfo,
+          nextPointerTargetOffset,
+          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(nextObj).build());
+    }
+    // When the equality cache is empty, identical values were found.
+    // If it has values, those are equal but not identical.
+    // (right = root, left = next)
+    // (order in the cache is important, as we carry over the values/pointers of the next element
+    //   and want to easily check them later on)
 
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
     SMGSinglyLinkedListSegment newSLL;
     int incrementAmount = 1;
-    if (root instanceof SMGDoublyLinkedListSegment) {
-      // Something went wrong
-      // TODO: log and decide what to do here (can this even happen?)
-      return this;
-    } else if (root instanceof SMGSinglyLinkedListSegment oldSLL) {
+    Preconditions.checkArgument(!(root instanceof SMGDoublyLinkedListSegment));
+    if (root instanceof SMGSinglyLinkedListSegment oldSLL) {
       int newMinLength = oldSLL.getMinLength();
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
@@ -3713,18 +4620,11 @@ public class SMGState
       } else {
         newMinLength++;
       }
-      newSLL =
-          new SMGSinglyLinkedListSegment(
-              oldSLL.getNestingLevel(),
-              oldSLL.getSize(),
-              oldSLL.getOffset(),
-              oldSLL.getHeadOffset(),
-              nfo,
-              newMinLength);
+      newSLL = oldSLL.copyWithNewMinimumLength(newMinLength).copyWithNewRelevantEqualities(eqCache);
+
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
-      // not.
-      // We don't care about it however
+      // not. We don't care about it however
       int newMinLength = 1;
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
@@ -3743,9 +4643,13 @@ public class SMGState
               root.getOffset(),
               headOffset,
               nfo,
-              newMinLength);
+              nextPointerTargetOffset,
+              newMinLength,
+              eqCache);
     }
     SMGState currentState = copyAndAddObjectToHeap(newSLL);
+    // TODO: check that the other values are not pointers, if they are we want to merge the pointers
+    // and increment the pointer level
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newSLL);
 
     // Replace ALL pointers that previously pointed to the root or the next object to the SLL
@@ -3756,24 +4660,87 @@ public class SMGState
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newSLL));
+
+    if (nextObj instanceof SMGSinglyLinkedListSegment nextSLL) {
+      // There is a first pointer of the old SLL towards nextObj that needs removal
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState
+                  .getMemoryModel()
+                  .copyAndSetSpecifierOfPtrsTowards(
+                      newSLL,
+                      nextSLL.getMinLength() - 1,
+                      SMGTargetSpecifier.IS_ALL_POINTER,
+                      ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER)));
+    } else {
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState
+                  .getMemoryModel()
+                  .copyAndSetSpecifierOfPtrsTowards(newSLL, 0, SMGTargetSpecifier.IS_LAST_POINTER));
+    }
+    // replaceAllPointersTowardsWithAndIncrementNestingLevel
+    // sets ALL specifier for all pointers towards root, except for first specifiers,
+    // if root is abstracted and first specifiers for non-abstracted root
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
                 root, newSLL, incrementAmount));
 
-    // Remove the 2 old objects and continue
+    // Remove the 2 old objects and continue.
+    // For this to work without issues, we rewrite the next pointers to 0 in them
+    currentState =
+        currentState.writeValueWithoutChecks(
+            root, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            nextObj, nfo, memoryModel.getSizeOfPointer(), SMGValue.zeroValue());
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.copyAndRemoveObjectFromHeap(nextObj));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(root));
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(nextObj));
+
+    // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
+    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
 
     return currentState.abstractIntoSLL(
-        newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
+        newSLL,
+        nfo,
+        nextPointerTargetOffset,
+        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
 
-  private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo) {
+  private boolean isPointerTargetOffsetEqualTo(
+      SMGObject pRoot, BigInteger readOffsetOfPointer, BigInteger pNextPointerTargetOffset) {
+    SMG smg = getMemoryModel().getSmg();
+    List<SMGHasValueEdge> readValues =
+        smg.readValue(pRoot, readOffsetOfPointer, getMemoryModel().getSizeOfPointer(), false)
+            .getHvEdges();
+    if (readValues.size() == 1) {
+      SMGHasValueEdge readValue = readValues.get(0);
+      if (smg.isPointer(readValue.hasValue())
+          && smg.getPTEdge(readValue.hasValue())
+              .orElseThrow()
+              .getOffset()
+              .equals(pNextPointerTargetOffset)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Checks if there is a valid next linked list object and returns it if yes. Traverses the nfo
+   * pointer and checks if the next object is valid and the same size as root.
+   *
+   * @param root current root object (left side of 2 list elements)
+   * @param nfo (suspected) next pointer offset in root
+   * @return optional filled with valid next sll or empty
+   * @throws SMGException critical errors
+   */
+  private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo) throws SMGException {
     SMGState currentState = this;
     SMGValueAndSMGState valueAndState =
         currentState.readSMGValue(root, nfo, memoryModel.getSizeOfPointer());
@@ -3782,8 +4749,17 @@ public class SMGState
       return Optional.empty();
     }
     SMGObject nextObject = memoryModel.getSmg().getPTEdge(value).orElseThrow().pointsTo();
-    if (!memoryModel.getSmg().isValid(nextObject)
-        || root.getSize().compareTo(nextObject.getSize()) != 0) {
+    Value rootSize = root.getSize();
+    Value nextSize = nextObject.getSize();
+    if (!rootSize.isNumericValue() || !nextSize.isNumericValue()) {
+      // TODO: handle with solver
+      throw new SMGException("Symbolic memory size in linked list abstraction can not be handled.");
+    } else if (!memoryModel.getSmg().isValid(nextObject)
+        || rootSize
+                .asNumericValue()
+                .bigIntegerValue()
+                .compareTo(nextSize.asNumericValue().bigIntegerValue())
+            != 0) {
       return Optional.empty();
     }
     // Same object size, same content expect for the pointers, its valid -> ok
@@ -3821,8 +4797,8 @@ public class SMGState
    * returned. The first in the list being the minimal list.
    *
    * @param pointer the {@link Value} to dereference.
-   * @return Optional filled with the {@link SMGObjectAndOffset} of the target of the pointer. Empty
-   *     if its not a pointer in the current {@link SymbolicProgramConfiguration}.
+   * @return Optional filled with the {@link SMGObjectAndOffsetMaybeNestingLvl} of the target of the
+   *     pointer. Empty if its not a pointer in the current {@link SymbolicProgramConfiguration}.
    * @throws SMGException in case of critical errors in the materialization of abstract memory.
    */
   public List<SMGStateAndOptionalSMGObjectAndOffset> dereferencePointer(Value pointer)
@@ -3842,15 +4818,34 @@ public class SMGState
     Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
     return ImmutableList.of(
         SMGStateAndOptionalSMGObjectAndOffset.of(
-            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+            ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
   }
 
+  /**
+   * Materializes a list, starting from the pointer {@link SMGValue} given as initialPointerValue.
+   * Expects initialPointerValue to be a pointer towards an abstracted list segment. Returns a
+   * materialized memory region. For multiple possible results, returns the minimal result first
+   * (i.e. the ended list).
+   *
+   * @param initialPointerValue the SMGValue that is a pointer and has the {@link SMGPointsToEdge}
+   *     ptEdge, which points towards an abstracted list segment.
+   * @param ptEdge the points to edge of the pointer value from initialPointerValue.
+   * @param pState current {@link SMGState}
+   * @return a list of {@link SMGStateAndOptionalSMGObjectAndOffset} with the state after the
+   *     materialization and the target object of the pointer, but materialized, plus the offset in
+   *     that object. If there are multiple possible results, the minimal result (i.e. for a 0+ list
+   *     segment the list that ends) is handed back first in index 0.
+   * @throws SMGException for critical errors. (Mostly to debug if something goes wrong)
+   */
   private List<SMGStateAndOptionalSMGObjectAndOffset> materializeLinkedList(
       SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState) throws SMGException {
     SMGState currentState = pState;
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
+      // Nesting is ordered that the pointer to the first element (from the left) starts with
+      // abstractionMinLen - 1, then decrements until the last concrete element has nesting lvl 0
       List<SMGValueAndSMGState> newPointersValueAndStates =
           currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
+
       if (newPointersValueAndStates.size() == 2) {
         Preconditions.checkArgument(
             ((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength() == 0);
@@ -3867,10 +4862,9 @@ public class SMGState
             continue;
           }
           ptEdge = maybePtEdge.orElseThrow();
-          Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
           returnBuilder.add(
               SMGStateAndOptionalSMGObjectAndOffset.of(
-                  ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+                  ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
         }
         return returnBuilder.build();
 
@@ -3891,12 +4885,12 @@ public class SMGState
     Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
     return ImmutableList.of(
         SMGStateAndOptionalSMGObjectAndOffset.of(
-            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+            ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
   }
 
   /**
    * Test/Debug method. Dereferences without materializing lists. Not to be used in regular
-   * execution.
+   * execution. Expects the pointer parameter to be a valid pointer!
    *
    * @param pointer target pointer.
    * @return {@link SMGStateAndOptionalSMGObjectAndOffset} with the target if it exists.
@@ -3912,7 +4906,7 @@ public class SMGState
     SMGPointsToEdge ptEdge = memoryModel.getSmg().getPTEdge(smgValueAddress).orElseThrow();
     return Optional.of(
         SMGStateAndOptionalSMGObjectAndOffset.of(
-            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+            ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
   }
 
   /**
@@ -3938,13 +4932,16 @@ public class SMGState
     while (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
       SMGObject obj = ptEdge.pointsTo();
       if (obj.isZero() || !currentState.memoryModel.isObjectValid(obj)) {
-        throw new SMGException("");
+        throw new SMGException(
+            "Critical error in materialization. Either a pointer was pointing to zero, or to an"
+                + " invalid memory region. This is a critical problem with the analysis. Please"
+                + " report in CPAchecker issue tracker.");
       }
       // DLLs are also SLLs
       Preconditions.checkArgument(obj instanceof SMGSinglyLinkedListSegment);
       materializationAndState =
-          currentState.materializer.handleMaterilisation(
-              valueToPointerToAbstractObject, obj, currentState);
+          currentState.materializer.handleMaterialisation(
+              valueToPointerToAbstractObject, (SMGSinglyLinkedListSegment) obj, currentState);
       if (materializationAndState.size() == 1) {
         // We can assume that this is the default case
         currentState = materializationAndState.get(0).getSMGState();
@@ -3958,24 +4955,12 @@ public class SMGState
       } else {
         // Size should be 2 in all other cases. This is the 0+ case, which is always the last
         Preconditions.checkArgument(materializationAndState.size() == 2);
-        // None of the values points to a SMGSinglyLinkedListSegment
+        // The values might point to a SMGSinglyLinkedListSegments if a followup is not merged
         // The 0 state does not materialize anything, the 1 state does materialize one more concrete
         // list segment and appends another 0+ segment after that
-        if (currentState
-            .memoryModel
-            .getSmg()
-            .isPointer(materializationAndState.get(0).getSMGValue())) {
-          Preconditions.checkArgument(
-              !(materializationAndState
-                      .get(0)
-                      .getSMGState()
-                      .memoryModel
-                      .getSmg()
-                      .getPTEdge(materializationAndState.get(0).getSMGValue())
-                      .orElseThrow()
-                      .pointsTo()
-                  instanceof SMGSinglyLinkedListSegment));
-        }
+
+        // This can be violated for example through a last pointer still pointing to a 0+ after left
+        // sided mat, so check that
         Preconditions.checkArgument(
             !(materializationAndState
                     .get(1)
@@ -4031,7 +5016,7 @@ public class SMGState
    * @return Optional, either a {@link BigInteger} as numeric address (pointer in Bytes) or empty.
    */
   public Optional<Value> transformAddressIntoNumericValue(Value addressValue) {
-    BigInteger offset = BigInteger.ZERO;
+    BigInteger offset;
     SMGObject target;
     if (addressValue instanceof AddressExpression addressExpr) {
       if (addressExpr.getOffset().isNumericValue()) {
@@ -4063,10 +5048,111 @@ public class SMGState
         new NumericValue(memoryModel.getNumericAssumptionForMemoryRegion(target).add(offset)));
   }
 
+  public boolean isSMGObjectAStackVariable(SMGObject obj) {
+    if (memoryModel.isHeapObject(obj)) {
+      return false;
+    }
+    for (StackFrame frame : memoryModel.getStackFrames()) {
+      if (frame.getAllObjects().contains(obj)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /*
+   * Get the name of the topmost stack frame function.
+   */
+  public String getStackFrameTopFunctionName() {
+    return memoryModel.getStackFrames().peek().getFunctionDefinition().getQualifiedName();
+  }
+
+  /*
+   * Searches source for pointers (except for at the given exceptions) and copies the memory
+   * precisely and replaces the old pointers with new ones towards the new copied memory.
+   * Then the old memory is checked for external pointers towards it, and if there are any with
+   * the correct nesting level, they are replaced by the pointers towards the new copied memory.
+   * This is part of list materialization.
+   */
+  @SuppressWarnings("unused")
+  public SMGState copyMemoryNotOriginatingFrom(
+      SMGObject source, Set<BigInteger> offsetExceptions, int nestingLevel) throws SMGException {
+    FluentIterable<SMGHasValueEdge> allHveWOExceptions =
+        memoryModel
+            .getSmg()
+            .getHasValueEdgesByPredicate(
+                source, hve -> !offsetExceptions.contains(hve.getOffset()));
+    SMGState currentState = this;
+    for (SMGHasValueEdge hve : allHveWOExceptions) {
+      Optional<Value> maybeValue = currentState.memoryModel.getValueFromSMGValue(hve.hasValue());
+      // 0 is a pointer, but can freely be used, no need to copy
+      if (maybeValue.isPresent()
+          && currentState.memoryModel.isPointer(maybeValue.orElseThrow())
+          && !hve.hasValue().isZero()) {
+        // The target of this needs to be copied
+        Value ptrToTarget = maybeValue.orElseThrow();
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> target =
+            currentState.dereferencePointerWithoutMaterilization(ptrToTarget);
+        if (target.isEmpty() || !target.orElseThrow().hasSMGObjectAndOffset()) {
+          continue;
+        }
+        SMGObject targetObj = target.orElseThrow().getSMGObject();
+        Set<SMGHasValueEdge> targetValues = currentState.memoryModel.getSmg().getEdges(targetObj);
+        SMGObject copyOfTarget = SMGObject.of(targetObj);
+        // TODO: this might be a stack object!
+        currentState = currentState.copyAndAddObjectToHeap(copyOfTarget);
+        // For now only a shallow copy (no nested pointers)
+        for (SMGHasValueEdge targetHVE : targetValues) {
+          Optional<Value> maybeTargetValue =
+              currentState.memoryModel.getValueFromSMGValue(targetHVE.hasValue());
+          if (maybeTargetValue.isPresent()
+              && currentState.memoryModel.isPointer(maybeTargetValue.orElseThrow())) {
+            throw new SMGException(
+                "Nested list abstraction with non-trivial objects not yet supported.");
+          }
+          currentState =
+              currentState.writeValueWithoutChecks(
+                  copyOfTarget,
+                  targetHVE.getOffset(),
+                  targetHVE.getSizeInBits(),
+                  targetHVE.hasValue());
+        }
+        SMGPointsToEdge ptEdgeToTarget =
+            currentState.memoryModel.getSmg().getPTEdge(hve.hasValue()).orElseThrow();
+        // Create new valid pointer and replace the old one in the source
+        Value ptrToCopiedTarget = SymbolicValueFactory.getInstance().newIdentifier(null);
+        // TODO: fix nesting level below in createAndAddPointer
+        currentState =
+            currentState.createAndAddPointer(
+                ptrToCopiedTarget, copyOfTarget, ptEdgeToTarget.getOffset(), nestingLevel);
+        currentState =
+            currentState.writeValueWithoutChecks(
+                source,
+                hve.getOffset(),
+                hve.getSizeInBits(),
+                currentState.memoryModel.getSMGValueFromValue(ptrToCopiedTarget).orElseThrow());
+      }
+    }
+    // TODO: Then we need to check for pointers towards the old target and switch pointers with the
+    // correct nesting level to this new pointer
+    // Careful when there is the same pointer twice in this obj
+
+    return currentState;
+  }
+
+  public SMGCPAStatistics getStatistics() {
+    return statistics;
+  }
+
+  @Override
+  public @Nullable Object getPartitionKey() {
+    return getMemoryModel().getSmg().getNumberOfAbstractedLists() * 100000 + getSize();
+  }
+
   // TODO: To be replaced with a better structure, i.e. union-find
   // This is mutable on purpose!
   public static class EqualityCache<V> {
-    private SetMultimap<V, V> primitiveCache;
+    private final SetMultimap<V, V> primitiveCache;
 
     private EqualityCache() {
       primitiveCache = HashMultimap.create();
@@ -4096,7 +5182,7 @@ public class SMGState
     /*
      * Use this to check if a known value mapping exists. If this returns false, don't call isEqual!
      */
-    private boolean knownKey(V thisEqual) {
+    public boolean knownKey(V thisEqual) {
       return primitiveCache.containsKey(thisEqual);
     }
 
@@ -4110,6 +5196,12 @@ public class SMGState
      */
     public boolean isEqualityKnown(V thisEqual, V otherEqual) {
       return knownKey(thisEqual) && isEqualForKnownKey(thisEqual, otherEqual);
+    }
+
+    public void removeEquality(V pThisObj, V pOtherObj) {
+      if (knownKey(pThisObj)) {
+        primitiveCache.remove(pThisObj, pOtherObj);
+      }
     }
   }
 }

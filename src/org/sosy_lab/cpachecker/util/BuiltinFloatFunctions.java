@@ -103,6 +103,7 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> IS_FINITE = withDunder("finite");
   private static final ImmutableList<String> IS_NAN = withDunder("isnan");
   private static final ImmutableList<String> IS_INFINITY = withDunder("isinf");
+  private static final ImmutableList<String> IS_INFINITY_SIGN = withDunder("isinf_sign");
 
   private static final ImmutableList<String> possiblePrefixes =
       ImmutableList.<String>builder()
@@ -134,6 +135,7 @@ public class BuiltinFloatFunctions {
           .addAll(SIGNBIT)
           .addAll(IS_FINITE)
           .addAll(IS_NAN)
+          .addAll(IS_INFINITY_SIGN)
           .addAll(IS_INFINITY)
           .addAll(NOT_A_NUMBER)
           .build();
@@ -190,17 +192,14 @@ public class BuiltinFloatFunctions {
       if (pFunctionName.startsWith(p)) {
         String suffix = pFunctionName.substring(p.length());
 
-        switch (suffix) {
-          case "":
-            return CNumericTypes.DOUBLE;
-          case "f":
-            return CNumericTypes.FLOAT;
-          case "l":
-            return CNumericTypes.LONG_DOUBLE;
-          default:
-            throw new IllegalArgumentException(
-                "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
-        }
+        return switch (suffix) {
+          case "" -> CNumericTypes.DOUBLE;
+          case "f" -> CNumericTypes.FLOAT;
+          case "l" -> CNumericTypes.LONG_DOUBLE;
+          default ->
+              throw new IllegalArgumentException(
+                  "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
+        };
       }
     }
 
@@ -452,6 +451,18 @@ public class BuiltinFloatFunctions {
    */
   public static boolean matchesIsInfinity(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_INFINITY);
+  }
+
+  /**
+   * Returns whether the given function name is any builtin function that checks whether a float is
+   * infinite and returns the sign as -1/+1.
+   *
+   * @param pFunctionName the function name to check
+   * @return <code>true</code> if the given function name is any builtin isinf_sign-function, <code>
+   *     false</code> otherwise
+   */
+  public static boolean matchesIsInfinitySign(String pFunctionName) {
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_INFINITY_SIGN);
   }
 
   /**

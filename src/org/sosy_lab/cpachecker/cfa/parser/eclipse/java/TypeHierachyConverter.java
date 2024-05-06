@@ -262,7 +262,9 @@ class TypeHierachyConverter {
         l.getStartPosition(),
         l.getLength(),
         co.getLineNumber(l.getStartPosition()),
-        co.getLineNumber(l.getLength() + l.getStartPosition()));
+        co.getLineNumber(l.getLength() + l.getStartPosition()),
+        co.getColumnNumber(l.getStartPosition()),
+        co.getColumnNumber(l.getLength() + l.getStartPosition()));
   }
 
   public JClassOrInterfaceType convertClassOrInterfaceType(ITypeBinding pTypeBinding) {

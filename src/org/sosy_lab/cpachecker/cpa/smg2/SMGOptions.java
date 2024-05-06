@@ -25,6 +25,21 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
+          "aborts the analysis for a non-concrete (this includes symbolic values) memory allocation"
+              + " of any kind.")
+  private boolean abortOnNonConcreteMemorySize = true;
+
+  @Option(
+      secure = true,
+      description =
+          "with this option enabled, we try to gather information on memory reads from values that"
+              + " are overlapping but not exactly fitting to the read parameters. Example: int"
+              + " value = 1111; char a = (char)((char[])&value)[1];")
+  private boolean preciseSMGRead = true;
+
+  @Option(
+      secure = true,
+      description =
           "with this option enabled, memory addresses (pointers) are transformed into a numeric"
               + " assumption upon casting the pointer to a number. This assumption can be returned"
               + " to a proper pointer by casting it back. This enables numeric operations beyond"
@@ -65,6 +80,32 @@ public class SMGOptions {
           "Which unknown function are always considered as safe functions, "
               + "i.e., free of memory-related side-effects?")
   private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+
+  @Option(
+      secure = true,
+      name = "overapproximateForSymbolicWrite",
+      description =
+          "If this Option is enabled, all values of a memory region that is written to with a"
+              + " symbolic and non unique offset are deleted and the value itself is"
+              + " overapproximated to unknown in the memory region.")
+  private boolean overapproximateForSymbolicWrite = true;
+
+  @Option(
+      secure = true,
+      name = "overapproximateValuesForSymbolicSize",
+      description =
+          "If this Option is enabled, all values of a memory region that is written to with a"
+              + " symbolic and non-unique offset in symbolically sized memory are deleted and the"
+              + " value itself is overapproximated to unknown in the memory region.")
+  private boolean overapproximateValuesForSymbolicSize = false;
+
+  public boolean isOverapproximateValuesForSymbolicSize() {
+    return overapproximateValuesForSymbolicSize;
+  }
+
+  public boolean isOverapproximateForSymbolicWrite() {
+    return overapproximateForSymbolicWrite;
+  }
 
   public enum UnknownFunctionHandling {
     STRICT,
@@ -196,9 +237,9 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "crashOnUnknown",
-      description = "Crash on unknown array dereferences")
-  private boolean crashOnUnknown = false;
+      name = "crashOnUnknownInConstraint",
+      description = "Crash on unknown value when creating constraints of any form.")
+  private boolean crashOnUnknownInConstraint = false;
 
   @Option(
       secure = true,
@@ -263,12 +304,13 @@ public class SMGOptions {
       description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
   private boolean assignEqualityAssumptions = true;
 
-  // assignSymbolicValues is needed to get the same options as the valueAnalysis as SMGs always save
+  // treatSymbolicValuesAsUnknown is needed to get the same options as the valueAnalysis as SMGs
+  // always save
   // symbolics. We could however simply retranslate every symbolic to an unknown after reads.
   @Option(
       secure = true,
       description = "Treat symbolic values as unknowns and assign new concrete values to them.")
-  private boolean assignSymbolicValues = true;
+  private boolean treatSymbolicValuesAsUnknown = false;
 
   @Option(
       secure = true,
@@ -289,7 +331,7 @@ public class SMGOptions {
           "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
               + "unknown memory sizes does not abort, but also does not create any memory.")
   private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
-      UnknownMemoryAllocationHandling.IGNORE;
+      UnknownMemoryAllocationHandling.STOP_ANALYSIS;
 
   /*
    * Ignore: ignore allocation call and overapproximate.
@@ -368,6 +410,10 @@ public class SMGOptions {
     return castMemoryAddressesToNumeric;
   }
 
+  public boolean isPreciseSMGRead() {
+    return preciseSMGRead;
+  }
+
   public UnknownFunctionHandling getHandleUnknownFunctions() {
     return handleUnknownFunctions;
   }
@@ -406,6 +452,10 @@ public class SMGOptions {
 
   public int getMemoryArrayAllocationFunctionsElemSizeParameter() {
     return memoryArrayAllocationFunctionsElemSizeParameter;
+  }
+
+  public boolean isAbortOnNonConcreteMemorySize() {
+    return abortOnNonConcreteMemorySize;
   }
 
   public ImmutableSet<String> getZeroingMemoryAllocation() {
@@ -472,16 +522,16 @@ public class SMGOptions {
     return joinOnBlockEnd;
   }
 
-  public boolean crashOnUnknown() {
-    return crashOnUnknown;
+  public boolean crashOnUnknownInConstraint() {
+    return crashOnUnknownInConstraint;
   }
 
   boolean isAssignEqualityAssumptions() {
     return assignEqualityAssumptions;
   }
 
-  boolean isAssignSymbolicValues() {
-    return assignSymbolicValues;
+  boolean isTreatSymbolicValuesAsUnknown() {
+    return treatSymbolicValuesAsUnknown;
   }
 
   public boolean isSatCheckStrategyAtAssume() {

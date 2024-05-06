@@ -597,20 +597,23 @@ public class CPAchecker {
               yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
             }
             case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.entryNodes());
-            case FUNCTION_SINKS -> ImmutableSet.<CFANode>builder()
-                .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
-                .addAll(getAllFunctionExitNodes(pCfa))
-                .build();
-            case PROGRAM_SINKS -> ImmutableSet.<CFANode>builder()
-                .addAll(
-                    CFAUtils.getProgramSinks(
-                        pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
-                .build();
-            case TARGET -> new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
-                .tryGetAutomatonTargetLocations(
-                    pAnalysisEntryFunction,
-                    Specification.fromFiles(
-                        backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
+            case FUNCTION_SINKS ->
+                ImmutableSet.<CFANode>builder()
+                    .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
+                    .addAll(getAllFunctionExitNodes(pCfa))
+                    .build();
+            case PROGRAM_SINKS ->
+                ImmutableSet.<CFANode>builder()
+                    .addAll(
+                        CFAUtils.getProgramSinks(
+                            pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                    .build();
+            case TARGET ->
+                new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
+                    .tryGetAutomatonTargetLocations(
+                        pAnalysisEntryFunction,
+                        Specification.fromFiles(
+                            backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
           };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }

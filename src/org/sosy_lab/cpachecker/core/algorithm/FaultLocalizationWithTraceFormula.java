@@ -313,14 +313,17 @@ public class FaultLocalizationWithTraceFormula
   private FaultScoring getScoring(TraceFormula pTraceFormula) {
     return switch (algorithmType) {
         // fall-through
-      case MAXORG, MAXSAT -> FaultRankingUtils.concatHeuristics(
-          new VariableCountScoring(),
-          new SetSizeScoring(),
-          new MinimalLineDistanceScoring(
-              pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
+      case MAXORG, MAXSAT ->
+          FaultRankingUtils.concatHeuristics(
+              new VariableCountScoring(),
+              new SetSizeScoring(),
+              new MinimalLineDistanceScoring(
+                  pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
         // fall-through
-      case ERRINV, UNSAT -> FaultRankingUtils.concatHeuristics(
-          new EdgeTypeScoring(), new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
+      case ERRINV, UNSAT ->
+          FaultRankingUtils.concatHeuristics(
+              new EdgeTypeScoring(),
+              new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
       default -> throw new AssertionError("The specified algorithm type does not exist");
     };
   }
@@ -413,8 +416,8 @@ public class FaultLocalizationWithTraceFormula
   private PostConditionComposer getPostConditionExtractor() {
     return switch (postConditionType) {
       case LAST_ASSUME_EDGE -> new FinalAssumeEdgePostConditionComposer(context);
-      case LAST_ASSUME_EDGES_ON_SAME_LINE -> new FinalAssumeEdgesOnSameLinePostConditionComposer(
-          context);
+      case LAST_ASSUME_EDGES_ON_SAME_LINE ->
+          new FinalAssumeEdgesOnSameLinePostConditionComposer(context);
       case LAST_ASSUME_EDGE_CLUSTER -> new FinalAssumeClusterPostConditionComposer(context);
       default -> throw new AssertionError("Unknown post-condition type");
     };
@@ -422,10 +425,10 @@ public class FaultLocalizationWithTraceFormula
 
   private PreConditionComposer getPreConditionExtractor() {
     return switch (preconditionType) {
-      case NONDETERMINISTIC_VARIABLES_ONLY -> new VariableAssignmentPreConditionComposer(
-          context, options, false, includeDeclared);
-      case INITIAL_ASSIGNMENT -> new VariableAssignmentPreConditionComposer(
-          context, options, true, includeDeclared);
+      case NONDETERMINISTIC_VARIABLES_ONLY ->
+          new VariableAssignmentPreConditionComposer(context, options, false, includeDeclared);
+      case INITIAL_ASSIGNMENT ->
+          new VariableAssignmentPreConditionComposer(context, options, true, includeDeclared);
       case ALWAYS_TRUE -> new TruePreConditionComposer(context);
       default -> throw new AssertionError("Unknown precondition type: " + preconditionType);
     };

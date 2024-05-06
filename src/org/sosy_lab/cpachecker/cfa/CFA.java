@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public interface CFA extends CfaNetwork {
@@ -49,7 +49,7 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getMainFunctionEntry();
   }
 
-  default Optional<ASTStructure> getASTStructure() {
+  default AstCfaRelation getASTStructure() {
     return getMetadata().getASTStructure();
   }
 

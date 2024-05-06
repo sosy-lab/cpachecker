@@ -186,37 +186,25 @@ public class BDDVectorCExpressionVisitor
       signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
     }
 
-    switch (op) {
-      case PLUS:
-        return bvmgr.makeAdd(l, r);
-      case MINUS:
-        return bvmgr.makeSub(l, r);
-      case DIVIDE:
-        // this would be working for constant numbers (2/3, x/3),
-        // however timeout for variables (a/b -> exponential bdd-size).
-        return bvmgr.makeDiv(l, r, signed);
-      case MODULO:
-        // this would be working for constant numbers (2%3, x%3),
-        // however timeout for variables (a%b -> exponential bdd-size).
-        return bvmgr.makeMod(l, r, signed);
-      case MULTIPLY:
-        // this should be working for constant numbers (2*3, x*3),
-        // however timeout for variables (a*b -> exponential bdd-size).
-        return bvmgr.makeMult(l, r);
-      case SHIFT_LEFT:
-        return bvmgr.makeShiftLeft(l, r);
-      case SHIFT_RIGHT:
-        return bvmgr.makeShiftRight(l, r, signed);
-      case BINARY_AND:
-        return bvmgr.makeBinaryAnd(l, r);
-      case BINARY_OR:
-        return bvmgr.makeBinaryOr(l, r);
-      case BINARY_XOR:
-        return bvmgr.makeXor(l, r);
-
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case PLUS -> bvmgr.makeAdd(l, r);
+      case MINUS -> bvmgr.makeSub(l, r);
+      case DIVIDE -> // this would be working for constant numbers (2/3, x/3),
+          // however timeout for variables (a/b -> exponential bdd-size).
+          bvmgr.makeDiv(l, r, signed);
+      case MODULO -> // this would be working for constant numbers (2%3, x%3),
+          // however timeout for variables (a%b -> exponential bdd-size).
+          bvmgr.makeMod(l, r, signed);
+      case MULTIPLY -> // this should be working for constant numbers (2*3, x*3),
+          // however timeout for variables (a*b -> exponential bdd-size).
+          bvmgr.makeMult(l, r);
+      case SHIFT_LEFT -> bvmgr.makeShiftLeft(l, r);
+      case SHIFT_RIGHT -> bvmgr.makeShiftRight(l, r, signed);
+      case BINARY_AND -> bvmgr.makeBinaryAnd(l, r);
+      case BINARY_OR -> bvmgr.makeBinaryOr(l, r);
+      case BINARY_XOR -> bvmgr.makeXor(l, r);
+      default -> throw new AssertionError("unknown binary operation: " + op);
+    };
   }
 
   protected static Region booleanOperation(
@@ -231,23 +219,17 @@ public class BDDVectorCExpressionVisitor
       signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
     }
 
-    switch (op) {
-      case EQUALS:
-        return bvmgr.makeLogicalEqual(l, r);
-      case NOT_EQUALS:
-        return bvmgr.makeNot(bvmgr.makeLogicalEqual(l, r));
-      case GREATER_THAN: // A>B <--> B<A
-        return bvmgr.makeLess(r, l, signed);
-      case GREATER_EQUAL: // A>=B <--> B<=A
-        return bvmgr.makeLessOrEqual(r, l, signed);
-      case LESS_THAN:
-        return bvmgr.makeLess(l, r, signed);
-      case LESS_EQUAL:
-        return bvmgr.makeLessOrEqual(l, r, signed);
-
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case EQUALS -> bvmgr.makeLogicalEqual(l, r);
+      case NOT_EQUALS -> bvmgr.makeNot(bvmgr.makeLogicalEqual(l, r));
+      case GREATER_THAN -> // A>B <--> B<A
+          bvmgr.makeLess(r, l, signed);
+      case GREATER_EQUAL -> // A>=B <--> B<=A
+          bvmgr.makeLessOrEqual(r, l, signed);
+      case LESS_THAN -> bvmgr.makeLess(l, r, signed);
+      case LESS_EQUAL -> bvmgr.makeLessOrEqual(l, r, signed);
+      default -> throw new AssertionError("unknown binary operation: " + op);
+    };
   }
 
   @Override
@@ -296,13 +278,11 @@ public class BDDVectorCExpressionVisitor
     final TypeIdOperator idOperator = pE.getOperator();
     final CType innerType = pE.getType();
 
-    switch (idOperator) {
-      case SIZEOF:
-        return getSizeof(innerType);
-
-      default: // TODO support more operators
-        return null;
-    }
+    return switch (idOperator) {
+      case SIZEOF -> getSizeof(innerType);
+      default -> // TODO support more operators
+          null;
+    };
   }
 
   @Override
@@ -334,22 +314,18 @@ public class BDDVectorCExpressionVisitor
       return null;
     }
 
-    switch (unaryOperator) {
-      case MINUS: // -X == (0-X)
-        return bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
-
-      case SIZEOF:
-        throw new AssertionError("SIZEOF should be handled before!");
-
-      case AMPER: // valid expression, but it's a pointer value
-        // TODO Not precise enough
-        return getSizeof(unaryOperand.getExpressionType());
-      case TILDE: // ~X == (X===0)
-        return bvmgr.makeBinaryEqual(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
-      default:
-        // TODO handle unimplemented operators
-        return null;
-    }
+    return switch (unaryOperator) {
+      case MINUS -> // -X == (0-X)
+          bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
+      case SIZEOF -> throw new AssertionError("SIZEOF should be handled before!");
+      case AMPER -> // valid expression, but it's a pointer value
+          // TODO Not precise enough
+          getSizeof(unaryOperand.getExpressionType());
+      case TILDE -> // ~X == (X===0)
+          bvmgr.makeBinaryEqual(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
+      default -> // TODO handle unimplemented operators
+          null;
+    };
   }
 
   private Region[] getSizeof(CType pType) {

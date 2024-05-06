@@ -136,11 +136,11 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     String left =
         (owner instanceof CFieldReference)
-            ? owner.toASTString(pQualified)
-            : owner.toParenthesizedASTString(pQualified);
+            ? owner.toASTString(pQualified, pOriginalVariableNames)
+            : owner.toParenthesizedASTString(pQualified, pOriginalVariableNames);
     String op = isPointerDereference ? "->" : ".";
     return left + op + name;
   }

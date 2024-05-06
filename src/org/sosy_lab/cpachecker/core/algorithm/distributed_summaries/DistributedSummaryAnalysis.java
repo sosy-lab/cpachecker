@@ -113,30 +113,25 @@ public class DistributedSummaryAnalysis implements Algorithm {
   }
 
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {
-    switch (decompositionType) {
-      case BLOCK_OPERATOR:
-        return new BlockOperatorDecomposer(configuration, shutdownManager.getNotifier());
-      case GIVEN_SIZE:
-        return new GivenSizeDecomposer(
-            new BlockOperatorDecomposer(configuration, shutdownManager.getNotifier()),
-            desiredNumberOfBlocks);
-      case SINGLE_BLOCK:
-        return new SingleBlockDecomposer(shutdownManager.getNotifier());
-      default:
-        throw new AssertionError("Unknown DecompositionType: " + decompositionType);
-    }
+    return switch (decompositionType) {
+      case BLOCK_OPERATOR ->
+          new BlockOperatorDecomposer(configuration, shutdownManager.getNotifier());
+      case GIVEN_SIZE ->
+          new GivenSizeDecomposer(
+              new BlockOperatorDecomposer(configuration, shutdownManager.getNotifier()),
+              desiredNumberOfBlocks);
+      case SINGLE_BLOCK -> new SingleBlockDecomposer(shutdownManager.getNotifier());
+      default -> throw new AssertionError("Unknown DecompositionType: " + decompositionType);
+    };
   }
 
   private BlockSummaryWorkerBuilder analysisWorker(
       BlockSummaryWorkerBuilder pBuilder, BlockNode pNode) {
-    switch (workerType) {
-      case DEFAULT:
-        return pBuilder.addAnalysisWorker(pNode, options);
-      case SMART:
-        return pBuilder.addSmartAnalysisWorker(pNode, options);
-      default:
-        throw new AssertionError("Unknown WorkerType: " + workerType);
-    }
+    return switch (workerType) {
+      case DEFAULT -> pBuilder.addAnalysisWorker(pNode, options);
+      case SMART -> pBuilder.addSmartAnalysisWorker(pNode, options);
+      default -> throw new AssertionError("Unknown WorkerType: " + workerType);
+    };
   }
 
   @Override

@@ -77,9 +77,9 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, Graphable {
@@ -1525,15 +1525,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
-      case "toString":
-        return toString();
-      case "heapObjects":
-        return heap.getHeapObjects();
-      default:
-        // try boolean properties
-        return checkProperty(pProperty);
-    }
+    return switch (pProperty) {
+      case "toString" -> toString();
+      case "heapObjects" -> heap.getHeapObjects();
+      default -> // try boolean properties
+          checkProperty(pProperty);
+    };
   }
 
   @Override
