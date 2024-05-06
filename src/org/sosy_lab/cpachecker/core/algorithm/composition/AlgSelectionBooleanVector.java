@@ -46,7 +46,7 @@ class AlgSelectionBooleanVector {
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (!(obj instanceof AlgSelectionBooleanVector)) {
       return false;
     }
     AlgSelectionBooleanVector that = (AlgSelectionBooleanVector) obj;
