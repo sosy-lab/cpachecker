@@ -899,13 +899,10 @@ public class FloatP {
     int exponent1 = (int) Math.max(a.exponent, format.minExp());
     int exponent2 = (int) Math.max(b.exponent, format.minExp());
 
-    BigInteger significand1 = a.significand;
-    BigInteger significand2 = b.significand;
-
     // Shift numerator and divisor by pulling out common factors in the exponent.
     // This will put the divisor in the range of 0.5 to 1.0
-    FloatP n = new FloatP(format, false, exponent1 - (exponent2 + 1), significand1);
-    FloatP d = new FloatP(format, false, -1, significand2);
+    FloatP n = new FloatP(format, false, exponent1 - (exponent2 + 1), a.significand);
+    FloatP d = new FloatP(format, false, -1, b.significand);
 
     // Calculate how many iterations are needed
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
