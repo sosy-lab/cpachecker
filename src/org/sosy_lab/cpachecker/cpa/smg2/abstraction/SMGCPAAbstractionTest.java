@@ -631,7 +631,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 10;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
-    Value[] listPtrs =
+    List<Value> listPtrs =
         buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
             true,
             dllSize,
@@ -656,7 +656,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 10;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
-    Value[] listPtrs =
+    List<Value> listPtrs =
         buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
             false,
             sllSize,
@@ -689,7 +689,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
-    Value[] topListPtrs =
+    List<Value> topListPtrs =
         buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
             false,
             sllSize,
@@ -701,7 +701,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     for (int all = 0; all < listLength + 2; all++) {
       // put in abstractable nested in all
-      Value[] nestedListPtrs =
+      List<Value> nestedListPtrs =
           buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
               false,
               sllSize,
@@ -712,7 +712,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               false);
       // Now write the first pointer into the top elem
       Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
       // State does not change because of no mat
       currentState = derefedTopElem.orElseThrow().getSMGState();
       SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
@@ -721,7 +721,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               topObj,
               BigInteger.ZERO,
               pointerSizeInBits,
-              currentState.getMemoryModel().getSMGValueFromValue(nestedListPtrs[0]).orElseThrow());
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(nestedListPtrs.get(0))
+                  .orElseThrow());
     }
 
     // Abstract
@@ -734,7 +737,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     for (int all = 0; all < listLength + 2; all++) {
       // Check abstracted nested based on the pointers of top
       Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
       assertThat(derefedTopElem).isPresent();
       assertThat(derefedTopElem.orElseThrow().hasSMGObjectAndOffset()).isTrue();
       // State does not change because of no mat
@@ -865,7 +868,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
-    Value[] topListPtrs =
+    List<Value> topListPtrs =
         buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
             true,
             dllSize,
@@ -877,7 +880,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     for (int all = 0; all < listLength + 2; all++) {
       // put in abstractable nested in all
-      Value[] nestedListPtrs =
+      List<Value> nestedListPtrs =
           buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
               true,
               dllSize,
@@ -888,7 +891,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               false);
       // Now write the first pointer into the top elem
       Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
       // State does not change because of no mat
       currentState = derefedTopElem.orElseThrow().getSMGState();
       SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
@@ -897,7 +900,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               topObj,
               BigInteger.ZERO,
               pointerSizeInBits,
-              currentState.getMemoryModel().getSMGValueFromValue(nestedListPtrs[0]).orElseThrow());
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(nestedListPtrs.get(0))
+                  .orElseThrow());
     }
 
     // Abstract
@@ -910,7 +916,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     for (int all = 0; all < listLength + 2; all++) {
       // Check abstracted nested based on the pointers of top
       Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
       assertThat(derefedTopElem).isPresent();
       assertThat(derefedTopElem.orElseThrow().hasSMGObjectAndOffset()).isTrue();
       // State does not change because of no mat
@@ -1054,7 +1060,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
-    Value[] topListPtrs =
+    List<Value> topListPtrs =
         buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
             true,
             dllSize,
@@ -1065,7 +1071,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             false);
 
     SMGState stateBeforeStackObj = currentState;
-    for (int i = 0; i < topListPtrs.length; i++) {
+    for (int i = 0; i < topListPtrs.size(); i++) {
       SMGObjectAndSMGState stackObjAndState =
           stateBeforeStackObj.copyAndAddStackObject(numericPointerSizeInBits);
       currentState = stackObjAndState.getState();
@@ -1075,13 +1081,13 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               dummyStackObject,
               new NumericValue(BigInteger.ZERO),
               numericPointerSizeInBits,
-              topListPtrs[i],
+              topListPtrs.get(i),
               null,
               dummyCDAEdge);
 
       for (int all = 0; all < listLength + 2; all++) {
         // put in abstractable nested in all
-        Value[] nestedListPtrs =
+        List<Value> nestedListPtrs =
             buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
                 true,
                 dllSize,
@@ -1092,7 +1098,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 false);
         // Now write the first pointer into the top elem
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-            currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+            currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
         // State does not change because of no mat
         currentState = derefedTopElem.orElseThrow().getSMGState();
         SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
@@ -1103,7 +1109,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 pointerSizeInBits,
                 currentState
                     .getMemoryModel()
-                    .getSMGValueFromValue(nestedListPtrs[0])
+                    .getSMGValueFromValue(nestedListPtrs.get(0))
                     .orElseThrow());
       }
 
@@ -1128,7 +1134,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
-    Value[] topListPtrs =
+    List<Value> topListPtrs =
         buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
             true,
             dllSize,
@@ -1140,7 +1146,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     for (int all = 0; all < listLength + 2; all++) {
       // put in abstractable nested in all
-      Value[] nestedListPtrs =
+      List<Value> nestedListPtrs =
           buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
               true,
               dllSize,
@@ -1151,7 +1157,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               false);
       // Now write the first pointer into the top elem
       Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
       // State does not change because of no mat
       currentState = derefedTopElem.orElseThrow().getSMGState();
       SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
@@ -1160,7 +1166,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               topObj,
               BigInteger.ZERO,
               pointerSizeInBits,
-              currentState.getMemoryModel().getSMGValueFromValue(nestedListPtrs[0]).orElseThrow());
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(nestedListPtrs.get(0))
+                  .orElseThrow());
     }
 
     // Abstract
@@ -1182,7 +1191,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
-    Value[] topListPtrs =
+    List<Value> topListPtrs =
         buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
             false,
             sllSize,
@@ -1196,7 +1205,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     for (int rolling = 0; rolling < listLength + 2; rolling++) {
       for (int all = 0; all < listLength + 2; all++) {
         // put in nested in all, but 1 (rolling) is not abstractable
-        Value[] nestedListPtrs =
+        List<Value> nestedListPtrs =
             buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
                 false,
                 sllSize,
@@ -1208,7 +1217,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Now write the first pointer into the top elem
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-            currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+            currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
         // State does not change because of no mat
         currentState = derefedTopElem.orElseThrow().getSMGState();
         SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
@@ -1219,7 +1228,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 pointerSizeInBits,
                 currentState
                     .getMemoryModel()
-                    .getSMGValueFromValue(nestedListPtrs[0])
+                    .getSMGValueFromValue(nestedListPtrs.get(0))
                     .orElseThrow());
       }
 
@@ -1229,7 +1238,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = absFinder.findAndAbstractLists();
       for (int all = 0; all < listLength + 2; all++) {
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-            currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+            currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
         // State does not change because of no mat
         currentState = derefedTopElem.orElseThrow().getSMGState();
         SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
@@ -1386,7 +1395,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
-    Value[] topListPtrs =
+    List<Value> topListPtrs =
         buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
             false,
             sllSize,
@@ -1400,7 +1409,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     for (int rolling = 0; rolling < listLength + 2; rolling++) {
       for (int all = 0; all < listLength + 2; all++) {
         // put in nested in all, but 1 (rolling) is not abstractable
-        Value[] nestedListPtrs =
+        List<Value> nestedListPtrs =
             buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
                 false,
                 sllSize,
@@ -1412,7 +1421,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Now write the first pointer into the top elem
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-            currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+            currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
         // State does not change because of no mat
         currentState = derefedTopElem.orElseThrow().getSMGState();
         SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
@@ -1423,7 +1432,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 pointerSizeInBits,
                 currentState
                     .getMemoryModel()
-                    .getSMGValueFromValue(nestedListPtrs[0])
+                    .getSMGValueFromValue(nestedListPtrs.get(0))
                     .orElseThrow());
       }
 
@@ -1433,7 +1442,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = absFinder.findAndAbstractLists();
       for (int all = 0; all < listLength + 2; all++) {
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
-            currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+            currentState.dereferencePointerWithoutMaterilization(topListPtrs.get(all));
         // State does not change because of no mat
         currentState = derefedTopElem.orElseThrow().getSMGState();
         SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
@@ -3854,19 +3863,19 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   private void checkAbstractionOfLLWithConcreteFirstAndLast(
       boolean dll,
       int listLength,
-      Value[] listPtrs,
+      List<Value> listPtrs,
       BigInteger otherPtrOffset,
       BigInteger internalListPtrOffset)
       throws SMGException {
-    assertThat(listPtrs).hasLength(listLength + 2);
+    assertThat(listPtrs).hasSize(listLength + 2);
     SMGObject listSegmentFront =
         currentState
-            .dereferencePointerWithoutMaterilization(listPtrs[0])
+            .dereferencePointerWithoutMaterilization(listPtrs.get(0))
             .orElseThrow()
             .getSMGObject();
     SMGObject listSegmentBack =
         currentState
-            .dereferencePointerWithoutMaterilization(listPtrs[listLength + 1])
+            .dereferencePointerWithoutMaterilization(listPtrs.get(listLength + 1))
             .orElseThrow()
             .getSMGObject();
 
@@ -3874,7 +3883,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(currentState.getMemoryModel().getSmg().isValid(listSegmentBack)).isTrue();
     // Check fst of abstracted
     Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedAbstrListFst =
-        currentState.dereferencePointerWithoutMaterilization(listPtrs[1]);
+        currentState.dereferencePointerWithoutMaterilization(listPtrs.get(1));
     assertThat(derefedAbstrListFst).isPresent();
     assertThat(derefedAbstrListFst.orElseThrow().hasSMGObjectAndOffset()).isTrue();
     SMGObject derefedFstObj = derefedAbstrListFst.orElseThrow().getSMGObject();
@@ -3907,7 +3916,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             .getMemoryModel()
             .getSmg()
             .getPTEdge(
-                currentState.getMemoryModel().getSMGValueFromValue(listPtrs[1]).orElseThrow());
+                currentState.getMemoryModel().getSMGValueFromValue(listPtrs.get(1)).orElseThrow());
     assertThat(ptrFromBeginning.orElseThrow().targetSpecifier())
         .isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
     assertThat(ptrFromBeginning.orElseThrow().getOffset()).isEqualTo(otherPtrOffset);
@@ -3926,7 +3935,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Check lst of abstracted
     Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedAbstrListLst =
-        currentState.dereferencePointerWithoutMaterilization(listPtrs[listLength - 2]);
+        currentState.dereferencePointerWithoutMaterilization(listPtrs.get(listLength - 2));
     assertThat(derefedAbstrListLst).isPresent();
     assertThat(derefedAbstrListLst.orElseThrow().hasSMGObjectAndOffset()).isTrue();
     SMGObject derefedLastObj = derefedAbstrListLst.orElseThrow().getSMGObject();
@@ -3973,14 +3982,14 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   private void checkConcreteSLLWithDiffPtrOffsetsFirstAndLast(
       boolean dll,
       int listLength,
-      Value[] listPtrs,
+      List<Value> listPtrs,
       BigInteger otherPtrOffset,
       BigInteger internalListPtrOffset)
       throws SMGException {
-    assertThat(listPtrs).hasLength(listLength + 2);
+    assertThat(listPtrs).hasSize(listLength + 2);
     for (int i = 0; i < listLength + 2; i++) {
       Optional<SMGStateAndOptionalSMGObjectAndOffset> deref =
-          currentState.dereferencePointerWithoutMaterilization(listPtrs[i]);
+          currentState.dereferencePointerWithoutMaterilization(listPtrs.get(i));
       assertThat(deref).isPresent();
       assertThat(deref.orElseThrow().hasSMGObjectAndOffset()).isTrue();
       SMGObject listSegment = deref.orElseThrow().getSMGObject();
@@ -4000,13 +4009,13 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             .isEqualTo(SMGTargetSpecifier.IS_REGION);
 
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefNext =
-            currentState.dereferencePointerWithoutMaterilization(listPtrs[i + 1]);
+            currentState.dereferencePointerWithoutMaterilization(listPtrs.get(i + 1));
         assertThat(derefNext).isPresent();
         assertThat(derefNext.orElseThrow().hasSMGObjectAndOffset()).isTrue();
         SMGObject listSegmentNext = derefNext.orElseThrow().getSMGObject();
         assertThat(maybePTEToAbtrFst.orElseThrow().pointsTo()).isEqualTo(listSegmentNext);
 
-      } else if (i == listPtrs.length - 1) {
+      } else if (i == listPtrs.size() - 1) {
         // check prev, but not next
         if (dll) {
           throw new RuntimeException("Implement me");
@@ -4019,7 +4028,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         Optional<SMGPointsToEdge> maybePTEToAbtrFst =
             currentState.getMemoryModel().getSmg().getPTEdge(readNextToAbstr.getSMGValue());
         assertThat(maybePTEToAbtrFst).isPresent();
-        if (i == listPtrs.length - 2) {
+        if (i == listPtrs.size() - 2) {
           assertThat(maybePTEToAbtrFst.orElseThrow().getOffset()).isEqualTo(otherPtrOffset);
         } else {
           assertThat(maybePTEToAbtrFst.orElseThrow().getOffset()).isEqualTo(internalListPtrOffset);
@@ -4028,7 +4037,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             .isEqualTo(SMGTargetSpecifier.IS_REGION);
 
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefNext =
-            currentState.dereferencePointerWithoutMaterilization(listPtrs[i + 1]);
+            currentState.dereferencePointerWithoutMaterilization(listPtrs.get(i + 1));
         assertThat(derefNext).isPresent();
         assertThat(derefNext.orElseThrow().hasSMGObjectAndOffset()).isTrue();
         SMGObject listSegmentNext = derefNext.orElseThrow().getSMGObject();

@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.junit.After;
@@ -175,7 +174,7 @@ public class SMGCPATest0 {
    * and end. Returns pointers to all objects in order. The values saved in non ptr locations are 0
    * and then +1 for each int sized space until the nfo.
    */
-  public Value[] buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
+  public ImmutableList<Value> buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
       boolean dll,
       BigInteger segmentSize,
       int listLength,
@@ -290,12 +289,11 @@ public class SMGCPATest0 {
             null,
             dummyCDAEdge);
 
-    return ImmutableList.builder()
+    return ImmutableList.<Value>builder()
         .add(ptrToFrontAndState.getValue())
-        .addAll(Arrays.asList(listPtrs))
+        .add(listPtrs)
         .add(ptrToLastAndState.getValue())
-        .build()
-        .toArray(new Value[0]);
+        .build();
   }
 
   /*
