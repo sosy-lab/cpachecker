@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.tubes.ExportAssumeEdges;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -121,6 +122,11 @@ public class CoreComponentsFactory {
           "use a second model checking run (e.g., with CBMC or a different CPAchecker"
               + " configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
+
+  @Option(
+      secure = true,
+      description = "export the assumes edges before running the original algorithm")
+  private boolean exportAssumeEdges = false;
 
   @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
@@ -721,6 +727,10 @@ public class CoreComponentsFactory {
       }
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
+      }
+
+      if (exportAssumeEdges) {
+        algorithm = new ExportAssumeEdges(algorithm, config, cfa, logger);
       }
     }
 

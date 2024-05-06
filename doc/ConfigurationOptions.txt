@@ -307,6 +307,9 @@ analysis.disable = false
 # entry function
 analysis.entryFunction = "main"
 
+# export the assumes edges before running the original algorithm
+analysis.exportAssumeEdges = false
+
 # do analysis and then extract pre- and post conditions for custom
 # instruction from analysis result
 analysis.extractRequirements.customInstruction = false
