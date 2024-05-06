@@ -2089,8 +2089,7 @@ public class SymbolicProgramConfiguration {
           .append(entry.getValue())
           .append(
               transformedImmutableListCopy(
-                  orderedHVes,
-                  hve -> (smg.isPointer(hve.hasValue()) ? "(ptr) " : "") + hve.toString()))
+                  orderedHVes, hve -> (smg.isPointer(hve.hasValue()) ? "(ptr) " : "") + hve))
           .append(validity);
       builder.append("\n");
     }
