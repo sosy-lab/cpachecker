@@ -33,7 +33,7 @@ import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
-public abstract class CFloatUnitTest {
+public abstract class AbstractCFloatTestBase {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
   }

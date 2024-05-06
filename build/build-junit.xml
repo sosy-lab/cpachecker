@@ -60,7 +60,6 @@ SPDX-License-Identifier: Apache-2.0
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>
                     <exclude name="**/*$*Test.*"/>
-                    <exclude name="**/CFloatUnitTest.*"/>
                 </fileset>
             </batchtest>
         </junit>
@@ -90,7 +89,6 @@ SPDX-License-Identifier: Apache-2.0
                     <fileset dir="${class.dir}">
                         <include name="**/*Test.*"/>
                         <exclude name="**/*$*Test.*"/>
-                        <exclude name="**/CFloatUnitTest.*"/>
                     </fileset>
                 </batchtest>
             </junit>

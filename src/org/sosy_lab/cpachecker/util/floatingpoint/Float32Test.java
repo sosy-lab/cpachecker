@@ -19,7 +19,7 @@ import org.kframework.mpfr.BinaryMathContext;
 
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
-public class Float32Test extends CFloatUnitTest {
+public class Float32Test extends AbstractCFloatTestBase {
   @Override
   protected BinaryMathContext getFloatType() {
     return BinaryMathContext.BINARY32;

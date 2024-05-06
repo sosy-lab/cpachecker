@@ -19,7 +19,7 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 
 @RunWith(Parameterized.class)
-public class Float16Test extends CFloatUnitTest {
+public class Float16Test extends AbstractCFloatTestBase {
   @Override
   protected BinaryMathContext getFloatType() {
     return BinaryMathContext.BINARY16;
