@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.composition;
 
+import java.util.Objects;
+
 class AlgSelectionBooleanVector {
 
   private final boolean hasAliasing;
@@ -40,8 +42,20 @@ class AlgSelectionBooleanVector {
   }
 
   @Override
-  public String toString() {
-    return hasAliasing + " " + hasArray + " " + hasComposite + " " + hasFloat + " "
-        + hasLoop + " " + hasSingleLoop;
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    AlgSelectionBooleanVector that = (AlgSelectionBooleanVector) obj;
+    return hasAliasing == that.hasAliasing &&
+        hasArray == that.hasArray &&
+        hasComposite == that.hasComposite &&
+        hasFloat == that.hasFloat &&
+        hasLoop == that.hasLoop &&
+        hasSingleLoop == that.hasSingleLoop;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(hasAliasing, hasArray, hasComposite, hasFloat, hasLoop, hasSingleLoop);
   }
 }
