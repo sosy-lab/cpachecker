@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.composition;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Objects;
 
 class AlgSelectionBooleanVector {
@@ -42,15 +43,17 @@ class AlgSelectionBooleanVector {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
+  public boolean equals(@Nullable Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (!(obj instanceof AlgSelectionBooleanVector that)) {
-      return false;
-    }
-    return Objects.hash(hasAliasing, hasArray, hasComposite, hasFloat, hasLoop, hasSingleLoop) ==
-        Objects.hash(that.hasAliasing, that.hasArray, that.hasComposite, that.hasFloat, that.hasLoop, that.hasSingleLoop);
+    return pOther instanceof AlgSelectionBooleanVector other
+        && hasAliasing == other.hasAliasing
+        && hasArray == other.hasArray
+        && hasComposite == other.hasComposite
+        && hasFloat == other.hasFloat
+        && hasLoop == other.hasLoop
+        && hasSingleLoop == other.hasSingleLoop;
   }
 
   @Override

@@ -957,7 +957,7 @@ compositionAlgorithm.propertyChecked = true
 compositionAlgorithm.strategy = no default value
 
 # Enable when time selection algorithm is used
-compositionAlgorithm.useTimeSelection = true
+compositionAlgorithm.useTimeSelection = false
 
 # let each analysis part of the composition algorithm write output files and
 # not only the last one that is executed
