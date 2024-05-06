@@ -210,7 +210,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       name = "useTimeSelection",
       description = "Enable when time selection algorithm is used")
-  private boolean useTimeSelection = true;
+  private boolean useTimeSelection = false;
 
 
   @Option(

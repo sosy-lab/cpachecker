@@ -43,15 +43,19 @@ class AlgSelectionBooleanVector {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) return true;
-    if (obj == null || getClass() != obj.getClass()) return false;
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
     AlgSelectionBooleanVector that = (AlgSelectionBooleanVector) obj;
-    return hasAliasing == that.hasAliasing &&
-        hasArray == that.hasArray &&
-        hasComposite == that.hasComposite &&
-        hasFloat == that.hasFloat &&
-        hasLoop == that.hasLoop &&
-        hasSingleLoop == that.hasSingleLoop;
+    return hasAliasing == that.hasAliasing
+        && hasArray == that.hasArray
+        && hasComposite == that.hasComposite
+        && hasFloat == that.hasFloat
+        && hasLoop == that.hasLoop
+        && hasSingleLoop == that.hasSingleLoop;
   }
 
   @Override
