@@ -49,12 +49,8 @@ class AlgSelectionBooleanVector {
     if (!(obj instanceof AlgSelectionBooleanVector that)) {
       return false;
     }
-    return hasAliasing == that.hasAliasing
-        && hasArray == that.hasArray
-        && hasComposite == that.hasComposite
-        && hasFloat == that.hasFloat
-        && hasLoop == that.hasLoop
-        && hasSingleLoop == that.hasSingleLoop;
+    return Objects.hash(hasAliasing, hasArray, hasComposite, hasFloat, hasLoop, hasSingleLoop) ==
+        Objects.hash(that.hasAliasing, that.hasArray, that.hasComposite, that.hasFloat, that.hasLoop, that.hasSingleLoop);
   }
 
   @Override
