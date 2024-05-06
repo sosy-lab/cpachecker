@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Preconditions;
@@ -2086,9 +2088,9 @@ public class SymbolicProgramConfiguration {
           .append(" (" + smg.getNestingLevel(entry.getKey()) + ")")
           .append(entry.getValue())
           .append(
-              orderedHVes.stream()
-                  .map(hve -> (smg.isPointer(hve.hasValue()) ? "(ptr) " : "") + hve.toString())
-                  .collect(ImmutableList.toImmutableList()))
+              transformedImmutableListCopy(
+                  orderedHVes,
+                  hve -> (smg.isPointer(hve.hasValue()) ? "(ptr) " : "") + hve.toString()))
           .append(validity);
       builder.append("\n");
     }

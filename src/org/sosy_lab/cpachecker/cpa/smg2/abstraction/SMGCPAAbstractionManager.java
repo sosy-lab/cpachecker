@@ -925,8 +925,8 @@ public class SMGCPAAbstractionManager {
         if (smg.isPointer(edge.hasValue())) {
           SMGObject target = smg.getPTEdge(edge.hasValue()).orElseThrow().pointsTo();
           // Repeat with targets
-          Set<SMGObject> newChain = new HashSet<>();
-          newChain.addAll(oldChain);
+          Set<SMGObject> newChain = new HashSet<>(oldChain);
+
           newChain.add(currentObj);
           recursiveNestingSearch(
               target,

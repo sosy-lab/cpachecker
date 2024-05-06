@@ -3876,7 +3876,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedAbstrListFst =
         currentState.dereferencePointerWithoutMaterilization(listPtrs[1]);
     assertThat(derefedAbstrListFst).isPresent();
-    assertThat(derefedAbstrListFst.get().hasSMGObjectAndOffset()).isTrue();
+    assertThat(derefedAbstrListFst.orElseThrow().hasSMGObjectAndOffset()).isTrue();
     SMGObject derefedFstObj = derefedAbstrListFst.orElseThrow().getSMGObject();
     assertThat(derefedFstObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
     if (dll) {
@@ -3928,7 +3928,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedAbstrListLst =
         currentState.dereferencePointerWithoutMaterilization(listPtrs[listLength - 2]);
     assertThat(derefedAbstrListLst).isPresent();
-    assertThat(derefedAbstrListLst.get().hasSMGObjectAndOffset()).isTrue();
+    assertThat(derefedAbstrListLst.orElseThrow().hasSMGObjectAndOffset()).isTrue();
     SMGObject derefedLastObj = derefedAbstrListLst.orElseThrow().getSMGObject();
     assertThat(derefedLastObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
     if (dll) {
