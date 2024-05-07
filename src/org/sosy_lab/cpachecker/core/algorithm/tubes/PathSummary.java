@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tubes;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
+@FunctionalInterface
 public interface PathSummary<T> {
 
   T summarize(List<ARGPath> paths);
