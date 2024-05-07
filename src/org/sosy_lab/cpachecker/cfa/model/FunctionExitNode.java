@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.google.errorprone.annotations.DoNotCall;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -20,13 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 public final class FunctionExitNode extends CFANode {
 
   private static final long serialVersionUID = -7883542777389959334L;
-
-  /**
-   * In order to prevent infinite recursion during JSON serialization, this node is annotated as
-   * {@JsonBackReference}, while in {@link FunctionEntryNode}, the {@link FunctionExitNode} field is
-   * annotated as {@JsonManagedReference}
-   */
-  private @JsonBackReference FunctionEntryNode entryNode;
+  private FunctionEntryNode entryNode;
 
   public FunctionExitNode(AFunctionDeclaration pFunction) {
     super(pFunction);

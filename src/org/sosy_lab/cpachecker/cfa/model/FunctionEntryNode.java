@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.DoNotCall;
 import java.util.List;
@@ -31,19 +30,12 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   private final AFunctionDeclaration functionDefinition;
   private final @Nullable AVariableDeclaration returnVariable;
 
-  /**
-   * Check if call edges are added in the second pass.
-   *
-   * <p>Some function entry nodes do not have a corresponding function exit node that is also part
-   * of the CFA. If a function never returns, because it always aborts the program or always
-   * executes an infinite loop, the CFA doesn't contain an exit node for the function. If this is
-   * the case, this field is null.
-   *
-   * <p>In order to prevent infinite recursion during JSON serialization, this node is annotated as
-   * {@JsonManagedReference}, while in {@link FunctionExitNode}, the {@link FunctionEntryNode} field
-   * is annotated as {@JsonBackReference}
-   */
-  private @Nullable @JsonManagedReference FunctionExitNode exitNode;
+  // Check if call edges are added in the second pass
+  // Some function entry nodes do not have a corresponding function exit node that is also part of
+  // the CFA. If a function never returns, because it always aborts the program or always executes
+  // an infinite loop, the CFA doesn't contain an exit node for the function. If this is the case,
+  // this field is null.
+  private @Nullable FunctionExitNode exitNode;
 
   protected FunctionEntryNode(
       final FileLocation pFileLocation,

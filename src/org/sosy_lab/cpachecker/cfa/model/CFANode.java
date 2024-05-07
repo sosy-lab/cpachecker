@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
@@ -28,6 +30,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
+/**
+ * Keep track of already serialized {@link CFANode}s and use the property to refer to duplicates
+ * during serialization.
+ */
+@JsonIdentityInfo(
+    scope = CFANode.class,
+    generator = ObjectIdGenerators.PropertyGenerator.class,
+    property = "nodeNumber")
 public sealed class CFANode implements Comparable<CFANode>, Serializable
     permits CFALabelNode, CFATerminationNode, FunctionEntryNode, FunctionExitNode {
 
