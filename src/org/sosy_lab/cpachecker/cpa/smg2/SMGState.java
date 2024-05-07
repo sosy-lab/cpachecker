@@ -18,6 +18,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.math.BigInteger;
@@ -1299,6 +1300,7 @@ public class SMGState
         thisValue,
         otherState,
         otherValue,
+        ImmutableMap.of(),
         equalityCache,
         objectCache,
         new HashSet<>(),
@@ -1326,6 +1328,7 @@ public class SMGState
         thisValue,
         otherState,
         otherValue,
+        ImmutableMap.of(),
         new EqualityCache<>(),
         new EqualityCache<>(),
         new HashSet<>(),
@@ -1348,6 +1351,7 @@ public class SMGState
       @Nullable Value thisValue,
       SMGState otherState,
       @Nullable Value otherValue,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       EqualityCache<Value> equalityCache,
       EqualityCache<SMGObject> objectCache,
       Set<Value> thisAlreadyCheckedPointers,
@@ -1392,6 +1396,7 @@ public class SMGState
           thisValue,
           otherState,
           otherValue,
+          exemptOffsetsPerObject,
           equalityCache,
           objectCache,
           thisAlreadyCheckedPointers,
@@ -1460,6 +1465,7 @@ public class SMGState
       Value thisAddress,
       SMGState otherState,
       Value otherAddress,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       EqualityCache<Value> equalityCache,
       EqualityCache<SMGObject> objectCache,
       Set<Value> thisAlreadyCheckedPointers,
@@ -1510,6 +1516,7 @@ public class SMGState
             thisObj,
             otherState,
             otherObj,
+            exemptOffsetsPerObject,
             equalityCache,
             objectCache,
             thisAlreadyCheckedPointers,
@@ -1526,14 +1533,14 @@ public class SMGState
         return true;
       } else {
         // Assume them to be equal from here on, this way we don't check them multiple times
-        // This also means we need to remove it if its found to be not equal!
+        // This also means we need to remove it if it's found to be not equal!
         objectCache.addEquality(thisObj, otherObj);
       }
 
       if (checkEqualValuesForTwoStatesWithExemptions(
           thisObj,
           otherObj,
-          ImmutableList.of(),
+          exemptOffsetsPerObject,
           thisState,
           otherState,
           equalityCache,
@@ -1555,6 +1562,7 @@ public class SMGState
       SMGObject thisObj,
       SMGState otherState,
       SMGObject otherObj,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       EqualityCache<Value> equalityCache,
       EqualityCache<SMGObject> objectCache,
       Set<Value> thisPointerValueAlreadyVisited,
@@ -1590,7 +1598,7 @@ public class SMGState
         return checkEqualValuesForTwoStatesWithExemptions(
             thisSLL,
             otherSLL,
-            ImmutableList.of(),
+            exemptOffsetsPerObject,
             thisState,
             otherState,
             equalityCache,
@@ -1612,7 +1620,8 @@ public class SMGState
    *
    * @param thisObject object of the this state to compare.
    * @param otherObject object of the other state to compare.
-   * @param exemptOffsets exempt offsets, e.g. nfo, pfo offsets.
+   * @param exemptOffsetsPerObject exempt offsets, e.g. nfo, pfo offsets per object (objects might
+   *     be visited again! through pointers).
    * @param thisState the state to which the this object belongs.
    * @param otherState the state to which the other object belongs.
    * @param equalityCache basic value check cache.
@@ -1623,7 +1632,7 @@ public class SMGState
   public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
-      ImmutableList<BigInteger> exemptOffsets,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache,
@@ -1632,7 +1641,7 @@ public class SMGState
     return checkEqualValuesForTwoStatesWithExemptions(
         thisObject,
         otherObject,
-        exemptOffsets,
+        exemptOffsetsPerObject,
         thisState,
         otherState,
         equalityCache,
@@ -1656,7 +1665,7 @@ public class SMGState
   public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
-      ImmutableList<BigInteger> exemptOffsets,
+      Map<SMGObject, List<BigInteger>> exemptOffsets,
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache,
@@ -1677,7 +1686,7 @@ public class SMGState
   public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
-      ImmutableList<BigInteger> exemptOffsets,
+      Map<SMGObject, List<BigInteger>> exemptOffsets,
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache) {
@@ -1697,18 +1706,19 @@ public class SMGState
    * Compare 2 values, but do not compare the exempt offsets. Compares pointers by shape of the
    * memory they point to. Needed for lists and their next/prev pointers.
    *
-   * @param thisObject object of the this state to compare.
-   * @param otherObject object of the other state to compare.
-   * @param exemptOffsets exempt offsets, e.g. nfo, pfo offsets.
-   * @param thisState the state to which the this object belongs.
-   * @param otherState the state to which the other object belongs.
+   * @param thisObject object of the thisState to compare.
+   * @param otherObject object of the otherState to compare.
+   * @param exemptOffsetsPerObject exempt offsets, e.g. nfo, pfo offsets per object (objects might
+   *     be visited again! through pointers).
+   * @param thisState the state to which the thisObject belongs.
+   * @param otherState the state to which the otherObject belongs.
    * @param equalityCache basic value check cache.
    * @return true if the 2 memory sections given are equal. False else.
    */
   private boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
-      ImmutableList<BigInteger> exemptOffsets,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache,
@@ -1728,7 +1738,9 @@ public class SMGState
             .getSmg()
             .getSMGObjectsWithSMGHasValueEdges()
             .getOrDefault(otherObject, PersistentSet.of())) {
-      if (!exemptOffsets.contains(hve.getOffset())) {
+      if (!exemptOffsetsPerObject
+          .getOrDefault(otherObject, ImmutableList.of())
+          .contains(hve.getOffset())) {
         otherOffsetToHVEdgeMap.put(hve.getOffset(), hve);
       }
     }
@@ -1742,7 +1754,9 @@ public class SMGState
             .getSmg()
             .getSMGObjectsWithSMGHasValueEdges()
             .getOrDefault(thisObject, PersistentSet.of())) {
-      if (!exemptOffsets.contains(hve.getOffset())) {
+      if (!exemptOffsetsPerObject
+          .getOrDefault(otherObject, ImmutableList.of())
+          .contains(hve.getOffset())) {
         thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
         if (memoryModel.getSmg().isPointer(hve.hasValue())) {
           // Pointers are necessary!!!!
@@ -1777,6 +1791,7 @@ public class SMGState
           thisHVEValue,
           otherState,
           otherHVEValue,
+          exemptOffsetsPerObject,
           equalityCache,
           objectCache,
           thisPointerValuesAlreadyVisited,
@@ -1808,6 +1823,7 @@ public class SMGState
           thisHVEValue,
           otherState,
           otherHVEValue,
+          exemptOffsetsPerObject,
           equalityCache,
           objectCache,
           thisPointerValuesAlreadyVisited,
@@ -4353,7 +4369,7 @@ public class SMGState
     if (!checkEqualValuesForTwoStatesWithExemptions(
             nextObj,
             root,
-            ImmutableList.of(nfo, pfo),
+            ImmutableMap.of(nextObj, ImmutableList.of(nfo, pfo), root, ImmutableList.of(nfo, pfo)),
             this,
             this,
             eqCache,
@@ -4592,7 +4608,7 @@ public class SMGState
     if (!checkEqualValuesForTwoStatesWithExemptions(
             nextObj,
             root,
-            ImmutableList.of(nfo),
+            ImmutableMap.of(nextObj, ImmutableList.of(nfo), root, ImmutableList.of(nfo)),
             this,
             this,
             eqCache,
@@ -4683,11 +4699,13 @@ public class SMGState
           currentState.copyAndReplaceMemoryModel(
               currentState
                   .getMemoryModel()
-                  .copyAndSetSpecifierOfPtrsTowards(newSLL, 0, SMGTargetSpecifier.IS_LAST_POINTER));
+                  .copyAndSetSpecifierOfPtrsTowards(newSLL, 0, SMGTargetSpecifier.IS_LAST_POINTER, ImmutableSet.of(SMGTargetSpecifier.IS_REGION)));
     }
     // replaceAllPointersTowardsWithAndIncrementNestingLevel
     // sets ALL specifier for all pointers towards root, except for first specifiers,
     // if root is abstracted and first specifiers for non-abstracted root
+    // This also ignores self-pointers in root, as they need to be == with nextObj anyway.
+    //   They are then deleted in copyAndRemoveObjectAndAssociatedSubSMG().
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
