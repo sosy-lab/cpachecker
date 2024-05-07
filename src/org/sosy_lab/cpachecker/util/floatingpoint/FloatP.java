@@ -51,6 +51,87 @@ public class FloatP {
   }
 
   /**
+   * Constant value 48/17
+   *
+   * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
+   */
+  private static final FloatP const_48div17 =
+      constant(Format.Float256, 48).divideSlow(constant(Format.Float256, 17));
+
+  /**
+   * Constant value 32/17
+   *
+   * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
+   */
+  private static final FloatP const_32div17 =
+      constant(Format.Float256, 32).divideSlow(constant(Format.Float256, 17));
+
+  /**
+   * Table of constant terms 1/k! for 1..100
+   *
+   * <p>Required by {@link FloatP#exp()} to speed up the expansion of the Taylor series.
+   */
+  private static final ImmutableMap<Integer, FloatP> expTable = mkExpTable(Format.Float256, 100);
+
+  /**
+   * Table of constant terms 1/k for 1..1000
+   *
+   * <p>Required by {@link FloatP#ln()} to speed up the expansion of the Taylor series.
+   */
+  private static final ImmutableMap<Integer, FloatP> lnTable = mkLnTable(Format.Float256, 1000);
+
+  /**
+   * Constant value ln(2)
+   *
+   * <p>Required by {@link FloatP#ln()} to rewrite ln(x)=ln(a*2^k) as ln(a) + k*ln(2)
+   */
+  private static final FloatP const_ln2 = make_ln2(Format.Float256);
+
+  /**
+   * Statistics for {@link FloatP#exp()}
+   *
+   * <p>Collects statistics about the number of additional bits required for correct rounding. This
+   * is used for optimization only.
+   */
+  static final Map<Integer, Integer> expStats = new HashMap<>();
+
+  /**
+   * Statistics for {@link FloatP#ln()}
+   *
+   * <p>Collects statistics about the number of additional bits required for correct rounding. This
+   * is used for optimization only.
+   */
+  static final Map<Integer, Integer> lnStats = new HashMap<>();
+
+  /**
+   * Statistics for {@link FloatP#pow()}
+   *
+   * <p>Collects statistics about the number of additional bits required for correct rounding. This
+   * is used for optimization only.
+   */
+  static final Map<Integer, Integer> powStats = new HashMap<>();
+
+  /**
+   * Statistics for {@link FloatP#fromString()}
+   *
+   * <p>Collects statistics about the number of additional bits required for correct rounding. This
+   * is used for optimization only.
+   */
+  static final Map<Integer, Integer> fromStringStats = new HashMap<>();
+
+  /** Format, defines the precision of the value and the allowed exponent range. */
+  private final Format format;
+
+  /** Sign of the value */
+  private final boolean sign;
+
+  /** Exponent of the value. */
+  private final long exponent;
+
+  /** Significand of the value. */
+  private final BigInteger significand;
+
+  /**
    * Defines the precision and the exponent range of a {@link FloatP} value.
    *
    * <p>The precision of a FloatP is equivalent to the length of its significand. Here the 'hidden
@@ -126,14 +207,6 @@ public class FloatP {
       return new Format(newExp, newSig);
     }
   }
-
-  // Format, defines the precision of the value and the allowed exponent range
-  private final Format format;
-
-  // Sign, exponent and significand of the float value
-  private final boolean sign;
-  private final long exponent;
-  private final BigInteger significand;
 
   /**
    * Create a floating point value.
@@ -854,15 +927,6 @@ public class FloatP {
     return new FloatP(format, resultSign, resultExponent, resultSignificand);
   }
 
-  // These constants are needed for division with Newton's approach.
-  private static final FloatP c48 = constant(Format.Float256, 48);
-  private static final FloatP c32 = constant(Format.Float256, 32);
-  private static final FloatP c17 = constant(Format.Float256, 17);
-
-  // Here we have to use the slow divide for the constants.
-  private static final FloatP c48d17 = c48.divideSlow(c17);
-  private static final FloatP c32d17 = c32.divideSlow(c17);
-
   private double lb(double number) {
     return Math.log(number) / Math.log(2);
   }
@@ -916,8 +980,8 @@ public class FloatP {
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
 
     // Set the initial value to 48/32 - 32/17*D
-    FloatP t1 = c48d17.withPrecision(format);
-    FloatP t2 = c32d17.withPrecision(format);
+    FloatP t1 = const_48div17.withPrecision(format);
+    FloatP t2 = const_32div17.withPrecision(format);
 
     FloatP x = t1.subtract(t2.multiply(d));
 
@@ -1059,9 +1123,6 @@ public class FloatP {
     return equalModuloP(format, r, r.plus1Ulp());
   }
 
-  // Statistics for exp(...)
-  static final Map<Integer, Integer> expStats = new HashMap<>();
-
   /**
    * Returns a list of formats for the calculation of exp(x).
    *
@@ -1139,7 +1200,9 @@ public class FloatP {
     return r.withPrecision(format);
   }
 
-  /** Calculate the faculty.
+  /**
+   * Calculate the faculty.
+   *
    * <p>We use dynamic programming and store intermediate results in the Map from the second
    * argument. This speeds up the calculation of k! for all k<100 in {@link FloatP#mkExpTable} as
    * results can be reused across multiple function calls.
@@ -1155,19 +1218,16 @@ public class FloatP {
         });
   }
 
-  private static ImmutableMap<Integer, FloatP> mkExpTable(Format pFormat) {
+  private static ImmutableMap<Integer, FloatP> mkExpTable(Format pFormat, int numberOfTerms) {
     ImmutableMap.Builder<Integer, FloatP> builder = ImmutableMap.builder();
     Map<Integer, BigInteger> facMap = new HashMap<>();
     builder.put(0, one(pFormat));
-    for (int k = 1; k < 100; k++) { // TODO: Find a bound that depends on the precision
+    for (int k = 1; k < numberOfTerms; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k! and store the values in the table
       builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k, facMap))));
     }
     return builder.buildOrThrow();
   }
-
-  // Table contains terms 1/k! for 1..100
-  private static final ImmutableMap<Integer, FloatP> expTable = mkExpTable(Format.Float256);
 
   private FloatP exp_() {
     return expImpl(0);
@@ -1231,8 +1291,6 @@ public class FloatP {
     }
     return r;
   }
-
-  static final Map<Integer, Integer> lnStats = new HashMap<>();
 
   private ImmutableList<Format> lnExtFormats() {
     if (format.equals(Format.Float8)) {
@@ -1302,24 +1360,19 @@ public class FloatP {
     return r.withPrecision(format);
   }
 
-  private static ImmutableMap<Integer, FloatP> mkLnTable(Format pFormat) {
+  private static ImmutableMap<Integer, FloatP> mkLnTable(Format pFormat, int numberOfTerms) {
     ImmutableMap.Builder<Integer, FloatP> builder = ImmutableMap.builder();
-    for (int k = 1; k < 1000; k++) { // TODO: Find a bound that depends on the precision
+    for (int k = 1; k < numberOfTerms; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k and store the values in the table
       builder.put(k, one(pFormat).divide_(constant(pFormat, k)));
     }
     return builder.buildOrThrow();
   }
 
-  // Table contains terms 1/k for k=1..100
-  private static final ImmutableMap<Integer, FloatP> lnTable = mkLnTable(Format.Float256);
-
   private static FloatP make_ln2(Format pFormat) {
     FloatP r = constant(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
     return r.withExponent(r.exponent + 1);
   }
-
-  private static final FloatP const_ln2 = make_ln2(Format.Float256);
 
   private FloatP ln_() {
     if (isZero()) {
@@ -1514,8 +1567,6 @@ public class FloatP {
     }
     return r.withPrecision(format);
   }
-
-  static final Map<Integer, Integer> powStats = new HashMap<>();
 
   private ImmutableList<Format> powExtFormats() {
     if (format.equals(Format.Float8)) {
@@ -1842,9 +1893,6 @@ public class FloatP {
     }
     return builder.build();
   }
-
-  // Statistics for fromString(...)
-  static final Map<Integer, Integer> fromStringStats = new HashMap<>();
 
   /** Parse input string as a floating point number. */
   public static FloatP fromString(Format p, String input) {
