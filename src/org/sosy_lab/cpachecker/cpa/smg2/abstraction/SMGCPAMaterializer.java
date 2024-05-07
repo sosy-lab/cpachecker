@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -640,7 +642,8 @@ public class SMGCPAMaterializer {
             newConcreteRegion,
             currentState,
             excludedOffsets,
-            pListSeg.getRelevantEqualities());
+            pListSeg.getRelevantEqualities(),
+            ImmutableMap.of());
 
     currentState =
         currentState.copyAndReplaceMemoryModel(
@@ -668,6 +671,8 @@ public class SMGCPAMaterializer {
    * @param excludedOffsets offsets excluded from being copied, for example nfo, pfo.
    * @param replicationCache values that are present in this cache need replication. All others need
    *     to be copied.
+   * @param copiedMemory a map from old memory to be copied to the new copy. Needed because of e.g.
+   *     DLLs, or looping memory, so that we connect the memory correctly.
    * @return a new {@link SMGState} with all values copied from sourceObj to newMemory and all
    *     pointers and havoc generators copied into new memory/values.
    */
@@ -676,9 +681,15 @@ public class SMGCPAMaterializer {
       SMGObject newMemory,
       SMGState pState,
       Set<BigInteger> excludedOffsets,
-      EqualityCache<Value> replicationCache)
+      EqualityCache<Value> replicationCache,
+      Map<SMGObject, SMGObject> copiedMemory)
       throws SMGException {
     SMGState currentState = pState.copyAllValuesFromObjToObj(sourceObj, newMemory);
+    copiedMemory =
+        ImmutableMap.<SMGObject, SMGObject>builder()
+            .putAll(copiedMemory)
+            .put(sourceObj, newMemory)
+            .buildOrThrow();
     // All HVEs copied
     PersistentSet<SMGHasValueEdge> setOfValues =
         currentState
@@ -722,16 +733,24 @@ public class SMGCPAMaterializer {
         if (oldTargetMemory.isZero()) {
           newSMGValueToWrite = SMGValue.zeroValue();
         } else {
-          SMGObjectAndSMGState copiedTargetMemoryAndState =
-              currentState.copyAndAddNewHeapObject(oldTargetMemory);
-          SMGObject newTarget = copiedTargetMemoryAndState.getSMGObject();
-
-          currentState = copiedTargetMemoryAndState.getState();
-          // Now copy all values and copy all memory for pointers again recursively
-          // TODO: this is UNSOUND! It ignores ptr specifier and connections!
-          currentState =
-              copyMemoryOfTo(
-                  oldTargetMemory, newTarget, currentState, ImmutableSet.of(), replicationCache);
+          SMGObject newTarget;
+          if (copiedMemory.containsKey(oldTargetMemory)) {
+            newTarget = copiedMemory.get(oldTargetMemory);
+          } else {
+            SMGObjectAndSMGState copiedTargetMemoryAndState =
+                currentState.copyAndAddNewHeapObject(oldTargetMemory);
+            newTarget = copiedTargetMemoryAndState.getSMGObject();
+            currentState = copiedTargetMemoryAndState.getState();
+            // Now copy all values and copy all memory for pointers again recursively
+            currentState =
+                copyMemoryOfTo(
+                    oldTargetMemory,
+                    newTarget,
+                    currentState,
+                    ImmutableSet.of(),
+                    replicationCache,
+                    copiedMemory);
+          }
           // Create a new pointer to the new memory that is equal to the old and save in newConcrete
           SMGPointsToEdge oldPTE =
               currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
