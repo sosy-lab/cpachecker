@@ -4699,7 +4699,11 @@ public class SMGState
           currentState.copyAndReplaceMemoryModel(
               currentState
                   .getMemoryModel()
-                  .copyAndSetSpecifierOfPtrsTowards(newSLL, 0, SMGTargetSpecifier.IS_LAST_POINTER, ImmutableSet.of(SMGTargetSpecifier.IS_REGION)));
+                  .copyAndSetSpecifierOfPtrsTowards(
+                      newSLL,
+                      0,
+                      SMGTargetSpecifier.IS_LAST_POINTER,
+                      ImmutableSet.of(SMGTargetSpecifier.IS_REGION)));
     }
     // replaceAllPointersTowardsWithAndIncrementNestingLevel
     // sets ALL specifier for all pointers towards root, except for first specifiers,

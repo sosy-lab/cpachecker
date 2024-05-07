@@ -822,7 +822,29 @@ public class SMG {
     for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(pObject, PersistentSet.of())) {
       newValuesToRegionsTheyAreSavedIn =
           newValuesToRegionsTheyAreSavedIn.decrementValueToMemoryMapEntry(pObject, hve.hasValue());
+      SMGValue value = hve.hasValue();
+      if (newValuesToRegionsTheyAreSavedIn.valuesToRegionsTheyAreSavedIn.get(value) == null) {
+        if (newValuesToRegionsTheyAreSavedIn.pointsToEdges.containsKey(value)) {
+          ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
+          for (Entry<SMGValue, SMGPointsToEdge> entry :
+              newValuesToRegionsTheyAreSavedIn.pointsToEdges.entrySet()) {
+            if (!entry.getKey().equals(value)) {
+              builder = builder.put(entry);
+            }
+          }
+          newValuesToRegionsTheyAreSavedIn =
+              new SMG(
+                  newValuesToRegionsTheyAreSavedIn.smgObjects,
+                  newValuesToRegionsTheyAreSavedIn.smgValuesAndNestingLvl,
+                  newValuesToRegionsTheyAreSavedIn.hasValueEdges,
+                  newValuesToRegionsTheyAreSavedIn.valuesToRegionsTheyAreSavedIn,
+                  builder.buildOrThrow(),
+                  newValuesToRegionsTheyAreSavedIn.objectsAndPointersPointingAtThem,
+                  newValuesToRegionsTheyAreSavedIn.sizeOfPointer);
+        }
+      }
     }
+
     return newValuesToRegionsTheyAreSavedIn;
   }
 
@@ -1692,7 +1714,23 @@ public class SMG {
       SMGValue pointerValue = pointerValueAndNum.getKey();
       SMGPointsToEdge pointsToEdge = pointsToEdges.get(pointerValue);
       assert pointsToEdge.pointsTo().equals(oldObj);
+
+      PersistentMap<SMGObject, Integer> sourcesOfPtr =
+          valuesToRegionsTheyAreSavedIn.get(pointerValue);
       SMGTargetSpecifier specifier = pointsToEdge.targetSpecifier();
+      if (sourcesOfPtr.size() == 2
+          && sourcesOfPtr.containsKey(oldObj)
+          && sourcesOfPtr.containsKey(newTarget)) {
+        // Only Self-pointer. We assume that we are in a merging case,
+        // and it has an equality with the other merging object
+        // and that it was already copied to the new object
+        Preconditions.checkArgument(newTarget instanceof SMGSinglyLinkedListSegment);
+        specifier = SMGTargetSpecifier.IS_ALL_POINTER;
+      } else {
+        // Assert that there are no self-pointers, as we don't handle this case atm
+        assert !sourcesOfPtr.containsKey(oldObj);
+      }
+
       // If the new target is an abstracted list we switch to all
       if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
         specifier = SMGTargetSpecifier.IS_REGION;
@@ -1754,7 +1792,8 @@ public class SMG {
 
   /**
    * ONLY modifies pointersTowardsObjectsMap and swaps all pointers towards oldObj towards
-   * newTarget.
+   * newTarget. Self-pointers of oldObj to themselves are not switched and need to be deleted
+   * separately.
    *
    * @param oldObj all pointers whose target is to be moved to newTarget
    * @param newTarget the new target of the pointers
@@ -1773,6 +1812,11 @@ public class SMG {
               .removeAndCopy(oldObj);
     } else {
       for (Entry<SMGValue, Integer> ptrValueOld : oldTargetPtrValues.entrySet()) {
+        SMGPointsToEdge maybePTEOrNull = pointsToEdges.get(ptrValueOld.getKey());
+        if (maybePTEOrNull != null && maybePTEOrNull.pointsTo().equals(oldObj)) {
+          // Selfpointer, does not need switching
+          continue;
+        }
         newTargetPtrValues =
             newTargetPtrValues.putAndCopy(
                 ptrValueOld.getKey(),
@@ -1798,7 +1842,8 @@ public class SMG {
    * Search for all pointers towards the oldObj and switch them to newTarget. Then increments the
    * nesting level of the values of the changed pointers by 1. We expect that the newTarget does not
    * have any pointers towards it. Sets the specifiers for pointers so that if oldObj is not
-   * abstracted, it's a first, all others become all.
+   * abstracted, it's a first, all others become all. Self-pointers of oldObj to themselves are not
+   * switched and need to be deleted separately.
    *
    * @param oldObj old object.
    * @param newTarget new target object.
@@ -1822,6 +1867,17 @@ public class SMG {
       SMGValue pointerValue = pointerValueAndOcc.getKey();
       // Switch points-to-edges to new target
       SMGPointsToEdge oldPTEdge = pointsToEdges.get(pointerValue);
+
+      PersistentMap<SMGObject, Integer> sources =
+          valuesToRegionsTheyAreSavedIn.getOrDefault(
+              pointerValue, PathCopyingPersistentTreeMap.of());
+      if (sources.size() == 1 && sources.containsKey(oldObj)) {
+        // Self-pointer, does not need switching
+        continue;
+      }
+      // Assert that there is no selfedge with outside sources as we can't handle that atm
+      assert !sources.keySet().contains(oldObj);
+
       assert oldPTEdge.pointsTo().equals(oldObj);
       SMGTargetSpecifier specifier = oldPTEdge.targetSpecifier();
       if (!(oldObj instanceof SMGSinglyLinkedListSegment)) {
