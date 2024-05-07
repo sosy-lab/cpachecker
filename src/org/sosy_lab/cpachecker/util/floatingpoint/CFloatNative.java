@@ -15,6 +15,12 @@ import com.google.common.base.Preconditions;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
+/**
+ * C based implementation of the {@link CFloat} interface.
+ *
+ * <p>This implementation calls a native code library via JNI to perform its operations directly in
+ * C.
+ */
 @Deprecated
 public class CFloatNative extends CFloat {
   private final CFloatWrapper wrapper;

@@ -12,7 +12,11 @@ import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
-/* Implementation of the CFloat interface that uses Java doubles */
+/**
+ * Java based implementation of the {@link CFloat} interface that uses regular Java doubles.
+ *
+ * <p>For single precision use the sister class {@link JFloat}.
+ */
 public class JDouble extends CFloat {
   private final CFloatWrapper wrapper;
   private final double value;

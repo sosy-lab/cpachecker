@@ -12,7 +12,11 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
-/* Implementation of the CFloat interface that uses Java floats */
+/**
+ * Java based implementation of the {@link CFloat} interface that uses regular Java floats.
+ *
+ * <p>For double precision use the sister class {@link JDouble}.
+ */
 public class JFloat extends CFloat {
   private final CFloatWrapper wrapper;
   private final float value;

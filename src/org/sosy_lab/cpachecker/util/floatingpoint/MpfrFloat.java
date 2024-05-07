@@ -15,6 +15,12 @@ import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
+/**
+ * MPFR based implementation of the {@link CFloat} interface.
+ *
+ * <p>Uses the BigFloat class from mpfr-java to call MPFR through a JNI interface. MPFR provides
+ * arbitrary precision floating point operations with correct rounding.
+ */
 public class MpfrFloat extends CFloat {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
@@ -62,7 +68,6 @@ public class MpfrFloat extends CFloat {
     throw new IllegalArgumentException();
   }
 
-  // TODO: Refactor and move the next 3 methods beck into CFloat (or maybe even FloatingPointNumber)
   /** Returns the number of bits in the exponent. */
   public int sizeExponent() {
     return Long.numberOfTrailingZeros(format.maxExponent + 1) + 1;
