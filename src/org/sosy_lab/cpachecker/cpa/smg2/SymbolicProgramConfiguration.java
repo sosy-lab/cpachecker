@@ -1992,8 +1992,14 @@ public class SymbolicProgramConfiguration {
     builder.append("Local Variables per StackFrame:");
     builder.append("\n");
     for (StackFrame stackframe : stackVariableMapping) {
+      CFunctionDeclaration funDef = stackframe.getFunctionDefinition();
+      String funName;
+      if (funDef != null) {
+        funName = funDef.getQualifiedName();
+      } else {
+        funName = "DummyFrame";
+      }
       if (stackframe.getReturnObject().isPresent()) {
-        String funName = stackframe.getFunctionDefinition().getQualifiedName();
         // There is a return object!
         String retObjString = "";
         if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
@@ -2037,7 +2043,6 @@ public class SymbolicProgramConfiguration {
         }
       } else {
         builder.append("\n");
-        String funName = stackframe.getFunctionDefinition().getQualifiedName();
         builder.append("Function ").append(funName);
         builder.append("\n");
       }
