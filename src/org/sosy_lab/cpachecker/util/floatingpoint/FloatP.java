@@ -1139,25 +1139,29 @@ public class FloatP {
     return r.withPrecision(format);
   }
 
-  private static final Map<Integer, BigInteger> facMap = new HashMap<>();
-
-  private static BigInteger fac(int k) {
-    return facMap.computeIfAbsent(k, FloatP::fac_);
-  }
-
-  private static BigInteger fac_(Integer k) {
-    if (k == 0 || k == 1) {
-      return BigInteger.ONE;
-    }
-    return fac(k - 1).multiply(BigInteger.valueOf(k));
+  /** Calculate the faculty.
+   * <p>We use dynamic programming and store intermediate results in the Map from the second
+   * argument. This speeds up the calculation of k! for all k<100 in {@link FloatP#mkExpTable} as
+   * results can be reused across multiple function calls.
+   */
+  private static BigInteger fac(int k, Map<Integer, BigInteger> facMap) {
+    return facMap.computeIfAbsent(
+        k,
+        (Integer arg1) -> {
+          if (k == 0 || k == 1) {
+            return BigInteger.ONE;
+          }
+          return fac(k - 1, facMap).multiply(BigInteger.valueOf(k));
+        });
   }
 
   private static ImmutableMap<Integer, FloatP> mkExpTable(Format pFormat) {
     ImmutableMap.Builder<Integer, FloatP> builder = ImmutableMap.builder();
+    Map<Integer, BigInteger> facMap = new HashMap<>();
     builder.put(0, one(pFormat));
     for (int k = 1; k < 100; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k! and store the values in the table
-      builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k))));
+      builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k, facMap))));
     }
     return builder.buildOrThrow();
   }
