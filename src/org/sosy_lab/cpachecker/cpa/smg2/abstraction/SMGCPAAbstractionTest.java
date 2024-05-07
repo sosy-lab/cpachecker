@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -1049,6 +1050,692 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // Top list is abstracted as well
     checkAbstractionOfLLWithConcreteFirstAndLast(
         true, listLength, topListPtrs, otherPtrOffset, internalListPtrOffset);
+  }
+
+  // Normal SLL top list with 1 stack region that has a ptr to some list element.
+  // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
+  // nested in each top list (abstractable for top)
+  // We materialize the first pointer until 0+ materialization has occurred at least once
+  // This test materializes only by dereference of pointers.
+  @Test
+  public void sllWithPointerOffsetsNestedFstMaterializationTest()
+      throws SMGException, SMGSolverException {
+    int listLength = 8;
+    BigInteger otherPtrOffset = BigInteger.ZERO;
+    BigInteger internalListPtrOffset = BigInteger.valueOf(32);
+    Value[] topListPtrs = buildConcreteList(false, sllSize, listLength, false);
+
+    for (int all = 0; all < listLength; all++) {
+      // put in abstractable nested in all
+      List<Value> nestedListPtrs =
+          buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
+              false,
+              sllSize,
+              listLength + 2,
+              otherPtrOffset,
+              internalListPtrOffset,
+              Optional.empty(),
+              false);
+      // Now write the first pointer into the top elem
+      Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+      // State does not change because of no mat
+      currentState = derefedTopElem.orElseThrow().getSMGState();
+      SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              topObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(nestedListPtrs.get(0))
+                  .orElseThrow());
+    }
+
+    // Ptr to the top list from some stack obj
+    // We want to test from left to right until 0+ has been materialized at least once
+    SMGObjectAndSMGState stackObjAndState =
+        currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+    currentState = stackObjAndState.getState();
+    SMGObject stackObj = stackObjAndState.getSMGObject();
+    currentState =
+        currentState.writeValueWithoutChecks(
+            stackObj,
+            BigInteger.ZERO,
+            pointerSizeInBits,
+            currentState.getMemoryModel().getSMGValueFromValue(topListPtrs[0]).orElseThrow());
+
+    // Abstract
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+    currentState = absFinder.findAndAbstractLists();
+
+    Value nextPtr = topListPtrs[0];
+    // Now deref each top list obj until we are repeating 0+
+    for (int all = 0; all < listLength + 2; all++) {
+      // Check abstracted nested based on the pointers of top
+      // We read in such a way that only the deref here materializes
+      List<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElems =
+          currentState.dereferencePointer(nextPtr);
+      SMGObject nextListObj;
+      if (all >= listLength) {
+        // 0+
+        assertThat(derefedTopElems).hasSize(2);
+        SMGStateAndOptionalSMGObjectAndOffset derefedEndingList = derefedTopElems.get(0);
+        currentState = derefedEndingList.getSMGState();
+        assertThat(derefedEndingList.hasSMGObjectAndOffset()).isTrue();
+        assertThat(derefedEndingList.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedEndingList.getOffsetForObject().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+        SMGObject endingObj = derefedEndingList.getSMGObject();
+        assertThat(endingObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(endingObj.isZero()).isTrue();
+
+        SMGStateAndOptionalSMGObjectAndOffset derefedZeroPlusCase = derefedTopElems.get(1);
+        currentState = derefedZeroPlusCase.getSMGState();
+        assertThat(derefedZeroPlusCase.hasSMGObjectAndOffset()).isTrue();
+        assertThat(derefedZeroPlusCase.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedZeroPlusCase.getOffsetForObject().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+        SMGObject objPointingToZeroPlus = derefedZeroPlusCase.getSMGObject();
+        nextListObj = objPointingToZeroPlus;
+
+      } else {
+        assertThat(derefedTopElems).hasSize(1);
+        SMGStateAndOptionalSMGObjectAndOffset derefedList = derefedTopElems.get(0);
+        currentState = derefedList.getSMGState();
+        assertThat(derefedList.hasSMGObjectAndOffset()).isTrue();
+        assertThat(derefedList.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedList.getOffsetForObject().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+        nextListObj = derefedList.getSMGObject();
+      }
+
+      ValueAndSMGState readNext =
+          currentState.readValueWithoutMaterialization(nextListObj, nfo, pointerSizeInBits, null);
+      assertThat(readNext.getValue().isNumericValue()).isFalse();
+      currentState = readNext.getState();
+      assertThat(currentState.getMemoryModel().isPointer(readNext.getValue())).isTrue();
+      Optional<SMGPointsToEdge> pte =
+          currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(readNext.getValue())
+                      .orElseThrow());
+      assertThat(pte).isPresent();
+      assertThat(pte.orElseThrow().getOffset()).isEqualTo(BigInteger.ZERO);
+      assertThat(pte.orElseThrow().targetSpecifier())
+          .isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
+      SMGObject abstractedObj = pte.orElseThrow().pointsTo();
+      assertThat(abstractedObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+      assertThat(abstractedObj).isNotInstanceOf(SMGDoublyLinkedListSegment.class);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getMinLength())
+          .isEqualTo(Integer.max(0, listLength - all - 1));
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getNextPointerTargetOffset())
+          .isEqualTo(BigInteger.ZERO);
+      assertThat(abstractedObj.getOffset()).isEqualTo(BigInteger.ZERO);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getHeadOffset())
+          .isEqualTo(BigInteger.ZERO);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getNextOffset()).isEqualTo(nfo);
+
+      assertThat(nextListObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+      ValueAndSMGState readNested =
+          currentState.readValueWithoutMaterialization(nextListObj, hfo, pointerSizeInBits, null);
+      currentState = readNested.getState();
+      assertThat(currentState.getMemoryModel().isPointer(readNested.getValue())).isTrue();
+
+      // Check nested abstracted list
+      checkAbstractionOfLLWithConcreteFirstAndLast(
+          false, listLength, sllSize, readNested.getValue(), otherPtrOffset, internalListPtrOffset);
+
+      nextPtr = readNext.getValue();
+    }
+  }
+
+  // Normal SLL top list with 1 stack region that has a ptr to some list element.
+  // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
+  // nested in each top list (abstractable for top)
+  // We materialize the first pointer until 0+ materialization has occurred at least once
+  // This test materializes by read and deref.
+  @Test
+  public void sllWithPointerOffsetsNestedFstMaterializationTest2()
+      throws SMGException, SMGSolverException {
+    int listLength = 8;
+    BigInteger otherPtrOffset = BigInteger.ZERO;
+    BigInteger internalListPtrOffset = BigInteger.valueOf(32);
+    Value[] topListPtrs = buildConcreteList(false, sllSize, listLength, false);
+
+    for (int all = 0; all < listLength; all++) {
+      // put in abstractable nested in all
+      List<Value> nestedListPtrs =
+          buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
+              false,
+              sllSize,
+              listLength + 2,
+              otherPtrOffset,
+              internalListPtrOffset,
+              Optional.empty(),
+              false);
+      // Now write the first pointer into the top elem
+      Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+      // State does not change because of no mat
+      currentState = derefedTopElem.orElseThrow().getSMGState();
+      SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              topObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(nestedListPtrs.get(0))
+                  .orElseThrow());
+    }
+
+    // Ptr to the top list from some stack obj
+    // We want to test from left to right until 0+ has been materialized at least once
+    SMGObjectAndSMGState stackObjAndState =
+        currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+    currentState = stackObjAndState.getState();
+    SMGObject stackObj = stackObjAndState.getSMGObject();
+    currentState =
+        currentState.writeValueWithoutChecks(
+            stackObj,
+            BigInteger.ZERO,
+            pointerSizeInBits,
+            currentState.getMemoryModel().getSMGValueFromValue(topListPtrs[0]).orElseThrow());
+
+    // Abstract
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+    currentState = absFinder.findAndAbstractLists();
+
+    // This read does mat the next obj
+    List<ValueAndSMGState> readStackNextPtrAndState =
+        currentState.readValue(stackObj, BigInteger.ZERO, pointerSizeInBits, null);
+    assertThat(readStackNextPtrAndState).hasSize(1);
+    currentState = readStackNextPtrAndState.get(0).getState();
+
+    Value nextPtr = readStackNextPtrAndState.get(0).getValue();
+    assertThat(currentState.getMemoryModel().isPointer(nextPtr)).isTrue();
+    Optional<SMGPointsToEdge> pte =
+        currentState
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(currentState.getMemoryModel().getSMGValueFromValue(nextPtr).orElseThrow());
+    assertThat(pte).isPresent();
+    assertThat(pte.orElseThrow().getOffset()).isEqualTo(BigInteger.ZERO);
+    assertThat(pte.orElseThrow().targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_REGION);
+    SMGObject materializedObj = pte.orElseThrow().pointsTo();
+    assertThat(materializedObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+    assertThat(materializedObj.getOffset()).isEqualTo(BigInteger.ZERO);
+
+    // Now read/deref each top list obj until we are repeating 0+
+    for (int all = 0; all < listLength + 2; all++) {
+      // Check abstracted nested based on the pointers of top
+      List<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElems =
+          currentState.dereferencePointer(nextPtr);
+      SMGObject nextListObj;
+
+      // deref is not materializing, the read of the ptr is
+      assertThat(derefedTopElems).hasSize(1);
+      SMGStateAndOptionalSMGObjectAndOffset derefedList = derefedTopElems.get(0);
+      currentState = derefedList.getSMGState();
+      assertThat(derefedList.hasSMGObjectAndOffset()).isTrue();
+      assertThat(derefedList.getOffsetForObject().isNumericValue()).isTrue();
+      assertThat(derefedList.getOffsetForObject().asNumericValue().bigIntegerValue())
+          .isEqualTo(BigInteger.ZERO);
+      nextListObj = derefedList.getSMGObject();
+
+      // This read materializes the target of the pointer read
+      List<ValueAndSMGState> readNexts =
+          currentState.readValue(nextListObj, nfo, pointerSizeInBits, null);
+      ValueAndSMGState readNext;
+      if (all >= listLength - 1) {
+        assertThat(readNexts).hasSize(2);
+        // ending 0+
+        readNext = readNexts.get(0);
+        assertThat(readNext.getValue().isNumericValue()).isTrue();
+        assertThat(readNext.getValue().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+
+        readNext = readNexts.get(1);
+      } else {
+        assertThat(readNexts).hasSize(1);
+        readNext = readNexts.get(0);
+        assertThat(readNext.getValue().isNumericValue()).isFalse();
+      }
+      currentState = readNext.getState();
+      assertThat(currentState.getMemoryModel().isPointer(readNext.getValue())).isTrue();
+      pte =
+          currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(readNext.getValue())
+                      .orElseThrow());
+      assertThat(pte).isPresent();
+      assertThat(pte.orElseThrow().getOffset()).isEqualTo(BigInteger.ZERO);
+      assertThat(pte.orElseThrow().targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_REGION);
+      materializedObj = pte.orElseThrow().pointsTo();
+      assertThat(materializedObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+      assertThat(materializedObj.getSize()).isEqualTo(sllSizeValue);
+
+      // Look ahead into the abstracted obj
+      ValueAndSMGState abstractedObjPointer =
+          currentState.readValueWithoutMaterialization(
+              materializedObj, nfo, pointerSizeInBits, null);
+      currentState = abstractedObjPointer.getState();
+      Value abstractedObjPtr = abstractedObjPointer.getValue();
+      assertThat(currentState.getMemoryModel().isPointer(abstractedObjPtr)).isTrue();
+
+      SMGStateAndOptionalSMGObjectAndOffset ptrToAbstrDeref =
+          currentState.dereferencePointerWithoutMaterilization(abstractedObjPtr).orElseThrow();
+      assertThat(ptrToAbstrDeref.hasSMGObjectAndOffset()).isTrue();
+      assertThat(ptrToAbstrDeref.getOffsetForObject().isNumericValue()).isTrue();
+      assertThat(ptrToAbstrDeref.getOffsetForObject().asNumericValue().bigIntegerValue())
+          .isEqualTo(BigInteger.ZERO);
+      SMGObject abstractedObj = ptrToAbstrDeref.getSMGObject();
+      assertThat(abstractedObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+      assertThat(abstractedObj).isNotInstanceOf(SMGDoublyLinkedListSegment.class);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getMinLength())
+          .isEqualTo(Integer.max(0, listLength - all - 2));
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getNextPointerTargetOffset())
+          .isEqualTo(BigInteger.ZERO);
+      assertThat(abstractedObj.getOffset()).isEqualTo(BigInteger.ZERO);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getHeadOffset())
+          .isEqualTo(BigInteger.ZERO);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getNextOffset()).isEqualTo(nfo);
+
+      assertThat(nextListObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+      List<ValueAndSMGState> readNested =
+          currentState.readValue(nextListObj, hfo, pointerSizeInBits, null);
+      assertThat(readNested).hasSize(1);
+      currentState = readNested.get(0).getState();
+      assertThat(currentState.getMemoryModel().isPointer(readNested.get(0).getValue())).isTrue();
+
+      // Check nested abstracted list
+      checkAbstractionOfLLWithConcreteFirstAndLast(
+          false,
+          listLength,
+          sllSize,
+          readNested.get(0).getValue(),
+          otherPtrOffset,
+          internalListPtrOffset);
+
+      nextPtr = readNext.getValue();
+    }
+  }
+
+  // Normal DLL top list with 1 stack region that has a ptr to some list element.
+  // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
+  // nested in each top list (abstractable for top)
+  // We materialize the first pointer until 0+ materialization has occurred at least once
+  // This test materializes only by dereference of pointers.
+  @Test
+  public void dllWithPointerOffsetsNestedFstMaterializationTest()
+      throws SMGException, SMGSolverException {
+    int listLength = 8;
+    BigInteger otherPtrOffset = BigInteger.ZERO;
+    BigInteger internalListPtrOffset = BigInteger.valueOf(32);
+    Value[] topListPtrs = buildConcreteList(true, dllSize, listLength, false);
+
+    for (int all = 0; all < listLength; all++) {
+      // put in abstractable nested in all
+      List<Value> nestedListPtrs =
+          buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
+              true,
+              dllSize,
+              listLength + 2,
+              otherPtrOffset,
+              internalListPtrOffset,
+              Optional.of(internalListPtrOffset),
+              false);
+      // Now write the first pointer into the top elem
+      Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+      // State does not change because of no mat
+      currentState = derefedTopElem.orElseThrow().getSMGState();
+      SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              topObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(nestedListPtrs.get(0))
+                  .orElseThrow());
+    }
+
+    // Ptr to the top list from some stack obj
+    // We want to test from left to right until 0+ has been materialized at least once
+    SMGObjectAndSMGState stackObjAndState =
+        currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+    currentState = stackObjAndState.getState();
+    SMGObject stackObj = stackObjAndState.getSMGObject();
+    currentState =
+        currentState.writeValueWithoutChecks(
+            stackObj,
+            BigInteger.ZERO,
+            pointerSizeInBits,
+            currentState.getMemoryModel().getSMGValueFromValue(topListPtrs[0]).orElseThrow());
+
+    // Abstract
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+    currentState = absFinder.findAndAbstractLists();
+
+    Value nextPtr = topListPtrs[0];
+    // Now deref each top list obj until we are repeating 0+
+    for (int all = 0; all < listLength + 2; all++) {
+      // Check abstracted nested based on the pointers of top
+      // We read in such a way that only the deref here materializes
+      List<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElems =
+          currentState.dereferencePointer(nextPtr);
+      SMGObject nextListObj;
+      if (all >= listLength) {
+        // 0+
+        assertThat(derefedTopElems).hasSize(2);
+        SMGStateAndOptionalSMGObjectAndOffset derefedEndingList = derefedTopElems.get(0);
+        currentState = derefedEndingList.getSMGState();
+        assertThat(derefedEndingList.hasSMGObjectAndOffset()).isTrue();
+        assertThat(derefedEndingList.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedEndingList.getOffsetForObject().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+        SMGObject endingObj = derefedEndingList.getSMGObject();
+        assertThat(endingObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(endingObj.isZero()).isTrue();
+
+        SMGStateAndOptionalSMGObjectAndOffset derefedZeroPlusCase = derefedTopElems.get(1);
+        currentState = derefedZeroPlusCase.getSMGState();
+        assertThat(derefedZeroPlusCase.hasSMGObjectAndOffset()).isTrue();
+        assertThat(derefedZeroPlusCase.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedZeroPlusCase.getOffsetForObject().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+        SMGObject objPointingToZeroPlus = derefedZeroPlusCase.getSMGObject();
+        nextListObj = objPointingToZeroPlus;
+
+      } else {
+        assertThat(derefedTopElems).hasSize(1);
+        SMGStateAndOptionalSMGObjectAndOffset derefedList = derefedTopElems.get(0);
+        currentState = derefedList.getSMGState();
+        assertThat(derefedList.hasSMGObjectAndOffset()).isTrue();
+        assertThat(derefedList.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedList.getOffsetForObject().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+        nextListObj = derefedList.getSMGObject();
+      }
+
+      ValueAndSMGState readNext =
+          currentState.readValueWithoutMaterialization(nextListObj, nfo, pointerSizeInBits, null);
+      assertThat(readNext.getValue().isNumericValue()).isFalse();
+      currentState = readNext.getState();
+      assertThat(currentState.getMemoryModel().isPointer(readNext.getValue())).isTrue();
+      Optional<SMGPointsToEdge> pte =
+          currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(readNext.getValue())
+                      .orElseThrow());
+      assertThat(pte).isPresent();
+      assertThat(pte.orElseThrow().getOffset()).isEqualTo(BigInteger.ZERO);
+      assertThat(pte.orElseThrow().targetSpecifier())
+          .isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
+      SMGObject abstractedObj = pte.orElseThrow().pointsTo();
+      assertThat(abstractedObj).isInstanceOf(SMGDoublyLinkedListSegment.class);
+      assertThat(((SMGDoublyLinkedListSegment) abstractedObj).getMinLength())
+          .isEqualTo(Integer.max(0, listLength - all - 1));
+      assertThat(((SMGDoublyLinkedListSegment) abstractedObj).getNextPointerTargetOffset())
+          .isEqualTo(BigInteger.ZERO);
+      assertThat(abstractedObj.getOffset()).isEqualTo(BigInteger.ZERO);
+      assertThat(((SMGDoublyLinkedListSegment) abstractedObj).getHeadOffset())
+          .isEqualTo(BigInteger.ZERO);
+      assertThat(((SMGDoublyLinkedListSegment) abstractedObj).getNextOffset()).isEqualTo(nfo);
+      // Prev check
+      ValueAndSMGState readPrevOfAbstr =
+          currentState.readValueWithoutMaterialization(
+              pte.orElseThrow().pointsTo(), pfo, pointerSizeInBits, null);
+      assertThat(readPrevOfAbstr.getValue().isNumericValue()).isFalse();
+      currentState = readPrevOfAbstr.getState();
+      assertThat(currentState.getMemoryModel().isPointer(readPrevOfAbstr.getValue())).isTrue();
+      Optional<SMGPointsToEdge> ptePrevAbstr =
+          currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(readPrevOfAbstr.getValue())
+                      .orElseThrow());
+      assertThat(ptePrevAbstr).isPresent();
+      assertThat(ptePrevAbstr.orElseThrow().pointsTo()).isEqualTo(nextListObj);
+      assertThat(ptePrevAbstr.orElseThrow().targetSpecifier())
+          .isEqualTo(SMGTargetSpecifier.IS_REGION);
+      assertThat(ptePrevAbstr.orElseThrow().getOffset()).isEqualTo(BigInteger.ZERO);
+
+      assertThat(nextListObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+      ValueAndSMGState readNested =
+          currentState.readValueWithoutMaterialization(nextListObj, hfo, pointerSizeInBits, null);
+      currentState = readNested.getState();
+      assertThat(currentState.getMemoryModel().isPointer(readNested.getValue())).isTrue();
+
+      // Check nested abstracted list
+      checkAbstractionOfLLWithConcreteFirstAndLast(
+          true, listLength, dllSize, readNested.getValue(), otherPtrOffset, internalListPtrOffset);
+
+      nextPtr = readNext.getValue();
+    }
+    Preconditions.checkNotNull(nextPtr);
+  }
+
+  // Normal DLL top list with 1 stack region that has a ptr to some list element.
+  // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
+  // nested in each top list (abstractable for top)
+  // We materialize the first pointer until 0+ materialization has occurred at least once
+  // This test materializes by read and deref.
+  @Test
+  public void dllWithPointerOffsetsNestedFstMaterializationTest2()
+      throws SMGException, SMGSolverException {
+    int listLength = 8;
+    BigInteger otherPtrOffset = BigInteger.ZERO;
+    BigInteger internalListPtrOffset = BigInteger.valueOf(32);
+    Value[] topListPtrs = buildConcreteList(true, dllSize, listLength, false);
+
+    for (int all = 0; all < listLength; all++) {
+      // put in abstractable nested in all
+      List<Value> nestedListPtrs =
+          buildConcreteListWithDifferentPtrTargetOffsetsInEndAndBeginning(
+              true,
+              dllSize,
+              listLength + 2,
+              otherPtrOffset,
+              internalListPtrOffset,
+              Optional.of(internalListPtrOffset),
+              false);
+      // Now write the first pointer into the top elem
+      Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
+          currentState.dereferencePointerWithoutMaterilization(topListPtrs[all]);
+      // State does not change because of no mat
+      currentState = derefedTopElem.orElseThrow().getSMGState();
+      SMGObject topObj = derefedTopElem.orElseThrow().getSMGObject();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              topObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(nestedListPtrs.get(0))
+                  .orElseThrow());
+    }
+
+    // Ptr to the top list from some stack obj
+    // We want to test from left to right until 0+ has been materialized at least once
+    SMGObjectAndSMGState stackObjAndState =
+        currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+    currentState = stackObjAndState.getState();
+    SMGObject stackObj = stackObjAndState.getSMGObject();
+    currentState =
+        currentState.writeValueWithoutChecks(
+            stackObj,
+            BigInteger.ZERO,
+            pointerSizeInBits,
+            currentState.getMemoryModel().getSMGValueFromValue(topListPtrs[0]).orElseThrow());
+
+    // Abstract
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+    currentState = absFinder.findAndAbstractLists();
+
+    // This read does mat the next obj
+    List<ValueAndSMGState> readStackNextPtrAndState =
+        currentState.readValue(stackObj, BigInteger.ZERO, pointerSizeInBits, null);
+    assertThat(readStackNextPtrAndState).hasSize(1);
+    currentState = readStackNextPtrAndState.get(0).getState();
+
+    Value nextPtr = readStackNextPtrAndState.get(0).getValue();
+    assertThat(currentState.getMemoryModel().isPointer(nextPtr)).isTrue();
+    Optional<SMGPointsToEdge> pte =
+        currentState
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(currentState.getMemoryModel().getSMGValueFromValue(nextPtr).orElseThrow());
+    assertThat(pte).isPresent();
+    assertThat(pte.orElseThrow().getOffset()).isEqualTo(BigInteger.ZERO);
+    assertThat(pte.orElseThrow().targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_REGION);
+    SMGObject materializedObj = pte.orElseThrow().pointsTo();
+    assertThat(materializedObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+    assertThat(materializedObj.getOffset()).isEqualTo(BigInteger.ZERO);
+
+    // Now read/deref each top list obj until we are repeating 0+
+    for (int all = 0; all < listLength + 2; all++) {
+      // Check abstracted nested based on the pointers of top
+      List<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElems =
+          currentState.dereferencePointer(nextPtr);
+      SMGObject nextListObj;
+
+      // deref is not materializing, the read of the ptr is
+      assertThat(derefedTopElems).hasSize(1);
+      SMGStateAndOptionalSMGObjectAndOffset derefedList = derefedTopElems.get(0);
+      currentState = derefedList.getSMGState();
+      assertThat(derefedList.hasSMGObjectAndOffset()).isTrue();
+      assertThat(derefedList.getOffsetForObject().isNumericValue()).isTrue();
+      assertThat(derefedList.getOffsetForObject().asNumericValue().bigIntegerValue())
+          .isEqualTo(BigInteger.ZERO);
+      nextListObj = derefedList.getSMGObject();
+
+      // This read materializes the target of the pointer read
+      List<ValueAndSMGState> readNexts =
+          currentState.readValue(nextListObj, nfo, pointerSizeInBits, null);
+      ValueAndSMGState readNext;
+      if (all >= listLength - 1) {
+        assertThat(readNexts).hasSize(2);
+        // ending 0+
+        readNext = readNexts.get(0);
+        assertThat(readNext.getValue().isNumericValue()).isTrue();
+        assertThat(readNext.getValue().asNumericValue().bigIntegerValue())
+            .isEqualTo(BigInteger.ZERO);
+
+        readNext = readNexts.get(1);
+      } else {
+        assertThat(readNexts).hasSize(1);
+        readNext = readNexts.get(0);
+        assertThat(readNext.getValue().isNumericValue()).isFalse();
+      }
+      currentState = readNext.getState();
+      assertThat(currentState.getMemoryModel().isPointer(readNext.getValue())).isTrue();
+      pte =
+          currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(readNext.getValue())
+                      .orElseThrow());
+      assertThat(pte).isPresent();
+      assertThat(pte.orElseThrow().getOffset()).isEqualTo(BigInteger.ZERO);
+      assertThat(pte.orElseThrow().targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_REGION);
+      materializedObj = pte.orElseThrow().pointsTo();
+      assertThat(materializedObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+      assertThat(materializedObj.getSize()).isEqualTo(dllSizeValue);
+
+      // Look ahead into the abstracted obj
+      ValueAndSMGState abstractedObjPointer =
+          currentState.readValueWithoutMaterialization(
+              materializedObj, nfo, pointerSizeInBits, null);
+      currentState = abstractedObjPointer.getState();
+      Value abstractedObjPtr = abstractedObjPointer.getValue();
+      assertThat(currentState.getMemoryModel().isPointer(abstractedObjPtr)).isTrue();
+
+      SMGStateAndOptionalSMGObjectAndOffset ptrToAbstrDeref =
+          currentState.dereferencePointerWithoutMaterilization(abstractedObjPtr).orElseThrow();
+      assertThat(ptrToAbstrDeref.hasSMGObjectAndOffset()).isTrue();
+      assertThat(ptrToAbstrDeref.getOffsetForObject().isNumericValue()).isTrue();
+      assertThat(ptrToAbstrDeref.getOffsetForObject().asNumericValue().bigIntegerValue())
+          .isEqualTo(BigInteger.ZERO);
+      SMGObject abstractedObj = ptrToAbstrDeref.getSMGObject();
+      assertThat(abstractedObj).isInstanceOf(SMGDoublyLinkedListSegment.class);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getMinLength())
+          .isEqualTo(Integer.max(0, listLength - all - 2));
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getNextPointerTargetOffset())
+          .isEqualTo(BigInteger.ZERO);
+      assertThat(abstractedObj.getOffset()).isEqualTo(BigInteger.ZERO);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getHeadOffset())
+          .isEqualTo(BigInteger.ZERO);
+      assertThat(((SMGSinglyLinkedListSegment) abstractedObj).getNextOffset()).isEqualTo(nfo);
+      // Prev check
+      ValueAndSMGState readPrevOfAbstr =
+          currentState.readValueWithoutMaterialization(abstractedObj, pfo, pointerSizeInBits, null);
+      assertThat(readPrevOfAbstr.getValue().isNumericValue()).isFalse();
+      assertThat(currentState.getMemoryModel().getNestingLevel(readPrevOfAbstr.getValue()))
+          .isEqualTo(0);
+      currentState = readPrevOfAbstr.getState();
+      assertThat(currentState.getMemoryModel().isPointer(readPrevOfAbstr.getValue())).isTrue();
+      Optional<SMGPointsToEdge> ptePrevAbstr =
+          currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(readPrevOfAbstr.getValue())
+                      .orElseThrow());
+      assertThat(ptePrevAbstr).isPresent();
+      assertThat(ptePrevAbstr.orElseThrow().pointsTo()).isEqualTo(materializedObj);
+      assertThat(ptePrevAbstr.orElseThrow().targetSpecifier())
+          .isEqualTo(SMGTargetSpecifier.IS_REGION);
+      assertThat(ptePrevAbstr.orElseThrow().getOffset()).isEqualTo(BigInteger.ZERO);
+
+      assertThat(nextListObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+      List<ValueAndSMGState> readNested =
+          currentState.readValue(nextListObj, hfo, pointerSizeInBits, null);
+      assertThat(readNested).hasSize(1);
+      currentState = readNested.get(0).getState();
+      assertThat(currentState.getMemoryModel().isPointer(readNested.get(0).getValue())).isTrue();
+
+      // Check nested abstracted list
+      checkAbstractionOfLLWithConcreteFirstAndLast(
+          true,
+          listLength,
+          dllSize,
+          readNested.get(0).getValue(),
+          otherPtrOffset,
+          internalListPtrOffset);
+
+      nextPtr = readNext.getValue();
+    }
   }
 
   /*
@@ -3852,6 +4539,116 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       }
       assertThat(foundNum).isEqualTo(totalSizeOfList);
       assertThat(zeros).isEqualTo(3);
+    }
+  }
+
+  /**
+   * Checks abstraction of middle list with ptr offsets internalListPtrOffset with length
+   * listLength, except first and last ptrs in listPtrs with ptr target offsets otherPtrOffset.
+   * listPtrs size is listLength+2
+   */
+  private void checkAbstractionOfLLWithConcreteFirstAndLast(
+      boolean dll,
+      int listLength,
+      BigInteger listSegmentSize,
+      Value pointerToFirstSegment,
+      BigInteger otherPtrOffset,
+      BigInteger internalListPtrOffset)
+      throws SMGException {
+    SMGObject listSegmentFront =
+        currentState
+            .dereferencePointerWithoutMaterilization(pointerToFirstSegment)
+            .orElseThrow()
+            .getSMGObject();
+
+    assertThat(currentState.getMemoryModel().getSmg().isValid(listSegmentFront)).isTrue();
+    assertThat(listSegmentFront.getSize().isNumericValue()).isTrue();
+    assertThat(listSegmentFront.getSize().asNumericValue().bigIntegerValue())
+        .isEqualTo(listSegmentSize);
+    assertThat(listSegmentFront).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+
+    ValueAndSMGState nextPtrAndState =
+        currentState.readValueWithoutMaterialization(
+            listSegmentFront, nfo, pointerSizeInBits, null);
+    currentState = nextPtrAndState.getState();
+    Value nextPtr = nextPtrAndState.getValue();
+
+    // Check fst of abstracted
+    Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedAbstrListFst =
+        currentState.dereferencePointerWithoutMaterilization(nextPtr);
+
+    assertThat(derefedAbstrListFst).isPresent();
+    assertThat(derefedAbstrListFst.orElseThrow().hasSMGObjectAndOffset()).isTrue();
+    SMGObject derefedFstObj = derefedAbstrListFst.orElseThrow().getSMGObject();
+    assertThat(derefedFstObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+    if (dll) {
+      assertThat(derefedFstObj).isInstanceOf(SMGDoublyLinkedListSegment.class);
+      assertThat(((SMGDoublyLinkedListSegment) derefedFstObj).getMinLength()).isEqualTo(listLength);
+      assertThat(((SMGDoublyLinkedListSegment) derefedFstObj).getNextPointerTargetOffset())
+          .isEqualTo(internalListPtrOffset);
+      assertThat(((SMGDoublyLinkedListSegment) derefedFstObj).getPrevPointerTargetOffset())
+          .isEqualTo(internalListPtrOffset);
+    } else {
+      assertThat(derefedFstObj).isNotInstanceOf(SMGDoublyLinkedListSegment.class);
+      assertThat(((SMGSinglyLinkedListSegment) derefedFstObj).getMinLength()).isEqualTo(listLength);
+      assertThat(((SMGSinglyLinkedListSegment) derefedFstObj).getNextPointerTargetOffset())
+          .isEqualTo(internalListPtrOffset);
+    }
+
+    SMGValueAndSMGState readNextToAbstr =
+        currentState.readSMGValue(listSegmentFront, nfo, pointerSizeInBits);
+    Optional<SMGPointsToEdge> maybePTEToAbtrFst =
+        currentState.getMemoryModel().getSmg().getPTEdge(readNextToAbstr.getSMGValue());
+    assertThat(maybePTEToAbtrFst).isPresent();
+    assertThat(maybePTEToAbtrFst.orElseThrow().getOffset()).isEqualTo(otherPtrOffset);
+    assertThat(maybePTEToAbtrFst.orElseThrow().targetSpecifier())
+        .isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
+
+    Optional<SMGPointsToEdge> ptrFromBeginning =
+        currentState
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(currentState.getMemoryModel().getSMGValueFromValue(nextPtr).orElseThrow());
+    assertThat(ptrFromBeginning.orElseThrow().targetSpecifier())
+        .isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
+    assertThat(ptrFromBeginning.orElseThrow().getOffset()).isEqualTo(otherPtrOffset);
+
+    if (dll) {
+      SMGValueAndSMGState readPrevOfFst =
+          currentState.readSMGValue(derefedFstObj, pfo, pointerSizeInBits);
+      Optional<SMGPointsToEdge> maybePTEPrevFromFstLst =
+          currentState.getMemoryModel().getSmg().getPTEdge(readPrevOfFst.getSMGValue());
+      assertThat(maybePTEPrevFromFstLst).isPresent();
+      assertThat(maybePTEPrevFromFstLst.orElseThrow().getOffset()).isEqualTo(otherPtrOffset);
+      assertThat(maybePTEPrevFromFstLst.orElseThrow().targetSpecifier())
+          .isEqualTo(SMGTargetSpecifier.IS_REGION);
+      assertThat(maybePTEPrevFromFstLst.orElseThrow().pointsTo()).isEqualTo(listSegmentFront);
+    }
+
+    SMGValueAndSMGState readNextOfLstAbstr =
+        currentState.readSMGValue(derefedFstObj, nfo, pointerSizeInBits);
+    Optional<SMGPointsToEdge> maybePTENextFromAbtrLst =
+        currentState.getMemoryModel().getSmg().getPTEdge(readNextOfLstAbstr.getSMGValue());
+    assertThat(maybePTENextFromAbtrLst).isPresent();
+    assertThat(maybePTENextFromAbtrLst.orElseThrow().getOffset()).isEqualTo(otherPtrOffset);
+    assertThat(maybePTENextFromAbtrLst.orElseThrow().targetSpecifier())
+        .isEqualTo(SMGTargetSpecifier.IS_REGION);
+    SMGObject listSegmentBack = maybePTENextFromAbtrLst.orElseThrow().pointsTo();
+    assertThat(listSegmentBack).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+    assertThat(listSegmentBack.getSize().isNumericValue()).isTrue();
+    assertThat(listSegmentBack.getSize().asNumericValue().bigIntegerValue())
+        .isEqualTo(listSegmentSize);
+
+    if (dll) {
+      SMGValueAndSMGState readPrevOfLast =
+          currentState.readSMGValue(listSegmentBack, pfo, pointerSizeInBits);
+      Optional<SMGPointsToEdge> maybePTEPrevFromLastLst =
+          currentState.getMemoryModel().getSmg().getPTEdge(readPrevOfLast.getSMGValue());
+      assertThat(maybePTEPrevFromLastLst).isPresent();
+      assertThat(maybePTEPrevFromLastLst.orElseThrow().getOffset()).isEqualTo(otherPtrOffset);
+      assertThat(maybePTEPrevFromLastLst.orElseThrow().targetSpecifier())
+          .isEqualTo(SMGTargetSpecifier.IS_LAST_POINTER);
+      assertThat(maybePTEPrevFromLastLst.orElseThrow().pointsTo()).isEqualTo(derefedFstObj);
     }
   }
 
