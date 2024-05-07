@@ -104,7 +104,7 @@ public class FloatP {
   static final Map<Integer, Integer> lnStats = new HashMap<>();
 
   /**
-   * Statistics for {@link FloatP#pow()}
+   * Statistics for {@link FloatP#pow(FloatP)}
    *
    * <p>Collects statistics about the number of additional bits required for correct rounding. This
    * is used for optimization only.
@@ -112,7 +112,7 @@ public class FloatP {
   static final Map<Integer, Integer> powStats = new HashMap<>();
 
   /**
-   * Statistics for {@link FloatP#fromString()}
+   * Statistics for {@link FloatP#fromString(Format, String)}
    *
    * <p>Collects statistics about the number of additional bits required for correct rounding. This
    * is used for optimization only.
