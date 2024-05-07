@@ -1052,6 +1052,199 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         true, listLength, topListPtrs, otherPtrOffset, internalListPtrOffset);
   }
 
+  /*
+   * SLL that has 1/2 pointers with differing target offsets to itself in different offsets.
+   */
+  @Ignore
+  @Test
+  public void sllWithSelfPointerWithOffsetsAbstractionTest()
+      throws SMGException, SMGSolverException {
+    int listLength = 8;
+    // Large enough for 3 pointers
+    BigInteger listSize = sllSize.add(pointerSizeInBits);
+    BigInteger firstPtrOffset = pointerSizeInBits;
+    BigInteger secondPtrOffset = pointerSizeInBits.add(pointerSizeInBits);
+    for (List<BigInteger> targetOffsetsForSelfPtrs :
+        ImmutableList.of(
+            ImmutableList.of(firstPtrOffset, firstPtrOffset),
+            ImmutableList.of(secondPtrOffset, secondPtrOffset),
+            ImmutableList.of(firstPtrOffset, secondPtrOffset),
+            ImmutableList.of(secondPtrOffset, firstPtrOffset))) {
+
+      for (BigInteger changingNfo = BigInteger.ZERO;
+          changingNfo.compareTo(listSize) < 0;
+          changingNfo = changingNfo.add(pointerSizeInBits)) {
+
+        Value[] topListPtrs = buildConcreteList(false, sllSize, listLength, false);
+
+        // Ptr to the top list from some stack obj
+        // We want to test from left to right until 0+ has been materialized at least once
+        SMGObjectAndSMGState stackObjAndState =
+            currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+        currentState = stackObjAndState.getState();
+        SMGObject stackObj = stackObjAndState.getSMGObject();
+        currentState =
+            currentState.writeValueWithoutChecks(
+                stackObj,
+                BigInteger.ZERO,
+                pointerSizeInBits,
+                currentState.getMemoryModel().getSMGValueFromValue(topListPtrs[0]).orElseThrow());
+
+        BigInteger offsetFirstSelfPtr = BigInteger.ZERO;
+        BigInteger offsetSecondSelfPtr = offsetFirstSelfPtr.add(pointerSizeInBits);
+
+        if (changingNfo.equals(offsetFirstSelfPtr)) {
+          offsetFirstSelfPtr = offsetSecondSelfPtr;
+          offsetSecondSelfPtr = offsetFirstSelfPtr.add(pointerSizeInBits);
+        }
+        if (changingNfo.equals(offsetSecondSelfPtr)) {
+          offsetSecondSelfPtr = changingNfo.add(pointerSizeInBits);
+        }
+
+        assertThat(offsetFirstSelfPtr).isNotEqualTo(changingNfo);
+        assertThat(offsetSecondSelfPtr).isNotEqualTo(changingNfo);
+        assertThat(offsetFirstSelfPtr).isNotEqualTo(offsetSecondSelfPtr);
+        assertThat(offsetFirstSelfPtr.compareTo(listSize) < 0).isTrue();
+        assertThat(offsetSecondSelfPtr.compareTo(listSize) < 0).isTrue();
+        assertThat(changingNfo.compareTo(listSize) < 0).isTrue();
+
+        for (Value ptr : topListPtrs) {
+          SMGObject obj =
+              currentState
+                  .dereferencePointerWithoutMaterilization(ptr)
+                  .orElseThrow()
+                  .getSMGObject();
+          if (!changingNfo.equals(nfo)) {
+            // Change NFO for list
+            Value nextPtr =
+                currentState
+                    .readValueWithoutMaterialization(obj, nfo, pointerSizeInBits, null)
+                    .getValue();
+            assertThat(currentState.getMemoryModel().isPointer(nextPtr)).isTrue();
+            currentState =
+                currentState.writeValueWithoutChecks(
+                    obj,
+                    changingNfo,
+                    pointerSizeInBits,
+                    currentState.getMemoryModel().getSMGValueFromValue(nextPtr).orElseThrow());
+          }
+
+          // Build self pointers w differing target offsets into the list
+          ValueAndSMGState selfPtrAndState =
+              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+          currentState = selfPtrAndState.getState();
+          currentState =
+              currentState.writeValueWithoutChecks(
+                  obj,
+                  offsetFirstSelfPtr,
+                  pointerSizeInBits,
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(selfPtrAndState.getValue())
+                      .orElseThrow());
+
+          ValueAndSMGState otherSelfPtrAndState =
+              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+          currentState = otherSelfPtrAndState.getState();
+          currentState =
+              currentState.writeValueWithoutChecks(
+                  obj,
+                  offsetSecondSelfPtr,
+                  pointerSizeInBits,
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(otherSelfPtrAndState.getValue())
+                      .orElseThrow());
+        }
+
+        // Abstract
+        SMGCPAAbstractionManager absFinder =
+            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+        currentState = absFinder.findAndAbstractLists();
+
+        // Check abstraction
+        Value fstPtr =
+            currentState
+                .readValueWithoutMaterialization(stackObj, BigInteger.ZERO, pointerSizeInBits, null)
+                .getValue();
+        assertThat(currentState.getMemoryModel().isPointer(fstPtr)).isTrue();
+        SMGPointsToEdge fstPte =
+            currentState
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(currentState.getMemoryModel().getSMGValueFromValue(fstPtr).orElseThrow())
+                .orElseThrow();
+        assertThat(fstPte.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
+        assertThat(fstPte.getOffset()).isEqualTo(BigInteger.ZERO);
+        SMGObject abstractedObj = fstPte.pointsTo();
+        assertThat(abstractedObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(abstractedObj).isNotInstanceOf(SMGDoublyLinkedListSegment.class);
+        SMGSinglyLinkedListSegment sllObj = (SMGSinglyLinkedListSegment) abstractedObj;
+        assertThat(sllObj.getOffset()).isEqualTo(BigInteger.ZERO);
+        assertThat(sllObj.getNextOffset()).isEqualTo(changingNfo);
+        assertThat(sllObj.getSize()).isEqualTo(listSize);
+        assertThat(sllObj.getNextPointerTargetOffset()).isEqualTo(BigInteger.ZERO);
+        assertThat(sllObj.getMinLength()).isEqualTo(listLength);
+
+        // next check
+        Value nfoPtr =
+            currentState
+                .readValueWithoutMaterialization(
+                    abstractedObj, changingNfo, pointerSizeInBits, null)
+                .getValue();
+        assertThat(currentState.getMemoryModel().isPointer(nfoPtr)).isTrue();
+        assertThat(nfoPtr.isNumericValue()).isTrue();
+        assertThat(nfoPtr.asNumericValue().bigIntegerValue().intValueExact()).isEqualTo(0);
+        SMGPointsToEdge nfoPte =
+            currentState
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(currentState.getMemoryModel().getSMGValueFromValue(nfoPtr).orElseThrow())
+                .orElseThrow();
+        assertThat(nfoPte.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_REGION);
+        assertThat(nfoPte.getOffset()).isEqualTo(BigInteger.ZERO);
+        assertThat(nfoPte.pointsTo().isZero()).isTrue();
+
+        // check the 2 self pointers
+        Value selfPtr1 =
+            currentState
+                .readValueWithoutMaterialization(
+                    abstractedObj, offsetFirstSelfPtr, pointerSizeInBits, null)
+                .getValue();
+        assertThat(currentState.getMemoryModel().isPointer(selfPtr1)).isTrue();
+        assertThat(selfPtr1.isNumericValue()).isFalse();
+        SMGPointsToEdge selfPtrPte1 =
+            currentState
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(
+                    currentState.getMemoryModel().getSMGValueFromValue(selfPtr1).orElseThrow())
+                .orElseThrow();
+        assertThat(selfPtrPte1.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_ALL_POINTER);
+        assertThat(selfPtrPte1.getOffset()).isEqualTo(targetOffsetsForSelfPtrs.get(0));
+        assertThat(selfPtrPte1.pointsTo()).isEqualTo(abstractedObj);
+
+        Value selfPtr2 =
+            currentState
+                .readValueWithoutMaterialization(
+                    abstractedObj, offsetSecondSelfPtr, pointerSizeInBits, null)
+                .getValue();
+        assertThat(currentState.getMemoryModel().isPointer(selfPtr2)).isTrue();
+        assertThat(selfPtr2.isNumericValue()).isTrue();
+        SMGPointsToEdge selfPtrPte2 =
+            currentState
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(
+                    currentState.getMemoryModel().getSMGValueFromValue(selfPtr2).orElseThrow())
+                .orElseThrow();
+        assertThat(selfPtrPte2.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_ALL_POINTER);
+        assertThat(selfPtrPte2.getOffset()).isEqualTo(targetOffsetsForSelfPtrs.get(1));
+        assertThat(selfPtrPte2.pointsTo()).isEqualTo(abstractedObj);
+      }
+    }
+  }
+
   // Normal SLL top list with 1 stack region that has a ptr to some list element.
   // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
   // nested in each top list (abstractable for top)
