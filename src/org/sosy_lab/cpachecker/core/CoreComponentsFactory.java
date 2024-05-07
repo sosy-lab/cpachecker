@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlg
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.tubes.ExportAssumeEdges;
+import org.sosy_lab.cpachecker.core.algorithm.tubes.TubeInterpolationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -388,6 +389,12 @@ public class CoreComponentsFactory {
       name = "algorithm.importFaults",
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.tubeInterpolation",
+      description = "Import faults stored in a JSON format.")
+  private boolean useTubeInterpolation = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -718,6 +725,9 @@ public class CoreComponentsFactory {
                 specification);
       }
 
+      if (useTubeInterpolation) {
+        algorithm = new TubeInterpolationAlgorithm(cfa, config, shutdownNotifier, logger, algorithm);
+      }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
       }
