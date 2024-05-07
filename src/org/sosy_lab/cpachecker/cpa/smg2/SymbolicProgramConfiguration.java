@@ -563,6 +563,21 @@ public class SymbolicProgramConfiguration {
         readBlacklist);
   }
 
+  SymbolicProgramConfiguration copyAndAddDummyStackFrame() {
+    StackFrame newStackFrame = StackFrame.ofDummyStackframe();
+    return of(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping.pushAndCopy(newStackFrame),
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory,
+        readBlacklist);
+  }
+
   /**
    * Copies this {@link SymbolicProgramConfiguration} and removes the stack variable given.
    *
@@ -1577,11 +1592,14 @@ public class SymbolicProgramConfiguration {
       getFunctionDeclarationsFromStackFrames() {
     PersistentStack<CFunctionDeclarationAndOptionalValue> decls = PersistentStack.of();
     for (StackFrame frame : stackVariableMapping) {
+      CFunctionDeclaration funcDef = frame.getFunctionDefinition();
+      if (funcDef == null) {
+        // Test frame
+        continue;
+      }
       if (frame.getReturnObject().isEmpty()) {
         decls =
-            decls.pushAndCopy(
-                CFunctionDeclarationAndOptionalValue.of(
-                    frame.getFunctionDefinition(), Optional.empty()));
+            decls.pushAndCopy(CFunctionDeclarationAndOptionalValue.of(funcDef, Optional.empty()));
       } else {
         // Search for the return Value, there might be none if we are not on the return edge
         FluentIterable<SMGHasValueEdge> edges =

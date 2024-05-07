@@ -1101,6 +1101,11 @@ public class SMGState
             pFunctionDefinition, machineModel, variableArgumentsInOrder));
   }
 
+  /** Copy SMGState and adds a new dummy frame for tests. */
+  public SMGState copyAndAddDummyStackFrame() {
+    return copyAndReplaceMemoryModel(memoryModel.copyAndAddDummyStackFrame());
+  }
+
   @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
@@ -2768,6 +2773,7 @@ public class SMGState
       boolean preciseRead,
       boolean materialize)
       throws SMGException {
+    Preconditions.checkArgument(!(pObject instanceof SMGSinglyLinkedListSegment));
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ImmutableList.of(
           ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject)));
@@ -2796,7 +2802,7 @@ public class SMGState
     SMGValue readSMGValue = readSMGValueEdge.hasValue();
     ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     if (memoryModel.getSmg().isPointer(readSMGValue)
-        && memoryModel.getSmg().pointsToMaterializableList(readSMGValue, pFieldOffset)
+        && memoryModel.getSmg().pointsToMaterializableList(readSMGValue)
         && exactRead
         && materialize) {
       // TODO: do we need to materialize if the object read is abstract (and we read non head)?
