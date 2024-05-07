@@ -385,7 +385,6 @@ public class SMGCPAAbstractionManager {
           // Continue traverse
           nestedLength = getLengthOfList(target, suspectedNfo, allowedObjects, knownLength);
         }
-        Preconditions.checkArgument(nestedLength > 0);
       }
     }
     knownLength.put(currObj, nestedLength + currentLength);
