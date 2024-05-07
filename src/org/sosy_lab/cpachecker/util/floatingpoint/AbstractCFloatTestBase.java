@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  *   <li>{@link JFloat} ({@link JDouble}), uses normal Java floats (doubles) for its calculations
  * </ul>
  *
- * Subclasses are expected to overload the abstract methods {@link
+ * <p>Subclasses are expected to overload the abstract methods {@link
  * AbstractCFloatTestBase#getRefImpl()}, {@link AbstractCFloatTestBase#toTestedImpl(String)} and
  * {@link AbstractCFloatTestBase#toReferenceImpl(String)} to select which implementations are
  * supposed to be used in the comparison. The test class will then automatically generate test
@@ -55,9 +55,8 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  * implementation with those of the reference implementation on all of those inputs.
  *
  * <p>The methods {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
- * AbstractCFloatTestBase#binaryTestValues()} can be overwritten to select the change the set of
- * test inputs that will be generated. The following classes of test values are supported by the
- * implementation:
+ * AbstractCFloatTestBase#binaryTestValues()} can be overwritten to change the set of test inputs
+ * that will be generated. The following classes of test values are supported by the implementation:
  *
  * <ul>
  *   <li>{@link AbstractCFloatTestBase#floatConsts(BinaryMathContext)}
@@ -66,7 +65,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  *   <li>{@link AbstractCFloatTestBase#allFloats(BinaryMathContext)}
  * </ul>
  *
- * The default behaviour for both {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
+ * <p>The default behaviour for both {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
  * AbstractCFloatTestBase#binaryTestValues()} is to use a combination of the first 3 test value
  * classes.
  *
