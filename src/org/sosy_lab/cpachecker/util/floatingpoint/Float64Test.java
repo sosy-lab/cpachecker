@@ -19,6 +19,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 
+/** Tests the CFloat interface for 64 bit floating point values. */
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
 public class Float64Test extends AbstractCFloatTestBase {

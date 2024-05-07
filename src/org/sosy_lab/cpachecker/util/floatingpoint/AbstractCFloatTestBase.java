@@ -33,25 +33,65 @@ import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
+/**
+ * Abstract test class for the {@link CFloat} interface.
+ *
+ * <p>The idea behind this class is to compare two different implementations of the CFloat
+ * interface. We generally use {@link FloatP} as the "tested" implementation and compare it to a
+ * second "reference" implementation. There are currently 3 supported implementations that can be
+ * used as a reference:
+ *
+ * <ul>
+ *   <li>{@link CFloatNative}, uses native C code to calculate its results
+ *   <li>{@link MpfrFloat}, uses BigFloats to access MPFR
+ *   <li>{@link JFloat} ({@link JDouble}), uses normal Java floats (doubles) for its calculations
+ * </ul>
+ *
+ * Subclasses are expected to overload the abstract methods {@link
+ * AbstractCFloatTestBase#getRefImpl()}, {@link AbstractCFloatTestBase#toTestedImpl(String)} and
+ * {@link AbstractCFloatTestBase#toReferenceImpl(String)} to select which implementations are
+ * supposed to be used in the comparison. The test class will then automatically generate test
+ * inputs for all methods of the CFloat interface and compare the results of the tested
+ * implementation with those of the reference implementation on all of those inputs.
+ *
+ * <p>The methods {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
+ * AbstractCFloatTestBase#binaryTestValues()} can be overwritten to select the change the set of
+ * test inputs that will be generated. The following classes of test values are supported by the
+ * implementation:
+ *
+ * <ul>
+ *   <li>{@link AbstractCFloatTestBase#floatConsts(BinaryMathContext)}
+ *   <li>{@link AbstractCFloatTestBase#floatPowers(BinaryMathContext, int, BigFloat, int, BigFloat)}
+ *   <li>{@link AbstractCFloatTestBase#floatRandom(BinaryMathContext, int)}
+ *   <li>{@link AbstractCFloatTestBase#allFloats(BinaryMathContext)}
+ * </ul>
+ *
+ * The default behaviour for both {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
+ * AbstractCFloatTestBase#binaryTestValues()} is to use a combination of the first 3 test value
+ * classes.
+ *
+ * <p>The abstract method {@link AbstractCFloatTestBase#getFloatType()} also needs to be overridden
+ * by the subclass to select the bit width of the floating point values that will be generated.
+ */
 public abstract class AbstractCFloatTestBase {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
   }
 
-  // Override to set a floating point width
+  /** Override to set a floating point width. */
   protected abstract BinaryMathContext getFloatType();
 
-  // List of all supported reference implementations
+  /** List of all supported reference implementations. */
   public enum ReferenceImpl {
     MPFR,
     JAVA,
     NATIVE
   }
 
-  // Return the reference implementation used by the test
+  /** Return the reference implementation used by the test. */
   protected abstract ReferenceImpl getRefImpl();
 
-  // Pretty printer for BigFloat type
+  /** Pretty printer for BigFloat type */
   private static String printBigFloat(BigFloat value) {
     if (value.isNaN()) {
       return "nan";
@@ -68,7 +108,7 @@ public abstract class AbstractCFloatTestBase {
     return value.toString().replaceAll(",", ".");
   }
 
-  // Convert floating point value to its decimal representation
+  /** Convert floating point value to its decimal representation. */
   public static String toPlainString(BigFloat value) {
     String r = printBigFloat(value);
     if (r.contains("e")) {
@@ -77,7 +117,7 @@ public abstract class AbstractCFloatTestBase {
     return r;
   }
 
-  // Generate a list of floating point constants that cover all special case values
+  /** Generate a list of floating point constants that cover all special case values. */
   protected static List<BigFloat> floatConsts(BinaryMathContext format) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     builder.add(
@@ -101,7 +141,10 @@ public abstract class AbstractCFloatTestBase {
     return builder.build();
   }
 
-  // Generate a list of powers ca^px where c,p are incremented starting from 1 and a,x are constants
+  /**
+   * Generate a list of powers ca^px where c,p are incremented starting from 1 and a,x are
+   * constants.
+   */
   protected static List<BigFloat> floatPowers(
       BinaryMathContext format, int c, BigFloat a, int p, BigFloat x) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
@@ -118,7 +161,7 @@ public abstract class AbstractCFloatTestBase {
     return builder.build();
   }
 
-  // Generate n random floating point values
+  /** Generate n random floating point values. */
   protected static List<BigFloat> floatRandom(BinaryMathContext format, int n) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     Random random = new Random(0);
@@ -140,6 +183,7 @@ public abstract class AbstractCFloatTestBase {
     return builder.build();
   }
 
+  /** Generate all possible floating point values for a given precision. */
   protected static List<BigFloat> allFloats(BinaryMathContext format) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     for (long exponent = format.minExponent - 1; exponent <= format.maxExponent + 1; exponent++) {
@@ -161,6 +205,7 @@ public abstract class AbstractCFloatTestBase {
     return builder.build();
   }
 
+  /** The set of test inputs that should be used for unary operations in the CFloat interface. */
   protected List<BigFloat> unaryTestValues() {
     BinaryMathContext format = getFloatType();
     BigFloat constant = new BigFloat(0.5f, format);
@@ -171,6 +216,11 @@ public abstract class AbstractCFloatTestBase {
     return builder.build();
   }
 
+  /**
+   * The set of test inputs that should be used for binary operations in the CFloat interface. The
+   * values will be used for both arguments separately. So if there are k test values in this set,
+   * the number of test runs for a binary operation will be k^2.
+   */
   protected List<BigFloat> binaryTestValues() {
     BinaryMathContext format = getFloatType();
     BigFloat constant = new BigFloat(0.5f, format);
@@ -181,7 +231,7 @@ public abstract class AbstractCFloatTestBase {
     return builder.build();
   }
 
-  // Wraps a generated input value along with the result of the operation
+  /** Wraps a generated input value along with the result of the operation. */
   private static class TestValue<T> {
     private final BigFloat[] args;
     private final T expected;
@@ -242,12 +292,12 @@ public abstract class AbstractCFloatTestBase {
     return String.format("%n%nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
-  // Defines the maximum error (in ULPs) for transcendental functions
+  /** Defines the maximum error (in ULPs) for transcendental functions. */
   protected int ulpError() {
     return getRefImpl() == ReferenceImpl.MPFR ? 0 : 1;
   }
 
-  // Returns a list of all float values in the error range
+  /** Returns a list of all float values in the error range. */
   private List<String> errorRange(int pDistance, BigFloat pValue) {
     if (pDistance == 0 || pValue.isNaN()) {
       return ImmutableList.of(printValue(pValue));
@@ -512,9 +562,9 @@ public abstract class AbstractCFloatTestBase {
     return toReferenceImpl(new BigFloat(repr, getFloatType()));
   }
 
-  // (This test checks that test values are correctly convert to values in the implementation)
   @Test
   public void constTest() {
+    // This test checks that test values are correctly convert to values in the implementation.
     testOperator("const", 0, (CFloat a) -> a);
   }
 

@@ -18,6 +18,13 @@ import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 
+/**
+ * Tests the CFloat interface for 16 bit floating point values.
+ *
+ * <p>Uses only MPFR as reference implementation as both the C and the Java implementation lack
+ * support for 16 bit floats. Unary methods are tested exhaustively, for binary methods we generate
+ * around 50k test values.
+ */
 @RunWith(Parameterized.class)
 public class Float16Test extends AbstractCFloatTestBase {
   @Override

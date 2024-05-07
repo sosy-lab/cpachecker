@@ -18,6 +18,13 @@ import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 
+/**
+ * Tests the CFloat interface for 8 bit floating point values.
+ *
+ * <p>Uses only MPFR as reference implementation as both the C and the Java implementation lack
+ * support for 8 bit float. All methods are tested exhaustively: that is we try all possible input
+ * values.
+ */
 @RunWith(Parameterized.class)
 public class Float8Test extends AbstractCFloatTestBase {
   @Override
