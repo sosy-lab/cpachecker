@@ -46,7 +46,7 @@ public class CfaToJson {
   public CfaToJson(CFA pCfa) {
     CFA cfa = checkNotNull(pCfa);
 
-    /** Collect all nodes and edges by traversing the CFA. */
+    /* Collect all nodes and edges by traversing the CFA. */
     NodeCollectingCFAVisitor nodeVisitor = new NodeCollectingCFAVisitor();
     EdgeCollectingCFAVisitor edgeVisitor = new EdgeCollectingCFAVisitor();
 
@@ -62,17 +62,17 @@ public class CfaToJson {
   }
 
   /**
-   * Write the {@link CFA} to file.
+   * Writes the {@link CFA} to file.
    *
    * @param pOutdir Directory to which the JSON file is to be written.
    * @throws IOException If an error with {@link FileOutputStream} or {@link JsonGenerator} occurs.
    */
   public void write(Path pOutdir) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
-    /** Only map fields of objects. */
+    /* Only map fields of objects. */
     objectMapper.setVisibility(PropertyAccessor.ALL, Visibility.NONE);
     objectMapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
-    /** Enable JSON serialization with indentation and newlines. */
+    /* Enable JSON serialization with indentation and newlines. */
     objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
     JsonFactory jsonFactory = new JsonFactory();
@@ -86,7 +86,7 @@ public class CfaToJson {
 
       jsonGenerator.writeStartObject();
 
-      /** Write all Nodes. */
+      /* Write all Nodes. */
       jsonGenerator.writeFieldName("nodes");
       jsonGenerator.writeStartArray();
       for (CFANode node : nodes) {
@@ -94,7 +94,7 @@ public class CfaToJson {
       }
       jsonGenerator.writeEndArray();
 
-      /** Write all Edges. */
+      /* Write all Edges. */
       jsonGenerator.writeFieldName("edges");
       jsonGenerator.writeStartArray();
       for (CFAEdge edge : edges) {
