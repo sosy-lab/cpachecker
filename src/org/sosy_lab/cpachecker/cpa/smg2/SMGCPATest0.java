@@ -108,6 +108,7 @@ public class SMGCPATest0 {
             makeTestSolver());
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
+    currentState = currentState.copyAndAddDummyStackFrame();
   }
 
   // Resets state and visitor to an empty state
@@ -296,11 +297,12 @@ public class SMGCPATest0 {
         .build();
   }
 
-  /*
-   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same every list segment.
-   * The data is numeric starting from 0, +1 each new value such that the space until nfo is filled.
-   * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
-   * Returns the pointers to the first and last element in the array. Might be equal.
+  /**
+   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same
+   * every list segment. The data is numeric starting from 0, +1 each new value such that the space
+   * until nfo is filled. Valid sizes are divisible by 32. The nfo for the last and pfo for the
+   * first segment are 0. Returns the pointers to the first and last element in the array. Might be
+   * equal.
    */
   protected Value[] buildConcreteListReturnFstAndLstPointer(
       boolean dll, BigInteger sizeOfSegment, int listLength)
@@ -431,6 +433,25 @@ public class SMGCPATest0 {
         BigInteger.ZERO,
         dll ? Optional.of(BigInteger.ZERO) : Optional.empty(),
         true);
+  }
+
+  /**
+   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same
+   * every list segment. The data is numeric starting from 0, +1 each new value such that the space
+   * until nfo is filled. Valid sizes are divisible by 32. The nfo for the last and pfo for the
+   * first segment are 0. This always creates a stack obj and a pointer towards ALL created objects.
+   */
+  protected Value[] buildConcreteList(
+      boolean dll, BigInteger sizeOfSegment, int listLength, boolean createStackObjsForAllPointers)
+      throws SMGException, SMGSolverException {
+    return buildConcreteListWithEqualValues(
+        dll,
+        sizeOfSegment,
+        listLength,
+        0,
+        BigInteger.ZERO,
+        dll ? Optional.of(BigInteger.ZERO) : Optional.empty(),
+        createStackObjsForAllPointers);
   }
 
   /**
