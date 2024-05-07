@@ -721,14 +721,21 @@ public class FloatP {
     return this.multiply(this);
   }
 
-  private final Map<BigInteger, FloatP> powMap = new HashMap<>();
-
   /** Calculate the power function a^x where x is an integer. */
   public FloatP powInt(BigInteger exp) {
-    return withPrecision(format.extended()).powInt_(exp).withPrecision(format);
+    Map<BigInteger, FloatP> powMap = new HashMap<>();
+    return withPrecision(format.extended()).powInt_(exp, powMap).withPrecision(format);
   }
 
-  private FloatP powInt_(BigInteger exp) {
+  /**
+   * Calculate the power function a^x where x is an integer.
+   *
+   * <p>This version is for internal use only and does not extend the precision to avoid rounding
+   * errors. The second argument is a Map containing all intermediate results of the calculation. It
+   * is supposed to be reused when a^k needs to be computed for many different k as this allows us
+   * to avoid recalculations of partial results during fast exponentiation.
+   */
+  private FloatP powInt_(BigInteger exp, Map<BigInteger, FloatP> powMap) {
     if (!powMap.containsKey(exp)) {
       FloatP x = this;
       if (exp.compareTo(BigInteger.ZERO) < 0) {
@@ -736,20 +743,20 @@ public class FloatP {
         Format ext = new Format(format.expBits, 2 * format.sigBits + 1);
         x = one(ext).divide_(x.withPrecision(ext));
       }
-      FloatP r = x.powFast(exp.abs());
+      FloatP r = x.powFast(exp.abs(), powMap);
       powMap.put(exp, r);
     }
     return powMap.get(exp);
   }
 
-  private FloatP powFast(BigInteger exp) {
+  private FloatP powFast(BigInteger exp, Map<BigInteger, FloatP> powMap) {
     if (exp.equals(BigInteger.ZERO)) {
       return one(format);
     }
     if (exp.equals(BigInteger.ONE)) {
       return this;
     }
-    FloatP r = powInt_(exp.divide(BigInteger.valueOf(2))).squared();
+    FloatP r = powInt_(exp.divide(BigInteger.valueOf(2)), powMap).squared();
     FloatP p = exp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
     return p.multiply(r);
   }
@@ -1189,6 +1196,8 @@ public class FloatP {
       x = x.withExponent(0);
     }
 
+    Map<BigInteger, FloatP> powMap = new HashMap<>();
+
     boolean done = false;
     while (!done) {
       FloatP s = r;
@@ -1202,7 +1211,7 @@ public class FloatP {
       }
 
       // r(k+1) = r(k) +  x^k/k!
-      FloatP a = x.powInt_(BigInteger.valueOf(k));
+      FloatP a = x.powInt_(BigInteger.valueOf(k), powMap);
       FloatP b = expTable.get(k).withPrecision(format);
 
       r = r.add(a.multiply(b));
@@ -1341,6 +1350,8 @@ public class FloatP {
     FloatP x = this;
     FloatP r = zero(format);
 
+    Map<BigInteger, FloatP> powMap = new HashMap<>();
+
     int k = 1;
     boolean done = false;
     while (!done) {
@@ -1355,7 +1366,7 @@ public class FloatP {
       }
 
       // r(k+1) = r(k) +  x^k/k
-      FloatP a = x.powInt_(BigInteger.valueOf(k));
+      FloatP a = x.powInt_(BigInteger.valueOf(k), powMap);
       FloatP b = a.multiply(lnTable.get(k).withPrecision(format));
 
       r = r.add(k % 2 == 0 ? b.negate() : b);
