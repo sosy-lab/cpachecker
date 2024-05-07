@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -564,7 +565,7 @@ public class SMGCPAAbstractionManager {
       if (state.checkEqualValuesForTwoStatesWithExemptions(
           prevObj,
           potentialNextObj,
-          exemptOffsetsOfList,
+          ImmutableMap.of(prevObj, exemptOffsetsOfList, potentialNextObj, exemptOffsetsOfList),
           state,
           state,
           equalityCache,
