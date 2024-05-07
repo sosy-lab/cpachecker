@@ -1831,6 +1831,7 @@ public class FloatP {
   // Statistics for fromString(...)
   static final Map<Integer, Integer> fromStringStats = new HashMap<>();
 
+  /** Parse input string as a floating point number. */
   public static FloatP fromString(Format p, String input) {
     // TODO: Add error handling for broken inputs.
     if ("inf".equals(input)) {
@@ -1871,6 +1872,8 @@ public class FloatP {
     expValue = (radix - 1) + expValue;
     digits = digits.substring(0, radix) + digits.substring(radix + 1);
 
+    // We're done with the parsing part and can now convert the value form base10 to base2
+    // Read in the mantissa as in integer value
     BigInteger mantissa = new BigInteger(digits);
     if (mantissa.equals(BigInteger.ZERO)) {
       return sign ? negativeZero(p) : zero(p);
@@ -1879,14 +1882,29 @@ public class FloatP {
     boolean done = false;
     FloatP r = nan(p);
 
+    // We run the conversion in a loop and increase the precision between runs to make sure that
+    // enough precision was used to allow for correct rounding.
     for (Format ext : fromStringExtFormats(p)) {
       if (!done) {
         int diff = ext.sigBits - p.sigBits;
 
+        // Calculate the base2 representation of the value:
+        // Let's say we have 1.2345 * 10^k as input. We first rewrite the term as 12345 * 10^k-4 to
+        // make the mantissa integer. Then we extend the term further and add more zeroes:
+        // 12345 * (10^5/10^5) * 10^k-4 = 1234500000 * 10^k-9
+        // Here 5 is the number of extra digits that will be used in the calculation to ensure
+        // correct rounding. The value has to be chosen large enough, and we use the main loop to
+        // increment it and try out several different values.
+        // The term "1234500000 * 10^k-9" can now easily be converted to base2:
+        // - 123450000 is integer and we use constant() to create the mantissa of the float.
+        // - The term "10" for the exponent is also integer and we use constant() again. Then we use
+        //   powInt() to calculate the exponent of the float.
+        // - The two parts can now be multiplied to get the final value.
         FloatP f = constant(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
         FloatP e =
             constant(ext, 10).powInt(BigInteger.valueOf(expValue - (digits.length() - 1) - diff));
 
+        // Rounding check: make sure we have enough precision.
         FloatP val1 = f.plus1Ulp().multiply(e);
         FloatP val2 = f.minus1Ulp().multiply(e);
 
