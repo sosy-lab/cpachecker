@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.tubes.CounterexampleToC;
 import org.sosy_lab.cpachecker.core.algorithm.tubes.ExportAssumeEdges;
 import org.sosy_lab.cpachecker.core.algorithm.tubes.TubeInterpolationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -393,8 +394,14 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "algorithm.tubeInterpolation",
-      description = "Import faults stored in a JSON format.")
+      description = "Use tube inteprolation.")
   private boolean useTubeInterpolation = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.counterexampleToC",
+      description = "Convert CEX to C program.")
+  private boolean exportCounterexamplesAsC = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -741,6 +748,10 @@ public class CoreComponentsFactory {
 
       if (exportAssumeEdges) {
         algorithm = new ExportAssumeEdges(algorithm, config, cfa, logger);
+      }
+
+      if (exportCounterexamplesAsC) {
+        algorithm = new CounterexampleToC(algorithm);
       }
     }
 
