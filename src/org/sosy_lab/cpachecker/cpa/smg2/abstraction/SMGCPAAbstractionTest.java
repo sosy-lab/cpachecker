@@ -1056,7 +1056,6 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * SLL that has 2 pointers with differing target offsets to itself in different offsets.
    * Is abstractable, but the self-pointers need to be correct.
    */
-  @Ignore
   @Test
   public void sllWithSelfPointerWithOffsetsAbstractionTest()
       throws SMGException, SMGSolverException {
@@ -1076,7 +1075,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           changingNfo.compareTo(listSize) < 0;
           changingNfo = changingNfo.add(pointerSizeInBits)) {
 
-        Value[] topListPtrs = buildConcreteList(false, sllSize, listLength, false);
+        Value[] topListPtrs = buildConcreteList(false, listSize, listLength, false);
 
         // Ptr to the top list from some stack obj
         // We want to test from left to right until 0+ has been materialized at least once
@@ -1183,7 +1182,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGSinglyLinkedListSegment sllObj = (SMGSinglyLinkedListSegment) abstractedObj;
         assertThat(sllObj.getOffset()).isEqualTo(BigInteger.ZERO);
         assertThat(sllObj.getNextOffset()).isEqualTo(changingNfo);
-        assertThat(sllObj.getSize()).isEqualTo(listSize);
+        assertThat(sllObj.getSize().asNumericValue().bigIntegerValue()).isEqualTo(listSize);
         assertThat(sllObj.getNextPointerTargetOffset()).isEqualTo(BigInteger.ZERO);
         assertThat(sllObj.getMinLength()).isEqualTo(listLength);
 
@@ -1231,7 +1230,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     abstractedObj, offsetSecondSelfPtr, pointerSizeInBits, null)
                 .getValue();
         assertThat(currentState.getMemoryModel().isPointer(selfPtr2)).isTrue();
-        assertThat(selfPtr2.isNumericValue()).isTrue();
+        assertThat(selfPtr2.isNumericValue()).isFalse();
         SMGPointsToEdge selfPtrPte2 =
             currentState
                 .getMemoryModel()
