@@ -1887,7 +1887,7 @@ public class SMG {
         continue;
       }
       // Assert that there is no selfedge with outside sources as we can't handle that atm
-      assert !sources.keySet().contains(oldObj);
+      assert !sources.containsKey(oldObj);
 
       assert oldPTEdge.pointsTo().equals(oldObj);
       SMGTargetSpecifier specifier = oldPTEdge.targetSpecifier();
