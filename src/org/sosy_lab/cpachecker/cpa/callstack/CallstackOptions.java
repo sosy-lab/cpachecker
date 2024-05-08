@@ -59,7 +59,7 @@ class CallstackOptions {
   @Option(description = "analyse the CFA backwards", secure = true)
   private boolean traverseBackwards = false;
 
-  @Option(description = "whether DCPAs should ignore forward callstack")
+  @Option(description = "whether DCPAs should ignore forward callstack", secure = true)
   private boolean ignoreForwardCallstackTransfers = false;
 
   @Option(
