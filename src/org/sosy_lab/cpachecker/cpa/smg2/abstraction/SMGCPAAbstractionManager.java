@@ -570,6 +570,7 @@ public class SMGCPAAbstractionManager {
           state,
           equalityCache,
           objectCache,
+          true,
           true)) {
 
         // filter out DLLs where we accidentally used the pfo as nfo and are at the "end"
