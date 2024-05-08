@@ -1053,7 +1053,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   /*
-   * SLL that has 1/2 pointers with differing target offsets to itself in different offsets.
+   * SLL that has 2 pointers with differing target offsets to itself in different offsets.
+   * Is abstractable, but the self-pointers need to be correct.
    */
   @Ignore
   @Test
