@@ -234,13 +234,15 @@ Writing a correct `equals()` implementation can be tricky.
 It needs to ensure that it fulfills the contract of `equals()`
 (reflexive, symmetric, transitive), returns `false` for `null`,
 does not crash for unexpected types, and is consistent with `hashCode()`.
-For data classes, the recommended alternative to writing `equals()`
-is to use a `record`.
+**For data classes, the recommended alternative to writing `equals()`
+is to use a [`record class`](https://docs.oracle.com/en/java/javase/17/language/records.html).**
 If this is not possible, please use one of the following patterns.
 General notes:
 - The `this == pOther` check in in `equals` is optional.
-- If a field is nullable (but only then),
-  compare it with `Objects.equals(Object a, Object b)`.
+- Primitive fields need to be compared using `==`,
+  object fields with `Object.equals(Object other)`
+  and `@Nullable` object fields (but only those)
+  with `Objects.equals(Object a, Object b)`.
 - In class hierarchies, each class should check its own fields
   and delegate to `super.equals()` for the rest.
 
@@ -252,7 +254,7 @@ public void equals(@Nullable Object pOther) {
   }
   return pOther instanceof MyClass other
       && field1.equals(other.field1)
-      && field2.equals(other.field2)
+      && primitiveField2 == other.primitiveField2
       && ...;
 }
 ```
@@ -271,7 +273,7 @@ public void equals(@Nullable Object pOther) {
   }
   MyClass other = (MyClass) pOther;
   return field1.equals(other.field1)
-      && field2.equals(other.field2)
+      && primitiveField2 == other.field2
       && ...;
 }
 ```
@@ -322,9 +324,9 @@ e.g., because more than one field needs to be compared:
 ```java
 public int compareTo(MyClass other) {
   return ComparisonChain.start()
-    .compare(field1, other.field1)
-    .compare(field2, other.field2)
-    .result();
+      .compare(field1, other.field1)
+      .compare(field2, other.field2)
+      .result();
 }
 ```
 
