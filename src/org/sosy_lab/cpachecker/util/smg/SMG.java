@@ -548,7 +548,7 @@ public class SMG {
 
   /**
    * Decrements the occurrence of the value given in the object given. Removes the mapping if
-   * decrements to 0. (This includes the pointer mapping)
+   * decrements to 0. (This includes the pointer pointing to objects mapping but not PTE map)
    *
    * @param pSmgObject the object in which the value was removed
    * @param pOldValue the value removed
@@ -803,11 +803,13 @@ public class SMG {
    * {@link SMGHasValueEdge}s associated with the object.
    *
    * @param pObject the {@link SMGObject} to be invalidated.
+   * @param deleteDanglingPointers true if all pointers dangling (not being saved in any object) are
+   *     to be deleted. (e.g. for dropping stack frames with hanging values/pointers)
    * @return a new SMG with the object invalidated and all its HVEdges deleted.
    */
-  public SMG copyAndInvalidateObject(SMGObject pObject) {
+  public SMG copyAndInvalidateObject(SMGObject pObject, boolean deleteDanglingPointers) {
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, false);
-    SMG newSMG = decrementHVEdgesInValueToMemoryMap(pObject);
+    SMG newSMG = decrementHVEdgesInValueToMemoryMap(pObject, deleteDanglingPointers);
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pObject);
 
@@ -817,13 +819,22 @@ public class SMG {
     return newSMG.of(newObjects, newHVEdges);
   }
 
-  private SMG decrementHVEdgesInValueToMemoryMap(SMGObject pObject) {
+  /**
+   * @param pObject the object whos HVEs are to be removed.
+   * @param deleteDanglingPointers true if pointers that have no saved HVEs are to be deleted from
+   *     the PTE map.
+   * @return a new SMG with the edges ob pObject removed from value to memory map and pointer points
+   *     to object map and possibly the pointers deleted from the PTE mapping.
+   */
+  private SMG decrementHVEdgesInValueToMemoryMap(
+      SMGObject pObject, boolean deleteDanglingPointers) {
     SMG newValuesToRegionsTheyAreSavedIn = this;
     for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(pObject, PersistentSet.of())) {
       newValuesToRegionsTheyAreSavedIn =
           newValuesToRegionsTheyAreSavedIn.decrementValueToMemoryMapEntry(pObject, hve.hasValue());
       SMGValue value = hve.hasValue();
-      if (newValuesToRegionsTheyAreSavedIn.valuesToRegionsTheyAreSavedIn.get(value) == null) {
+      if (deleteDanglingPointers
+          && newValuesToRegionsTheyAreSavedIn.valuesToRegionsTheyAreSavedIn.get(value) == null) {
         if (newValuesToRegionsTheyAreSavedIn.pointsToEdges.containsKey(value)) {
           ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
           for (Entry<SMGValue, SMGPointsToEdge> entry :
@@ -869,7 +880,7 @@ public class SMG {
   public SMG copyAndRemoveObjects(Collection<SMGObject> pUnreachableObjects) {
     SMG returnSmg = this;
     for (SMGObject smgObject : pUnreachableObjects) {
-      returnSmg = returnSmg.copyAndInvalidateObject(smgObject);
+      returnSmg = returnSmg.copyAndInvalidateObject(smgObject, false);
     }
     // assert returnSmg.checkValueInConcreteMemorySanity();
     return returnSmg;
@@ -930,7 +941,7 @@ public class SMG {
       }
     }
 
-    SMG newSMG = decrementHVEdgesInValueToMemoryMap(objectToRemove);
+    SMG newSMG = decrementHVEdgesInValueToMemoryMap(objectToRemove, true);
 
     // Remove object from the SMG and remove all values inside from the SMG
     SMG currentSMG =

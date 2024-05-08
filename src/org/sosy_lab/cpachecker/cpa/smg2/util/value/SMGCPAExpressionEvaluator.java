@@ -331,7 +331,7 @@ public class SMGCPAExpressionEvaluator {
     SMGState finalState = newState.createAndAddPointer(addressValue, newObject, BigInteger.ZERO);
     SymbolicProgramConfiguration newSPC =
         finalState.getMemoryModel().setMemoryAsResultOfMallocZero(newObject);
-    newSPC = newSPC.invalidateSMGObject(newObject);
+    newSPC = newSPC.invalidateSMGObject(newObject, false);
     finalState = newState.copyAndReplaceMemoryModel(newSPC);
     return ValueAndSMGState.of(addressValue, finalState);
   }

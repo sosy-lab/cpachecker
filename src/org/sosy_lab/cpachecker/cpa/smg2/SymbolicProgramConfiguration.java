@@ -597,7 +597,7 @@ public class SymbolicProgramConfiguration {
       StackFrame newFrame = frame.copyAndRemoveVariable(pIdentifier);
       PersistentStack<StackFrame> newStack =
           stackVariableMapping.replace(f -> f == frame, newFrame);
-      SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
+      SMG newSmg = smg.copyAndInvalidateObject(objToRemove, true);
       return of(
           newSmg,
           globalVariableMapping,
@@ -702,7 +702,7 @@ public class SymbolicProgramConfiguration {
     for (SMGObject object : frame.getAllObjects()) {
       // Don't invalidate objects that are referenced by another stack frame!
       if (!validObjects.contains(object)) {
-        newSmg = newSmg.copyAndInvalidateObject(object);
+        newSmg = newSmg.copyAndInvalidateObject(object, false);
         newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(object);
       }
     }
@@ -1469,13 +1469,14 @@ public class SymbolicProgramConfiguration {
    * @param pObject the {@link SMGObject} to invalidate.
    * @return a new SPC with the entered object invalidated.
    */
-  public SymbolicProgramConfiguration invalidateSMGObject(SMGObject pObject) {
+  public SymbolicProgramConfiguration invalidateSMGObject(
+      SMGObject pObject, boolean deleteDanglingPointers) {
     Preconditions.checkArgument(smg.getObjects().contains(pObject));
     SymbolicProgramConfiguration newSPC = this;
     if (isObjectExternallyAllocated(pObject)) {
       newSPC = copyAndInvalidateExternalAllocation(pObject);
     }
-    SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject);
+    SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject, deleteDanglingPointers);
     assert newSMG.checkSMGSanity();
     return newSPC.copyAndReplaceSMG(newSMG).copyAndRemoveNumericAddressAssumption(pObject);
   }

@@ -3269,7 +3269,7 @@ public class SMGState
       }
 
       // Perform free by invalidating the object behind the address and delete all its edges.
-      SymbolicProgramConfiguration newSPC = currentMemModel.invalidateSMGObject(regionToFree);
+      SymbolicProgramConfiguration newSPC = currentMemModel.invalidateSMGObject(regionToFree, true);
       // state in our implementation.
       // performConsistencyCheck(SMGRuntimeCheck.HALF);
       returnBuilder.add(currentState.copyAndReplaceMemoryModel(newSPC));
@@ -4810,7 +4810,7 @@ public class SMGState
         Set<SMGObject> otherPresentObjects = memoryModel.getObjectsValidInOtherStackFrames();
         if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())) {
           return copyAndReplaceMemoryModel(
-              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow()));
+              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), true));
         }
       }
     }
