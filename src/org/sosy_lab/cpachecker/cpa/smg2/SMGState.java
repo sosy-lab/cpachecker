@@ -4810,7 +4810,7 @@ public class SMGState
         Set<SMGObject> otherPresentObjects = memoryModel.getObjectsValidInOtherStackFrames();
         if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())) {
           return copyAndReplaceMemoryModel(
-              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), true));
+              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), false));
         }
       }
     }
