@@ -179,20 +179,17 @@ public class FloatP {
       // TODO: Add support for arbitrary sizes
       if (equals(Format.Float8)) {
         return Float32;
-      }
-      if (equals(Format.Float16)) {
+      } else if (equals(Format.Float16)) {
         return Float32;
-      }
-      if (equals(Format.Float32)) {
+      } else if (equals(Format.Float32)) {
         return Float64;
-      }
-      if (equals(Format.Float64)) {
+      } else if (equals(Format.Float64)) {
         return Float128;
-      }
-      if (equals(Format.Float128)) {
+      } else if (equals(Format.Float128)) {
         return Float256;
+      } else {
+        return new Format(Float256.expBits, 2 * sigBits + 1);
       }
-      return new Format(Float256.expBits, 2 * sigBits + 1);
     }
 
     /**
@@ -1139,28 +1136,26 @@ public class FloatP {
       // p      1      1      1      4      4      5      5      6      7     13
       Format p = new Format(11, format.sigBits + 13);
       return ImmutableList.of(p);
-    }
-    if (format.equals(Format.Float16)) {
+    } else if (format.equals(Format.Float16)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      1      1      1      6      8      9     10     12     13     26
       Format p1 = new Format(11, format.sigBits + 13);
       Format p2 = new Format(11, format.sigBits + 26);
       return ImmutableList.of(p1, p2);
-    }
-    if (format.equals(Format.Float32)) {
+    } else if (format.equals(Format.Float32)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      1      1      1      1     15     25     25     25     26     41
       Format p = new Format(15, format.sigBits + 41);
       return ImmutableList.of(p, p.extended());
-    }
-    if (format.equals(Format.Float64)) {
+    } else if (format.equals(Format.Float64)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p     1      1      1      1     28     54     54     55     55     68
       Format p = new Format(Format.Float256.expBits, format.sigBits + 60);
       return ImmutableList.of(p, p.extended());
+    } else {
+      Format p = new Format(Format.Float256.expBits, 2 * format.sigBits);
+      return ImmutableList.of(p, p.extended());
     }
-    Format p = new Format(Format.Float256.expBits, 2 * format.sigBits);
-    return ImmutableList.of(p, p.extended());
   }
 
   public FloatP exp() {
@@ -1298,30 +1293,27 @@ public class FloatP {
       // p      1      1      1      1      1      4      5      6      7     10
       Format p = new Format(11, format.sigBits + 13);
       return ImmutableList.of(p);
-    }
-    if (format.equals(Format.Float16)) {
+    } else if (format.equals(Format.Float16)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      1      1      1      1      1      9     10     11     12     31
       Format p1 = new Format(11, format.sigBits + 12);
       Format p2 = new Format(11, format.sigBits + 31);
       return ImmutableList.of(p1, p2);
-    }
-    if (format.equals(Format.Float32)) {
+    } else if (format.equals(Format.Float32)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      1      1      1      1     18     19     20     21     22     35
       Format p = new Format(15, format.sigBits + 22);
       return ImmutableList.of(p, p.extended());
-    }
-    if (format.equals(Format.Float64)) {
+    } else if (format.equals(Format.Float64)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      1      1      1      1     44     45     46     47     48     62
       Format p = new Format(Format.Float256.expBits, format.sigBits + 48);
       return ImmutableList.of(p, p.extended());
+    } else {
+      // FIXME: Why is broken for 32bit exponents?
+      Format p = new Format(/*32*/ Format.Float256.expBits, 2 * format.sigBits);
+      return ImmutableList.of(p, p.extended());
     }
-
-    // FIXME: Why is broken for 32bit exponents?
-    Format p = new Format(/*32*/ Format.Float256.expBits, 2 * format.sigBits);
-    return ImmutableList.of(p, p.extended());
   }
 
   public FloatP ln() {
@@ -1574,28 +1566,25 @@ public class FloatP {
       // p    6     13     13     13     13     16     16     16     16     16
       Format p = new Format(11, format.sigBits + 19);
       return ImmutableList.of(p); // exhaustive, so we only need one
-    }
-    if (format.equals(Format.Float16)) {
+    } else if (format.equals(Format.Float16)) {
       //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p    7     10     13     15     17     19     20     22     23     25
       Format p = new Format(11, format.sigBits + 25);
       return ImmutableList.of(p, p.extended());
-    }
-    if (format.equals(Format.Float32)) {
+    } else if (format.equals(Format.Float32)) {
       //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p   13     18     22     25     29     31     34     36     39     41
       Format p = new Format(15, format.sigBits + 41);
       return ImmutableList.of(p, p.extended());
-    }
-    if (format.equals(Format.Float64)) {
+    } else if (format.equals(Format.Float64)) {
       //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p   31     39     44     49     53     57     61     64     67     70
       Format p = new Format(Format.Float256.expBits, format.sigBits + 71);
       return ImmutableList.of(p, p.extended());
+    } else {
+      Format p = new Format(Format.Float256.expBits, 2 * format.sigBits);
+      return ImmutableList.of(p, p.extended());
     }
-
-    Format p = new Format(Format.Float256.expBits, 2 * format.sigBits);
-    return ImmutableList.of(p, p.extended());
   }
 
   private FloatP pow_(FloatP pExponent) {
@@ -1849,8 +1838,7 @@ public class FloatP {
       // p      3      3      3      3      4      4      4      4      4      9
       Format p = new Format(11, format.sigBits + 12);
       return ImmutableList.of(p);
-    }
-    if (format.equals(Format.Float16)) {
+    } else if (format.equals(Format.Float16)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      3      3      3      3      4      4      4      4      5     12
       Format p1 = new Format(11, format.sigBits + 3);
@@ -1858,8 +1846,7 @@ public class FloatP {
       Format p3 = new Format(11, format.sigBits + 5);
       Format p4 = new Format(11, format.sigBits + 12);
       return ImmutableList.of(p1, p2, p3, p4);
-    }
-    if (format.equals(Format.Float32)) {
+    } else if (format.equals(Format.Float32)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      3      3      3      3      4      4      4      4      5     11
       ImmutableList.Builder<Format> builder = ImmutableList.builder();
@@ -1871,8 +1858,7 @@ public class FloatP {
         builder.add(new Format(15, format.sigBits + i));
       }
       return builder.build();
-    }
-    if (format.equals(Format.Float64)) {
+    } else if (format.equals(Format.Float64)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      3      3      3      4      4      4      4      5      6     10
       ImmutableList.Builder<Format> builder = ImmutableList.builder();
@@ -1885,13 +1871,13 @@ public class FloatP {
         builder.add(new Format(15, format.sigBits + i));
       }
       return builder.build();
+    } else {
+      ImmutableList.Builder<Format> builder = ImmutableList.builder();
+      for (int i = 1; i < 100; i++) {
+        builder.add(new Format(Format.Float256.expBits, format.sigBits + i));
+      }
+      return builder.build();
     }
-
-    ImmutableList.Builder<Format> builder = ImmutableList.builder();
-    for (int i = 1; i < 100; i++) {
-      builder.add(new Format(Format.Float256.expBits, format.sigBits + i));
-    }
-    return builder.build();
   }
 
   /** Parse input string as a floating point number. */
