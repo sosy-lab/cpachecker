@@ -71,6 +71,7 @@ public class CounterexampleToCodeVisitor
   private final Deque<String> functionStack;
   private final Map<String, Integer> variableIds;
   private final StringBuilder cCode;
+  private boolean inAssignment = false;
   private CFAEdge currentEdge;
 
   public CounterexampleToCodeVisitor() {
@@ -108,6 +109,7 @@ public class CounterexampleToCodeVisitor
   @Override
   protected Void visit(AFunctionCallExpression exp) throws UnsupportedOperationException {
     String name = exp.getDeclaration().getName();
+    cCode.append(name + "();");
     return null;
   }
 
@@ -123,25 +125,31 @@ public class CounterexampleToCodeVisitor
         stmt.getFunctionCallExpression().getDeclaration().getParameters();
     List<? extends AExpression> inputParameters =
         stmt.getFunctionCallExpression().getParameterExpressions();
-    Preconditions.checkArgument(inputParameters.size() == originalParameters.size(), "Argument list has to be equally long");
-      for (int i = 0; i < inputParameters.size(); i++) {
-        AExpression inputParameter = inputParameters.get(i);
-        AParameterDeclaration originalParameter = originalParameters.get(i);
-        originalParameter.accept_(this);
-        assign();
-        inputParameter.accept_(this);
-        endStatement();
-      }
+    Preconditions.checkArgument(
+        inputParameters.size() == originalParameters.size(),
+        "Argument list has to be equally long");
+    inAssignment = true;
+    for (int i = 0; i < inputParameters.size(); i++) {
+      AExpression inputParameter = inputParameters.get(i);
+      AParameterDeclaration originalParameter = originalParameters.get(i);
+      originalParameter.accept_(this);
+      assign();
+      inputParameter.accept_(this);
+      endStatement();
+    }
+    inAssignment = false;
     stmt.getFunctionCallExpression().accept_(this);
     return null;
   }
 
   @Override
   protected Void visit(AFunctionCallAssignmentStatement stmt) throws UnsupportedOperationException {
+    inAssignment = true;
     stmt.getLeftHandSide().accept_(this);
     assign();
     stmt.getRightHandSide().accept_(this);
     endStatement();
+    inAssignment = false;
     return null;
   }
 
@@ -152,15 +160,18 @@ public class CounterexampleToCodeVisitor
 
   @Override
   protected Void visit(AExpressionAssignmentStatement stmt) throws UnsupportedOperationException {
+    inAssignment = true;
     stmt.getLeftHandSide().accept_(this);
     assign();
     stmt.getRightHandSide().accept_(this);
     endStatement();
+    inAssignment = false;
     return null;
   }
 
   @Override
   protected Void visit(AReturnStatement stmt) throws UnsupportedOperationException {
+    cCode.append("REETTUURRN ");
     return null;
   }
 
@@ -177,6 +188,7 @@ public class CounterexampleToCodeVisitor
 
   @Override
   protected Void visit(AParameterDeclaration decl) throws UnsupportedOperationException {
+    cCode.append(decl.getType().toASTString(getVariableId(decl.getName(), false)));
     return null;
   }
 
@@ -208,7 +220,7 @@ public class CounterexampleToCodeVisitor
     if (exp.getOperator() instanceof BinaryOperator binaryOp) {
       isLogicalOperator = binaryOp.isLogicalOperator();
     }
-    if (isLogicalOperator) {
+    if (isLogicalOperator && !inAssignment) {
       cCode.append("if (!(");
       exp.getOperand1().accept_(this);
       cCode.append(" ").append(exp.getOperator().getOperator()).append(" ");
