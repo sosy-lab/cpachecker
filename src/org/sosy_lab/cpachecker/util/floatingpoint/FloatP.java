@@ -37,13 +37,41 @@ import org.sosy_lab.common.NativeLibraries;
 /**
  * Java based implementation of multi-precision floating point values with correct rounding.
  *
- * <p>"Correct rounding" means that the result is the same as if the calculation had been performed
- * with infinite precision before rounding and returning the value. All FloatP values have a given
- * precision and exponent range that has to be chosen by the user. Operations on multiple arguments
- * expect the precision of the arguments to match. The nested class {@link Format} is used to
- * represent the precision and exponent range of a FloatP value.
+ * <p>Values are created with a fixed precision and an exponent range. The nested class {@link
+ * Format} is used to provide these parameters and supports predefined formats for the most commonly
+ * used bit sizes. Operations on multiple arguments expect the precision of the arguments to match.
+ * The class {@link CFloatImpl} wraps this class to provide an adapter for the {@link CFloat}
+ * interface. It also provides automatic upcasting when arguments with different precisions are
+ * used.
  *
- * <p>{@link CFloatImpl} wraps this class to provide an adapter for the {@link CFloat} interface.
+ * <p>We guarantee "correct rounding" for all operations, that is the result is always the same as
+ * if the calculation had been performed with infinite precision before rounding down to the
+ * precision of the final result. This can easily be ensured for the "algebraic" operations in this
+ * class, that is addition, subtraction, multiplication, division and the square root. Here worst
+ * case bounds exist on the number of extra digits that need to be calculated before the number can
+ * always be rounded correctly. The same is not true for transcendental functions where such bounds
+ * are unknown and may not even exist. This problem is known as <a
+ * href=ttps://en.wikipedia.org/wiki/Rounding#Table-maker's_dilemma>"Table-maker's dilemma"</a>.
+ * Luckily for the transcendental functions {@link FloatP#exp()}, {@link FloatP#ln()} and {@link
+ * FloatP#pow(FloatP)}) from this class it can be shown that only a finite number of extra digits
+ * are needed for correct rounding. This follows from Lindemann’s theorem that e^z is transcendental
+ * for every nonzero algebraic complex number z. Since floating point numbers are algebraic, the
+ * result of the calculation can never fall exactly on a floating point value, or the break-point
+ * between two floating point values. It is therefore enough to repeat the calculation with
+ * increasing precision until the result no longer falls on a break-point and can be correctly
+ * rounded. This approach is know as <a href=https://dl.acm.org/doi/pdf/10.1145/114697.116813>Ziv's
+ * technique</a> and requires a "rounding test" that decides if the value calculated in the current
+ * iteration can be correctly rounded. Such test depend on the rounding mode used, but for
+ * "round-to-nearest-ties-to-even" (the standard rounding mode in IEEE 754, and what is being used
+ * by this implementation) it can be enough to simply look for patterns of the form 01+ or 10+ at
+ * the end of the significand. These last few digits are exactly on the break-point in the current
+ * iteration and can still change when the calculation is repeated with a higher precision.
+ * Everything before that is stable, however, and we implement the rounding test by checking if
+ * there are enough stable bits to round down to the final precision of the result.
+ *
+ * @see <a href=https://link.springer.com/book/10.1007/978-3-319-76526-6>Handbook of Floating-Point
+ *     Arithmetic</a> (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem, 11.6.3 Rounding
+ *     test)
  */
 public class FloatP {
   static {
