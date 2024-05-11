@@ -9,7 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.composition;
 
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 
 class AlgSelectionBooleanVector {
 
