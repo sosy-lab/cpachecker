@@ -154,17 +154,19 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
  */
 JNIEXPORT jstring JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_printFp(JNIEnv* env, jclass cl, jobject wrapper, jint type) {
 	t_ld fp_obj = transformWrapperFromJava(env, wrapper, type);
-	char s[100];
+
+	const int buffersize = 100; // always enough as we never print more than 20 digits for the significand
+	char s[buffersize];
 
 	switch(type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-		        snprintf(s, 100, "%.*e", 8, fp_obj.f_value);
+		        snprintf(s, buffersize, "%.*e", 8, fp_obj.f_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			snprintf(s, 100, "%.*e", 16, fp_obj.d_value);
+			snprintf(s, buffersize, "%.*e", 16, fp_obj.d_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			snprintf(s, 100, "%.*Le", 20, fp_obj.ld_value);
+			snprintf(s, buffersize, "%.*Le", 20, fp_obj.ld_value);
 			break;
 		default:
 			throwNativeException(env, EX_TEXT);
