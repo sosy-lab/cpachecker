@@ -27,6 +27,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
@@ -231,30 +232,9 @@ public abstract class AbstractCFloatTestBase {
   }
 
   /** Wraps a generated input value along with the result of the operation. */
-  private static class TestValue<T> {
-    private final BigFloat[] args;
-    private final T expected;
-
-    public TestValue(BigFloat arg, T result) {
-      args = new BigFloat[] {arg};
-      expected = result;
-    }
-
-    public TestValue(BigFloat arg1, BigFloat arg2, T result) {
-      args = new BigFloat[] {arg1, arg2};
-      expected = result;
-    }
-
-    BigFloat arg1() {
-      return args[0];
-    }
-
-    BigFloat arg2() {
-      return args[1];
-    }
-
-    T result() {
-      return expected;
+  private record TestValue<T>(BigFloat arg1, @Nullable BigFloat arg2, T result) {
+    public TestValue(BigFloat pArg1, T pResult) {
+      this(pArg1, null, pResult);
     }
   }
 
