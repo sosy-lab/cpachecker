@@ -83,7 +83,7 @@ public class FloatP {
    *
    * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
    */
-  private static final FloatP const_48div17 =
+  private static final FloatP SQRT_INITIAL_T1 =
       constant(Format.Float256, 48).divideSlow(constant(Format.Float256, 17));
 
   /**
@@ -91,7 +91,7 @@ public class FloatP {
    *
    * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
    */
-  private static final FloatP const_32div17 =
+  private static final FloatP SQRT_INITIAL_T2 =
       constant(Format.Float256, 32).divideSlow(constant(Format.Float256, 17));
 
   /**
@@ -1005,8 +1005,8 @@ public class FloatP {
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
 
     // Set the initial value to 48/32 - 32/17*D
-    FloatP t1 = const_48div17.withPrecision(format);
-    FloatP t2 = const_32div17.withPrecision(format);
+    FloatP t1 = SQRT_INITIAL_T1.withPrecision(format);
+    FloatP t2 = SQRT_INITIAL_T2.withPrecision(format);
 
     FloatP x = t1.subtract(t2.multiply(d));
 
