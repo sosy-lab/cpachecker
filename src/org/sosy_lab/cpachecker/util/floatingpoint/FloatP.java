@@ -868,8 +868,10 @@ class FloatP {
     return a.divide_(b).withPrecision(format);
   }
 
-  /* Divide the value by another number.
-   * This version of divide is slower and does not check for corner cases. It is still needed to
+  /**
+   * Divide the value by another number.
+   *
+   * <p>This version of divide is slower and does not check for corner cases. It is still needed to
    * calculate the constants that are needed for the other, faster version of divide that uses
    * Newton's method.
    */
@@ -1086,12 +1088,23 @@ class FloatP {
     return x.multiply(r);
   }
 
-  // Strip invalid digits from the significand. This assumes that the number is transcendental.
+  /**
+   * Strip invalid digits from the significand.
+   *
+   * <p>With round-to-nearest-ties-to-even invalid bits at the end of the significand follow one of
+   * two patterns:
+   *
+   * <ul>
+   *   <li>10+
+   *   <li>01+
+   * </ul>
+   *
+   * After truncating these bits from the end all other digits are equal to the digits of the
+   * infinite actual number.
+   *
+   * <p>This method assumes that the number is transcendental.
+   */
   private FloatP validPart() {
-    // In round to nearest invalid digits follow one of two patterns:
-    // 1(0)+ or 1(0)+
-    // After truncating these bits from the end all other digits are equal to the digits of the
-    // infinite actual number.
     if (isZero() || isNan() || isInfinite()) {
       return this;
     }
@@ -1141,7 +1154,7 @@ class FloatP {
   /**
    * Check if a floating point number is stable in precision p.
    *
-   * <p>Needed as part of the "rounding test": we have to make sure that the number is not too close
+   * <p>Needed as part of the "rounding test": We have to make sure that the number is not too close
    * to a break point before rounding.
    */
   private boolean isStable(FloatP r) {
@@ -1256,7 +1269,12 @@ class FloatP {
     return expImpl(1);
   }
 
-  private FloatP expImpl(int k) { // k is the first term of the expansion
+  /**
+   * Helper method to calculate e^x.
+   *
+   * @param k The first term of the expansion. Should be 0 for exp and 1 for expm1.
+   */
+  private FloatP expImpl(int k) {
     if (isNan()) {
       return nan(format);
     }
@@ -1388,6 +1406,7 @@ class FloatP {
     return builder.buildOrThrow();
   }
 
+  /** Calculate the constant value ln(2) for a given precision. */
   private static FloatP make_ln2(Format pFormat) {
     FloatP r = fromInteger(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
     return r.withExponent(r.exponent + 1);
@@ -2008,7 +2027,7 @@ class FloatP {
    * "Return the minimal integer m such that any number of p bits, when output with m digits
    *  in radix b with rounding to nearest, can be recovered exactly when read again, still
    *  with rounding to nearest."
-   *  </pre>
+   * </pre>
    */
   private int neededDigits() {
     return 1 + (int) Math.ceil((format.sigBits + 1) * Math.log(2) / Math.log(10));
