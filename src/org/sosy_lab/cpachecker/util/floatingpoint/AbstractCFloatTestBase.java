@@ -209,11 +209,11 @@ public abstract class AbstractCFloatTestBase {
   protected List<BigFloat> unaryTestValues() {
     BinaryMathContext format = getFloatType();
     BigFloat constant = new BigFloat(0.5f, format);
-    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
-    builder.addAll(floatConsts(format));
-    builder.addAll(floatPowers(format, 14, constant, 20, constant));
-    builder.addAll(floatRandom(format, 50000));
-    return builder.build();
+    return ImmutableList.<BigFloat>builder()
+        .addAll(floatConsts(format))
+        .addAll(floatPowers(format, 14, constant, 20, constant))
+        .addAll(floatRandom(format, 50000))
+        .build();
   }
 
   /**
@@ -224,11 +224,11 @@ public abstract class AbstractCFloatTestBase {
   protected List<BigFloat> binaryTestValues() {
     BinaryMathContext format = getFloatType();
     BigFloat constant = new BigFloat(0.5f, format);
-    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
-    builder.addAll(floatConsts(format));
-    builder.addAll(floatPowers(format, 3, constant, 3, constant));
-    builder.addAll(floatRandom(format, 200));
-    return builder.build();
+    return ImmutableList.<BigFloat>builder()
+        .addAll(floatConsts(format))
+        .addAll(floatPowers(format, 3, constant, 3, constant))
+        .addAll(floatRandom(format, 200))
+        .build();
   }
 
   /** Wraps a generated input value along with the result of the operation. */
