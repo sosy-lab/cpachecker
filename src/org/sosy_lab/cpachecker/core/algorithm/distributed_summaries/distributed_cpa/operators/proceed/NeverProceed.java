@@ -16,12 +16,12 @@ public class NeverProceed implements ProceedOperator {
   NeverProceed() {}
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
+  public BlockSummaryMessageProcessing processForward(AbstractState pState) {
     return BlockSummaryMessageProcessing.stop();
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState) {
+  public BlockSummaryMessageProcessing processBackward(AbstractState pState) {
     return BlockSummaryMessageProcessing.stop();
   }
 }

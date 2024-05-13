@@ -335,8 +335,8 @@ public class DCPAAlgorithm {
     // check if message is meant for this block
     AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
     BlockSummaryMessageProcessing processing =
-        dcpa.getProceedOperator().proceedForward(deserialized);
-    if (processing.end()) {
+        dcpa.getProceedOperator().processForward(deserialized);
+    if (!processing.shouldProceed()) {
       if (predecessors.contains(pReceived.getBlockId())) {
         // null means that we cannot expect a state from this predecessor
         states.put(pReceived.getBlockId(), null);
@@ -426,8 +426,8 @@ public class DCPAAlgorithm {
     // merge all states into the reached set
     AbstractState errorCondition = dcpa.getDeserializeOperator().deserialize(pErrorCondition);
     BlockSummaryMessageProcessing processing =
-        dcpa.getProceedOperator().proceedBackward(errorCondition);
-    if (processing.end()) {
+        dcpa.getProceedOperator().processBackward(errorCondition);
+    if (!processing.shouldProceed()) {
       return processing;
     }
 

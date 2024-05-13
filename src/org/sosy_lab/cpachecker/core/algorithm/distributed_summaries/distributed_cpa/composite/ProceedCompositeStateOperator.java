@@ -33,24 +33,24 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(AbstractState pState)
+  public BlockSummaryMessageProcessing processForward(AbstractState pState)
       throws InterruptedException, SolverException {
     stats.getProceedTime().start();
     BlockSummaryMessageProcessing processing = BlockSummaryMessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-      processing = processing.merge(value.getProceedOperator().proceedForward(pState), true);
+      processing = processing.merge(value.getProceedOperator().processForward(pState), true);
     }
     stats.getProceedTime().stop();
     return processing;
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState)
+  public BlockSummaryMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
     stats.getProceedTime().start();
     BlockSummaryMessageProcessing processing = BlockSummaryMessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-      processing = processing.merge(value.getProceedOperator().proceedBackward(pState), true);
+      processing = processing.merge(value.getProceedOperator().processBackward(pState), true);
     }
     stats.getProceedTime().stop();
     return processing;

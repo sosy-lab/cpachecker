@@ -53,13 +53,20 @@ public class BlockGraphModification {
    *
    * @param cfa modified CFA
    * @param blockGraph modified block graph
-   * @param unableToAbstract set of CFA nodes that could not be abstracted
-   * @param mappingFromModifiedCfaToOriginCfa map from nodes of the modified CFA to the nodes of the
-   *     original CFA. This map only contains nodes of the modified CFA that has a direct mapping in
-   *     the original CFA.
+   * @param metadata metadata about the modification
    */
   public record Modification(CFA cfa, BlockGraph blockGraph, ModificationMetadata metadata) {}
 
+  /**
+   * Metadata about a modification of a CFA and its block graph.
+   *
+   * @param originalCfa CFA that was modified
+   * @param originalBlockGraph block graph that was used as reference for modification
+   * @param mappingInfo mapping information between original and modified CFA
+   * @param unableToAbstract CFA nodes for which no abstraction node could be added
+   * @param abstractions abstraction nodes that were added to the CFA. An abstraction node is a new,
+   *     last node of a block that has a single ingoing, blank edge.
+   */
   public record ModificationMetadata(
       CFA originalCfa,
       BlockGraph originalBlockGraph,

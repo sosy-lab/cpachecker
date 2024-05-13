@@ -25,7 +25,7 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
+  public BlockSummaryMessageProcessing processForward(AbstractState pState) {
     if (Objects.equals(AbstractStates.extractLocation(pState), block.getFirst())) {
       return BlockSummaryMessageProcessing.proceed();
     } else {
@@ -34,7 +34,7 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState) {
+  public BlockSummaryMessageProcessing processBackward(AbstractState pState) {
     CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
     if (!(node.equals(block.getLast())
         || (!node.equals(block.getFirst()) && block.getNodes().contains(node)))) {

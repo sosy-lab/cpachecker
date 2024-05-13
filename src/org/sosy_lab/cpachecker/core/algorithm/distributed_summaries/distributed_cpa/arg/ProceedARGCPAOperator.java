@@ -24,16 +24,16 @@ public class ProceedARGCPAOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(AbstractState pState)
+  public BlockSummaryMessageProcessing processForward(AbstractState pState)
       throws InterruptedException, SolverException {
     assert pState instanceof ARGState : pState + " is not an instance of " + ARGState.class;
-    return wrapped.getProceedOperator().proceedForward(((ARGState) pState).getWrappedState());
+    return wrapped.getProceedOperator().processForward(((ARGState) pState).getWrappedState());
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState)
+  public BlockSummaryMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
     assert pState instanceof ARGState : pState + " is not an instance of " + ARGState.class;
-    return wrapped.getProceedOperator().proceedBackward(((ARGState) pState).getWrappedState());
+    return wrapped.getProceedOperator().processBackward(((ARGState) pState).getWrappedState());
   }
 }

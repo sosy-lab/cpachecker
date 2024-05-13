@@ -273,7 +273,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       Modification modification =
           BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
       instrumentationTimer.stop();
-      ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
+      ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
       numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
       if (!abstractionDeadEnds.isEmpty() && !allowMissingAbstractionNodes) {
         for (String successorId : blockGraph.getRoot().getSuccessorIds()) {
@@ -319,9 +319,10 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         if (inputMessages.isEmpty()) {
           response.addAll(actor.runInitialAnalysis());
         } else {
-          for (Path message : inputMessages) {
-            response.addAll(
-                actor.processMessage(converter.jsonToMessage(Files.readString(message))));
+          for (Path messageFile : inputMessages) {
+            logger.log(Level.INFO, "Handling message " + messageFile);
+            BlockSummaryMessage message = converter.jsonToMessage(Files.readString(messageFile));
+            response.addAll(actor.processMessage(message));
           }
         }
         for (BlockSummaryMessage blockSummaryMessage : response.build()) {

@@ -16,9 +16,8 @@ import java.util.LinkedHashSet;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 
 /**
- * Proceed operators need to return a collection of messages and a boolean indicating whether the
- * analysis should proceed. This class combines these two return types by forwarding a collection
- * and having an unmodifiable boolean attribute {@code end}.
+ * Message processing information. This consists of information whether a block analysis should
+ * proceed with its analysis ({@link #shouldProceed()}) and a collection of produced messages.
  *
  * @see
  *     org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator
@@ -63,8 +62,9 @@ public class BlockSummaryMessageProcessing extends ForwardingCollection<BlockSum
     return new BlockSummaryMessageProcessing(ImmutableList.copyOf(pMessages), true);
   }
 
-  public boolean end() {
-    return end;
+  /** Returns whether the analysis should proceed. */
+  public boolean shouldProceed() {
+    return !end;
   }
 
   @Override
@@ -73,23 +73,23 @@ public class BlockSummaryMessageProcessing extends ForwardingCollection<BlockSum
   }
 
   public BlockSummaryMessageProcessing merge(
-      BlockSummaryMessageProcessing pProcessing, boolean removeDuplicates) {
+      BlockSummaryMessageProcessing pProcessingInfo, boolean removeDuplicates) {
     Collection<BlockSummaryMessage> copy =
         removeDuplicates ? new LinkedHashSet<>() : new ArrayList<>();
 
     // never merge messages of different proceed types
     // proceed messages of one DCPA may corrupt the analysis, if another DCPA wants to stop
-    if (end() == pProcessing.end()) {
+    if (shouldProceed() == pProcessingInfo.shouldProceed()) {
       copy.addAll(messages);
-      copy.addAll(pProcessing);
+      copy.addAll(pProcessingInfo);
     } else {
-      if (end()) {
+      if (!shouldProceed()) {
         copy.addAll(messages);
       } else {
-        copy.addAll(pProcessing);
+        copy.addAll(pProcessingInfo);
       }
     }
-    return new BlockSummaryMessageProcessing(copy, end || pProcessing.end);
+    return new BlockSummaryMessageProcessing(copy, end || pProcessingInfo.end);
   }
 
   @Override
