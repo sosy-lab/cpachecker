@@ -252,13 +252,16 @@ public class FloatP {
     return format;
   }
 
-  /** The value "NaN", or "not a number"
+  /**
+   * The value "NaN", or "not a number"
+   *
    * <p>NaN has many representations, and we always return the "canonical" representation that only
    * has the highest bit of the significand set to one. The sign bit is zero, but can be set by
    * {@link FloatP#negate()}. The methods {@link FloatP#abs()} and {@link FloatP#isNegative()} still
    * as expected and {@link FloatP#withPrecision(Format)} always preserves the sign of NaN.
-   * <p>Users should not depend on any exact representation of NaN and use the method
-   * {@link FloatP#isNan()} instead.
+   *
+   * <p>Users should not depend on any exact representation of NaN and use the method {@link
+   * FloatP#isNan()} instead.
    */
   public static FloatP nan(Format pFormat) {
     return new FloatP(
@@ -1979,7 +1982,8 @@ public class FloatP {
         // - The two parts can now be multiplied to get the final value.
         FloatP f = fromInteger(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
         FloatP e =
-            fromInteger(ext, 10).powInt(BigInteger.valueOf(expValue - (digits.length() - 1) - diff));
+            fromInteger(ext, 10)
+                .powInt(BigInteger.valueOf(expValue - (digits.length() - 1) - diff));
 
         // Rounding check: make sure we have enough precision.
         FloatP val1 = f.plus1Ulp().multiply(e);
