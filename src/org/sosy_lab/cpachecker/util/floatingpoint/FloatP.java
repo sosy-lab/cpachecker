@@ -1164,10 +1164,10 @@ class FloatP {
     }
 
     /* For transcendental functions like exp(x) the calculation has to be repeated with increasing
-     * precision until enough (valid) digits are available to round the value correctly. The list
-     * of intermediate formats in this method was specially optimized for the precision of the input
-     * format. The idea is that we only have to try 2-3 different precisions before the right one
-     * is found, which is much more efficient than increasing the precision one bit at a time.
+     * precision until enough (valid) digits are available to round the value correctly. For this we
+     * define a list of intermediate formats that was specially optimized for the precision of the
+     * input format. The idea is that we only have to try 2-3 different precisions before the right
+     * one is found, which is much more efficient than increasing the precision one bit at a time.
      */
     ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
     if (format.equals(Format.Float8)) {
@@ -1319,6 +1319,12 @@ class FloatP {
       return zero(format);
     }
 
+    /* For transcendental functions like ln(x) the calculation has to be repeated with increasing
+     * precision until enough (valid) digits are available to round the value correctly. For this we
+     * define a list of intermediate formats that was specially optimized for the precision of the
+     * input format. The idea is that we only have to try 2-3 different precisions before the right
+     * one is found, which is much more efficient than increasing the precision one bit at a time.
+     */
     ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
     if (format.equals(Format.Float8)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
@@ -1582,6 +1588,12 @@ class FloatP {
   }
 
   private FloatP pow_(FloatP pExponent) {
+    /* For transcendental functions like pow(x) the calculation has to be repeated with increasing
+     * precision until enough (valid) digits are available to round the value correctly. For this we
+     * define a list of intermediate formats that was specially optimized for the precision of the
+     * input format. The idea is that we only have to try 2-3 different precisions before the right
+     * one is found, which is much more efficient than increasing the precision one bit at a time.
+     */
     ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
     if (format.equals(Format.Float8)) {
       //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
@@ -1894,8 +1906,13 @@ class FloatP {
       return sign ? negativeZero(p) : zero(p);
     }
 
-    // Define a list of extended formats. We need more formats this time as the conversion from
-    // base 10 to base 2 will only work for certain precisions.
+    /* For the conversion from base 10 to base 2 fromString needs to repeat its calculation with
+     * increasing precision until enough (valid) digits are available to round the value correctly.
+     * For this we define a list of intermediate formats that was specially optimized for the
+     * precision of the input format. The idea is that we only have to try 2-3 different precisions
+     * before the right one is found, which is much more efficient than increasing the precision one
+     * bit at a time.
+     */
     // TODO: Find a better solution, or at least clean up the list of extended formats
     ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
     if (p.equals(Format.Float8)) {
