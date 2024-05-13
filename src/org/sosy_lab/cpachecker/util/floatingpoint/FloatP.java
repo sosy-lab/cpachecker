@@ -84,7 +84,7 @@ public class FloatP {
    * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
    */
   private static final FloatP SQRT_INITIAL_T1 =
-      constant(Format.Float256, 48).divideSlow(constant(Format.Float256, 17));
+      fromInteger(Format.Float256, 48).divideSlow(fromInteger(Format.Float256, 17));
 
   /**
    * Constant value 32/17
@@ -92,7 +92,7 @@ public class FloatP {
    * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
    */
   private static final FloatP SQRT_INITIAL_T2 =
-      constant(Format.Float256, 32).divideSlow(constant(Format.Float256, 17));
+      fromInteger(Format.Float256, 32).divideSlow(fromInteger(Format.Float256, 17));
 
   /**
    * Table of constant terms 1/k! for 1..100
@@ -272,14 +272,6 @@ public class FloatP {
   public static FloatP maxValue(Format pFormat) {
     BigInteger allOnes = BigInteger.ONE.shiftLeft(pFormat.sigBits + 1).subtract(BigInteger.ONE);
     return new FloatP(pFormat, false, pFormat.maxExp(), allOnes);
-  }
-
-  public static FloatP constant(Format pFormat, BigInteger number) {
-    return fromInteger(pFormat, number);
-  }
-
-  public static FloatP constant(Format pFormat, int number) {
-    return fromInteger(pFormat, BigInteger.valueOf(number));
   }
 
   public static FloatP one(Format pFormat) {
@@ -1020,7 +1012,7 @@ public class FloatP {
 
     for (int i = 0; i < bound; i++) {
       // X(i+1) = X(i)*(2 - D*X(i))
-      x = x.multiply(constant(format, 2).subtract(d.multiply(x)));
+      x = x.multiply(fromInteger(format, 2).subtract(d.multiply(x)));
     }
 
     // Multiply 1/D with N
@@ -1087,7 +1079,7 @@ public class FloatP {
     x = x.multiply(f);
 
     // Restore the exponent by multiplying with 2^m
-    FloatP r = constant(format, 2).powInt(BigInteger.valueOf(resultExponent / 2));
+    FloatP r = fromInteger(format, 2).powInt(BigInteger.valueOf(resultExponent / 2));
     return x.multiply(r);
   }
 
@@ -1255,7 +1247,7 @@ public class FloatP {
     builder.put(0, one(pFormat));
     for (int k = 1; k < numberOfTerms; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k! and store the values in the table
-      builder.put(k, one(pFormat).divide_(constant(pFormat, fac(k, facMap))));
+      builder.put(k, one(pFormat).divide_(fromInteger(pFormat, fac(k, facMap))));
     }
     return builder.buildOrThrow();
   }
@@ -1392,13 +1384,13 @@ public class FloatP {
     ImmutableMap.Builder<Integer, FloatP> builder = ImmutableMap.builder();
     for (int k = 1; k < numberOfTerms; k++) { // TODO: Find a bound that depends on the precision
       // Calculate 1/k and store the values in the table
-      builder.put(k, one(pFormat).divide_(constant(pFormat, k)));
+      builder.put(k, one(pFormat).divide_(fromInteger(pFormat, k)));
     }
     return builder.buildOrThrow();
   }
 
   private static FloatP make_ln2(Format pFormat) {
-    FloatP r = constant(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
+    FloatP r = fromInteger(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
     return r.withExponent(r.exponent + 1);
   }
 
@@ -1421,7 +1413,7 @@ public class FloatP {
     FloatP lna = a.subtract(one(format)).ln1p();
 
     FloatP ln2 = const_ln2.withPrecision(format);
-    FloatP nln2 = constant(format, (int) exponent + 1).multiply(ln2);
+    FloatP nln2 = fromInteger(format, (int) exponent + 1).multiply(ln2);
     return lna.add(nln2);
   }
 
@@ -1981,13 +1973,13 @@ public class FloatP {
         // correct rounding. The value has to be chosen large enough, and we use the main loop to
         // increment it and try out several different values.
         // The term "1234500000 * 10^k-9" can now easily be converted to base2:
-        // - 123450000 is integer and we use constant() to create the mantissa of the float.
-        // - The term "10" for the exponent is also integer and we use constant() again. Then we use
-        //   powInt() to calculate the exponent of the float.
+        // - 123450000 is integer, and we use fromInteger() to create the mantissa of the float.
+        // - The term "10" for the exponent is also integer, and we use fromInteger() again. Then we
+        //   use powInt() to calculate the exponent of the float.
         // - The two parts can now be multiplied to get the final value.
-        FloatP f = constant(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
+        FloatP f = fromInteger(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
         FloatP e =
-            constant(ext, 10).powInt(BigInteger.valueOf(expValue - (digits.length() - 1) - diff));
+            fromInteger(ext, 10).powInt(BigInteger.valueOf(expValue - (digits.length() - 1) - diff));
 
         // Rounding check: make sure we have enough precision.
         FloatP val1 = f.plus1Ulp().multiply(e);
@@ -2003,6 +1995,10 @@ public class FloatP {
       }
     }
     return r.withPrecision(p);
+  }
+
+  public static FloatP fromInteger(Format pFormat, int number) {
+    return fromInteger(pFormat, BigInteger.valueOf(number));
   }
 
   /**
