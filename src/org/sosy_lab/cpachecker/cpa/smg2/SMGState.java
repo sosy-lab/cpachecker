@@ -1232,6 +1232,7 @@ public class SMGState
     return true;
   }
 
+  /** Returns number of times the value is saved in memory (stack variables, heap etc.) */
   public int getNumberOfValueUsages(Value value) {
     return memoryModel.getNumberOfValueUsages(value);
   }

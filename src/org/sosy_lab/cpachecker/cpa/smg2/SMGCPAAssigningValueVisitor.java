@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffs
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -378,10 +379,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   private boolean isEligibleForAssignment(final Value pValue, SMGState currentState) {
+    // Make sure that we only assign to expressions that are assignable, for example a single
+    // symbolic
     // Make sure that we don't assign to symbolic values with constraints preventing assignments
     // We can't assign memory location carriers. They are indicators for pointers, which are treated
-    // like concrete values!
+    // like unknown but concrete values!
     return !pValue.isExplicitlyKnown()
+        && pValue instanceof ConstantSymbolicExpression
         && options.isAssignEqualityAssumptions()
         && (!options.trackPredicates() || currentState.getNumberOfValueUsages(pValue) == 1)
         && !(pValue instanceof AddressExpression)

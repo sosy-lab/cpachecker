@@ -2127,6 +2127,7 @@ public class SymbolicProgramConfiguration {
     return builder.toString();
   }
 
+  /** Returns number of times the value is saved in memory (stack variables, heap etc.) */
   public int getNumberOfValueUsages(Value pValue) {
     Optional<SMGValue> maybeSMGValue = getSMGValueFromValue(pValue);
     if (maybeSMGValue.isEmpty()) {
