@@ -191,6 +191,8 @@ public class ASTConverterTest {
 
   @Test
   public final void testValidFloatExpressions() {
+    // FIXME: Add support for hexadecimal float literals to CFloatImpl
+    // FIXME: Parse f/d postfixes in float literals
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
 
     // TestCase consists of: input value, expected output, input type for CLiteralExpression

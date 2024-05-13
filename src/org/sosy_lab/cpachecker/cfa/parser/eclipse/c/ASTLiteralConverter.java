@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatImpl;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
 
 /**
@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
  */
 // Deprecated because of the temporary use of the CFloatNative class. This will be replaced by
 // CFloatImpl as soon as available.
-@SuppressWarnings("deprecation")
 class ASTLiteralConverter {
 
   private final MachineModel machine;
@@ -157,15 +156,14 @@ class ASTLiteralConverter {
     // an unsuffixed floating constant has type double. If suffixed by the letter f or F, it has
     // type float. If suffixed by the letter l or L, it has type long double.
 
-    // TODO: replace CFloatNative-class by CFloatImpl when available
     CFloat cFloat;
     if (pValueStr.endsWith("L") || pValueStr.endsWith("l")) {
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+      cFloat = new CFloatImpl(pValueStr, CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     } else if (pValueStr.endsWith("F") || pValueStr.endsWith("f")) {
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_SINGLE);
+      cFloat = new CFloatImpl(pValueStr, CFloatNativeAPI.FP_TYPE_SINGLE);
     } else {
       // literal has no suffix declared
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_DOUBLE);
+      cFloat = new CFloatImpl(pValueStr, CFloatNativeAPI.FP_TYPE_DOUBLE);
     }
 
     if (cFloat.isInfinity()) {

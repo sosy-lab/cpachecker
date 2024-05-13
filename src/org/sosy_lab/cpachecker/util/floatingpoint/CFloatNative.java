@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  * C.
  */
 @Deprecated
-public class CFloatNative extends CFloat {
+class CFloatNative extends CFloat {
   private final CFloatWrapper wrapper;
   private final int type;
 
