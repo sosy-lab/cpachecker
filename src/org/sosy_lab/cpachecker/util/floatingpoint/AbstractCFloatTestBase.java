@@ -73,7 +73,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  * <p>The abstract method {@link AbstractCFloatTestBase#getFloatType()} also needs to be overridden
  * by the subclass to select the bit width of the floating point values that will be generated.
  */
-public abstract class AbstractCFloatTestBase {
+abstract class AbstractCFloatTestBase {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
   }
@@ -82,7 +82,7 @@ public abstract class AbstractCFloatTestBase {
   protected abstract BinaryMathContext getFloatType();
 
   /** List of all supported reference implementations. */
-  public enum ReferenceImpl {
+  enum ReferenceImpl {
     MPFR,
     JAVA,
     NATIVE

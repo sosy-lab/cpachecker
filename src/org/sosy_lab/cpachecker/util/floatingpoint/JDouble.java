@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  *
  * <p>For single precision use the sister class {@link JFloat}.
  */
-public class JDouble extends CFloat {
+class JDouble extends CFloat {
   private final CFloatWrapper wrapper;
   private final double value;
 

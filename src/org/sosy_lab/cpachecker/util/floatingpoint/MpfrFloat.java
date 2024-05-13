@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  * <p>Uses the BigFloat class from mpfr-java to call MPFR through a JNI interface. MPFR provides
  * arbitrary precision floating point operations with correct rounding.
  */
-public class MpfrFloat extends CFloat {
+class MpfrFloat extends CFloat {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
   }

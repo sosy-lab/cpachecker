@@ -73,7 +73,7 @@ import org.sosy_lab.common.NativeLibraries;
  *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
  *     11.6.3 Rounding test)</a>
  */
-public class FloatP {
+class FloatP {
   static {
     NativeLibraries.loadLibrary("mpfr_java");
   }
@@ -165,7 +165,7 @@ public class FloatP {
    * <p>The precision of a FloatP is equivalent to the length of its significand. Here the 'hidden
    * bit' is not counted. The exponent range can be derived from the width of the exponent field.
    */
-  public record Format(int expBits, int sigBits) {
+  record Format(int expBits, int sigBits) {
     public Format {
       // Check that the arguments are valid. We expect the format to be at least as big as Float8.
       Preconditions.checkArgument(
@@ -174,12 +174,12 @@ public class FloatP {
           sigBits >= 0, "Significand field must not have negative bit width.");
     }
 
-    public static final Format Float8 = new Format(4, 3);
-    public static final Format Float16 = new Format(5, 10);
-    public static final Format Float32 = new Format(8, 23);
-    public static final Format Float64 = new Format(11, 52);
-    public static final Format Float128 = new Format(15, 112);
-    public static final Format Float256 = new Format(19, 236);
+    static final Format Float8 = new Format(4, 3);
+    static final Format Float16 = new Format(5, 10);
+    static final Format Float32 = new Format(8, 23);
+    static final Format Float64 = new Format(11, 52);
+    static final Format Float128 = new Format(15, 112);
+    static final Format Float256 = new Format(19, 236);
 
     /**
      * The exponent 'bias' of a FloatP value in this format.
@@ -372,7 +372,7 @@ public class FloatP {
     return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
-  public enum RoundingMode {
+  enum RoundingMode {
     NEAREST_AWAY, // Round to nearest, ties away from zero
     NEAREST_EVEN, // Round to nearest, ties to even
     CEILING, // Round toward +∞
