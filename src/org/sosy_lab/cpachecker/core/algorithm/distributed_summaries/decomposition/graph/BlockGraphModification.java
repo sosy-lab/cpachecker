@@ -14,6 +14,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -43,8 +44,32 @@ public class BlockGraphModification {
 
   private BlockGraphModification() {}
 
-  public record Modification(
-      CFA cfa, BlockGraph blockGraph, ImmutableSet<CFANode> unableToAbstract) {}
+  /**
+   * Block-graph modification for a {@link CFA}. This is a modification of an original CFA that was
+   * adjusted to fulfill certain requirements with regard to a block graph. For example, one
+   * modification is that every block ends with a CFA node with a single outgoing edge. In the
+   * process of CFA modification, the original block graph must also be adjusted to reflect the
+   * changes in the CFA.
+   *
+   * @param cfa modified CFA
+   * @param blockGraph modified block graph
+   * @param unableToAbstract set of CFA nodes that could not be abstracted
+   * @param mappingFromModifiedCfaToOriginCfa map from nodes of the modified CFA to the nodes of the
+   *     original CFA. This map only contains nodes of the modified CFA that has a direct mapping in
+   *     the original CFA.
+   */
+  public record Modification(CFA cfa, BlockGraph blockGraph, ModificationMetadata metadata) {}
+
+  public record ModificationMetadata(
+      CFA originalCfa,
+      BlockGraph originalBlockGraph,
+      MappingInformation mappingInfo,
+      ImmutableSet<CFANode> unableToAbstract,
+      ImmutableMap<CFANode, CFAEdge> abstractions) {}
+
+  private record MappingInformation(
+      Map<CFANode, CFANode> originalToInstrumentedNodes,
+      Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
   private static MutableCFA createMutableCfaCopy(
       CFA pCfa, Configuration pConfig, LogManager pLogger) {
@@ -66,37 +91,70 @@ public class BlockGraphModification {
 
   public static Modification instrumentCFA(
       CFA pCFA, BlockGraph pBlockGraph, Configuration pConfig, LogManager pLogger) {
+    // If the block graph consists of a single block that is the full CFA,
+    // the 'block graph' is trivial, and we do not require any modifications.
     if (pBlockGraph.getNodes().size() == 1) {
-      return new Modification(pCFA, pBlockGraph, ImmutableSet.of());
+      return getUnchanged(pCFA, pBlockGraph);
     }
+
     MutableCFA mutableCfa = createMutableCfaCopy(pCFA, pConfig, pLogger);
-    MappingInformation blockMapping =
-        createMappingBetweenOriginalAndInstrumentedCFA(pCFA, mutableCfa);
-    ImmutableSet<CFANode> blockEnds =
-        transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
-    ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
-    ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
-    for (CFANode originalBlockEnd : blockEnds) {
-      CFANode mutableCfaBlockEnd = blockMapping.originalToInstrumentedNodes().get(originalBlockEnd);
-      if (mutableCfaBlockEnd.getLeavingSummaryEdge() == null
-          && !mutableCfaBlockEnd.equals(pCFA.getMainFunction())
-          && !(mutableCfaBlockEnd instanceof CFATerminationNode)) {
-        CFANode blockEndEdgeSuccessor = new CFANode(mutableCfaBlockEnd.getFunction());
-        mutableCfa.addNode(blockEndEdgeSuccessor);
-        GhostEdge blockEndEdge = new GhostEdge(mutableCfaBlockEnd, blockEndEdgeSuccessor);
-        mutableCfaBlockEnd.addLeavingEdge(blockEndEdge);
-        blockEndEdgeSuccessor.addEnteringEdge(blockEndEdge);
-        abstractions.put(originalBlockEnd, blockEndEdge);
-      } else {
-        if (mutableCfaBlockEnd.getLeavingSummaryEdge() != null) {
-          unableToAbstract.add(mutableCfaBlockEnd);
-        }
-      }
-    }
+    ModificationMetadata modificationMetadata =
+        addBlankEdgesAtBlockEnds(mutableCfa, pCFA, pBlockGraph);
     CFA instrumentedCFA = mutableCfa.immutableCopy();
-    Map<CFANode, CFANode> originalInstrumentedMapping = blockMapping.originalToInstrumentedNodes();
+    Map<CFANode, CFANode> originalInstrumentedMapping =
+        modificationMetadata.mappingInfo().originalToInstrumentedNodes();
+    // Adjust the block graph to the modified CFA
+    BlockGraph adjustedBlockGraph =
+        adaptBlockGraph(
+            pBlockGraph,
+            instrumentedCFA.getMainFunction(),
+            modificationMetadata.mappingInfo(),
+            modificationMetadata.abstractions());
+
+    // Adjust metadata to the modified CFA
+    setReversePostorderForInstrumentedNodes(originalInstrumentedMapping);
+    Optional<LoopStructure> adjustedLoopStructure =
+        adjustLoopStructureToModification(pCFA, originalInstrumentedMapping);
+
+    CfaMetadata metadata = instrumentedCFA.getMetadata();
+    if (adjustedLoopStructure.isPresent()) {
+      metadata = metadata.withLoopStructure(adjustedLoopStructure.orElseThrow());
+    }
+
+    return new Modification(
+        new ImmutableCFA(
+            instrumentedCFA.getAllFunctions(),
+            ImmutableSet.copyOf(instrumentedCFA.nodes()),
+            metadata),
+        adjustedBlockGraph,
+        modificationMetadata);
+  }
+
+  private static Modification getUnchanged(CFA pCFA, BlockGraph pBlockGraph) {
+    ImmutableMap<CFANode, CFANode> identityMapping =
+        pCFA.nodes().stream()
+            .map(n -> Map.entry(n, n))
+            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+    ModificationMetadata metadata =
+        new ModificationMetadata(
+            pCFA,
+            pBlockGraph,
+            new MappingInformation(identityMapping, ImmutableMap.of()),
+            // no abstraction happened, so no issues occurred
+            /* unableToAbstract= */ ImmutableSet.of(),
+            // no abstraction happened
+            /* abstractions= */ ImmutableMap.of());
+    return new Modification(pCFA, pBlockGraph, metadata);
+  }
+
+  private static void setReversePostorderForInstrumentedNodes(
+      Map<CFANode, CFANode> originalInstrumentedMapping) {
     originalInstrumentedMapping.forEach(
         (n1, n2) -> n2.setReversePostorderId(n1.getReversePostorderId()));
+  }
+
+  private static Optional<LoopStructure> adjustLoopStructureToModification(
+      CFA pCFA, Map<CFANode, CFANode> originalInstrumentedMapping) {
     Optional<LoopStructure> loopStructure;
     if (pCFA.getMetadata().getLoopStructure().isPresent()) {
       LoopStructure extracted = pCFA.getMetadata().getLoopStructure().orElseThrow();
@@ -107,14 +165,14 @@ public class BlockGraphModification {
         for (String functionName : pCFA.getAllFunctionNames()) {
           outer:
           for (Loop loop : extracted.getLoopsForFunction(functionName)) {
-            ImmutableSet.Builder<CFANode> heads = ImmutableSet.builder();
+            Builder<CFANode> heads = ImmutableSet.builder();
             for (CFANode loopHead : loop.getLoopHeads()) {
               if (!originalInstrumentedMapping.containsKey(loopHead)) {
                 continue outer;
               }
               heads.add(originalInstrumentedMapping.get(loopHead));
             }
-            ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
+            Builder<CFANode> nodes = ImmutableSet.builder();
             for (CFANode loopNode : loop.getLoopNodes()) {
               if (!originalInstrumentedMapping.containsKey(loopNode)) {
                 continue outer;
@@ -129,21 +187,75 @@ public class BlockGraphModification {
     } else {
       loopStructure = Optional.empty();
     }
-    CfaMetadata metadata = instrumentedCFA.getMetadata();
-    if (loopStructure.isPresent()) {
-      metadata = metadata.withLoopStructure(loopStructure.orElseThrow());
+    return loopStructure;
+  }
+
+  /**
+   * For each CFA node that ends in a block, we add a new node that is the successor of the original
+   * node and that has a single ingoing, blank edge. This is required so that predicate abstraction
+   * can be applied at every block end without issues. TODO: Explain reason better. Example:
+   *
+   * <pre>
+   * .......... Block 1
+   * . (0)    .
+   * .  | x=0 .
+   * . (1)    .
+   * ...|...... Block 2
+   * . (2)    .
+   * .  | x++ .
+   * . (3)    .
+   * ..........
+   * </pre>
+   *
+   * is modified to:
+   *
+   * <pre>
+   * .......... Block 1
+   * . (0)    .
+   * .  | x=0 .
+   * . (1)    .
+   * .  | nop .
+   * . (1')   .
+   * ...|...... Block 2
+   * . (2)    .
+   * .  | x++ .
+   * . (3)    .
+   * .  | nop .
+   * . (3')   .
+   * ..........
+   * </pre>
+   *
+   * @param pMutableCfa mutable CFA
+   * @param pOriginalCfa original CFA
+   * @param pBlockGraph block graph to use as reference for modification
+   */
+  private static ModificationMetadata addBlankEdgesAtBlockEnds(
+      MutableCFA pMutableCfa, CFA pOriginalCfa, BlockGraph pBlockGraph) {
+    MappingInformation blockMapping =
+        createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
+    ImmutableSet<CFANode> blockEnds =
+        transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
+    Builder<CFANode> unableToAbstract = ImmutableSet.builder();
+    ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
+    for (CFANode originalBlockEnd : blockEnds) {
+      CFANode mutableCfaBlockEnd = blockMapping.originalToInstrumentedNodes().get(originalBlockEnd);
+      if (mutableCfaBlockEnd.getLeavingSummaryEdge() == null
+          && !mutableCfaBlockEnd.equals(pOriginalCfa.getMainFunction())
+          && !(mutableCfaBlockEnd instanceof CFATerminationNode)) {
+        CFANode blockEndEdgeSuccessor = new CFANode(mutableCfaBlockEnd.getFunction());
+        pMutableCfa.addNode(blockEndEdgeSuccessor);
+        GhostEdge blockEndEdge = new GhostEdge(mutableCfaBlockEnd, blockEndEdgeSuccessor);
+        mutableCfaBlockEnd.addLeavingEdge(blockEndEdge);
+        blockEndEdgeSuccessor.addEnteringEdge(blockEndEdge);
+        abstractions.put(originalBlockEnd, blockEndEdge);
+      } else {
+        if (mutableCfaBlockEnd.getLeavingSummaryEdge() != null) {
+          unableToAbstract.add(mutableCfaBlockEnd);
+        }
+      }
     }
-    return new Modification(
-        new ImmutableCFA(
-            instrumentedCFA.getAllFunctions(),
-            ImmutableSet.copyOf(instrumentedCFA.nodes()),
-            metadata),
-        adaptBlockGraph(
-            pBlockGraph,
-            instrumentedCFA.getMainFunction(),
-            blockMapping,
-            abstractions.buildOrThrow()),
-        unableToAbstract.build());
+    return new ModificationMetadata(
+        pOriginalCfa, pBlockGraph, blockMapping, unableToAbstract.build(), abstractions.build());
   }
 
   private static BlockGraph adaptBlockGraph(
@@ -203,10 +315,6 @@ public class BlockGraphModification {
             pBlockGraph.getRoot().getSuccessorIds());
     return new BlockGraph(root, instrumentedBlocks.build());
   }
-
-  private record MappingInformation(
-      Map<CFANode, CFANode> originalToInstrumentedNodes,
-      Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
   private static MappingInformation createMappingBetweenOriginalAndInstrumentedCFA(
       CFA pOriginal, CFA pInstrumented) {
