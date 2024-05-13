@@ -252,6 +252,14 @@ public class FloatP {
     return format;
   }
 
+  /** The value "NaN", or "not a number"
+   * <p>NaN has many representations, and we always return the "canonical" representation that only
+   * has the highest bit of the significand set to one. The sign bit is zero, but can be set by
+   * {@link FloatP#negate()}. The methods {@link FloatP#abs()} and {@link FloatP#isNegative()} still
+   * as expected and {@link FloatP#withPrecision(Format)} always preserves the sign of NaN.
+   * <p>Users should not depend on any exact representation of NaN and use the method
+   * {@link FloatP#isNan()} instead.
+   */
   public static FloatP nan(Format pFormat) {
     return new FloatP(
         pFormat, false, pFormat.maxExp() + 1, BigInteger.ONE.shiftLeft(pFormat.sigBits - 1));
