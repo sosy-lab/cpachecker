@@ -59,9 +59,9 @@ import org.sosy_lab.common.NativeLibraries;
  * result of the calculation can never fall exactly on a floating point value, or the break-point
  * between two floating point values. It is therefore enough to repeat the calculation with
  * increasing precision until the result no longer falls on a break-point and can be correctly
- * rounded. This approach is know as <a href=https://dl.acm.org/doi/pdf/10.1145/114697.116813>Ziv's
- * technique</a> and requires a "rounding test" that decides if the value calculated in the current
- * iteration can be correctly rounded. Such test depend on the rounding mode used, but for
+ * rounded. This approach is know as <a href="https://dl.acm.org/doi/pdf/10.1145/114697.116813">
+ * Ziv's technique</a> and requires a "rounding test" that decides if the value calculated in the
+ * current iteration can be correctly rounded. Such test depend on the rounding mode used, but for
  * "round-to-nearest-ties-to-even" (the standard rounding mode in IEEE 754, and what is being used
  * by this implementation) it can be enough to simply look for patterns of the form 01+ or 10+ at
  * the end of the significand. These last few digits are exactly on the break-point in the current
@@ -69,9 +69,9 @@ import org.sosy_lab.common.NativeLibraries;
  * Everything before that is stable, however, and we implement the rounding test by checking if
  * there are enough stable bits to round down to the final precision of the result.
  *
- * @see <a href=https://link.springer.com/book/10.1007/978-3-319-76526-6>Handbook of Floating-Point
- *     Arithmetic</a> (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem, 11.6.3 Rounding
- *     test)
+ * @see <a href="https://link.springer.com/book/10.1007/978-3-319-76526-6">Handbook of
+ *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
+ *     11.6.3 Rounding test)</a>
  */
 public class FloatP {
   static {
