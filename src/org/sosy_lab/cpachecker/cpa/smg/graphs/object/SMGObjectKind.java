@@ -30,23 +30,14 @@ public enum SMGObjectKind {
   /** returns whether the current shape can always be included in the other shape. */
   // TODO looks strange, perhaps rename method to match intended behavior.
   public boolean isContainedIn(SMGObjectKind other) {
-    switch (this) {
-      case OPTIONAL -> {
-        switch (other) {
-          case SLL:
-          case DLL:
-          case OPTIONAL:
-            return false;
-          default:
-            return true;
-        }
-      }
-      case SLL, DLL -> {
-        return other != OPTIONAL;
-      }
-      default -> {
-        return true;
-      }
-    }
+    return switch (this) {
+      case OPTIONAL ->
+          switch (other) {
+            case SLL, DLL, OPTIONAL -> false;
+            default -> true;
+          };
+      case SLL, DLL -> other != OPTIONAL;
+      default -> true;
+    };
   }
 }
