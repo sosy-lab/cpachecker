@@ -15,12 +15,16 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.io.MoreFiles;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -75,6 +79,12 @@ public class CfaToJson {
     /* Enable JSON serialization with indentation and newlines. */
     objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
+    /* Register custom serializer for CFANode. */
+    SimpleModule objectMapperModule = new SimpleModule();
+    CFANodeSerializer cfaNodeSerializer = new CFANodeSerializer();
+    objectMapperModule.addSerializer(CFANode.class, cfaNodeSerializer);
+    objectMapper.registerModule(objectMapperModule);
+
     JsonFactory jsonFactory = new JsonFactory();
 
     Path jsonFilePath = pOutdir.resolve("cfa.json");
@@ -88,21 +98,53 @@ public class CfaToJson {
 
       /* Write all Nodes. */
       jsonGenerator.writeFieldName("nodes");
-      jsonGenerator.writeStartArray();
-      for (CFANode node : nodes) {
-        objectMapper.writeValue(jsonGenerator, node);
-      }
-      jsonGenerator.writeEndArray();
+      objectMapper.writeValue(jsonGenerator, nodes);
+
+      cfaNodeSerializer.setCompletelySerializeNodes(false);
 
       /* Write all Edges. */
       jsonGenerator.writeFieldName("edges");
-      jsonGenerator.writeStartArray();
-      for (CFAEdge edge : edges) {
-        objectMapper.writeValue(jsonGenerator, edge);
-      }
-      jsonGenerator.writeEndArray();
+      objectMapper.writeValue(jsonGenerator, edges);
 
       jsonGenerator.writeEndObject();
+    }
+  }
+
+  /* This class is responsible for serializing a CFANode to JSON format. */
+  private class CFANodeSerializer extends JsonSerializer<CFANode> {
+    private boolean completelySerializeNodes = true;
+
+    /**
+     * Serializes a CFANode to JSON format.
+     *
+     * @param pCfaNode The CFANode to be serialized.
+     * @param pJsonGenerator The JSON generator to write the serialized data.
+     * @param pSerializerProvider The serializer provider.
+     * @throws IOException If an I/O error occurs while writing the JSON data.
+     */
+    @Override
+    public void serialize(
+        CFANode pCfaNode, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
+        throws IOException {
+      pJsonGenerator.writeStartObject();
+
+      if (this.completelySerializeNodes) {
+        // TODO
+        pJsonGenerator.writeNumberField("nodeNumberFull", pCfaNode.getNodeNumber());
+      } else {
+        pJsonGenerator.writeNumberField("nodeNumber", pCfaNode.getNodeNumber());
+      }
+
+      pJsonGenerator.writeEndObject();
+    }
+
+    /**
+     * Sets the value of the completelySerializeNodes flag.
+     *
+     * @param completelySerializeNodes The new value for the flag.
+     */
+    public void setCompletelySerializeNodes(boolean pCompletelySerializeNodes) {
+      this.completelySerializeNodes = pCompletelySerializeNodes;
     }
   }
 }
