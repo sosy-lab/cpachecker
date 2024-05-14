@@ -375,7 +375,9 @@ class FloatP {
     TRUNCATE // Round toward 0
   }
 
-  /** Round the significand.
+  /**
+   * Round the significand.
+   *
    * <p>We expect the significand to be followed by 3 grs bits.
    */
   private BigInteger applyRounding(RoundingMode rm, boolean negative, BigInteger pSignificand) {
