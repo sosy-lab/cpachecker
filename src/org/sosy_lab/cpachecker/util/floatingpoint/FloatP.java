@@ -1725,7 +1725,7 @@ class FloatP {
   private static FloatP fromInteger(Format format, BigInteger number) {
     // Return +0.0 for input 0
     if (number.equals(BigInteger.ZERO)) {
-      return new FloatP(format, false, 0, BigInteger.ZERO);
+      return zero(format);
     }
 
     // Get the sign and calculate the exponent
