@@ -2941,6 +2941,15 @@ public class SMGCPAValueVisitor
   /**
    * Only accessible for subclasses.
    *
+   * @return the {@link SMGOptions} given to this visitor when it was created.
+   */
+  protected SMGOptions getInitialVisitorOptions() {
+    return options;
+  }
+
+  /**
+   * Only accessible for subclasses.
+   *
    * @return the {@link CFAEdge} given to this visitor when it was created.
    */
   protected CFAEdge getInitialVisitorCFAEdge() {

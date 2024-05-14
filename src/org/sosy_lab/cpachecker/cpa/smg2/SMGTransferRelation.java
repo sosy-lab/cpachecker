@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -75,17 +74,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintAndSMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -118,8 +113,6 @@ public class SMGTransferRelation
   @SuppressWarnings("unused")
   private final SMGCPAExportOptions exportSMGOptions;
 
-  private final MachineModel machineModel;
-
   private final LogManagerWithoutDuplicates logger;
 
   private final SMGCPAExpressionEvaluator evaluator;
@@ -151,7 +144,6 @@ public class SMGTransferRelation
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
-    machineModel = pCfa.getMachineModel();
     solver = pSolver;
 
     if (pCfa.getVarClassification().isPresent()) {
@@ -178,7 +170,6 @@ public class SMGTransferRelation
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
-    machineModel = pMachineModel;
     booleanVariables = pBooleanVariables;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = null;
@@ -857,56 +848,39 @@ public class SMGTransferRelation
       }
 
       if (!value.isExplicitlyKnown()) {
-        // Use the Explicit Value Analysis assigning value visitor,
-        // as we might be able to deterministically assume values (for example 0 == x -> x = 0).
-        // If this fails, revert to symbolic execution if possible.
+        // Use the assigning value visitor, we might be able to deterministically assume values (for
+        // example 0 == x -> x = 0).
+        // This utilizes symbolic execution if enabled and adds constraints accordingly. Might
+        // return null if a path is infeasible.
         SMGCPAAssigningValueVisitor avv =
             new SMGCPAAssigningValueVisitor(
-                evaluator, currentState, cfaEdge, logger, truthValue, options, booleanVariables);
-
-        for (ValueAndSMGState maybeUpdatedValueAndUpdatedState : cExpression.accept(avv)) {
-          SMGState maybeUpdatedState = maybeUpdatedValueAndUpdatedState.getState();
-          Value maybeUpdatedValue = maybeUpdatedValueAndUpdatedState.getValue();
-
-          if (maybeUpdatedValue.isExplicitlyKnown()) {
-            if (representsBoolean(maybeUpdatedValue, truthValue)) {
-              // We know more than before, and the assumption is fulfilled, so return the state
-              // from the value visitor
-              resultStateBuilder.add(maybeUpdatedState);
-              break;
-            }
+                evaluator,
+                solver,
+                currentState,
+                cfaEdge,
+                logger,
+                truthValue,
+                options,
+                booleanVariables,
+                functionName);
+        try {
+          List<ValueAndSMGState> maybeFeasiblePaths = cExpression.accept(avv);
+          if (maybeFeasiblePaths == null) {
+            // Infeasible
+            return null;
           }
-
-          if (options.trackPredicates()) {
-
-            // Symbolic Execution for assumption edges, use previous state and values
-            Collection<SMGState> statesWithConstraints =
-                computeNewStateByCreatingConstraint(currentState, cExpression, truthValue, cfaEdge);
-
-            for (SMGState stateWithConstraint : statesWithConstraints) {
-              if (options.isSatCheckStrategyAtAssume()) {
-                SolverResult solverResult =
-                    solver.checkUnsat(stateWithConstraint.getConstraints(), functionName);
-                if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
-                  resultStateBuilder.add(
-                      stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
-                          solverResult.definiteAssignments(), solverResult.model()));
-                }
-                // We might add/return nothing here if the check was UNSAT
-              } else {
-                // If either we don't check SAT or the path is SAT we return the state
-                resultStateBuilder.add(stateWithConstraint);
-              }
-            }
-
+          return maybeFeasiblePaths.stream()
+              .map(vAS -> vAS.getState())
+              .collect(ImmutableList.toImmutableList());
+        } catch (SMGSolverException e) {
+          if (e.isSolverException()) {
+            throw e.getSolverException();
           } else {
-
-            // Explicit Value Analysis; if unknown,
-            // try to assign a (boolean) value and maybe split into multiple states
-            // (already done above)
-            resultStateBuilder.add(maybeUpdatedState);
+            Preconditions.checkArgument(e.isInterruptedException());
+            throw e.getInterruptedException();
           }
         }
+
       } else if (representsBoolean(value, truthValue)) {
         // We do not know more than before, and the assumption is fulfilled, so return the state
         // from the value visitor (we don't need a copy as every state operation generates a new
@@ -1385,93 +1359,5 @@ public class SMGTransferRelation
       return currentState.writeValueWithChecks(
           addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);
     }
-  }
-
-  // ######### Constraint creation for Symbolic Execution #########
-  private Collection<SMGState> computeNewStateByCreatingConstraint(
-      final SMGState pOldState,
-      final AExpression pExpression,
-      final boolean pTruthAssumption,
-      CFAEdge pEdge)
-      throws CPATransferException, SolverException, InterruptedException {
-
-    final ConstraintFactory constraintFactory =
-        ConstraintFactory.getInstance(pOldState, machineModel, logger, options, evaluator, pEdge);
-
-    // final String functionName = pEdge.getPredecessor().getFunctionName();
-    // The constraints are not yet in the state here!
-    Collection<ConstraintAndSMGState> newConstraintsAndStates =
-        createConstraint(pExpression, constraintFactory, pTruthAssumption);
-
-    ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-    for (ConstraintAndSMGState newConstraintAndState : newConstraintsAndStates) {
-      final Constraint newConstraint = newConstraintAndState.getConstraint();
-      SMGState currentState = newConstraintAndState.getState();
-
-      // If a constraint is trivial, its satisfiability is not influenced by other constraints.
-      // So to evade more expensive SAT checks, we just check the constraint on its own.
-      // TODO: is this still correct for more than one returned constraint? I.e. can a trivial
-      // constraint be non-trivial with a second constraint?
-      if (newConstraint.isTrivial()) {
-        if (solver.checkUnsat(newConstraint, functionName).equals(Satisfiability.SAT)) {
-          // Iff SAT -> we go that path with this state
-          // We don't add the constraint as it is trivial
-          stateBuilder.add(currentState);
-        }
-      } else {
-        stateBuilder.add(currentState.addConstraint(newConstraint));
-      }
-    }
-    ImmutableList<SMGState> newStates = stateBuilder.build();
-
-    if (newStates.isEmpty()) {
-      return null;
-    }
-
-    return newStates;
-  }
-
-  private Collection<ConstraintAndSMGState> createConstraint(
-      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
-      throws CPATransferException {
-
-    if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof CIdExpression) {
-      // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-      return createConstraint((CIdExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else {
-      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
-    }
-  }
-
-  private Collection<ConstraintAndSMGState> createConstraint(
-      CBinaryExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
-      throws CPATransferException {
-
-    if (pTruthAssumption) {
-      return pFactory.createPositiveConstraint(pExpression);
-    } else {
-      return pFactory.createNegativeConstraint(pExpression);
-    }
-  }
-
-  // Unneeded/Useless constraints have already been filtered out.
-  // The Constraints only need to be combined with the states now
-  private Collection<ConstraintAndSMGState> createConstraint(
-      CIdExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
-      throws CPATransferException {
-    Collection<ConstraintAndSMGState> constraint;
-
-    if (pTruthAssumption) {
-      constraint = pFactory.createPositiveConstraint(pExpression);
-    } else {
-      constraint = pFactory.createNegativeConstraint(pExpression);
-    }
-    return constraint.stream()
-        .filter(cas -> cas.getConstraint() != null)
-        .collect(ImmutableList.toImmutableList());
   }
 }
