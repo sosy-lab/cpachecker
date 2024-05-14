@@ -12,7 +12,6 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 /**
@@ -22,10 +21,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  * arbitrary precision floating point operations with correct rounding.
  */
 class MpfrFloat extends CFloat {
-  static {
-    NativeLibraries.loadLibrary("mpfr_java");
-  }
-
   private final CFloatWrapper wrapper;
 
   private final BinaryMathContext format;

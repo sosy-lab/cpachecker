@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.RoundingMode;
@@ -26,10 +25,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.RoundingMode;
  * <p>Unlike {@link FloatP} this class does not expect arguments to have the same precision.
  */
 public class CFloatImpl extends CFloat {
-  static {
-    NativeLibraries.loadLibrary("mpfr_java");
-  }
-
   private final CFloatWrapper wrapper;
   private final FloatP delegate;
 

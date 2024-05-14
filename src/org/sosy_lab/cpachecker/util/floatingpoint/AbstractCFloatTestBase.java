@@ -31,7 +31,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 
 /**
@@ -74,10 +73,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  * by the subclass to select the bit width of the floating point values that will be generated.
  */
 abstract class AbstractCFloatTestBase {
-  static {
-    NativeLibraries.loadLibrary("mpfr_java");
-  }
-
   /** Override to set a floating point width. */
   protected abstract BinaryMathContext getFloatType();
 

@@ -22,7 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.common.NativeLibraries;
 
 // TODO: Add support for more rounding modes
 // TODO: Add more functions (like sin(x), etc)
@@ -74,10 +73,6 @@ import org.sosy_lab.common.NativeLibraries;
  *     11.6.3 Rounding test)</a>
  */
 class FloatP {
-  static {
-    NativeLibraries.loadLibrary("mpfr_java");
-  }
-
   /**
    * Constant value 48/17
    *
