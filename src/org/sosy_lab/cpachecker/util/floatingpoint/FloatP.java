@@ -1722,7 +1722,7 @@ class FloatP {
     return new FloatP(format, sign, resultExponent, resultSignificand);
   }
 
-  private static FloatP fromInteger(Format format, BigInteger number) {
+  public static FloatP fromInteger(Format format, BigInteger number) {
     // Return +0.0 for input 0
     if (number.equals(BigInteger.ZERO)) {
       return zero(format);
@@ -1746,7 +1746,7 @@ class FloatP {
     return new FloatP(format, sign, exponent, significand);
   }
 
-  private BigInteger toInteger() {
+  public BigInteger toInteger() {
     if (exponent < -1) {
       return BigInteger.ZERO;
     }
