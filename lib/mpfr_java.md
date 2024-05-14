@@ -26,7 +26,7 @@ Then build the library and copy it to the CPAchecker folder:
 ./configure
 make
 chmod 644 .libs/libgmp.so.10.5.0
-cp libgmp.so.10.5.0 $CPACHECKER/lib/native/x86_64-linux/libgmp.so
+cp .libs/libgmp.so.10.5.0 $CPACHECKER/lib/native/x86_64-linux/libgmp.so
 ```
 
 ### Building MPFR
