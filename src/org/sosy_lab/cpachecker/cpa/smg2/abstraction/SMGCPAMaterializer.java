@@ -947,24 +947,24 @@ public class SMGCPAMaterializer {
       SMGObject newConcreteRegion, BigInteger nfo, BigInteger pfo, SMGState state)
       throws SMGException {
     BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
-    SMGValueAndSMGState nextPointerAndState =
-        state.readSMGValue(newConcreteRegion, nfo, pointerSize);
-    SMGState currentState = nextPointerAndState.getSMGState();
+    SMGState currentState = state;
     SMGValueAndSMGState prevPointerAndState =
         currentState.readSMGValue(newConcreteRegion, pfo, pointerSize);
     currentState = prevPointerAndState.getSMGState();
-    SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
     SMGValue prevPointerValue = prevPointerAndState.getSMGValue();
+
+    // TODO: check that all previous last pointers now point to the concrete
 
     Optional<SMGPointsToEdge> prevPointerEdge =
         currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
     SMGObject currentObj = newConcreteRegion;
-    List<SMGObject> listOfObjectsVisited = new ArrayList<>();
+    // Since we materialized to the right, there needs to be a left list segment
     if (prevPointerEdge.isEmpty()) {
       return false;
     }
 
     SMGObject prevObj = prevPointerEdge.orElseThrow().pointsTo();
+    // The prev needs to be an abstracted segment with a last specifier
     if (!(prevObj instanceof SMGSinglyLinkedListSegment)) {
       return false;
     } else if (!prevPointerEdge
@@ -977,95 +977,25 @@ public class SMGCPAMaterializer {
     // There is at least 1 object before the new materialized if it is a valid list.
     // Note: there might be objects before that one! Or the prev object might look like a list
     // segment, without being one, i.e. the nfo does not point back to the start object.
-    while (state.getMemoryModel().isObjectValid(prevObj)
-        && prevObj.isSizeEqual(currentObj)
-        && !currentObj.equals(prevObj)
-        && !listOfObjectsVisited.contains(currentObj)) {
-      SMGValueAndSMGState nextOfPrevPointerAndState = state.readSMGValue(prevObj, nfo, pointerSize);
-      SMGValue nextOfPrevPointerValue = nextOfPrevPointerAndState.getSMGValue();
-      Optional<SMGPointsToEdge> nextOfPrevPointerEdge =
-          currentState.getMemoryModel().getSmg().getPTEdge(nextOfPrevPointerValue);
-      if (nextOfPrevPointerEdge.isEmpty()
-          || !nextOfPrevPointerEdge.orElseThrow().pointsTo().equals(currentObj)) {
-        return false;
-      }
-
-      if (currentObj instanceof SMGSinglyLinkedListSegment) {
-        if (!nextOfPrevPointerEdge
-            .orElseThrow()
-            .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
-          return false;
-        }
-      } else {
-        if (!nextOfPrevPointerEdge
-            .orElseThrow()
-            .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_REGION)) {
-          return false;
-        }
-      }
-      // prevPointerEdge points to prevObj
-      if (prevObj instanceof SMGSinglyLinkedListSegment) {
-        if (!prevPointerEdge
-            .orElseThrow()
-            .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
-          return false;
-        }
-      } else {
-        if (!prevPointerEdge.orElseThrow().targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
-          return false;
-        }
-      }
-      listOfObjectsVisited.add(currentObj);
-      currentObj = prevObj;
-
-      prevPointerAndState = state.readSMGValue(currentObj, pfo, pointerSize);
-      prevPointerValue = prevPointerAndState.getSMGValue();
-      prevPointerEdge = currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
-      if (prevPointerEdge.isEmpty()) {
-        // No more list segments to the left
-        break;
-      }
-      prevObj = prevPointerEdge.orElseThrow().pointsTo();
+    if (!state.getMemoryModel().isObjectValid(prevObj)
+        || !prevObj.isSizeEqual(currentObj)
+        || currentObj.equals(prevObj)) {
+      return false;
     }
-
-    nextPointerAndState = state.readSMGValue(newConcreteRegion, nfo, pointerSize);
-    nextPointerValue = nextPointerAndState.getSMGValue();
-    Optional<SMGPointsToEdge> nextPointerEdge =
-        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
-
-    if (nextPointerEdge.isPresent() && !nextPointerValue.isZero()) {
-      SMGObject nextObj = nextPointerEdge.orElseThrow().pointsTo();
-      // the next obj might have a prev pointer that is region to the new concrete
-      prevPointerAndState = state.readSMGValue(nextObj, pfo, pointerSize);
-      prevPointerValue = prevPointerAndState.getSMGValue();
-      prevPointerEdge = currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
-      if (prevPointerEdge.isPresent()
-          && prevPointerEdge.orElseThrow().pointsTo().equals(currentObj)
-          && !prevPointerEdge
-              .orElseThrow()
-              .targetSpecifier()
-              .equals(SMGTargetSpecifier.IS_REGION)) {
-        return false;
-      }
-      if (nextObj instanceof SMGSinglyLinkedListSegment) {
-        // the new concrete has a next ptr that is first
-        if (!nextPointerEdge
+    SMGValueAndSMGState nextOfPrevPointerAndState = state.readSMGValue(prevObj, nfo, pointerSize);
+    SMGValue nextOfPrevPointerValue = nextOfPrevPointerAndState.getSMGValue();
+    Optional<SMGPointsToEdge> nextOfPrevPointerEdge =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextOfPrevPointerValue);
+    // currentObj == new concrete obj
+    if (nextOfPrevPointerEdge.isEmpty()
+        || !nextOfPrevPointerEdge.orElseThrow().pointsTo().equals(currentObj)
+        || !nextOfPrevPointerEdge
             .orElseThrow()
             .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
-          return false;
-        }
-      } else {
-        // the new concrete has a next ptr that is region
-        if (!nextPointerEdge.orElseThrow().targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
-          return false;
-        }
-      }
+            .equals(SMGTargetSpecifier.IS_REGION)
+        || currentState.getMemoryModel().getNestingLevel(nextOfPrevPointerValue) != 0) {
+      return false;
     }
-
     return true;
   }
 
