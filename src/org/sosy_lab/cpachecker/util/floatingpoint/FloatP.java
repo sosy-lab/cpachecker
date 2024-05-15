@@ -1239,20 +1239,32 @@ class FloatP {
     return builder.buildOrThrow();
   }
 
+  /**
+   * Internal version of {@link FloatP#exp()} that does not extend the precision.
+   *
+   * <p>Use in the implementation of {@link FloatP#pow(FloatP)} where the caller makes sure that
+   * enough precision is used.
+   */
   private FloatP exp_() {
-    return expImpl(0);
-  }
-
-  private FloatP expm1_() {
-    return expImpl(1);
+    return expImpl(false);
   }
 
   /**
-   * Helper method to calculate e^x.
+   * Calculates expm1, that is e^x - 1.
+   *
+   * <p>This method is used in the implementation of {@link FloatP#pow(FloatP)} where it helps to
+   * avoid precision loss if the argument is close to zero.
+   */
+  private FloatP expm1_() {
+    return expImpl(true);
+  }
+
+  /**
+   * Helper method that calculates e^x or e^x - 1, depending on the argument.
    *
    * @param k The first term of the expansion. Should be 0 for exp and 1 for expm1.
    */
-  private FloatP expImpl(int k) {
+  private FloatP expImpl(boolean skipTerm1) {
     if (isNan()) {
       return nan(format);
     }
@@ -1278,6 +1290,8 @@ class FloatP {
     Map<BigInteger, FloatP> powMap = new HashMap<>();
 
     boolean done = false;
+    int k = skipTerm1 ? 1 : 0;
+
     while (!done) {
       FloatP s = r;
 
