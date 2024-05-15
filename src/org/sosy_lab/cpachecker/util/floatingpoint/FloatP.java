@@ -22,7 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.kframework.mpfr.BigFloat;
-import org.kframework.mpfr.BinaryMathContext;
 
 // TODO: Add support for more rounding modes
 // TODO: Add more functions (like sin(x), etc)
@@ -1853,7 +1852,12 @@ class FloatP {
     if (isInfinite()) {
       return isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
     }
-    return new BigFloat(sign, significand, exponent, BinaryMathContext.BINARY32).floatValueExact();
+    int sigBits = significand.clearBit(format.sigBits).intValue();
+    int expBits = (int) (exponent + format.bias());
+    if (sign) {
+      expBits += 0x100;
+    }
+    return Float.intBitsToFloat((expBits << 23) | sigBits);
   }
 
   public double toDouble() {
@@ -1863,7 +1867,12 @@ class FloatP {
     if (isInfinite()) {
       return isNegative() ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
     }
-    return new BigFloat(sign, significand, exponent, BinaryMathContext.BINARY64).doubleValueExact();
+    long sigBits = significand.clearBit(format.sigBits).longValue();
+    long expBits = exponent + format.bias();
+    if (sign) {
+      expBits += 0x800;
+    }
+    return Double.longBitsToDouble((expBits << 52) | sigBits);
   }
 
   public static FloatP fromBigFloat(Format p, BigFloat pValue) {
