@@ -37,8 +37,6 @@ public final class JClassType extends JClassOrInterfaceType {
   private static final String NAME_OF_CLASS_OBJECT = "java.lang.Object";
   private static final String SIMPLE_NAME_OF_CLASS_OBJECT = "Object";
 
-  private static final JClassType typeOfObject = new JClassType();
-
   private static final JClassType UNRESOLVABLE_TYPE =
       new JClassType(
           "_unspecified_",
@@ -132,7 +130,7 @@ public final class JClassType extends JClassOrInterfaceType {
     }
 
     checkArgument(
-        found.contains(typeOfObject), "Class %s must be a sub class of Object", getName());
+        found.contains(getTypeOfObject()), "Class %s must be a sub class of Object", getName());
   }
 
   // Creates the object describing java.lang.Object
@@ -155,7 +153,7 @@ public final class JClassType extends JClassOrInterfaceType {
    *     </code>
    */
   public static JClassType getTypeOfObject() {
-    return typeOfObject;
+    return new JClassType();
   }
 
   /**
