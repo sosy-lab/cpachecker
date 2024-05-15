@@ -19,6 +19,7 @@ import com.google.common.truth.Correspondence.BinaryPredicate;
 import com.google.common.truth.StringSubject;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -530,6 +531,8 @@ abstract class AbstractCFloatTestBase {
 
   protected abstract CFloat toTestedImpl(String repr);
 
+  protected abstract CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats);
+
   protected abstract CFloat toReferenceImpl(BigFloat value);
 
   protected CFloat toReferenceImpl(String repr) {
@@ -551,11 +554,12 @@ abstract class AbstractCFloatTestBase {
     }
     ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
+    Map<Integer, Integer> fromStringStats = new HashMap<>();
     for (TestValue<BigFloat> test : testCases) {
       try {
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
-          result = toTestedImpl(printBigFloat(test.arg1())).toBigFloat();
+          result = toTestedImpl(printBigFloat(test.arg1()), fromStringStats).toBigFloat();
         } catch (Throwable t) {
           String testHeader = printTestHeader("fromString", test.arg1());
           assertWithMessage(testHeader + t).fail();
@@ -579,7 +583,7 @@ abstract class AbstractCFloatTestBase {
               errorLog.size(), testCases.size(), errorLog)
           .fail();
     }
-    // printStatistics(MyFloat.fromStringStats);
+    // printStatistics(fromStringStats);
   }
 
   @Test
@@ -655,20 +659,34 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void lnTest() {
-    testOperator("ln", ulpError(), (CFloat a) -> a.ln());
-    // printStatistics(MyFloat.lnStats);
+    Map<Integer, Integer> lnStats = new HashMap<>();
+    testOperator(
+        "ln",
+        ulpError(),
+        (CFloat a) -> (a instanceof CFloatImpl) ? ((CFloatImpl) a).lnWithStats(lnStats) : a.ln());
+    // printStatistics(lnStats);
   }
 
   @Test
   public void expTest() {
-    testOperator("exp", ulpError(), (CFloat a) -> a.exp());
-    // printStatistics(MyFloat.expStats);
+    Map<Integer, Integer> expStats = new HashMap<>();
+    testOperator(
+        "exp",
+        ulpError(),
+        (CFloat a) ->
+            (a instanceof CFloatImpl) ? ((CFloatImpl) a).expWithStats(expStats) : a.exp());
+    // printStatistics(expStats);
   }
 
   @Test
   public void powToTest() {
-    testOperator("powTo", ulpError(), (CFloat a, CFloat b) -> a.powTo(b));
-    // printStatistics(MyFloat.powStats);
+    Map<Integer, Integer> powStats = new HashMap<>();
+    testOperator(
+        "powTo",
+        ulpError(),
+        (CFloat a, CFloat b) ->
+            (a instanceof CFloatImpl) ? ((CFloatImpl) a).powToWithStats(b, powStats) : a.powTo(b));
+    // printStatistics(powStats);
   }
 
   @Test

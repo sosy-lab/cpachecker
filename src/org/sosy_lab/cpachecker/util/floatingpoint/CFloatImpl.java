@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.Map;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
@@ -34,12 +36,17 @@ public class CFloatImpl extends CFloat {
   }
 
   public CFloatImpl(String repr, int pType) {
-    delegate = parseFloat(repr, toMathContext(CFloatNativeAPI.toNativeType(pType)));
+    delegate = parseFloat(repr, toMathContext(CFloatNativeAPI.toNativeType(pType)), null);
     wrapper = fromImpl(delegate);
   }
 
   public CFloatImpl(String repr, BinaryMathContext pFormat) {
-    delegate = parseFloat(repr, pFormat);
+    delegate = parseFloat(repr, pFormat, null);
+    wrapper = fromImpl(delegate);
+  }
+
+  public CFloatImpl(String repr, BinaryMathContext pFormat, Map<Integer, Integer> fromStringStats) {
+    delegate = parseFloat(repr, pFormat, fromStringStats);
     wrapper = fromImpl(delegate);
   }
 
@@ -127,7 +134,8 @@ public class CFloatImpl extends CFloat {
     return val.bitCount() > 1 ? r + 1 : r;
   }
 
-  private FloatP parseFloat(String repr, BinaryMathContext pFormat) {
+  private FloatP parseFloat(
+      String repr, BinaryMathContext pFormat, @Nullable Map<Integer, Integer> fromStringMap) {
     Format format = new Format(calculateExpWidth(pFormat), pFormat.precision - 1);
     if ("nan".equals(repr)) {
       return FloatP.nan(format);
@@ -144,7 +152,7 @@ public class CFloatImpl extends CFloat {
     if ("0.0".equals(repr)) {
       return FloatP.zero(format);
     }
-    return FloatP.fromString(format, repr);
+    return FloatP.fromStringWithStats(format, repr, fromStringMap);
   }
 
   @Override
@@ -226,9 +234,19 @@ public class CFloatImpl extends CFloat {
     return new CFloatImpl(delegate.ln());
   }
 
+  /** See {@link FloatP#lnWithStats} */
+  CFloat lnWithStats(Map<Integer, Integer> lnStats) {
+    return new CFloatImpl(delegate.lnWithStats(lnStats));
+  }
+
   @Override
   public CFloat exp() {
     return new CFloatImpl(delegate.exp());
+  }
+
+  /** See {@link FloatP#expWithStats} */
+  CFloat expWithStats(Map<Integer, Integer> expStats) {
+    return new CFloatImpl(delegate.expWithStats(expStats));
   }
 
   @Override
@@ -238,6 +256,17 @@ public class CFloatImpl extends CFloat {
       FloatP arg1 = delegate.withPrecision(p);
       FloatP arg2 = myExponent.delegate.withPrecision(p);
       return new CFloatImpl(arg1.pow(arg2));
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  /** See {@link FloatP#powWithStats} */
+  CFloat powToWithStats(CFloat pExponent, Map<Integer, Integer> powStats) {
+    if (pExponent instanceof CFloatImpl myExponent) {
+      Format p = delegate.getFormat().sup(myExponent.delegate.getFormat());
+      FloatP arg1 = delegate.withPrecision(p);
+      FloatP arg2 = myExponent.delegate.withPrecision(p);
+      return new CFloatImpl(arg1.powWithStats(arg2, powStats));
     }
     throw new UnsupportedOperationException();
   }

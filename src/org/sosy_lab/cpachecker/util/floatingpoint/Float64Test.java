@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.Map;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,6 +50,11 @@ public class Float64Test extends AbstractCFloatTestBase {
   @Override
   public CFloat toTestedImpl(String repr) {
     return new CFloatImpl(repr, getFloatType());
+  }
+
+  @Override
+  protected CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats) {
+    return new CFloatImpl(repr, getFloatType(), fromStringStats);
   }
 
   @Override

@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 
@@ -109,38 +110,6 @@ class FloatP {
    * <p>Required by {@link FloatP#ln()} to rewrite ln(x)=ln(a*2^k) as ln(a) + k*ln(2)
    */
   private static final FloatP const_ln2 = make_ln2(Format.Float256);
-
-  /**
-   * Statistics for {@link FloatP#exp()}
-   *
-   * <p>Collects statistics about the number of additional bits required for correct rounding. This
-   * is used for optimization only.
-   */
-  static final Map<Integer, Integer> expStats = new HashMap<>();
-
-  /**
-   * Statistics for {@link FloatP#ln()}
-   *
-   * <p>Collects statistics about the number of additional bits required for correct rounding. This
-   * is used for optimization only.
-   */
-  static final Map<Integer, Integer> lnStats = new HashMap<>();
-
-  /**
-   * Statistics for {@link FloatP#pow(FloatP)}
-   *
-   * <p>Collects statistics about the number of additional bits required for correct rounding. This
-   * is used for optimization only.
-   */
-  static final Map<Integer, Integer> powStats = new HashMap<>();
-
-  /**
-   * Statistics for {@link FloatP#fromString(Format, String)}
-   *
-   * <p>Collects statistics about the number of additional bits required for correct rounding. This
-   * is used for optimization only.
-   */
-  static final Map<Integer, Integer> fromStringStats = new HashMap<>();
 
   /** Format, defines the precision of the value and the allowed exponent range. */
   private final Format format;
@@ -1161,7 +1130,17 @@ class FloatP {
     return equalModuloP(format, r, r.plus1Ulp());
   }
 
+  /** The exponential function e^x. */
   public FloatP exp() {
+    return expWithStats(null);
+  }
+
+  /**
+   * Calculates e^x and records how many extra bits of precision were needed.
+   *
+   * @param expStats Histogram with the number of extra bits used in all calls to exp()
+   */
+  FloatP expWithStats(@Nullable Map<Integer, Integer> expStats) {
     if (isZero()) {
       return one(format);
     }
@@ -1221,8 +1200,10 @@ class FloatP {
           r = v1;
 
           // Update statistics
-          Integer k = p.sigBits - format.sigBits;
-          expStats.put(k, expStats.getOrDefault(k, 0) + 1);
+          if (expStats != null) {
+            Integer k = p.sigBits - format.sigBits;
+            expStats.put(k, expStats.getOrDefault(k, 0) + 1);
+          }
         }
       }
     }
@@ -1326,7 +1307,17 @@ class FloatP {
     return r;
   }
 
+  /** The natural logarithm ln(x). */
   public FloatP ln() {
+    return lnWithStats(null);
+  }
+
+  /**
+   * Calculates ln(x) and records how many extra bits of precision were needed.
+   *
+   * @param lnStats Histogram with the number of extra bits used in all calls to ln()
+   */
+  FloatP lnWithStats(@Nullable Map<Integer, Integer> lnStats) {
     if (isZero()) {
       return negativeInfinity(format);
     }
@@ -1386,8 +1377,10 @@ class FloatP {
           r = v1;
 
           // Update statistics
-          Integer k = p.sigBits - format.sigBits;
-          lnStats.put(k, lnStats.getOrDefault(k, 0) + 1);
+          if (lnStats != null) {
+            Integer k = p.sigBits - format.sigBits;
+            lnStats.put(k, lnStats.getOrDefault(k, 0) + 1);
+          }
         }
       }
     }
@@ -1470,7 +1463,17 @@ class FloatP {
     return r;
   }
 
+  /** The power function a^x. */
   public FloatP pow(FloatP pExponent) {
+    return powWithStats(pExponent, null);
+  }
+
+  /**
+   * Calculates a^x and records how many extra bits of precision were needed.
+   *
+   * @param powStats Histogram with the number of extra bits used in all calls to pow()
+   */
+  FloatP powWithStats(FloatP pExponent, @Nullable Map<Integer, Integer> powStats) {
     FloatP a = this;
     FloatP x = pExponent;
 
@@ -1546,7 +1549,7 @@ class FloatP {
       // TODO: Also include a^3/2 in this check?
       return a.sqrt();
     }
-    FloatP r = a.abs().pow_(pExponent);
+    FloatP r = a.abs().pow_(pExponent, powStats);
     if (a.isNegative()) {
       // Fix the sign if `a` was negative and x an integer
       r = r.withSign(x.isOddInteger());
@@ -1603,7 +1606,7 @@ class FloatP {
     return r.withPrecision(format);
   }
 
-  private FloatP pow_(FloatP pExponent) {
+  private FloatP pow_(FloatP pExponent, @Nullable Map<Integer, Integer> powStats) {
     /* For transcendental functions like pow(x) the calculation has to be repeated with increasing
      * precision until enough (valid) digits are available to round the value correctly. For this we
      * define a list of intermediate formats that was specially optimized for the precision of the
@@ -1672,7 +1675,9 @@ class FloatP {
           r = nearZero ? one(p).add(exlna1) : exlna1;
 
           // Update statistics
-          powStats.put(ext.sigBits, powStats.getOrDefault(0, ext.sigBits) + 1);
+          if (powStats != null) {
+            powStats.put(ext.sigBits, powStats.getOrDefault(0, ext.sigBits) + 1);
+          }
         }
       }
     }
@@ -1876,6 +1881,17 @@ class FloatP {
 
   /** Parse input string as a floating point number. */
   public static FloatP fromString(Format p, String input) {
+    return fromStringWithStats(p, input, null);
+  }
+
+  /**
+   * Parse the input string and records how many extra bits of precision were needed.
+   *
+   * @param fromStringStats Histogram with the number of extra bits used in all calls to
+   *     fromString()
+   */
+  static FloatP fromStringWithStats(
+      Format p, String input, @Nullable Map<Integer, Integer> fromStringStats) {
     // TODO: Add error handling for broken inputs.
     if ("inf".equals(input)) {
       return infinity(p);
@@ -2004,7 +2020,9 @@ class FloatP {
           r = sign ? val1.negate() : val1;
 
           // Update statistics
-          fromStringStats.put(diff, fromStringStats.getOrDefault(diff, 0) + 1);
+          if (fromStringStats != null) {
+            fromStringStats.put(diff, fromStringStats.getOrDefault(diff, 0) + 1);
+          }
         }
       }
     }
