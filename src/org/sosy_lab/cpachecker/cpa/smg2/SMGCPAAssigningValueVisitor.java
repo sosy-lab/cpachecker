@@ -14,7 +14,7 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -109,14 +110,17 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         Value rightValue = rightValueAndState.getValue();
         SMGState currentState = rightValueAndState.getState();
 
-        try {
+        List<SMGState> handledStates = ImmutableList.of(currentState);
+
+        // We handle non-equality assumptions a little differently, see below
+        if (!isNonEqualityAssumption(binaryOperator)) {
           // TODO: might be inefficient due to multiple checks for nested equality/inequality
           // expressions
           // Check SAT and add constraints if eligible (the method returns the initial state if we
           // don't
           // use a solver in this analysis. But also might return null for UNSAT)
-          Optional<List<SMGState>> maybeStatesWithConstraints =
-              Optional.ofNullable(addConstraintsAndCheckSat(currentState, pE));
+          Optional<SMGState> maybeStatesWithConstraints =
+              addConstraintsAndCheckSat(currentState, pE);
 
           if (maybeStatesWithConstraints.isEmpty()) {
             // Don't add any states as we know its UNSAT
@@ -124,43 +128,35 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           }
 
           // SAT, try to assign values
-          for (SMGState statesWithConstraints : maybeStatesWithConstraints.orElseThrow()) {
-            List<SMGState> handledStates = ImmutableList.of(statesWithConstraints);
+          SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
 
-            // (a == b) case
-            if (isEqualityAssumption(binaryOperator)) {
-              handledStates =
-                  handleEqualityAssumption(
-                      lVarInBinaryExp,
-                      leftValue,
-                      rVarInBinaryExp,
-                      rightValue,
-                      statesWithConstraints,
-                      edge);
-            }
-
-            // !(a == b) case
-            if (isNonEqualityAssumption(binaryOperator)) {
-              handledStates =
-                  handleInEqualityAssumption(
-                      lVarInBinaryExp,
-                      leftValue,
-                      rVarInBinaryExp,
-                      rightValue,
-                      statesWithConstraints,
-                      edge);
-            }
-
-            for (SMGState handledState : handledStates) {
-              // The states are set such that now we get the values we want in the value visitor
-              finalValueAndStateBuilder.addAll(
-                  pE.accept(
-                      new SMGCPAValueVisitor(
-                          evaluator, handledState, edge, logger, getInitialVisitorOptions())));
-            }
+          // (a == b) case
+          if (isEqualityAssumption(binaryOperator)) {
+            handledStates =
+                handleEqualityAssumption(
+                    lVarInBinaryExp,
+                    leftValue,
+                    rVarInBinaryExp,
+                    rightValue,
+                    stateWithConstraints,
+                    edge);
           }
-        } catch (InterruptedException | SolverException e) {
-          throw new SMGSolverException(e, currentState);
+        }
+
+        // !(a == b) case
+        if (isNonEqualityAssumption(binaryOperator)) {
+          // SAT check is performed inside
+          handledStates =
+              handleInEqualityAssumption(
+                  pE, lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState, edge);
+        }
+
+        for (SMGState handledState : handledStates) {
+          // The states are set such that now we get the values we want in the value visitor
+          finalValueAndStateBuilder.addAll(
+              pE.accept(
+                  new SMGCPAValueVisitor(
+                      evaluator, handledState, edge, logger, getInitialVisitorOptions())));
         }
       }
     }
@@ -279,6 +275,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * This might also happen after a SAT check, but then it is actually precise.
    */
   private List<SMGState> handleInEqualityAssumption(
+      CBinaryExpression originalExpr,
       CExpression lVarInBinaryExp,
       Value leftValue,
       CExpression rVarInBinaryExp,
@@ -287,10 +284,14 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       CFAEdge edge)
       throws CPATransferException {
     SMGState currentState = initialState;
-    ImmutableList.Builder<SMGState> retStatesBuilder = ImmutableList.builder();
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
 
-    if (isAssumptionComparedToZero(rightValue) && rightValue.isExplicitlyKnown()) {
+    // We choose our constraints depending on possible simplifications.
+    // Often we compare against 0 like this: !(x == 0), and x is only used as boolean variable.
+    // Now we could assign 1 to a variable x for example,
+    // we choose the constraint to be x == 1 instead of x != 0. This has to be SAT of course,
+    // or we are in value analysis.
+    if (isAssumptionComparedToZero(rightValue)) {
       // !(x == 0) or x != 0
       if (isEligibleForAssignment(leftValue, currentState)) {
         if (isNestingHandleable((CExpression) unwrap(lVarInBinaryExp))) {
@@ -307,16 +308,32 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             if (booleans.contains(leftMemLocName)
                 || getInitialVisitorOptions().isInitAssumptionVars()) {
 
+              // The constraint changed from the CExpression to x == 1
+              Optional<SMGState> maybeStatesWithConstraints =
+                  addConstraintsAndCheckSat(currentState, modifyInEqualityToEquality(originalExpr));
+
+              if (maybeStatesWithConstraints.isEmpty()) {
+                // Don't add any states as we know its UNSAT
+                return ImmutableList.of();
+              }
+
+              // SAT, try to assign values
+              SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
+
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(currentState, type));
-              currentState =
-                  currentState.writeValueWithChecks(
+              Value size = new NumericValue(evaluator.getBitSizeof(stateWithConstraints, type));
+              stateWithConstraints =
+                  stateWithConstraints.writeValueWithChecks(
                       leftHandSideAssignment.getSMGObject(),
                       leftHandSideAssignment.getOffsetForObject(),
                       size,
                       new NumericValue(1L),
                       type,
                       edge);
+
+              // TODO: possibly do not return constraints if we assign to a variable with a symbolic
+              // expression that is only used there
+              return ImmutableList.of(stateWithConstraints);
             }
           }
         }
@@ -341,25 +358,108 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
             if (isAssignable(rightHandSideAssignments)) {
 
+              // Constraint changed
+              Optional<SMGState> maybeStatesWithConstraints =
+                  addConstraintsAndCheckSat(currentState, modifyInEqualityToEquality(originalExpr));
+
+              if (maybeStatesWithConstraints.isEmpty()) {
+                // Don't add any states as we know its UNSAT
+                return ImmutableList.of();
+              }
+
+              // SAT, try to assign values
+              SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
+
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(currentState, type));
-              currentState =
-                  currentState.writeValueWithChecks(
+              Value size = new NumericValue(evaluator.getBitSizeof(stateWithConstraints, type));
+              stateWithConstraints =
+                  stateWithConstraints.writeValueWithChecks(
                       rightHandSideAssignment.getSMGObject(),
                       rightHandSideAssignment.getOffsetForObject(),
                       size,
                       new NumericValue(1L),
                       type,
                       edge);
+              // TODO: possibly do not return constraints if we assign to a variable with a symbolic
+              // expression that is only used there
+              return ImmutableList.of(stateWithConstraints);
             }
           }
         }
       }
     }
     // TODO: add nesting update here as well, or pull it out and do it before assigning anything
-    retStatesBuilder.add(currentState);
 
-    return retStatesBuilder.build();
+    // TODO: might be inefficient due to multiple checks for nested equality/inequality
+    // expressions
+    // Check SAT and add constraints if eligible (the method returns the initial state if we
+    // don't
+    // use a solver in this analysis. But also might return null for UNSAT)
+    // The expression/constraint we add might be changed, depending on the above
+    Optional<SMGState> maybeStatesWithConstraints =
+        addConstraintsAndCheckSat(currentState, originalExpr);
+
+    if (maybeStatesWithConstraints.isEmpty()) {
+      // Don't add any states as we know its UNSAT
+      return ImmutableList.of();
+    }
+
+    // SAT but nothing to assign
+    return ImmutableList.of(maybeStatesWithConstraints.orElseThrow());
+  }
+
+  private CBinaryExpression modifyInEqualityToEquality(CBinaryExpression inequalityExpr) {
+    // We expect an expression of the form !(a == b) with a or b being 0, to be switched to 1
+    BinaryOperator binaryOperator = inequalityExpr.getOperator();
+    CExpression lVarInBinaryExp = inequalityExpr.getOperand1();
+    CExpression rVarInBinaryExp = inequalityExpr.getOperand2();
+    CIntegerLiteralExpression oneIntLiteral = CIntegerLiteralExpression.ONE;
+    if (binaryOperator == BinaryOperator.EQUALS && !truthValue) {
+      if (lVarInBinaryExp instanceof CIntegerLiteralExpression lIntLit
+          && lIntLit.getValue().equals(BigInteger.ZERO)) {
+        return new CBinaryExpression(
+            inequalityExpr.getFileLocation(),
+            inequalityExpr.getExpressionType(),
+            inequalityExpr.getCalculationType(),
+            oneIntLiteral,
+            rVarInBinaryExp,
+            BinaryOperator.NOT_EQUALS);
+      } else {
+        Preconditions.checkArgument(
+            rVarInBinaryExp instanceof CIntegerLiteralExpression rIntLit
+                && rIntLit.getValue().equals(BigInteger.ZERO));
+        return new CBinaryExpression(
+            inequalityExpr.getFileLocation(),
+            inequalityExpr.getExpressionType(),
+            inequalityExpr.getCalculationType(),
+            lVarInBinaryExp,
+            oneIntLiteral,
+            BinaryOperator.NOT_EQUALS);
+      }
+    } else {
+      Preconditions.checkArgument(binaryOperator == BinaryOperator.NOT_EQUALS && truthValue);
+      if (lVarInBinaryExp instanceof CIntegerLiteralExpression lIntLit
+          && lIntLit.getValue().equals(BigInteger.ZERO)) {
+        return new CBinaryExpression(
+            inequalityExpr.getFileLocation(),
+            inequalityExpr.getExpressionType(),
+            inequalityExpr.getCalculationType(),
+            oneIntLiteral,
+            rVarInBinaryExp,
+            BinaryOperator.EQUALS);
+      } else {
+        Preconditions.checkArgument(
+            rVarInBinaryExp instanceof CIntegerLiteralExpression rIntLit
+                && rIntLit.getValue().equals(BigInteger.ZERO));
+        return new CBinaryExpression(
+            inequalityExpr.getFileLocation(),
+            inequalityExpr.getExpressionType(),
+            inequalityExpr.getCalculationType(),
+            lVarInBinaryExp,
+            oneIntLiteral,
+            BinaryOperator.EQUALS);
+      }
+    }
   }
 
   /**
@@ -540,38 +640,45 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   /**
    * Checks satisfiablity for the given CExpression on the given SMGState (existing constraints).
    * Adds the constraints to the state(s) if SAT and returns the state(s). If there is no SAT state,
-   * returns null. Returns the initial, unchanged state if we don't track predicates.
+   * returns an empty Optional. Returns the initial, unchanged state if we don't track predicates.
    */
-  @Nullable
-  private List<SMGState> addConstraintsAndCheckSat(SMGState currentState, CExpression cExpression)
-      throws CPATransferException, SolverException, InterruptedException {
+  private Optional<SMGState> addConstraintsAndCheckSat(
+      SMGState initialState, CExpression cExpression) throws CPATransferException {
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
-    if (getInitialVisitorOptions().trackPredicates()) {
-      // Symbolic Execution for assumption edges, use previous state and values
-      Collection<SMGState> statesWithConstraints =
-          computeNewStateByCreatingConstraint(
-              currentState, cExpression, truthValue, getInitialVisitorCFAEdge());
+    try {
+      if (getInitialVisitorOptions().trackPredicates()) {
+        // Symbolic Execution for assumption edges
+        Collection<SMGState> statesWithConstraints =
+            computeNewStateByCreatingConstraint(
+                initialState, cExpression, truthValue, getInitialVisitorCFAEdge());
+        Preconditions.checkArgument(statesWithConstraints.size() == 1);
 
-      for (SMGState stateWithConstraint : statesWithConstraints) {
-        if (getInitialVisitorOptions().isSatCheckStrategyAtAssume()) {
-          SolverResult solverResult =
-              solver.checkUnsat(stateWithConstraint.getConstraints(), callerFunctionName);
-          if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
-            resultStateBuilder.add(
-                stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
-                    solverResult.definiteAssignments(), solverResult.model()));
+        for (SMGState stateWithConstraint : statesWithConstraints) {
+          if (getInitialVisitorOptions().isSatCheckStrategyAtAssume()) {
+            SolverResult solverResult =
+                solver.checkUnsat(stateWithConstraint.getConstraints(), callerFunctionName);
+            if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
+              resultStateBuilder.add(
+                  stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
+                      solverResult.definiteAssignments(), solverResult.model()));
+            }
+            // We might add/return nothing here if the check was UNSAT
+          } else {
+            // If either we don't check SAT or the path is SAT we return the state
+            resultStateBuilder.add(stateWithConstraint);
           }
-          // We might add/return nothing here if the check was UNSAT
-        } else {
-          // If either we don't check SAT or the path is SAT we return the state
-          resultStateBuilder.add(stateWithConstraint);
         }
+      } else {
+        // return ImmutableList.of(currentState);
+        return Optional.of(initialState);
       }
-    } else {
-      return ImmutableList.of(currentState);
+      // TODO: replace this ugliness once we know its only ever 1 returned state
+      ImmutableList<SMGState> returnList = resultStateBuilder.build();
+      return returnList.isEmpty() ? Optional.empty() : Optional.of(returnList.get(0));
+
+    } catch (InterruptedException | SolverException e) {
+      throw new SMGSolverException(e, initialState);
     }
-    ImmutableList<SMGState> returnList = resultStateBuilder.build();
-    return returnList.isEmpty() ? null : returnList;
   }
 
   // ######### Constraint creation for Symbolic Execution #########
