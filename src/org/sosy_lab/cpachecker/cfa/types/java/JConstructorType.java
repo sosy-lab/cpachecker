@@ -8,16 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /** Description of a constructor method of a Java class. */
 public final class JConstructorType extends JMethodType {
 
   private static final long serialVersionUID = -6996173000501454098L;
-
-  private static final JConstructorType UNRESOLVABLE_TYPE =
-      new JConstructorType(JClassType.createUnresolvableType(), new ArrayList<>(), false);
 
   /**
    * Creates a new <code>JConstructorType</code> object with the given attributes.
@@ -36,15 +32,6 @@ public final class JConstructorType extends JMethodType {
   @Override
   public JClassOrInterfaceType getReturnType() {
     return (JClassOrInterfaceType) super.getReturnType();
-  }
-
-  /**
-   * Returns a <code>JContructorType</code> instance describing an unresolvable constructor.
-   *
-   * @return a <code>JContructorType</code> instance describing an unresolvable constructor
-   */
-  public static JConstructorType createUnresolvableConstructorType() {
-    return UNRESOLVABLE_TYPE;
   }
 
   @Override

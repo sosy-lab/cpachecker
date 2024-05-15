@@ -37,17 +37,6 @@ public final class JClassType extends JClassOrInterfaceType {
   private static final String NAME_OF_CLASS_OBJECT = "java.lang.Object";
   private static final String SIMPLE_NAME_OF_CLASS_OBJECT = "Object";
 
-  private static final JClassType UNRESOLVABLE_TYPE =
-      new JClassType(
-          "_unspecified_",
-          "_unspecified_",
-          VisibilityModifier.NONE,
-          false,
-          false,
-          false,
-          JClassType.createObjectType(),
-          new HashSet<>());
-
   private final boolean isFinal;
   private final boolean isAbstract;
   private final boolean isStrictFp;
@@ -131,11 +120,10 @@ public final class JClassType extends JClassOrInterfaceType {
    * Returns a new <code>JClassType</code> instance that describes the class <code>java.lang.Object
    * </code>. The returned instance will be a fresh Object that is not associated with any
    * subclasses (yet). To get access to the class Object that was initialized with the current
-   * verification run's type hierarchy, use {@link TypeHierarchy#getClassTypeOfObject()}.
+   * verification run's type hierarchy, use TypeHierarchy#getClassTypeOfObject()
    *
    * @return a <code>JClassType</code> instance that describes the class <code>java.lang.Object
    *     </code>
-   * @see TypeHierarchy#getClassTypeOfObject()
    */
   public static JClassType createObjectType() {
     return new JClassType();
@@ -422,15 +410,6 @@ public final class JClassType extends JClassOrInterfaceType {
     }
 
     return result;
-  }
-
-  /**
-   * Returns a <code>JClassType</code> instance that describes an unresolvable class.
-   *
-   * @return a <code>JClassType</code> instance that describes an unresolvable class
-   */
-  public static JClassType createUnresolvableType() {
-    return UNRESOLVABLE_TYPE;
   }
 
   @Override
