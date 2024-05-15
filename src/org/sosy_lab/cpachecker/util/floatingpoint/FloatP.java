@@ -1261,7 +1261,7 @@ class FloatP {
   /**
    * Helper method that calculates e^x or e^x - 1, depending on the argument.
    *
-   * @param k The first term of the expansion. Should be 0 for exp and 1 for expm1.
+   * @param skipTerm1 Subtract one calculate e^x - 1 if true
    */
   private FloatP expImpl(boolean skipTerm1) {
     if (isNan()) {
