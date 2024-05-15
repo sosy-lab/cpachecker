@@ -38,7 +38,7 @@ cd mpfr-4.2.1/
 ```
 Then build the library and copy it to the CPAchecker folder:
 ```
-/.configure
+./configure
 make
 chmod 644 src/.libs/libmpfr.so.6.2.1 
 cp src/.libs/libmpfr.so.6.2.1 $CPACHECKER/lib/native/x86_64-linux/libmpfr.so
