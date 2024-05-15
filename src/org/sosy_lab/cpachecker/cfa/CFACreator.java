@@ -313,6 +313,8 @@ public class CFACreator {
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
 
+  private Language inputLanguage = Language.C;
+
   // data structures for parsing ACSL annotations
   private final List<FileLocation> commentPositions = new ArrayList<>();
   private final List<SyntacticBlock> blocks = new ArrayList<>();
@@ -394,6 +396,7 @@ public class CFACreator {
 
     stats.parserInstantiationTime.start();
     String regExPattern;
+    inputLanguage = language;
     switch (language) {
       case JAVA:
         regExPattern = "^" + VALID_JAVA_FUNCTION_NAME_PATTERN + "$";
@@ -582,6 +585,7 @@ public class CFACreator {
         CfaMetadata.forMandatoryAttributes(
             machineModel,
             language,
+            inputLanguage,
             pParseResult.fileNames(),
             mainFunction,
             CfaConnectedness.UNCONNECTED_FUNCTIONS);

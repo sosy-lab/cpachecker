@@ -421,7 +421,7 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
-        if (cfa.getLanguage() == Language.C) {
+        if (cfa.getMetadata().getInputLanguage() == Language.C) {
           if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
             try {
               argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
