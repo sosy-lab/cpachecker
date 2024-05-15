@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.TypeHierarchy;
 
 /**
  * Description of a Java class through its properties.
@@ -86,7 +85,6 @@ public final class JClassType extends JClassOrInterfaceType {
 
     pSuperClass.registerSubType(this);
     notifyImplementedInterfacesOfThisClass();
-    checkSuperClassConsistency();
   }
 
   JClassType(
@@ -115,23 +113,6 @@ public final class JClassType extends JClassOrInterfaceType {
 
     pSuperClass.registerSubType(this);
     notifyImplementedInterfacesOfThisClass();
-    checkSuperClassConsistency();
-  }
-
-  private void checkSuperClassConsistency() {
-    Set<JClassType> found = new HashSet<>();
-
-    JClassType nextSuperClass = superClass;
-
-    while (nextSuperClass != null) {
-      found.add(nextSuperClass);
-      nextSuperClass = nextSuperClass.getParentClass();
-      checkArgument(
-          !found.contains(this), "Class %s may not be a super class of itself.", getName());
-    }
-
-    checkArgument(
-        found.contains(createObjectType()), "Class %s must be a sub class of Object", getName());
   }
 
   // Creates the object describing java.lang.Object
