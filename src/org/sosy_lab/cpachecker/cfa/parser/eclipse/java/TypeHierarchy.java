@@ -178,6 +178,11 @@ final class TypeHierarchy {
     return (JClassType) types.get(pTypeName);
   }
 
+  /** Returns the class type of the Java 'Object' type. */
+  public JClassType getClassTypeOfObject() {
+    return typeTable.getTypeOfObject();
+  }
+
   void updateTypeHierarchy(ITypeBinding classOrInterfaceBinding) {
 
     checkNotNull(classOrInterfaceBinding);
@@ -242,9 +247,11 @@ final class TypeHierarchy {
     private final Map<JClassOrInterfaceType, ImmutableSet<JFieldDeclaration>>
         fieldDeclarationsOfType = new HashMap<>();
 
+    private final JClassType objectType;
+
     private THTypeTable() {
       // Create the Object Type.
-      JClassType objectType = JClassType.getTypeOfObject();
+      objectType = JClassType.createObjectType();
       registerType(objectType);
     }
 
@@ -305,6 +312,10 @@ final class TypeHierarchy {
 
     public JClassOrInterfaceType getType(String typeName) {
       return types.get(typeName);
+    }
+
+    public JClassType getTypeOfObject() {
+      return objectType;
     }
 
     public Map<JClassOrInterfaceType, Set<JMethodDeclaration>> getMethodDeclarationsOfType() {

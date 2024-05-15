@@ -110,7 +110,7 @@ class THTypeConverter extends TypeConverter {
 
     JClassType jTypeOfSuperClass;
     if ("java.lang.Object".equals(superclass.getName())) {
-      jTypeOfSuperClass = JClassType.getTypeOfObject();
+      jTypeOfSuperClass = typeTable.getTypeOfObject();
     } else {
       jTypeOfSuperClass = createJClassTypeFromClass(superclass);
     }

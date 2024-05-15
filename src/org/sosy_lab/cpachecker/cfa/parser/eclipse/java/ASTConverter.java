@@ -1478,7 +1478,7 @@ class ASTConverter {
     return jClassTypeFromClass;
   }
 
-  public static JClassType createJClassTypeFromClass(
+  public JClassType createJClassTypeFromClass(
       final Class<?> pClazz,
       VisibilityModifier pVisibilityModifier,
       final TypeHierarchy pTypeHierarchy) {
@@ -1491,7 +1491,7 @@ class ASTConverter {
     final Class<?> superclass = pClazz.getSuperclass();
 
     JClassType jTypeOfSuperClass;
-    final JClassType typeOfObject = JClassType.getTypeOfObject();
+    final JClassType typeOfObject = scope.getTypeHierarchy().getClassTypeOfObject();
     if ("java.lang.Object".equals(superclass.getName())) {
       jTypeOfSuperClass = typeOfObject;
     } else {

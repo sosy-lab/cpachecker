@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.TypeHierarchy;
 
 /**
  * Description of a Java class through its properties.
@@ -45,7 +46,7 @@ public final class JClassType extends JClassOrInterfaceType {
           false,
           false,
           false,
-          JClassType.getTypeOfObject(),
+          JClassType.createObjectType(),
           new HashSet<>());
 
   private final boolean isFinal;
@@ -130,7 +131,7 @@ public final class JClassType extends JClassOrInterfaceType {
     }
 
     checkArgument(
-        found.contains(getTypeOfObject()), "Class %s must be a sub class of Object", getName());
+        found.contains(createObjectType()), "Class %s must be a sub class of Object", getName());
   }
 
   // Creates the object describing java.lang.Object
@@ -146,13 +147,16 @@ public final class JClassType extends JClassOrInterfaceType {
   }
 
   /**
-   * Returns a <code>JClassType</code> instance that describes the class <code>java.lang.Object
-   * </code>.
+   * Returns a new <code>JClassType</code> instance that describes the class <code>java.lang.Object
+   * </code>. The returned instance will be a fresh Object that is not associated with any
+   * subclasses (yet). To get access to the class Object that was initialized with the current
+   * verification run's type hierarchy, use {@link TypeHierarchy#getClassTypeOfObject()}.
    *
    * @return a <code>JClassType</code> instance that describes the class <code>java.lang.Object
    *     </code>
+   * @see TypeHierarchy#getClassTypeOfObject()
    */
-  public static JClassType getTypeOfObject() {
+  public static JClassType createObjectType() {
     return new JClassType();
   }
 
@@ -338,6 +342,7 @@ public final class JClassType extends JClassOrInterfaceType {
   }
 
   private void registerSubType(JClassType pChild) {
+    checkArgument(!directSubClasses.contains(pChild));
     directSubClasses.add(pChild);
   }
 

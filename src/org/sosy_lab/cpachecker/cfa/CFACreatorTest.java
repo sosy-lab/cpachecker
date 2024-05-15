@@ -61,7 +61,7 @@ public class CFACreatorTest {
           false,
           false,
           false,
-          JClassType.getTypeOfObject(),
+          JClassType.createObjectType(),
           ImmutableSet.of());
 
   private JMethodEntryNode N1;
