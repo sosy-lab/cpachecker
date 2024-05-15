@@ -338,7 +338,6 @@ class MpfrFloat extends CFloat {
     throw new IllegalArgumentException();
   }
 
-  @Override
   public BigFloat toBigFloat() {
     return value;
   }

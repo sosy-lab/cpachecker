@@ -87,6 +87,41 @@ abstract class AbstractCFloatTestBase {
   /** Return the reference implementation used by the test. */
   protected abstract ReferenceImpl getRefImpl();
 
+  protected BigFloat toBigFloat(CFloat value) {
+    if (value instanceof MpfrFloat val) {
+      return val.toBigFloat();
+    } else if (value instanceof  CFloatImpl val) {
+      int sigBits = val.getValue().getFormat().sigBits();
+      int expBits = val.getValue().getFormat().expBits();
+      BinaryMathContext context = new BinaryMathContext(sigBits + 1, expBits);
+        if (val.isNan()) {
+          return val.isNegative()
+                 ? BigFloat.NaN(context.precision).negate()
+                 : BigFloat.NaN(context.precision);
+        }
+        if (val.isInfinity()) {
+          return val.isNegative()
+                 ? BigFloat.negativeInfinity(context.precision)
+                 : BigFloat.positiveInfinity(context.precision);
+        }
+        return new BigFloat(val.isNegative(), val.getValue().extractSigBits(), val.getValue().extractExpBits(), context);
+    } else {
+      // We have either a CFloatNative or a JFloat/JDouble and only need to support single and
+      // double precision
+      CNativeType toType = CFloatNativeAPI.toNativeType(value.getType());
+      return switch (toType) {
+        case SINGLE -> new BigFloat(value.toFloat(), BinaryMathContext.BINARY32);
+        case DOUBLE -> new BigFloat(value.toDouble(), BinaryMathContext.BINARY64);
+        case LONG_DOUBLE -> throw new UnsupportedOperationException();
+        default -> throw new IllegalArgumentException();
+      };
+    }
+  }
+
+  protected Integer toInteger(CFloat value) {
+    return toBigFloat(value).intValue();
+  }
+
   /** Pretty printer for BigFloat type */
   private static String printBigFloat(BigFloat value) {
     if (value.isNaN()) {
@@ -290,7 +325,7 @@ abstract class AbstractCFloatTestBase {
     ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
       CFloat ref = toReferenceImpl(arg);
-      BigFloat result = operator.apply(ref).toBigFloat();
+      BigFloat result = toBigFloat(operator.apply(ref));
       testBuilder.add(new TestValue<>(arg, result));
     }
     ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
@@ -300,7 +335,7 @@ abstract class AbstractCFloatTestBase {
         CFloat tested = toTestedImpl(test.arg1());
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
-          result = operator.apply(tested).toBigFloat();
+          result = toBigFloat(operator.apply(tested));
         } catch (Throwable t) {
           String testHeader = printTestHeader(name, test.arg1());
           assertWithMessage(testHeader + t).fail();
@@ -333,7 +368,7 @@ abstract class AbstractCFloatTestBase {
       for (BigFloat arg2 : binaryTestValues()) {
         CFloat ref1 = toReferenceImpl(arg1);
         CFloat ref2 = toReferenceImpl(arg2);
-        BigFloat result = operator.apply(ref1, ref2).toBigFloat();
+        BigFloat result = toBigFloat(operator.apply(ref1, ref2));
         testBuilder.add(new TestValue<>(arg1, arg2, result));
       }
     }
@@ -345,7 +380,7 @@ abstract class AbstractCFloatTestBase {
         CFloat tested2 = toTestedImpl(test.arg2());
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
-          result = operator.apply(tested1, tested2).toBigFloat();
+          result = toBigFloat(operator.apply(tested1, tested2));
         } catch (Throwable t) {
           String testHeader = printTestHeader(name, test.arg1(), test.arg2());
           assertWithMessage(testHeader + t).fail();
@@ -524,7 +559,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   protected void assertEqual1Ulp(CFloat r1, CFloat r2) {
-    assertThat(printValue(r1.toBigFloat())).isIn(errorRange(ulpError(), r2.toBigFloat()));
+    assertThat(printValue(toBigFloat(r1))).isIn(errorRange(ulpError(), toBigFloat(r2)));
   }
 
   protected abstract CFloat toTestedImpl(BigFloat value);
@@ -549,7 +584,7 @@ abstract class AbstractCFloatTestBase {
   public void fromStringTest() {
     ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
-      BigFloat result = toReferenceImpl(printBigFloat(arg)).toBigFloat();
+      BigFloat result = toBigFloat(toReferenceImpl(printBigFloat(arg)));
       testBuilder.add(new TestValue<>(arg, result));
     }
     ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
@@ -559,7 +594,7 @@ abstract class AbstractCFloatTestBase {
       try {
         BigFloat result = BigFloat.NaN(getFloatType().precision);
         try {
-          result = toTestedImpl(printBigFloat(test.arg1()), fromStringStats).toBigFloat();
+          result = toBigFloat(toTestedImpl(printBigFloat(test.arg1()), fromStringStats));
         } catch (Throwable t) {
           String testHeader = printTestHeader("fromString", test.arg1());
           assertWithMessage(testHeader + t).fail();
@@ -697,7 +732,7 @@ abstract class AbstractCFloatTestBase {
         "powToInteger",
         0,
         // FIXME: Find a better way to skip the test if x is NaN or infinite
-        (CFloat a, CFloat b) -> (b.isNan() || b.isInfinity()) ? a : a.powToIntegral(b.toInteger()));
+        (CFloat a, CFloat b) -> (b.isNan() || b.isInfinity()) ? a : a.powToIntegral(toInteger(b)));
   }
 
   @Test

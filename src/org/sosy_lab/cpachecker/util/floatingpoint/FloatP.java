@@ -1878,21 +1878,6 @@ class FloatP {
     return new FloatP(p, pValue.sign(), exp, sig);
   }
 
-  public BigFloat toBigFloat() {
-    BinaryMathContext context = new BinaryMathContext(format.sigBits + 1, format.expBits);
-    if (isNan()) {
-      return isNegative()
-          ? BigFloat.NaN(context.precision).negate()
-          : BigFloat.NaN(context.precision);
-    }
-    if (isInfinite()) {
-      return isNegative()
-          ? BigFloat.negativeInfinity(context.precision)
-          : BigFloat.positiveInfinity(context.precision);
-    }
-    return new BigFloat(sign, significand, exponent, context);
-  }
-
   /** Parse input string as a floating point number. */
   public static FloatP fromString(Format p, String input) {
     return fromStringWithStats(p, input, null);
@@ -2136,7 +2121,7 @@ class FloatP {
   }
 
   long extractExpBits() {
-    return exponent + format.bias();
+    return exponent;
   }
 
   BigInteger extractSigBits() {

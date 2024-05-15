@@ -121,7 +121,7 @@ public class CFloatImpl extends CFloat {
     }
     if (new Format(15, 63).equals(floatValue.getFormat())) {
       long signBit = floatValue.isNegative() ? 1 << 15 : 0;
-      long exponent = signBit + floatValue.extractExpBits();
+      long exponent = signBit + floatValue.extractExpBits() + floatValue.getFormat().bias();
       long mantissa = floatValue.extractSigBits().longValue();
       return new CFloatWrapper(exponent, mantissa);
     }
@@ -402,11 +402,6 @@ public class CFloatImpl extends CFloat {
       return delegate.greaterThan(myOther.delegate);
     }
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public BigFloat toBigFloat() {
-    return delegate.toBigFloat();
   }
 
   @Override
