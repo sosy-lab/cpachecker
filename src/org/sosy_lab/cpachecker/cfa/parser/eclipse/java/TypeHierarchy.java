@@ -292,7 +292,7 @@ final class TypeHierarchy {
               false,
               false,
               false,
-              JClassType.createObjectType(),
+              objectType,
               new HashSet<>());
 
       JMethodType unresolvableMethodType =
