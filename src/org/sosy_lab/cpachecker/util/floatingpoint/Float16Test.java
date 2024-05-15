@@ -58,11 +58,6 @@ public class Float16Test extends AbstractCFloatTestBase {
     return allFloats(getFloatType());
   }
 
-  @Override
-  protected int ulpError() {
-    return 0;
-  }
-
   @Ignore
   @Override
   @Test

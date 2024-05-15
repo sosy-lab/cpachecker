@@ -64,11 +64,6 @@ public class Float32Test extends AbstractCFloatTestBase {
     };
   }
 
-  @Override
-  protected int ulpError() {
-    return refImpl == ReferenceImpl.MPFR ? 0 : 1;
-  }
-
   @Test
   public void overflowTest() {
     // Should overflow as the exponents add up to 127 in binary and the product of th significands
