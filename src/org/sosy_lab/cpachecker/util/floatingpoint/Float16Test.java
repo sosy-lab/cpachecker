@@ -12,10 +12,6 @@ import java.util.List;
 import java.util.Map;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 
@@ -26,24 +22,15 @@ import org.kframework.mpfr.BinaryMathContext;
  * support for 16 bit floats. Unary methods are tested exhaustively, for binary methods we generate
  * around 50k test values.
  */
-@RunWith(Parameterized.class)
 public class Float16Test extends AbstractCFloatTestBase {
   @Override
   protected BinaryMathContext getFloatType() {
     return BinaryMathContext.BINARY16;
   }
 
-  @Parameters(name = "{0}")
-  public static ReferenceImpl[] getReferences() {
-    return new ReferenceImpl[] {ReferenceImpl.MPFR};
-  }
-
-  @Parameter(0)
-  public ReferenceImpl refImpl;
-
   @Override
   protected ReferenceImpl getRefImpl() {
-    return refImpl;
+    return ReferenceImpl.MPFR;
   }
 
   @Override
