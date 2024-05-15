@@ -90,21 +90,25 @@ abstract class AbstractCFloatTestBase {
   protected BigFloat toBigFloat(CFloat value) {
     if (value instanceof MpfrFloat val) {
       return val.toBigFloat();
-    } else if (value instanceof  CFloatImpl val) {
+    } else if (value instanceof CFloatImpl val) {
       int sigBits = val.getValue().getFormat().sigBits();
       int expBits = val.getValue().getFormat().expBits();
       BinaryMathContext context = new BinaryMathContext(sigBits + 1, expBits);
-        if (val.isNan()) {
-          return val.isNegative()
-                 ? BigFloat.NaN(context.precision).negate()
-                 : BigFloat.NaN(context.precision);
-        }
-        if (val.isInfinity()) {
-          return val.isNegative()
-                 ? BigFloat.negativeInfinity(context.precision)
-                 : BigFloat.positiveInfinity(context.precision);
-        }
-        return new BigFloat(val.isNegative(), val.getValue().extractSigBits(), val.getValue().extractExpBits(), context);
+      if (val.isNan()) {
+        return val.isNegative()
+            ? BigFloat.NaN(context.precision).negate()
+            : BigFloat.NaN(context.precision);
+      }
+      if (val.isInfinity()) {
+        return val.isNegative()
+            ? BigFloat.negativeInfinity(context.precision)
+            : BigFloat.positiveInfinity(context.precision);
+      }
+      return new BigFloat(
+          val.isNegative(),
+          val.getValue().extractSigBits(),
+          val.getValue().extractExpBits(),
+          context);
     } else {
       // We have either a CFloatNative or a JFloat/JDouble and only need to support single and
       // double precision
