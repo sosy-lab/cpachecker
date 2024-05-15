@@ -151,13 +151,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                       edge);
             }
 
-              for (SMGState handledState : handledStates) {
-                // The states are set such that now we get the values we want in the value visitor
-                finalValueAndStateBuilder.addAll(
-                    pE.accept(
-                        new SMGCPAValueVisitor(
-                            evaluator, handledState, edge, logger, getInitialVisitorOptions())));
-              }
+            for (SMGState handledState : handledStates) {
+              // The states are set such that now we get the values we want in the value visitor
+              finalValueAndStateBuilder.addAll(
+                  pE.accept(
+                      new SMGCPAValueVisitor(
+                          evaluator, handledState, edge, logger, getInitialVisitorOptions())));
+            }
           }
         } catch (InterruptedException | SolverException e) {
           throw new SMGSolverException(e, currentState);
