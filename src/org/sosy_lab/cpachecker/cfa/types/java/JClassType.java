@@ -340,7 +340,6 @@ public final class JClassType extends JClassOrInterfaceType {
   }
 
   private void registerSubType(JClassType pChild) {
-    checkArgument(!directSubClasses.contains(pChild));
     directSubClasses.add(pChild);
   }
 
