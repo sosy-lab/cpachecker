@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffs
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -318,12 +319,19 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               }
 
               // SAT, try to assign values
-              SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
+              SMGState stateToAssign = maybeStatesWithConstraints.orElseThrow();
+
+              if (leftValue instanceof ConstantSymbolicExpression
+                  && currentState.getNumberOfValueUsages(leftValue) == 1
+                  && !currentState.valueContainedInConstraints(leftValue)) {
+                // Its SAT, but we don't need to remember the constraint
+                stateToAssign = currentState;
+              }
 
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(stateWithConstraints, type));
-              stateWithConstraints =
-                  stateWithConstraints.writeValueWithChecks(
+              Value size = new NumericValue(evaluator.getBitSizeof(stateToAssign, type));
+              stateToAssign =
+                  stateToAssign.writeValueWithChecks(
                       leftHandSideAssignment.getSMGObject(),
                       leftHandSideAssignment.getOffsetForObject(),
                       size,
@@ -331,15 +339,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                       type,
                       edge);
 
-              // TODO: possibly do not return constraints if we assign to a variable with a symbolic
-              // expression that is only used there
-              return ImmutableList.of(stateWithConstraints);
+              return ImmutableList.of(stateToAssign);
             }
           }
         }
       }
     } else if (isAssumptionComparedToZero(leftValue)) {
-      // 0 != x or !(x == 0)
+      // 0 != x or !(0 == x)
       if (isEligibleForAssignment(rightValue, currentState)
           && leftValue.isExplicitlyKnown()
           && !evaluator.isPointerValue(rightValue, currentState)
@@ -368,21 +374,27 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               }
 
               // SAT, try to assign values
-              SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
+              SMGState stateToAssign = maybeStatesWithConstraints.orElseThrow();
+
+              if (rightValue instanceof ConstantSymbolicExpression
+                  && currentState.getNumberOfValueUsages(rightValue) == 1
+                  && !currentState.valueContainedInConstraints(rightValue)) {
+                // Its SAT, but we don't need to remember the constraint
+                stateToAssign = currentState;
+              }
 
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(stateWithConstraints, type));
-              stateWithConstraints =
-                  stateWithConstraints.writeValueWithChecks(
+              Value size = new NumericValue(evaluator.getBitSizeof(stateToAssign, type));
+              stateToAssign =
+                  stateToAssign.writeValueWithChecks(
                       rightHandSideAssignment.getSMGObject(),
                       rightHandSideAssignment.getOffsetForObject(),
                       size,
                       new NumericValue(1L),
                       type,
                       edge);
-              // TODO: possibly do not return constraints if we assign to a variable with a symbolic
-              // expression that is only used there
-              return ImmutableList.of(stateWithConstraints);
+
+              return ImmutableList.of(stateToAssign);
             }
           }
         }
