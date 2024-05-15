@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
-import java.util.Objects;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
@@ -302,22 +301,6 @@ public abstract class CFloat {
    * @return whether <code>this</code> is greater than <code>other</code>
    */
   public abstract boolean greaterThan(final CFloat other);
-
-  @Override
-  public boolean equals(Object pOther) {
-    if (this == pOther) {
-      return true;
-    }
-    return pOther instanceof CFloat other
-        && getType() == other.getType()
-        && getExponent() == other.getExponent()
-        && getMantissa() == other.getMantissa();
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getType(), getMantissa(), getExponent());
-  }
 
   public final long getExponent() {
     return getWrapper().getExponent();
