@@ -119,9 +119,6 @@ class MpfrFloat extends CFloat {
     if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
     }
-    if (isZero()) {
-      return isNegative() ? "-0.0" : "0.0";
-    }
     return value.toString().replace(",", ".");
   }
 

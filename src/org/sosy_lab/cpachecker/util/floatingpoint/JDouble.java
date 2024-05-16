@@ -65,9 +65,6 @@ class JDouble extends CFloat {
     if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
     }
-    if (isZero()) {
-      return isNegative() ? "-0.0" : "0.0";
-    }
     // FIXME: Find a solution that doesn't require BigFloat
     // Both of these return different results from MPFR:
     // String repr = String.format("%.17e", BigDecimal.valueOf(value));

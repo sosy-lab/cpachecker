@@ -284,9 +284,6 @@ class CFloatNative extends CFloat {
 
   @Override
   public String toString() {
-    if (isZero()) {
-      return isNegative() ? "-0.0" : "0.0";
-    }
     return CFloatNativeAPI.printFp(wrapper, type);
   }
 

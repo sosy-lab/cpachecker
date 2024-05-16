@@ -2051,9 +2051,6 @@ class FloatP {
     if (isInfinite()) {
       return isNegative() ? "-inf" : "inf";
     }
-    if (isZero()) {
-      return isNegative() ? "-0.0" : "0.0";
-    }
 
     // Get the exponent and the significand
     BigInteger resultSignificand = significand;

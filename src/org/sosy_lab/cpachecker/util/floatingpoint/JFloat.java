@@ -66,7 +66,7 @@ class JFloat extends CFloat {
       return isNegative() ? "-inf" : "inf";
     }
     if (isZero()) {
-      return isNegative() ? "-0.0" : "0.0";
+      return isNegative() ? "-0.00000000e+00" : "0.00000000e+00";
     }
     BigDecimal decimal =
         BigDecimal.valueOf(value).plus(new MathContext(9, java.math.RoundingMode.HALF_EVEN));
