@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
-import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 
@@ -35,10 +34,10 @@ class CFloatNative extends CFloat {
   public CFloatNative(String rep, Format pFormat) {
     // TODO: Add support for 80bit x87 floats
     int pType = -1;
-    if (pFormat.equals(BinaryMathContext.BINARY32)) {
+    if (pFormat.equals(Format.Float32)) {
       pType = CNativeType.SINGLE.getOrdinal();
     }
-    if (pFormat.equals(BinaryMathContext.BINARY64)) {
+    if (pFormat.equals(Format.Float64)) {
       pType = CNativeType.DOUBLE.getOrdinal();
     }
     checkArgument(pType >= 0);
