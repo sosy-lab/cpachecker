@@ -333,8 +333,15 @@ abstract class AbstractCFloatTestBase {
     return String.format("%n%nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
-  /** Defines the maximum error (in ULPs) for transcendental functions. */
-  protected int ulpError() {
+  /** Defines the maximum error (in ULPs) for transcendental functions.
+   * <p>Needed as actual math libraries don't guarantee exact results for transcendental functions.
+   * If this method returns anything greater than 0 tests will not fail if the result is imprecise,
+   * but still within the specified error bound.
+   * @see <a
+   * href="https://www.gnu.org/software/libc/manual/html_node/Errors-in-Math-Functions.html">
+   * "Known Maximum Errors in Math Functions" (from the glibc documentation)</a>
+   */
+  private int ulpError() {
     return getRefImpl() == ReferenceImpl.MPFR ? 0 : 1;
   }
 
