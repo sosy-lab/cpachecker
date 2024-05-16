@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
@@ -48,12 +47,6 @@ public class CFloatImpl extends CFloat {
   public CFloatImpl(String repr, BinaryMathContext pFormat, Map<Integer, Integer> fromStringStats) {
     delegate = parseFloat(repr, pFormat, fromStringStats);
     wrapper = fromImpl(delegate);
-  }
-
-  public CFloatImpl(BigFloat value, BinaryMathContext pFormat) {
-    Format format = new Format(calculateExpWidth(pFormat), pFormat.precision - 1);
-    delegate = FloatP.fromBigFloat(format, value);
-    wrapper = null; // fromImpl(delegate);
   }
 
   public CFloatImpl(FloatP pValue) {

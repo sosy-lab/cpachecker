@@ -44,7 +44,7 @@ public class Float64Test extends AbstractCFloatTestBase {
 
   @Override
   public CFloat toTestedImpl(BigFloat value) {
-    return new CFloatImpl(value, getFloatType());
+    return testValueToCFloatImpl(value, getFloatType());
   }
 
   @Override

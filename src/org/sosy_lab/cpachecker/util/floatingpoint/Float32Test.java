@@ -42,7 +42,7 @@ public class Float32Test extends AbstractCFloatTestBase {
 
   @Override
   public CFloat toTestedImpl(BigFloat value) {
-    return new CFloatImpl(value, getFloatType());
+    return testValueToCFloatImpl(value, getFloatType());
   }
 
   @Override

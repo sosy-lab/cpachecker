@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 
 /**
  * Abstract test class for the {@link CFloat} interface.
@@ -87,6 +88,11 @@ abstract class AbstractCFloatTestBase {
   /** Return the reference implementation used by the test. */
   protected abstract ReferenceImpl getRefImpl();
 
+  /**
+   * Convert a CFloat value to BigFloat.
+   *
+   * <p>This is used in the tests to convert the result of the operation back to a BigFloat value.
+   */
   protected BigFloat toBigFloat(CFloat value) {
     if (value instanceof MpfrFloat val) {
       return val.toBigFloat();
@@ -122,8 +128,24 @@ abstract class AbstractCFloatTestBase {
     }
   }
 
+  /** Convert a {@link CFloat} value to an Integer. */
   protected Integer toInteger(CFloat value) {
     return toBigFloat(value).intValue();
+  }
+
+  /** Construct a CFloatImpl from a BigFloat test value. */
+  protected CFloatImpl testValueToCFloatImpl(BigFloat value, BinaryMathContext context) {
+    Format format = new Format(calculateExpWidth(context), context.precision - 1);
+    if (value.isNaN()) {
+      return new CFloatImpl(value.sign() ? FloatP.nan(format).negate() : FloatP.nan(format));
+    } else if (value.isInfinite()) {
+      return new CFloatImpl(
+          value.sign() ? FloatP.negativeInfinity(format) : FloatP.infinity(format));
+    } else {
+      long exp = value.exponent(format.minExp(), format.maxExp());
+      BigInteger sig = value.significand(format.minExp(), format.maxExp());
+      return new CFloatImpl(new FloatP(format, value.sign(), exp, sig));
+    }
   }
 
   /** Pretty printer for BigFloat type */

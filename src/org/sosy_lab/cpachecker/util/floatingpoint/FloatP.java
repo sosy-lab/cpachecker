@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.kframework.mpfr.BigFloat;
 
 // TODO: Add support for more rounding modes
 // TODO: Add more functions (like sin(x), etc)
@@ -1873,18 +1872,6 @@ class FloatP {
       expBits += 0x800;
     }
     return Double.longBitsToDouble((expBits << 52) | sigBits);
-  }
-
-  public static FloatP fromBigFloat(Format p, BigFloat pValue) {
-    if (pValue.isNaN()) {
-      return pValue.sign() ? nan(p).negate() : nan(p);
-    }
-    if (pValue.isInfinite()) {
-      return pValue.sign() ? negativeInfinity(p) : infinity(p);
-    }
-    long exp = pValue.exponent(p.minExp(), p.maxExp());
-    BigInteger sig = pValue.significand(p.minExp(), p.maxExp());
-    return new FloatP(p, pValue.sign(), exp, sig);
   }
 
   /** Parse input string as a floating point number. */
