@@ -39,19 +39,6 @@ class MpfrFloat extends CFloat {
     wrapper = fromBigFloat(value);
   }
 
-  private BinaryMathContext toBinaryMathContext(int floatType) {
-    if (floatType == CNativeType.SINGLE.getOrdinal()) {
-      return BinaryMathContext.BINARY32;
-    }
-    if (floatType == CNativeType.DOUBLE.getOrdinal()) {
-      return BinaryMathContext.BINARY64;
-    }
-    if (floatType == CNativeType.LONG_LONG.getOrdinal()) {
-      return new BinaryMathContext(64, 15);
-    }
-    throw new IllegalArgumentException();
-  }
-
   /** Returns the number of bits in the exponent. */
   public int sizeExponent() {
     return Long.numberOfTrailingZeros(format.maxExponent + 1) + 1;
