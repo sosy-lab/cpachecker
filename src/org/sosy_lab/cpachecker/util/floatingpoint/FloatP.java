@@ -1889,8 +1889,8 @@ class FloatP {
    * be done one digit at a time as each hexadecimal digit can simply be expanded into 4 bits to
    * create the base2 representation.
    *
-   * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">"How to Read Floating Point
-   *     Numbers Accurately", Clinger<a/>
+   * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">How to Read Floating Point
+   *     Numbers Accurately</a>
    */
   private static FloatP fromLiteralHex(Format p, boolean sign, String digits, int expValue) {
     FloatP r = fromInteger(p, new BigInteger(digits, 16));
