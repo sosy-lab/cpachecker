@@ -17,6 +17,7 @@ import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -2024,7 +2025,7 @@ class FloatP {
     if ("nan".equals(input)) {
       return nan(p);
     }
-    input = input.toLowerCase();
+    input = input.toLowerCase(Locale.getDefault());
 
     // Check if it's a hex literal
     boolean isHexLiteral = false;
