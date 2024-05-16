@@ -1889,7 +1889,7 @@ class FloatP {
    * be done one digit at a time as each hexadecimal digit can simply be expanded into 4 bits to
    * create the base2 representation.
    *
-   * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557"></a>"How to Read Floating Point
+   * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">"How to Read Floating Point
    *     Numbers Accurately", Clinger<a/>
    */
   private static FloatP fromLiteralHex(Format p, boolean sign, String digits, int expValue) {
