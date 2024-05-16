@@ -1893,9 +1893,10 @@ class FloatP {
    *     Numbers Accurately", Clinger<a/>
    */
   private static FloatP fromLiteralHex(Format p, boolean sign, String digits, int expValue) {
-    FloatP f = fromInteger(p, new BigInteger(digits, 16));
+    FloatP r = fromInteger(p, new BigInteger(digits, 16));
     int finalExp = expValue - 4 * (digits.length() - 1);
-    return f.withExponent(f.exponent + finalExp);
+    r = r.withExponent(r.exponent + finalExp);
+    return sign ? r.negate() : r;
   }
 
   /**
