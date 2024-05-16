@@ -2093,8 +2093,7 @@ class FloatP {
         b.plus(new MathContext(p, java.math.RoundingMode.HALF_EVEN)).stripTrailingZeros();
 
     // Print the output string
-    String repr = String.format("%." + p + "e", rounded);
-    repr = repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
+    String repr = String.format("%." + (p - 1) + "e", rounded);
 
     // Add the sign if necessary
     return isNegative() ? "-" + repr : repr;

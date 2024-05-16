@@ -287,8 +287,7 @@ class CFloatNative extends CFloat {
     if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
     }
-    String repr = CFloatNativeAPI.printFp(wrapper, type);
-    return repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
+    return CFloatNativeAPI.printFp(wrapper, type);
   }
 
   @Override

@@ -73,8 +73,7 @@ class JDouble extends CFloat {
     // String repr = String.format("%.17e", BigDecimal.valueOf(value));
     // String repr = Double.toString(value);
     BigFloat v = new BigFloat(value, BinaryMathContext.BINARY64);
-    String repr = v.toString().replaceAll(",", ".");
-    return repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
+    return v.toString().replaceAll(",", ".");
   }
 
   @Override

@@ -70,8 +70,7 @@ class JFloat extends CFloat {
     }
     BigDecimal decimal =
         BigDecimal.valueOf(value).plus(new MathContext(9, java.math.RoundingMode.HALF_EVEN));
-    String repr = String.format("%.9e", decimal);
-    return repr.replaceAll("(\\.0+e)|(0+e)", "e"); // Drop trailing zeroes
+    return String.format("%.8e", decimal);
   }
 
   @Override
