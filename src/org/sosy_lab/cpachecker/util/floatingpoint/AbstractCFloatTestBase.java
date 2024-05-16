@@ -61,10 +61,10 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
  * that will be generated. The following classes of test values are supported by the implementation:
  *
  * <ul>
- *   <li>{@link AbstractCFloatTestBase#floatConsts(BinaryMathContext)}
- *   <li>{@link AbstractCFloatTestBase#floatPowers(BinaryMathContext, int, BigFloat, int, BigFloat)}
- *   <li>{@link AbstractCFloatTestBase#floatRandom(BinaryMathContext, int)}
- *   <li>{@link AbstractCFloatTestBase#allFloats(BinaryMathContext)}
+ *   <li>{@link AbstractCFloatTestBase#floatConsts(Format)}
+ *   <li>{@link AbstractCFloatTestBase#floatPowers(Format, int, BigFloat, int, BigFloat)}
+ *   <li>{@link AbstractCFloatTestBase#floatRandom(Format, int)}
+ *   <li>{@link AbstractCFloatTestBase#allFloats(Format)}
  * </ul>
  *
  * <p>The default behaviour for both {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
@@ -76,7 +76,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
  */
 abstract class AbstractCFloatTestBase {
   /** Override to set a floating point width. */
-  protected abstract BinaryMathContext getFloatType();
+  protected abstract Format getFloatType();
 
   /** List of all supported reference implementations. */
   enum ReferenceImpl {
@@ -134,8 +134,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Construct a CFloatImpl from a BigFloat test value. */
-  protected CFloatImpl testValueToCFloatImpl(BigFloat value, BinaryMathContext context) {
-    Format format = new Format(calculateExpWidth(context), context.precision - 1);
+  protected CFloatImpl testValueToCFloatImpl(BigFloat value, Format format) {
     if (value.isNaN()) {
       return new CFloatImpl(value.sign() ? FloatP.nan(format).negate() : FloatP.nan(format));
     } else if (value.isInfinite()) {
@@ -175,26 +174,28 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate a list of floating point constants that cover all special case values. */
-  protected static List<BigFloat> floatConsts(BinaryMathContext format) {
+  protected static List<BigFloat> floatConsts(Format format) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
+    int precision = format.sigBits() + 1;
+    BinaryMathContext context = new BinaryMathContext(precision, format.expBits());
     builder.add(
-        BigFloat.negativeInfinity(format.precision),
-        BigFloat.maxValue(format.precision, format.maxExponent).negate(),
-        new BigFloat(-17.0f, format),
-        new BigFloat(-1.0f, format),
-        new BigFloat(-0.1f, format),
-        BigFloat.minNormal(format.precision, format.minExponent).negate(),
-        BigFloat.minValue(format.precision, format.minExponent).negate(),
-        BigFloat.negativeZero(format.precision),
-        BigFloat.NaN(format.precision),
-        BigFloat.zero(format.precision),
-        BigFloat.minValue(format.precision, format.minExponent),
-        BigFloat.minNormal(format.precision, format.minExponent),
-        new BigFloat(0.1f, format),
-        new BigFloat(1.0f, format),
-        new BigFloat(17.0f, format),
-        BigFloat.maxValue(format.precision, format.maxExponent),
-        BigFloat.positiveInfinity(format.precision));
+        BigFloat.negativeInfinity(precision),
+        BigFloat.maxValue(precision, format.maxExp()).negate(),
+        new BigFloat(-17.0f, context),
+        new BigFloat(-1.0f, context),
+        new BigFloat(-0.1f, context),
+        BigFloat.minNormal(precision, format.minExp()).negate(),
+        BigFloat.minValue(precision, format.minExp()).negate(),
+        BigFloat.negativeZero(precision),
+        BigFloat.NaN(precision),
+        BigFloat.zero(precision),
+        BigFloat.minValue(precision, format.minExp()),
+        BigFloat.minNormal(precision, format.minExp()),
+        new BigFloat(0.1f, context),
+        new BigFloat(1.0f, context),
+        new BigFloat(17.0f, context),
+        BigFloat.maxValue(precision, format.maxExp()),
+        BigFloat.positiveInfinity(precision));
     return builder.build();
   }
 
@@ -202,15 +203,15 @@ abstract class AbstractCFloatTestBase {
    * Generate a list of powers ca^px where c,p are incremented starting from 1 and a,x are
    * constants.
    */
-  protected static List<BigFloat> floatPowers(
-      BinaryMathContext format, int c, BigFloat a, int p, BigFloat x) {
+  protected static List<BigFloat> floatPowers(Format format, int c, BigFloat a, int p, BigFloat x) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
+    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     for (int i = 1; i <= c; i++) {
       for (int j = -p; j <= p; j++) {
-        BigFloat t1 = new BigFloat(i, format).multiply(a, format);
-        BigFloat t2 = new BigFloat(p, format).multiply(x, format);
-        BigFloat r = t1.pow(t2, format);
-        if (!r.equalTo(new BigFloat(1, format))) {
+        BigFloat t1 = new BigFloat(i, context).multiply(a, context);
+        BigFloat t2 = new BigFloat(p, context).multiply(x, context);
+        BigFloat r = t1.pow(t2, context);
+        if (!r.equalTo(new BigFloat(1, context))) {
           builder.add(r);
         }
       }
@@ -219,21 +220,22 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate n random floating point values. */
-  protected static List<BigFloat> floatRandom(BinaryMathContext format, int n) {
+  protected static List<BigFloat> floatRandom(Format format, int n) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
+    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     Random random = new Random(0);
     int i = 0;
     while (i < n) {
       boolean sign = random.nextBoolean();
-      long exponent = random.nextLong(2 * format.maxExponent) - format.maxExponent;
-      BigInteger leading = BigInteger.ONE.shiftLeft(format.precision - 1);
-      if (exponent < format.minExponent) { // Special case for subnormal numbers
+      long exponent = random.nextLong(2 * format.maxExp()) - format.maxExp();
+      BigInteger leading = BigInteger.ONE.shiftLeft(format.sigBits());
+      if (exponent < format.minExp()) { // Special case for subnormal numbers
         leading = BigInteger.ZERO;
       }
-      BigInteger significand = leading.add(new BigInteger(format.precision - 1, random));
-      BigFloat value = new BigFloat(sign, significand, exponent, format);
+      BigInteger significand = leading.add(new BigInteger(format.sigBits(), random));
+      BigFloat value = new BigFloat(sign, significand, exponent, context);
       if (!value.isPositiveZero() || !value.isNegativeZero()) {
-        builder.add(new BigFloat(sign, significand, exponent, format));
+        builder.add(new BigFloat(sign, significand, exponent, context));
         i++;
       }
     }
@@ -241,22 +243,23 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate all possible floating point values for a given precision. */
-  protected static List<BigFloat> allFloats(BinaryMathContext format) {
+  protected static List<BigFloat> allFloats(Format format) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
-    for (long exponent = format.minExponent - 1; exponent <= format.maxExponent + 1; exponent++) {
-      BigInteger leading = BigInteger.ONE.shiftLeft(format.precision - 1);
-      if (exponent < format.minExponent || exponent > format.maxExponent) {
+    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
+    for (long exponent = format.minExp() - 1; exponent <= format.maxExp() + 1; exponent++) {
+      BigInteger leading = BigInteger.ONE.shiftLeft(format.sigBits());
+      if (exponent < format.minExp() || exponent > format.maxExp()) {
         leading = BigInteger.ZERO;
       }
-      int maxValue = (2 << (format.precision - 2));
+      int maxValue = (2 << (format.sigBits() - 1));
       for (int i = 0; i < maxValue; i++) {
-        if (exponent > format.maxExponent && i > 1) {
+        if (exponent > format.maxExp() && i > 1) {
           // Only generate one NaN value
           continue;
         }
         BigInteger significand = leading.add(BigInteger.valueOf(i));
-        builder.add(new BigFloat(false, significand, exponent, format));
-        builder.add(new BigFloat(true, significand, exponent, format));
+        builder.add(new BigFloat(false, significand, exponent, context));
+        builder.add(new BigFloat(true, significand, exponent, context));
       }
     }
     return builder.build();
@@ -264,8 +267,9 @@ abstract class AbstractCFloatTestBase {
 
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
   protected List<BigFloat> unaryTestValues() {
-    BinaryMathContext format = getFloatType();
-    BigFloat constant = new BigFloat(0.5f, format);
+    Format format = getFloatType();
+    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
+    BigFloat constant = new BigFloat(0.5f, context);
     return ImmutableList.<BigFloat>builder()
         .addAll(floatConsts(format))
         .addAll(floatPowers(format, 14, constant, 20, constant))
@@ -279,8 +283,9 @@ abstract class AbstractCFloatTestBase {
    * the number of test runs for a binary operation will be k^2.
    */
   protected List<BigFloat> binaryTestValues() {
-    BinaryMathContext format = getFloatType();
-    BigFloat constant = new BigFloat(0.5f, format);
+    Format format = getFloatType();
+    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
+    BigFloat constant = new BigFloat(0.5f, context);
     return ImmutableList.<BigFloat>builder()
         .addAll(floatConsts(format))
         .addAll(floatPowers(format, 3, constant, 3, constant))
@@ -295,22 +300,22 @@ abstract class AbstractCFloatTestBase {
     }
   }
 
-  private static int calculateExpWidth(BinaryMathContext pFormat) {
-    BigInteger val = BigInteger.valueOf(2 * pFormat.maxExponent + 1);
+  private static int calculateExpWidth(Format pFormat) {
+    BigInteger val = BigInteger.valueOf(2 * pFormat.maxExp() + 1);
     int r = val.bitLength() - 1;
     return val.bitCount() > 1 ? r + 1 : r;
   }
 
-  private static String toBits(BinaryMathContext format, BigFloat value) {
+  private static String toBits(Format format, BigFloat value) {
     String sign = value.sign() ? "1" : "0";
-    long valueExp = value.exponent(format.minExponent, format.maxExponent) + format.maxExponent;
+    long valueExp = value.exponent(format.minExp(), format.maxExp()) + format.maxExp();
     String exponent = Long.toString(valueExp, 2);
     exponent = "0".repeat(calculateExpWidth(format) - exponent.length()) + exponent;
-    String significand = BigInteger.ONE.shiftLeft(format.precision - 2).toString(2);
+    String significand = BigInteger.ONE.shiftLeft(format.sigBits() - 1).toString(2);
     if (!value.isNaN()) {
       // Get the actual significand if the value is not NaN
-      String repr = value.significand(format.minExponent, format.maxExponent).toString(2);
-      repr = "0".repeat(format.precision - repr.length()) + repr;
+      String repr = value.significand(format.minExp(), format.maxExp()).toString(2);
+      repr = "0".repeat(format.sigBits() + 1 - repr.length()) + repr;
       significand = repr.substring(1);
     }
     return String.format("%s %s %s", sign, exponent, significand);
@@ -339,8 +344,8 @@ abstract class AbstractCFloatTestBase {
       return ImmutableList.of(printValue(pValue));
     }
     if (pDistance == 1) {
-      BigFloat minus1Ulp = pValue.nextDown(getFloatType().minExponent, getFloatType().maxExponent);
-      BigFloat plus1Ulp = pValue.nextUp(getFloatType().minExponent, getFloatType().maxExponent);
+      BigFloat minus1Ulp = pValue.nextDown(getFloatType().minExp(), getFloatType().maxExp());
+      BigFloat plus1Ulp = pValue.nextUp(getFloatType().minExp(), getFloatType().maxExp());
 
       return ImmutableList.of(printValue(minus1Ulp), printValue(pValue), printValue(plus1Ulp));
     }
@@ -359,7 +364,7 @@ abstract class AbstractCFloatTestBase {
     for (TestValue<BigFloat> test : testCases) {
       try {
         CFloat tested = toTestedImpl(test.arg1());
-        BigFloat result = BigFloat.NaN(getFloatType().precision);
+        BigFloat result = BigFloat.NaN(getFloatType().sigBits() + 1);
         try {
           result = toBigFloat(operator.apply(tested));
         } catch (Throwable t) {
@@ -404,7 +409,7 @@ abstract class AbstractCFloatTestBase {
       try {
         CFloat tested1 = toTestedImpl(test.arg1());
         CFloat tested2 = toTestedImpl(test.arg2());
-        BigFloat result = BigFloat.NaN(getFloatType().precision);
+        BigFloat result = BigFloat.NaN(getFloatType().sigBits() + 1);
         try {
           result = toBigFloat(operator.apply(tested1, tested2));
         } catch (Throwable t) {
@@ -597,7 +602,9 @@ abstract class AbstractCFloatTestBase {
   protected abstract CFloat toReferenceImpl(BigFloat value);
 
   protected CFloat toReferenceImpl(String repr) {
-    return toReferenceImpl(new BigFloat(repr, getFloatType()));
+    BinaryMathContext context =
+        new BinaryMathContext(getFloatType().sigBits() + 1, getFloatType().expBits());
+    return toReferenceImpl(new BigFloat(repr, context));
   }
 
   @Test
@@ -618,7 +625,7 @@ abstract class AbstractCFloatTestBase {
     Map<Integer, Integer> fromStringStats = new HashMap<>();
     for (TestValue<BigFloat> test : testCases) {
       try {
-        BigFloat result = BigFloat.NaN(getFloatType().precision);
+        BigFloat result = BigFloat.NaN(getFloatType().sigBits() + 1);
         try {
           result = toBigFloat(toTestedImpl(printBigFloat(test.arg1()), fromStringStats));
         } catch (Throwable t) {
@@ -826,15 +833,15 @@ abstract class AbstractCFloatTestBase {
     testOperator("copySignFrom", 0, (CFloat a, CFloat b) -> a.copySignFrom(b));
   }
 
-  private CNativeType toNativeType(BinaryMathContext pFormat) {
+  private CNativeType toNativeType(Format pFormat) {
     int r = -1;
-    if (pFormat.equals(BinaryMathContext.BINARY16)) {
+    if (pFormat.equals(Format.Float16)) {
       r = CNativeType.HALF.getOrdinal();
     }
-    if (pFormat.equals(BinaryMathContext.BINARY32)) {
+    if (pFormat.equals(Format.Float32)) {
       r = CNativeType.SINGLE.getOrdinal();
     }
-    if (pFormat.equals(BinaryMathContext.BINARY64)) {
+    if (pFormat.equals(Format.Float64)) {
       r = CNativeType.DOUBLE.getOrdinal();
     }
     checkArgument(r >= 0);
@@ -843,10 +850,7 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void castToTest() {
-    BinaryMathContext other =
-        getFloatType().equals(BinaryMathContext.BINARY32)
-            ? BinaryMathContext.BINARY64
-            : BinaryMathContext.BINARY32;
+    Format other = getFloatType().equals(Format.Float32) ? Format.Float64 : Format.Float32;
     testOperator(
         "castToTest",
         0,
@@ -855,10 +859,7 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void castToRoundingTest() {
-    BinaryMathContext other =
-        getFloatType().equals(BinaryMathContext.BINARY32)
-            ? BinaryMathContext.BINARY64
-            : BinaryMathContext.BINARY32;
+    Format other = getFloatType().equals(Format.Float32) ? Format.Float64 : Format.Float32;
     testOperator(
         "castToRoundingTest",
         0,

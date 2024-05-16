@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.RoundingMode;
@@ -35,16 +34,16 @@ public class CFloatImpl extends CFloat {
   }
 
   public CFloatImpl(String repr, int pType) {
-    delegate = parseFloat(repr, toMathContext(CFloatNativeAPI.toNativeType(pType)), null);
+    delegate = parseFloat(repr, toFormat(CFloatNativeAPI.toNativeType(pType)), null);
     wrapper = fromImpl(delegate);
   }
 
-  public CFloatImpl(String repr, BinaryMathContext pFormat) {
+  public CFloatImpl(String repr, Format pFormat) {
     delegate = parseFloat(repr, pFormat, null);
     wrapper = fromImpl(delegate);
   }
 
-  public CFloatImpl(String repr, BinaryMathContext pFormat, Map<Integer, Integer> fromStringStats) {
+  public CFloatImpl(String repr, Format pFormat, Map<Integer, Integer> fromStringStats) {
     delegate = parseFloat(repr, pFormat, fromStringStats);
     wrapper = fromImpl(delegate);
   }
@@ -52,15 +51,6 @@ public class CFloatImpl extends CFloat {
   public CFloatImpl(FloatP pValue) {
     delegate = pValue;
     wrapper = fromImpl(pValue);
-  }
-
-  private BinaryMathContext toMathContext(CNativeType pType) {
-    return switch (pType) {
-      case SINGLE -> BinaryMathContext.BINARY32;
-      case DOUBLE -> BinaryMathContext.BINARY64;
-      case LONG_DOUBLE -> new BinaryMathContext(64, 15);
-      default -> throw new UnsupportedOperationException();
-    };
   }
 
   private Format toFormat(CNativeType pType) {
@@ -121,15 +111,8 @@ public class CFloatImpl extends CFloat {
     throw new IllegalArgumentException();
   }
 
-  private int calculateExpWidth(BinaryMathContext pFormat) {
-    BigInteger val = BigInteger.valueOf(2 * pFormat.maxExponent + 1);
-    int r = val.bitLength() - 1;
-    return val.bitCount() > 1 ? r + 1 : r;
-  }
-
   private FloatP parseFloat(
-      String repr, BinaryMathContext pFormat, @Nullable Map<Integer, Integer> fromStringMap) {
-    Format format = new Format(calculateExpWidth(pFormat), pFormat.precision - 1);
+      String repr, Format format, @Nullable Map<Integer, Integer> fromStringMap) {
     if ("nan".equals(repr)) {
       return FloatP.nan(format);
     }

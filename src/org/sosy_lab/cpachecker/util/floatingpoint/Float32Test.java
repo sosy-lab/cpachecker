@@ -16,15 +16,15 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
-import org.kframework.mpfr.BinaryMathContext;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 
 /** Tests the CFloat interface for 32 bit floating point values. */
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
 public class Float32Test extends AbstractCFloatTestBase {
   @Override
-  protected BinaryMathContext getFloatType() {
-    return BinaryMathContext.BINARY32;
+  protected Format getFloatType() {
+    return Format.Float32;
   }
 
   @Parameters(name = "{0}")

@@ -13,7 +13,7 @@ import java.util.Map;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
-import org.kframework.mpfr.BinaryMathContext;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 
 /**
  * Tests the CFloat interface for 8 bit floating point values.
@@ -24,8 +24,8 @@ import org.kframework.mpfr.BinaryMathContext;
  */
 public class Float8Test extends AbstractCFloatTestBase {
   @Override
-  protected BinaryMathContext getFloatType() {
-    return new BinaryMathContext(4, 4);
+  protected Format getFloatType() {
+    return Format.Float8;
   }
 
   @Override

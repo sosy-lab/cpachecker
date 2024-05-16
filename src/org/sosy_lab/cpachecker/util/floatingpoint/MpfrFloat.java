@@ -13,6 +13,7 @@ import java.math.RoundingMode;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 
 /**
  * MPFR based implementation of the {@link CFloat} interface.
@@ -32,22 +33,10 @@ class MpfrFloat extends CFloat {
     wrapper = fromBigFloat(value);
   }
 
-  public MpfrFloat(String repr, int floatType) {
-    format = toBinaryMathContext(floatType);
-    value = parseBigFloat(repr);
+  public MpfrFloat(BigFloat pValue, Format pFormat) {
+    format = new BinaryMathContext(pFormat.sigBits() + 1, pFormat.expBits());
+    value = pValue;
     wrapper = fromBigFloat(value);
-  }
-
-  public MpfrFloat(String repr, BinaryMathContext pFormat) {
-    format = pFormat;
-    value = parseBigFloat(repr);
-    wrapper = fromBigFloat(value);
-  }
-
-  public MpfrFloat(CFloatWrapper pWrapper, int floatType) {
-    format = toBinaryMathContext(floatType);
-    value = toBigFloat(pWrapper);
-    wrapper = pWrapper;
   }
 
   private BinaryMathContext toBinaryMathContext(int floatType) {

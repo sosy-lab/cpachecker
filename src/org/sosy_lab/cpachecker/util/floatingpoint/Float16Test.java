@@ -13,7 +13,7 @@ import java.util.Map;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
-import org.kframework.mpfr.BinaryMathContext;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 
 /**
  * Tests the CFloat interface for 16 bit floating point values.
@@ -24,8 +24,8 @@ import org.kframework.mpfr.BinaryMathContext;
  */
 public class Float16Test extends AbstractCFloatTestBase {
   @Override
-  protected BinaryMathContext getFloatType() {
-    return BinaryMathContext.BINARY16;
+  protected Format getFloatType() {
+    return Format.Float16;
   }
 
   @Override
