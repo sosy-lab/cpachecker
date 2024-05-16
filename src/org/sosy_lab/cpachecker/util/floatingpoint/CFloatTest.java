@@ -152,18 +152,18 @@ public class CFloatTest {
     CFloatNative nZero = new CFloatNative("-0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
     CFloatNative nOne = new CFloatNative("-1.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
 
-    assertThat(zero.add(nZero).toString()).isEqualTo("0.0");
-    assertThat(nZero.add(zero).toString()).isEqualTo("0.0");
-    assertThat(nZero.add(nZero).toString()).isEqualTo("-0.0");
-    assertThat(nZero.subtract(zero).toString()).isEqualTo("-0.0");
-    assertThat(zero.subtract(nZero).toString()).isEqualTo("0.0");
-    assertThat(nZero.subtract(nZero).toString()).isEqualTo("0.0");
-    assertThat(zero.subtract(zero).toString()).isEqualTo("0.0");
-    assertThat(nOne.multiply(zero).toString()).isEqualTo("-0.0");
-    assertThat(nOne.multiply(nZero).toString()).isEqualTo("0.0");
-    assertThat(nZero.divideBy(nOne).toString()).isEqualTo("0.0");
-    assertThat(zero.divideBy(nOne).toString()).isEqualTo("-0.0");
-    assertThat(zero.multiply(nZero).toString()).isEqualTo("-0.0");
+    assertThat(zero.add(nZero).toString()).isEqualTo("0.0000000000000000e+00");
+    assertThat(nZero.add(zero).toString()).isEqualTo("0.0000000000000000e+00");
+    assertThat(nZero.add(nZero).toString()).isEqualTo("-0.0000000000000000e+00");
+    assertThat(nZero.subtract(zero).toString()).isEqualTo("-0.0000000000000000e+00");
+    assertThat(zero.subtract(nZero).toString()).isEqualTo("0.0000000000000000e+00");
+    assertThat(nZero.subtract(nZero).toString()).isEqualTo("0.0000000000000000e+00");
+    assertThat(zero.subtract(zero).toString()).isEqualTo("0.0000000000000000e+00");
+    assertThat(nOne.multiply(zero).toString()).isEqualTo("-0.0000000000000000e+00");
+    assertThat(nOne.multiply(nZero).toString()).isEqualTo("0.0000000000000000e+00");
+    assertThat(nZero.divideBy(nOne).toString()).isEqualTo("0.0000000000000000e+00");
+    assertThat(zero.divideBy(nOne).toString()).isEqualTo("-0.0000000000000000e+00");
+    assertThat(zero.multiply(nZero).toString()).isEqualTo("-0.0000000000000000e+00");
   }
 
   @Test
@@ -516,7 +516,7 @@ public class CFloatTest {
     a = a.multiply(c);
     b = b.multiply(c);
 
-    assertThat(b.toString()).isEqualTo("-0.0");
+    assertThat(b.toString()).isEqualTo("-0.00000000e+00");
     assertThat(b.isNegative()).isTrue();
     assertThat(a.isZero()).isEqualTo(b.isZero());
     assertThat(a.isNegative()).isEqualTo(b.isNegative());
