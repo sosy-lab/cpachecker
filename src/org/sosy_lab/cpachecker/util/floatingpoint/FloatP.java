@@ -1880,53 +1880,35 @@ class FloatP {
   }
 
   /**
-   * Parse the input string and records how many extra bits of precision were needed.
+   * Create a floating point value from its base16 representation.
    *
-   * @param fromStringStats Histogram with the number of extra bits used in all calls to
-   *     fromString()
+   * <p>Converting from base 16 to base 2 is a special case as the two radixes are "commensurable",
+   * that is, they are both powers of another integer. In this case this integer is simply 2 and the
+   * two bases can then be expressed as 2^1 and 2^4. Intuitively this means that the conversion can
+   * be done one digit at a time as each hexadecimal digit can simply be expanded into 4 bits to
+   * create the base2 representation.
+   *
+   * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557"></a>"How to Read Floating Point
+   *     Numbers Accurately", Clinger<a/>
    */
-  static FloatP fromStringWithStats(
-      Format p, String input, @Nullable Map<Integer, Integer> fromStringStats) {
-    // TODO: Add error handling for broken inputs.
-    if ("inf".equals(input)) {
-      return infinity(p);
-    }
-    if ("-inf".equals(input)) {
-      return negativeInfinity(p);
-    }
-    if ("nan".equals(input)) {
-      return nan(p);
-    }
+  private static FloatP fromLiteralHex(Format p, boolean sign, String digits, int expValue) {
+    FloatP f = fromInteger(p, new BigInteger(digits, 16));
+    int finalExp = expValue - 4 * (digits.length() - 1);
+    return f.withExponent(f.exponent + finalExp);
+  }
 
-    // Split off the exponent part (if there is one)
-    int sep = Math.max(input.indexOf('e'), input.indexOf('E'));
-    String digits = sep > -1 ? input.substring(0, sep) : input;
-    String exponent = sep > -1 ? input.substring(sep + 1) : "0";
-
-    boolean sign = false;
-
-    // Determine the sign
-    char pre = digits.charAt(0);
-    if (!Character.isDigit(pre)) {
-      Preconditions.checkArgument(pre == '+' || pre == '-');
-      digits = digits.substring(1);
-      sign = pre == '-';
-    }
-
-    int expValue = Integer.parseInt(exponent);
-
-    // Get the fractional part of the number (and add ".0" if it has none)
-    int radix = digits.indexOf('.');
-    if (radix == -1) {
-      radix = digits.length();
-      digits = digits + ".0";
-    }
-
-    // Normalize the mantissa, then fix the exponent
-    expValue = (radix - 1) + expValue;
-    digits = digits.substring(0, radix) + digits.substring(radix + 1);
-
-    // We're done with the parsing part and can now convert the value form base10 to base2
+  /**
+   * Create a floating point value from its base10 representation.
+   *
+   * <p>This conversion is more difficult as 10 and 2 are not "commensurable" as was defined in
+   * {@link FloatP#fromLiteralHex(Format, boolean, String, int)}. The conversion can't simply be
+   * done one digit at a time as each digit in decimal format represents log(2) bits in binary, and
+   * this number is not rational. Instead, we will use an iterative algorithm that increases its
+   * precision until enough extra digits are available to ensure correct rounding to the target
+   * format.
+   */
+  private static FloatP fromLiteralDec(
+      Format p, boolean sign, String digits, int expValue, Map<Integer, Integer> fromStringStats) {
     // Read in the mantissa as in integer value
     BigInteger mantissa = new BigInteger(digits);
     if (mantissa.equals(BigInteger.ZERO)) {
@@ -2022,6 +2004,68 @@ class FloatP {
       }
     }
     return r.withPrecision(p);
+  }
+
+  /**
+   * Parse the input string and records how many extra bits of precision were needed.
+   *
+   * @param fromStringStats Histogram with the number of extra bits used in all calls to
+   *     fromString()
+   */
+  static FloatP fromStringWithStats(
+      Format p, String input, @Nullable Map<Integer, Integer> fromStringStats) {
+    // TODO: Add error handling for broken inputs.
+    if ("inf".equals(input)) {
+      return infinity(p);
+    }
+    if ("-inf".equals(input)) {
+      return negativeInfinity(p);
+    }
+    if ("nan".equals(input)) {
+      return nan(p);
+    }
+    input = input.toLowerCase();
+
+    // Check if it's a hex literal
+    boolean isHexLiteral = false;
+    if (input.startsWith("0x")) {
+      isHexLiteral = true;
+      input = input.substring(2);
+    }
+
+    // Split off the exponent part (if there is one)
+    int sep = isHexLiteral ? input.indexOf('p') : input.indexOf('e');
+    String digits = sep > -1 ? input.substring(0, sep) : input;
+    String exponent = sep > -1 ? input.substring(sep + 1) : "0";
+
+    boolean sign = false;
+
+    // Determine the sign
+    char pre = digits.charAt(0);
+    if (pre == '+' || pre == '-') {
+      digits = digits.substring(1);
+      sign = pre == '-';
+    }
+
+    int expValue = Integer.parseInt(exponent);
+
+    // Get the fractional part of the number (and add ".0" if it has none)
+    int radix = digits.indexOf('.');
+    if (radix == -1) {
+      radix = digits.length();
+      digits = digits + ".0";
+    }
+
+    // Normalize the mantissa, then fix the exponent
+    expValue = (isHexLiteral ? 4 : 1) * (radix - 1) + expValue;
+    digits = digits.substring(0, radix) + digits.substring(radix + 1);
+
+    // Convert the value to a binary float representation
+    if (isHexLiteral) {
+      return fromLiteralHex(p, sign, digits, expValue);
+    } else {
+      return fromLiteralDec(p, sign, digits, expValue, fromStringStats);
+    }
   }
 
   public static FloatP fromInteger(Format pFormat, int number) {

@@ -191,21 +191,20 @@ public class ASTConverterTest {
 
   @Test
   public final void testValidFloatExpressions() {
-    // FIXME: Add support for hexadecimal float literals to CFloatImpl
-    // FIXME: Parse f/d postfixes in float literals
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
 
     // TestCase consists of: input value, expected output, input type for CLiteralExpression
     record TestCase(String input, String expected, CType type) {}
     ImmutableList<TestCase> input_output =
         ImmutableList.of(
-            new TestCase("0", "0.0", CNumericTypes.DOUBLE),
-            new TestCase("-0", "0.0", CNumericTypes.DOUBLE),
-            new TestCase("0xf", "15", CNumericTypes.DOUBLE),
-            new TestCase("5e2f", "500", CNumericTypes.FLOAT),
-            new TestCase("5e+2f", "500", CNumericTypes.FLOAT),
-            new TestCase("0x5e2f", "24111", CNumericTypes.FLOAT),
-            new TestCase("0x5e-2f", "94", CNumericTypes.FLOAT),
+            new TestCase("0", "0.0000000000000000", CNumericTypes.DOUBLE),
+            new TestCase("-0", "0.0000000000000000", CNumericTypes.DOUBLE),
+            new TestCase("0xf", "15.0000000", CNumericTypes.DOUBLE),
+            new TestCase("5e2", "500.00000000000000", CNumericTypes.FLOAT),
+            new TestCase("5e+2", "500.00000000000000", CNumericTypes.FLOAT),
+            new TestCase("0x5e2", "1506.0000000000000", CNumericTypes.FLOAT),
+            new TestCase("0x5ep2", "376.00000000000000", CNumericTypes.FLOAT),
+            new TestCase("0x5ep-2", "23.500000000000000", CNumericTypes.FLOAT),
             new TestCase(
                 "3.41E+38", "341000000000000000000000000000000000000", CNumericTypes.DOUBLE));
 
