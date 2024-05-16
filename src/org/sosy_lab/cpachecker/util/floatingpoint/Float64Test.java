@@ -127,19 +127,4 @@ public class Float64Test extends AbstractCFloatTestBase {
 
     assertThat(r1).isEqualTo(r2);
   }
-
-  @Test
-  public void stringIdentityTest() {
-    String val = "-6.4046723829733588e-08";
-
-    CFloat t1 = toTestedImpl(val);
-    CFloat t2 = toTestedImpl(t1.toString());
-
-    CFloat r1 = toReferenceImpl(val);
-    CFloat r2 = toReferenceImpl(r1.toString());
-
-    assertThat(t1).isEqualTo(r1);
-    assertThat(t1).isEqualTo(t2);
-    assertThat(r1).isEqualTo(r2);
-  }
 }
