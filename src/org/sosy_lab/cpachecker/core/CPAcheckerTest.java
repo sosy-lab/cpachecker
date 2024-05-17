@@ -51,12 +51,16 @@ public class CPAcheckerTest {
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
+  // discard printed statistics; we only care about generation
+  private final PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
+
   @Test
   public void testRunForSafeCProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
-    // discard printed statistics; we only care about generation
-    PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
 
+    // Code duplication in the later tests is on purpose; we don't want to hide the method calls
+    // that are included in the test through indirection, as long as the tests stay as simple
+    // as they currently are
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_C);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
@@ -67,8 +71,6 @@ public class CPAcheckerTest {
   @Test
   public void testRunForUnsafeCProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
-    // discard printed statistics; we only care about generation
-    PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
 
     TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_C);
     result.getCheckerResult().printStatistics(statisticsStream);
@@ -80,8 +82,6 @@ public class CPAcheckerTest {
   @Test
   public void testRunForSafeJavaProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
-    // discard printed statistics; we only care about generation
-    PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
 
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_JAVA);
     result.getCheckerResult().printStatistics(statisticsStream);
@@ -93,8 +93,6 @@ public class CPAcheckerTest {
   @Test
   public void testRunForUnsafeJavaProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
-    // discard printed statistics; we only care about generation
-    PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
 
     TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_JAVA);
     result.getCheckerResult().printStatistics(statisticsStream);
@@ -106,8 +104,6 @@ public class CPAcheckerTest {
   @Test
   public void testRunForSafeLlvmProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
-    // discard printed statistics; we only care about generation
-    PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
 
     TestResults result;
     try {
@@ -124,8 +120,6 @@ public class CPAcheckerTest {
   @Test
   public void testRunForUnsafeLlvmProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
-    // discard printed statistics; we only care about generation
-    PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
 
     TestResults result;
     try {
