@@ -16,9 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -344,8 +342,6 @@ final class TypeHierarchy {
     }
 
     private void checkSuperClassConsistency(JClassType pClassType) {
-      Deque<JClassType> superClassHierarchy = new ArrayDeque<>();
-
       JClassType nextSuperClass = pClassType.getParentClass();
 
       while (nextSuperClass != null) {
@@ -353,13 +349,11 @@ final class TypeHierarchy {
             !nextSuperClass.equals(pClassType),
             "Class %s may not be a super class of itself.",
             pClassType.getName());
-        superClassHierarchy.push(nextSuperClass);
         nextSuperClass = nextSuperClass.getParentClass();
       }
 
-      JClassType upperMostSuperclass = superClassHierarchy.peek();
       checkArgument(
-          objectType.equals(upperMostSuperclass),
+          objectType.equals(nextSuperClass),
           "Class %s must be a sub-class of Object",
           pClassType.getName());
     }
