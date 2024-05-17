@@ -205,6 +205,21 @@ class FloatP {
    * @param pSignificand Significand, including the leading bit that is hidden in the IEEE format
    */
   public FloatP(Format pFormat, boolean pSign, long pExponent, BigInteger pSignificand) {
+    // Exponent range
+    Preconditions.checkArgument(
+        pExponent >= pFormat.minExp() - 1 && pExponent <= pFormat.maxExp() + 1,
+        "Exponent out of range");
+    // Normal number
+    Preconditions.checkArgument(
+        pExponent == pFormat.minExp() - 1
+            || pExponent == pFormat.maxExp() + 1
+            || pSignificand.bitLength() == pFormat.sigBits + 1,
+        "Significand has wrong length for the specified format");
+    // Subnormal number, Inf and Nan
+    Preconditions.checkArgument(
+        pExponent > pFormat.minExp() - 1 && pExponent < pFormat.maxExp() + 1
+            || pSignificand.bitLength() < pFormat.sigBits + 1,
+        "Significand has wrong length for the specified format");
     format = pFormat;
     sign = pSign;
     exponent = pExponent;
@@ -348,7 +363,8 @@ class FloatP {
    *
    * <p>We expect the significand to be followed by 3 grs bits.
    */
-  private BigInteger applyRounding(RoundingMode rm, boolean negative, BigInteger pSignificand) {
+  private static BigInteger applyRounding(
+      RoundingMode rm, boolean negative, BigInteger pSignificand) {
     long grs = pSignificand.and(new BigInteger("111", 2)).longValue();
     pSignificand = pSignificand.shiftRight(3);
     BigInteger plusOne = pSignificand.add(BigInteger.ONE);
@@ -436,6 +452,10 @@ class FloatP {
     // Normalize if rounding caused an overflow
     if (resultSignificand.testBit(targetFormat.sigBits + 1)) {
       resultSignificand = resultSignificand.shiftRight(1); // The last bit is zero
+      resultExponent += 1;
+    }
+    if (leading > 0 && resultSignificand.testBit(targetFormat.sigBits)) {
+      // Just fix the exponent if the value was subnormal before the overflow
       resultExponent += 1;
     }
 
@@ -586,7 +606,7 @@ class FloatP {
       return resultSign ? negativeZero(format) : zero(format);
     }
     // Return infinity if there is an overflow.
-    if (resultExponent > format.bias()) {
+    if (resultExponent > format.maxExp()) {
       return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
@@ -695,9 +715,13 @@ class FloatP {
       resultSignificand = resultSignificand.shiftRight(1); // The dropped bit is zero
       resultExponent += 1;
     }
+    if (leading > 0 && resultSignificand.bitLength() > format.sigBits) {
+      // Just fix the exponent if the value was subnormal before the overflow
+      resultExponent += 1;
+    }
 
     // Return infinity if there is an overflow.
-    if (resultExponent > format.bias()) {
+    if (resultExponent > format.maxExp()) {
       return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
@@ -771,7 +795,7 @@ class FloatP {
     }
 
     // Return infinity if there is an overflow.
-    if (resultExponent > format.bias()) {
+    if (resultExponent > format.maxExp()) {
       return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
@@ -1087,6 +1111,12 @@ class FloatP {
     } while (resultSignificand.testBit(0) == last);
 
     resultSignificand = resultSignificand.shiftRight(1);
+
+    // Return zero if we lost all our bits
+    if (resultSignificand.equals(BigInteger.ZERO)) {
+      return sign ? negativeZero(format) : zero(format);
+    }
+
     return new FloatP(
         new Format(format.expBits, trailing > format.sigBits ? 0 : (format.sigBits - trailing)),
         sign,
@@ -1098,6 +1128,9 @@ class FloatP {
   private FloatP oneUlp() {
     BigInteger resultSignificand = BigInteger.ONE.shiftLeft(format.sigBits);
     long resultExponent = exponent - format.sigBits;
+    if (resultExponent < format.minExp()) {
+      return sign ? minValue(format).negate() : minValue(format);
+    }
     return new FloatP(format, sign, resultExponent, resultSignificand);
   }
 
@@ -1145,6 +1178,9 @@ class FloatP {
     }
     if (isNan()) {
       return nan(format);
+    }
+    if (isInfinite()) {
+      return isNegative() ? zero(format) : infinity(format);
     }
     if (!abs().greaterThan(minNormal(format))) {
       // Return one immediately if the argument is close to zero
@@ -1751,11 +1787,18 @@ class FloatP {
     BigInteger significand = number.abs().shiftLeft(format.sigBits + 3);
     significand = truncate(significand, exponent);
 
-    // Round the result according to the grs bits
-    long grs = significand.and(new BigInteger("111", 2)).longValue();
-    significand = significand.shiftRight(3);
-    if ((grs == 4 && significand.testBit(0)) || grs > 4) {
-      significand = significand.add(BigInteger.ONE);
+    // Round the result
+    significand = applyRounding(RoundingMode.NEAREST_EVEN, sign, significand);
+
+    // Shift the significand to the right if rounding has caused an overflow
+    if (significand.bitLength() > format.sigBits + 1) {
+      significand = significand.shiftRight(1); // The dropped bit is zero
+      exponent += 1;
+    }
+
+    // Return infinity if there is an overflow.
+    if (exponent > format.maxExp()) {
+      return sign ? negativeInfinity(format) : infinity(format);
     }
 
     return new FloatP(format, sign, exponent, significand);
