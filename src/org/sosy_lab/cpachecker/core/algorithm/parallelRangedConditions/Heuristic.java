@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.parallelRangedConditions;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -268,7 +268,7 @@ abstract class Heuristic {
               getPathsWithoutLoop(entryEdge.getPredecessor(), ImmutableSet.of());
           pathsForEdge.forEach(pathBuilder -> pathBuilder.add(entryEdge.getSuccessor()));
           incomingPaths.addAll(
-              transformedImmutableSetCopy(pathsForEdge, pathBuilder -> pathBuilder.build()));
+              Collections2.transform(pathsForEdge, pathBuilder -> pathBuilder.build()));
         }
 
         if (incomingPaths.isEmpty()) {

@@ -102,11 +102,11 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       } catch (IOException e1) {
         logger.log(
             Level.WARNING,
-            "Could not write generated Paths to file "
-                + pathOutput.toString()
-                + System.lineSeparator()
-                + "Error was: "
-                + e1.toString());
+            "Could not write generated Paths to file ",
+            pathOutput.toString(),
+            System.lineSeparator(),
+            "Error was: ",
+            e1.toString());
       }
     }
 
@@ -160,11 +160,11 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
         } catch (IOException e1) {
           logger.log(
               Level.WARNING,
-              "Could not write condition automata to file "
-                  + pathOutput.toString()
-                  + System.lineSeparator()
-                  + "Error was: "
-                  + e1.toString());
+              "Could not write condition automata to file ",
+              pathOutput.toString(),
+              System.lineSeparator(),
+              "Error was: ",
+              e1.toString());
         }
       }
     }

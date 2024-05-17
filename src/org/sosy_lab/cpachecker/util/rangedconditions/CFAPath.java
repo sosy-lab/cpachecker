@@ -149,6 +149,8 @@ public class CFAPath implements Comparable<CFAPath> {
 
     @Override
     public int compareTo(CFAPath other) {
+      // according to ordering no CFAPath can be larger than top path
+      // two top paths are always equal
       if (other instanceof CFATopPath) {
         return 0;
       }
