@@ -342,18 +342,17 @@ final class TypeHierarchy {
     }
 
     private void checkSuperClassConsistency(JClassType pClassType) {
-      JClassType nextSuperClass = pClassType.getParentClass();
-
-      while (nextSuperClass != null) {
+      JClassType superClass = pClassType;
+      while (superClass.getParentClass() != null) {
+        superClass = superClass.getParentClass();
         checkArgument(
-            !nextSuperClass.equals(pClassType),
+            !superClass.equals(pClassType),
             "Class %s may not be a super class of itself.",
             pClassType.getName());
-        nextSuperClass = nextSuperClass.getParentClass();
       }
 
       checkArgument(
-          objectType.equals(nextSuperClass),
+          objectType.equals(superClass),
           "Class %s must be a sub-class of Object",
           pClassType.getName());
     }
