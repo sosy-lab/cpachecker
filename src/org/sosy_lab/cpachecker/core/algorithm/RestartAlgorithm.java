@@ -140,7 +140,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
       try {
         intermediateStatisticsBuffer.writeTo(out);
-      } catch (IOException eIO) {
+      } catch (IOException e1) {
         // Should not happen, as we use a PrintStream
       }
 

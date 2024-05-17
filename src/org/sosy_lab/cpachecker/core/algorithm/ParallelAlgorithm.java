@@ -183,10 +183,10 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
       NestingAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
-    } catch (IOException | InvalidConfigurationException e) {
+    } catch (IOException | InvalidConfigurationException e1) {
       pLogger.logUserException(
           Level.WARNING,
-          e,
+          e1,
           "Skipping one analysis because the configuration file "
               + singleConfigFileName
               + " could not be read");

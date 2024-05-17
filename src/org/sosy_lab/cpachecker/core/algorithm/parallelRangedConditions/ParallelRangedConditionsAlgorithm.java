@@ -99,14 +99,14 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
         for (CFAPath path : cfaPaths) {
           writer.write(path.toString() + System.lineSeparator());
         }
-      } catch (IOException eIO) {
+      } catch (IOException e1) {
         logger.log(
             Level.WARNING,
             "Could not write generated Paths to file "
                 + pathOutput.toString()
                 + System.lineSeparator()
                 + "Error was: "
-                + eIO.toString());
+                + e1.toString());
       }
     }
 
@@ -157,14 +157,14 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
         Path path = automatonOutput.getPath(i);
         try (FileWriter writer = new FileWriter(path.toFile(), StandardCharsets.UTF_8)) {
           condition.writeDotFile(writer);
-        } catch (IOException eIO) {
+        } catch (IOException e1) {
           logger.log(
               Level.WARNING,
               "Could not write condition automata to file "
                   + pathOutput.toString()
                   + System.lineSeparator()
                   + "Error was: "
-                  + eIO.toString());
+                  + e1.toString());
         }
       }
     }

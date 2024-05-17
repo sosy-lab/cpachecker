@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.parallelRangedConditions;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -81,15 +85,15 @@ abstract class Heuristic {
       String fileContent;
       try {
         fileContent = Files.readString(pathsFile);
-      } catch (IOException eIO) {
+      } catch (IOException e1) {
         throw new InvalidConfigurationException(
             "Can not read paths file " + pathsFile.getFileName());
       }
 
-      List<String> pathStrings = ImmutableList.copyOf(fileContent.split(System.lineSeparator()));
-      return pathStrings.stream()
-          .map(pathString -> CFAPath.fromString(cfa, pathString))
-          .collect(ImmutableList.toImmutableList());
+      List<String> pathStrings =
+          ImmutableList.copyOf(Splitter.on(System.lineSeparator()).split(fileContent));
+      return transformedImmutableListCopy(
+          pathStrings, pathString -> CFAPath.fromString(cfa, pathString));
     }
   }
 
@@ -117,7 +121,7 @@ abstract class Heuristic {
       List<CFAPath> paths =
           recursiveFirstBranches(new CFAPath(ImmutableList.of(cfa.getMainFunction())), branchDepth);
 
-      return paths.stream().sorted().collect(ImmutableList.toImmutableList());
+      return ImmutableList.sortedCopyOf(paths);
     }
 
     private List<CFAPath> recursiveFirstBranches(CFAPath pCurrentPath, int pRemainingBranchDepth) {
@@ -131,7 +135,7 @@ abstract class Heuristic {
         }
       }
 
-      if (successors.size() == 0) {
+      if (successors.isEmpty()) {
         return ImmutableList.of();
       }
       if (successors.size() == 1) {
@@ -223,7 +227,7 @@ abstract class Heuristic {
         }
       }
 
-      if (successors.size() == 0 || currentLength == maxLength) {
+      if (successors.isEmpty() || currentLength == maxLength) {
         return pathBuilder.build();
       } else if (successors.size() == 1) {
         return generateSinglePath(successors.get(0), pathBuilder, currentLength);
@@ -248,28 +252,26 @@ abstract class Heuristic {
     @Override
     public List<CFAPath> generatePaths() throws InvalidConfigurationException {
       Optional<LoopStructure> loopHeadsOptional = cfa.getLoopStructure();
-      if (loopHeadsOptional.isEmpty() || loopHeadsOptional.get().getAllLoops().isEmpty()) {
+      if (loopHeadsOptional.isEmpty() || loopHeadsOptional.orElseThrow().getAllLoops().isEmpty()) {
         throw new InvalidConfigurationException(
             "Loop Heuristic selected but no loop structures present in CFA.");
       }
-      ImmutableCollection<Loop> loops = loopHeadsOptional.get().getAllLoops();
+      ImmutableCollection<Loop> loops = loopHeadsOptional.orElseThrow().getAllLoops();
       loops.forEach(pLoop -> loopNodes.addAll(pLoop.getLoopNodes()));
 
       Set<CFAPath> limitPaths = new HashSet<>();
 
       for (Loop loop : loops) {
-        Set<CFAPath> incommingPaths = new HashSet<>();
+        Set<CFAPath> incomingPaths = new HashSet<>();
         for (CFAEdge entryEdge : loop.getIncomingEdges()) {
           Set<CFAPath.Builder> pathsForEdge =
               getPathsWithoutLoop(entryEdge.getPredecessor(), ImmutableSet.of());
           pathsForEdge.forEach(pathBuilder -> pathBuilder.add(entryEdge.getSuccessor()));
-          incommingPaths.addAll(
-              pathsForEdge.stream()
-                  .map(pathBuilder -> pathBuilder.build())
-                  .collect(ImmutableSet.toImmutableSet()));
+          incomingPaths.addAll(
+              transformedImmutableSetCopy(pathsForEdge, pathBuilder -> pathBuilder.build()));
         }
 
-        if (incommingPaths.isEmpty()) {
+        if (incomingPaths.isEmpty()) {
           logger.log(
               Level.WARNING,
               "Found loop that is not reachable without traversing other loops. Not generating"
@@ -278,13 +280,13 @@ abstract class Heuristic {
           continue;
         }
 
-        limitPaths.add(getLowerLimitPath(loop, Collections.min(incommingPaths)));
+        limitPaths.add(getLowerLimitPath(loop, Collections.min(incomingPaths)));
 
-        Optional<CFAPath> upperLimit = getUpperLimitPath(loop, Collections.max(incommingPaths));
+        Optional<CFAPath> upperLimit = getUpperLimitPath(loop, Collections.max(incomingPaths));
         upperLimit.ifPresent(limitPaths::add);
       }
 
-      return limitPaths.stream().sorted().collect(ImmutableList.toImmutableList());
+      return ImmutableList.sortedCopyOf(limitPaths);
     }
 
     private Set<CFAPath.Builder> getPathsWithoutLoop(

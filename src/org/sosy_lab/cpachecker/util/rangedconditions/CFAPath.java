@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.rangedconditions;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -38,7 +40,7 @@ public class CFAPath implements Comparable<CFAPath> {
   }
 
   public static CFAPath fromString(CFA pCFA, String pPathString) {
-    List<String> nodeNumbers = ImmutableList.copyOf(pPathString.split("\\s+"));
+    List<String> nodeNumbers = ImmutableList.copyOf(Splitter.on("\\s+").split(pPathString));
     return fromInts(
         pCFA, nodeNumbers.stream().map(Integer::valueOf).collect(ImmutableList.toImmutableList()));
   }
@@ -46,7 +48,11 @@ public class CFAPath implements Comparable<CFAPath> {
   public static CFAPath fromInts(CFA pCfa, List<Integer> ints) {
     Builder path = new Builder();
     for (Integer i : ints) {
-      path.add(pCfa.nodes().stream().filter(elem -> elem.getNodeNumber() == i).findFirst().get());
+      path.add(
+          pCfa.nodes().stream()
+              .filter(elem -> elem.getNodeNumber() == i)
+              .findFirst()
+              .orElseThrow());
     }
     return path.build();
   }
@@ -78,28 +84,34 @@ public class CFAPath implements Comparable<CFAPath> {
 
   @Override
   public int compareTo(CFAPath other) {
+    // implement path ordering
+
+    // this not instanceof CFATopPath because subclass overwrites compareTo
+    // hence, CFATopPath always larger than this
     if (other instanceof CFATopPath) {
       return -1;
     }
+
+    // compare path until shorter path ends, or path deviates
     for (int i = 0; i < size() && i < other.size(); i++) {
       if (!get(i).equals(other.get(i))) {
+        // paths deviate, path with smaller node number is smaller
         return get(i).compareTo(other.get(i));
       }
     }
+
+    // shorter path is a prefix of longer path
+    // thus, shorter path is smaller
     return Integer.compare(size(), other.size());
   }
 
   @Override
-  public boolean equals(Object other) {
+  public boolean equals(@Nullable Object other) {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof CFAPath)) {
-      return false;
-    }
 
-    CFAPath path = (CFAPath) other;
-    return nodes.equals(path.nodes);
+    return other instanceof CFAPath && nodes.equals(((CFAPath) other).nodes);
   }
 
   @Override
