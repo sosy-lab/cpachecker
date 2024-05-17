@@ -37,19 +37,6 @@ public final class JClassType extends JClassOrInterfaceType {
   private static final String NAME_OF_CLASS_OBJECT = "java.lang.Object";
   private static final String SIMPLE_NAME_OF_CLASS_OBJECT = "Object";
 
-  private static final JClassType typeOfObject = new JClassType();
-
-  private static final JClassType UNRESOLVABLE_TYPE =
-      new JClassType(
-          "_unspecified_",
-          "_unspecified_",
-          VisibilityModifier.NONE,
-          false,
-          false,
-          false,
-          JClassType.getTypeOfObject(),
-          new HashSet<>());
-
   private final boolean isFinal;
   private final boolean isAbstract;
   private final boolean isStrictFp;
@@ -87,7 +74,6 @@ public final class JClassType extends JClassOrInterfaceType {
 
     pSuperClass.registerSubType(this);
     notifyImplementedInterfacesOfThisClass();
-    checkSuperClassConsistency();
   }
 
   JClassType(
@@ -116,23 +102,6 @@ public final class JClassType extends JClassOrInterfaceType {
 
     pSuperClass.registerSubType(this);
     notifyImplementedInterfacesOfThisClass();
-    checkSuperClassConsistency();
-  }
-
-  private void checkSuperClassConsistency() {
-    Set<JClassType> found = new HashSet<>();
-
-    JClassType nextSuperClass = superClass;
-
-    while (nextSuperClass != null) {
-      found.add(nextSuperClass);
-      nextSuperClass = nextSuperClass.getParentClass();
-      checkArgument(
-          !found.contains(this), "Class %s may not be a super class of itself.", getName());
-    }
-
-    checkArgument(
-        found.contains(typeOfObject), "Class %s must be a sub class of Object", getName());
   }
 
   // Creates the object describing java.lang.Object
@@ -148,14 +117,16 @@ public final class JClassType extends JClassOrInterfaceType {
   }
 
   /**
-   * Returns a <code>JClassType</code> instance that describes the class <code>java.lang.Object
-   * </code>.
+   * Returns a new <code>JClassType</code> instance that describes the class <code>java.lang.Object
+   * </code>. The returned instance will be a fresh Object that is not associated with any
+   * subclasses (yet). To get access to the class Object that was initialized with the current
+   * verification run's type hierarchy, use TypeHierarchy#getClassTypeOfObject()
    *
    * @return a <code>JClassType</code> instance that describes the class <code>java.lang.Object
    *     </code>
    */
-  public static JClassType getTypeOfObject() {
-    return typeOfObject;
+  public static JClassType createObjectType() {
+    return new JClassType();
   }
 
   /**
@@ -281,7 +252,7 @@ public final class JClassType extends JClassOrInterfaceType {
    *
    * @return <code>true</code> if the class is final, <code>false</code> otherwise
    */
-  public final boolean isFinal() {
+  public boolean isFinal() {
     return isFinal;
   }
 
@@ -290,7 +261,7 @@ public final class JClassType extends JClassOrInterfaceType {
    *
    * @return <code>true</code> if the class is abstract, <code>false</code> otherwise
    */
-  public final boolean isAbstract() {
+  public boolean isAbstract() {
     return isAbstract;
   }
 
@@ -300,18 +271,17 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return <code>true</code> if the class has a strict function pointer, <code>false</code>
    *     otherwise
    */
-  public final boolean isStrictFp() {
+  public boolean isStrictFp() {
     return isStrictFp;
   }
 
-  @Nullable
   /**
    * Returns the super type of this class type. The Super Type of the class Object is <code>null
    * </code>.
    *
    * @return the super type of this class type
    */
-  public final JClassType getParentClass() {
+  public @Nullable JClassType getParentClass() {
     return superClass;
   }
 
@@ -322,7 +292,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JClassType</code> for each sub class that
    *     directly extends the described class
    */
-  public final Set<JClassType> getDirectSubClasses() {
+  public Set<JClassType> getDirectSubClasses() {
     return ImmutableSet.copyOf(directSubClasses);
   }
 
@@ -336,7 +306,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JInterfaceType</code> for each interface directly
    *     implemented by the described class
    */
-  public final Set<JInterfaceType> getImplementedInterfaces() {
+  public Set<JInterfaceType> getImplementedInterfaces() {
     return implementedInterfaces;
   }
 
@@ -357,7 +327,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JClassType</code> for each super class of the
    *     described class
    */
-  public final Set<JClassType> getAllSuperClasses() {
+  public Set<JClassType> getAllSuperClasses() {
 
     Set<JClassType> result = new HashSet<>();
 
@@ -381,7 +351,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JInterfaceType</code> for each interface
    *     implemented by the described class
    */
-  public final Set<JInterfaceType> getAllImplementedInterfaces() {
+  public Set<JInterfaceType> getAllImplementedInterfaces() {
 
     // First, get all super classes of this class,
     // then, get all Implementing Interfaces and superInterfaces
@@ -413,7 +383,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each super type
    *     of the described class
    */
-  public final Set<JClassOrInterfaceType> getAllSuperTypesOfClass() {
+  public Set<JClassOrInterfaceType> getAllSuperTypesOfClass() {
 
     Set<JClassOrInterfaceType> result = new HashSet<>();
     result.addAll(getAllSuperClasses());
@@ -430,7 +400,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JClassType</code> for each sub class that extends
    *     the described class
    */
-  public final Set<JClassType> getAllSubTypesOfClass() {
+  public Set<JClassType> getAllSubTypesOfClass() {
 
     Set<JClassType> result = new HashSet<>(directSubClasses);
 
@@ -440,15 +410,6 @@ public final class JClassType extends JClassOrInterfaceType {
     }
 
     return result;
-  }
-
-  /**
-   * Returns a <code>JClassType</code> instance that describes an unresolvable class.
-   *
-   * @return a <code>JClassType</code> instance that describes an unresolvable class
-   */
-  public static JClassType createUnresolvableType() {
-    return UNRESOLVABLE_TYPE;
   }
 
   @Override

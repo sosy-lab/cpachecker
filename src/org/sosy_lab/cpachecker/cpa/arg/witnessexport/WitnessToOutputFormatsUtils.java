@@ -37,7 +37,9 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-public class WitnessToOutputFormatsUtils {
+public final class WitnessToOutputFormatsUtils {
+
+  private WitnessToOutputFormatsUtils() {}
 
   /** utility method */
   public static void writeWitness(

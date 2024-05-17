@@ -324,8 +324,7 @@ class FunctionCloner implements CFAVisitor {
       newNode = new FunctionExitNode(cloneAst(node.getFunction()));
 
     } else if (node instanceof CFunctionEntryNode n) {
-      @Nullable FunctionExitNode newExitNode =
-          n.getExitNode().map(exitNode -> cloneNode(exitNode)).orElse(null);
+      @Nullable FunctionExitNode newExitNode = n.getExitNode().map(this::cloneNode).orElse(null);
 
       Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
       if (returnVariable.isPresent()) {
@@ -473,11 +472,7 @@ class FunctionCloner implements CFAVisitor {
 
       } else if (ast instanceof CEnumerator decl) {
         return new CEnumerator(
-            loc,
-            decl.getName(),
-            changeQualifiedName(decl.getQualifiedName()),
-            decl.getType(),
-            decl.getValue());
+            loc, decl.getName(), changeQualifiedName(decl.getQualifiedName()), decl.getValue());
       }
 
     } else if (ast instanceof CStatement) {
@@ -699,18 +694,23 @@ class FunctionCloner implements CFAVisitor {
     public CType visit(CEnumType type) {
       List<CEnumerator> l = new ArrayList<>(type.getEnumerators().size());
       for (CEnumerator e : type.getEnumerators()) {
-        CEnumerator enumType =
+        l.add(
             new CEnumerator(
                 e.getFileLocation(),
                 e.getName(),
                 changeQualifiedName(e.getQualifiedName()),
-                e.getType(),
-                (e.hasValue() ? e.getValue() : null));
-        enumType.setEnum(e.getEnum());
-        l.add(enumType);
+                e.getValue()));
       }
-      return new CEnumType(
-          type.isConst(), type.isVolatile(), l, type.getName(), type.getOrigName());
+      CEnumType enumType =
+          new CEnumType(
+              type.isConst(),
+              type.isVolatile(),
+              type.getCompatibleType(),
+              l,
+              type.getName(),
+              type.getOrigName());
+      l.forEach(e -> e.setEnum(enumType));
+      return enumType;
     }
 
     @Override

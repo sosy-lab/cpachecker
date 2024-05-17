@@ -126,11 +126,8 @@ public class SMGErrorInfo {
 
   @Override
   public boolean equals(Object pOther) {
-    if (!(pOther instanceof SMGErrorInfo)) {
-      return false;
-    }
-    SMGErrorInfo o = (SMGErrorInfo) pOther;
-    return invalidWrite == o.invalidWrite
+    return pOther instanceof SMGErrorInfo o
+        && invalidWrite == o.invalidWrite
         && invalidRead == o.invalidRead
         && invalidFree == o.invalidFree
         && hasMemoryLeak == o.hasMemoryLeak
@@ -189,5 +186,20 @@ public class SMGErrorInfo {
     }
     // Will not happen
     throw new RuntimeException("Undefined memory error");
+  }
+
+  public PersistentList<Object> getInvalidChain() {
+    if (invalidChain == null) {
+      return PersistentLinkedList.of();
+    }
+    return invalidChain;
+  }
+
+  @SuppressWarnings("unused")
+  public PersistentList<Object> getCurrentChain() {
+    if (currentChain == null) {
+      return PersistentLinkedList.of();
+    }
+    return currentChain;
   }
 }

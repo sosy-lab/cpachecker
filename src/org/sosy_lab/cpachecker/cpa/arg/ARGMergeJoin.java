@@ -65,7 +65,7 @@ public class ARGMergeJoin implements MergeOperator {
     ALLOW_WARN,
     PREVENT,
     PREVENT_WARN,
-    CRASH;
+    CRASH,
   }
 
   private final MergeOperator wrappedMerge;

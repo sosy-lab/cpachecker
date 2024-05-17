@@ -267,8 +267,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     // CFANode tmpNode = cfaEdge.getSummaryEdge().getPredecessor();
     String fName =
         cfaEdge
-            .getSummaryEdge()
-            .getExpression()
+            .getFunctionCall()
             .getFunctionCallExpression()
             .getFunctionNameExpression()
             .toASTString();
@@ -402,8 +401,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       result.add(saveState);
     }
     result.addAll(
-        handleFunctionCallExpression(
-            callEdge.getSummaryEdge().getExpression().getFunctionCallExpression()));
+        handleFunctionCallExpression(callEdge.getFunctionCall().getFunctionCallExpression()));
     return result;
   }
 

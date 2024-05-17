@@ -48,7 +48,7 @@ class VariableGenerator {
 
       if (basicType == CBasicType.INT) {
         return "__VERIFIER_nondet_int";
-      } else if (basicType == CBasicType.UNSPECIFIED && simpleType.isLong()) {
+      } else if (basicType == CBasicType.UNSPECIFIED && simpleType.hasLongSpecifier()) {
         return "__VERIFIER_nondet_long";
       }
     }

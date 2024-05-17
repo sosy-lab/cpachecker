@@ -61,14 +61,11 @@ public class UnrecognizedCodeException extends CPATransferException {
     if (lang == null) {
       return "Unrecognized code";
     }
-    switch (lang) {
-      case C:
-        return "Unrecognized C code";
-      case JAVA:
-        return "Unrecognized Java code";
-      default:
-        throw new AssertionError();
-    }
+    return switch (lang) {
+      case C -> "Unrecognized C code";
+      case JAVA -> "Unrecognized Java code";
+      default -> throw new AssertionError();
+    };
   }
 
   private static Language getLanguage(AAstNode astNode) {

@@ -42,9 +42,10 @@ public final class JVariableRunTimeType extends AbstractExpression
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     if (pQualified) {
-      return getReferencedVariable().toASTString(pQualified) + "_getClass()";
+      return getReferencedVariable().toASTString(pQualified, pOriginalVariableNames)
+          + "_getClass()";
     } else {
       return getReferencedVariable().getName() + "_getClass()";
     }
@@ -79,12 +80,8 @@ public final class JVariableRunTimeType extends AbstractExpression
       return true;
     }
 
-    if (!(obj instanceof JVariableRunTimeType) || !super.equals(obj)) {
-      return false;
-    }
-
-    JVariableRunTimeType other = (JVariableRunTimeType) obj;
-
-    return Objects.equals(other.referencedVariable, referencedVariable);
+    return obj instanceof JVariableRunTimeType other
+        && super.equals(obj)
+        && Objects.equals(other.referencedVariable, referencedVariable);
   }
 }

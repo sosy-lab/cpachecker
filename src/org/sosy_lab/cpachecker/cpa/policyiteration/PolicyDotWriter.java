@@ -36,12 +36,11 @@ public class PolicyDotWriter {
       toSort.put(e.getKey().getLinearExpression(), e.getValue());
     }
     while (toSort.size() > 0) {
-      LinearExpression<?> template, negTemplate;
       Entry<LinearExpression<?>, PolicyBound> entry = toSort.entrySet().iterator().next();
-      template = entry.getKey();
+      LinearExpression<?> template = entry.getKey();
       Rational upperBound = entry.getValue().getBound();
 
-      negTemplate = template.negate();
+      LinearExpression<?> negTemplate = template.negate();
 
       toSort.remove(template);
 

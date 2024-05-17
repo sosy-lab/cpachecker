@@ -18,6 +18,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
   private static final long serialVersionUID = -3131719369492162894L;
   private final CExpression operand;
   private final CType type;
+
   /** When isReal is false this is a cast to get the imaginary Part of the complex number */
   private final boolean isReal;
 
@@ -76,11 +77,11 @@ public final class CComplexCastExpression extends AbstractExpression implements 
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     if (isReal) {
-      return "__real__ " + operand.toASTString(pQualified);
+      return "__real__ " + operand.toASTString(pQualified, pOriginalVariableNames);
     } else {
-      return "__imag__ " + operand.toASTString(pQualified);
+      return "__imag__ " + operand.toASTString(pQualified, pOriginalVariableNames);
     }
   }
 
@@ -95,13 +96,9 @@ public final class CComplexCastExpression extends AbstractExpression implements 
       return true;
     }
 
-    if (!(obj instanceof CComplexCastExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    CComplexCastExpression other = (CComplexCastExpression) obj;
-
-    return Objects.equals(other.operand, operand)
+    return obj instanceof CComplexCastExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand, operand)
         && Objects.equals(other.type, type)
         && other.isReal == isReal;
   }

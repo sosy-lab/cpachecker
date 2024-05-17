@@ -116,7 +116,10 @@ public class CBitFieldTypeTest {
 
   @Test
   public void testBaseTypeEnum() {
-    new CBitFieldType(new CEnumType(false, false, ImmutableList.of(), "DummyEnum", "DummyEnum"), 0);
+    new CBitFieldType(
+        new CEnumType(
+            false, false, CNumericTypes.INT, ImmutableList.of(), "DummyEnum", "DummyEnum"),
+        0);
   }
 
   @Test

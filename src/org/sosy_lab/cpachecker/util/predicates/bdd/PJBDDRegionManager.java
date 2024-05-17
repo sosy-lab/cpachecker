@@ -452,12 +452,12 @@ public class PJBDDRegionManager implements RegionManager {
         return falseFormula;
       } else {
 
-        DD[] clauses = cubes.stream().filter(bdd -> bdd != null).toArray(DD[]::new);
-
         DD result = bddCreator.makeFalse();
 
-        for (DD bdd : clauses) {
-          result = bddCreator.makeOr(result, bdd);
+        for (DD bdd : cubes) {
+          if (bdd != null) {
+            result = bddCreator.makeOr(result, bdd);
+          }
         }
 
         cubes.clear();

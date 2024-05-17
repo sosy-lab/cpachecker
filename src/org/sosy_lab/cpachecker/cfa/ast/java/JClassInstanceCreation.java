@@ -65,9 +65,11 @@ public sealed class JClassInstanceCreation extends JMethodInvocationExpression
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     return "new "
-        + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
+        + getExpressionType()
+            .toASTString(
+                getFunctionNameExpression().toASTString(pQualified, pOriginalVariableNames));
   }
 
   @Override
@@ -83,10 +85,6 @@ public sealed class JClassInstanceCreation extends JMethodInvocationExpression
       return true;
     }
 
-    if (!(obj instanceof JClassInstanceCreation)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JClassInstanceCreation && super.equals(obj);
   }
 }

@@ -51,6 +51,10 @@ SPDX-License-Identifier: Apache-2.0
         -J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED
         "/>
 
+    <condition property="java21">
+      <javaversion atleast="21"/>
+    </condition>
+
     <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
     <target name="build-project" unless="skipBuild" depends="build-dependencies">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
@@ -74,6 +78,7 @@ SPDX-License-Identifier: Apache-2.0
             <compilerarg value="-Xlint:-serial"/> <!-- over 100 warnings that would need to be supressed -->
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Xlint:-options"/> <!-- suppress warning about bootclasspath on newer JDK -->
+            <compilerarg value="-Xlint:-this-escape" if:set="java21"/> <!-- false alarm for every use of configuration injection -->
             <compilerarg value="-Werror" unless:set="compile.warn"/>
             <compilerarg line="${errorprone.options.required}" unless:set="errorprone.disable"/>
             <compilerarg value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}" unless:set="errorprone.disable"/>

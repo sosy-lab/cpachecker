@@ -72,10 +72,7 @@ public class BDDState implements AbstractQueryableState, LatticeAbstractState<BD
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof BDDState other) {
-      return currentState.equals(other.currentState);
-    }
-    return false;
+    return o instanceof BDDState other && currentState.equals(other.currentState);
   }
 
   @Override
@@ -90,17 +87,14 @@ public class BDDState implements AbstractQueryableState, LatticeAbstractState<BD
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
-      case "VALUES":
-        return manager.dumpRegion(currentState).toString();
-      case "VARSET":
-        return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
-      case "VARSETSIZE":
-        return manager.getPredicates().size();
-      default:
-        throw new InvalidQueryException(
-            "BDDCPA Element can only return the current values (\"VALUES\")");
-    }
+    return switch (pProperty) {
+      case "VALUES" -> manager.dumpRegion(currentState).toString();
+      case "VARSET" -> "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
+      case "VARSETSIZE" -> manager.getPredicates().size();
+      default ->
+          throw new InvalidQueryException(
+              "BDDCPA Element can only return the current values (\"VALUES\")");
+    };
   }
 
   /** this.state = this.state.and(pConstraint); */

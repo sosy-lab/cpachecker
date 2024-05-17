@@ -47,10 +47,6 @@ public final class CExpressionStatement extends AExpressionStatement implements 
       return true;
     }
 
-    if (!(obj instanceof CExpressionStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CExpressionStatement && super.equals(obj);
   }
 }

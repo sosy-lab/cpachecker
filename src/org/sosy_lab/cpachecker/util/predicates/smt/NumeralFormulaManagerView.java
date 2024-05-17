@@ -30,7 +30,7 @@ public class NumeralFormulaManagerView<
       FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
     super(pWrappingHandler);
-    this.manager = checkNotNull(pManager);
+    manager = checkNotNull(pManager);
   }
 
   @Override

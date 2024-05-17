@@ -31,14 +31,10 @@ public abstract sealed class CDesignator extends AbstractAstNode implements CAst
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CDesignator)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CDesignator && super.equals(obj);
   }
 }

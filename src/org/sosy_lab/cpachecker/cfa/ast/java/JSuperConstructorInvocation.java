@@ -36,7 +36,7 @@ public final class JSuperConstructorInvocation extends JClassInstanceCreation {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     return toASTString();
   }
 
@@ -58,10 +58,6 @@ public final class JSuperConstructorInvocation extends JClassInstanceCreation {
       return true;
     }
 
-    if (!(obj instanceof JSuperConstructorInvocation)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JSuperConstructorInvocation && super.equals(obj);
   }
 }

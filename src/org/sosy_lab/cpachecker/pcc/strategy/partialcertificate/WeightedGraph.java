@@ -27,6 +27,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
   private final int numNodes;
   private int totalNodeWeight;
   private final WeightedNode[] nodes;
+
   /** store for each node its out- and incoming edges (each edge is stored twice) */
   private final Map<Integer, Set<WeightedEdge>> outgoingEdges;
 
@@ -106,10 +107,10 @@ public class WeightedGraph implements Iterable<WeightedNode> {
     // Check if for the end node already an incoming edge from start node existed
     // ==> if yes: change the edges weight
     if (!incomingEdges.containsKey(endNumber)) { // neither start nor end-node had edge until now
-      incomingEdges.put(endNumber, new HashSet<WeightedEdge>());
+      incomingEdges.put(endNumber, new HashSet<>());
     }
     if (!outgoingEdges.containsKey(startNumber)) { // neither start nor end-node had edge until now
-      outgoingEdges.put(startNumber, new HashSet<WeightedEdge>());
+      outgoingEdges.put(startNumber, new HashSet<>());
     }
 
     if (!incomingEdges.get(endNumber).isEmpty()
@@ -321,8 +322,8 @@ public class WeightedGraph implements Iterable<WeightedNode> {
    * Generates a partitioning, in which each node has its own partition. If there are more
    * partitions needed, than nodes in graph exist, empty partitions are added
    *
-   * @param numPartitions number of Partitions to be at least created. if numNodes<numPartitions==>
-   *     empty partitions necessary
+   * @param numPartitions number of Partitions to be at least created. if {@code
+   *     numNodes<numPartitions} ==> empty partitions necessary
    * @return A partitioning consisting of numNodes partitions
    */
   public List<Set<Integer>> getNodesSeperatelyPartitioned(int numPartitions) {
@@ -335,7 +336,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
       currentPartition++;
     }
     while (currentPartition < numPartitions) {
-      partitioning.add(new HashSet<Integer>(1));
+      partitioning.add(new HashSet<>(1));
       currentPartition++;
     }
     return partitioning;

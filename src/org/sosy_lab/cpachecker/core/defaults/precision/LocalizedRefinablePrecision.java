@@ -103,12 +103,9 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
-    if (pOtherPrecision.getClass().equals(getClass())
+    return pOtherPrecision.getClass().equals(getClass())
         && super.getBaseline().equals(((LocalizedRefinablePrecision) pOtherPrecision).getBaseline())
-        && rawPrecision.equals(((LocalizedRefinablePrecision) pOtherPrecision).rawPrecision)) {
-      return true;
-    }
-    return false;
+        && rawPrecision.equals(((LocalizedRefinablePrecision) pOtherPrecision).rawPrecision);
   }
 
   @Override

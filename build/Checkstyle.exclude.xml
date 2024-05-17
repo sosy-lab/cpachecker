@@ -27,4 +27,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- Generated code gets excluded -->
   <suppress files="/generated/" checks=".*"/>
+  <suppress files="/cpa/automaton/Automaton(Parser|Sym)\.java$" checks=".*"/>
+  <suppress files="/acsl/ACSL(Parser|Symbols)\.java$" checks=".*"/>
+  <suppress files="/predicates/precisionConverter/Formula(Parser|Symbols)\.java$" checks=".*"/>
 </suppressions>

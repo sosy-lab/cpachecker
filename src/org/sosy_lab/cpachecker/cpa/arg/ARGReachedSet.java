@@ -116,7 +116,7 @@ public class ARGReachedSet {
     Collection<AbstractState> targetStates =
         from(mReached).filter(AbstractStates::isTargetState).toList();
     if (!targetStates.isEmpty()) {
-      removeUnReachableFrom(targetStates, ARGState::getParents, x -> x.wasExpanded());
+      removeUnReachableFrom(targetStates, ARGState::getParents, ARGState::wasExpanded);
     }
   }
 

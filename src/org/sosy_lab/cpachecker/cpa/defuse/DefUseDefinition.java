@@ -37,12 +37,8 @@ public class DefUseDefinition implements AbstractState {
 
   @Override
   public boolean equals(Object other) {
-    if (!(other instanceof DefUseDefinition)) {
-      return false;
-    }
-
-    DefUseDefinition otherDef = (DefUseDefinition) other;
-    return otherDef.variableName.equals(variableName)
+    return other instanceof DefUseDefinition otherDef
+        && otherDef.variableName.equals(variableName)
         && Objects.equals(otherDef.assigningEdge, assigningEdge);
   }
 }

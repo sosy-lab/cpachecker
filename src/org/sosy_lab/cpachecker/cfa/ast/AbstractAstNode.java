@@ -25,8 +25,8 @@ public abstract class AbstractAstNode implements AAstNode {
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return "(" + toASTString(pQualified) + ")";
+  public String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return "(" + toASTString(pQualified, pOriginalVariableNames) + ")";
   }
 
   @Override
@@ -45,10 +45,6 @@ public abstract class AbstractAstNode implements AAstNode {
       return true;
     }
 
-    if (obj instanceof AbstractAstNode) {
-      return true;
-    }
-
-    return false;
+    return obj instanceof AbstractAstNode;
   }
 }

@@ -201,10 +201,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private boolean isFloatingPointType(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return ((CSimpleType) pType).getType().isFloatingPointType();
-    }
-    return false;
+    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
   }
 
   @Override
@@ -313,9 +310,12 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long typeSize = evv.getMachineModel().getSizeof(elementType).longValueExact();
-
-      long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
+      Value typeSize = evv.sizeof(elementType);
+      if (!typeSize.isExplicitlyKnown() || !typeSize.isNumericValue()) {
+        return null;
+      }
+      long subscriptOffset =
+          subscriptValue.asNumericValue().longValue() * typeSize.asNumericValue().longValue();
 
       return arrayLoc.withAddedOffset(subscriptOffset);
     }

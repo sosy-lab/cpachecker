@@ -29,7 +29,7 @@ public interface RegionManager extends RegionCreator {
     WIN2,
     WIN2ITE,
     WIN3,
-    WIN3ITE;
+    WIN3ITE,
   }
 
   record IfThenElseParts(Region condition, Region thenBranch, Region elseBranch) {}

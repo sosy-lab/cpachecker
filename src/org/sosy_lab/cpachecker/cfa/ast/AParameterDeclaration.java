@@ -16,12 +16,20 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
   private static final long serialVersionUID = 7623251138394648617L;
 
+  private final Type type;
+
   protected AParameterDeclaration(FileLocation pFileLocation, Type pType, String pName) {
-    super(pFileLocation, pType, checkNotNull(pName));
+    super(pFileLocation, checkNotNull(pName));
+    type = pType;
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public Type getType() {
+    return type;
+  }
+
+  @Override
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     if (pQualified) {
       return getType().toASTString(getQualifiedName().replace("::", "__"));
     } else {
@@ -42,10 +50,6 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
       return true;
     }
 
-    if (!(obj instanceof AParameterDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof AParameterDeclaration && super.equals(obj);
   }
 }

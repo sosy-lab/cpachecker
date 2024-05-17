@@ -38,11 +38,13 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
@@ -183,6 +185,16 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
                 logger.log(Level.WARNING, "Invariants do not exist in a violaton witness");
                 break;
             }
+          } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(predicatesFile)) {
+            if (!AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(predicatesFile)
+                .orElseThrow()
+                .equals(WitnessType.CORRECTNESS_WITNESS)) {
+              logger.log(
+                  Level.WARNING, "For witnesses V2 invariants only exist in correctness witnesses");
+              continue;
+            }
+            result =
+                result.mergeWith(parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
           } else {
             result = result.mergeWith(parser.parsePredicates(predicatesFile));
           }
@@ -219,12 +231,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
             MultimapBuilder.treeKeys().arrayListValues().build();
 
         List<AbstractionPredicate> predicates = new ArrayList<>();
-        // get atom predicates from invariant
         if (options.splitIntoAtoms) {
+          // get atom predicates from invariant
           predicates.addAll(splitToPredicates(invariant));
-        }
-        // get predicate from invariant
-        else {
+        } else {
+          // get predicate from invariant
           predicates.add(
               abstractionManager.makePredicate(
                   invariant.getFormula(formulaManagerView, pathFormulaManager, null)));
@@ -282,8 +293,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     try {
       return expressionTree.accept(toFormulaVisitor);
     } catch (ToFormulaException e) {
-      Throwables.propagateIfPossible(
-          e.getCause(), CPATransferException.class, InterruptedException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfUnchecked(e.getCause());
       throw new UnexpectedCheckedException("expression tree to formula", e);
     }
   }

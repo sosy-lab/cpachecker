@@ -29,8 +29,7 @@ public interface Targetable {
    *     available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  @NonNull
-  Set<TargetInformation> getTargetInformation() throws IllegalStateException;
+  @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException;
 
   /**
    * This interface represents information about target states.
@@ -41,6 +40,7 @@ public interface Targetable {
    *   <li>MUST override the {@link #toString()} method to provide a human-readable description!
    *   <li>MIGHT override the {@link Object#equals(Object)} method! (and of course {@link
    *       Object#hashCode()})
+   * </ul>
    */
   interface TargetInformation {
 

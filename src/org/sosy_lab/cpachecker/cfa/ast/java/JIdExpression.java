@@ -63,10 +63,6 @@ public sealed class JIdExpression extends AIdExpression implements JLeftHandSide
       return true;
     }
 
-    if (!(obj instanceof JIdExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JIdExpression && super.equals(obj);
   }
 }

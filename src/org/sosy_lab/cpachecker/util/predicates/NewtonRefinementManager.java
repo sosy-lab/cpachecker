@@ -240,7 +240,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Filter pathlocations to only abstractionstate locations
     Iterator<PathLocation> abstractionLocations =
         pPathLocations.stream()
-            .filter(l -> l.hasAbstractionState())
+            .filter(PathLocation::hasAbstractionState)
             .collect(ImmutableList.toImmutableList())
             .iterator();
 
@@ -313,9 +313,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               postCondition =
                   eliminateIntermediateVariables(
                       pathFormula, bfmgr.and(preCondition, bfmgr.and(requiredPart)));
-            }
-            // Else no additional assertions
-            else {
+            } else {
+              // Else no additional assertions
               postCondition = preCondition;
             }
             break;
@@ -534,7 +533,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         int predPos = predEntry.getKey(); // The position in the path
 
         // Map predicate to the variables that are future live at its position
-        Set<String> futureLives = Maps.filterValues(lastOccurance, (v) -> v > predPos).keySet();
+        Set<String> futureLives = Maps.filterValues(lastOccurance, v -> v > predPos).keySet();
 
         // identify the variables that are not future live and can be quantified
         Map<String, Formula> toQuantify =
@@ -627,6 +626,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       pathFormula = pPathFormula;
       state = pState;
     }
+
     /**
      * Get the position of the location in the path
      *

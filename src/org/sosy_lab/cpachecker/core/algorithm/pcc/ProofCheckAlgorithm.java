@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 @Options(prefix = "pcc")
 public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -97,6 +98,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.INFO, "Start reading proof.");
     stats.totalTimer.start();
     stats.readTimer.start();
+    SerializationInfoStorage.storeSerializationInformation(cpa, pCfa);
     try {
       checkingStrategy.readProof();
     } catch (ClassNotFoundException | InvalidConfigurationException | IOException e) {
@@ -104,6 +106,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.readTimer.stop();
       stats.totalTimer.stop();
+      SerializationInfoStorage.clear();
     }
     logger.log(Level.INFO, "Finished reading proof.");
   }

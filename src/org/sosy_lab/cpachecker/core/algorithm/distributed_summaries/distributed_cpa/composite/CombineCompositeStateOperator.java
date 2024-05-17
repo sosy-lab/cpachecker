@@ -45,7 +45,7 @@ public class CombineCompositeStateOperator implements CombineOperator {
     for (int i = 0; i < compositeState1.getWrappedStates().size(); i++) {
       AbstractState state1I = compositeState1.get(i);
       AbstractState state2I = compositeState2.get(i);
-      if (!state1I.getClass().equals(state2I.getClass())) {
+      if (state1I.getClass() != state2I.getClass()) {
         throw new AssertionError(
             "All states have to work on equally structured composite states. Mismatch for classes "
                 + state1I.getClass()

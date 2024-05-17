@@ -36,17 +36,17 @@ public final class CArrayRangeDesignator extends CDesignator {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     return "["
-        + rangeFloor.toASTString(pQualified)
+        + rangeFloor.toASTString(pQualified, pOriginalVariableNames)
         + " ... "
-        + rangeCeiling.toASTString(pQualified)
+        + rangeCeiling.toASTString(pQualified, pOriginalVariableNames)
         + "]";
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return toASTString(pQualified);
+  public String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return toASTString(pQualified, pOriginalVariableNames);
   }
 
   @Override
@@ -75,13 +75,9 @@ public final class CArrayRangeDesignator extends CDesignator {
       return true;
     }
 
-    if (!(obj instanceof CArrayRangeDesignator) || !super.equals(obj)) {
-      return false;
-    }
-
-    CArrayRangeDesignator other = (CArrayRangeDesignator) obj;
-
-    return Objects.equals(other.rangeCeiling, rangeCeiling)
+    return obj instanceof CArrayRangeDesignator other
+        && super.equals(obj)
+        && Objects.equals(other.rangeCeiling, rangeCeiling)
         && Objects.equals(other.rangeFloor, rangeFloor);
   }
 }

@@ -31,12 +31,16 @@ public final class CDesignatedInitializer extends AbstractInitializer implements
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     StringBuilder sb = new StringBuilder();
     Joiner.on("")
-        .appendTo(sb, transform(designators, cdesignator -> cdesignator.toASTString(pQualified)));
+        .appendTo(
+            sb,
+            transform(
+                designators,
+                cdesignator -> cdesignator.toASTString(pQualified, pOriginalVariableNames)));
     sb.append(" = ");
-    sb.append(right.toASTString(pQualified));
+    sb.append(right.toASTString(pQualified, pOriginalVariableNames));
     return sb.toString();
   }
 
@@ -74,12 +78,9 @@ public final class CDesignatedInitializer extends AbstractInitializer implements
       return true;
     }
 
-    if (!(obj instanceof CDesignatedInitializer) || !super.equals(obj)) {
-      return false;
-    }
-
-    CDesignatedInitializer other = (CDesignatedInitializer) obj;
-
-    return Objects.equals(other.designators, designators) && Objects.equals(other.right, right);
+    return obj instanceof CDesignatedInitializer other
+        && super.equals(obj)
+        && Objects.equals(other.designators, designators)
+        && Objects.equals(other.right, right);
   }
 }

@@ -15,12 +15,14 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
@@ -271,10 +273,9 @@ public final class LoopStructure implements Serializable {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Loop other) {
-        return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
-      }
-      return false;
+      return pObj instanceof Loop other
+          && loopHeads.equals(other.loopHeads)
+          && nodes.equals(other.nodes);
     }
 
     @Override
@@ -298,6 +299,12 @@ public final class LoopStructure implements Serializable {
   // computed lazily
   private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
   private transient @Nullable ImmutableSet<String> loopIncDecVariables;
+
+  // computed lazily
+  private transient @Nullable Multimap<CFANode, Loop> nodeToLoops = null;
+
+  // computed lazily on demand per edge
+  private Map<CFAEdge, List<Loop>> loopsContainingEdge = new HashMap<>();
 
   private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
     loops = pLoops;
@@ -331,6 +338,19 @@ public final class LoopStructure implements Serializable {
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
     return from(loops.values()).filter(loop -> loop.getLoopHeads().contains(loopHead)).toSet();
+  }
+
+  /** Get all loops containing this edge */
+  public List<Loop> getLoopsForEdge(CFAEdge pEdge) {
+    if (!loopsContainingEdge.containsKey(pEdge)) {
+      loopsContainingEdge.put(
+          pEdge,
+          FluentIterable.from(getAllLoops())
+              .filter(loop -> loop.getInnerLoopEdges().contains(pEdge))
+              .toList());
+    }
+
+    return loopsContainingEdge.get(pEdge);
   }
 
   /**
@@ -392,12 +412,10 @@ public final class LoopStructure implements Serializable {
         && (stmtEdge.getStatement() instanceof CAssignment)) {
       CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
-      if (assign.getLeftHandSide() instanceof CIdExpression) {
-        CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+      if (assign.getLeftHandSide() instanceof CIdExpression assignementToId) {
         String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
-        if (assign.getRightHandSide() instanceof CBinaryExpression) {
-          CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+        if (assign.getRightHandSide() instanceof CBinaryExpression binExpr) {
           BinaryOperator op = binExpr.getOperator();
 
           if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
@@ -941,18 +959,18 @@ public final class LoopStructure implements Serializable {
     FunctionEntryNode initialLocation = cfa.getMainFunction();
 
     Map<String, FunctionEntryNode> funNameToEntry =
-        Maps.newHashMapWithExpectedSize(cfa.getAllFunctionHeads().size());
-    for (FunctionEntryNode funNode : cfa.getAllFunctionHeads()) {
+        Maps.newHashMapWithExpectedSize(cfa.entryNodes().size());
+    for (FunctionEntryNode funNode : cfa.entryNodes()) {
       funNameToEntry.put(funNode.getFunctionName(), funNode);
     }
 
     // build call graph
     Map<FunctionEntryNode, ARGState> callGraph =
-        Maps.newHashMapWithExpectedSize(cfa.getAllFunctionHeads().size());
+        Maps.newHashMapWithExpectedSize(cfa.entryNodes().size());
     FunctionEntryNode callee;
     ARGState successor;
 
-    for (FunctionEntryNode funNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode funNode : cfa.entryNodes()) {
       if (!callGraph.containsKey(funNode)) {
         callGraph.put(funNode, new ARGState(null, null));
       }
@@ -1002,15 +1020,15 @@ public final class LoopStructure implements Serializable {
     }
 
     // detect nodes in recursion
-    Set<CFANode> forward, backward, nodes;
     Collection<Loop> result = new ArrayList<>(recHeads.size());
     for (FunctionEntryNode recHead : recHeads) {
-      forward =
+      Set<CFANode> forward =
           CFATraversal.dfs()
               .ignoreEdgeType(CFAEdgeType.FunctionReturnEdge)
               .collectNodesReachableFrom(recHead);
-      backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
+      Set<CFANode> backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
 
+      Set<CFANode> nodes;
       if (forward.size() <= backward.size()) {
         nodes = Sets.intersection(forward, backward);
       } else {

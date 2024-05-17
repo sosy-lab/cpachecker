@@ -99,7 +99,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     FUNCTION, // at all locations in the respective function
     LOCATION, // at all occurrences of the respective location
     LOCATION_INSTANCE, // at the n-th occurrence of the respective location in each path
-    ;
   }
 
   @Option(
@@ -532,12 +531,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
             yield newPrecision.addLocalPredicates(
                 mergePredicatesPerLocation(localPredicates.entries()));
           }
-          case FUNCTION -> basePrecision.addFunctionPredicates(
-              mergePredicatesPerFunction(newPredicates.entries()));
-          case LOCATION -> basePrecision.addLocalPredicates(
-              mergePredicatesPerLocation(newPredicates.entries()));
-          case LOCATION_INSTANCE -> basePrecision.addLocationInstancePredicates(
-              newPredicates.entries());
+          case FUNCTION ->
+              basePrecision.addFunctionPredicates(
+                  mergePredicatesPerFunction(newPredicates.entries()));
+          case LOCATION ->
+              basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates.entries()));
+          case LOCATION_INSTANCE ->
+              basePrecision.addLocationInstancePredicates(newPredicates.entries());
         };
     return newPrecision;
   }

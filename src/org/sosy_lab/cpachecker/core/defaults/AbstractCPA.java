@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.defaults;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -68,16 +69,11 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   protected MergeOperator buildMergeOperator(String pMergeType) {
-    switch (pMergeType.toUpperCase()) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-
-      case "JOIN":
-        return new MergeJoinOperator(getAbstractDomain());
-
-      default:
-        throw new AssertionError("unknown merge operator");
-    }
+    return switch (Ascii.toUpperCase(pMergeType)) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "JOIN" -> new MergeJoinOperator(getAbstractDomain());
+      default -> throw new AssertionError("unknown merge operator");
+    };
   }
 
   @Override
@@ -86,25 +82,19 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   protected StopOperator buildStopOperator(String pStopType) throws AssertionError {
-    switch (pStopType.toUpperCase()) {
-      case "SEP": // state is LESS_OR_EQUAL to any reached state
-        return new StopSepOperator(getAbstractDomain());
-
-      case "JOIN": // state is LESS_OR_EQUAL to the union of all reached state
-        return new StopJoinOperator(getAbstractDomain());
-
-      case "NEVER": // always FALSE
-        return new StopNeverOperator();
-
-      case "ALWAYS": // always TRUE
-        return new StopAlwaysOperator();
-
-      case "EQUALS": // state is EQUAL to any reached state
-        return new StopEqualsOperator();
-
-      default:
-        throw new AssertionError("unknown stop operator");
-    }
+    return switch (Ascii.toUpperCase(pStopType)) {
+      case "SEP" -> // state is LESS_OR_EQUAL to any reached state
+          new StopSepOperator(getAbstractDomain());
+      case "JOIN" -> // state is LESS_OR_EQUAL to the union of all reached state
+          new StopJoinOperator(getAbstractDomain());
+      case "NEVER" -> // always FALSE
+          new StopNeverOperator();
+      case "ALWAYS" -> // always TRUE
+          new StopAlwaysOperator();
+      case "EQUALS" -> // state is EQUAL to any reached state
+          new StopEqualsOperator();
+      default -> throw new AssertionError("unknown stop operator");
+    };
   }
 
   @Override

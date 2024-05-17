@@ -46,12 +46,8 @@ public abstract class AStringLiteralExpression extends ALiteralExpression {
       return true;
     }
 
-    if (!(obj instanceof AStringLiteralExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AStringLiteralExpression other = (AStringLiteralExpression) obj;
-
-    return Objects.equals(other.value, value);
+    return obj instanceof AStringLiteralExpression other
+        && super.equals(obj)
+        && Objects.equals(other.value, value);
   }
 }

@@ -21,7 +21,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -33,8 +33,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -76,25 +78,44 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
   private final SMGInterpolantManager interpolantManager;
 
   private final Configuration config;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
+
+  private final SMGCPAExpressionEvaluator evaluator;
+
+  private final SMGCPAStatistics statistics;
 
   public SMGPathInterpolator(
       final FeasibilityChecker<SMGState> pFeasibilityChecker,
       final StrongestPostOperator<SMGState> pStrongestPostOperator,
       final GenericPrefixProvider<SMGState> pPrefixProvider,
       final Configuration pConfig,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa)
+      final CFA pCfa,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
     super(
         new SMGEdgeInterpolator(
-            pFeasibilityChecker, pStrongestPostOperator, pConfig, pShutdownNotifier, pCfa, pLogger),
+            pFeasibilityChecker,
+            pStrongestPostOperator,
+            pConfig,
+            pShutdownNotifier,
+            pCfa,
+            pLogger,
+            pEvaluator,
+            pStatistics),
         pFeasibilityChecker,
         pPrefixProvider,
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety(),
+            pEvaluator,
+            pStatistics),
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -104,9 +125,17 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
     cfa = pCfa;
     interpolantManager =
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa);
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety(),
+            pEvaluator,
+            pStatistics);
     config = pConfig;
     logger = pLogger;
+    evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   @Override
@@ -152,7 +181,14 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
     Map<ARGState, SMGInterpolant> interpolants =
         new SMGUseDefBasedInterpolator(
-                errorPathPrefix, useDefRelation, cfa.getMachineModel(), config, logger, cfa)
+                errorPathPrefix,
+                useDefRelation,
+                cfa.getMachineModel(),
+                config,
+                logger,
+                cfa,
+                evaluator,
+                statistics)
             .obtainInterpolantsAsMap();
 
     totalInterpolationQueries.setNextValue(1);
@@ -226,18 +262,17 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
       throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
     }
 
-    // if doing lazy abstraction, use the node closest to the root node where new information is
-    // present
     if (doLazyAbstraction) {
+      // if doing lazy abstraction, use the node closest to the root node where new information is
+      // present
       PathIterator it = errorPath.pathIterator();
       for (int i = 0; i < interpolationOffset; i++) {
         it.advance();
       }
       return Pair.of(it.getAbstractState(), it.getIncomingEdge());
-    }
 
-    // otherwise, just use the successor of the root node
-    else {
+    } else {
+      // otherwise, just use the successor of the root node
       PathIterator firstElem = errorPath.pathIterator();
       firstElem.advance();
       return Pair.of(firstElem.getAbstractState(), firstElem.getOutgoingEdge());
@@ -266,7 +301,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
                 false)
             .getUseDefStates();
 
-    /** The original call edge, importance in relation to slicing, position in abstractEdges */
+    // The original call edge, importance in relation to slicing, position in abstractEdges
     record FunctionCallInfo(FunctionCallEdge edge, boolean isImportant, int index) {}
     ArrayDeque<FunctionCallInfo> functionCalls = new ArrayDeque<>();
     List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
@@ -314,17 +349,16 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
         // when returning from a function, ...
         if (typeOfOriginalEdge == CFAEdgeType.FunctionReturnEdge) {
           FunctionCallInfo functionCallInfo = functionCalls.pop();
-          // ... if call is relevant and return edge is now a blank edge, restore the original
-          // return edge
           if (functionCallInfo.isImportant()
               && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
+            // ... if call is relevant and return edge is now a blank edge, restore the original
+            // return edge
             abstractEdges.set(iterator.getIndex(), originalEdge);
-          }
 
-          // ... if call is irrelevant and return edge is not sliced, restore the call edge
-          else if (!functionCallInfo.isImportant()
+          } else if (!functionCallInfo.isImportant()
               && abstractEdges.get(iterator.getIndex()).getEdgeType()
                   == CFAEdgeType.FunctionReturnEdge) {
+            // ... if call is irrelevant and return edge is not sliced, restore the call edge
             abstractEdges.set(functionCallInfo.index(), functionCallInfo.edge());
             for (int j = iterator.getIndex(); j >= 0; j--) {
               if (functionCallInfo.edge() == abstractEdges.get(j)) {

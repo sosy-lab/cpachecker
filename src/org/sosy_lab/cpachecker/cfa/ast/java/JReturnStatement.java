@@ -63,10 +63,6 @@ public sealed class JReturnStatement extends AbstractReturnStatement implements 
       return true;
     }
 
-    if (!(obj instanceof JReturnStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JReturnStatement && super.equals(obj);
   }
 }

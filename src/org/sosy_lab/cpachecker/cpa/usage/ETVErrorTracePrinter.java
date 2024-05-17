@@ -184,8 +184,12 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
   private void printCountStatistics(
       final Writer writer, final Iterator<SingleIdentifier> idIterator) throws IOException {
-    int global = 0, local = 0, fields = 0;
-    int globalPointer = 0, localPointer = 0, fieldPointer = 0;
+    int global = 0;
+    int local = 0;
+    int fields = 0;
+    int globalPointer = 0;
+    int localPointer = 0;
+    int fieldPointer = 0;
     SingleIdentifier id;
 
     while (idIterator.hasNext()) {

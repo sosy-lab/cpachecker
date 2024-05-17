@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class JDeclarationEdge extends ADeclarationEdge {
+public final class JDeclarationEdge extends ADeclarationEdge {
 
   private static final long serialVersionUID = -3744160417799490039L;
 

@@ -15,8 +15,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import com.google.common.base.Preconditions;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
@@ -121,7 +123,10 @@ public abstract sealed class PredicateAbstractState
 
     @Override
     public ExpressionTree<Object> getFormulaApproximation(
-        FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
+        FunctionEntryNode pFunctionScope,
+        CFANode pLocation,
+        Optional<AIdExpression> pFunctionReturnVariable)
+        throws InterruptedException {
       return super.abstractionFormula.asExpressionTree(pLocation);
     }
 
@@ -139,6 +144,7 @@ public abstract sealed class PredicateAbstractState
 
   private static final class NonAbstractionState extends PredicateAbstractState {
     private static final long serialVersionUID = -6912172362012773999L;
+
     /** The abstract state this element was merged into. Used for fast coverage checks. */
     private transient PredicateAbstractState mergedInto = null;
 

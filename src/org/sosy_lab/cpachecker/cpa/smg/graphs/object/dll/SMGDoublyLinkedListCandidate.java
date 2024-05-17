@@ -64,11 +64,8 @@ public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLink
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof SMGDoublyLinkedListCandidate)) {
-      return false;
-    }
-    SMGDoublyLinkedListCandidate other = (SMGDoublyLinkedListCandidate) o;
-    return super.equals(other)
+    return o instanceof SMGDoublyLinkedListCandidate other
+        && super.equals(other)
         && Objects.equals(lastObject, other.getLastObject())
         && pfoSize == other.pfoSize
         && nfoSize == other.nfoSize;

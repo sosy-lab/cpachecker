@@ -25,14 +25,10 @@ public abstract class AbstractInitializer extends AbstractAstNode implements AIn
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof AbstractInitializer)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof AbstractInitializer && super.equals(obj);
   }
 }

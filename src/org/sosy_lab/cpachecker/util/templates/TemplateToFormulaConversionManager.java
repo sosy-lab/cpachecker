@@ -196,11 +196,8 @@ public final class TemplateToFormulaConversionManager {
       if (this == pO) {
         return true;
       }
-      if (!(pO instanceof ToFormulaCacheKey)) {
-        return false;
-      }
-      ToFormulaCacheKey that = (ToFormulaCacheKey) pO;
-      return pathFormulaManager == that.pathFormulaManager
+      return pO instanceof ToFormulaCacheKey that
+          && pathFormulaManager == that.pathFormulaManager
           && formulaManagerView == that.formulaManagerView
           && Objects.equals(template, that.template)
           && Objects.equals(contextFormula, that.contextFormula);

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.statistics.StatisticsProvider;
 public class SimpleIntProvider implements StatisticsProvider {
   public interface SimpleIntProviderImplementation {
     String getPropertyName();
+
     /** Calculate the next state given the current state and an CFAEdge */
     int calculateNext(int current, CFAEdge edge);
   }

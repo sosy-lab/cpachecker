@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import org.sosy_lab.llvm_j.binding.LLVMLibrary;
 
-public class LlvmUtils {
+public final class LlvmUtils {
+
+  private LlvmUtils() {}
 
   /**
    * Extract the currently used version number from llvm-j.

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.Streams;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -38,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
@@ -108,6 +108,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private final String mpiArgs;
 
+  @SuppressWarnings("AddressSelection") // TODO comment below
   public MPIPortfolioAlgorithm(
       Configuration config,
       LogManager pLogger,
@@ -219,6 +220,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
         String mainNodeIPAddress = null;
         try {
+          // TODO Prefer InetAddress.getAllByName. This call is not even guaranteed to return an
+          // IPv4 address, but it is used later assuming that it does.
+          // Also, why do we perform a lookup for a host name that is equal to the user name?
+          // This seems like a mistake.
           mainNodeIPAddress =
               InetAddress.getByName(System.getProperty("user.name")).getHostAddress();
         } catch (IOException e) {
@@ -285,7 +290,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   private static Path getPathOrThrowError(String pRequiredBin)
       throws InvalidConfigurationException {
     Optional<Path> pathOpt =
-        Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
+        Streams.stream(Splitter.on(File.pathSeparatorChar).split(System.getenv("PATH")))
             .map(Path::of)
             .filter(path -> Files.exists(path.resolve(pRequiredBin)))
             .findFirst();

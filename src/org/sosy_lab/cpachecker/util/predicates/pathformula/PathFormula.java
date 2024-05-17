@@ -15,7 +15,7 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -115,12 +115,8 @@ public final class PathFormula implements Serializable {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof PathFormula)) {
-      return false;
-    }
-
-    PathFormula other = (PathFormula) obj;
-    return (length == other.length)
+    return obj instanceof PathFormula other
+        && (length == other.length)
         && formula.equals(other.formula)
         && ssa.equals(other.ssa)
         && pts.equals(other.pts);
@@ -162,7 +158,8 @@ public final class PathFormula implements Serializable {
     private final PointerTargetSet pts;
 
     public SerializationProxy(PathFormula pPathFormula) {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       formulaDump = mgr.dumpFormula(pPathFormula.formula).toString();
       ssa = pPathFormula.ssa;
       length = pPathFormula.length;
@@ -170,7 +167,8 @@ public final class PathFormula implements Serializable {
     }
 
     private Object readResolve() {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       BooleanFormula formula = mgr.parse(formulaDump);
       return new PathFormula(formula, ssa, pts, length);
     }

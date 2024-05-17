@@ -44,12 +44,12 @@ public abstract class ABinaryExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return operand1.toParenthesizedASTString(pQualified)
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return operand1.toParenthesizedASTString(pQualified, pOriginalVariableNames)
         + " "
         + operator.getOperator()
         + " "
-        + operand2.toParenthesizedASTString(pQualified);
+        + operand2.toParenthesizedASTString(pQualified, pOriginalVariableNames);
   }
 
   @Override
@@ -69,13 +69,9 @@ public abstract class ABinaryExpression extends AbstractExpression {
       return true;
     }
 
-    if (!(obj instanceof ABinaryExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    ABinaryExpression other = (ABinaryExpression) obj;
-
-    return Objects.equals(other.operand1, operand1)
+    return obj instanceof ABinaryExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand1, operand1)
         && Objects.equals(other.operand2, operand2)
         && Objects.equals(other.operator, operator);
   }

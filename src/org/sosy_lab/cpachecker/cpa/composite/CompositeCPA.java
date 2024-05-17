@@ -165,7 +165,7 @@ public final class CompositeCPA
     if (cpas.stream()
         .map(ConfigurableProgramAnalysis::getMergeOperator)
         .allMatch(mergeOp -> mergeOp == MergeSepOperator.getInstance())) {
-      return () -> MergeSepOperator.getInstance();
+      return MergeSepOperator::getInstance;
     }
 
     switch (merge) {

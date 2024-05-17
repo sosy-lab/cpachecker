@@ -47,12 +47,12 @@ public final class JArrayInitializer extends AbstractExpression implements JExpr
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
 
     StringBuilder astString = new StringBuilder("{");
 
     for (JExpression exp : initializerExpressions) {
-      astString.append(exp.toASTString(pQualified) + ", ");
+      astString.append(exp.toASTString(pQualified, pOriginalVariableNames) + ", ");
     }
 
     if (!initializerExpressions.isEmpty()) {
@@ -87,12 +87,8 @@ public final class JArrayInitializer extends AbstractExpression implements JExpr
       return true;
     }
 
-    if (!(obj instanceof JArrayInitializer) || super.equals(obj)) {
-      return false;
-    }
-
-    JArrayInitializer other = (JArrayInitializer) obj;
-
-    return Objects.equals(other.initializerExpressions, initializerExpressions);
+    return obj instanceof JArrayInitializer other
+        && super.equals(obj)
+        && Objects.equals(other.initializerExpressions, initializerExpressions);
   }
 }

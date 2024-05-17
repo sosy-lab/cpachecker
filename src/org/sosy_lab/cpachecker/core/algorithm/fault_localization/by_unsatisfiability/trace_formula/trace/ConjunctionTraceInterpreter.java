@@ -29,7 +29,6 @@ public class ConjunctionTraceInterpreter implements TraceInterpreter {
    * Entry 1: formula_1, ...
    * Entry 2: formula_2, ...
    * }</pre
-   * <p>
    *
    * Results in {@code formula_1 & formula_2}
    *

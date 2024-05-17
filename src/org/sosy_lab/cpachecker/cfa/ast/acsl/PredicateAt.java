@@ -53,10 +53,9 @@ public final class PredicateAt extends ACSLPredicate implements ACSLBuiltin {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof PredicateAt other) {
-      return inner.equals(other.inner) && label.equals(other.label);
-    }
-    return false;
+    return obj instanceof PredicateAt other
+        && inner.equals(other.inner)
+        && label.equals(other.label);
   }
 
   @Override

@@ -206,8 +206,8 @@ public class SlicingRefiner implements Refiner {
           parentFullPrecision,
           config);
 
-    } catch (InterruptedException pE) {
-      throw new AssertionError(pE);
+    } catch (InterruptedException e) {
+      throw new AssertionError(e);
     }
   }
 

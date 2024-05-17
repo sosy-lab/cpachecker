@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public sealed class CFunctionCallStatement extends AFunctionCallStatement
     implements CStatement, CFunctionCall
-    permits CThreadOperationStatement // FIXME: this is broken and should be removed
-{
+    // FIXME: this is broken and should be removed
+    permits CThreadOperationStatement {
   private static final long serialVersionUID = 1103049666572120249L;
 
   public CFunctionCallStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall) {
@@ -49,10 +49,6 @@ public sealed class CFunctionCallStatement extends AFunctionCallStatement
       return true;
     }
 
-    if (!(obj instanceof CFunctionCallStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CFunctionCallStatement && super.equals(obj);
   }
 }

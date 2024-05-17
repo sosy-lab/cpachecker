@@ -21,8 +21,8 @@ public abstract class AExpressionStatement extends AbstractStatement {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return expression.toASTString(pQualified) + ";";
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return expression.toASTString(pQualified, pOriginalVariableNames) + ";";
   }
 
   public AExpression getExpression() {
@@ -50,12 +50,8 @@ public abstract class AExpressionStatement extends AbstractStatement {
       return true;
     }
 
-    if (!(obj instanceof AExpressionStatement) || !super.equals(obj)) {
-      return false;
-    }
-
-    AExpressionStatement other = (AExpressionStatement) obj;
-
-    return Objects.equals(other.expression, expression);
+    return obj instanceof AExpressionStatement other
+        && super.equals(obj)
+        && Objects.equals(other.expression, expression);
   }
 }

@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -62,8 +62,8 @@ public class SymbolicIdentifierLocator implements SymbolicValueVisitor<Set<Symbo
   public Set<SymbolicIdentifier> visit(final ConstantSymbolicExpression pExpression) {
     final Value containedValue = pExpression.getValue();
 
-    if (containedValue instanceof SymbolicValue) {
-      return ((SymbolicValue) containedValue).accept(this);
+    if (containedValue instanceof SymbolicValue symVal) {
+      return symVal.accept(this);
 
     } else {
       return ImmutableSet.of();
@@ -75,11 +75,10 @@ public class SymbolicIdentifierLocator implements SymbolicValueVisitor<Set<Symbo
     final Set<SymbolicIdentifier> identifiersOnLeft = pExpression.getOperand1().accept(this);
     final Set<SymbolicIdentifier> identifiersOnRight = pExpression.getOperand2().accept(this);
 
-    Set<SymbolicIdentifier> identifiersInBoth = new HashSet<>(identifiersOnLeft);
-
-    identifiersInBoth.addAll(identifiersOnRight);
-
-    return ImmutableSet.copyOf(identifiersInBoth);
+    // all of the produced sets in this visitor are immutable sets,
+    // so the union will also be immutable
+    // and there is no need to generate a separate ImmutableSet.
+    return Sets.union(identifiersOnLeft, identifiersOnRight);
   }
 
   private Set<SymbolicIdentifier> handleUnaryExpression(final UnarySymbolicExpression pExpression) {

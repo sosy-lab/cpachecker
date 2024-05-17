@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,7 +63,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -148,7 +148,8 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     } finally {
       // Wait some time so that all threads are shut down and we have a happens-before relation
       // (necessary for statistics).
-      if (!awaitTermination(exec, 10, TimeUnit.SECONDS)) {
+      // Time limit here should be somewhat shorter than in ForceTerminationOnShutdown.
+      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 8, TimeUnit.SECONDS)) {
         logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
       }
 
@@ -233,6 +234,9 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     final ShutdownManager singleShutdownManager =
         ShutdownManager.createWithParent(shutdownManager.getNotifier());
 
+    final ResourceLimitChecker singleAnalysisOverallLimit =
+        ResourceLimitChecker.fromConfiguration(pConfiguration, singleLogger, singleShutdownManager);
+
     final CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             pConfiguration,
@@ -246,14 +250,6 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     return () -> {
-      // TODO global info will not work correctly with parallel analyses
-      // as it is a mutable singleton object
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-      final ResourceLimitChecker singleAnalysisOverallLimit =
-          ResourceLimitChecker.fromConfiguration(
-              pConfiguration, singleLogger, singleShutdownManager);
-
       StatisticsEntry statisticsEntry =
           stats.getNewSubStatistics(
               reached,

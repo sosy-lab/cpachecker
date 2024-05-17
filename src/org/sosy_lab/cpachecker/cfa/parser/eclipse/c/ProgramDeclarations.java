@@ -468,12 +468,7 @@ public class ProgramDeclarations {
       CEnumerator member1 = members1.get(i);
       CEnumerator member2 = members2.get(i);
       areEqual = member1.getName().equals(member2.getName());
-      areEqual =
-          areEqual
-              && ((member1.hasValue()
-                      && member2.hasValue()
-                      && member1.getValue() == member2.getValue())
-                  || (!member1.hasValue() && !member2.hasValue()));
+      areEqual = areEqual && (member1.getValue() == member2.getValue());
     }
 
     return areEqual;

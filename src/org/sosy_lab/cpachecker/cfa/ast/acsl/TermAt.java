@@ -38,10 +38,7 @@ public final class TermAt implements ACSLBuiltin, ACSLTerm {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof TermAt other) {
-      return inner.equals(other.inner) && label.equals(other.label);
-    }
-    return false;
+    return obj instanceof TermAt other && inner.equals(other.inner) && label.equals(other.label);
   }
 
   @Override

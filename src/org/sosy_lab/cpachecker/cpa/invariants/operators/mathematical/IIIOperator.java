@@ -215,6 +215,10 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
         result = result == null ? posResult : SimpleInterval.span(result, posResult);
       }
 
+      if (pFirstOperand.containsZero()) {
+        SimpleInterval zeroResult = SimpleInterval.singleton(BigInteger.ZERO);
+        result = result == null ? zeroResult : SimpleInterval.span(result, zeroResult);
+      }
       assert result != null;
       return result;
     }

@@ -31,7 +31,7 @@ public final class JThisExpression extends AbstractExpression implements JRunTim
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     return toASTString();
   }
 
@@ -68,10 +68,6 @@ public final class JThisExpression extends AbstractExpression implements JRunTim
       return true;
     }
 
-    if (!(obj instanceof JThisExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JThisExpression && super.equals(obj);
   }
 }

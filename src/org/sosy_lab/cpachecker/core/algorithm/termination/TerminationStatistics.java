@@ -153,16 +153,21 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final Multiset<Loop> safetyAnalysisRunsPerLoop = ConcurrentHashMultiset.create();
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private final WitnessExporter witnessExporter;
+  protected final WitnessExporter witnessExporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
+
+  public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
+      throws InvalidConfigurationException {
+    this(pConfig, pLogger, 0, pCFA);
+  }
 
   public TerminationStatistics(
       Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
 
@@ -361,7 +366,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + format(lassoTerminationTime.getMaxTime()));
     pOut.println();
 
-    int totoalTerminationArguments = terminationArguments.size();
+    int totalTerminationArguments = terminationArguments.size();
     int maxTerminationArgumentsPerLoop =
         terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
     String loopsWithMaxTerminationArguments =
@@ -371,12 +376,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             .map(l -> l.getLoopHeads().toString())
             .collect(Collectors.joining(", "));
     pOut.println(
-        "Total number of termination arguments:              "
-            + format(totoalTerminationArguments));
+        "Total number of termination arguments:              " + format(totalTerminationArguments));
     if (loops > 0) {
       pOut.println(
           "  Avg termination arguments per loop:               "
-              + div(totoalTerminationArguments, loops));
+              + div(totalTerminationArguments, loops));
     }
     pOut.println(
         "  Max termination arguments per loop:               "
@@ -385,13 +389,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + loopsWithMaxTerminationArguments);
 
     pOut.println();
-    Map<String, Integer> terminationArguementTypes = new HashMap<>();
+    Map<String, Integer> terminationArgumentTypes = new HashMap<>();
     for (TerminationArgument terminationArgument : terminationArguments.values()) {
       String name = terminationArgument.getRankingFunction().getName();
-      terminationArguementTypes.merge(name, 1, Integer::sum);
+      terminationArgumentTypes.merge(name, 1, Integer::sum);
     }
 
-    for (Entry<String, Integer> terminationArgument : terminationArguementTypes.entrySet()) {
+    for (Entry<String, Integer> terminationArgument : terminationArgumentTypes.entrySet()) {
       String name = terminationArgument.getKey();
       String whiteSpaces = " ".repeat(49 - name.length());
       pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue()));
@@ -465,7 +469,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           return ExpressionTrees.getTrue();
         };
 
-    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX));
+    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX, nonterminatingLoop));
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
@@ -499,14 +503,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     }
   }
 
-  private Collection<ARGState> copyStem(
+  protected Collection<ARGState> copyStem(
       final ARGPath pStem,
       final ARGState newRoot,
       final ARGState loopStart,
       final ARGState newLoopStart) {
     Collection<ARGState> newStates = new HashSet<>();
     boolean first = true;
-    ARGState child, parent = newRoot;
+    ARGState parent = newRoot;
     newStates.add(newRoot);
 
     for (ARGState state : pStem.asStatesList()) {
@@ -521,7 +525,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         break;
       }
 
-      child = new ARGState(state.getWrappedState(), parent);
+      ARGState child = new ARGState(state.getWrappedState(), parent);
       parent = child;
       newStates.add(parent);
     }
@@ -529,34 +533,26 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     return newStates;
   }
 
-  private Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry) {
+  protected Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry, Loop pLoop) {
     CFANode loc = AbstractStates.extractLocation(pLoopEntry);
-    Preconditions.checkState(nonterminatingLoop.getLoopHeads().contains(loc));
+    Preconditions.checkState(pLoop.getLoopHeads().contains(loc));
 
     Collection<ARGState> relevantARGStates = new HashSet<>();
 
     Map<CFANode, ARGState> nodeToARGState =
-        Maps.newHashMapWithExpectedSize(nonterminatingLoop.getLoopNodes().size());
+        Maps.newHashMapWithExpectedSize(pLoop.getLoopNodes().size());
     nodeToARGState.put(loc, pLoopEntry);
     Deque<CFANode> waitlist = new ArrayDeque<>();
     waitlist.push(loc);
 
-    ARGState pred, succ;
-
-    CFANode locContinueLoop;
-    Pair<CFANode, CallstackState> context, newContext;
-    ARGState predFun, succFun;
-    Deque<Pair<CFANode, CallstackState>> waitlistFun;
-    Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState;
-
     while (!waitlist.isEmpty()) {
       loc = waitlist.pop();
-      pred = nodeToARGState.get(loc);
+      ARGState pred = nodeToARGState.get(loc);
       assert pred != null;
 
       for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
-        if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
-          succ = nodeToARGState.get(leave.getSuccessor());
+        if (pLoop.getLoopNodes().contains(leave.getSuccessor())) {
+          ARGState succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
             succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
             nodeToARGState.put(leave.getSuccessor(), succ);
@@ -567,34 +563,35 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
         } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
-          locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
-          contextToARGState = new HashMap<>();
-          context =
+          CFANode locContinueLoop = ((FunctionCallEdge) leave).getReturnNode();
+          Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState = new HashMap<>();
+          Pair<CFANode, CallstackState> context =
               Pair.of(
                   leave.getSuccessor(),
                   new CallstackState(
                       null, leave.getSuccessor().getFunctionName(), leave.getPredecessor()));
-          waitlistFun = new ArrayDeque<>();
+          Deque<Pair<CFANode, CallstackState>> waitlistFun = new ArrayDeque<>();
           waitlistFun.push(context);
 
-          succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+          ARGState succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
           contextToARGState.put(context, succFun);
 
           succFun.addParent(pred);
 
           while (!waitlistFun.isEmpty()) {
             context = waitlistFun.pop();
-            predFun = contextToARGState.get(context);
+            ARGState predFun = contextToARGState.get(context);
             assert predFun != null;
 
             for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
-              newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
+              Pair<CFANode, CallstackState> newContext =
+                  Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
               if (leaveFun instanceof FunctionReturnEdge) {
                 if (!context
                     .getSecond()
                     .getCallNode()
-                    .equals(((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
+                    .equals(((FunctionReturnEdge) leaveFun).getCallNode())) {
                   continue; // false context
                 }
                 newContext =

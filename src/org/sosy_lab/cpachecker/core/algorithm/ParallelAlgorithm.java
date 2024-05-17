@@ -97,7 +97,6 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
   protected AlgorithmStatus determineAlgorithmStatus(
       ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures) {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
-
     if (finalResult != null) {
       forwardingReachedSet.setDelegate(finalResult.getReached());
       return finalResult.getStatus();
@@ -150,11 +149,12 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
               supplyReached = false;
               yield true;
             }
-            default -> throw new InvalidConfigurationException(
-                String.format(
-                    "Annotation %s is not valid for config %s in option"
-                        + " parallelAlgorithm.configFiles",
-                    pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
+            default ->
+                throw new InvalidConfigurationException(
+                    String.format(
+                        "Annotation %s is not valid for config %s in option"
+                            + " parallelAlgorithm.configFiles",
+                        pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
           };
     } else {
       supplyReached = false;

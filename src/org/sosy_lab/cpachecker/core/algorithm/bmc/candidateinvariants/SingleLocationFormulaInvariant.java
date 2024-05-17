@@ -90,10 +90,9 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
         if (this == pOther) {
           return true;
         }
-        if (pOther instanceof SingleLocationBooleanInvariant other) {
-          return getLocation().equals(other.getLocation()) && value == other.value;
-        }
-        return false;
+        return pOther instanceof SingleLocationBooleanInvariant other
+            && getLocation().equals(other.getLocation())
+            && value == other.value;
       }
 
       @Override
@@ -154,10 +153,8 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
         if (this == pOther) {
           return true;
         }
-        if (pOther instanceof SpecificSMTLibLocationFormulaInvariant other) {
-          return delegate.equals(other.delegate);
-        }
-        return false;
+        return pOther instanceof SpecificSMTLibLocationFormulaInvariant other
+            && delegate.equals(other.delegate);
       }
 
       @Override
@@ -207,8 +204,9 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
         if (cause != null) {
-          Throwables.propagateIfPossible(
-              cause, CPATransferException.class, InterruptedException.class);
+          Throwables.throwIfInstanceOf(cause, CPATransferException.class);
+          Throwables.throwIfInstanceOf(cause, InterruptedException.class);
+          Throwables.throwIfUnchecked(cause);
           throw new UncheckedExecutionException(cause);
         }
         throw new UncheckedExecutionException(e);
@@ -231,10 +229,9 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof SMTLibLocationFormulaInvariant other) {
-        return getLocation().equals(other.getLocation()) && invariant.equals(other.invariant);
-      }
-      return false;
+      return pOther instanceof SMTLibLocationFormulaInvariant other
+          && getLocation().equals(other.getLocation())
+          && invariant.equals(other.invariant);
     }
 
     @Override

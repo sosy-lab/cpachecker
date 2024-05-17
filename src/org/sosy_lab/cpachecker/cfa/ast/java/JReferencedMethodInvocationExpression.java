@@ -49,8 +49,10 @@ public final class JReferencedMethodInvocationExpression extends JMethodInvocati
   }
 
   @Override
-  public String toASTString(boolean pQualifier) {
-    return qualifier.toASTString(pQualifier) + "_" + super.toASTString(pQualifier);
+  public String toASTString(boolean pQualifier, boolean pOriginalVariableNames) {
+    return qualifier.toASTString(pQualifier, pOriginalVariableNames)
+        + "_"
+        + super.toASTString(pQualifier, pOriginalVariableNames);
   }
 
   @Override
@@ -68,12 +70,8 @@ public final class JReferencedMethodInvocationExpression extends JMethodInvocati
       return true;
     }
 
-    if (!(obj instanceof JReferencedMethodInvocationExpression) || super.equals(obj)) {
-      return false;
-    }
-
-    JReferencedMethodInvocationExpression other = (JReferencedMethodInvocationExpression) obj;
-
-    return Objects.equals(other.qualifier, qualifier);
+    return obj instanceof JReferencedMethodInvocationExpression other
+        && super.equals(obj)
+        && Objects.equals(other.qualifier, qualifier);
   }
 }

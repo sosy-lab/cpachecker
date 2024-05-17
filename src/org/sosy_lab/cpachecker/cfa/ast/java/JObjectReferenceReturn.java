@@ -50,12 +50,8 @@ public final class JObjectReferenceReturn extends JReturnStatement {
       return true;
     }
 
-    if (!(obj instanceof JObjectReferenceReturn) || !super.equals(obj)) {
-      return false;
-    }
-
-    JObjectReferenceReturn other = (JObjectReferenceReturn) obj;
-
-    return Objects.equals(other.classReference, classReference);
+    return obj instanceof JObjectReferenceReturn other
+        && super.equals(obj)
+        && Objects.equals(other.classReference, classReference);
   }
 }

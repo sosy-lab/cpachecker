@@ -28,7 +28,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class RedundantRequirementsRemover {
+public final class RedundantRequirementsRemover {
+
+  private RedundantRequirementsRemover() {}
 
   public static List<Pair<ARGState, Collection<ARGState>>> removeRedundantRequirements(
       final List<Pair<ARGState, Collection<ARGState>>> requirements,
@@ -185,6 +187,7 @@ public class RedundantRequirementsRemover {
             "Cannot make class static as suggested because require generic type parameters of outer"
                 + " class. Removing interface Serializable is also no option because it introduces"
                 + " another warning suggesting to implement Serializable interface.")
+    @SuppressWarnings("checkstyle:AvoidDefaultSerializableInInnerClasses")
     private class SortingArrayHelper implements Comparator<V[]>, Serializable {
 
       private static final long serialVersionUID = 3970718511743910013L;
@@ -209,6 +212,7 @@ public class RedundantRequirementsRemover {
             "Cannot make class static as suggested because require generic type parameters of outer"
                 + " class. Removing interface Serializable is also no option because it introduces"
                 + " another warning suggesting to implement Serializable interface.")
+    @SuppressWarnings("checkstyle:AvoidDefaultSerializableInInnerClasses")
     private class SortingHelper
         implements Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>>, Serializable {
 

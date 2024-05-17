@@ -42,7 +42,7 @@ public interface AbstractStateWithLocation extends AbstractStateWithLocations {
   }
 
   @Override
-  default Iterable<CFAEdge> getIngoingEdges() {
+  default Iterable<CFAEdge> getIncomingEdges() {
     return CFAUtils.enteringEdges(getLocationNode());
   }
 }

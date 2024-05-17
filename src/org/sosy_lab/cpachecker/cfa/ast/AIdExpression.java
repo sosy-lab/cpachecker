@@ -36,18 +36,26 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return toASTString(pQualified);
+  public String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return toASTString(pQualified, pOriginalVariableNames);
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     if (pQualified) {
       ASimpleDeclaration decl = getDeclaration();
       if (decl != null) {
         String qualName = decl.getQualifiedName();
         if (qualName != null) {
           return qualName.replace("::", "__");
+        }
+      }
+    } else if (pOriginalVariableNames) {
+      ASimpleDeclaration decl = getDeclaration();
+      if (decl != null) {
+        String origName = decl.getOrigName();
+        if (origName != null) {
+          return origName;
         }
       }
     }
@@ -74,12 +82,9 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof AIdExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AIdExpression other = (AIdExpression) obj;
-
-    return Objects.equals(other.declaration, declaration) && Objects.equals(other.name, name);
+    return obj instanceof AIdExpression other
+        && super.equals(obj)
+        && Objects.equals(other.declaration, declaration)
+        && Objects.equals(other.name, name);
   }
 }

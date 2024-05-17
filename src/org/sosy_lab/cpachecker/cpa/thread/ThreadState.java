@@ -28,7 +28,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   public enum ThreadStatus {
     PARENT_THREAD,
     CREATED_THREAD,
-    SELF_PARALLEL_THREAD;
+    SELF_PARALLEL_THREAD,
   }
 
   public static class SimpleThreadState extends ThreadState {

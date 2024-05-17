@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
@@ -32,9 +30,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Utility class for initializer-related tasks. */
@@ -394,6 +392,12 @@ public final class CInitializers {
     return (Iterator<T>) it;
   }
 
+  private static boolean isCharArray(CType type) {
+    return type instanceof CArrayType arrayType
+        && arrayType.getType() instanceof CSimpleType elementType
+        && elementType.getType() == CBasicType.CHAR;
+  }
+
   /**
    * Find the first subobject inside the current subobject that may be initialized with a value of a
    * given type. Usually this method just enters nested structs and arrays until it finds the first
@@ -423,21 +427,15 @@ public final class CInitializers {
       final CType currentType = currentSubobject.getExpressionType().getCanonicalType();
 
       // Ignore modifiers const and volatile for equality checks.
-      CType currentTypeWithoutModifier = withoutConst(withoutVolatile(currentType));
-      CType targetTypeWithoutModifier = withoutConst(withoutVolatile(targetType));
+      CType currentTypeWithoutModifier = CTypes.copyDequalified(currentType);
+      CType targetTypeWithoutModifier = CTypes.copyDequalified(targetType);
       if (targetTypeWithoutModifier.equals(currentTypeWithoutModifier)) {
         break;
       }
 
       // String literals may be used to initialize char arrays.
-      // They have a type of (const char)*.
-      if (targetType.equals(CPointerType.POINTER_TO_CONST_CHAR)
-          && currentType instanceof CArrayType) {
-        CType currentElementType = ((CArrayType) currentType).getType();
-        if (currentElementType instanceof CSimpleType
-            && ((CSimpleType) currentElementType).getType() == CBasicType.CHAR) {
-          break;
-        }
+      if (isCharArray(targetType) && isCharArray(currentType)) {
+        break;
       }
       boolean successful;
 

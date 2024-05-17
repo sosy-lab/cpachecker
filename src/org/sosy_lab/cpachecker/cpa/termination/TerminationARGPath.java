@@ -124,10 +124,6 @@ public class TerminationARGPath extends ARGPath {
     if (this == pOther) {
       return true;
     }
-    if (!(pOther instanceof TerminationARGPath)) {
-      return false;
-    }
-
-    return super.equals(pOther);
+    return pOther instanceof TerminationARGPath && super.equals(pOther);
   }
 }

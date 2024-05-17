@@ -29,20 +29,20 @@ public interface AAstNode extends Serializable {
    *     local variable
    * @return AST string either using qualified names or pure names for local variables
    */
-  String toASTString(boolean pQualified);
+  String toASTString(boolean pQualified, boolean pOriginalVariableNames);
 
-  String toParenthesizedASTString(boolean pQualified);
+  String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames);
 
   default String toASTString() {
-    return toASTString(false);
+    return toASTString(false, true);
   }
 
   default String toParenthesizedASTString() {
-    return toParenthesizedASTString(false);
+    return toParenthesizedASTString(false, true);
   }
 
   default String toQualifiedASTString() {
-    return toASTString(true);
+    return toASTString(true, false);
   }
 
   /**

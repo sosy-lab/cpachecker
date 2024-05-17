@@ -70,7 +70,8 @@ class AutomatonStatistics implements Statistics {
 
     int statesWithAssumptionTransitions = 0;
     for (AutomatonInternalState state : automaton.getStates()) {
-      if (state.getTransitions().stream().anyMatch(p -> p.isTransitionWithAssumptions())) {
+      if (state.getTransitions().stream()
+          .anyMatch(AutomatonTransition::isTransitionWithAssumptions)) {
         statesWithAssumptionTransitions++;
       }
     }

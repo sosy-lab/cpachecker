@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /** abstract algorithm for executing other nested algorithms. */
@@ -85,7 +84,6 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
         new CoreComponentsFactory(
             singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(pCfa, specification);
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
     ReachedSet reached = createInitialReachedSet(cpa, initialNode, coreComponents, singleLogger);
 

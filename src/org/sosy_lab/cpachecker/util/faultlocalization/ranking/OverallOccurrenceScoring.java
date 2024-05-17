@@ -39,7 +39,7 @@ public class OverallOccurrenceScoring implements FaultScoring {
       }
       faultValue.put(f1, value);
     }
-    double sum = faultValue.values().stream().mapToDouble(Double::valueOf).sum();
+    double sum = faultValue.values().stream().mapToDouble(Double::doubleValue).sum();
     if (sum == 0) {
       for (Fault f : faults) {
         f.addInfo(

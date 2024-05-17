@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
 public class CPAchecker {
@@ -318,7 +317,6 @@ public class CPAchecker {
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
-      GlobalInfo.getInstance().storeCFA(cfa);
       shutdownNotifier.shutdownIfNecessary();
 
       ConfigurableProgramAnalysis cpa;
@@ -335,8 +333,6 @@ public class CPAchecker {
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
       }
-
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = factory.createAlgorithm(cpa, cfa, specification);
 
@@ -443,7 +439,10 @@ public class CPAchecker {
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
+      throws InvalidConfigurationException,
+          IOException,
+          ParserException,
+          InterruptedException,
           ClassNotFoundException {
 
     final CFA cfa;
@@ -597,21 +596,24 @@ public class CPAchecker {
               }
               yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
             }
-            case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
-            case FUNCTION_SINKS -> ImmutableSet.<CFANode>builder()
-                .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
-                .addAll(getAllFunctionExitNodes(pCfa))
-                .build();
-            case PROGRAM_SINKS -> ImmutableSet.<CFANode>builder()
-                .addAll(
-                    CFAUtils.getProgramSinks(
-                        pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
-                .build();
-            case TARGET -> new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
-                .tryGetAutomatonTargetLocations(
-                    pAnalysisEntryFunction,
-                    Specification.fromFiles(
-                        backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
+            case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.entryNodes());
+            case FUNCTION_SINKS ->
+                ImmutableSet.<CFANode>builder()
+                    .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
+                    .addAll(getAllFunctionExitNodes(pCfa))
+                    .build();
+            case PROGRAM_SINKS ->
+                ImmutableSet.<CFANode>builder()
+                    .addAll(
+                        CFAUtils.getProgramSinks(
+                            pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                    .build();
+            case TARGET ->
+                new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
+                    .tryGetAutomatonTargetLocations(
+                        pAnalysisEntryFunction,
+                        Specification.fromFiles(
+                            backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
           };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }
@@ -631,7 +633,7 @@ public class CPAchecker {
   private Set<CFANode> getAllFunctionExitNodes(CFA cfa) {
     Set<CFANode> functionExitNodes = new HashSet<>();
 
-    for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode node : cfa.entryNodes()) {
       node.getExitNode().ifPresent(functionExitNodes::add);
     }
     return functionExitNodes;

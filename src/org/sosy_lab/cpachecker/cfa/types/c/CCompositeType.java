@@ -207,10 +207,7 @@ public final class CCompositeType implements CComplexType {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
       CCompositeTypeMemberDeclaration other = (CCompositeTypeMemberDeclaration) obj;
@@ -276,13 +273,8 @@ public final class CCompositeType implements CComplexType {
       return true;
     }
 
-    if (!(obj instanceof CCompositeType)) {
-      return false;
-    }
-
-    CCompositeType other = (CCompositeType) obj;
-
-    return isConst == other.isConst
+    return obj instanceof CCompositeType other
+        && isConst == other.isConst
         && isVolatile == other.isVolatile
         && kind == other.kind
         && Objects.equals(name, other.name);
@@ -294,13 +286,8 @@ public final class CCompositeType implements CComplexType {
       return true;
     }
 
-    if (!(obj instanceof CCompositeType)) {
-      return false;
-    }
-
-    CCompositeType other = (CCompositeType) obj;
-
-    return isConst == other.isConst
+    return obj instanceof CCompositeType other
+        && isConst == other.isConst
         && isVolatile == other.isVolatile
         && kind == other.kind
         && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()));

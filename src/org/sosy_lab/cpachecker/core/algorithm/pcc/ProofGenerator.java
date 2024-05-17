@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options
@@ -133,7 +134,12 @@ public class ProofGenerator {
 
     writingTimer.start();
 
-    checkingStrategy.writeProof(reached, pReached.getCPA());
+    SerializationInfoStorage.storeSerializationInformation(pReached.getCPA(), null);
+    try {
+      checkingStrategy.writeProof(reached, pReached.getCPA());
+    } finally {
+      SerializationInfoStorage.clear();
+    }
 
     writingTimer.stop();
     logger.log(

@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -164,6 +165,7 @@ public class CProgramScope implements Scope {
     throw new AssertionError("Cannot extract a name.");
   }
 
+  @SuppressFBWarnings("SS_SHOULD_BE_STATIC") // TODO should this be implemented or removed?
   private final String currentFile = "";
 
   private final Set<String> variableNames;
@@ -243,7 +245,7 @@ public class CProgramScope implements Scope {
     /* Get all nodes, get all edges from nodes, get all declarations from edges,
      * assign every declaration its name.
      */
-    Collection<CFANode> nodes = pCFA.getAllNodes();
+    Collection<CFANode> nodes = pCFA.nodes();
 
     FluentIterable<CSimpleDeclaration> allDcls =
         FluentIterable.from(nodes).transformAndConcat(CProgramScope::toCSimpleDeclarations);
@@ -655,7 +657,7 @@ public class CProgramScope implements Scope {
                   CIdExpression idExpression = (CIdExpression) astNode;
                   return idExpression.getDeclaration();
                 },
-                astNode -> astNode.getFileLocation()));
+                CAstNode::getFileLocation));
   }
 
   private static <T extends CType> void putIfUnique(

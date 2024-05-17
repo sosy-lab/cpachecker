@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -20,11 +22,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * idea is that the addressValue maps somehow to a memory location (representing the address
  * essentially). The type helps evaluating/using the address.
  */
-public class AddressExpression extends SymbolicExpression {
+public final class AddressExpression extends SymbolicExpression {
 
   private static final long serialVersionUID = -1498889385306613159L;
 
-  // The address Value should map to somehow to the memory
+  // The address Value should map to memory
   private final Value addressValue;
   private final Type addressType;
 
@@ -32,6 +34,18 @@ public class AddressExpression extends SymbolicExpression {
   private final Value offset;
 
   private AddressExpression(Value pAddress, Type pAddressType, Value pOffsetValue) {
+    Preconditions.checkNotNull(pAddress);
+    Preconditions.checkNotNull(pAddressType);
+    Preconditions.checkNotNull(pOffsetValue);
+    addressValue = pAddress;
+    addressType = pAddressType;
+    offset = pOffsetValue;
+  }
+
+  // TODO: add of/withZeroOffset etc. with state
+  private AddressExpression(
+      Value pAddress, Type pAddressType, Value pOffsetValue, AbstractState pAbstractState) {
+    super(pAbstractState);
     Preconditions.checkNotNull(pAddress);
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
@@ -76,6 +90,11 @@ public class AddressExpression extends SymbolicExpression {
   }
 
   @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new AddressExpression(addressValue, addressType, offset, pCurrentState);
+  }
+
+  @Override
   public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return null;
   }
@@ -91,5 +110,40 @@ public class AddressExpression extends SymbolicExpression {
       return "Address " + addressValue + " at offset: " + offset + " | type: " + addressType;
     }
     return "Address " + addressValue + " at offset " + offset;
+  }
+
+  @Override
+  public int hashCode() {
+    if (hasAbstractState()) {
+      return addressValue.hashCode() + addressType.hashCode() + getAbstractState().hashCode();
+    } else if (getRepresentedLocation().isEmpty()) {
+      return addressValue.hashCode() + addressType.hashCode();
+    } else {
+      return super.hashCode();
+    }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    // Comment to silence CI check
+    if (o == null) {
+      return false;
+    }
+    if (hasAbstractState()
+        && o instanceof AddressExpression
+        && ((AddressExpression) o).hasAbstractState()) {
+      if (getAbstractState() instanceof SMGState
+          && ((AddressExpression) o).getAbstractState() instanceof SMGState) {
+        // Precondition as this should never fail in SMGs
+        Preconditions.checkArgument(getOffset().equals(((AddressExpression) o).getOffset()));
+        // SMG values have the offset baked into them. Only the SMG truly knows equality for them
+        return SMGState.areValuesEqual(
+            (SMGState) getAbstractState(),
+            addressValue,
+            (SMGState) ((AddressExpression) o).getAbstractState(),
+            ((AddressExpression) o).addressValue);
+      }
+    }
+    return super.equals(o);
   }
 }

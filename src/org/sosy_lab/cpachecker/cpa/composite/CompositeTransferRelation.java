@@ -530,7 +530,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       return false;
     }
 
-    Set<List<AbstractState>> states = new HashSet<>();
+    Set<ImmutableList<AbstractState>> states = new HashSet<>();
     for (AbstractState successor : pSuccessors) {
       states.add(((CompositeState) successor).getWrappedStates());
     }

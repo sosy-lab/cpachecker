@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.ValueAndObjectSet;
@@ -40,11 +41,7 @@ public class SMGProveNequality {
    * @return true if the prove of not equality succeeded, false if both are potentially equal.
    */
   public boolean proveInequality(SMGValue value1, SMGValue value2) {
-    checkArgument(
-        value1.getNestingLevel() == 0 && value2.getNestingLevel() == 0,
-        "%s or %s is not on level 0",
-        value1,
-        value2);
+    // The nesting level should always be 0, as we only compare materialized SMGs
     if (value1.equals(value2)) {
       return false;
     }
@@ -86,7 +83,10 @@ public class SMGProveNequality {
   }
 
   private boolean checkIfEdgePointsOutOfBounds(SMGPointsToEdge pToEdge) {
-    return pToEdge.getOffset().compareTo(pToEdge.pointsTo().getSize()) > 0
+    return pToEdge
+                .getOffset()
+                .compareTo(pToEdge.pointsTo().getSize().asNumericValue().bigIntegerValue())
+            > 0
         || pToEdge.getOffset().signum() < 0;
   }
 
@@ -122,19 +122,19 @@ public class SMGProveNequality {
       if (pointerEdge.targetSpecifier() == SMGTargetSpecifier.IS_REGION) {
         break;
       }
-      checkArgument(nextObject instanceof SMGDoublyLinkedListSegment);
+      checkArgument(nextObject instanceof SMGSinglyLinkedListSegment);
 
-      SMGDoublyLinkedListSegment dlls = (SMGDoublyLinkedListSegment) nextObject;
-      if (dlls.getMinLength() != 0) {
+      SMGSinglyLinkedListSegment lls = (SMGSinglyLinkedListSegment) nextObject;
+      if (lls.getMinLength() != 0) {
         // not a 0+DLLS
         break;
       }
 
       reachedSet.add(nextObject);
       if (pointerEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
-        retValue = findHVETargetValue(dlls, dlls.getNextOffset(), smg.getSizeOfPointer());
+        retValue = findHVETargetValue(lls, lls.getNextOffset(), smg.getSizeOfPointer());
 
-      } else {
+      } else if (nextObject instanceof SMGDoublyLinkedListSegment dlls) {
         checkArgument(
             pointerEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER),
             "Inconsisntent SMG found: DLLS pointer with SMGTargetSpecifier: %s",
@@ -147,15 +147,15 @@ public class SMGProveNequality {
   }
 
   /**
-   * Utility function to find the edge for a given dlls at a given offset with a given size.
+   * Utility function to find the edge for a given lls at a given offset with a given size.
    *
-   * @param dlls the DLLS
+   * @param dlls the LLS
    * @param pOffset the offset
    * @param pSize the size
    * @return the value address (pointer) at a given offset of a dlls.
    */
   private SMGValue findHVETargetValue(
-      SMGDoublyLinkedListSegment dlls, BigInteger pOffset, BigInteger pSize) {
+      SMGSinglyLinkedListSegment dlls, BigInteger pOffset, BigInteger pSize) {
     Optional<SMGHasValueEdge> hveOptional =
         smg.getHasValueEdgeByPredicate(
             dlls, edge -> edge.getOffset().equals(pOffset) && edge.getSizeInBits().equals(pSize));

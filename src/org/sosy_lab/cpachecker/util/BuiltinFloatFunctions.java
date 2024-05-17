@@ -91,18 +91,19 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> ISLESSGREATER = of("islessgreater");
   private static final ImmutableList<String> ISUNORDERED = of("isunordered");
 
-  private static final String SIGNBIT_FLOAT = "__signbitf";
-  private static final String SIGNBIT = "__signbit";
-  private static final String SIGNBIT_LONG_DOUBLE = "__signbitl";
+  private static final ImmutableList<String> SIGNBIT_FLOAT = withDunder("signbitf");
+  private static final ImmutableList<String> SIGNBIT = withDunder("signbit");
+  private static final ImmutableList<String> SIGNBIT_LONG_DOUBLE = withDunder("signbitl");
 
   private static final String COPYSIGN_FLOAT = "copysignf";
   private static final String COPYSIGN = "copysign";
   private static final String COPYSIGN_LONG_DOUBLE = "copysignl";
 
-  private static final String FLOAT_CLASSIFY = "__fpclassify";
-  private static final String IS_FINITE = "__finite";
-  private static final String IS_NAN = "__isnan";
-  private static final String IS_INFINITY = "__isinf";
+  private static final ImmutableList<String> FLOAT_CLASSIFY = withDunder("fpclassify");
+  private static final ImmutableList<String> IS_FINITE = withDunder("finite");
+  private static final ImmutableList<String> IS_NAN = withDunder("isnan");
+  private static final ImmutableList<String> IS_INFINITY = withDunder("isinf");
+  private static final ImmutableList<String> IS_INFINITY_SIGN = withDunder("isinf_sign");
 
   private static final ImmutableList<String> possiblePrefixes =
       ImmutableList.<String>builder()
@@ -129,14 +130,19 @@ public class BuiltinFloatFunctions {
           .addAll(ISLESSEQUAL)
           .addAll(ISLESS)
           .addAll(ISUNORDERED)
-          .add(FLOAT_CLASSIFY)
+          .addAll(FLOAT_CLASSIFY)
           .add(COPYSIGN)
-          .add(SIGNBIT)
-          .add(IS_FINITE)
-          .add(IS_NAN)
-          .add(IS_INFINITY)
+          .addAll(SIGNBIT)
+          .addAll(IS_FINITE)
+          .addAll(IS_NAN)
+          .addAll(IS_INFINITY_SIGN)
+          .addAll(IS_INFINITY)
           .addAll(NOT_A_NUMBER)
           .build();
+
+  private static ImmutableList<String> withDunder(String suffix) {
+    return ImmutableList.of("__builtin_" + suffix, "__" + suffix);
+  }
 
   private static ImmutableList<String> of(String suffix) {
     return ImmutableList.of("__builtin_" + suffix, suffix);
@@ -186,17 +192,14 @@ public class BuiltinFloatFunctions {
       if (pFunctionName.startsWith(p)) {
         String suffix = pFunctionName.substring(p.length());
 
-        switch (suffix) {
-          case "":
-            return CNumericTypes.DOUBLE;
-          case "f":
-            return CNumericTypes.FLOAT;
-          case "l":
-            return CNumericTypes.LONG_DOUBLE;
-          default:
-            throw new IllegalArgumentException(
-                "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
-        }
+        return switch (suffix) {
+          case "" -> CNumericTypes.DOUBLE;
+          case "f" -> CNumericTypes.FLOAT;
+          case "l" -> CNumericTypes.LONG_DOUBLE;
+          default ->
+              throw new IllegalArgumentException(
+                  "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
+        };
       }
     }
 
@@ -357,9 +360,9 @@ public class BuiltinFloatFunctions {
   }
 
   public static boolean matchesSignbit(String pFunctionName) {
-    return SIGNBIT_FLOAT.equals(pFunctionName)
-        || SIGNBIT.equals(pFunctionName)
-        || SIGNBIT_LONG_DOUBLE.equals(pFunctionName);
+    return SIGNBIT_FLOAT.contains(pFunctionName)
+        || SIGNBIT.contains(pFunctionName)
+        || SIGNBIT_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesCopysign(String pFunctionName) {
@@ -448,6 +451,18 @@ public class BuiltinFloatFunctions {
    */
   public static boolean matchesIsInfinity(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_INFINITY);
+  }
+
+  /**
+   * Returns whether the given function name is any builtin function that checks whether a float is
+   * infinite and returns the sign as -1/+1.
+   *
+   * @param pFunctionName the function name to check
+   * @return <code>true</code> if the given function name is any builtin isinf_sign-function, <code>
+   *     false</code> otherwise
+   */
+  public static boolean matchesIsInfinitySign(String pFunctionName) {
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_INFINITY_SIGN);
   }
 
   /**

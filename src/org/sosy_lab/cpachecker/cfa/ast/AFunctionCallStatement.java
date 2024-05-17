@@ -27,8 +27,8 @@ public abstract class AFunctionCallStatement extends AbstractStatement implement
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return functionCall.toASTString(pQualified) + ";";
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return functionCall.toASTString(pQualified, pOriginalVariableNames) + ";";
   }
 
   @Override
@@ -51,12 +51,8 @@ public abstract class AFunctionCallStatement extends AbstractStatement implement
       return true;
     }
 
-    if (!(obj instanceof AFunctionCallStatement) || !super.equals(obj)) {
-      return false;
-    }
-
-    AFunctionCallStatement other = (AFunctionCallStatement) obj;
-
-    return Objects.equals(other.functionCall, functionCall);
+    return obj instanceof AFunctionCallStatement other
+        && super.equals(obj)
+        && Objects.equals(other.functionCall, functionCall);
   }
 }

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -285,10 +285,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       try {
         resultState =
             new SMGCPAAbstractionManager(
-                    resultState, options.getListAbstractionMinimumLengthThreshhold())
+                    resultState, options.getListAbstractionMinimumLengthThreshhold(), stats)
                 .findAndAbstractLists();
-      } catch (SMG2Exception e) {
+      } catch (SMGException e) {
         // Do nothing. This should never happen anyway
+        throw new RuntimeException(e);
       }
     }
 
@@ -296,17 +297,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   private boolean isLoopHead(LocationState location) {
-    if (maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode())) {
-      return true;
-    }
-    return false;
+    return maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode());
   }
 
   private boolean checkAbstractListAt(LocationState location) {
-    if (options.abstractAtFunction(location) || isLoopHead(location)) {
-      return true;
-    }
-    return false;
+    return options.abstractAtFunction(location) || isLoopHead(location);
   }
 
   /**

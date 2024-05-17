@@ -38,11 +38,8 @@ public abstract class SMGListCandidate<S> {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof SMGListCandidate<?>)) {
-      return false;
-    }
-    SMGListCandidate<?> other = (SMGListCandidate<?>) o;
-    return Objects.equals(startObject, other.startObject)
+    return o instanceof SMGListCandidate<?> other
+        && Objects.equals(startObject, other.startObject)
         && Objects.equals(model, other.model)
         && Objects.equals(shape, other.shape);
   }

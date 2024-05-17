@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
-public class CFunctionSummaryEdge extends FunctionSummaryEdge implements CCfaEdge {
+public final class CFunctionSummaryEdge extends FunctionSummaryEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -2005621000523551217L;
 

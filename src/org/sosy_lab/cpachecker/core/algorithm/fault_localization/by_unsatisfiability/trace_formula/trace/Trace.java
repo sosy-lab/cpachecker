@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ImmutableList;
@@ -52,21 +54,23 @@ public class Trace extends ForwardingList<TraceAtom> {
     ENDIF
   }
 
-  public final ImmutableList<TraceAtom> entries;
+  private final ImmutableList<TraceAtom> entries;
   private final SSAMap latestSSAMap;
   private final SSAMap initialSSAMap;
   private final FormulaContext context;
 
   public Trace(FormulaContext pContext, List<TraceAtom> pEntries) {
-    entries = ImmutableList.copyOf(pEntries);
     context = pContext;
-    if (entries.isEmpty()) {
+    if (pEntries.isEmpty()) {
       latestSSAMap = SSAMap.emptySSAMap();
       initialSSAMap = SSAMap.emptySSAMap();
     } else {
-      latestSSAMap = entries.get(entries.size() - 1).ssaMap;
-      initialSSAMap = calculateInitialSsaMap();
+      latestSSAMap = pEntries.get(pEntries.size() - 1).ssaMap;
+      initialSSAMap = calculateInitialSsaMap(pEntries);
     }
+    entries =
+        transformedImmutableListCopy(
+            pEntries, ta -> ta.updateSSAMapWithInitialMap(getInitialSsaMap()));
   }
 
   public SSAMap getLatestSsaMap() {
@@ -77,10 +81,10 @@ public class Trace extends ForwardingList<TraceAtom> {
     return initialSSAMap;
   }
 
-  private SSAMap calculateInitialSsaMap() {
+  private SSAMap calculateInitialSsaMap(List<TraceAtom> pEntries) {
     Map<String, Integer> minIndexMap = new HashMap<>();
     Map<String, CType> typeMap = new HashMap<>();
-    for (TraceAtom traceAtom : this) {
+    for (TraceAtom traceAtom : pEntries) {
       context
           .getSolver()
           .getFormulaManager()
@@ -266,7 +270,7 @@ public class Trace extends ForwardingList<TraceAtom> {
   }
 
   public List<CFAEdge> toEdgeList() {
-    return Lists.transform(this, atom -> atom.correspondingEdge());
+    return Lists.transform(this, TraceAtom::correspondingEdge);
   }
 
   /**
@@ -321,6 +325,22 @@ public class Trace extends ForwardingList<TraceAtom> {
       ssaMap = pSSAMap;
     }
 
+    public TraceAtom updateSSAMapWithInitialMap(SSAMap pInitialSSAMap) {
+      SSAMapBuilder ssaMapBuilder = ssaMap.builder();
+      for (String variable : pInitialSSAMap.allVariables()) {
+        if (ssaMap.containsVariable(variable)) {
+          ssaMapBuilder.setIndex(
+              variable,
+              pInitialSSAMap.getType(variable),
+              Integer.max(pInitialSSAMap.getIndex(variable), ssaMap.getIndex(variable)));
+        } else {
+          ssaMapBuilder.setIndex(
+              variable, pInitialSSAMap.getType(variable), pInitialSSAMap.getIndex(variable));
+        }
+      }
+      return new TraceAtom(index, selector, formula, ssaMapBuilder.build(), correspondingEdge());
+    }
+
     public BooleanFormula getFormula() {
       return formula;
     }
@@ -339,11 +359,7 @@ public class Trace extends ForwardingList<TraceAtom> {
 
     @Override
     public boolean equals(Object pO) {
-      if (!(pO instanceof TraceAtom)) {
-        return false;
-      }
-      TraceAtom traceAtom = (TraceAtom) pO;
-      return index == traceAtom.index && super.equals(pO);
+      return pO instanceof TraceAtom atom && index == atom.index && super.equals(pO);
     }
 
     @Override

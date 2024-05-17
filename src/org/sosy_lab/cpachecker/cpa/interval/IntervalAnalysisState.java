@@ -297,10 +297,8 @@ public class IntervalAnalysisState
       return true;
     }
 
-    if (other instanceof IntervalAnalysisState otherElement) {
-      return intervals.equals(otherElement.intervals);
-    }
-    return false;
+    return other instanceof IntervalAnalysisState otherElement
+        && intervals.equals(otherElement.intervals);
   }
 
   @Override
@@ -334,22 +332,20 @@ public class IntervalAnalysisState
 
     if (parts.size() == 2) {
 
-      // pProperty = value <= varName
       if (CheckTypesOfStringsUtil.isLong(parts.get(0))) {
+        // pProperty = value <= varName
         long value = Long.parseLong(parts.get(0));
         Interval iv = getInterval(parts.get(1));
         return (value <= iv.getLow());
-      }
 
-      // pProperty = varName <= value
-      else if (CheckTypesOfStringsUtil.isLong(parts.get(1))) {
+      } else if (CheckTypesOfStringsUtil.isLong(parts.get(1))) {
+        // pProperty = varName <= value
         long value = Long.parseLong(parts.get(1));
         Interval iv = getInterval(parts.get(0));
         return (iv.getHigh() <= value);
-      }
 
-      // pProperty = varName1 <= varName2
-      else {
+      } else {
+        // pProperty = varName1 <= varName2
         Interval iv1 = getInterval(parts.get(0));
         Interval iv2 = getInterval(parts.get(1));
         return iv1.contains(iv2);
@@ -460,12 +456,9 @@ public class IntervalAnalysisState
         return true;
       }
 
-      if (!(pObj instanceof IntervalPseudoPartitionKey)) {
-        return false;
-      }
-
-      IntervalPseudoPartitionKey other = (IntervalPseudoPartitionKey) pObj;
-      return size == other.size && absoluteDistance.equals(other.absoluteDistance);
+      return pObj instanceof IntervalPseudoPartitionKey other
+          && size == other.size
+          && absoluteDistance.equals(other.absoluteDistance);
     }
 
     @Override

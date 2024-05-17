@@ -109,13 +109,9 @@ public sealed class JMethodInvocationExpression extends AFunctionCallExpression
       return true;
     }
 
-    if (!(obj instanceof JMethodInvocationExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    JMethodInvocationExpression other = (JMethodInvocationExpression) obj;
-
-    return other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
+    return obj instanceof JMethodInvocationExpression other
+        && super.equals(obj)
+        && other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
         && Objects.equals(other.runTimeBinding, runTimeBinding);
   }
 }

@@ -15,15 +15,14 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public final class CEnumerator extends AbstractSimpleDeclaration implements CSimpleDeclaration {
 
   private static final long serialVersionUID = -2526725372840523651L;
 
-  private final @Nullable Long value;
+  private final long value;
   private @Nullable CEnumType enumType;
   private final String qualifiedName;
 
@@ -31,9 +30,8 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
       final FileLocation pFileLocation,
       final String pName,
       final String pQualifiedName,
-      final @Nullable CType pType,
-      final @Nullable Long pValue) {
-    super(pFileLocation, pType, pName);
+      final long pValue) {
+    super(pFileLocation, pName);
 
     checkNotNull(pName);
     value = pValue;
@@ -51,13 +49,10 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
       return true;
     }
 
-    if (!(obj instanceof CEnumerator) || !super.equals(obj)) {
-      return false;
-    }
-
-    CEnumerator other = (CEnumerator) obj;
-
-    return Objects.equals(value, other.value) && qualifiedName.equals(other.qualifiedName);
+    return obj instanceof CEnumerator other
+        && super.equals(obj)
+        && value == other.value
+        && qualifiedName.equals(other.qualifiedName);
     // do not compare the enumType, comparing it with == is wrong because types which
     // are the same but not identical would lead to wrong results
     // comparing it with equals is no good choice, too. This would lead to a stack
@@ -77,32 +72,22 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
   }
 
   @Override
-  public void setType(Type pType) {
-    super.setType(checkNotNull(pType));
-  }
-
-  @Override
   public String getQualifiedName() {
     return qualifiedName;
   }
 
   @Override
-  public CType getType() {
-    return (CType) super.getType();
+  public CSimpleType getType() {
+    return enumType.getCompatibleType();
   }
 
   public long getValue() {
-    checkState(value != null, "Need to check hasValue() before calling getValue()");
     return value;
-  }
-
-  public boolean hasValue() {
-    return value != null;
   }
 
   @Override
   public String toASTString() {
-    return getQualifiedName().replace("::", "__") + (hasValue() ? " = " + value : "");
+    return getQualifiedName().replace("::", "__") + " = " + value;
   }
 
   @Override

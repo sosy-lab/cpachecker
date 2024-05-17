@@ -63,11 +63,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation
   protected boolean covers(Value pCovering, Value pCovered) {
     // return true if pCovering UnknownValue, pCovering equals pCovered
     // otherwise false
-    if (pCovering.isUnknown() || pCovering.equals(pCovered)) {
-      return true;
-    }
-
-    return false;
+    return pCovering.isUnknown() || pCovering.equals(pCovered);
   }
 
   @Override

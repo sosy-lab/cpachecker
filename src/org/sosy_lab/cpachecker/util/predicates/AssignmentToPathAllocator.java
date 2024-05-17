@@ -148,8 +148,7 @@ public class AssignmentToPathAllocator {
       createAssignments(terms, variableEnvironment, variables, functionEnvironment, memory);
       removeDeallocatedVariables(ssaMap, variableEnvironment, variables);
       ImmutableMap<String, Memory> allocatedMemory =
-          ImmutableMap.copyOf(
-              Maps.transformEntries(memory, (name, heap) -> new Memory(name, heap)));
+          ImmutableMap.copyOf(Maps.transformEntries(memory, Memory::new));
 
       ConcreteState concreteState =
           new ConcreteState(
@@ -243,17 +242,11 @@ public class AssignmentToPathAllocator {
 
       if (pExpressionType instanceof CSimpleType simpleType) {
 
-        switch (simpleType.getType()) {
-          case INT:
-          case CHAR:
-          case BOOL:
-            return "Integer";
-          case FLOAT:
-          case DOUBLE:
-            return "Rational";
-          default:
-            return "";
-        }
+        return switch (simpleType.getType()) {
+          case INT, CHAR, BOOL -> "Integer";
+          case FLOAT, DOUBLE -> "Rational";
+          default -> "";
+        };
       }
 
       return "";

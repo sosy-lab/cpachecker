@@ -54,12 +54,10 @@ public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
     if (this == pO) {
       return true;
     }
-    if (pO instanceof EdgeFormulaNegation other) {
-      return getLocation().equals(other.getLocation())
-          && edge.getTruthAssumption() == other.edge.getTruthAssumption()
-          && edge.getExpression().equals(other.edge.getExpression());
-    }
-    return false;
+    return pO instanceof EdgeFormulaNegation other
+        && getLocation().equals(other.getLocation())
+        && edge.getTruthAssumption() == other.edge.getTruthAssumption()
+        && edge.getExpression().equals(other.edge.getExpression());
   }
 
   @Override

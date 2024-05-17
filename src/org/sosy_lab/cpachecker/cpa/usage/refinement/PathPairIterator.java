@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -34,7 +35,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class PathPairIterator
     extends GenericIterator<Pair<UsageInfo, UsageInfo>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
-  private final Set<List<Integer>> refinedStates = new HashSet<>();
+  private final Set<ImmutableList<Integer>> refinedStates = new HashSet<>();
   private final BAMCPA bamCpa;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
   private final IdentityHashMap<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
@@ -83,9 +84,8 @@ public class PathPairIterator
 
   @Override
   protected Pair<ExtendedARGPath, ExtendedARGPath> getNext(Pair<UsageInfo, UsageInfo> pInput) {
-    UsageInfo firstUsage, secondUsage;
-    firstUsage = pInput.getFirst();
-    secondUsage = pInput.getSecond();
+    UsageInfo firstUsage = pInput.getFirst();
+    UsageInfo secondUsage = pInput.getSecond();
 
     if (firstPath == null) {
       // First time or it was unreachable last time
@@ -120,10 +120,8 @@ public class PathPairIterator
   @Override
   protected void finishIteration(
       Pair<ExtendedARGPath, ExtendedARGPath> pathPair, RefinementResult wrapperResult) {
-    ExtendedARGPath firstExtendedPath, secondExtendedPath;
-
-    firstExtendedPath = pathPair.getFirst();
-    secondExtendedPath = pathPair.getSecond();
+    ExtendedARGPath firstExtendedPath = pathPair.getFirst();
+    ExtendedARGPath secondExtendedPath = pathPair.getSecond();
 
     Object predicateInfo = wrapperResult.getInfo(PredicateRefinerAdapter.class);
     if (predicateInfo instanceof List) {
@@ -165,7 +163,7 @@ public class PathPairIterator
     if (checkIsUsageUnreachable(secondUsage)) {
       unreacheableUsages.add(secondUsage);
     }
-    pResult.addInfo(this.getClass(), unreacheableUsages);
+    pResult.addInfo(getClass(), unreacheableUsages);
   }
 
   @Override
@@ -256,7 +254,8 @@ public class PathPairIterator
   private void handleAffectedStates(List<ARGState> affectedStates) {
     // ARGState nextStart;
     // if (affectedStates != null) {
-    List<Integer> changedStateNumbers = transformedImmutableListCopy(affectedStates, idExtractor);
+    ImmutableList<Integer> changedStateNumbers =
+        transformedImmutableListCopy(affectedStates, idExtractor);
     refinedStates.add(changedStateNumbers);
 
     /*  nextStart = affectedStates.get(affectedStates.size() - 1);

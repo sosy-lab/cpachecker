@@ -120,6 +120,7 @@ public class AutomatonInternalState {
   public String getName() {
     return name;
   }
+
   /** Returns a integer representation of this state. */
   public int getStateId() {
     return stateId;

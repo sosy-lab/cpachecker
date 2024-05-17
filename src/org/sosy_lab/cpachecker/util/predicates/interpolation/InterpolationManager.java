@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
@@ -288,8 +289,8 @@ public final class InterpolationManager {
 
     itpStrategy =
         switch (strategy) {
-          case SEQ_CPACHECKER -> new SequentialInterpolation(
-              pLogger, pShutdownNotifier, fmgr, config);
+          case SEQ_CPACHECKER ->
+              new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, config);
           case SEQ -> new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
           case TREE_WELLSCOPED -> new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
           case TREE_NESTED -> new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
@@ -335,7 +336,9 @@ public final class InterpolationManager {
       try {
         return callable.call();
       } catch (Exception e) {
-        Throwables.propagateIfPossible(e, CPAException.class, InterruptedException.class);
+        Throwables.throwIfInstanceOf(e, CPAException.class);
+        Throwables.throwIfInstanceOf(e, InterruptedException.class);
+        Throwables.throwIfUnchecked(e);
         throw new UnexpectedCheckedException("refinement", e);
       }
     }
@@ -355,8 +358,9 @@ public final class InterpolationManager {
 
     } catch (ExecutionException e) {
       Throwable t = e.getCause();
-      Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
-
+      Throwables.throwIfInstanceOf(t, CPAException.class);
+      Throwables.throwIfInstanceOf(t, InterruptedException.class);
+      Throwables.throwIfUnchecked(t);
       throw new UnexpectedCheckedException("interpolation", t);
     }
   }
@@ -412,6 +416,23 @@ public final class InterpolationManager {
       final Optional<ARGPath> imprecisePath)
       throws RefinementFailedException, InterruptedException {
 
+    if (pFormulas.getSize() == 1) {
+      // If there is only one block, interpolation is meaningless because the list of expected
+      // interpolants is empty. In principle, using the Interpolator below would work fine,
+      // but for formulas with floats, MathSAT fails to return a result for UNSAT formulas
+      // because it would not be able to compute interpolants afterwards. So we use a
+      // non-interpolating solver. This could also be slightly more efficient. We miss out on any
+      // of the advanced heuristics like environment reuse, but for a single block there wouldn't be
+      // anything to reuse anyway.
+      CounterexampleTraceInfo cex =
+          buildCounterexampleTraceWithoutInterpolation0(pFormulas, imprecisePath);
+      if (cex.isSpurious()) {
+        return CounterexampleTraceInfo.infeasible(ImmutableList.of());
+      } else {
+        return cex;
+      }
+    }
+
     cexAnalysisTimer.start();
     try {
       final BlockFormulas f = prepareCounterexampleFormulas(pFormulas);
@@ -439,7 +460,7 @@ public final class InterpolationManager {
               "Interpolation failed, attempting to solve without interpolation");
           return fallbackWithoutInterpolation(f, imprecisePath, itpException);
         }
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
+        throw RefinementFailedException.forInterpolationFailureInSolver(itpException, solver);
       }
 
     } finally {
@@ -474,7 +495,7 @@ public final class InterpolationManager {
 
   private CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation0(
       final BlockFormulas pFormulas, Optional<ARGPath> imprecisePath)
-      throws CPAException, InterruptedException {
+      throws RefinementFailedException, InterruptedException {
 
     cexAnalysisTimer.start();
     try {
@@ -484,7 +505,7 @@ public final class InterpolationManager {
         return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
         // TODO: Do we need to rebuild the interpolator here? i.e. is it ever used again?
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
+        throw RefinementFailedException.forInterpolationFailureInSolver(e, solver);
       }
 
     } finally {
@@ -538,7 +559,7 @@ public final class InterpolationManager {
       // in case of exception throw original one below but do not forget e2
       itpException.addSuppressed(solvingException);
     }
-    throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
+    throw RefinementFailedException.forInterpolationFailureInSolver(itpException, solver);
   }
 
   /**
@@ -600,10 +621,8 @@ public final class InterpolationManager {
     if (!bfmgr.isTrue(bitwiseAxioms)) {
       logger.log(
           Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE", "LAST GROUP: ", bitwiseAxioms);
-      return ImmutableList.<BooleanFormula>builderWithExpectedSize(f.size())
-          .addAll(f.subList(0, f.size() - 1))
-          .add(bfmgr.and(f.get(f.size() - 1), bitwiseAxioms))
-          .build();
+      return listAndElement(
+          f.subList(0, f.size() - 1), bfmgr.and(f.get(f.size() - 1), bitwiseAxioms));
     }
 
     return f;

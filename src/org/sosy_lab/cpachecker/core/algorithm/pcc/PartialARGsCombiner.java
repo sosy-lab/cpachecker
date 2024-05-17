@@ -195,10 +195,6 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // combined root
     ARGState combinedRoot = new ARGState(new CompositeState(initialStates), null);
 
-    CFANode locPred;
-    ARGState composedState, composedSuccessor;
-    Collection<ARGState> components;
-
     List<List<ARGState>> successorsForEdge = new ArrayList<>(initialStates.size());
     EdgeSuccessor edgeSuccessorIdentifier = new EdgeSuccessor();
 
@@ -213,15 +209,15 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     while (!toVisit.isEmpty()) {
       shutdown.shutdownIfNecessary();
 
-      components = toVisit.peek().getFirst();
-      composedState = toVisit.poll().getSecond();
+      Collection<ARGState> components = toVisit.peek().getFirst();
+      ARGState composedState = toVisit.poll().getSecond();
 
       // add composed state to reached set
       pReceivedReachedSet.add(composedState, SingletonPrecision.getInstance());
       pReceivedReachedSet.removeOnlyFromWaitlist(composedState);
 
       // identify possible successor edges
-      locPred = AbstractStates.extractLocation(composedState);
+      CFANode locPred = AbstractStates.extractLocation(composedState);
       nextEdge:
       for (CFAEdge succEdge : CFAUtils.allLeavingEdges(locPred)) {
         shutdown.shutdownIfNecessary();
@@ -250,7 +246,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
             constructedCombinedStates.get(combinedSuccessor).addParent(composedState);
           } else {
             // construct and register composed successor
-            composedSuccessor =
+            ARGState composedSuccessor =
                 new ARGState(new CompositeState(combinedSuccessor.getFirst()), composedState);
             constructedCombinedStates.put(combinedSuccessor, composedSuccessor);
 

@@ -39,15 +39,15 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Extending SMG with notions specific for programs in C language: - separation of global, heap and
  * stack objects - null object and value
  */
-public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
+public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
   /** A container for object found on the stack: - local variables - parameters */
   private PersistentStack<CLangStackFrame> stack_objects = PersistentStack.of();
@@ -451,7 +451,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  public final void markHeapObjectDeletedAndRemoveEdges(SMGObject pObject) {
+  public void markHeapObjectDeletedAndRemoveEdges(SMGObject pObject) {
     heap_objects = heap_objects.removeAndCopy(pObject);
     markObjectDeletedAndRemoveEdges(pObject);
   }

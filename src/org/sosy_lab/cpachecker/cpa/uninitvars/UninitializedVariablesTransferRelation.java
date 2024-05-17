@@ -111,7 +111,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         // handle statement like a = func(x) in the CFunctionSummaryEdge
         CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
         CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
-        handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
+        handleStatement(successor, functionReturnEdge.getFunctionCall(), ctrEdge);
         break;
 
       case AssumeEdge:

@@ -78,8 +78,7 @@ class ExpressionValueVisitor
         || (operand.getExpressionType() instanceof CFunctionType)) {
       return new NamedFunctionTarget(operand.getName());
     }
-    if (operand.getExpressionType() instanceof CPointerType) {
-      CPointerType t = (CPointerType) operand.getExpressionType();
+    if (operand.getExpressionType() instanceof CPointerType t) {
       if (t.getType() instanceof CFunctionType) {
         return state.getTarget(operand.getDeclaration().getQualifiedName());
       }

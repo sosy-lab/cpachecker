@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 
 public class SMGStateTest {
   private static final LogManager logger = LogManager.createTestLogManager();
@@ -515,6 +515,7 @@ public class SMGStateTest {
     SMGState consistentState = consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
+
   /*
    * Test that no consistency violation is reported on:
    *   - consistent state

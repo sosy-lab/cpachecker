@@ -18,7 +18,6 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -52,22 +51,6 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
   private final VisibilityModifier visibility;
   private final JClassOrInterfaceType declaringClass;
   private final String simpleName;
-
-  private static final JMethodDeclaration UNRESOLVED_METHOD =
-      new JMethodDeclaration(
-          FileLocation.DUMMY,
-          JMethodType.createUnresolvableType(),
-          "__Unresolved__",
-          "__Unresolved__",
-          new ArrayList<>(),
-          VisibilityModifier.NONE,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          JClassType.createUnresolvableType());
 
   public JMethodDeclaration(
       FileLocation pFileLocation,
@@ -120,7 +103,7 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
     return toASTString();
   }
 
@@ -212,13 +195,9 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
       return true;
     }
 
-    if (!(obj instanceof JMethodDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JMethodDeclaration other = (JMethodDeclaration) obj;
-
-    return Objects.equals(other.declaringClass, declaringClass)
+    return obj instanceof JMethodDeclaration other
+        && super.equals(obj)
+        && Objects.equals(other.declaringClass, declaringClass)
         && other.isAbstract == isAbstract
         && other.isFinal == isFinal
         && other.isNative == isNative
@@ -226,10 +205,6 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
         && other.isStrictfp == isStrictfp
         && other.isSynchronized == isSynchronized
         && Objects.equals(other.visibility, visibility);
-  }
-
-  public static JMethodDeclaration createUnresolvedMethodDeclaration() {
-    return UNRESOLVED_METHOD;
   }
 
   public static JMethodDeclaration createExternMethodDeclaration(

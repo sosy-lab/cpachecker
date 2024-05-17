@@ -47,42 +47,12 @@ public final class IDExpression extends LeftHandSide {
     if (this == obj) {
       return true;
     }
-
-    if (obj == null) {
-      return false;
-    }
-
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-
-    IDExpression other = (IDExpression) obj;
-
-    if (isGlobal()) {
-      if (!other.isGlobal()) {
-        return false;
-      }
-    } else if (!getFunctionName().equals(!other.isGlobal() ? other.getFunctionName() : null)) {
-      return false;
-    }
-
-    if (getName() == null) {
-      if (other.getName() != null) {
-        return false;
-      }
-    } else if (!getName().equals(other.getName())) {
-      return false;
-    }
-
-    return true;
+    return obj instanceof IDExpression && super.equals(obj);
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + (isGlobal() ? 0 : getFunctionName().hashCode());
-    result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
-    return result;
+    // equals() checks nothing more than super.equals() and type.
+    return super.hashCode();
   }
 }

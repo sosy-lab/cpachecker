@@ -30,7 +30,6 @@ public record PrecisionAdjustmentResult(
   public enum Action {
     CONTINUE,
     BREAK,
-    ;
   }
 
   public PrecisionAdjustmentResult {

@@ -104,7 +104,7 @@ public class CFASecondPassBuilder {
 
     // 1.Step: get all function calls
     final FunctionCallCollector visitor = new FunctionCallCollector();
-    for (final FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (final FunctionEntryNode entryNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(entryNode, visitor);
       // No need for Traversal.ignoreFunctionCalls(), because there are no functioncall-edges.
       // They are created in the next loop.
@@ -308,20 +308,16 @@ public class CFASecondPassBuilder {
       FunctionExitNode exitNode = fExitNode.orElseThrow();
       FunctionReturnEdge returnEdge;
 
-      switch (language) {
-        case C:
-          returnEdge =
-              new CFunctionReturnEdge(
-                  fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
-          break;
-        case JAVA:
-          returnEdge =
-              new JMethodReturnEdge(
-                  fileLocation, exitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
-          break;
-        default:
-          throw new AssertionError();
-      }
+      returnEdge =
+          switch (language) {
+            case C ->
+                new CFunctionReturnEdge(
+                    fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
+            case JAVA ->
+                new JMethodReturnEdge(
+                    fileLocation, exitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
+            default -> throw new AssertionError();
+          };
 
       exitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
@@ -439,7 +435,7 @@ public class CFASecondPassBuilder {
 
       // remove function exit node if it has become unreachable
       FunctionEntryNode entryNode =
-          cfa.getAllFunctions().get(edge.getSuccessor().getFunction().getQualifiedName());
+          cfa.getFunctionHead(edge.getSuccessor().getFunction().getQualifiedName());
       Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
       if (exitNode.isPresent() && exitNode.orElseThrow().getNumEnteringEdges() == 0) {
         entryNode.removeExitNode();

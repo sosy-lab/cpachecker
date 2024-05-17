@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -108,10 +107,7 @@ public class SignTransferRelation
 
   @Override
   protected SignState handleFunctionReturnEdge(
-      FunctionReturnEdge pCfaEdge,
-      FunctionSummaryEdge pFnkCall,
-      AFunctionCall pSummaryExpr,
-      String pCallerFunctionName)
+      FunctionReturnEdge pCfaEdge, AFunctionCall pSummaryExpr, String pCallerFunctionName)
       throws CPATransferException {
 
     // x = fun();

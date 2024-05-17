@@ -88,9 +88,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
     switch (pEdge.getEdgeType()) {
       case StatementEdge:
-        {
-          return makePreconditionForStatement((CStatementEdge) pEdge, pPostcond, functionName);
-        }
+        return makePreconditionForStatement((CStatementEdge) pEdge, pPostcond, functionName);
       case ReturnStatementEdge:
         {
           final var edge = (CReturnStatementEdge) pEdge;
@@ -107,23 +105,14 @@ public class CtoWpConverter extends CtoFormulaConverter {
           }
         }
       case AssumeEdge:
-        {
-          return makePreconditionForAssumption((CAssumeEdge) pEdge, pPostcond, functionName);
-        }
+        return makePreconditionForAssumption((CAssumeEdge) pEdge, pPostcond, functionName);
       case FunctionCallEdge:
-        {
-          return makePreconditionForFunctionCall(
-              (CFunctionCallEdge) pEdge, pPostcond, functionName);
-        }
+        return makePreconditionForFunctionCall((CFunctionCallEdge) pEdge, pPostcond, functionName);
       case FunctionReturnEdge:
-        {
-          return makePreconditionForFunctionExit(
-              ((CFunctionReturnEdge) pEdge).getSummaryEdge(), pPostcond);
-        }
+        return makePreconditionForFunctionExit(
+            ((CFunctionReturnEdge) pEdge).getSummaryEdge(), pPostcond);
       case BlankEdge:
-        {
-          return pPostcond;
-        }
+        return pPostcond;
       default:
         throw new UnrecognizedCFAEdgeException(pEdge);
     }

@@ -155,12 +155,12 @@ public class SymbolicValueAnalysisRefiner
         CPAs.retrieveCPAOrFail(pCpa, ConstraintsCPA.class, SymbolicValueAnalysisRefiner.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
+    final CFA cfa = valueAnalysisCpa.getCFA();
+    final LogManager logger = valueAnalysisCpa.getLogger();
 
     valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
+    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config, cfa, logger));
 
-    final LogManager logger = valueAnalysisCpa.getLogger();
-    final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     final ConstraintsSolver solver = constraintsCpa.getSolver();
@@ -365,8 +365,10 @@ public class SymbolicValueAnalysisRefiner
       nextConstraints = nextState.getConstraintsState();
       ConstraintsState oldConstraints = currentState.getConstraintsState();
 
-      ConstraintsState newConstraints = nextConstraints.copyOf();
-      newConstraints.removeAll(oldConstraints);
+      Set<Constraint> tempSet = new HashSet<>(nextConstraints);
+      tempSet.removeAll(oldConstraints);
+      ConstraintsState newConstraints = new ConstraintsState(tempSet);
+
       for (Constraint c : newConstraints) {
         toCExpressionVisitor = new ValueToCExpressionTransformer((CType) c.getType());
         CExpressionStatement exp =

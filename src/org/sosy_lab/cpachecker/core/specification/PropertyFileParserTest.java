@@ -34,12 +34,12 @@ public class PropertyFileParserTest {
 
   private static final ImmutableMap<String, Property> TEST_PROPERTIES =
       ImmutableMap.<String, Property>builder()
-          // https://github.com/sosy-lab/sv-benchmarks/tree/master/java/properties
+          // https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/java/properties
           .put("CHECK( init(Main.main()), LTL(G assert) )", CommonVerificationProperty.ASSERT)
           .put(
               "CHECK( init(Main.main()), LTL(G !deadlock) )",
               new OtherLtlProperty("G !deadlock")) // TODO fix!
-          // https://github.com/sosy-lab/sv-benchmarks/tree/master/c/properties
+          // https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/properties
           .put("CHECK( init(main()), LTL(F end) )", CommonVerificationProperty.TERMINATION)
           .put(
               "CHECK( init(main()), LTL(G ! call(reach_error())) )",

@@ -53,7 +53,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
   private static ImmutableList<ImmutableList<Integer>> buildAdjacencyList(final ARGState[] pNodes) {
     List<List<Integer>> adjacencyList = new ArrayList<>(pNodes.length);
     for (@SuppressWarnings("unused") AbstractState node : pNodes) {
-      adjacencyList.add(new ArrayList<Integer>());
+      adjacencyList.add(new ArrayList<>());
     }
 
     SuccessorEdgeConstructor edgeConstructor = new SuccessorEdgeConstructor(pNodes, adjacencyList);
@@ -153,8 +153,13 @@ public class PartialReachedSetDirectedGraph implements Statistics {
   @Override
   public void printStatistics(
       final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-    int edges = 0, maxin = 0, minin = Integer.MAX_VALUE, maxout = 0, minout = Integer.MAX_VALUE;
-    double avgin = 0, avgout = 0;
+    int edges = 0;
+    int maxin = 0;
+    int minin = Integer.MAX_VALUE;
+    int maxout = 0;
+    int minout = Integer.MAX_VALUE;
+    double avgin = 0;
+    double avgout = 0;
     // store distribution of nodes over there degrees
     final int MAX_DEG = 10; // All nodes with same or higher degrees are counted as MAX_DEG-nodes
     int[] inDistribution = new int[MAX_DEG];

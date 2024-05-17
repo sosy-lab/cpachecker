@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -190,8 +189,7 @@ public final class ErrorPathShrinker {
 
       case FunctionReturnEdge:
         final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-        final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-        handleFunctionReturnEdge(fnkReturnEdge, summaryEdge.getExpression());
+        handleFunctionReturnEdge(fnkReturnEdge, fnkReturnEdge.getFunctionCall());
 
         break;
 
@@ -282,16 +280,14 @@ public final class ErrorPathShrinker {
 
   /** This method handles statements. */
   private void handleStatementEdge(AStatement statementExp) {
-
-    // expression is an assignment operation, e.g. a = b;
     if (statementExp instanceof AAssignment) {
+      // expression is an assignment operation, e.g. a = b;
       handleAssignmentToVariable(
           ((AAssignment) statementExp).getLeftHandSide(),
           ((AAssignment) statementExp).getRightHandSide());
-    }
 
-    // ext(); external functioncall
-    else if (statementExp instanceof AFunctionCall) {
+    } else if (statementExp instanceof AFunctionCall) {
+      // ext(); external functioncall
       addCurrentCFAEdgeToShortPath();
     }
   }
@@ -425,37 +421,31 @@ public final class ErrorPathShrinker {
 
     // TODO replace with expression-visitor?
 
-    // exp = 8.2 or "return;" (when exp == null),
-    // this does not change the Set importantVars,
     if (exp instanceof ALiteralExpression
         || exp instanceof AFunctionCallExpression
         || exp == null) {
-      // do nothing
-    }
+      // exp = 8.2 or "return;" (when exp == null),
+      // this does not change the Set importantVars, do nothing
 
-    // exp is an Identifier, i.e. the "b" from "a = b"
-    else if (exp instanceof AIdExpression) {
+    } else if (exp instanceof AIdExpression) {
+      // exp is an Identifier, i.e. the "b" from "a = b"
       track((AIdExpression) exp);
-    }
 
-    // (cast) b
-    else if (exp instanceof CCastExpression) {
+    } else if (exp instanceof CCastExpression) {
+      // (cast) b
       addAllVarsInExpToSet(((CCastExpression) exp).getOperand());
-    }
 
-    // -b
-    else if (exp instanceof AUnaryExpression) {
+    } else if (exp instanceof AUnaryExpression) {
+      // -b
       addAllVarsInExpToSet(((AUnaryExpression) exp).getOperand());
-    }
 
-    // b op c; --> b is operand1, c is operand2
-    else if (exp instanceof ABinaryExpression binExp) {
+    } else if (exp instanceof ABinaryExpression binExp) {
+      // b op c; --> b is operand1, c is operand2
       addAllVarsInExpToSet(binExp.getOperand1());
       addAllVarsInExpToSet(binExp.getOperand2());
-    }
 
-    // a fieldReference "b->c" is handled as one variable with the name "b->c".
-    else if (exp instanceof CFieldReference) {
+    } else if (exp instanceof CFieldReference) {
+      // a fieldReference "b->c" is handled as one variable with the name "b->c".
       track((CFieldReference) exp);
     }
   }

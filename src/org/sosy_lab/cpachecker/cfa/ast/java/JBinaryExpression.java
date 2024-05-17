@@ -116,10 +116,6 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
       return true;
     }
 
-    if (!(obj instanceof JBinaryExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JBinaryExpression && super.equals(obj);
   }
 }

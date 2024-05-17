@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -127,15 +126,11 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall exprOnSummary, String callerFunctionName)
       throws HandleCodeException {
 
     // NOTE! getFunctionName() return inner function name!
 
-    CFunctionCall exprOnSummary = cfaEdge.getSummaryEdge().getExpression();
     LocalState newElement = state.getClonedPreviousState();
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement assignExp) {
@@ -149,15 +144,14 @@ public class LocalTransferRelation
     }
 
     // Update the outer parameters:
-    CFunctionSummaryEdge sEdge = cfaEdge.getSummaryEdge();
-    CFunctionEntryNode entry = sEdge.getFunctionEntry();
+    CFunctionEntryNode entry = cfaEdge.getFunctionEntry();
     String funcName = entry.getFunctionName();
     assert funcName.equals(getFunctionName());
 
     int allocParameter = isParameterAllocatedFunction(funcName) ? allocateInfo.get(funcName) : 0;
     List<String> paramNames = entry.getFunctionParameterNames();
     List<CExpression> arguments =
-        sEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
+        cfaEdge.getFunctionCall().getFunctionCallExpression().getParameterExpressions();
     List<CParameterDeclaration> parameterTypes = entry.getFunctionDefinition().getParameters();
 
     List<Identifier> toProcess =
@@ -189,8 +183,7 @@ public class LocalTransferRelation
         extractIdentifiers(
             arguments, paramNames, parameterTypes, getFunctionName(), calledFunctionName);
     // TODO Make it with config
-    boolean isThreadCreate =
-        cfaEdge.getSummaryEdge().getExpression() instanceof CThreadCreateStatement;
+    boolean isThreadCreate = cfaEdge.getFunctionCall() instanceof CThreadCreateStatement;
 
     for (Identifier pairId : toProcess) {
       if (isThreadCreate) {

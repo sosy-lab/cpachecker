@@ -69,6 +69,7 @@ public class UsageCPAStatistics implements Statistics {
   final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
   private final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   private final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
+
   // public final StatCounter numberOfStatesCounter = new StatCounter("Number of states");
 
   public UsageCPAStatistics(
@@ -98,10 +99,10 @@ public class UsageCPAStatistics implements Statistics {
       try {
         errPrinter =
             switch (outputFileType) {
-              case KLEVER -> new KleverErrorTracePrinter(
-                  config, computer, cfa, logger, lockTransfer);
-              case KLEVER_OLD -> new KleverErrorTracePrinterOld(
-                  config, computer, cfa, logger, lockTransfer);
+              case KLEVER ->
+                  new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+              case KLEVER_OLD ->
+                  new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
               case ETV -> new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
             };
         errPrinter.printErrorTraces(reached);

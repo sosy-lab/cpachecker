@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -113,7 +114,7 @@ public class FormulaManagerView {
       if (this == INTEGER) {
         return "unbounded integers";
       } else {
-        return name().toLowerCase() + "s";
+        return Ascii.toLowerCase(name()) + "s";
       }
     }
   }
@@ -288,20 +289,23 @@ public class FormulaManagerView {
       rawBvmgr =
           switch (encodeBitvectorAs) {
             case BITVECTOR -> manager.getBitvectorFormulaManager();
-            case INTEGER -> new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-                wrappingHandler,
-                manager.getBooleanFormulaManager(),
-                manager.getIntegerFormulaManager(),
-                manager.getUFManager(),
-                config);
-            case RATIONAL -> new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-                wrappingHandler,
-                manager.getBooleanFormulaManager(),
-                manager.getRationalFormulaManager(),
-                manager.getUFManager(),
-                config);
-            default -> throw new AssertionError(
-                "unexpected encoding for bitvectors: " + encodeBitvectorAs);
+            case INTEGER ->
+                new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                    wrappingHandler,
+                    manager.getBooleanFormulaManager(),
+                    manager.getIntegerFormulaManager(),
+                    manager.getUFManager(),
+                    config);
+            case RATIONAL ->
+                new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                    wrappingHandler,
+                    manager.getBooleanFormulaManager(),
+                    manager.getRationalFormulaManager(),
+                    manager.getUFManager(),
+                    config);
+            default ->
+                throw new AssertionError(
+                    "unexpected encoding for bitvectors: " + encodeBitvectorAs);
           };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
@@ -331,18 +335,21 @@ public class FormulaManagerView {
       rawFpmgr =
           switch (encodeFloatAs) {
             case FLOAT -> manager.getFloatingPointFormulaManager();
-            case INTEGER -> new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-                wrappingHandler,
-                manager.getIntegerFormulaManager(),
-                manager.getUFManager(),
-                manager.getBooleanFormulaManager());
-            case RATIONAL -> new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-                wrappingHandler,
-                manager.getRationalFormulaManager(),
-                manager.getUFManager(),
-                manager.getBooleanFormulaManager());
-            default -> throw new AssertionError(
-                "unexpected encoding for floating points: " + encodeFloatAs);
+            case INTEGER ->
+                new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                    wrappingHandler,
+                    manager.getIntegerFormulaManager(),
+                    manager.getUFManager(),
+                    manager.getBooleanFormulaManager());
+            case RATIONAL ->
+                new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                    wrappingHandler,
+                    manager.getRationalFormulaManager(),
+                    manager.getUFManager(),
+                    manager.getBooleanFormulaManager());
+            default ->
+                throw new AssertionError(
+                    "unexpected encoding for floating points: " + encodeFloatAs);
           };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
@@ -369,13 +376,15 @@ public class FormulaManagerView {
       rawImgr =
           switch (encodeIntegerAs) {
             case INTEGER -> manager.getIntegerFormulaManager();
-            case BITVECTOR -> new ReplaceIntegerWithBitvectorTheory(
-                wrappingHandler,
-                manager.getBitvectorFormulaManager(),
-                manager.getBooleanFormulaManager(),
-                pIntegerOptions);
-            default -> throw new AssertionError(
-                "unexpected encoding for plain integers: " + encodeIntegerAs);
+            case BITVECTOR ->
+                new ReplaceIntegerWithBitvectorTheory(
+                    wrappingHandler,
+                    manager.getBitvectorFormulaManager(),
+                    manager.getBooleanFormulaManager(),
+                    pIntegerOptions);
+            default ->
+                throw new AssertionError(
+                    "unexpected encoding for plain integers: " + encodeIntegerAs);
           };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
@@ -974,7 +983,7 @@ public class FormulaManagerView {
    *
    * @param term The term that should be in the range.
    * @param start The inclusive start value of the range.
-   * @param end The exclusive end value of the range.
+   * @param end The inclusive end value of the range.
    * @param signed Whether the arithmetic should be signed or unsigned.
    * @return A BooleanFormula representing a constraint about term.
    */

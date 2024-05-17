@@ -123,7 +123,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
       throws CounterexampleAnalysisFailed, InterruptedException, IOException, TimeoutException {
     logger.log(Level.FINE, "Compiling concrete error path.");
     String[] cmdLine = {
-      pathToCompiler.toAbsolutePath().toString(), absFilePath, "-o", absFilePath + ".exe", "-w"
+      pathToCompiler.toAbsolutePath().toString(), absFilePath, "-o", absFilePath + ".exe", "-w",
     };
 
     ProcessExecutor<CounterexampleAnalysisFailed> exec =

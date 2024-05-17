@@ -9,11 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.model.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
-public class JMethodReturnEdge extends FunctionReturnEdge {
+public final class JMethodReturnEdge extends FunctionReturnEdge {
 
   private static final long serialVersionUID = -8946598759920862594L;
 
@@ -34,5 +35,10 @@ public class JMethodReturnEdge extends FunctionReturnEdge {
   @Override
   public JMethodEntryNode getFunctionEntry() {
     return (JMethodEntryNode) super.getFunctionEntry();
+  }
+
+  @Override
+  public JMethodOrConstructorInvocation getFunctionCall() {
+    return getSummaryEdge().getExpression();
   }
 }

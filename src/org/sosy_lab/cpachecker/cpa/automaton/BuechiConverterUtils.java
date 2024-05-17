@@ -47,7 +47,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
-public class BuechiConverterUtils {
+public final class BuechiConverterUtils {
+
+  private BuechiConverterUtils() {}
 
   /**
    * Takes a {@link StoredAutomaton} (an automaton in HOA-format) as argument and transforms that

@@ -36,8 +36,8 @@ public abstract class AUnaryExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return operator.getOperator() + operand.toParenthesizedASTString(pQualified);
+  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+    return operator.getOperator() + operand.toParenthesizedASTString(pQualified, false);
   }
 
   @Override
@@ -56,13 +56,10 @@ public abstract class AUnaryExpression extends AbstractExpression {
       return true;
     }
 
-    if (!(obj instanceof AUnaryExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AUnaryExpression other = (AUnaryExpression) obj;
-
-    return Objects.equals(other.operand, operand) && Objects.equals(other.operator, operator);
+    return obj instanceof AUnaryExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand, operand)
+        && Objects.equals(other.operator, operator);
   }
 
   public interface AUnaryOperator {

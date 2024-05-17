@@ -68,7 +68,9 @@ public interface CParser extends Parser {
   @Override
   default ParseResult parseString(Path filename, String code)
       throws CParserException, InterruptedException {
-    return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
+    CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+    sourceOriginMapping.addFileInformation(filename, code);
+    return parseString(filename, code, sourceOriginMapping, CProgramScope.empty());
   }
 
   /**
@@ -145,7 +147,6 @@ public interface CParser extends Parser {
   enum Dialect {
     C99,
     GNUC,
-    ;
   }
 
   @Options(prefix = "parser")
@@ -169,7 +170,9 @@ public interface CParser extends Parser {
   }
 
   /** Factory that tries to create a parser based on available libraries (e.g. Eclipse CDT). */
-  class Factory {
+  final class Factory {
+
+    private Factory() {}
 
     public static ParserOptions getOptions(Configuration config)
         throws InvalidConfigurationException {

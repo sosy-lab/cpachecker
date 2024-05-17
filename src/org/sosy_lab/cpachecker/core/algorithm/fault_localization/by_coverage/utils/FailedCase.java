@@ -47,6 +47,7 @@ public class FailedCase {
   public boolean existsErrorPath() {
     return !getErrorPaths().isEmpty();
   }
+
   /**
    * Checks whether the path is a failed path or not.
    *

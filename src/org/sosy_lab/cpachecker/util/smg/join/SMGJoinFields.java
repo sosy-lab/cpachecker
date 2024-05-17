@@ -6,11 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains utility classes for program slicing.
- *
- * @see org.sosy_lab.cpachecker.util.dependencegraph
- */
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -24,8 +19,8 @@ import java.util.stream.Collector;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.SMG;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -71,11 +66,11 @@ public class SMGJoinFields {
     FluentIterable<SMGHasValueEdge> addObj2Edges = mergeNonNullValues(newSMG1, newSMG2, obj1, obj2);
 
     for (SMGHasValueEdge edge : addObj1Edges) {
-      newSMG1 = newSMG1.copyAndAddValue(edge.hasValue());
+      newSMG1 = newSMG1.copyAndAddValue(edge.hasValue(), smg1.getNestingLevel(edge.hasValue()));
       newSMG1 = newSMG1.copyAndAddHVEdge(edge, obj1);
     }
     for (SMGHasValueEdge edge : addObj2Edges) {
-      newSMG2 = newSMG2.copyAndAddValue(edge.hasValue());
+      newSMG2 = newSMG2.copyAndAddValue(edge.hasValue(), smg2.getNestingLevel(edge.hasValue()));
       newSMG2 = newSMG2.copyAndAddHVEdge(edge, obj2);
     }
 
@@ -101,21 +96,17 @@ public class SMGJoinFields {
 
     return FluentIterable.from(pSMG1.getEdges(pObject1))
         .filter(
-            edge -> {
-              // filter overlapping edges
-              return !edge.hasValue().isZero()
-                  && !obj2OffsetToEdges
-                      .subMap(edge.getOffset(), edge.getOffset().add(edge.getSizeInBits()))
-                      .isEmpty();
-            })
+            edge ->
+                // filter overlapping edges
+                (!edge.hasValue().isZero()
+                    && !obj2OffsetToEdges
+                        .subMap(edge.getOffset(), edge.getOffset().add(edge.getSizeInBits()))
+                        .isEmpty()))
         .transform(
             // add fresh edges for offset and size tuples, which are defined in o1 and undefined
             // in o2
-            edge ->
-                new SMGHasValueEdge(
-                    SMGValue.of(edge.hasValue().getNestingLevel()),
-                    edge.getOffset(),
-                    edge.getSizeInBits()));
+            // TODO: add the value and the correct nesting level
+            edge -> new SMGHasValueEdge(SMGValue.of(), edge.getOffset(), edge.getSizeInBits()));
   }
 
   /**
@@ -137,12 +128,13 @@ public class SMGJoinFields {
     boolean applyUpdate =
         oldEdgesWithZeroOffsetToSize.entrySet().stream()
             .anyMatch(
-                entry -> {
-                  // if newSize == null the offset was shortened
-                  // if !newSize.equals(entry.getValue()) the length was shortened
-                  return !newEdgesWithZeroOffsetToSize.containsKey(entry.getKey())
-                      || !newEdgesWithZeroOffsetToSize.get(entry.getKey()).equals(entry.getValue());
-                });
+                entry ->
+                    // if newSize == null the offset was shortened
+                    // if !newSize.equals(entry.getValue()) the length was shortened
+                    (!newEdgesWithZeroOffsetToSize.containsKey(entry.getKey())
+                        || !newEdgesWithZeroOffsetToSize
+                            .get(entry.getKey())
+                            .equals(entry.getValue())));
     if (applyUpdate) {
       status = status.updateWith(pNewStatus);
     }

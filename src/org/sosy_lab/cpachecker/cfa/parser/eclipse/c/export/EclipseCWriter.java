@@ -25,10 +25,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /** Writer based on Eclipse CDT. */
 class EclipseCWriter implements CWriter {
 
-  private final EclipseCdtWrapper eclipseCdt;
+  private final ParserOptions parserOptions;
+  private final ShutdownNotifier shutdownNotifier;
 
   public EclipseCWriter(final ParserOptions pOptions, final ShutdownNotifier pShutdownNotifier) {
-    eclipseCdt = new EclipseCdtWrapper(pOptions, pShutdownNotifier);
+    parserOptions = pOptions;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -41,6 +43,9 @@ class EclipseCWriter implements CWriter {
         pCfa.getFileNames().size() == 1,
         "CFA can only be exported for a single input program, at the moment.");
 
+    EclipseCdtWrapper eclipseCdt =
+        new EclipseCdtWrapper(parserOptions, pCfa.getMachineModel(), shutdownNotifier);
+
     try {
       final IASTTranslationUnit astUnit =
           eclipseCdt.getASTTranslationUnit(EclipseCdtWrapper.wrapFile(pCfa.getFileNames().get(0)));
@@ -51,7 +56,7 @@ class EclipseCWriter implements CWriter {
 
       return astUnit.getRawSignature();
 
-    } catch (final CoreException pE) {
+    } catch (final CoreException e) {
       throw new CPAException("Failed to export CFA to C program because AST parsing failed.");
     }
   }

@@ -46,6 +46,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -69,6 +70,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
+import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -115,6 +118,18 @@ public class ARGStatistics implements Statistics {
       name = "compressWitness",
       description = "compress the produced correctness-witness automata using GZIP compression.")
   private boolean compressWitness = true;
+
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The template from which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-%s.yml");
 
   @Option(
       secure = true,
@@ -187,15 +202,17 @@ public class ARGStatistics implements Statistics {
   private boolean exportAutomatonZipped = true;
 
   protected final ConfigurableProgramAnalysis cpa;
+  protected final CFA cfa;
 
   private final CEXExportOptions counterexampleOptions;
+  private final PixelsWriterOptions argToBitmapExporterOptions;
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
+  private final ARGToYAMLWitnessExport argToWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
-  private final ARGToPixelsWriter argToBitmapExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
   protected final LogManager logger;
 
@@ -204,16 +221,17 @@ public class ARGStatistics implements Statistics {
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
-      CFA cfa)
+      CFA pCFA)
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
     counterexampleOptions = new CEXExportOptions(config);
-    argToBitmapExporter = new ARGToPixelsWriter(config);
+    argToBitmapExporterOptions = new PixelsWriterOptions(config);
     logger = pLogger;
     cpa = pCpa;
+    cfa = pCFA;
     assumptionToEdgeAllocator =
-        AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
+        AssumptionToEdgeAllocator.create(config, logger, pCFA.getMachineModel());
 
     if (argFile == null
         && simplifiedArgFile == null
@@ -221,30 +239,38 @@ public class ARGStatistics implements Statistics {
         && proofWitness == null
         && proofWitnessDot == null
         && pixelGraphicFile == null
-        && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))) {
+        && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
+        && yamlWitnessOutputFileTemplate == null) {
       exportARG = false;
     }
 
-    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
+    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
+
+    if (yamlWitnessOutputFileTemplate != null) {
+      argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
+    } else {
+      argToWitnessWriter = null;
+    }
 
     if (counterexampleOptions.disabledCompletely()) {
       cexExporter = null;
     } else {
       ExtendedWitnessExporter extendedWitnessExporter =
-          new ExtendedWitnessExporter(config, logger, pSpecification, cfa);
+          new ExtendedWitnessExporter(config, logger, pSpecification, pCFA);
       cexExporter =
           new CEXExporter(
               config,
               counterexampleOptions,
               logger,
-              cfa,
+              pSpecification,
+              pCFA,
               cpa,
               argWitnessExporter,
               extendedWitnessExporter);
     }
 
-    argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());
-    argToAutomatonSplitter = new ARGToAutomatonConverter(config, cfa.getMachineModel(), logger);
+    argToCExporter = new ARGToCTranslator(logger, config, pCFA.getMachineModel());
+    argToAutomatonSplitter = new ARGToAutomatonConverter(config, pCFA.getMachineModel(), logger);
 
     if (argCFile == null) {
       translateARG = false;
@@ -395,6 +421,24 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
+        if (cfa.getMetadata().getInputLanguage() == Language.C) {
+          if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
+            try {
+              argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
+            } catch (IOException e) {
+              logger.logUserException(
+                  Level.WARNING,
+                  e,
+                  "Could not export the YAML correctness witness directly from the ARG. "
+                      + "Therefore no YAML witness will be exported.");
+            }
+          }
+        } else {
+          logger.log(
+              Level.WARNING,
+              "Cannot export correctness witness in YAML format for languages other than C.");
+        }
+
         if (proofWitness != null) {
           Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
           WitnessToOutputFormatsUtils.writeWitness(
@@ -431,6 +475,9 @@ public class ARGStatistics implements Statistics {
     }
 
     if (pixelGraphicFile != null) {
+      // Initialize lazily so that we do not have a hard dependency on java.awt.
+      // This is used in the pixels writer SVG output.
+      ARGToPixelsWriter argToBitmapExporter = new ARGToPixelsWriter(argToBitmapExporterOptions);
       try {
         Path adjustedBitmapFileName = adjustPathNameForPartitioning(rootState, pixelGraphicFile);
         argToBitmapExporter.write(rootState, adjustedBitmapFileName);
@@ -478,8 +525,8 @@ public class ARGStatistics implements Statistics {
         }
         final int baseId = -1; // id for the exported 'complete' automaton
         writeAutomaton(baseId, argToAutomatonSplitter.getAutomaton(rootState, true));
-      } catch (IOException io) {
-        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to automata to file");
       }
       try {
         int counterId = 0; // id for each exported 'partial' automata, distinct from 'baseId'
@@ -488,8 +535,8 @@ public class ARGStatistics implements Statistics {
           writeAutomaton(counterId, automaton);
         }
         logger.log(Level.INFO, "Number of exported automata after splitting:", counterId);
-      } catch (IOException io) {
-        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to automata to file");
       }
     }
   }
@@ -539,7 +586,7 @@ public class ARGStatistics implements Statistics {
 
     Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.buildOrThrow();
     final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
-        Maps.filterValues(allCounterexamples, cex -> cex.isPreciseCounterExample());
+        Maps.filterValues(allCounterexamples, CounterexampleInfo::isPreciseCounterExample);
     return preciseCounterexamples.isEmpty() ? allCounterexamples : preciseCounterexamples;
   }
 

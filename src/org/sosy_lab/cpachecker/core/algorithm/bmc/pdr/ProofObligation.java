@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterators;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -224,14 +226,12 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
 
   @Override
   public int compareTo(ProofObligation pOther) {
-    ComparisonChain compChain =
-        ComparisonChain.start()
-            .compare(getFrameIndex(), pOther.frameIndex)
-            .compareFalseFirst(getCause().isPresent(), pOther.getCause().isPresent());
-    if (getCause().isPresent()) {
-      compChain = compChain.compare(getCause().orElseThrow(), pOther.getCause().orElseThrow());
-    }
-    return compChain
+    return ComparisonChain.start()
+        .compare(getFrameIndex(), pOther.frameIndex)
+        .compare(
+            getCause(),
+            pOther.getCause(),
+            Comparators.emptiesFirst(Comparator.<ProofObligation>naturalOrder()))
         .compare(getNSpuriousTransitions(), pOther.getNSpuriousTransitions())
         .compare(getLiftingAbstractionFailureCount(), pOther.getLiftingAbstractionFailureCount())
         .result();
@@ -264,15 +264,13 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof ProofObligation other) {
-      return frameIndex == other.frameIndex
-          && nSpuriousTransitions == other.nSpuriousTransitions
-          && blockedConcreteCti.equals(other.blockedConcreteCti)
-          && blockedAbstractCti.equals(other.blockedAbstractCti)
-          && length == other.length
-          && getViolatedInvariant().equals(other.getViolatedInvariant());
-    }
-    return false;
+    return pOther instanceof ProofObligation other
+        && frameIndex == other.frameIndex
+        && nSpuriousTransitions == other.nSpuriousTransitions
+        && blockedConcreteCti.equals(other.blockedConcreteCti)
+        && blockedAbstractCti.equals(other.blockedAbstractCti)
+        && length == other.length
+        && getViolatedInvariant().equals(other.getViolatedInvariant());
   }
 
   @Override

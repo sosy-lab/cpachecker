@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -187,11 +186,7 @@ public class ACSLTermToCExpressionVisitor
   public CExpression visit(ACSLStringLiteral stringLiteral) {
     CExpression result = cache.get(stringLiteral);
     if (result == null) {
-      result =
-          new CStringLiteralExpression(
-              FileLocation.DUMMY,
-              new CPointerType(false, false, CNumericTypes.UNSIGNED_CHAR),
-              stringLiteral.getLiteral());
+      result = new CStringLiteralExpression(FileLocation.DUMMY, stringLiteral.getLiteral());
       cache.put(stringLiteral, result);
     }
     return result;

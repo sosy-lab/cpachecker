@@ -66,19 +66,13 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
       Region l, Region r, final RegionManager rmgr, final CBinaryExpression binaryExpr) {
 
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
-    switch (binaryOperator) {
-      case BINARY_AND:
-        return rmgr.makeAnd(l, r);
-      case BINARY_OR:
-        return rmgr.makeOr(l, r);
-      case BINARY_XOR:
-      case NOT_EQUALS:
-        return rmgr.makeUnequal(l, r);
-      case EQUALS:
-        return rmgr.makeEqual(l, r);
-      default:
-        throw new AssertionError("unhandled binary operator");
-    }
+    return switch (binaryOperator) {
+      case BINARY_AND -> rmgr.makeAnd(l, r);
+      case BINARY_OR -> rmgr.makeOr(l, r);
+      case BINARY_XOR, NOT_EQUALS -> rmgr.makeUnequal(l, r);
+      case EQUALS -> rmgr.makeEqual(l, r);
+      default -> throw new AssertionError("unhandled binary operator");
+    };
   }
 
   @Override
@@ -98,13 +92,8 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
 
   @Override
   public Region visit(CIdExpression idExp) {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
-      if (enumerator.hasValue()) {
-        return getNum(enumerator.getValue());
-      } else {
-        return null;
-      }
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
+      return getNum(enumerator.getValue());
     }
 
     final Region[] result =

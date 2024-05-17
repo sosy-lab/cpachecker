@@ -25,6 +25,31 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
+          "aborts the analysis for a non-concrete (this includes symbolic values) memory allocation"
+              + " of any kind.")
+  private boolean abortOnNonConcreteMemorySize = true;
+
+  @Option(
+      secure = true,
+      description =
+          "with this option enabled, we try to gather information on memory reads from values that"
+              + " are overlapping but not exactly fitting to the read parameters. Example: int"
+              + " value = 1111; char a = (char)((char[])&value)[1];")
+  private boolean preciseSMGRead = true;
+
+  @Option(
+      secure = true,
+      description =
+          "with this option enabled, memory addresses (pointers) are transformed into a numeric"
+              + " assumption upon casting the pointer to a number. This assumption can be returned"
+              + " to a proper pointer by casting it back. This enables numeric operations beyond"
+              + " pointer arithmetics, but loses precision for comparisons/assumptions, as the"
+              + " numeric assumption is static. May be unsound!")
+  private boolean castMemoryAddressesToNumeric = false;
+
+  @Option(
+      secure = true,
+      description =
           "with this option enabled, a check for unreachable memory occurs whenever a function"
               + " returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -56,6 +81,32 @@ public class SMGOptions {
               + "i.e., free of memory-related side-effects?")
   private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
 
+  @Option(
+      secure = true,
+      name = "overapproximateForSymbolicWrite",
+      description =
+          "If this Option is enabled, all values of a memory region that is written to with a"
+              + " symbolic and non unique offset are deleted and the value itself is"
+              + " overapproximated to unknown in the memory region.")
+  private boolean overapproximateForSymbolicWrite = true;
+
+  @Option(
+      secure = true,
+      name = "overapproximateValuesForSymbolicSize",
+      description =
+          "If this Option is enabled, all values of a memory region that is written to with a"
+              + " symbolic and non-unique offset in symbolically sized memory are deleted and the"
+              + " value itself is overapproximated to unknown in the memory region.")
+  private boolean overapproximateValuesForSymbolicSize = false;
+
+  public boolean isOverapproximateValuesForSymbolicSize() {
+    return overapproximateValuesForSymbolicSize;
+  }
+
+  public boolean isOverapproximateForSymbolicWrite() {
+    return overapproximateForSymbolicWrite;
+  }
+
   public enum UnknownFunctionHandling {
     STRICT,
     ASSUME_SAFE,
@@ -80,7 +131,7 @@ public class SMGOptions {
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
   private ImmutableSet<String> memoryAllocationFunctions =
-      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
       secure = true,
@@ -139,6 +190,37 @@ public class SMGOptions {
       description = "Enable track predicates on SMG state")
   private boolean trackPredicates = false;
 
+  private enum CheckStrategy {
+    AT_ASSUME,
+    AT_TARGET
+  }
+
+  @Option(
+      name = "satCheckStrategy",
+      description = "When to check the satisfiability of constraints")
+  private CheckStrategy satCheckStrategy = CheckStrategy.AT_ASSUME;
+
+  @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
+  private boolean cacheSubsets = false;
+
+  @Option(secure = true, description = "Whether to use superset caching", name = "cacheSupersets")
+  private boolean cacheSupersets = false;
+
+  @Option(
+      secure = true,
+      description = "Whether to perform SAT checks only for the last added constraint",
+      name = "minimalSatCheck")
+  private boolean performMinimalSatCheck = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to perform caching of constraint satisfiability results",
+      name = "cache")
+  private boolean doCaching = true;
+
+  @Option(secure = true, description = "Resolve definite assignments", name = "resolveDefinites")
+  private boolean resolveDefinites = true;
+
   @Option(
       secure = true,
       name = "trackErrorPredicates",
@@ -155,9 +237,9 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "crashOnUnknown",
-      description = "Crash on unknown array dereferences")
-  private boolean crashOnUnknown = false;
+      name = "crashOnUnknownInConstraint",
+      description = "Crash on unknown value when creating constraints of any form.")
+  private boolean crashOnUnknownInConstraint = false;
 
   @Option(
       secure = true,
@@ -215,19 +297,20 @@ public class SMGOptions {
       name = "joinOnBlockEnd",
       description =
           "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
-  private boolean joinOnBlockEnd = true;
+  private boolean joinOnBlockEnd = false;
 
   @Option(
       secure = true,
       description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
   private boolean assignEqualityAssumptions = true;
 
-  // assignSymbolicValues is needed to get the same options as the valueAnalysis as SMGs always save
+  // treatSymbolicValuesAsUnknown is needed to get the same options as the valueAnalysis as SMGs
+  // always save
   // symbolics. We could however simply retranslate every symbolic to an unknown after reads.
   @Option(
       secure = true,
       description = "Treat symbolic values as unknowns and assign new concrete values to them.")
-  private boolean assignSymbolicValues = true;
+  private boolean treatSymbolicValuesAsUnknown = false;
 
   @Option(
       secure = true,
@@ -247,7 +330,28 @@ public class SMGOptions {
       description =
           "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
               + "unknown memory sizes does not abort, but also does not create any memory.")
-  private boolean ignoreUnknownMemoryAllocation = false;
+  private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
+      UnknownMemoryAllocationHandling.STOP_ANALYSIS;
+
+  /*
+   * Ignore: ignore allocation call and overapproximate.
+   * Memory_error: same as ignore but with an added memory error. (Needed in CEGAR, as else we
+   * would never learn that the allocation size and or other variables are important.)
+   * Stop_analysis: stops the analysis, returning unknown.
+   */
+  public enum UnknownMemoryAllocationHandling {
+    IGNORE,
+    MEMORY_ERROR,
+    STOP_ANALYSIS
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, a call to malloc with value zero results in a return value "
+              + "that is equal to zero. If this option is disabled, a non-zero memory section"
+              + " that may not be accessed but freed is returned.")
+  private boolean mallocZeroReturnsZero = false;
 
   public enum SMGExportLevel {
     NEVER,
@@ -260,8 +364,26 @@ public class SMGOptions {
     config.inject(this);
   }
 
+  private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
+    return handleUnknownMemoryAllocation;
+  }
+
   public boolean isIgnoreUnknownMemoryAllocation() {
-    return ignoreUnknownMemoryAllocation;
+    return getIgnoreUnknownMemoryAllocationSetting() == UnknownMemoryAllocationHandling.IGNORE;
+  }
+
+  public boolean isErrorOnUnknownMemoryAllocation() {
+    return getIgnoreUnknownMemoryAllocationSetting()
+        == UnknownMemoryAllocationHandling.MEMORY_ERROR;
+  }
+
+  public boolean isStopAnalysisOnUnknownMemoryAllocation() {
+    return getIgnoreUnknownMemoryAllocationSetting()
+        == UnknownMemoryAllocationHandling.STOP_ANALYSIS;
+  }
+
+  public boolean isMallocZeroReturnsZero() {
+    return mallocZeroReturnsZero;
   }
 
   boolean isOptimizeBooleanVariables() {
@@ -282,6 +404,14 @@ public class SMGOptions {
 
   public boolean isEnableMallocFailure() {
     return enableMallocFailure;
+  }
+
+  public boolean isCastMemoryAddressesToNumeric() {
+    return castMemoryAddressesToNumeric;
+  }
+
+  public boolean isPreciseSMGRead() {
+    return preciseSMGRead;
   }
 
   public UnknownFunctionHandling getHandleUnknownFunctions() {
@@ -322,6 +452,10 @@ public class SMGOptions {
 
   public int getMemoryArrayAllocationFunctionsElemSizeParameter() {
     return memoryArrayAllocationFunctionsElemSizeParameter;
+  }
+
+  public boolean isAbortOnNonConcreteMemorySize() {
+    return abortOnNonConcreteMemorySize;
   }
 
   public ImmutableSet<String> getZeroingMemoryAllocation() {
@@ -388,15 +522,39 @@ public class SMGOptions {
     return joinOnBlockEnd;
   }
 
-  public boolean crashOnUnknown() {
-    return crashOnUnknown;
+  public boolean crashOnUnknownInConstraint() {
+    return crashOnUnknownInConstraint;
   }
 
   boolean isAssignEqualityAssumptions() {
     return assignEqualityAssumptions;
   }
 
-  boolean isAssignSymbolicValues() {
-    return assignSymbolicValues;
+  boolean isTreatSymbolicValuesAsUnknown() {
+    return treatSymbolicValuesAsUnknown;
+  }
+
+  public boolean isSatCheckStrategyAtAssume() {
+    return satCheckStrategy == CheckStrategy.AT_ASSUME;
+  }
+
+  public boolean isDoConstraintCaching() {
+    return doCaching;
+  }
+
+  public boolean isUseConstraintCacheSupersets() {
+    return cacheSupersets;
+  }
+
+  public boolean isUseConstraintCacheSubsets() {
+    return cacheSubsets;
+  }
+
+  public boolean isPerformMinimalConstraintSatCheck() {
+    return performMinimalSatCheck;
+  }
+
+  public boolean isResolveDefinites() {
+    return resolveDefinites;
   }
 }

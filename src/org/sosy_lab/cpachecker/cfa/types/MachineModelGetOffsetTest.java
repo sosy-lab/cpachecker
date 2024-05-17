@@ -59,7 +59,7 @@ public class MachineModelGetOffsetTest {
       {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL32},
       {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL64},
       {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL32},
-      {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL64}
+      {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL64},
     };
   }
 
@@ -77,8 +77,7 @@ public class MachineModelGetOffsetTest {
               new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10), SECOND_BITFIELD_10),
           new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
           new CCompositeTypeMemberDeclaration(
-              new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),
-              LAST_INCOMPLETEARRAY));
+              new CArrayType(false, false, CNumericTypes.LONG_LONG_INT), LAST_INCOMPLETEARRAY));
 
   // struct s { unsigned int a : 12; unsigned int b : 10; int c; long long d[]; };
   private static final CCompositeType STRUCT =

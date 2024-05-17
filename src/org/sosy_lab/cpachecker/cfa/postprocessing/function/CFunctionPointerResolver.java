@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -185,14 +183,9 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       } else {
         varCollector = new CReferencedFunctionsCollector();
       }
-      for (CFANode node : cfa.getAllNodes()) {
-        for (CFAEdge edge : leavingEdges(node)) {
-          varCollector.visitEdge(edge);
-        }
-      }
+      cfa.edges().forEach(varCollector::visitEdge);
       for (Pair<ADeclaration, String> decl : pGlobalVars) {
-        if (decl.getFirst() instanceof CVariableDeclaration) {
-          CVariableDeclaration varDecl = (CVariableDeclaration) decl.getFirst();
+        if (decl.getFirst() instanceof CVariableDeclaration varDecl) {
           varCollector.visitDeclaration(varDecl);
         }
       }
@@ -223,7 +216,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       }
     } else {
       return new TargetFunctionsProvider(
-          cfa.getMachineModel(), logger, pFunctionSets, cfa.getAllFunctionHeads());
+          cfa.getMachineModel(), logger, pFunctionSets, cfa.entryNodes());
     }
   }
 
@@ -236,7 +229,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     stats.totalTimer.start();
     // 1.Step: get all function calls
     final FunctionPointerCallCollector visitor = new FunctionPointerCallCollector();
-    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode functionStartNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, visitor);
     }
 
@@ -390,19 +383,13 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     }
 
     private boolean checkEdge(AStatement stmt) {
-      if (stmt instanceof CFunctionCall && isFunctionPointerCall((CFunctionCall) stmt)) {
-        return true;
-      }
-      return false;
+      return stmt instanceof CFunctionCall call && isFunctionPointerCall(call);
     }
 
     private boolean checkParameterEdge(AStatement stmt) {
-      if (stmt instanceof CFunctionCall
+      return stmt instanceof CFunctionCall
           && !isFunctionPointerCall((CFunctionCall) stmt)
-          && getParameter((CFunctionCall) stmt) != null) {
-        return true;
-      }
-      return false;
+          && getParameter((CFunctionCall) stmt) != null;
     }
   }
 

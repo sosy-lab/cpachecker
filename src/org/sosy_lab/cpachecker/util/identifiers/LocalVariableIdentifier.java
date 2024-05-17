@@ -14,7 +14,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 @SuppressWarnings("EqualsGetClass") // should be refactored
-public class LocalVariableIdentifier extends VariableIdentifier {
+public sealed class LocalVariableIdentifier extends VariableIdentifier
+    permits GeneralLocalVariableIdentifier {
+
   protected @NonNull String function; // function, where this variable was declared
 
   public LocalVariableIdentifier(String nm, CType t, String func, int dereference) {
@@ -68,6 +70,7 @@ public class LocalVariableIdentifier extends VariableIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof LocalVariableIdentifier) {
       int result = super.compareTo(pO);
       if (result != 0) {

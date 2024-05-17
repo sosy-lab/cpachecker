@@ -110,7 +110,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
 
     block = pBlock;
 
-    DCPAHandler builder = new DCPAHandler(pOptions);
+    DCPAHandler builder = new DCPAHandler(pOptions, pCFA);
     CompositeCPA compositeCPA =
         CPAs.retrieveCPAOrFail(cpa, CompositeCPA.class, BlockAnalysis.class);
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {

@@ -36,8 +36,7 @@ public class DefUseTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private DefUseState handleDeclaration(DefUseState defUseState, CDeclarationEdge cfaEdge) {
-    if (cfaEdge.getDeclaration() instanceof CVariableDeclaration) {
-      CVariableDeclaration decl = (CVariableDeclaration) cfaEdge.getDeclaration();
+    if (cfaEdge.getDeclaration() instanceof CVariableDeclaration decl) {
       CInitializer initializer = decl.getInitializer();
       if (initializer != null) {
         String varName = decl.getName();

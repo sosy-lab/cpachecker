@@ -52,10 +52,6 @@ public final class CCharLiteralExpression extends ACharLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof CCharLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CCharLiteralExpression && super.equals(obj);
   }
 }

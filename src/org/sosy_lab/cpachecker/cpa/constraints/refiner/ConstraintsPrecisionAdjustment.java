@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.constraints.refiner;
 
 import com.google.common.base.Function;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -56,13 +58,13 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
 
     stats.adjustmentTime.start();
     try {
-      ConstraintsState result = pStateToAdjust.copyOf();
+      Set<Constraint> adjustedConstraints = new HashSet<>(pStateToAdjust);
       for (Constraint c : pStateToAdjust) {
         constraintsBefore++;
         CFANode currentLocation = AbstractStates.extractLocation(pFullState);
 
         if (!pPrecision.isTracked(c, currentLocation)) {
-          result.remove(c);
+          adjustedConstraints.remove(c);
 
         } else {
           constraintsAfter++;
@@ -71,7 +73,11 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
       stats.constraintNumberBeforeAdj.setNextValue(constraintsBefore);
       stats.constraintNumberAfterAdj.setNextValue(constraintsAfter);
 
-      result = result.equals(pStateToAdjust) ? pStateToAdjust : result;
+      ConstraintsState result =
+          adjustedConstraints.size() == pStateToAdjust.size()
+              ? pStateToAdjust
+              : new ConstraintsState(adjustedConstraints)
+                  .copyWithSatisfyingModel(pStateToAdjust.getModel());
 
       return Optional.of(new PrecisionAdjustmentResult(result, pPrecision, Action.CONTINUE));
     } finally {

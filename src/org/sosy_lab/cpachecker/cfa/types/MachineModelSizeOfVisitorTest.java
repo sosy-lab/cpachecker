@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.types;
 
-import static com.google.common.truth.Truth8.assertThat;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -201,7 +201,7 @@ public class MachineModelSizeOfVisitorTest {
       {STRUCT_8, MODEL64, 8, "Struct_8"},
       {STRUCT_8, MODEL32, 8, "Struct_8"},
       {STRUCT_9, MODEL64, 16, "Struct_9"},
-      {STRUCT_9, MODEL32, 12, "Struct_9"}
+      {STRUCT_9, MODEL32, 12, "Struct_9"},
     };
   }
 

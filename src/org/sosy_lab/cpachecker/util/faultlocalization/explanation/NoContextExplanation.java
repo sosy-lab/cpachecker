@@ -62,27 +62,19 @@ public class NoContextExplanation implements FaultExplanation {
               + "\" with another boolean operator (<, >, <=, !=, ==, >=).";
         }
       case StatementEdge:
-        {
-          return "Try to change the assigned value of \""
-              + Iterables.get(Splitter.on(" ").split(description), 0)
-              + "\" in \""
-              + description
-              + "\" to another value.";
-        }
+        return "Try to change the assigned value of \""
+            + Iterables.get(Splitter.on(" ").split(description), 0)
+            + "\" in \""
+            + description
+            + "\" to another value.";
       case DeclarationEdge:
-        {
-          return "Try to declare the variable in \"" + description + "\" differently.";
-        }
+        return "Try to declare the variable in \"" + description + "\" differently.";
       case ReturnStatementEdge:
-        {
-          return "Try to change the return-value of \"" + description + "\" to another value.";
-        }
+        return "Try to change the return-value of \"" + description + "\" to another value.";
       case FunctionCallEdge:
-        {
-          return "The function call \""
-              + description
-              + "\" may have unwanted side effects or a wrong return value.";
-        }
+        return "The function call \""
+            + description
+            + "\" may have unwanted side effects or a wrong return value.";
       case FunctionReturnEdge:
         {
           String functionName = ((CFunctionReturnEdge) pEdge).getFunctionEntry().getFunctionName();

@@ -89,7 +89,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
             oldElement,
             oldPrecision,
             pElements,
-            Functions.compose((state) -> ((ARGState) state).getWrappedState(), projection),
+            Functions.compose(state -> ((ARGState) state).getWrappedState(), projection),
             fullState);
 
     if (!optionalUnwrappedResult.isPresent()) {

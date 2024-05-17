@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -441,10 +440,7 @@ public class ValueAnalysisTransferRelation
    */
   @Override
   protected ValueAnalysisState handleFunctionReturnEdge(
-      FunctionReturnEdge functionReturnEdge,
-      FunctionSummaryEdge summaryEdge,
-      AFunctionCall exprOnSummary,
-      String callerFunctionName)
+      FunctionReturnEdge functionReturnEdge, AFunctionCall exprOnSummary, String callerFunctionName)
       throws UnrecognizedCodeException {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
@@ -511,7 +507,7 @@ public class ValueAnalysisTransferRelation
           // a* = b(); TODO: for now, nothing is done here, but cloning the current element
 
         } else {
-          throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
+          throw new UnrecognizedCodeException("on function return", functionReturnEdge, op1);
         }
 
         // assign the value if a memory location was successfully computed
@@ -790,22 +786,12 @@ public class ValueAnalysisTransferRelation
       } else if (declarationType instanceof JSimpleType) {
         JBasicType basicType = ((JSimpleType) declarationType).getType();
 
-        switch (basicType) {
-          case BOOLEAN:
-            return BooleanValue.valueOf(defaultBooleanValue);
-          case BYTE:
-          case CHAR:
-          case SHORT:
-          case INT:
-          case LONG:
-          case FLOAT:
-          case DOUBLE:
-            return new NumericValue(defaultNumericValue);
-          case UNSPECIFIED:
-            return UnknownValue.getInstance();
-          default:
-            throw new AssertionError("Impossible type for declaration: " + basicType);
-        }
+        return switch (basicType) {
+          case BOOLEAN -> BooleanValue.valueOf(defaultBooleanValue);
+          case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(defaultNumericValue);
+          case UNSPECIFIED -> UnknownValue.getInstance();
+          default -> throw new AssertionError("Impossible type for declaration: " + basicType);
+        };
       }
     }
 
@@ -1237,11 +1223,9 @@ public class ValueAnalysisTransferRelation
       if (maybeIndex.isPresent() && enclosingArray != null) {
         enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
 
-      }
-      // if the index of unknown array in the enclosing array is also unknown, we assign unknown at
-      // this array's
-      // position in the enclosing array
-      else {
+      } else {
+        // if the index of unknown array in the enclosing array is also unknown, we assign unknown
+        // at this array's position in the enclosing array
         assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
       }
     }
@@ -1470,8 +1454,8 @@ public class ValueAnalysisTransferRelation
                 final BigDecimal integralPartValue =
                     switch (paramType.getType()) {
                       case FLOAT -> BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
-                      case DOUBLE -> BigDecimal.valueOf(
-                          (double) ((long) numericValue.doubleValue()));
+                      case DOUBLE ->
+                          BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
                       default -> throw new AssertionError("Unsupported float type: " + paramType);
                     };
                 CFloatLiteralExpression integralPart =
