@@ -98,28 +98,6 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     stats = pStats;
   }
 
-  private static boolean awaitTermination(
-      ListeningExecutorService exec, long timeout, TimeUnit unit) {
-    long timeoutNanos = unit.toNanos(timeout);
-    long endNanos = System.nanoTime() + timeoutNanos;
-
-    boolean interrupted = Thread.interrupted();
-    try {
-      while (true) {
-        try {
-          return exec.awaitTermination(timeoutNanos, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-          interrupted = false;
-          timeoutNanos = Math.max(0, endNanos - System.nanoTime());
-        }
-      }
-    } finally {
-      if (interrupted) {
-        Thread.currentThread().interrupt();
-      }
-    }
-  }
-
   protected void setAnalyses(ImmutableList<Callable<ParallelAnalysisResult>> pAnalyses) {
     if (analyses != null) {
       throw new RuntimeException("setAnalyses may only be called once!");
@@ -163,7 +141,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
       ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures);
 
   protected void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
-      throws InterruptedException, Error, CPAException {
+      throws InterruptedException, CPAException {
 
     List<CPAException> exceptions = new ArrayList<>();
     for (ListenableFuture<ParallelAnalysisResult> f : Futures.inCompletionOrder(futures)) {
@@ -207,7 +185,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
   protected abstract void handleSingleFutureResult(
       ListenableFuture<ParallelAnalysisResult> singleFuture,
       List<ListenableFuture<ParallelAnalysisResult>> futures)
-      throws InterruptedException, ExecutionException, Error;
+      throws InterruptedException, ExecutionException;
 
   protected Callable<ParallelAnalysisResult> createParallelAnalysis(
       String pAnalysisName,

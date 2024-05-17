@@ -119,8 +119,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     private void printIntermediateStatistics(
         PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-      String text =
-          "Statistics for algorithm " + noOfcurrentAlgorithm + " of " + algorithms.length();
+      String text = "Statistics for algorithm " + noOfcurrentAlgorithm + " of " + algorithms.size();
       out.println(text);
       out.println("=".repeat(text.length()));
 
@@ -141,7 +140,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
       try {
         intermediateStatisticsBuffer.writeTo(out);
-      } catch (IOException pE) {
+      } catch (IOException eIO) {
         // Should not happen, as we use a PrintStream
       }
 

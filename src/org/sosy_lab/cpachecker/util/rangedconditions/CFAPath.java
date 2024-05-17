@@ -46,8 +46,7 @@ public class CFAPath implements Comparable<CFAPath> {
   public static CFAPath fromInts(CFA pCfa, List<Integer> ints) {
     Builder path = new Builder();
     for (Integer i : ints) {
-      path.add(
-          pCfa.getAllNodes().stream().filter(elem -> elem.getNodeNumber() == i).findFirst().get());
+      path.add(pCfa.nodes().stream().filter(elem -> elem.getNodeNumber() == i).findFirst().get());
     }
     return path.build();
   }
@@ -87,7 +86,7 @@ public class CFAPath implements Comparable<CFAPath> {
         return get(i).compareTo(other.get(i));
       }
     }
-    return size() - other.size();
+    return Integer.compare(size(), other.size());
   }
 
   @Override

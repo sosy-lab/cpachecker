@@ -81,7 +81,7 @@ abstract class Heuristic {
       String fileContent;
       try {
         fileContent = Files.readString(pathsFile);
-      } catch (IOException pE) {
+      } catch (IOException eIO) {
         throw new InvalidConfigurationException(
             "Can not read paths file " + pathsFile.getFileName());
       }

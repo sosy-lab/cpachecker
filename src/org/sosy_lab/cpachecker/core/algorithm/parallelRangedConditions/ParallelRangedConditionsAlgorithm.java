@@ -99,14 +99,14 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
         for (CFAPath path : cfaPaths) {
           writer.write(path.toString() + System.lineSeparator());
         }
-      } catch (IOException pE) {
+      } catch (IOException eIO) {
         logger.log(
             Level.WARNING,
             "Could not write generated Paths to file "
                 + pathOutput.toString()
                 + System.lineSeparator()
                 + "Error was: "
-                + pE.toString());
+                + eIO.toString());
       }
     }
 
@@ -157,14 +157,14 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
         Path path = automatonOutput.getPath(i);
         try (FileWriter writer = new FileWriter(path.toFile(), StandardCharsets.UTF_8)) {
           condition.writeDotFile(writer);
-        } catch (IOException pE) {
+        } catch (IOException eIO) {
           logger.log(
               Level.WARNING,
               "Could not write condition automata to file "
                   + pathOutput.toString()
                   + System.lineSeparator()
                   + "Error was: "
-                  + pE.toString());
+                  + eIO.toString());
         }
       }
     }
@@ -224,11 +224,11 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
                   + " reached target. Skipping aggregation of following analyses.");
           return result.getStatus();
         }
-      } catch (InterruptedException | ExecutionException pE) {
+      } catch (InterruptedException | ExecutionException e1) {
         logger.log(
             Level.SEVERE, "At least one parallel execution did not finish. Result is inaccurate.");
         combinedStatus = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
-      } catch (CancellationException pE) {
+      } catch (CancellationException e0) {
         // do nothing, this is normal if we cancel other analyses
       }
     }
