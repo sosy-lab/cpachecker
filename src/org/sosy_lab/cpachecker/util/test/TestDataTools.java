@@ -29,6 +29,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -159,19 +160,24 @@ public class TestDataTools {
   /**
    * Returns and, if necessary, creates a new empty C or Java program in the given temporary folder.
    */
-  public static String getEmptyProgram(TemporaryFolder pTempFolder, boolean isJava)
+  public static String getEmptyProgram(TemporaryFolder pTempFolder, Language pLanguage)
       throws IOException {
     File tempFile;
     String fileContent;
     String program;
-    if (isJava) {
-      tempFile = getTempFile(pTempFolder, "Main.java");
-      fileContent = "public class Main { public static void main(String... args) {} }";
-      program = "Main";
-    } else {
-      tempFile = getTempFile(pTempFolder, "program.i");
-      fileContent = getProgram();
-      program = tempFile.toString();
+    switch (pLanguage) {
+      case C:
+        tempFile = getTempFile(pTempFolder, "program.i");
+        fileContent = getProgram();
+        program = tempFile.toString();
+        break;
+      case JAVA:
+        tempFile = getTempFile(pTempFolder, "Main.java");
+        fileContent = "public class Main { public static void main(String... args) {} }";
+        program = "Main";
+        break;
+      default:
+        throw new AssertionError("Unhandled language: " + pLanguage);
     }
     if (tempFile.createNewFile()) {
       // if the file didn't exist yet, write its content
