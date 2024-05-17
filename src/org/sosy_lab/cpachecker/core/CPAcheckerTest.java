@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.PrintStream;
+import org.junit.AssumptionViolatedException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -22,6 +23,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.llvm_j.binding.LLVMLibrary;
 
 /** Integration tests for CPAchecker. */
 public class CPAcheckerTest {
@@ -104,6 +106,7 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForSafeLlvmProgram() throws Exception {
+    assumeLlvmIsAvailable();
     Configuration config = getConfig(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
     // discard printed statistics; we only care about generation
     PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
@@ -117,6 +120,7 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForUnsafeLlvmProgram() throws Exception {
+    assumeLlvmIsAvailable();
     Configuration config = getConfig(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
     // discard printed statistics; we only care about generation
     PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
@@ -126,6 +130,14 @@ public class CPAcheckerTest {
     result.getCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
+  }
+
+  private void assumeLlvmIsAvailable() {
+    try {
+      LLVMLibrary.instantiate();
+    } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+      throw new AssumptionViolatedException("LLVM library could not be loaded, aborting test", e);
+    }
   }
 
   private Configuration getConfig(
