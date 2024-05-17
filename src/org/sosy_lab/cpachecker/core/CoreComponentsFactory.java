@@ -751,7 +751,7 @@ public class CoreComponentsFactory {
       }
 
       if (exportCounterexamplesAsC) {
-        algorithm = new CounterexampleToC(algorithm);
+        algorithm = new CounterexampleToC(algorithm, config, logger, shutdownNotifier, cfa);
       }
     }
 

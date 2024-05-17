@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.tubes;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -45,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -61,41 +65,34 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class CounterexampleToCodeVisitor
     extends AAstNodeVisitor<Void, UnsupportedOperationException> {
 
   private static final String GLOBAL_SCOPE = "__global__";
-  private static final String UNIQUE_SEPARATOR = "_tube_separator_";
-  private final Deque<String> functionStack;
+  private static final String UNIQUE_SEPARATOR = "_";
+  private final Deque<String> returnVariables;
   private final Map<String, Integer> variableIds;
   private final StringBuilder cCode;
   private boolean inAssignment = false;
-  private CFAEdge currentEdge;
+  private boolean inBinaryExpression = false;
 
   public CounterexampleToCodeVisitor() {
-    functionStack = new ArrayDeque<>();
-    functionStack.push(GLOBAL_SCOPE);
     variableIds = new HashMap<>();
     cCode = new StringBuilder();
-  }
-
-  public void setCurrentEdge(CFAEdge pCurrentEdge) {
-    currentEdge = pCurrentEdge;
+    returnVariables = new ArrayDeque<>();
   }
 
   private String getVariableId(String name, boolean increase) {
-    return name;
-    /*String functionVariableName = functionStack.peek() + UNIQUE_SEPARATOR + name;
-    if (!variableIds.containsKey(functionVariableName)) {
-      variableIds.put(functionVariableName, 0);
+    name = name.replaceAll("::", "__");
+    if (!variableIds.containsKey(name)) {
+      variableIds.put(name, 0);
     }
     int id =
         increase
-            ? variableIds.merge(functionVariableName, 1, Integer::sum)
-            : variableIds.get(functionVariableName);
-    return functionVariableName + UNIQUE_SEPARATOR + id;*/
+            ? variableIds.merge(name, 1, Integer::sum)
+            : variableIds.get(name);
+    return name + UNIQUE_SEPARATOR + id;
   }
 
   private void assign() {
@@ -108,8 +105,31 @@ public class CounterexampleToCodeVisitor
 
   @Override
   protected Void visit(AFunctionCallExpression exp) throws UnsupportedOperationException {
-    String name = exp.getDeclaration().getName();
-    cCode.append(name + "();");
+    List<? extends AParameterDeclaration> originalParameters = exp.getDeclaration().getParameters();
+    List<? extends AExpression> inputParameters = exp.getParameterExpressions();
+    Preconditions.checkArgument(
+        inputParameters.size() == originalParameters.size(),
+        "Argument list has to be equally long");
+    if (originalParameters.isEmpty()
+        && exp.getDeclaration().getName().contains("__VERIFIER_nondet")) {
+      if (!returnVariables.isEmpty()) {
+        String assign = returnVariables.pop();
+        cCode.append(assign);
+        assign();
+      }
+      cCode.append(exp.getDeclaration().getName()).append("();\n");
+      return null;
+    }
+    inAssignment = true;
+    for (int i = 0; i < inputParameters.size(); i++) {
+      AExpression inputParameter = inputParameters.get(i);
+      AParameterDeclaration originalParameter = originalParameters.get(i);
+      originalParameter.accept_(this);
+      assign();
+      inputParameter.accept_(this);
+      endStatement();
+    }
+    inAssignment = false;
     return null;
   }
 
@@ -121,40 +141,25 @@ public class CounterexampleToCodeVisitor
 
   @Override
   protected Void visit(AFunctionCallStatement stmt) throws UnsupportedOperationException {
-    List<? extends AParameterDeclaration> originalParameters =
-        stmt.getFunctionCallExpression().getDeclaration().getParameters();
-    List<? extends AExpression> inputParameters =
-        stmt.getFunctionCallExpression().getParameterExpressions();
-    Preconditions.checkArgument(
-        inputParameters.size() == originalParameters.size(),
-        "Argument list has to be equally long");
-    inAssignment = true;
-    for (int i = 0; i < inputParameters.size(); i++) {
-      AExpression inputParameter = inputParameters.get(i);
-      AParameterDeclaration originalParameter = originalParameters.get(i);
-      originalParameter.accept_(this);
-      assign();
-      inputParameter.accept_(this);
-      endStatement();
-    }
-    inAssignment = false;
     stmt.getFunctionCallExpression().accept_(this);
     return null;
   }
 
   @Override
   protected Void visit(AFunctionCallAssignmentStatement stmt) throws UnsupportedOperationException {
-    inAssignment = true;
-    stmt.getLeftHandSide().accept_(this);
-    assign();
-    stmt.getRightHandSide().accept_(this);
-    endStatement();
-    inAssignment = false;
-    return null;
+    if (stmt.getLeftHandSide() instanceof CIdExpression id) {
+      inAssignment = true;
+      returnVariables.push(getVariableId(id.toQualifiedASTString(), false));
+      stmt.getRightHandSide().accept_(this);
+      inAssignment = false;
+      return null;
+    }
+    throw new AssertionError("Only IdExpressions are supported");
   }
 
   @Override
   protected Void visit(AExpressionStatement stmt) throws UnsupportedOperationException {
+    stmt.getExpression().accept_(this);
     return null;
   }
 
@@ -171,16 +176,23 @@ public class CounterexampleToCodeVisitor
 
   @Override
   protected Void visit(AReturnStatement stmt) throws UnsupportedOperationException {
-    cCode.append("REETTUURRN ");
+    if (stmt.asAssignment().isPresent() && !returnVariables.isEmpty()) {
+      String variable = returnVariables.pop();
+      cCode.append(variable);
+      assign();
+      inAssignment = true;
+      stmt.asAssignment().orElseThrow().getRightHandSide().accept_(this);
+      inAssignment = false;
+      endStatement();
+    }
     return null;
   }
 
   @Override
   protected Void visit(AFunctionDeclaration decl) throws UnsupportedOperationException {
-    functionStack.push(decl.getName());
     if (decl.getName().equals("main")) {
       cCode.append(decl.toASTString().replace(";", " {\n"));
-    } else {
+    } else if (decl.getName().contains("__VERIFIER_nondet")) {
       cCode.append(decl.toASTString()).append("\n");
     }
     return null;
@@ -188,13 +200,13 @@ public class CounterexampleToCodeVisitor
 
   @Override
   protected Void visit(AParameterDeclaration decl) throws UnsupportedOperationException {
-    cCode.append(decl.getType().toASTString(getVariableId(decl.getName(), false)));
+    cCode.append(decl.getType().toASTString(getVariableId(decl.getQualifiedName(), true)));
     return null;
   }
 
   @Override
   protected Void visit(AVariableDeclaration decl) throws UnsupportedOperationException {
-    cCode.append(decl.getType().toASTString(getVariableId(decl.getName(), false)));
+    cCode.append(decl.getType().toASTString(getVariableId(decl.getQualifiedName(), false)));
     if (decl.getInitializer() != null) {
       assign();
       decl.getInitializer().accept_(this);
@@ -210,12 +222,16 @@ public class CounterexampleToCodeVisitor
 
   @Override
   public Void visit(AIdExpression exp) throws UnsupportedOperationException {
-    cCode.append(getVariableId(exp.getName(), false));
+    if (exp.getName().startsWith("__CPAchecker_TMP_") && !inAssignment && !inBinaryExpression) {
+      return null;
+    }
+    cCode.append(getVariableId(exp.getDeclaration().getQualifiedName(), false));
     return null;
   }
 
   @Override
   public Void visit(ABinaryExpression exp) throws UnsupportedOperationException {
+    inBinaryExpression = true;
     boolean isLogicalOperator = false;
     if (exp.getOperator() instanceof BinaryOperator binaryOp) {
       isLogicalOperator = binaryOp.isLogicalOperator();
@@ -232,6 +248,7 @@ public class CounterexampleToCodeVisitor
       exp.getOperand2().accept_(this);
       endStatement();
     }
+    inBinaryExpression = false;
     return null;
   }
 
@@ -266,6 +283,8 @@ public class CounterexampleToCodeVisitor
 
   @Override
   public Void visit(AUnaryExpression exp) throws UnsupportedOperationException {
+    cCode.append(exp.getOperator().getOperator());
+    exp.getOperand().accept_(this);
     return null;
   }
 
@@ -408,6 +427,9 @@ public class CounterexampleToCodeVisitor
   }
 
   public String finish() {
-    return cCode.append("\n}\n").toString();
+    String result = cCode.append("}").toString();
+    return FluentIterable.from(Splitter.on("\n").splitToList(result))
+        .filter(s -> !s.equals(";"))
+        .join(Joiner.on("\n"));
   }
 }
