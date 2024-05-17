@@ -11,10 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.FileHandler;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -69,6 +73,8 @@ public class BlockSummaryWorkerBuilder {
   @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addAnalysisWorker(
       BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
+    String workerId = nextId(pNode.getId());
+    final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.add(
         connection ->
             new BlockSummaryAnalysisWorker(
@@ -78,24 +84,44 @@ public class BlockSummaryWorkerBuilder {
                 pNode,
                 cfa,
                 specification,
-                ShutdownManager.create()));
+                ShutdownManager.create(),
+                logger));
     return this;
+  }
+
+  private LogManager getLogger(BlockSummaryAnalysisOptions pOptions, String workerId) {
+    try {
+      Path logDirectory = pOptions.getLogDirectory();
+      if (logDirectory != null) {
+        logDirectory.toFile().mkdirs();
+        return BasicLogManager.createWithHandler(
+            new FileHandler(pOptions.getLogDirectory().toString() + "/" + workerId + ".log"));
+      }
+    } catch (IOException e) {
+      // fall-through to return null-log manager
+    }
+    return LogManager.createNullLogManager();
   }
 
   @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addVisualizationWorker(
       BlockGraph pBlockTree, BlockSummaryAnalysisOptions pOptions) {
+    String workerId = "visualization-worker";
+    final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.add(
-        connection -> new BlockSummaryVisualizationWorker(pBlockTree, connection, pOptions));
+        connection ->
+            new BlockSummaryVisualizationWorker(
+                workerId, pBlockTree, connection, pOptions, logger));
     return this;
   }
 
   @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addRootWorker(
       BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
+    String workerId = "root-worker-" + nextId(pNode.getId());
+    final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.add(
-        connection ->
-            new BlockSummaryRootWorker(nextId(pNode.getId()), connection, pOptions, pNode));
+        connection -> new BlockSummaryRootWorker(workerId, connection, pNode, logger));
     return this;
   }
 
@@ -105,17 +131,20 @@ public class BlockSummaryWorkerBuilder {
       BlockSummaryAnalysisOptions pOptions,
       ShutdownManager pShutdownManager,
       int pMaxThreads) {
+    String workerId = nextId(pNode.getId());
+    final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.add(
         connection ->
             new BlockSummaryHubAnalysisWorker(
-                nextId(pNode.getId()),
+                workerId,
                 connection,
                 cfa,
                 specification,
                 pShutdownManager,
                 pMaxThreads,
                 pNode,
-                pOptions));
+                pOptions,
+                logger));
     return this;
   }
 

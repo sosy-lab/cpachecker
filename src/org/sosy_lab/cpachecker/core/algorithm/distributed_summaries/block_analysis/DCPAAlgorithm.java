@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -82,6 +83,8 @@ public class DCPAAlgorithm {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final Set<Set<String>> seenPrefixes;
   private final Map<Set<String>, BlockSummaryErrorConditionMessage> errors;
+  private final LogManager logger;
+
   // forward analysis variables
   private AlgorithmStatus status;
   private boolean alreadyReportedInfeasibility;
@@ -106,6 +109,7 @@ public class DCPAAlgorithm {
     algorithm = parts.algorithm();
     cpa = parts.cpa();
     block = pBlock;
+    logger = pLogger;
     dcpa =
         DCPAFactory.distribute(
             cpa, pBlock, pCFA, pConfiguration, pLogger, pShutdownManager.getNotifier());
@@ -332,6 +336,7 @@ public class DCPAAlgorithm {
    */
   public Collection<BlockSummaryMessage> runAnalysis(BlockSummaryPostConditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException {
+    logger.log(Level.INFO, "Running forward analysis with new precondition");
     // check if message is meant for this block
     AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
     BlockSummaryMessageProcessing processing =
@@ -423,6 +428,7 @@ public class DCPAAlgorithm {
   public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
       BlockSummaryErrorConditionMessage pErrorCondition, boolean put)
       throws CPAException, InterruptedException, SolverException {
+    logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     AbstractState errorCondition = dcpa.getDeserializeOperator().deserialize(pErrorCondition);
     BlockSummaryMessageProcessing processing =

@@ -28,6 +28,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -37,6 +38,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -350,9 +352,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           thread.setDaemon(true);
           thread.start();
         }
+        String observerId = "observer";
+        LogManager observerLogger = getLogger(options, observerId);
         BlockSummaryObserverWorker observer =
             new BlockSummaryObserverWorker(
-                "observer", mainThreadConnection, options, blocks.size());
+                observerId, mainThreadConnection, blocks.size(), observerLogger);
         // blocks the thread until result message is received
         StatusAndResult resultPair = observer.observe();
         Result result = resultPair.result();
@@ -376,6 +380,17 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       throw new CPAException("Component Analysis run into an error.", e);
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
+    }
+  }
+
+  private LogManager getLogger(BlockSummaryAnalysisOptions pOptions, String workerId) {
+    try {
+      return pOptions.getLogDirectory() != null
+          ? BasicLogManager.createWithHandler(
+              new FileHandler(pOptions.getLogDirectory().toString() + "/" + workerId + ".log"))
+          : LogManager.createNullLogManager();
+    } catch (IOException e) {
+      return LogManager.createNullLogManager();
     }
   }
 

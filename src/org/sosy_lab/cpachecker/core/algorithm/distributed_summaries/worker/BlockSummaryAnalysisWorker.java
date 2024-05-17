@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -37,6 +38,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   private final BlockNode block;
 
   private final DCPAAlgorithm dcpaAlgorithm;
+  private final LogManager logger;
   private boolean shutdown;
 
   private final BlockSummaryConnection connection;
@@ -67,18 +69,20 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      LogManager pLogger)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-    super("analysis-worker-" + pId, pOptions);
+    super("analysis-worker-" + pId, pLogger);
     block = pBlock;
     connection = pConnection;
 
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
 
+    logger = pLogger;
     dcpaAlgorithm =
         new DCPAAlgorithm(
-            getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
+            logger, pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
   }
 
   public Collection<BlockSummaryMessage> runInitialAnalysis()
@@ -137,7 +141,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       broadcast(dcpaAlgorithm.runInitialAnalysis());
       super.run();
     } catch (Exception | Error e) {
-      getLogger().logException(Level.SEVERE, e, "Worker stopped working due to an error...");
+      logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");
       broadcastOrLogException(
           ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e)));
       shutdown = true;

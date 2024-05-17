@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -35,21 +33,11 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
    *
    * @param pId the id of the worker
    */
-  protected BlockSummaryWorker(String pId, BlockSummaryAnalysisOptions pOptions) {
+  protected BlockSummaryWorker(String pId, LogManager pLogger) {
     id = pId;
     receivedMessages = new StatCounter(pId + " received messages");
     sentMessages = new StatCounter(pId + " sent messages");
-    LogManager logManager;
-    try {
-      logManager =
-          pOptions.getLogDirectory() != null
-              ? BasicLogManager.createWithHandler(
-                  new FileHandler(pOptions.getLogDirectory().toString() + "/" + id + ".log"))
-              : LogManager.createNullLogManager();
-    } catch (IOException e) {
-      logManager = LogManager.createNullLogManager();
-    }
-    logger = logManager;
+    logger = pLogger;
   }
 
   @Override
@@ -93,10 +81,6 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
   @Override
   public final String getId() {
     return id;
-  }
-
-  public LogManager getLogger() {
-    return logger;
   }
 
   int getReceivedMessages() {

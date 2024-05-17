@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -25,24 +26,29 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
 
   private final BlockSummaryMessageLogger messageLogger;
   private final BlockSummaryConnection connection;
+  private final LogManager logger;
   private boolean shutdown = false;
 
   BlockSummaryVisualizationWorker(
-      BlockGraph pTree, BlockSummaryConnection pConnection, BlockSummaryAnalysisOptions pOptions)
+      String id,
+      BlockGraph pTree,
+      BlockSummaryConnection pConnection,
+      BlockSummaryAnalysisOptions pOptions,
+      LogManager pLogger)
       throws InvalidConfigurationException {
-    super("visualization-worker", pOptions);
+    super(id, pLogger);
+    logger = pLogger;
     connection = pConnection;
     messageLogger = new BlockSummaryMessageLogger(pTree, pOptions.getParentConfig());
     try {
       messageLogger.logBlockGraph();
     } catch (IOException e) {
-      getLogger()
-          .logException(
-              Level.WARNING,
-              e,
-              "VisualizationWorker failed to log the BlockTree. "
-                  + "The visualization might contain old data or will not work. "
-                  + "However, the analysis continues normally.");
+      logger.logException(
+          Level.WARNING,
+          e,
+          "VisualizationWorker failed to log the BlockTree. "
+              + "The visualization might contain old data or will not work. "
+              + "However, the analysis continues normally.");
     }
   }
 

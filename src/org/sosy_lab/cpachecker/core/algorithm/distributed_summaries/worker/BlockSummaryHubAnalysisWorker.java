@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
@@ -39,6 +40,7 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
   private final CFA cfa;
   private final Specification specification;
   private final ShutdownManager manager;
+  private final LogManager logger;
   private final ConcurrentHashMap<String, BlockSummaryErrorConditionMessage> errorConditions;
   private final ConcurrentHashMap<String, BlockSummaryPostConditionMessage> preConditions;
   private final Set<Thread> threads;
@@ -60,8 +62,9 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
       ShutdownManager pShutdownManager,
       int pMaxThreads,
       BlockNode pBlockNode,
-      BlockSummaryAnalysisOptions pOptions) {
-    super(pId, pOptions);
+      BlockSummaryAnalysisOptions pOptions,
+      LogManager pLogger) {
+    super(pId, pLogger);
     connection = pConnection;
     inactiveWorkers = new LinkedBlockingDeque<>();
     activeWorkers = Sets.newConcurrentHashSet();
@@ -71,6 +74,7 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
     cfa = pCFA;
     specification = pSpecification;
     manager = pShutdownManager;
+    logger = pLogger;
     errorConditions = new ConcurrentHashMap<>();
     preConditions = new ConcurrentHashMap<>();
     threads = Sets.newConcurrentHashSet();
@@ -133,7 +137,7 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
     }
     BlockSummaryAnalysisWorker analysisWorker =
         new BlockSummaryAnalysisWorker(
-            getId() + "-" + counter++, options, null, block, cfa, specification, manager);
+            getId() + "-" + counter++, options, null, block, cfa, specification, manager, logger);
     inactiveWorkers.put(analysisWorker);
     return getWorker();
   }

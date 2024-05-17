@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
@@ -24,11 +25,8 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private boolean shutdown;
 
   BlockSummaryRootWorker(
-      String pId,
-      BlockSummaryConnection pConnection,
-      BlockSummaryAnalysisOptions pOptions,
-      BlockNode pNode) {
-    super("root-worker-" + pId, pOptions);
+      String pId, BlockSummaryConnection pConnection, BlockNode pNode, LogManager pLogger) {
+    super(pId, pLogger);
     checkArgument(
         pNode.isRoot() && pNode.isEmpty() && pNode.getLast().equals(pNode.getFirst()),
         "Root node must be empty and cannot have predecessors: " + "%s",
