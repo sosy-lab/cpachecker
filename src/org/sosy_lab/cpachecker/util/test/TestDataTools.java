@@ -176,6 +176,11 @@ public class TestDataTools {
         fileContent = "public class Main { public static void main(String... args) {} }";
         program = "Main";
         break;
+      case LLVM:
+        tempFile = getTempFile(pTempFolder, "program.ll");
+        fileContent = "define i32 @main() { entry:  ret i32 0}";
+        program = tempFile.toString();
+        break;
       default:
         throw new AssertionError("Unhandled language: " + pLanguage);
     }
