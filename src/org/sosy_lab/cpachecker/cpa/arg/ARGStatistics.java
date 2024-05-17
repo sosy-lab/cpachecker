@@ -46,6 +46,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -201,6 +202,7 @@ public class ARGStatistics implements Statistics {
   private boolean exportAutomatonZipped = true;
 
   protected final ConfigurableProgramAnalysis cpa;
+  protected final CFA cfa;
 
   private final CEXExportOptions counterexampleOptions;
   private final PixelsWriterOptions argToBitmapExporterOptions;
@@ -219,7 +221,7 @@ public class ARGStatistics implements Statistics {
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
-      CFA cfa)
+      CFA pCFA)
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
@@ -227,8 +229,9 @@ public class ARGStatistics implements Statistics {
     argToBitmapExporterOptions = new PixelsWriterOptions(config);
     logger = pLogger;
     cpa = pCpa;
+    cfa = pCFA;
     assumptionToEdgeAllocator =
-        AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
+        AssumptionToEdgeAllocator.create(config, logger, pCFA.getMachineModel());
 
     if (argFile == null
         && simplifiedArgFile == null
@@ -241,10 +244,10 @@ public class ARGStatistics implements Statistics {
       exportARG = false;
     }
 
-    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
+    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
     if (yamlWitnessOutputFileTemplate != null) {
-      argToWitnessWriter = new ARGToYAMLWitnessExport(config, cfa, pSpecification, pLogger);
+      argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
     } else {
       argToWitnessWriter = null;
     }
@@ -253,21 +256,21 @@ public class ARGStatistics implements Statistics {
       cexExporter = null;
     } else {
       ExtendedWitnessExporter extendedWitnessExporter =
-          new ExtendedWitnessExporter(config, logger, pSpecification, cfa);
+          new ExtendedWitnessExporter(config, logger, pSpecification, pCFA);
       cexExporter =
           new CEXExporter(
               config,
               counterexampleOptions,
               logger,
               pSpecification,
-              cfa,
+              pCFA,
               cpa,
               argWitnessExporter,
               extendedWitnessExporter);
     }
 
-    argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());
-    argToAutomatonSplitter = new ARGToAutomatonConverter(config, cfa.getMachineModel(), logger);
+    argToCExporter = new ARGToCTranslator(logger, config, pCFA.getMachineModel());
+    argToAutomatonSplitter = new ARGToAutomatonConverter(config, pCFA.getMachineModel(), logger);
 
     if (argCFile == null) {
       translateARG = false;
@@ -418,16 +421,22 @@ public class ARGStatistics implements Statistics {
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
 
-        if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
-          try {
-            argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
-          } catch (IOException e) {
-            logger.logUserException(
-                Level.WARNING,
-                e,
-                "Could not export the YAML correctness witness directly from the ARG. "
-                    + "Therefore no YAML witness will be exported.");
+        if (cfa.getMetadata().getInputLanguage() == Language.C) {
+          if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
+            try {
+              argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
+            } catch (IOException e) {
+              logger.logUserException(
+                  Level.WARNING,
+                  e,
+                  "Could not export the YAML correctness witness directly from the ARG. "
+                      + "Therefore no YAML witness will be exported.");
+            }
           }
+        } else {
+          logger.log(
+              Level.WARNING,
+              "Cannot export correctness witness in YAML format for languages other than C.");
         }
 
         if (proofWitness != null) {

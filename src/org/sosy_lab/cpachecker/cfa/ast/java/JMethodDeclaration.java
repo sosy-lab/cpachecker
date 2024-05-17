@@ -18,7 +18,6 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -52,22 +51,6 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
   private final VisibilityModifier visibility;
   private final JClassOrInterfaceType declaringClass;
   private final String simpleName;
-
-  private static final JMethodDeclaration UNRESOLVED_METHOD =
-      new JMethodDeclaration(
-          FileLocation.DUMMY,
-          JMethodType.createUnresolvableType(),
-          "__Unresolved__",
-          "__Unresolved__",
-          new ArrayList<>(),
-          VisibilityModifier.NONE,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          JClassType.createUnresolvableType());
 
   public JMethodDeclaration(
       FileLocation pFileLocation,
@@ -222,10 +205,6 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
         && other.isStrictfp == isStrictfp
         && other.isSynchronized == isSynchronized
         && Objects.equals(other.visibility, visibility);
-  }
-
-  public static JMethodDeclaration createUnresolvedMethodDeclaration() {
-    return UNRESOLVED_METHOD;
   }
 
   public static JMethodDeclaration createExternMethodDeclaration(

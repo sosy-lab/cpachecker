@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -24,7 +26,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -869,9 +870,7 @@ public class SMGTransferRelation
             // Infeasible
             return null;
           }
-          return maybeFeasiblePaths.stream()
-              .map(vAS -> vAS.getState())
-              .collect(ImmutableList.toImmutableList());
+          return transformedImmutableListCopy(maybeFeasiblePaths, vAS -> vAS.getState());
         } catch (SMGSolverException e) {
           if (e.isSolverException()) {
             throw e.getSolverException();
@@ -1005,8 +1004,7 @@ public class SMGTransferRelation
       uselessValuesAndStates =
           builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
     }
-    return Collections3.transformedImmutableListCopy(
-        uselessValuesAndStates, ValueAndSMGState::getState);
+    return transformedImmutableListCopy(uselessValuesAndStates, ValueAndSMGState::getState);
   }
 
   @Override

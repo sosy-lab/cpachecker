@@ -36,16 +36,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JConstructorDeclaration extends JMethodDeclaration {
 
   private static final long serialVersionUID = -581061338706783666L;
-  private static final JConstructorDeclaration UNRESOLVED_CONSTRUCTOR =
-      new JConstructorDeclaration(
-          FileLocation.DUMMY,
-          JConstructorType.createUnresolvableConstructorType(),
-          "__UNRESOLVABLE__",
-          "__UNRESOLVABLE__",
-          new ArrayList<>(),
-          VisibilityModifier.NONE,
-          false,
-          JClassType.createUnresolvableType());
 
   public JConstructorDeclaration(
       FileLocation pFileLocation,
@@ -91,10 +81,6 @@ public final class JConstructorDeclaration extends JMethodDeclaration {
     }
 
     return obj instanceof JConstructorDeclaration && super.equals(obj);
-  }
-
-  public static JConstructorDeclaration createUnresolvedConstructorDeclaration() {
-    return UNRESOLVED_CONSTRUCTOR;
   }
 
   public static JConstructorDeclaration createExternConstructorDeclaration(
