@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 import org.junit.AssumptionViolatedException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,7 +53,9 @@ public class CPAcheckerTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   // discard printed statistics; we only care about generation
-  private final PrintStream statisticsStream = new PrintStream(ByteStreams.nullOutputStream());
+  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+  private final PrintStream statisticsStream =
+      new PrintStream(ByteStreams.nullOutputStream(), true, Charset.defaultCharset());
 
   @Test
   public void testRunForSafeCProgram() throws Exception {
