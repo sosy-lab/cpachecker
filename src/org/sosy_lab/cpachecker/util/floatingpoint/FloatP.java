@@ -217,7 +217,7 @@ class FloatP {
         "Significand has wrong length for the specified format");
     // Subnormal number, Inf and Nan
     Preconditions.checkArgument(
-        pExponent > pFormat.minExp() - 1 && pExponent < pFormat.maxExp() + 1
+        (pExponent > pFormat.minExp() - 1 && pExponent < pFormat.maxExp() + 1)
             || pSignificand.bitLength() < pFormat.sigBits + 1,
         "Significand has wrong length for the specified format");
     format = pFormat;
