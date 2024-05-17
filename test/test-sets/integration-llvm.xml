@@ -13,6 +13,7 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
 
+  <option name="-noout"/>
   <option name="-heap">2000M</option>
 
   <rundefinition>
@@ -20,35 +21,14 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks name="NativeLLVM">
-    <option name="-noout"/>
     <include>../programs/llvm/*-llvm.yml</include>
-    <!-- Run below in tasks name="OutputGeneration" -->
-    <exclude>../programs/llvm/functionCall-llvm.yml</exclude>
-    <exclude>../programs/llvm/functionCall2-llvm.yml</exclude>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Preprocessing">
-    <option name="-noout"/>
-    <option name="-clang" />
     <includesfile>../programs/simple/simple.set</includesfile>
     <include>../programs/llvm/*-c.yml</include>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <option name="-clang" />
   </tasks>
-  <!--
-    Test that output generation works as expected for LLVM.
-    We write this as a buildbot integration test instead
-    of a unit test because this only runs out-of-the-box on systems
-    that support our bundled libLLVM.so . We don't want Windows- or macOS developers
-    that work on other CPAchecker components to have failing unit tests because of
-    our LLVM frontend.
-  -->
-  <tasks name="OutputGeneration">
-    <!-- Omit -noout so that all default output is generated. -->
-    <!-- <option name="-noout"/> -->
-    <!-- Test for verdict TRUE -->
-    <include>../programs/llvm/functionCall-llvm.yml</include>
-    <!-- Test for verdict FALSE -->
-    <include>../programs/llvm/functionCall2-llvm.yml</include>
-    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-  </tasks>
+</benchmark>
 </benchmark>
