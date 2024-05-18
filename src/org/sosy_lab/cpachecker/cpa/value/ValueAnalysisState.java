@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -832,6 +834,13 @@ public final class ValueAnalysisState
     List<ExpressionTree<Object>> result = new ArrayList<>();
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      // Check if the variable to be exported is actually in scope
+      if (!FluentIterable.from(pLocation.getVariablesInScope())
+          .transform(CSimpleDeclaration::getOrigName)
+          .contains(entry.getKey().getIdentifier())) {
+        continue;
+      }
+
       Value valueOfEntry = entry.getValue().getValue();
       if (valueOfEntry instanceof EnumConstantValue) {
         continue;
