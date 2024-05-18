@@ -28,13 +28,11 @@ import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetElementEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.EnsuresRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntryV3;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.RequiresRecord;
 
 class ARGToWitnessV3 extends ARGToYAMLWitness {
   protected ARGToWitnessV3(
@@ -113,8 +111,8 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
       }
       functionContractRecords.add(
           new FunctionContractEntry(
-              new EnsuresRecord(ImmutableList.of(ensuresClause)),
-              new RequiresRecord(ImmutableList.of(requiresClause)),
+              ensuresClause,
+              requiresClause,
               YAMLWitnessExpressionType.C,
               LocationRecord.createLocationRecordAtStart(location, node.getFunctionName())));
     }

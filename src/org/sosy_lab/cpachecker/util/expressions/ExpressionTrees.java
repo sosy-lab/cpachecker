@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -516,7 +517,14 @@ public final class ExpressionTrees {
             inv,
             e -> {
               for (String name : fMgr.extractVariableNames(e)) {
+                String varName =
+                    name.contains(FUNCTION_DELIMITER) ? name.split(FUNCTION_DELIMITER)[1] : name;
                 if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
+                  return false;
+                } else if (location.getVariablesInScope().stream()
+                    .map(CSimpleDeclaration::toString)
+                    .noneMatch(varName::equals)) {
+                  // filter out variables which are not in scope
                   return false;
                 }
               }
