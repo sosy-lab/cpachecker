@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.util.expressions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -518,7 +520,9 @@ public final class ExpressionTrees {
             e -> {
               for (String name : fMgr.extractVariableNames(e)) {
                 String varName =
-                    name.contains(FUNCTION_DELIMITER) ? name.split(FUNCTION_DELIMITER)[1] : name;
+                    name.contains(FUNCTION_DELIMITER)
+                        ? Iterables.get(Splitter.onPattern(FUNCTION_DELIMITER).split(name), 1)
+                        : name;
                 if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
                   return false;
                 } else if (location.getVariablesInScope().stream()
