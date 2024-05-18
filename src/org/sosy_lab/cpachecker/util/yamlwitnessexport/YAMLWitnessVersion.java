@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 public enum YAMLWitnessVersion {
   V2,
-  V3;
+  V2d1;
 
   @Override
   public String toString() {
     return switch (this) {
       case V2 -> "2.0";
-      case V3 -> "3.0";
+      case V2d1 -> "2.1";
     };
   }
 }
