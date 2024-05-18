@@ -16,7 +16,7 @@ import java.util.List;
 public class RemovingStructuresVisitor<LeafType, E extends Throwable>
     implements ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, E> {
 
-  private Function<LeafType, Boolean> removeLeaf;
+  private final Function<LeafType, Boolean> removeLeaf;
 
   public RemovingStructuresVisitor(Function<LeafType, Boolean> pRemoveLeaf) {
     removeLeaf = pRemoveLeaf;

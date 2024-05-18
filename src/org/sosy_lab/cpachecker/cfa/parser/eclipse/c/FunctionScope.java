@@ -164,6 +164,11 @@ class FunctionScope extends AbstractScope {
         vars -> Collections.unmodifiableCollection(vars.values()));
   }
 
+  /** returns all variables in the current scopes. */
+  public Iterable<CSimpleDeclaration> getVariablesInScope() {
+    return Iterables.concat(getVariablesOfMostLocalScopes());
+  }
+
   @Override
   public boolean variableNameInUse(String name) {
     checkNotNull(name);

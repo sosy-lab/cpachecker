@@ -51,6 +51,8 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   // set of variables out of scope after this node.
   // lazy initialization: first null, then final set
   private Set<CSimpleDeclaration> outOfScopeVariables = null;
+  private final ImmutableSet.Builder<CSimpleDeclaration> inScopeVariables =
+      new ImmutableSet.Builder<>();
 
   // list of summary edges
   private FunctionSummaryEdge leavingSummaryEdge = null;
@@ -328,5 +330,13 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
       return ImmutableSet.of();
     }
     return Collections.unmodifiableSet(outOfScopeVariables);
+  }
+
+  public void addVariableToScope(CSimpleDeclaration pVariable) {
+    inScopeVariables.add(pVariable);
+  }
+
+  public Set<CSimpleDeclaration> getVariablesInScope() {
+    return inScopeVariables.build();
   }
 }
