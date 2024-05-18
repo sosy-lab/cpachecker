@@ -12,14 +12,15 @@ import com.google.common.base.Function;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
-public class RemovingStructuresVisitor<LeafType, E extends Throwable>
+public class LeafModificationVisitor<LeafType, E extends Throwable>
     implements ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, E> {
 
-  private final Function<LeafType, Boolean> removeLeaf;
+  private final Function<LeafType, Optional<LeafType>> leafReplacement;
 
-  public RemovingStructuresVisitor(Function<LeafType, Boolean> pRemoveLeaf) {
-    removeLeaf = pRemoveLeaf;
+  public LeafModificationVisitor(Function<LeafType, Optional<LeafType>> pLeafReplacement) {
+    leafReplacement = pLeafReplacement;
   }
 
   private List<ExpressionTree<LeafType>> getRemainingOperands(
@@ -28,7 +29,8 @@ public class RemovingStructuresVisitor<LeafType, E extends Throwable>
     while (iterator.hasNext()) {
       ExpressionTree<LeafType> operand = iterator.next();
       if (operand instanceof LeafExpression<LeafType> leaf) {
-        if (removeLeaf.apply(leaf.getExpression())) {
+        Optional<LeafType> newLeaf = leafReplacement.apply(leaf.getExpression());
+        if (newLeaf.isEmpty()) {
           continue;
         }
       } else {
@@ -51,7 +53,8 @@ public class RemovingStructuresVisitor<LeafType, E extends Throwable>
 
   @Override
   public ExpressionTree<LeafType> visit(LeafExpression<LeafType> pLeafExpression) throws E {
-    if (removeLeaf.apply(pLeafExpression.getExpression())) {
+    Optional<LeafType> newLeaf = leafReplacement.apply(pLeafExpression.getExpression());
+    if (newLeaf.isEmpty()) {
       if (pLeafExpression.assumeTruth()) {
         return ExpressionTrees.getTrue();
       } else {
