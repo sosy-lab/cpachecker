@@ -306,11 +306,30 @@ abstract class AbstractCFloatTestBase {
     return val.bitCount() > 1 ? r + 1 : r;
   }
 
-  private static String toBits(Format format, BigFloat value) {
+  /**
+   * Print a BigFloat value as a string of bits.
+   *
+   * <p>The output will consist of 3 parts: one bit for the sign, followed by the exponent, and then
+   * the significand written as bit strings. The value is printed in IEEE notation, that is, with a
+   * bias added to the exponent to make it non-negative, and the hidden bit removed from the
+   * significand.
+   *
+   * <p>As an example the output for 1.0969e+01 in float16 is 0 10010 0101111100. Put differently
+   * the float value can be written as 1.0101111100 * 2^(10010 - 15 = 3) where 15 is the bias for
+   * 16bit floats.
+   */
+  protected static String toBits(Format format, BigFloat value) {
     String sign = value.sign() ? "1" : "0";
+
+    // Print the exponent
     long valueExp = value.exponent(format.minExp(), format.maxExp()) + format.maxExp();
     String exponent = Long.toString(valueExp, 2);
     exponent = "0".repeat(calculateExpWidth(format) - exponent.length()) + exponent;
+
+    // Print the significand
+    // We use NaN as default value and then only extract the actual bits if the value was different
+    // from NaN. This is necessary because MPFR uses a canonical representation for NaN that leaves
+    // the bits effectively unspecified. Trying to extract them will cause an exception.
     String significand = BigInteger.ONE.shiftLeft(format.sigBits() - 1).toString(2);
     if (!value.isNaN()) {
       // Get the actual significand if the value is not NaN
