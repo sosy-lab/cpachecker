@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
  */
 abstract class AbstractCFloatTestBase {
   /** Override to set a floating point width. */
-  protected abstract Format getFloatType();
+  abstract Format getFloatType();
 
   /** List of all supported reference implementations. */
   enum ReferenceImpl {
@@ -84,7 +84,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Return the reference implementation used by the test. */
-  protected abstract ReferenceImpl getRefImpl();
+  abstract ReferenceImpl getRefImpl();
 
   /**
    * Convert a CFloat value to BigFloat.
