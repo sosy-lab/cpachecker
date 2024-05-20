@@ -381,34 +381,34 @@ abstract class AbstractCFloatTestBase {
   }
 
   protected void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
-    ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
-    for (BigFloat arg : unaryTestValues()) {
-      CFloat ref = toReferenceImpl(arg);
-      BigFloat result = toBigFloat(operator.apply(ref));
-      testBuilder.add(new TestValue<>(arg, result));
-    }
-    ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
-    for (TestValue<BigFloat> test : testCases) {
+    for (BigFloat arg : unaryTestValues()) {
+      // Calculate result with the reference implementation
+      CFloat ref = toReferenceImpl(arg);
+      BigFloat resultReference = toBigFloat(operator.apply(ref));
+
+      // Calculate result with the tested implementation
+      CFloat tested = toTestedImpl(arg);
+      BigFloat resultTested;
       try {
-        CFloat tested = toTestedImpl(test.arg1());
-        BigFloat result;
-        try {
-          result = toBigFloat(operator.apply(tested));
-        } catch (Throwable t) {
-          String testHeader = printTestHeader(name, test.arg1());
-          throw new RuntimeException(testHeader, t);
-        }
-        if (!result.equals(test.result())) {
-          String testHeader = printTestHeader(name, test.arg1());
+        resultTested = toBigFloat(operator.apply(tested));
+      } catch (Throwable t) {
+        String testHeader = printTestHeader(name, arg);
+        throw new RuntimeException(testHeader, t);
+      }
+
+      // Compare the two results
+      try {
+        if (!resultTested.equals(resultReference)) {
+          String testHeader = printTestHeader(name, arg);
           if (ulps == 0) {
             assertWithMessage(testHeader)
-                .that(printValue(result))
-                .isEqualTo(printValue(test.result()));
+                .that(printValue(resultTested))
+                .isEqualTo(printValue(resultTested));
           } else {
             assertWithMessage(testHeader)
-                .that(printValue(result))
-                .isIn(errorRange(ulps, test.result()));
+                .that(printValue(resultTested))
+                .isIn(errorRange(ulps, resultTested));
           }
         }
       } catch (AssertionError e) {
@@ -419,81 +419,81 @@ abstract class AbstractCFloatTestBase {
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), testCases.size(), errorLog)
+              errorLog.size(), unaryTestValues().size(), errorLog)
           .fail();
     }
   }
 
   protected void testOperator(String name, int ulps, BinaryOperator<CFloat> operator) {
-    ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (BigFloat arg1 : binaryTestValues()) {
       for (BigFloat arg2 : binaryTestValues()) {
+        // Calculate result with the reference implementation
         CFloat ref1 = toReferenceImpl(arg1);
         CFloat ref2 = toReferenceImpl(arg2);
-        BigFloat result = toBigFloat(operator.apply(ref1, ref2));
-        testBuilder.add(new TestValue<>(arg1, arg2, result));
-      }
-    }
-    ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
-    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
-    for (TestValue<BigFloat> test : testCases) {
-      try {
-        CFloat tested1 = toTestedImpl(test.arg1());
-        CFloat tested2 = toTestedImpl(test.arg2());
-        BigFloat result;
+        BigFloat resultReference = toBigFloat(operator.apply(ref1, ref2));
+
+        // Calculate result with the tested implementation
+        CFloat tested1 = toTestedImpl(arg1);
+        CFloat tested2 = toTestedImpl(arg2);
+        BigFloat resultTested;
         try {
-          result = toBigFloat(operator.apply(tested1, tested2));
+          resultTested = toBigFloat(operator.apply(tested1, tested2));
         } catch (Throwable t) {
-          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+          String testHeader = printTestHeader(name, arg1, arg2);
           throw new RuntimeException(testHeader, t);
         }
-        if (!result.equals(test.result())) {
-          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
-          if (ulps == 0) {
-            assertWithMessage(testHeader)
-                .that(printValue(result))
-                .isEqualTo(printValue(test.result()));
-          } else {
-            assertWithMessage(testHeader)
-                .that(printValue(result))
-                .isIn(errorRange(ulps, test.result()));
+
+        // Compare the two results
+        try {
+          if (!resultTested.equals(resultReference)) {
+            String testHeader = printTestHeader(name, arg1, arg2);
+            if (ulps == 0) {
+              assertWithMessage(testHeader)
+                  .that(printValue(resultTested))
+                  .isEqualTo(printValue(resultReference));
+            } else {
+              assertWithMessage(testHeader)
+                  .that(printValue(resultTested))
+                  .isIn(errorRange(ulps, resultReference));
+            }
           }
+        } catch (AssertionError e) {
+          logBuilder.add(e.getMessage());
         }
-      } catch (AssertionError e) {
-        logBuilder.add(e.getMessage());
       }
     }
     ImmutableList<String> errorLog = logBuilder.build();
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), testCases.size(), errorLog)
+              errorLog.size(), binaryTestValues().size() ^ 2, errorLog)
           .fail();
     }
   }
 
   protected void testPredicate(String name, Predicate<CFloat> predicate) {
-    ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
-    for (BigFloat arg : unaryTestValues()) {
-      CFloat ref = toReferenceImpl(arg);
-      boolean result = predicate.test(ref);
-      testBuilder.add(new TestValue<>(arg, result));
-    }
-    ImmutableList<TestValue<Boolean>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
-    for (TestValue<Boolean> test : testCases) {
+    for (BigFloat arg : unaryTestValues()) {
+      // Calculate result with the reference implementation
+      CFloat ref = toReferenceImpl(arg);
+      boolean resultReference = predicate.test(ref);
+
+      // Calculate result with the tested implementation
+      CFloat tested = toTestedImpl(arg);
+      boolean resultTested;
       try {
-        CFloat tested = toTestedImpl(test.arg1());
-        boolean result;
-        try {
-          result = predicate.test(tested);
-        } catch (Throwable t) {
-          String testHeader = printTestHeader(name, test.arg1());
-          throw new RuntimeException(testHeader, t);
-        }
-        if (result != test.result()) {
-          String testHeader = printTestHeader(name, test.arg1());
-          assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        resultTested = predicate.test(tested);
+      } catch (Throwable t) {
+        String testHeader = printTestHeader(name, arg);
+        throw new RuntimeException(testHeader, t);
+      }
+
+      // Compare the two results
+      try {
+        if (resultTested != resultReference) {
+          String testHeader = printTestHeader(name, arg);
+          assertWithMessage(testHeader).that(resultTested).isEqualTo(resultReference);
         }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
@@ -504,73 +504,73 @@ abstract class AbstractCFloatTestBase {
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), testCases.size(), errorLog)
+              errorLog.size(), unaryTestValues().size(), errorLog)
           .fail();
     }
   }
 
   protected void testPredicate(String name, BinaryPredicate<CFloat, CFloat> predicate) {
-    ImmutableList.Builder<TestValue<Boolean>> testBuilder = ImmutableList.builder();
+    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (BigFloat arg1 : binaryTestValues()) {
       for (BigFloat arg2 : binaryTestValues()) {
+        // Calculate result with the reference implementation
         CFloat ref1 = toReferenceImpl(arg1);
         CFloat ref2 = toReferenceImpl(arg2);
-        boolean result = predicate.apply(ref1, ref2);
-        testBuilder.add(new TestValue<>(arg1, arg2, result));
-      }
-    }
-    ImmutableList<TestValue<Boolean>> testCases = testBuilder.build();
-    ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
-    for (TestValue<Boolean> test : testCases) {
-      try {
-        CFloat tested1 = toTestedImpl(test.arg1());
-        CFloat tested2 = toTestedImpl(test.arg2());
-        boolean result;
+        boolean resultReference = predicate.apply(ref1, ref2);
+
+        // Calculate result with the tested implementation
+        CFloat tested1 = toTestedImpl(arg1);
+        CFloat tested2 = toTestedImpl(arg2);
+        boolean resultTested;
         try {
-          result = predicate.apply(tested1, tested2);
+          resultTested = predicate.apply(tested1, tested2);
         } catch (Throwable t) {
-          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
+          String testHeader = printTestHeader(name, arg1, arg2);
           throw new RuntimeException(testHeader, t);
         }
-        if (result != test.result()) {
-          String testHeader = printTestHeader(name, test.arg1(), test.arg2());
-          assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+
+        // Compare the two results
+        try {
+          if (resultTested != resultReference) {
+            String testHeader = printTestHeader(name, arg1, arg2);
+            assertWithMessage(testHeader).that(resultTested).isEqualTo(resultReference);
+          }
+        } catch (AssertionError e) {
+          logBuilder.add(e.getMessage());
         }
-      } catch (AssertionError e) {
-        logBuilder.add(e.getMessage());
       }
     }
     ImmutableList<String> errorLog = logBuilder.build();
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), testCases.size(), errorLog)
+              errorLog.size(), binaryTestValues().size() ^ 2, errorLog)
           .fail();
     }
   }
 
   protected void testIntegerFunction(String name, Function<CFloat, Number> function) {
-    ImmutableList.Builder<TestValue<Number>> testBuilder = ImmutableList.builder();
-    for (BigFloat arg : unaryTestValues()) {
-      CFloat ref = toReferenceImpl(arg);
-      Number result = function.apply(ref);
-      testBuilder.add(new TestValue<>(arg, result));
-    }
-    ImmutableList<TestValue<Number>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
-    for (TestValue<Number> test : testCases) {
+    for (BigFloat arg : unaryTestValues()) {
+      // Calculate result with the reference implementation
+      CFloat ref = toReferenceImpl(arg);
+      Number resultReference = function.apply(ref);
+
+      // Calculate result with the tested implementation
+      CFloat tested = toTestedImpl(arg);
+      Number resultsTested;
       try {
-        CFloat tested = toTestedImpl(test.arg1());
-        Number result;
-        try {
-          result = function.apply(tested);
-        } catch (Throwable t) {
-          String testHeader = printTestHeader(name, test.arg1());
-          throw new RuntimeException(testHeader, t);
-        }
-        if (!Objects.equals(result, test.result())) {
-          String testHeader = printTestHeader(name, test.arg1());
-          assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        resultsTested = function.apply(tested);
+      } catch (Throwable t) {
+        String testHeader = printTestHeader(name, arg);
+        throw new RuntimeException(testHeader, t);
+      }
+
+      // Compare the two results
+      try {
+        if (!Objects.equals(resultsTested, resultReference)) {
+          String testHeader = printTestHeader(name, arg);
+          assertWithMessage(testHeader).that(resultsTested).isEqualTo(resultReference);
         }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
@@ -581,33 +581,33 @@ abstract class AbstractCFloatTestBase {
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), testCases.size(), errorLog)
+              errorLog.size(), unaryTestValues().size(), errorLog)
           .fail();
     }
   }
 
   protected void testStringFunction(String name, Function<CFloat, String> function) {
-    ImmutableList.Builder<TestValue<String>> testBuilder = ImmutableList.builder();
-    for (BigFloat arg : unaryTestValues()) {
-      CFloat ref = toReferenceImpl(arg);
-      String result = function.apply(ref);
-      testBuilder.add(new TestValue<>(arg, result));
-    }
-    ImmutableList<TestValue<String>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
-    for (TestValue<String> test : testCases) {
+    for (BigFloat arg : unaryTestValues()) {
+      // Calculate result with the reference implementation
+      CFloat ref = toReferenceImpl(arg);
+      String resultReference = function.apply(ref);
+
+      // Calculate result with the tested implementation
+      CFloat tested = toTestedImpl(arg);
+      String resultTested;
       try {
-        CFloat tested = toTestedImpl(test.arg1());
-        String result;
-        try {
-          result = function.apply(tested);
-        } catch (Throwable t) {
-          String testHeader = printTestHeader(name, test.arg1());
-          throw new RuntimeException(testHeader, t);
-        }
-        if (!Objects.equals(result, test.result())) {
-          String testHeader = printTestHeader(name, test.arg1());
-          assertWithMessage(testHeader).that(result).isEqualTo(test.result());
+        resultTested = function.apply(tested);
+      } catch (Throwable t) {
+        String testHeader = printTestHeader(name, arg);
+        throw new RuntimeException(testHeader, t);
+      }
+
+      // Compare the two results
+      try {
+        if (!Objects.equals(resultTested, resultReference)) {
+          String testHeader = printTestHeader(name, arg);
+          assertWithMessage(testHeader).that(resultTested).isEqualTo(resultReference);
         }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
@@ -618,7 +618,7 @@ abstract class AbstractCFloatTestBase {
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), testCases.size(), errorLog)
+              errorLog.size(), unaryTestValues().size(), errorLog)
           .fail();
     }
   }
