@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.TruthJUnit.assume;
@@ -640,9 +641,18 @@ abstract class AbstractCFloatTestBase {
 
   /** Create a test value for the reference implementation. */
   CFloat toReferenceImpl(BigFloat value) {
+    checkState(
+        getFloatType().equals(Format.Float32)
+            || getFloatType().equals(Format.Float64)
+            || getRefImpl() == ReferenceImpl.MPFR,
+        "Backend %s only support float32 and float64 as format",
+        getRefImpl());
     return switch (getRefImpl()) {
       case MPFR -> new MpfrFloat(value, getFloatType());
-      case JAVA -> new JFloat(value.floatValue());
+      case JAVA ->
+          getFloatType().equals(Format.Float32)
+              ? new JFloat(value.floatValue())
+              : new JDouble(value.doubleValue());
       case NATIVE -> new CFloatNative(toPlainString(value), getFloatType());
     };
   }
