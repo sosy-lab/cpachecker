@@ -92,7 +92,7 @@ abstract class AbstractCFloatTestBase {
    *
    * <p>This is used in the tests to convert the result of the operation back to a BigFloat value.
    */
-  protected BigFloat toBigFloat(CFloat value) {
+  BigFloat toBigFloat(CFloat value) {
     if (value instanceof MpfrFloat val) {
       return val.toBigFloat();
     } else if (value instanceof CFloatImpl val) {
@@ -128,12 +128,12 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Convert a {@link CFloat} value to an Integer. */
-  protected Integer toInteger(CFloat value) {
+  Integer toInteger(CFloat value) {
     return toBigFloat(value).intValue();
   }
 
   /** Construct a CFloatImpl from a BigFloat test value. */
-  protected CFloatImpl testValueToCFloatImpl(BigFloat value, Format format) {
+  CFloatImpl testValueToCFloatImpl(BigFloat value, Format format) {
     if (value.isNaN()) {
       return new CFloatImpl(value.sign() ? FloatP.nan(format).negate() : FloatP.nan(format));
     } else if (value.isInfinite()) {
@@ -164,7 +164,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Convert floating point value to its decimal representation. */
-  public static String toPlainString(BigFloat value) {
+  static String toPlainString(BigFloat value) {
     String r = printBigFloat(value);
     if (r.contains("e")) {
       r = new BigDecimal(r).toPlainString();
@@ -173,7 +173,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate a list of floating point constants that cover all special case values. */
-  protected static List<BigFloat> floatConsts(Format format) {
+  static List<BigFloat> floatConsts(Format format) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     int precision = format.sigBits() + 1;
     BinaryMathContext context = new BinaryMathContext(precision, format.expBits());
@@ -202,7 +202,7 @@ abstract class AbstractCFloatTestBase {
    * Generate a list of powers ca^px where c,p are incremented starting from 1 and a,x are
    * constants.
    */
-  protected static List<BigFloat> floatPowers(Format format, int c, BigFloat a, int p, BigFloat x) {
+  static List<BigFloat> floatPowers(Format format, int c, BigFloat a, int p, BigFloat x) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     for (int i = 1; i <= c; i++) {
@@ -219,7 +219,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate n random floating point values. */
-  protected static List<BigFloat> floatRandom(Format format, int n) {
+  static List<BigFloat> floatRandom(Format format, int n) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     Random random = new Random(0);
@@ -242,7 +242,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate all possible floating point values for a given precision. */
-  protected static List<BigFloat> allFloats(Format format) {
+  static List<BigFloat> allFloats(Format format) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     for (long exponent = format.minExp() - 1; exponent <= format.maxExp() + 1; exponent++) {
@@ -265,7 +265,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
-  protected List<BigFloat> unaryTestValues() {
+  List<BigFloat> unaryTestValues() {
     Format format = getFloatType();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     BigFloat constant = new BigFloat(0.5f, context);
@@ -281,7 +281,7 @@ abstract class AbstractCFloatTestBase {
    * values will be used for both arguments separately. So if there are k test values in this set,
    * the number of test runs for a binary operation will be k^2.
    */
-  protected List<BigFloat> binaryTestValues() {
+  List<BigFloat> binaryTestValues() {
     Format format = getFloatType();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     BigFloat constant = new BigFloat(0.5f, context);
@@ -317,7 +317,7 @@ abstract class AbstractCFloatTestBase {
    * the float value can be written as 1.0101111100 * 2^(10010 - 15 = 3) where 15 is the bias for
    * 16bit floats.
    */
-  protected static String toBits(Format format, BigFloat value) {
+  static String toBits(Format format, BigFloat value) {
     String sign = value.sign() ? "1" : "0";
 
     // Print the exponent
@@ -339,15 +339,15 @@ abstract class AbstractCFloatTestBase {
     return String.format("%s %s %s", sign, exponent, significand);
   }
 
-  protected String printValue(BigFloat value) {
+  String printValue(BigFloat value) {
     return String.format("%s [%s]", toBits(getFloatType(), value), printBigFloat(value));
   }
 
-  private String printTestHeader(String name, BigFloat arg) {
+  String printTestHeader(String name, BigFloat arg) {
     return String.format("%n%nTestcase %s(%s): ", name, printValue(arg));
   }
 
-  private String printTestHeader(String name, BigFloat arg1, BigFloat arg2) {
+  String printTestHeader(String name, BigFloat arg1, BigFloat arg2) {
     return String.format("%n%nTestcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
@@ -380,7 +380,7 @@ abstract class AbstractCFloatTestBase {
     throw new IllegalArgumentException();
   }
 
-  protected void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
+  private void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
       // Calculate result with the reference implementation
@@ -424,7 +424,7 @@ abstract class AbstractCFloatTestBase {
     }
   }
 
-  protected void testOperator(String name, int ulps, BinaryOperator<CFloat> operator) {
+  private void testOperator(String name, int ulps, BinaryOperator<CFloat> operator) {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (BigFloat arg1 : binaryTestValues()) {
       for (BigFloat arg2 : binaryTestValues()) {
@@ -472,7 +472,7 @@ abstract class AbstractCFloatTestBase {
     }
   }
 
-  protected void testPredicate(String name, Predicate<CFloat> predicate) {
+  private void testPredicate(String name, Predicate<CFloat> predicate) {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
       // Calculate result with the reference implementation
@@ -509,7 +509,7 @@ abstract class AbstractCFloatTestBase {
     }
   }
 
-  protected void testPredicate(String name, BinaryPredicate<CFloat, CFloat> predicate) {
+  private void testPredicate(String name, BinaryPredicate<CFloat, CFloat> predicate) {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (BigFloat arg1 : binaryTestValues()) {
       for (BigFloat arg2 : binaryTestValues()) {
@@ -549,7 +549,7 @@ abstract class AbstractCFloatTestBase {
     }
   }
 
-  protected void testIntegerFunction(String name, Function<CFloat, Number> function) {
+  private void testIntegerFunction(String name, Function<CFloat, Number> function) {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
       // Calculate result with the reference implementation
@@ -586,7 +586,7 @@ abstract class AbstractCFloatTestBase {
     }
   }
 
-  protected void testStringFunction(String name, Function<CFloat, String> function) {
+  private void testStringFunction(String name, Function<CFloat, String> function) {
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     for (BigFloat arg : unaryTestValues()) {
       // Calculate result with the reference implementation
@@ -623,19 +623,19 @@ abstract class AbstractCFloatTestBase {
     }
   }
 
-  protected void assertEqual1Ulp(CFloat r1, CFloat r2) {
+  void assertEqual1Ulp(CFloat r1, CFloat r2) {
     assertThat(printValue(toBigFloat(r1))).isIn(errorRange(ulpError(), toBigFloat(r2)));
   }
 
-  protected abstract CFloat toTestedImpl(BigFloat value);
+  abstract CFloat toTestedImpl(BigFloat value);
 
-  protected abstract CFloat toTestedImpl(String repr);
+  abstract CFloat toTestedImpl(String repr);
 
-  protected abstract CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats);
+  abstract CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats);
 
-  protected abstract CFloat toReferenceImpl(BigFloat value);
+  abstract CFloat toReferenceImpl(BigFloat value);
 
-  protected CFloat toReferenceImpl(String repr) {
+  CFloat toReferenceImpl(String repr) {
     BinaryMathContext context =
         new BinaryMathContext(getFloatType().sigBits() + 1, getFloatType().expBits());
     return toReferenceImpl(new BigFloat(repr, context));
@@ -723,7 +723,7 @@ abstract class AbstractCFloatTestBase {
     testOperator("divideBy", 0, (CFloat a, CFloat b) -> a.divideBy(b));
   }
 
-  protected static int findClosest(Map<Integer, Float> accum, float p) {
+  private static int findClosest(Map<Integer, Float> accum, float p) {
     for (Integer k : accum.keySet().stream().sorted().toList()) {
       if (accum.get(k) >= p) {
         return k;
@@ -733,7 +733,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   // Print statistics about the required bit width in ln, exp and pow
-  protected static String printStatistics(Map<Integer, Integer> stats) {
+  private static String printStatistics(Map<Integer, Integer> stats) {
     int total = stats.values().stream().reduce(0, (acc, v) -> acc + v);
 
     ImmutableMap.Builder<Integer, Float> accum = ImmutableMap.builder();
