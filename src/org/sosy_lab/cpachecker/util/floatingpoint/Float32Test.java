@@ -8,22 +8,19 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import java.util.Map;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.kframework.mpfr.BigFloat;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
 
 /** Tests the CFloat interface for 32 bit floating point values. */
-@SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
 public class Float32Test extends AbstractCFloatTestBase {
   @Override
-  protected Format getFloatType() {
+  Format getFloatType() {
     return Format.Float32;
   }
 
@@ -38,30 +35,6 @@ public class Float32Test extends AbstractCFloatTestBase {
   @Override
   protected ReferenceImpl getRefImpl() {
     return refImpl;
-  }
-
-  @Override
-  public CFloat toTestedImpl(BigFloat value) {
-    return testValueToCFloatImpl(value, getFloatType());
-  }
-
-  @Override
-  public CFloat toTestedImpl(String repr) {
-    return new CFloatImpl(repr, getFloatType());
-  }
-
-  @Override
-  protected CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats) {
-    return new CFloatImpl(repr, getFloatType(), fromStringStats);
-  }
-
-  @Override
-  public CFloat toReferenceImpl(BigFloat value) {
-    return switch (refImpl) {
-      case MPFR -> new MpfrFloat(value, getFloatType());
-      case JAVA -> new JFloat(value.floatValue());
-      case NATIVE -> new CFloatNative(toPlainString(value), getFloatType());
-    };
   }
 
   @Test

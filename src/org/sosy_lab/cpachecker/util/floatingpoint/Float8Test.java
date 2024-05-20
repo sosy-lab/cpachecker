@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.util.List;
-import java.util.Map;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
@@ -24,33 +23,13 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
  */
 public class Float8Test extends AbstractCFloatTestBase {
   @Override
-  protected Format getFloatType() {
+  Format getFloatType() {
     return Format.Float8;
   }
 
   @Override
   protected ReferenceImpl getRefImpl() {
     return ReferenceImpl.MPFR;
-  }
-
-  @Override
-  public CFloat toTestedImpl(BigFloat value) {
-    return testValueToCFloatImpl(value, getFloatType());
-  }
-
-  @Override
-  public CFloat toTestedImpl(String repr) {
-    return new CFloatImpl(repr, getFloatType());
-  }
-
-  @Override
-  protected CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats) {
-    return new CFloatImpl(repr, getFloatType(), fromStringStats);
-  }
-
-  @Override
-  public CFloat toReferenceImpl(BigFloat value) {
-    return new MpfrFloat(value, getFloatType());
   }
 
   @Override

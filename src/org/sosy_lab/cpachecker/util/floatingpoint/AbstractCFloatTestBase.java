@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
  * Abstract test class for the {@link CFloat} interface.
  *
  * <p>The idea behind this class is to compare two different implementations of the CFloat
- * interface. We generally use {@link FloatP} as the "tested" implementation and compare it to a
- * second "reference" implementation. There are currently 3 supported implementations that can be
- * used as a reference:
+ * interface. We alwys use {@link FloatP} as the "tested" implementation and compare it to a second
+ * "reference" implementation. There are currently 3 supported implementations that can be used as a
+ * reference:
  *
  * <ul>
  *   <li>{@link CFloatNative}, uses native C code to calculate its results
@@ -47,12 +47,11 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
  *   <li>{@link JFloat} ({@link JDouble}), uses normal Java floats (doubles) for its calculations
  * </ul>
  *
- * <p>Subclasses are expected to overload the abstract methods {@link
- * AbstractCFloatTestBase#getRefImpl()}, {@link AbstractCFloatTestBase#toTestedImpl(String)} and
- * {@link AbstractCFloatTestBase#toReferenceImpl(String)} to select which implementations are
- * supposed to be used in the comparison. The test class will then automatically generate test
- * inputs for all methods of the CFloat interface and compare the results of the tested
- * implementation with those of the reference implementation on all of those inputs.
+ * <p>Subclasses are expected to overload the abstract method {@link
+ * AbstractCFloatTestBase#getRefImpl()} to select which implementations is supposed to be used in
+ * the comparison. The test class will then automatically generate test inputs for all methods of
+ * the CFloat interface and compare the results of the tested implementation with those of the
+ * reference implementation on all of those inputs.
  *
  * <p>The methods {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
  * AbstractCFloatTestBase#binaryTestValues()} can be overwritten to change the set of test inputs
@@ -72,12 +71,13 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
  * <p>The abstract method {@link AbstractCFloatTestBase#getFloatType()} also needs to be overridden
  * by the subclass to select the bit width of the floating point values that will be generated.
  */
+@SuppressWarnings("deprecation")
 abstract class AbstractCFloatTestBase {
   /** Override to set a floating point width. */
   abstract Format getFloatType();
 
   /** List of all supported reference implementations. */
-  enum ReferenceImpl {
+  public enum ReferenceImpl {
     MPFR,
     JAVA,
     NATIVE
@@ -619,14 +619,35 @@ abstract class AbstractCFloatTestBase {
     assertThat(printValue(toBigFloat(r1))).isIn(errorRange(ulpError(), toBigFloat(r2)));
   }
 
-  abstract CFloat toTestedImpl(BigFloat value);
+  /** Create a test value for the tested implementation. */
+  CFloat toTestedImpl(BigFloat value) {
+    return testValueToCFloatImpl(value, getFloatType());
+  }
 
-  abstract CFloat toTestedImpl(String repr);
+  /** Create a test value for the tested implementation by parsing a String. */
+  CFloat toTestedImpl(String repr) {
+    return new CFloatImpl(repr, getFloatType());
+  }
 
-  abstract CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats);
+  /**
+   * Create a test value for the tested implementation by parsing a String.
+   *
+   * <p>This version takes a Map with statistics as an additional argument.
+   */
+  CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats) {
+    return new CFloatImpl(repr, getFloatType(), fromStringStats);
+  }
 
-  abstract CFloat toReferenceImpl(BigFloat value);
+  /** Create a test value for the reference implementation. */
+  CFloat toReferenceImpl(BigFloat value) {
+    return switch (getRefImpl()) {
+      case MPFR -> new MpfrFloat(value, getFloatType());
+      case JAVA -> new JFloat(value.floatValue());
+      case NATIVE -> new CFloatNative(toPlainString(value), getFloatType());
+    };
+  }
 
+  /** Create a test value for the reference implementation by parsing a String. */
   CFloat toReferenceImpl(String repr) {
     BinaryMathContext context =
         new BinaryMathContext(getFloatType().sigBits() + 1, getFloatType().expBits());
