@@ -27,7 +27,6 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
@@ -290,13 +289,6 @@ abstract class AbstractCFloatTestBase {
         .addAll(floatPowers(format, 3, constant, 3, constant))
         .addAll(floatRandom(format, 200))
         .build();
-  }
-
-  /** Wraps a generated input value along with the result of the operation. */
-  private record TestValue<T>(BigFloat arg1, @Nullable BigFloat arg2, T result) {
-    public TestValue(BigFloat pArg1, T pResult) {
-      this(pArg1, null, pResult);
-    }
   }
 
   private static int calculateExpWidth(Format pFormat) {
@@ -649,30 +641,29 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void fromStringTest() {
-    ImmutableList.Builder<TestValue<BigFloat>> testBuilder = ImmutableList.builder();
-    for (BigFloat arg : unaryTestValues()) {
-      BigFloat result = toBigFloat(toReferenceImpl(printBigFloat(arg)));
-      testBuilder.add(new TestValue<>(arg, result));
-    }
-    ImmutableList<TestValue<BigFloat>> testCases = testBuilder.build();
     ImmutableList.Builder<String> logBuilder = ImmutableList.builder();
     Map<Integer, Integer> fromStringStats = new HashMap<>();
-    for (TestValue<BigFloat> test : testCases) {
-      try {
-        BigFloat result = BigFloat.NaN(getFloatType().sigBits() + 1);
-        try {
-          result = toBigFloat(toTestedImpl(printBigFloat(test.arg1()), fromStringStats));
-        } catch (Throwable t) {
-          String testHeader = printTestHeader("fromString", test.arg1());
-          assertWithMessage(testHeader + t).fail();
-        }
-        if (!result.equals(test.result())) {
-          String testHeader = printTestHeader("fromString", test.arg1());
-          assertWithMessage(testHeader)
-              .that(printValue(result))
-              .isEqualTo(printValue(test.result()));
-        }
+    for (BigFloat arg : unaryTestValues()) {
+      // Calculate result with the reference implementation
+      BigFloat resultReference = toBigFloat(toReferenceImpl(printBigFloat(arg)));
 
+      // Calculate result with the tested implementation
+      BigFloat resultTested = BigFloat.NaN(getFloatType().sigBits() + 1);
+      try {
+        resultTested = toBigFloat(toTestedImpl(printBigFloat(arg), fromStringStats));
+      } catch (Throwable t) {
+        String testHeader = printTestHeader("fromString", arg);
+        assertWithMessage(testHeader + t).fail();
+      }
+
+      // Calculate result with the reference implementation
+      try {
+        if (!resultTested.equals(resultReference)) {
+          String testHeader = printTestHeader("fromString", arg);
+          assertWithMessage(testHeader)
+              .that(printValue(resultTested))
+              .isEqualTo(printValue(resultReference));
+        }
       } catch (AssertionError e) {
         logBuilder.add(e.getMessage());
       }
@@ -682,7 +673,7 @@ abstract class AbstractCFloatTestBase {
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), testCases.size(), errorLog)
+              errorLog.size(), unaryTestValues().size(), errorLog)
           .fail();
     }
     // printStatistics(fromStringStats);
