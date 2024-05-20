@@ -459,7 +459,7 @@ abstract class AbstractCFloatTestBase {
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), binaryTestValues().size() ^ 2, errorLog)
+              errorLog.size(), binaryTestValues().size() * binaryTestValues().size(), errorLog)
           .fail();
     }
   }
@@ -536,7 +536,7 @@ abstract class AbstractCFloatTestBase {
     if (!errorLog.isEmpty()) {
       assertWithMessage(
               "Failed on %s (out of %s) test inputs:%s",
-              errorLog.size(), binaryTestValues().size() ^ 2, errorLog)
+              errorLog.size(), binaryTestValues().size() * binaryTestValues().size(), errorLog)
           .fail();
     }
   }
