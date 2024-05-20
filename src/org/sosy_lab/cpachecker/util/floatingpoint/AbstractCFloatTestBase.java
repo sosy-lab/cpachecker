@@ -393,12 +393,12 @@ abstract class AbstractCFloatTestBase {
     for (TestValue<BigFloat> test : testCases) {
       try {
         CFloat tested = toTestedImpl(test.arg1());
-        BigFloat result = BigFloat.NaN(getFloatType().sigBits() + 1);
+        BigFloat result;
         try {
           result = toBigFloat(operator.apply(tested));
         } catch (Throwable t) {
           String testHeader = printTestHeader(name, test.arg1());
-          assertWithMessage(testHeader + t).fail();
+          throw new RuntimeException(testHeader, t);
         }
         if (!result.equals(test.result())) {
           String testHeader = printTestHeader(name, test.arg1());
@@ -438,12 +438,12 @@ abstract class AbstractCFloatTestBase {
       try {
         CFloat tested1 = toTestedImpl(test.arg1());
         CFloat tested2 = toTestedImpl(test.arg2());
-        BigFloat result = BigFloat.NaN(getFloatType().sigBits() + 1);
+        BigFloat result;
         try {
           result = toBigFloat(operator.apply(tested1, tested2));
         } catch (Throwable t) {
           String testHeader = printTestHeader(name, test.arg1(), test.arg2());
-          assertWithMessage(testHeader + t).fail();
+          throw new RuntimeException(testHeader, t);
         }
         if (!result.equals(test.result())) {
           String testHeader = printTestHeader(name, test.arg1(), test.arg2());
@@ -479,12 +479,12 @@ abstract class AbstractCFloatTestBase {
     for (TestValue<Boolean> test : testCases) {
       try {
         CFloat tested = toTestedImpl(test.arg1());
-        boolean result = true;
+        boolean result;
         try {
           result = predicate.test(tested);
         } catch (Throwable t) {
           String testHeader = printTestHeader(name, test.arg1());
-          assertWithMessage(testHeader + t).fail();
+          throw new RuntimeException(testHeader, t);
         }
         if (result != test.result()) {
           String testHeader = printTestHeader(name, test.arg1());
@@ -520,12 +520,12 @@ abstract class AbstractCFloatTestBase {
       try {
         CFloat tested1 = toTestedImpl(test.arg1());
         CFloat tested2 = toTestedImpl(test.arg2());
-        boolean result = true;
+        boolean result;
         try {
           result = predicate.apply(tested1, tested2);
         } catch (Throwable t) {
           String testHeader = printTestHeader(name, test.arg1(), test.arg2());
-          assertWithMessage(testHeader + t).fail();
+          throw new RuntimeException(testHeader, t);
         }
         if (result != test.result()) {
           String testHeader = printTestHeader(name, test.arg1(), test.arg2());
@@ -556,12 +556,12 @@ abstract class AbstractCFloatTestBase {
     for (TestValue<Number> test : testCases) {
       try {
         CFloat tested = toTestedImpl(test.arg1());
-        Number result = null;
+        Number result;
         try {
           result = function.apply(tested);
         } catch (Throwable t) {
           String testHeader = printTestHeader(name, test.arg1());
-          assertWithMessage(testHeader + t).fail();
+          throw new RuntimeException(testHeader, t);
         }
         if (!Objects.equals(result, test.result())) {
           String testHeader = printTestHeader(name, test.arg1());
@@ -593,12 +593,12 @@ abstract class AbstractCFloatTestBase {
     for (TestValue<String> test : testCases) {
       try {
         CFloat tested = toTestedImpl(test.arg1());
-        String result = null;
+        String result;
         try {
           result = function.apply(tested);
         } catch (Throwable t) {
           String testHeader = printTestHeader(name, test.arg1());
-          assertWithMessage(testHeader + t).fail();
+          throw new RuntimeException(testHeader, t);
         }
         if (!Objects.equals(result, test.result())) {
           String testHeader = printTestHeader(name, test.arg1());
