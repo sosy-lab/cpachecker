@@ -16,7 +16,6 @@ import static com.google.common.truth.TruthJUnit.assume;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.truth.Correspondence.BinaryPredicate;
-import com.google.common.truth.StringSubject;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -402,11 +401,14 @@ abstract class AbstractCFloatTestBase {
         }
         if (!result.equals(test.result())) {
           String testHeader = printTestHeader(name, test.arg1());
-          StringSubject value = assertWithMessage(testHeader).that(printValue(result));
           if (ulps == 0) {
-            value.isEqualTo(printValue(test.result()));
+            assertWithMessage(testHeader)
+                .that(printValue(result))
+                .isEqualTo(printValue(test.result()));
           } else {
-            value.isIn(errorRange(ulps, test.result()));
+            assertWithMessage(testHeader)
+                .that(printValue(result))
+                .isIn(errorRange(ulps, test.result()));
           }
         }
       } catch (AssertionError e) {
@@ -447,11 +449,14 @@ abstract class AbstractCFloatTestBase {
         }
         if (!result.equals(test.result())) {
           String testHeader = printTestHeader(name, test.arg1(), test.arg2());
-          StringSubject value = assertWithMessage(testHeader).that(printValue(result));
           if (ulps == 0) {
-            value.isEqualTo(printValue(test.result()));
+            assertWithMessage(testHeader)
+                .that(printValue(result))
+                .isEqualTo(printValue(test.result()));
           } else {
-            value.isIn(errorRange(ulps, test.result()));
+            assertWithMessage(testHeader)
+                .that(printValue(result))
+                .isIn(errorRange(ulps, test.result()));
           }
         }
       } catch (AssertionError e) {
