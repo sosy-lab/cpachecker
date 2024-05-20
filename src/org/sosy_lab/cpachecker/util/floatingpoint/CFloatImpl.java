@@ -144,7 +144,7 @@ public class CFloatImpl extends CFloat {
 
   @Override
   public CFloat add(CFloat... pSummands) {
-    Format p = new Format(0, 0);
+    Format p = new Format(2, 1); // the smallest supported format
     for (CFloat f : pSummands) {
       CFloatImpl mf = (CFloatImpl) f;
       p = p.sup(mf.delegate.getFormat());
@@ -170,7 +170,7 @@ public class CFloatImpl extends CFloat {
 
   @Override
   public CFloat multiply(CFloat... pFactors) {
-    Format p = new Format(0, 0);
+    Format p = new Format(2, 1); // the smallest supported format
     for (CFloat f : pFactors) {
       CFloatImpl mf = (CFloatImpl) f;
       p = p.sup(mf.delegate.getFormat());
