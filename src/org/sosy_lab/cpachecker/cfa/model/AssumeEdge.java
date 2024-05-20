@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class AssumeEdge extends AbstractCFAEdge {
 
@@ -22,6 +24,7 @@ public class AssumeEdge extends AbstractCFAEdge {
   private final boolean swapped;
   private final boolean artificialIntermediate;
   protected final AExpression expression;
+  private List<ValueAssignment> reuseAssignments;
 
   /**
    * Create instance.
@@ -47,6 +50,14 @@ public class AssumeEdge extends AbstractCFAEdge {
     expression = pExpression;
     swapped = pSwapped;
     artificialIntermediate = pArtificialIntermediate;
+  }
+
+  public void setReuseAssignments(List<ValueAssignment> pReuseAssignments) {
+    reuseAssignments = pReuseAssignments;
+  }
+
+  public List<ValueAssignment> getReuseAssignments() {
+    return reuseAssignments;
   }
 
   @Override
