@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -218,71 +217,16 @@ public class PathChecker {
 
       prover.push(pathFormula);
 
-      // check if a usable variable assignment is available (AssumeEdge property version)
-      ImmutableList<ValueAssignment> variableAssignmentReuse = null;
-      List<CFAEdge> edges = precisePath.getInnerEdges();
-      CAssumeEdge lastAssumeEdge = null;
-      for (int i = edges.size() - 1; i >= 0; i--) {
-
-        if (edges.get(i) instanceof CAssumeEdge) {
-          // set the last edge as lastAssumeEdge, will be used later
-          if (lastAssumeEdge == null) {
-            lastAssumeEdge = (CAssumeEdge) edges.get(i);
-          }
-          if (((CAssumeEdge) edges.get(i)).getReuseAssignments() != null) {
-            variableAssignmentReuse =
-                ImmutableList.copyOf(((CAssumeEdge) edges.get(i)).getReuseAssignments());
-            break;
-          }
-        }
+      if (prover.isUnsat()) {
+        logger.log(
+            Level.WARNING,
+            "Inconsistent replayed error path! No variable values will be available.");
+        return createImpreciseCounterexample(precisePath, pInfo);
       }
 
-      ImmutableList<ValueAssignment> model = null;
-      boolean success = false;
-
-      FormulaManagerView fmgr = solver.getFormulaManager();
-      BooleanFormula conjunctedVAFormula = null;
-      if (variableAssignmentReuse != null) {
-        for (ValueAssignment va : variableAssignmentReuse) {
-          if (conjunctedVAFormula == null) {
-            conjunctedVAFormula = va.getAssignmentAsFormula();
-          } else {
-            conjunctedVAFormula =
-                fmgr.getBooleanFormulaManager()
-                    .and(conjunctedVAFormula, va.getAssignmentAsFormula());
-          }
-        }
-        assert conjunctedVAFormula != null;
-        prover.push(conjunctedVAFormula);
-        if (!prover.isUnsat()) {
-          // reuse successful
-          success = true;
-          model = variableAssignmentReuse;
-        }
-        // always remove pushed assignments
-        prover.pop();
-      }
-
-      // is not successful, get a new model
-      if (!success) {
-        // check if the path itself is usable
-        if (prover.isUnsat()) {
-          logger.log(
-              Level.WARNING,
-              "Inconsistent replayed error path! No variable values will be available.");
-          return createImpreciseCounterexample(precisePath, pInfo);
-        }
-
-        model = getModel(prover);
-      }
+      ImmutableList<ValueAssignment> model = getModel(prover);
       CFAPathWithAssumptions pathWithAssignments =
           assignmentToPathAllocator.allocateAssignmentsToPath(precisePath, model, ssaMaps);
-
-      List<ValueAssignment> valueAssignments = new ArrayList<>(model);
-
-      if (lastAssumeEdge != null) {
-        lastAssumeEdge.setReuseAssignments(valueAssignments);
-      }
 
       CounterexampleInfo cex = CounterexampleInfo.feasiblePrecise(precisePath, pathWithAssignments);
       addCounterexampleFormula(ImmutableList.of(pathFormula), cex);
