@@ -130,11 +130,11 @@ class FloatP {
    */
   record Format(int expBits, int sigBits) {
     public Format {
-      // Check that the arguments are valid. We expect the format to be at least as big as Float8.
+      // Check that the arguments are valid
       Preconditions.checkArgument(
-          expBits >= 0 && expBits <= 64, "Exponent field must be between 0 and 64 bits wide.");
+          expBits >= 2 && expBits <= 25, "Exponent field must be between 2 and 25 bits wide");
       Preconditions.checkArgument(
-          sigBits >= 0, "Significand field must not have negative bit width.");
+          sigBits >= 1, "Significand field must be at least one bit wide");
     }
 
     static final Format Float8 = new Format(4, 3);
