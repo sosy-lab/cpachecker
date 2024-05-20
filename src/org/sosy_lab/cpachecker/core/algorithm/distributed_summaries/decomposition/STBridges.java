@@ -47,6 +47,8 @@ public class STBridges {
     public ImmutableList<BlockNodeWithoutGraphInformation> connectionsWithEdges(String idPrefix) {
       int id = 1;
       ImmutableList.Builder<BlockNodeWithoutGraphInformation> edges = ImmutableList.builder();
+
+      // Process bridges
       for (CFAEdge bridge : bridges) {
         edges.add(
             new BlockNodeWithoutGraphInformation(
@@ -56,6 +58,8 @@ public class STBridges {
                 ImmutableSet.of(bridge.getPredecessor(), bridge.getSuccessor()),
                 ImmutableSet.of(bridge)));
       }
+
+      // Process connections
       for (ImmutableList<CFANode> connection : connections) {
         if (connection.size() == 1) {
           continue;
@@ -64,39 +68,52 @@ public class STBridges {
           ImmutableSet.Builder<CFAEdge> connectionEdges = ImmutableSet.builder();
           CFANode last = null;
           CFANode first = null;
+
           for (CFANode cfaNode : connection) {
-            boolean hasSuccessor = false;
+            boolean hasSuccessorInIncludes = false;
+            boolean hasSuccessorOutOfIncludes = false;
             for (CFAEdge leavingEdge : CFAUtils.leavingEdges(cfaNode)) {
               if (includes.contains(leavingEdge.getSuccessor())) {
                 connectionEdges.add(leavingEdge);
-                hasSuccessor = true;
-                if (cfaNode.isLoopStart()) {
-                  last = cfaNode;
-                }
+                hasSuccessorInIncludes = true;
+              } else {
+                hasSuccessorOutOfIncludes = true;
               }
             }
-            if (!hasSuccessor) {
+
+            if (!hasSuccessorInIncludes) {
               // terminating functions may cause 0 successors, too
               if (last == null
                   || last.getNumLeavingEdges() == 0
                   || cfaNode.getNumLeavingEdges() > 0) {
                 last = cfaNode;
               }
+            } else if (hasSuccessorOutOfIncludes) {
+              last = cfaNode;
             }
-            boolean hasPredecessor = false;
-            for (CFAEdge leavingEdge : CFAUtils.enteringEdges(cfaNode)) {
-              if (includes.contains(leavingEdge.getPredecessor())) {
-                hasPredecessor = true;
-                if (cfaNode.isLoopStart()) {
-                  first = cfaNode;
-                }
-                break;
+
+            boolean hasPredecessorInIncludes = false;
+            boolean hasPredecessorOutOfIncludes = false;
+            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(cfaNode)) {
+              if (includes.contains(enteringEdge.getPredecessor())) {
+                hasPredecessorInIncludes = true;
+              } else {
+                hasPredecessorOutOfIncludes = true;
               }
             }
-            if (!hasPredecessor) {
+
+            if (!hasPredecessorInIncludes) {
+              first = cfaNode;
+            } else if (hasPredecessorOutOfIncludes && first == null) {
               first = cfaNode;
             }
           }
+
+          // Ensure first and last nodes are found
+          if (first == null || last == null) {
+            throw new IllegalStateException("First or last node not found in the connection.");
+          }
+
           edges.add(
               new BlockNodeWithoutGraphInformation(
                   idPrefix + id++,
