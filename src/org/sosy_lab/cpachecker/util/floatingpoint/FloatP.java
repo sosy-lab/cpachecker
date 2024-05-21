@@ -1376,13 +1376,6 @@ class FloatP {
       return isNegative() ? zero(format) : infinity(format);
     }
 
-    if (!format.sup(Format.Float256).equals(Format.Float256)) {
-      // We created expTable with 256 bit precision. If the required precision is larger than that
-      // the table would have to be recalculated.
-      // TODO: Support arbitrary precisions by rebuilding the table when necessary
-      throw new IllegalArgumentException();
-    }
-
     FloatP x = this;
     FloatP r = zero(format); // Series expansion after k terms.
 
@@ -1520,12 +1513,6 @@ class FloatP {
   }
 
   private FloatP ln1p() {
-    if (!format.sup(Format.Float256).equals(Format.Float256)) {
-      // We created expTable with 256 bit precision. If the required precision is larger than that
-      // the table would have to be recalculated.
-      // TODO: Support arbitrary precisions by rebuilding the table when necessary
-      throw new IllegalArgumentException();
-    }
     FloatP x = this;
     FloatP r = zero(format);
 
