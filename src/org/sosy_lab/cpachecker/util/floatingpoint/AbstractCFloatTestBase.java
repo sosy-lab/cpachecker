@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
@@ -379,60 +378,18 @@ abstract class AbstractCFloatTestBase {
 
   private void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
     for (BigFloat arg : unaryTestValues()) {
-      // Calculate result with the reference implementation
-      CFloat ref = toReferenceImpl(arg);
-      BigFloat resultReference = toBigFloat(operator.apply(ref));
-
-      // Calculate result with the tested implementation
-      CFloat tested = toTestedImpl(arg);
-      BigFloat resultTested;
       try {
-        resultTested = toBigFloat(operator.apply(tested));
-      } catch (Throwable t) {
-        String testHeader = printTestHeader(name, arg);
-        throw new RuntimeException(testHeader, t);
-      }
-
-      // Compare the two results
-      if (!resultTested.equals(resultReference)) {
-        String testHeader = printTestHeader(name, arg);
-        if (ulps == 0) {
-          expect
-              .withMessage(testHeader)
-              .that(printValue(resultTested))
-              .isEqualTo(printValue(resultReference));
-        } else {
-          expect
-              .withMessage(testHeader)
-              .that(printValue(resultTested))
-              .isIn(errorRange(ulps, resultReference));
-        }
-      }
-    }
-  }
-
-  private void testOperator(String name, int ulps, BinaryOperator<CFloat> operator) {
-    for (BigFloat arg1 : binaryTestValues()) {
-      for (BigFloat arg2 : binaryTestValues()) {
-        // Calculate result with the reference implementation
-        CFloat ref1 = toReferenceImpl(arg1);
-        CFloat ref2 = toReferenceImpl(arg2);
-        BigFloat resultReference = toBigFloat(operator.apply(ref1, ref2));
+        //  Calculate result with the reference implementation
+        CFloat ref = toReferenceImpl(arg);
+        BigFloat resultReference = toBigFloat(operator.apply(ref));
 
         // Calculate result with the tested implementation
-        CFloat tested1 = toTestedImpl(arg1);
-        CFloat tested2 = toTestedImpl(arg2);
-        BigFloat resultTested;
-        try {
-          resultTested = toBigFloat(operator.apply(tested1, tested2));
-        } catch (Throwable t) {
-          String testHeader = printTestHeader(name, arg1, arg2);
-          throw new RuntimeException(testHeader, t);
-        }
+        CFloat tested = toTestedImpl(arg);
+        BigFloat resultTested = toBigFloat(operator.apply(tested));
 
         // Compare the two results
         if (!resultTested.equals(resultReference)) {
-          String testHeader = printTestHeader(name, arg1, arg2);
+          String testHeader = printTestHeader(name, arg);
           if (ulps == 0) {
             expect
                 .withMessage(testHeader)
@@ -445,30 +402,65 @@ abstract class AbstractCFloatTestBase {
                 .isIn(errorRange(ulps, resultReference));
           }
         }
+      } catch (Throwable t) {
+        throw new RuntimeException(printTestHeader(name, arg), t);
+      }
+    }
+  }
+
+  private void testOperator(String name, int ulps, BinaryOperator<CFloat> operator) {
+    for (BigFloat arg1 : binaryTestValues()) {
+      for (BigFloat arg2 : binaryTestValues()) {
+        try { // Calculate result with the reference implementation
+          CFloat ref1 = toReferenceImpl(arg1);
+          CFloat ref2 = toReferenceImpl(arg2);
+          BigFloat resultReference = toBigFloat(operator.apply(ref1, ref2));
+
+          // Calculate result with the tested implementation
+          CFloat tested1 = toTestedImpl(arg1);
+          CFloat tested2 = toTestedImpl(arg2);
+          BigFloat resultTested = toBigFloat(operator.apply(tested1, tested2));
+
+          // Compare the two results
+          if (!resultTested.equals(resultReference)) {
+            String testHeader = printTestHeader(name, arg1, arg2);
+            if (ulps == 0) {
+              expect
+                  .withMessage(testHeader)
+                  .that(printValue(resultTested))
+                  .isEqualTo(printValue(resultReference));
+            } else {
+              expect
+                  .withMessage(testHeader)
+                  .that(printValue(resultTested))
+                  .isIn(errorRange(ulps, resultReference));
+            }
+          }
+        } catch (Throwable t) {
+          throw new RuntimeException(printTestHeader(name, arg1, arg2), t);
+        }
       }
     }
   }
 
   private void testPredicate(String name, Predicate<CFloat> predicate) {
     for (BigFloat arg : unaryTestValues()) {
-      // Calculate result with the reference implementation
-      CFloat ref = toReferenceImpl(arg);
-      boolean resultReference = predicate.test(ref);
-
-      // Calculate result with the tested implementation
-      CFloat tested = toTestedImpl(arg);
-      boolean resultTested;
       try {
-        resultTested = predicate.test(tested);
-      } catch (Throwable t) {
-        String testHeader = printTestHeader(name, arg);
-        throw new RuntimeException(testHeader, t);
-      }
+        // Calculate result with the reference implementation
+        CFloat ref = toReferenceImpl(arg);
+        boolean resultReference = predicate.test(ref);
 
-      // Compare the two results
-      if (resultTested != resultReference) {
-        String testHeader = printTestHeader(name, arg);
-        expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
+        // Calculate result with the tested implementation
+        CFloat tested = toTestedImpl(arg);
+        boolean resultTested = predicate.test(tested);
+
+        // Compare the two results
+        if (resultTested != resultReference) {
+          String testHeader = printTestHeader(name, arg);
+          expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
+        }
+      } catch (Throwable t) {
+        throw new RuntimeException(printTestHeader(name, arg), t);
       }
     }
   }
@@ -476,26 +468,24 @@ abstract class AbstractCFloatTestBase {
   private void testPredicate(String name, BinaryPredicate<CFloat, CFloat> predicate) {
     for (BigFloat arg1 : binaryTestValues()) {
       for (BigFloat arg2 : binaryTestValues()) {
-        // Calculate result with the reference implementation
-        CFloat ref1 = toReferenceImpl(arg1);
-        CFloat ref2 = toReferenceImpl(arg2);
-        boolean resultReference = predicate.apply(ref1, ref2);
-
-        // Calculate result with the tested implementation
-        CFloat tested1 = toTestedImpl(arg1);
-        CFloat tested2 = toTestedImpl(arg2);
-        boolean resultTested;
         try {
-          resultTested = predicate.apply(tested1, tested2);
-        } catch (Throwable t) {
-          String testHeader = printTestHeader(name, arg1, arg2);
-          throw new RuntimeException(testHeader, t);
-        }
+          // Calculate result with the reference implementation
+          CFloat ref1 = toReferenceImpl(arg1);
+          CFloat ref2 = toReferenceImpl(arg2);
+          boolean resultReference = predicate.apply(ref1, ref2);
 
-        // Compare the two results
-        if (resultTested != resultReference) {
-          String testHeader = printTestHeader(name, arg1, arg2);
-          expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
+          // Calculate result with the tested implementation
+          CFloat tested1 = toTestedImpl(arg1);
+          CFloat tested2 = toTestedImpl(arg2);
+          boolean resultTested = predicate.apply(tested1, tested2);
+
+          // Compare the two results
+          if (resultTested != resultReference) {
+            String testHeader = printTestHeader(name, arg1, arg2);
+            expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
+          }
+        } catch (Throwable t) {
+          throw new RuntimeException(printTestHeader(name, arg1, arg2), t);
         }
       }
     }
@@ -503,48 +493,44 @@ abstract class AbstractCFloatTestBase {
 
   private void testIntegerFunction(String name, Function<CFloat, Number> function) {
     for (BigFloat arg : unaryTestValues()) {
-      // Calculate result with the reference implementation
-      CFloat ref = toReferenceImpl(arg);
-      Number resultReference = function.apply(ref);
-
-      // Calculate result with the tested implementation
-      CFloat tested = toTestedImpl(arg);
-      Number resultsTested;
       try {
-        resultsTested = function.apply(tested);
-      } catch (Throwable t) {
-        String testHeader = printTestHeader(name, arg);
-        throw new RuntimeException(testHeader, t);
-      }
+        // Calculate result with the reference implementation
+        CFloat ref = toReferenceImpl(arg);
+        Number resultReference = function.apply(ref);
 
-      // Compare the two results
-      if (!Objects.equals(resultsTested, resultReference)) {
-        String testHeader = printTestHeader(name, arg);
-        expect.withMessage(testHeader).that(resultsTested).isEqualTo(resultReference);
+        // Calculate result with the tested implementation
+        CFloat tested = toTestedImpl(arg);
+        Number resultsTested = function.apply(tested);
+
+        // Compare the two results
+        if (!Objects.equals(resultsTested, resultReference)) {
+          String testHeader = printTestHeader(name, arg);
+          expect.withMessage(testHeader).that(resultsTested).isEqualTo(resultReference);
+        }
+      } catch (Throwable t) {
+        throw new RuntimeException(printTestHeader(name, arg), t);
       }
     }
   }
 
   private void testStringFunction(String name, Function<CFloat, String> function) {
     for (BigFloat arg : unaryTestValues()) {
-      // Calculate result with the reference implementation
-      CFloat ref = toReferenceImpl(arg);
-      String resultReference = function.apply(ref);
-
-      // Calculate result with the tested implementation
-      CFloat tested = toTestedImpl(arg);
-      String resultTested;
       try {
-        resultTested = function.apply(tested);
-      } catch (Throwable t) {
-        String testHeader = printTestHeader(name, arg);
-        throw new RuntimeException(testHeader, t);
-      }
+        // Calculate result with the reference implementation
+        CFloat ref = toReferenceImpl(arg);
+        String resultReference = function.apply(ref);
 
-      // Compare the two results
-      if (!Objects.equals(resultTested, resultReference)) {
-        String testHeader = printTestHeader(name, arg);
-        expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
+        // Calculate result with the tested implementation
+        CFloat tested = toTestedImpl(arg);
+        String resultTested = function.apply(tested);
+
+        // Compare the two results
+        if (!Objects.equals(resultTested, resultReference)) {
+          String testHeader = printTestHeader(name, arg);
+          expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
+        }
+      } catch (Throwable t) {
+        throw new RuntimeException(printTestHeader(name, arg), t);
       }
     }
   }
@@ -607,25 +593,23 @@ abstract class AbstractCFloatTestBase {
   public void fromStringTest() {
     Map<Integer, Integer> fromStringStats = new HashMap<>();
     for (BigFloat arg : unaryTestValues()) {
-      // Calculate result with the reference implementation
-      BigFloat resultReference = toBigFloat(toReferenceImpl(printBigFloat(arg)));
-
-      // Calculate result with the tested implementation
-      BigFloat resultTested = BigFloat.NaN(getFloatType().sigBits() + 1);
       try {
-        resultTested = toBigFloat(toTestedImpl(printBigFloat(arg), fromStringStats));
-      } catch (Throwable t) {
-        String testHeader = printTestHeader("fromString", arg);
-        assertWithMessage(testHeader + t).fail();
-      }
+        // Calculate result with the reference implementation
+        BigFloat resultReference = toBigFloat(toReferenceImpl(printBigFloat(arg)));
 
-      // Calculate result with the reference implementation
-      if (!resultTested.equals(resultReference)) {
-        String testHeader = printTestHeader("fromString", arg);
-        expect
-            .withMessage(testHeader)
-            .that(printValue(resultTested))
-            .isEqualTo(printValue(resultReference));
+        // Calculate result with the tested implementation
+        BigFloat resultTested = toBigFloat(toTestedImpl(printBigFloat(arg), fromStringStats));
+
+        // Calculate result with the reference implementation
+        if (!resultTested.equals(resultReference)) {
+          String testHeader = printTestHeader("fromString", arg);
+          expect
+              .withMessage(testHeader)
+              .that(printValue(resultTested))
+              .isEqualTo(printValue(resultReference));
+        }
+      } catch (Throwable t) {
+        throw new RuntimeException(printTestHeader("fromString", arg), t);
       }
     }
     // printStatistics(fromStringStats);
