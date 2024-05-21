@@ -71,7 +71,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
  *     11.6.3 Rounding test)</a>
  */
-class FloatValue {
+public class FloatValue {
   /**
    * Map with the pre-calculated values of k!
    *
@@ -183,7 +183,7 @@ class FloatValue {
    * <p>The precision of a FloatP is equivalent to the length of its significand. Here the 'hidden
    * bit' is not counted. The exponent range can be derived from the width of the exponent field.
    */
-  record Format(int expBits, int sigBits) {
+  public record Format(int expBits, int sigBits) {
     public Format {
       // Check that the arguments are valid
       Preconditions.checkArgument(
