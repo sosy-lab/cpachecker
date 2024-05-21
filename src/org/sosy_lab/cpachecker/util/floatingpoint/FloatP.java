@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -93,8 +92,6 @@ class FloatP {
    */
   private record Key(Format format, String f, int arg) {
   }
-
-  ;
 
   /**
    * Map with pre-calculated constants.
@@ -1318,17 +1315,6 @@ class FloatP {
         });
   }
 
-  private static ImmutableMap<Integer, FloatP> mkExpTable(Format pFormat, int numberOfTerms) {
-    ImmutableMap.Builder<Integer, FloatP> builder = ImmutableMap.builder();
-    Map<Integer, BigInteger> facMap = new HashMap<>();
-    builder.put(0, one(pFormat));
-    for (int k = 1; k < numberOfTerms; k++) { // TODO: Find a bound that depends on the precision
-      // Calculate 1/k! and store the values in the table
-      builder.put(k, one(pFormat).divide_(fromInteger(pFormat, fac(k, facMap))));
-    }
-    return builder.buildOrThrow();
-  }
-
   /**
    * Internal version of {@link FloatP#exp()} that does not extend the precision.
    *
@@ -1481,21 +1467,6 @@ class FloatP {
       }
     }
     return r.withPrecision(format);
-  }
-
-  private static ImmutableMap<Integer, FloatP> mkLnTable(Format pFormat, int numberOfTerms) {
-    ImmutableMap.Builder<Integer, FloatP> builder = ImmutableMap.builder();
-    for (int k = 1; k < numberOfTerms; k++) { // TODO: Find a bound that depends on the precision
-      // Calculate 1/k and store the values in the table
-      builder.put(k, one(pFormat).divide_(fromInteger(pFormat, k)));
-    }
-    return builder.buildOrThrow();
-  }
-
-  /** Calculate the constant value ln(2) for a given precision. */
-  private static FloatP make_ln2(Format pFormat) {
-    FloatP r = fromInteger(pFormat, 2).sqrt_().subtract(one(pFormat)).ln1p();
-    return r.withExponent(r.exponent + 1);
   }
 
   private FloatP ln_() {
