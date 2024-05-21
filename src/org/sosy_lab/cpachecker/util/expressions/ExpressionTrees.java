@@ -525,9 +525,10 @@ public final class ExpressionTrees {
                         : name;
                 if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
                   return false;
-                } else if (location.getVariablesInScope().orElseThrow().stream()
-                    .map(CSimpleDeclaration::getOrigName)
-                    .noneMatch(varName::equals)) {
+                } else if (location.getVariablesInScope().isPresent()
+                    && location.getVariablesInScope().orElseThrow().stream()
+                        .map(CSimpleDeclaration::getOrigName)
+                        .noneMatch(varName::equals)) {
                   // filter out variables which are not in scope
                   return false;
                 }

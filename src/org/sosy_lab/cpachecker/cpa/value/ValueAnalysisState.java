@@ -835,9 +835,11 @@ public final class ValueAnalysisState
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       // Check if the variable to be exported is actually in scope
-      if (!FluentIterable.from(pLocation.getVariablesInScope().orElseThrow())
-          .transform(CSimpleDeclaration::getOrigName)
-          .contains(entry.getKey().getIdentifier())) {
+      // but only do this if the nodes did track which variables are in scope
+      if (pLocation.getVariablesInScope().isPresent()
+          && !FluentIterable.from(pLocation.getVariablesInScope().orElseThrow())
+              .transform(CSimpleDeclaration::getOrigName)
+              .contains(entry.getKey().getIdentifier())) {
         continue;
       }
 
