@@ -37,10 +37,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * <p>Values are created with a fixed precision and an exponent range. The nested class {@link
  * Format} is used to provide these parameters and supports predefined formats for the most commonly
- * used bit sizes. Operations on multiple arguments expect the precision of the arguments to match.
- * The class {@link CFloatImpl} wraps this class to provide an adapter for the {@link CFloat}
- * interface. It also provides automatic upcasting when arguments with different precisions are
- * used.
+ * used bit sizes. Binary operations will upcast their arguments if the precisions don't match.
  *
  * <p>We guarantee "correct rounding" for all operations, that is the result is always the same as
  * if the calculation had been performed with infinite precision before rounding down to the

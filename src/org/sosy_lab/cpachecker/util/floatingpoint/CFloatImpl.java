@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
  *
  * <p>This class provides an entirely Java based implementation of the CFloat interface and should
  * be used over the now deprecated {@link CFloatNative}.
- *
- * <p>Unlike {@link FloatValue} this class does not expect arguments to have the same precision.
  */
 class CFloatImpl extends CFloat {
   private final CFloatWrapper wrapper;
