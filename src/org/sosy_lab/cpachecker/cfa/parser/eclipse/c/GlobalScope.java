@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +48,12 @@ class GlobalScope extends AbstractScope {
   private final Map<String, CComplexTypeDeclaration> types;
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final ProgramDeclarations programDeclarations;
+
+  // Caching of variables which are in scope such that we can avoid expensive computations
+  // An example where this occurs is:
+  // test/programs/benchmarks/coreutils-v8.31/comm_3args_klee-sa_ko_243_infer_nd.c
+  private ImmutableSet<CSimpleDeclaration> globalVarsDeclarations = ImmutableSet.of();
+  private boolean modifiedGlobalVars = true;
 
   public GlobalScope(
       Map<String, CSimpleDeclaration> globalVars,
@@ -213,6 +220,7 @@ class GlobalScope extends AbstractScope {
           declaration);
     }
 
+    modifiedGlobalVars = true;
     globalVars.put(name, declaration);
     globalVarsWithNewNames.put(declaration.getName(), declaration);
   }
@@ -519,6 +527,20 @@ class GlobalScope extends AbstractScope {
 
   public ImmutableMap<String, CSimpleDeclaration> getGlobalVars() {
     return ImmutableMap.copyOf(globalVars);
+  }
+
+  /**
+   * Returns a set of all global variables declared in this scope and caches them for future
+   * requests.
+   *
+   * @return A set of all global variables declared in this scope.
+   */
+  public ImmutableSet<CSimpleDeclaration> getGlobalVarsDeclarations() {
+    if (modifiedGlobalVars) {
+      globalVarsDeclarations = ImmutableSet.copyOf(globalVars.values());
+      modifiedGlobalVars = false;
+    }
+    return globalVarsDeclarations;
   }
 
   public ImmutableMap<String, CTypeDefDeclaration> getTypeDefs() {

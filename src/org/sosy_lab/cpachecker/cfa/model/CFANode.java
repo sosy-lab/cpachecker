@@ -54,7 +54,8 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   private Set<CSimpleDeclaration> outOfScopeVariables = null;
   // This will only be filled for C CFA's, since it is currently not needed for other languages.
   // It is only present if the CFA was created with this in mind.
-  private Optional<ImmutableSet<CSimpleDeclaration>> inScopeVariables = Optional.empty();
+  private Optional<ImmutableSet<CSimpleDeclaration>> localInScopeVariables = Optional.empty();
+  private Optional<ImmutableSet<CSimpleDeclaration>> globalInScopeVariables = Optional.empty();
 
   // list of summary edges
   private FunctionSummaryEdge leavingSummaryEdge = null;
@@ -85,10 +86,13 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   }
 
   public CFANode(
-      AFunctionDeclaration pFunction, ImmutableSet<CSimpleDeclaration> pInScopeVariables) {
+      AFunctionDeclaration pFunction,
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
     function = pFunction;
     nodeNumber = idGenerator.getFreshId();
-    inScopeVariables = Optional.of(pInScopeVariables);
+    localInScopeVariables = Optional.of(pLocalInScopeVariables);
+    globalInScopeVariables = Optional.of(pGlobalInScopeVariables);
   }
 
   public int getNodeNumber() {
@@ -342,6 +346,14 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   }
 
   public Optional<ImmutableSet<CSimpleDeclaration>> getVariablesInScope() {
-    return inScopeVariables;
+    // if (localInScopeVariables.isEmpty() && globalInScopeVariables.isEmpty()) {
+    //  return Optional.empty();
+    // }
+
+    return Optional.of(
+        (new ImmutableSet.Builder<CSimpleDeclaration>())
+            .addAll(localInScopeVariables.orElse(ImmutableSet.of()))
+            .addAll(globalInScopeVariables.orElse(ImmutableSet.of()))
+            .build());
   }
 }

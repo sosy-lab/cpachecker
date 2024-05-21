@@ -15,6 +15,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -58,6 +59,10 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
+
+  // Cache for all local variables in the current scope.
+  private ImmutableSet<CSimpleDeclaration> localVarsDeclarations = ImmutableSet.of();
+  private boolean modifiedLocalVars = true;
 
   private CFunctionDeclaration currentFunction = null;
   private Optional<CVariableDeclaration> returnVariable = null;
@@ -139,6 +144,7 @@ class FunctionScope extends AbstractScope {
     varsStackWitNewNames.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
+    modifiedLocalVars = true;
   }
 
   public void leaveBlock() {
@@ -148,6 +154,7 @@ class FunctionScope extends AbstractScope {
     typesStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
+    modifiedLocalVars = true;
   }
 
   /** returns only the most local scope, i.e., the scope between the nearest curly brackets. */
@@ -164,9 +171,14 @@ class FunctionScope extends AbstractScope {
         vars -> Collections.unmodifiableCollection(vars.values()));
   }
 
-  /** returns all variables in the current scopes. */
-  public Iterable<CSimpleDeclaration> getVariablesInScope() {
-    return Iterables.concat(getVariablesOfMostLocalScopes());
+  /** returns all variables in the current scopes and caches them for further reuse. */
+  public ImmutableSet<CSimpleDeclaration> getVariablesInScope() {
+    if (modifiedLocalVars) {
+      localVarsDeclarations =
+          ImmutableSet.copyOf(Iterables.concat(getVariablesOfMostLocalScopes()));
+      modifiedLocalVars = false;
+    }
+    return localVarsDeclarations;
   }
 
   @Override
