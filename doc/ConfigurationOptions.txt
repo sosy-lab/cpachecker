@@ -216,6 +216,9 @@ analysis.algorithm.conditionAdjustment = false
 # Distribute predicate analysis to multiple workers
 analysis.algorithm.configurableComponents = false
 
+# Convert CEX to C program.
+analysis.algorithm.counterexampleToC = false
+
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
 
@@ -262,6 +265,9 @@ analysis.algorithm.propertyCheck = false
 # TerminationCPA as root CPA and an automaton CPA with
 # termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
+
+# Use tube inteprolation.
+analysis.algorithm.tubeInterpolation = false
 
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
@@ -4974,11 +4980,23 @@ traceformula.makeFlowSensitive = false
 # Note that enabling this option  also decreases the quality of results.
 traceformula.reduceSelectors = false
 
+# Actions to perform
+tubes.actions = [Action.EXPORT_CEX_TO_C]
+
 # where to write assume edges
 tubes.assumes.outputPath = "assumes.txt"
 
 # Configuration for bounded predicate analysis
 tubes.boundedConfig = "config/boundedPredicateAnalysis.properties"
+
+# File name for analysis report in case a counterexample was found.
+tubes.counterExampleFiles = "Counterexample.inline.%d.c"
+
+# export counterexample to file, if one is found
+tubes.errorInputs = "nondets.txt"
+
+# where to write interpolation output
+tubes.outputPath = "interpolants.txt"
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
