@@ -21,6 +21,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 // TODO: Add support for more rounding modes
@@ -74,41 +75,100 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 class FloatP {
   /**
-   * Constant value 48/17
+   * Map with the pre-calculated values of k!
+   *
+   * <p>We need these values in {@link FloatP#lookupExpTable(int)} to calculate the Taylor expansion
+   * for e^x. Storing the values in this global maps allows us to avoid costly recalculations. This
+   * is thread-safe as we use {@link java.util.concurrent.ConcurrentHashMap} for the Map and the
+   * calculation of k! is side effect free.
+   */
+  private static final Map<Integer, BigInteger> faculties = new ConcurrentHashMap<>();
+
+  /**
+   * Key for the {@link FloatP#constants} Map.
+   *
+   * @param format Specified the precision and exponent range of the format that the constant was
+   *               calculated for.
+   * @param f      The name ofthe constant.
+   * @param arg    An index for the name.
+   */
+  private record Key(Format format, String f, int arg) {
+  }
+
+  ;
+
+  /**
+   * Map with pre-calculated constants.
+   *
+   * <p>The constants are needed by various methods in this class and have to be calculated once for
+   * every precision. This map holds the results to avoid costly recalculations. To access one the
+   * constants the methods {@link FloatP#lookupSqrtT1()}, {@link FloatP#lookupSqrtT2()}, {@link
+   * FloatP#lookupExpTable(int)}, {@link FloatP#lookupLnTable(int)} and {@link FloatP#lookupLn2()}
+   * should be used.
+   */
+  private static final Map<Key, FloatP> constants = new ConcurrentHashMap<>();
+
+  /**
+   * Lookup the value 48/17 from the constant table.
    *
    * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
    */
-  private static final FloatP SQRT_INITIAL_T1 =
-      fromInteger(Format.Float256, 48).divideSlow(fromInteger(Format.Float256, 17));
+  private FloatP lookupSqrtT1() {
+    return constants.computeIfAbsent(
+        new Key(format, "SQRT_INITIAL_T", 1),
+        (Key val) -> fromInteger(format, 48).divideSlow(fromInteger(format, 17)));
+  }
 
   /**
-   * Constant value 32/17
+   * Lookup the value 32/17 from the constant table.
    *
    * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
    */
-  private static final FloatP SQRT_INITIAL_T2 =
-      fromInteger(Format.Float256, 32).divideSlow(fromInteger(Format.Float256, 17));
+  private FloatP lookupSqrtT2() {
+    return constants.computeIfAbsent(
+        new Key(format, "SQRT_INITIAL_T", 2),
+        (Key val) -> fromInteger(format, 32).divideSlow(fromInteger(format, 17)));
+  }
 
   /**
-   * Table of constant terms 1/k! for 1..100
+   * Lookup the value 1/k! from the constant table.
    *
    * <p>Required by {@link FloatP#exp()} to speed up the expansion of the Taylor series.
    */
-  private static final ImmutableMap<Integer, FloatP> expTable = mkExpTable(Format.Float256, 100);
+  private FloatP lookupExpTable(int k) {
+    Key key = new Key(format, "EXP_TABLE", k);
+    if (!constants.containsKey(key)) {
+      constants.put(key, one(format).divide_(fromInteger(format, fac(k, faculties))));
+    }
+    return constants.get(key);
+  }
 
   /**
-   * Table of constant terms 1/k for 1..1000
+   * Lookup the value 1/k from the constant table.
    *
    * <p>Required by {@link FloatP#ln()} to speed up the expansion of the Taylor series.
    */
-  private static final ImmutableMap<Integer, FloatP> lnTable = mkLnTable(Format.Float256, 1000);
+  private FloatP lookupLnTable(int k) {
+    Key key = new Key(format, "LN_TABLE", k);
+    if (!constants.containsKey(key)) {
+      constants.put(key, one(format).divide_(fromInteger(format, k)));
+    }
+    return constants.get(key);
+  }
 
   /**
-   * Constant value ln(2)
+   * Lookup the value ln(2) from the constant table.
    *
    * <p>Required by {@link FloatP#ln()} to rewrite ln(x)=ln(a*2^k) as ln(a) + k*ln(2)
    */
-  private static final FloatP const_ln2 = make_ln2(Format.Float256);
+  private FloatP lookupLn2() {
+    Key key = new Key(format, "CONSTANT_LN", 2);
+    if (!constants.containsKey(key)) {
+      FloatP r = fromInteger(format, 2).sqrt_().subtract(one(format)).ln1p();
+      constants.put(key, r.withExponent(r.exponent + 1));
+    }
+    return constants.get(key);
+  }
 
   /** Format, defines the precision of the value and the allowed exponent range. */
   private final Format format;
@@ -998,10 +1058,7 @@ class FloatP {
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
 
     // Set the initial value to 48/32 - 32/17*D
-    FloatP t1 = SQRT_INITIAL_T1.withPrecision(format);
-    FloatP t2 = SQRT_INITIAL_T2.withPrecision(format);
-
-    FloatP x = t1.subtract(t2.multiply(d));
+    FloatP x = lookupSqrtT1().subtract(lookupSqrtT2().multiply(d));
 
     for (int i = 0; i < bound; i++) {
       // X(i+1) = X(i)*(2 - D*X(i))
@@ -1329,17 +1386,9 @@ class FloatP {
     while (!done) {
       FloatP s = r;
 
-      // Check that expTable was created with enough terms
-      if (!expTable.containsKey(k)) {
-        // We populated lnTable with the first 100 terms of the taylor expansion. If more is needed
-        // an exception is thrown.
-        // TODO: Support arbitrary precisions by rebuilding the table when necessary
-        throw new IllegalArgumentException();
-      }
-
       // r(k+1) = r(k) +  x^k/k!
       FloatP a = x.powInt_(BigInteger.valueOf(k), powMap);
-      FloatP b = expTable.get(k).withPrecision(format);
+      FloatP b = lookupExpTable(k);
 
       r = r.add(a.multiply(b));
 
@@ -1468,8 +1517,7 @@ class FloatP {
     FloatP a = withExponent(-1);
     FloatP lna = a.subtract(one(format)).ln1p();
 
-    FloatP ln2 = const_ln2.withPrecision(format);
-    FloatP nln2 = fromInteger(format, (int) exponent + 1).multiply(ln2);
+    FloatP nln2 = fromInteger(format, (int) exponent + 1).multiply(lookupLn2());
     return lna.add(nln2);
   }
 
@@ -1490,19 +1538,12 @@ class FloatP {
     while (!done) {
       FloatP r0 = r;
 
-      // Check that lnTable was created with enough terms
-      if (!lnTable.containsKey(k)) {
-        // We populated lnTable with the first 1000 terms of the taylor expansion. If more is needed
-        // an exception is thrown.
-        // TODO: Support arbitrary precisions by rebuilding the table when necessary
-        throw new IllegalArgumentException();
-      }
-
       // r(k+1) = r(k) +  x^k/k
       FloatP a = x.powInt_(BigInteger.valueOf(k), powMap);
-      FloatP b = a.multiply(lnTable.get(k).withPrecision(format));
+      FloatP b = lookupLnTable(k);
+      FloatP v = a.multiply(b);
 
-      r = r.add(k % 2 == 0 ? b.negate() : b);
+      r = r.add(k % 2 == 0 ? v.negate() : v);
 
       // Abort if we have enough precision
       done = r.equals(r0);
