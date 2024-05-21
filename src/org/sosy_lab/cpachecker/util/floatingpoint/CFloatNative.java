@@ -13,7 +13,7 @@ import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * C based implementation of the {@link CFloat} interface.

@@ -13,7 +13,7 @@ import java.math.RoundingMode;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * MPFR based implementation of the {@link CFloat} interface.

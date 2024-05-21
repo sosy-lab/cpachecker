@@ -50,13 +50,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * always be rounded correctly. The same is not true for transcendental functions where such bounds
  * are unknown and may not even exist. This problem is known as <a
  * href=ttps://en.wikipedia.org/wiki/Rounding#Table-maker's_dilemma>"Table-maker's dilemma"</a>.
- * Luckily for the transcendental functions {@link FloatP#exp()}, {@link FloatP#ln()} and {@link
- * FloatP#pow(FloatP)}) from this class it can be shown that only a finite number of extra digits
- * are needed for correct rounding. This follows from Lindemann’s theorem that e^z is transcendental
- * for every nonzero algebraic complex number z. Since floating point numbers are algebraic, the
- * result of the calculation can never fall exactly on a floating point value, or the break-point
- * between two floating point values. It is therefore enough to repeat the calculation with
- * increasing precision until the result no longer falls on a break-point and can be correctly
+ * Luckily for the transcendental functions {@link FloatValue#exp()}, {@link FloatValue#ln()} and
+ * {@link FloatValue#pow(FloatValue)}) from this class it can be shown that only a finite number of
+ * extra digits are needed for correct rounding. This follows from Lindemann’s theorem that e^z is
+ * transcendental for every nonzero algebraic complex number z. Since floating point numbers are
+ * algebraic, the result of the calculation can never fall exactly on a floating point value, or the
+ * break-point between two floating point values. It is therefore enough to repeat the calculation
+ * with increasing precision until the result no longer falls on a break-point and can be correctly
  * rounded. This approach is know as <a href="https://dl.acm.org/doi/pdf/10.1145/114697.116813">
  * Ziv's technique</a> and requires a "rounding test" that decides if the value calculated in the
  * current iteration can be correctly rounded. Such test depend on the rounding mode used, but for
@@ -71,19 +71,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
  *     11.6.3 Rounding test)</a>
  */
-class FloatP {
+class FloatValue {
   /**
    * Map with the pre-calculated values of k!
    *
-   * <p>We need these values in {@link FloatP#lookupExpTable(int)} to calculate the Taylor expansion
-   * for e^x. Storing the values in this global maps allows us to avoid costly recalculations. This
-   * is thread-safe as we use {@link java.util.concurrent.ConcurrentHashMap} for the Map and the
-   * calculation of k! is side effect free.
+   * <p>We need these values in {@link FloatValue#lookupExpTable(int)} to calculate the Taylor
+   * expansion for e^x. Storing the values in this global maps allows us to avoid costly
+   * recalculations. This is thread-safe as we use {@link java.util.concurrent.ConcurrentHashMap}
+   * for the Map and the calculation of k! is side effect free.
    */
   private static final Map<Integer, BigInteger> faculties = new ConcurrentHashMap<>();
 
   /**
-   * Key for the {@link FloatP#constants} Map.
+   * Key for the {@link FloatValue#constants} Map.
    *
    * @param format Specified the precision and exponent range of the format that the constant was
    *     calculated for.
@@ -97,18 +97,18 @@ class FloatP {
    *
    * <p>The constants are needed by various methods in this class and have to be calculated once for
    * every precision. This map holds the results to avoid costly recalculations. To access one the
-   * constants the methods {@link FloatP#lookupSqrtT1()}, {@link FloatP#lookupSqrtT2()}, {@link
-   * FloatP#lookupExpTable(int)}, {@link FloatP#lookupLnTable(int)} and {@link FloatP#lookupLn2()}
-   * should be used.
+   * constants the methods {@link FloatValue#lookupSqrtT1()}, {@link FloatValue#lookupSqrtT2()},
+   * {@link FloatValue#lookupExpTable(int)}, {@link FloatValue#lookupLnTable(int)} and {@link
+   * FloatValue#lookupLn2()} should be used.
    */
-  private static final Map<Key, FloatP> constants = new ConcurrentHashMap<>();
+  private static final Map<Key, FloatValue> constants = new ConcurrentHashMap<>();
 
   /**
    * Lookup the value 48/17 from the constant table.
    *
-   * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
+   * <p>Required as the initial value for Newton's method in {@link FloatValue#sqrt()}
    */
-  private FloatP lookupSqrtT1() {
+  private FloatValue lookupSqrtT1() {
     return constants.computeIfAbsent(
         new Key(format, "SQRT_INITIAL_T", 1),
         (Key val) -> fromInteger(format, 48).divideSlow(fromInteger(format, 17)));
@@ -117,9 +117,9 @@ class FloatP {
   /**
    * Lookup the value 32/17 from the constant table.
    *
-   * <p>Required as the initial value for Newton's method in {@link FloatP#sqrt()}
+   * <p>Required as the initial value for Newton's method in {@link FloatValue#sqrt()}
    */
-  private FloatP lookupSqrtT2() {
+  private FloatValue lookupSqrtT2() {
     return constants.computeIfAbsent(
         new Key(format, "SQRT_INITIAL_T", 2),
         (Key val) -> fromInteger(format, 32).divideSlow(fromInteger(format, 17)));
@@ -128,9 +128,9 @@ class FloatP {
   /**
    * Lookup the value 1/k! from the constant table.
    *
-   * <p>Required by {@link FloatP#exp()} to speed up the expansion of the Taylor series.
+   * <p>Required by {@link FloatValue#exp()} to speed up the expansion of the Taylor series.
    */
-  private FloatP lookupExpTable(int k) {
+  private FloatValue lookupExpTable(int k) {
     Key key = new Key(format, "EXP_TABLE", k);
     if (!constants.containsKey(key)) {
       constants.put(key, one(format).divide_(fromInteger(format, fac(k, faculties))));
@@ -141,9 +141,9 @@ class FloatP {
   /**
    * Lookup the value 1/k from the constant table.
    *
-   * <p>Required by {@link FloatP#ln()} to speed up the expansion of the Taylor series.
+   * <p>Required by {@link FloatValue#ln()} to speed up the expansion of the Taylor series.
    */
-  private FloatP lookupLnTable(int k) {
+  private FloatValue lookupLnTable(int k) {
     Key key = new Key(format, "LN_TABLE", k);
     if (!constants.containsKey(key)) {
       constants.put(key, one(format).divide_(fromInteger(format, k)));
@@ -154,12 +154,12 @@ class FloatP {
   /**
    * Lookup the value ln(2) from the constant table.
    *
-   * <p>Required by {@link FloatP#ln()} to rewrite ln(x)=ln(a*2^k) as ln(a) + k*ln(2)
+   * <p>Required by {@link FloatValue#ln()} to rewrite ln(x)=ln(a*2^k) as ln(a) + k*ln(2)
    */
-  private FloatP lookupLn2() {
+  private FloatValue lookupLn2() {
     Key key = new Key(format, "CONSTANT_LN", 2);
     if (!constants.containsKey(key)) {
-      FloatP r = fromInteger(format, 2).sqrt_().subtract(one(format)).ln1p();
+      FloatValue r = fromInteger(format, 2).sqrt_().subtract(one(format)).ln1p();
       constants.put(key, r.withExponent(r.exponent + 1));
     }
     return constants.get(key);
@@ -178,7 +178,7 @@ class FloatP {
   private final BigInteger significand;
 
   /**
-   * Defines the precision and the exponent range of a {@link FloatP} value.
+   * Defines the precision and the exponent range of a {@link FloatValue} value.
    *
    * <p>The precision of a FloatP is equivalent to the length of its significand. Here the 'hidden
    * bit' is not counted. The exponent range can be derived from the width of the exponent field.
@@ -258,7 +258,7 @@ class FloatP {
    * @param pExponent Exponent, without the IEEE bias
    * @param pSignificand Significand, including the leading bit that is hidden in the IEEE format
    */
-  public FloatP(Format pFormat, boolean pSign, long pExponent, BigInteger pSignificand) {
+  public FloatValue(Format pFormat, boolean pSign, long pExponent, BigInteger pSignificand) {
     // Exponent range
     Preconditions.checkArgument(
         pExponent >= pFormat.minExp() - 1 && pExponent <= pFormat.maxExp() + 1,
@@ -289,59 +289,61 @@ class FloatP {
    *
    * <p>NaN has many representations, and we always return the "canonical" representation that only
    * has the highest bit of the significand set to one. The sign bit is zero, but can be set by
-   * {@link FloatP#negate()}. The methods {@link FloatP#abs()} and {@link FloatP#isNegative()} still
-   * as expected and {@link FloatP#withPrecision(Format)} always preserves the sign of NaN.
+   * {@link FloatValue#negate()}. The methods {@link FloatValue#abs()} and {@link
+   * FloatValue#isNegative()} still as expected and {@link FloatValue#withPrecision(Format)} always
+   * preserves the sign of NaN.
    *
    * <p>Users should not depend on any exact representation of NaN and use the method {@link
-   * FloatP#isNan()} instead.
+   * FloatValue#isNan()} instead.
    */
-  public static FloatP nan(Format pFormat) {
-    return new FloatP(
+  public static FloatValue nan(Format pFormat) {
+    return new FloatValue(
         pFormat, false, pFormat.maxExp() + 1, BigInteger.ONE.shiftLeft(pFormat.sigBits - 1));
   }
 
-  public static FloatP infinity(Format pFormat) {
-    return new FloatP(pFormat, false, pFormat.maxExp() + 1, BigInteger.ZERO);
+  public static FloatValue infinity(Format pFormat) {
+    return new FloatValue(pFormat, false, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
-  public static FloatP maxValue(Format pFormat) {
+  public static FloatValue maxValue(Format pFormat) {
     BigInteger allOnes = BigInteger.ONE.shiftLeft(pFormat.sigBits + 1).subtract(BigInteger.ONE);
-    return new FloatP(pFormat, false, pFormat.maxExp(), allOnes);
+    return new FloatValue(pFormat, false, pFormat.maxExp(), allOnes);
   }
 
-  public static FloatP one(Format pFormat) {
-    return new FloatP(pFormat, false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
+  public static FloatValue one(Format pFormat) {
+    return new FloatValue(pFormat, false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
   /** Smallest normal value that can be represented in this format. */
-  public static FloatP minNormal(Format pFormat) {
-    return new FloatP(pFormat, false, pFormat.minExp(), BigInteger.ONE.shiftLeft(pFormat.sigBits));
+  public static FloatValue minNormal(Format pFormat) {
+    return new FloatValue(
+        pFormat, false, pFormat.minExp(), BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
   /**
    * Smallest absolute value (other than zero) that can be represented in this format.
    *
    * <p>Note that this value will be sub-normal. To get the smallest normal value use {@link
-   * FloatP#minNormal} instead.
+   * FloatValue#minNormal} instead.
    */
-  public static FloatP minValue(Format pFormat) {
-    return new FloatP(pFormat, false, pFormat.minExp() - 1, BigInteger.ONE);
+  public static FloatValue minValue(Format pFormat) {
+    return new FloatValue(pFormat, false, pFormat.minExp() - 1, BigInteger.ONE);
   }
 
-  public static FloatP zero(Format pFormat) {
-    return new FloatP(pFormat, false, pFormat.minExp() - 1, BigInteger.ZERO);
+  public static FloatValue zero(Format pFormat) {
+    return new FloatValue(pFormat, false, pFormat.minExp() - 1, BigInteger.ZERO);
   }
 
-  public static FloatP negativeZero(Format pFormat) {
-    return new FloatP(pFormat, true, pFormat.minExp() - 1, BigInteger.ZERO);
+  public static FloatValue negativeZero(Format pFormat) {
+    return new FloatValue(pFormat, true, pFormat.minExp() - 1, BigInteger.ZERO);
   }
 
-  public static FloatP negativeOne(Format pFormat) {
-    return new FloatP(pFormat, true, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
+  public static FloatValue negativeOne(Format pFormat) {
+    return new FloatValue(pFormat, true, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
-  public static FloatP negativeInfinity(Format pFormat) {
-    return new FloatP(pFormat, true, pFormat.maxExp() + 1, BigInteger.ZERO);
+  public static FloatValue negativeInfinity(Format pFormat) {
+    return new FloatValue(pFormat, true, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
   public boolean isNan() {
@@ -384,7 +386,7 @@ class FloatP {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof FloatP other
+    return pOther instanceof FloatValue other
         && format.equals(other.format)
         && sign == other.sign
         && exponent == other.exponent
@@ -433,19 +435,19 @@ class FloatP {
   }
 
   /** Clone the value with a new exponent. */
-  private FloatP withExponent(long pExponent) {
+  private FloatValue withExponent(long pExponent) {
     if (pExponent > format.maxExp()) {
       return sign ? negativeInfinity(format) : infinity(format);
     }
     if (pExponent < format.minExp()) {
       throw new IllegalArgumentException(); // FIXME: Handle subnormal numbers
     }
-    return new FloatP(format, sign, pExponent, significand);
+    return new FloatValue(format, sign, pExponent, significand);
   }
 
   /** Clone the value with a new sign. */
-  private FloatP withSign(boolean pSign) {
-    return new FloatP(format, pSign, exponent, significand);
+  private FloatValue withSign(boolean pSign) {
+    return new FloatValue(format, pSign, exponent, significand);
   }
 
   /**
@@ -454,7 +456,7 @@ class FloatP {
    * <p>Uses "round to nearest, ties to even" for rounding when the value can not be represented
    * exactly in the new format.
    */
-  public FloatP withPrecision(Format targetFormat) {
+  public FloatValue withPrecision(Format targetFormat) {
     if (format.equals(targetFormat)) {
       return this;
     }
@@ -517,24 +519,24 @@ class FloatP {
     if (resultExponent > targetFormat.maxExp()) {
       return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
     }
-    return new FloatP(targetFormat, sign, resultExponent, resultSignificand);
+    return new FloatValue(targetFormat, sign, resultExponent, resultSignificand);
   }
 
-  public FloatP abs() {
-    return new FloatP(format, false, exponent, significand);
+  public FloatValue abs() {
+    return new FloatValue(format, false, exponent, significand);
   }
 
-  public FloatP negate() {
-    return new FloatP(format, !sign, exponent, significand);
+  public FloatValue negate() {
+    return new FloatValue(format, !sign, exponent, significand);
   }
 
-  public boolean greaterThan(FloatP number) {
+  public boolean greaterThan(FloatValue number) {
     // Find a common precision and convert both arguments to this precision
     // Find a common precision and convert both arguments to this precision
     Format p = format.sup(number.format);
 
-    FloatP a = this.withPrecision(p);
-    FloatP b = number.withPrecision(p);
+    FloatValue a = this.withPrecision(p);
+    FloatValue b = number.withPrecision(p);
 
     if (a.isNan() || b.isNan()) {
       return false;
@@ -550,20 +552,20 @@ class FloatP {
       // -inf > x = true, unless x=-inf
       return false;
     }
-    FloatP r = a.subtract(b);
+    FloatValue r = a.subtract(b);
     if (r.isZero()) {
       return false;
     }
     return !r.isNegative();
   }
 
-  public FloatP add(FloatP number) {
+  public FloatValue add(FloatValue number) {
     // Find a common precision and convert both arguments to this precision
     Format p = format.sup(number.format);
 
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a;
-    FloatP b;
+    FloatValue a;
+    FloatValue b;
     if (exponent >= number.exponent) {
       a = this.withPrecision(p);
       b = number.withPrecision(p);
@@ -678,20 +680,20 @@ class FloatP {
     }
 
     // Otherwise return the number
-    return new FloatP(p, resultSign, resultExponent, resultSignificand);
+    return new FloatValue(p, resultSign, resultExponent, resultSignificand);
   }
 
-  public FloatP subtract(FloatP number) {
+  public FloatValue subtract(FloatValue number) {
     return add(number.negate());
   }
 
-  public FloatP multiply(FloatP number) {
+  public FloatValue multiply(FloatValue number) {
     // Find a common precision and convert both arguments to this precision
     Format p = format.sup(number.format);
 
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a;
-    FloatP b;
+    FloatValue a;
+    FloatValue b;
     if (exponent >= number.exponent) {
       a = this.withPrecision(p);
       b = number.withPrecision(p);
@@ -799,22 +801,22 @@ class FloatP {
     }
 
     // Otherwise return the number
-    return new FloatP(p, resultSign, resultExponent, resultSignificand);
+    return new FloatValue(p, resultSign, resultExponent, resultSignificand);
   }
 
   /**
    * Multiply two numbers and return the exact result.
    *
-   * <p>This variant of {@link FloatP#multiply} skips the rounding steps at the end and returns
+   * <p>This variant of {@link FloatValue#multiply} skips the rounding steps at the end and returns
    * directly. The result may have between p and 2p+1 bits.
    */
-  private FloatP multiplyExact(FloatP number) {
+  private FloatValue multiplyExact(FloatValue number) {
     // Find a common precision and convert both arguments to this precision
     Format p = format.sup(number.format);
 
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a;
-    FloatP b;
+    FloatValue a;
+    FloatValue b;
     if (exponent >= number.exponent) {
       a = this.withPrecision(p);
       b = number.withPrecision(p);
@@ -879,20 +881,20 @@ class FloatP {
     }
 
     // Otherwise return the number
-    return new FloatP(
+    return new FloatValue(
         new Format(p.expBits, resultSignificand.bitLength() - 1),
         resultSign,
         resultExponent,
         resultSignificand);
   }
 
-  private FloatP squared() {
+  private FloatValue squared() {
     return this.multiply(this);
   }
 
   /** Calculate the power function a^x where x is an integer. */
-  public FloatP powInt(BigInteger exp) {
-    Map<BigInteger, FloatP> powMap = new HashMap<>();
+  public FloatValue powInt(BigInteger exp) {
+    Map<BigInteger, FloatValue> powMap = new HashMap<>();
     return withPrecision(format.extended()).powInt_(exp, powMap).withPrecision(format);
   }
 
@@ -904,38 +906,38 @@ class FloatP {
    * is supposed to be reused when a^k needs to be computed for many different k as this allows us
    * to avoid recalculations of partial results during fast exponentiation.
    */
-  private FloatP powInt_(BigInteger exp, Map<BigInteger, FloatP> powMap) {
+  private FloatValue powInt_(BigInteger exp, Map<BigInteger, FloatValue> powMap) {
     if (!powMap.containsKey(exp)) {
-      FloatP x = this;
+      FloatValue x = this;
       if (exp.compareTo(BigInteger.ZERO) < 0) {
         // TODO: Find a bound for the number of extra bits needed
         Format ext = new Format(format.expBits, 2 * format.sigBits + 1);
         x = one(ext).divide_(x.withPrecision(ext));
       }
-      FloatP r = x.powFast(exp.abs(), powMap);
+      FloatValue r = x.powFast(exp.abs(), powMap);
       powMap.put(exp, r);
     }
     return powMap.get(exp);
   }
 
-  private FloatP powFast(BigInteger exp, Map<BigInteger, FloatP> powMap) {
+  private FloatValue powFast(BigInteger exp, Map<BigInteger, FloatValue> powMap) {
     if (exp.equals(BigInteger.ZERO)) {
       return one(format);
     }
     if (exp.equals(BigInteger.ONE)) {
       return this;
     }
-    FloatP r = powInt_(exp.divide(BigInteger.valueOf(2)), powMap).squared();
-    FloatP p = exp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
+    FloatValue r = powInt_(exp.divide(BigInteger.valueOf(2)), powMap).squared();
+    FloatValue p = exp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
     return p.multiply(r);
   }
 
-  public FloatP divide(FloatP number) {
+  public FloatValue divide(FloatValue number) {
     // Find a common precision and convert both arguments to this precision
     Format p = format.sup(number.format);
 
-    FloatP a = this.withPrecision(p.extended());
-    FloatP b = number.withPrecision(p.extended());
+    FloatValue a = this.withPrecision(p.extended());
+    FloatValue b = number.withPrecision(p.extended());
 
     return a.divide_(b).withPrecision(p);
   }
@@ -947,7 +949,7 @@ class FloatP {
    * calculate the constants that are needed for the other, faster version of divide that uses
    * Newton's method.
    */
-  private FloatP divideSlow(FloatP number) {
+  private FloatValue divideSlow(FloatValue number) {
     // Calculate the sign of the result
     boolean resultSign = sign ^ number.sign;
 
@@ -1026,16 +1028,16 @@ class FloatP {
     }
 
     // Return the number
-    return new FloatP(format, resultSign, resultExponent, resultSignificand);
+    return new FloatValue(format, resultSign, resultExponent, resultSignificand);
   }
 
   private double lb(double number) {
     return Math.log(number) / Math.log(2);
   }
 
-  private FloatP divide_(FloatP number) {
-    FloatP a = this;
-    FloatP b = number;
+  private FloatValue divide_(FloatValue number) {
+    FloatValue a = this;
+    FloatValue b = number;
 
     boolean resultSign = a.isNegative() ^ b.isNegative(); // Sign of the result
 
@@ -1075,14 +1077,14 @@ class FloatP {
 
     // Shift numerator and divisor by pulling out common factors in the exponent.
     // This will put the divisor in the range of 0.5 to 1.0
-    FloatP n = new FloatP(format, false, exponent1 - (exponent2 + 1), a.significand);
-    FloatP d = new FloatP(format, false, -1, b.significand);
+    FloatValue n = new FloatValue(format, false, exponent1 - (exponent2 + 1), a.significand);
+    FloatValue d = new FloatValue(format, false, -1, b.significand);
 
     // Calculate how many iterations are needed
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
 
     // Set the initial value to 48/32 - 32/17*D
-    FloatP x = lookupSqrtT1().subtract(lookupSqrtT2().multiply(d));
+    FloatValue x = lookupSqrtT1().subtract(lookupSqrtT2().multiply(d));
 
     for (int i = 0; i < bound; i++) {
       // X(i+1) = X(i)*(2 - D*X(i))
@@ -1090,13 +1092,13 @@ class FloatP {
     }
 
     // Multiply 1/D with N
-    FloatP r = x.multiply(n);
+    FloatValue r = x.multiply(n);
 
     // Set the sign bit and return the result
     return r.withSign(a.sign ^ b.sign);
   }
 
-  public FloatP sqrt() {
+  public FloatValue sqrt() {
     // The calculation will be done in a higher precision and the result is then rounded down.
     // 2p+2 bits are enough for the inverse square root.
     // See Table 12.6 in "Handbook of Floating-Point Arithmetic"
@@ -1104,7 +1106,7 @@ class FloatP {
     return withPrecision(extended).sqrt_().withPrecision(format);
   }
 
-  private FloatP sqrt_() {
+  private FloatValue sqrt_() {
     if (isZero()) {
       return isNegative() ? negativeZero(format) : zero(format);
     }
@@ -1128,18 +1130,19 @@ class FloatP {
 
     // Range reduction:
     // sqrt(f * 2^2m) = sqrt(f)*2^m
-    FloatP f = new FloatP(format, sign, resultExponent % 2, resultSignificand);
+    FloatValue f = new FloatValue(format, sign, resultExponent % 2, resultSignificand);
 
     // Define constants
     // TODO: These constants should be declared only once for each supported precision
-    FloatP c1d2 = new FloatP(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
-    FloatP c3d2 = new FloatP(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
+    FloatValue c1d2 = new FloatValue(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
+    FloatValue c3d2 =
+        new FloatValue(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
 
     // Initial value (0.5 will always converge)
-    FloatP x = c1d2;
+    FloatValue x = c1d2;
 
     boolean done = false;
-    List<FloatP> partial = new ArrayList<>();
+    List<FloatValue> partial = new ArrayList<>();
     while (!done) {
       partial.add(x);
       // x_n+1 = x_n * (3/2 - 1/2 * f * x_n^2)
@@ -1153,7 +1156,7 @@ class FloatP {
     x = x.multiply(f);
 
     // Restore the exponent by multiplying with 2^m
-    FloatP r = fromInteger(format, 2).powInt(BigInteger.valueOf(resultExponent / 2));
+    FloatValue r = fromInteger(format, 2).powInt(BigInteger.valueOf(resultExponent / 2));
     return x.multiply(r);
   }
 
@@ -1173,7 +1176,7 @@ class FloatP {
    *
    * <p>This method assumes that the number is transcendental.
    */
-  private FloatP validPart() {
+  private FloatValue validPart() {
     if (isZero() || isNan() || isInfinite()) {
       return this;
     }
@@ -1197,7 +1200,7 @@ class FloatP {
       return sign ? negativeZero(format) : zero(format);
     }
 
-    return new FloatP(
+    return new FloatValue(
         new Format(format.expBits, trailing > format.sigBits ? 0 : (format.sigBits - trailing)),
         sign,
         exponent,
@@ -1205,27 +1208,27 @@ class FloatP {
   }
 
   /** The minimal distance between two floating point values with the same exponent. */
-  private FloatP oneUlp() {
+  private FloatValue oneUlp() {
     BigInteger resultSignificand = BigInteger.ONE.shiftLeft(format.sigBits);
     long resultExponent = exponent - format.sigBits;
     if (resultExponent < format.minExp()) {
       return sign ? minValue(format).negate() : minValue(format);
     }
-    return new FloatP(format, sign, resultExponent, resultSignificand);
+    return new FloatValue(format, sign, resultExponent, resultSignificand);
   }
 
   /** Returns the next larger floating point number. */
-  private FloatP plus1Ulp() {
+  private FloatValue plus1Ulp() {
     return add(oneUlp());
   }
 
   /** Returns the floating point number immediately below this number. */
-  private FloatP minus1Ulp() {
+  private FloatValue minus1Ulp() {
     return add(oneUlp().negate());
   }
 
   /** Compare two floating point numbers for equality when rounded to a lower precision p. * */
-  private static boolean equalModuloP(Format format, FloatP a, FloatP b) {
+  private static boolean equalModuloP(Format format, FloatValue a, FloatValue b) {
     return a.withPrecision(format).equals(b.withPrecision(format));
   }
 
@@ -1235,7 +1238,7 @@ class FloatP {
    * <p>Needed as part of the "rounding test": We have to make sure that the number is not too close
    * to a break point before rounding.
    */
-  private boolean isStable(FloatP r) {
+  private boolean isStable(FloatValue r) {
     if (r.format.sigBits == 0) {
       return false;
     }
@@ -1243,7 +1246,7 @@ class FloatP {
   }
 
   /** The exponential function e^x. */
-  public FloatP exp() {
+  public FloatValue exp() {
     return expWithStats(null);
   }
 
@@ -1252,7 +1255,7 @@ class FloatP {
    *
    * @param expStats Histogram with the number of extra bits used in all calls to exp()
    */
-  FloatP expWithStats(@Nullable Map<Integer, Integer> expStats) {
+  FloatValue expWithStats(@Nullable Map<Integer, Integer> expStats) {
     if (isZero()) {
       return one(format);
     }
@@ -1298,17 +1301,17 @@ class FloatP {
       extendedPrecisions.add(m, m.extended());
     }
 
-    FloatP r = nan(format);
+    FloatValue r = nan(format);
     boolean done = false;
 
     for (Format p : extendedPrecisions.build()) {
       if (!done) {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
-        FloatP x = withPrecision(p_ext);
+        FloatValue x = withPrecision(p_ext);
 
         // TODO: Call exp_ only once and *then* check if we're too close to a break point
-        FloatP v1 = x.plus1Ulp().withPrecision(p).exp_();
-        FloatP v2 = x.minus1Ulp().withPrecision(p).exp_();
+        FloatValue v1 = x.plus1Ulp().withPrecision(p).exp_();
+        FloatValue v2 = x.minus1Ulp().withPrecision(p).exp_();
 
         if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
           done = true;
@@ -1329,8 +1332,8 @@ class FloatP {
    * Calculate the faculty.
    *
    * <p>We use dynamic programming and store intermediate results in the Map from the second
-   * argument. This speeds up the calculation of k! in {@link FloatP#lookupExpTable(int)} as results
-   * can be reused across multiple function calls.
+   * argument. This speeds up the calculation of k! in {@link FloatValue#lookupExpTable(int)} as
+   * results can be reused across multiple function calls.
    */
   private static BigInteger fac(int k, Map<Integer, BigInteger> facMap) {
     return facMap.computeIfAbsent(
@@ -1344,22 +1347,22 @@ class FloatP {
   }
 
   /**
-   * Internal version of {@link FloatP#exp()} that does not extend the precision.
+   * Internal version of {@link FloatValue#exp()} that does not extend the precision.
    *
-   * <p>Use in the implementation of {@link FloatP#pow(FloatP)} where the caller makes sure that
-   * enough precision is used.
+   * <p>Use in the implementation of {@link FloatValue#pow(FloatValue)} where the caller makes sure
+   * that enough precision is used.
    */
-  private FloatP exp_() {
+  private FloatValue exp_() {
     return expImpl(false);
   }
 
   /**
    * Calculates expm1, that is e^x - 1.
    *
-   * <p>This method is used in the implementation of {@link FloatP#pow(FloatP)} where it helps to
-   * avoid precision loss if the argument is close to zero.
+   * <p>This method is used in the implementation of {@link FloatValue#pow(FloatValue)} where it
+   * helps to avoid precision loss if the argument is close to zero.
    */
-  private FloatP expm1_() {
+  private FloatValue expm1_() {
     return expImpl(true);
   }
 
@@ -1368,7 +1371,7 @@ class FloatP {
    *
    * @param skipTerm1 Subtract one calculate e^x - 1 if true
    */
-  private FloatP expImpl(boolean skipTerm1) {
+  private FloatValue expImpl(boolean skipTerm1) {
     if (isNan()) {
       return nan(format);
     }
@@ -1376,25 +1379,25 @@ class FloatP {
       return isNegative() ? zero(format) : infinity(format);
     }
 
-    FloatP x = this;
-    FloatP r = zero(format); // Series expansion after k terms.
+    FloatValue x = this;
+    FloatValue r = zero(format); // Series expansion after k terms.
 
     // Range reduction: exp(a * 2^k) = exp(a)^2k
     if (exponent > 0) {
       x = x.withExponent(0);
     }
 
-    Map<BigInteger, FloatP> powMap = new HashMap<>();
+    Map<BigInteger, FloatValue> powMap = new HashMap<>();
 
     boolean done = false;
     int k = skipTerm1 ? 1 : 0;
 
     while (!done) {
-      FloatP s = r;
+      FloatValue s = r;
 
       // r(k+1) = r(k) +  x^k/k!
-      FloatP a = x.powInt_(BigInteger.valueOf(k), powMap);
-      FloatP b = lookupExpTable(k);
+      FloatValue a = x.powInt_(BigInteger.valueOf(k), powMap);
+      FloatValue b = lookupExpTable(k);
 
       r = r.add(a.multiply(b));
 
@@ -1411,7 +1414,7 @@ class FloatP {
   }
 
   /** The natural logarithm ln(x). */
-  public FloatP ln() {
+  public FloatValue ln() {
     return lnWithStats(null);
   }
 
@@ -1420,7 +1423,7 @@ class FloatP {
    *
    * @param lnStats Histogram with the number of extra bits used in all calls to ln()
    */
-  FloatP lnWithStats(@Nullable Map<Integer, Integer> lnStats) {
+  FloatValue lnWithStats(@Nullable Map<Integer, Integer> lnStats) {
     if (isZero()) {
       return negativeInfinity(format);
     }
@@ -1460,20 +1463,20 @@ class FloatP {
       extendedPrecisions.add(m, m.extended());
     }
 
-    FloatP r = nan(format);
+    FloatValue r = nan(format);
     boolean done = false;
 
     for (Format p : extendedPrecisions.build()) {
       if (!done) {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
-        FloatP x = withPrecision(p_ext);
+        FloatValue x = withPrecision(p_ext);
 
         // TODO: Call ln only once and *then* check if we're too close to a break point
-        FloatP x1 = x.plus1Ulp().withPrecision(p);
-        FloatP x2 = x.minus1Ulp().withPrecision(p);
+        FloatValue x1 = x.plus1Ulp().withPrecision(p);
+        FloatValue x2 = x.minus1Ulp().withPrecision(p);
 
-        FloatP v1 = x1.ln_();
-        FloatP v2 = x2.ln_();
+        FloatValue v1 = x1.ln_();
+        FloatValue v2 = x2.ln_();
 
         if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
           done = true;
@@ -1490,7 +1493,7 @@ class FloatP {
     return r.withPrecision(format);
   }
 
-  private FloatP ln_() {
+  private FloatValue ln_() {
     if (isZero()) {
       return negativeInfinity(format);
     }
@@ -1505,28 +1508,28 @@ class FloatP {
     }
 
     // ln(x) = ln(a * 2^k) = ln a + ln 2^k = ln a + k * ln 2
-    FloatP a = withExponent(-1);
-    FloatP lna = a.subtract(one(format)).ln1p();
+    FloatValue a = withExponent(-1);
+    FloatValue lna = a.subtract(one(format)).ln1p();
 
-    FloatP nln2 = fromInteger(format, (int) exponent + 1).multiply(lookupLn2());
+    FloatValue nln2 = fromInteger(format, (int) exponent + 1).multiply(lookupLn2());
     return lna.add(nln2);
   }
 
-  private FloatP ln1p() {
-    FloatP x = this;
-    FloatP r = zero(format);
+  private FloatValue ln1p() {
+    FloatValue x = this;
+    FloatValue r = zero(format);
 
-    Map<BigInteger, FloatP> powMap = new HashMap<>();
+    Map<BigInteger, FloatValue> powMap = new HashMap<>();
 
     int k = 1;
     boolean done = false;
     while (!done) {
-      FloatP r0 = r;
+      FloatValue r0 = r;
 
       // r(k+1) = r(k) +  x^k/k
-      FloatP a = x.powInt_(BigInteger.valueOf(k), powMap);
-      FloatP b = lookupLnTable(k);
-      FloatP v = a.multiply(b);
+      FloatValue a = x.powInt_(BigInteger.valueOf(k), powMap);
+      FloatValue b = lookupLnTable(k);
+      FloatValue v = a.multiply(b);
 
       r = r.add(k % 2 == 0 ? v.negate() : v);
 
@@ -1538,7 +1541,7 @@ class FloatP {
   }
 
   /** The power function a^x. */
-  public FloatP pow(FloatP pExponent) {
+  public FloatValue pow(FloatValue pExponent) {
     return powWithStats(pExponent, null);
   }
 
@@ -1547,12 +1550,12 @@ class FloatP {
    *
    * @param powStats Histogram with the number of extra bits used in all calls to pow()
    */
-  FloatP powWithStats(FloatP pExponent, @Nullable Map<Integer, Integer> powStats) {
+  FloatValue powWithStats(FloatValue pExponent, @Nullable Map<Integer, Integer> powStats) {
     // Find a common precision and convert both arguments to this precision
     Format p = format.sup(pExponent.format);
 
-    FloatP a = this.withPrecision(p);
-    FloatP x = pExponent.withPrecision(p);
+    FloatValue a = this.withPrecision(p);
+    FloatValue x = pExponent.withPrecision(p);
 
     // Handle special cases
     // See https://en.cppreference.com/w/c/numeric/math/pow for the full definition
@@ -1594,7 +1597,7 @@ class FloatP {
       // pow(-∞, exponent) returns +0 if exponent is a negative non-integer or negative even integer
       // pow(-∞, exponent) returns -∞ if exponent is a positive odd integer
       // pow(-∞, exponent) returns +∞ if exponent is a positive non-integer or positive even integer
-      FloatP power = x.isNegative() ? zero(p) : infinity(p);
+      FloatValue power = x.isNegative() ? zero(p) : infinity(p);
       return x.isOddInteger() ? power.negate() : power;
     }
     if (a.isInfinite()) {
@@ -1620,12 +1623,12 @@ class FloatP {
     if (x.isInteger()) {
       return a.powInt(x.toInteger());
     }
-    FloatP c1d2 = new FloatP(p, false, -1, BigInteger.ONE.shiftLeft(p.sigBits));
+    FloatValue c1d2 = new FloatValue(p, false, -1, BigInteger.ONE.shiftLeft(p.sigBits));
     if (x.equals(c1d2)) {
       // TODO: Also include a^3/2 in this check?
       return a.sqrt();
     }
-    FloatP r = a.abs().pow_(pExponent, powStats);
+    FloatValue r = a.abs().pow_(pExponent, powStats);
     if (a.isNegative()) {
       // Fix the sign if `a` was negative and x an integer
       r = r.withSign(x.isOddInteger());
@@ -1644,29 +1647,29 @@ class FloatP {
   }
 
   /** Check if the argument is a square number and, if so, return its square root. */
-  private Optional<FloatP> sqrtExact() {
-    FloatP a = this;
-    FloatP r = a.sqrt();
-    FloatP b = r.multiplyExact(r);
+  private Optional<FloatValue> sqrtExact() {
+    FloatValue a = this;
+    FloatValue r = a.sqrt();
+    FloatValue b = r.multiplyExact(r);
 
-    FloatP x = b.withPrecision(format).withPrecision(b.format);
-    FloatP y = b.subtract(x);
+    FloatValue x = b.withPrecision(format).withPrecision(b.format);
+    FloatValue y = b.subtract(x);
 
     return y.isZero() ? Optional.of(r) : Optional.empty();
   }
 
   /** Handle cases in pow where a^x is a floating point number or a breakpoint. */
-  private FloatP powExact(FloatP exp) {
+  private FloatValue powExact(FloatValue exp) {
     Format p = new Format(Format.Float256.expBits, format.sigBits);
-    FloatP a = this.withPrecision(p);
-    FloatP x = exp.withPrecision(p);
+    FloatValue a = this.withPrecision(p);
+    FloatValue x = exp.withPrecision(p);
 
-    FloatP r = nan(format);
+    FloatValue r = nan(format);
     boolean done = false;
 
     while (!done && !x.isInfinite()) { // TODO: Derive better bounds based on the exponent range
       // Rewrite a^x with a=b^2 and x=y/2 as b^y until we're left with an integer exponent
-      Optional<FloatP> val = a.sqrtExact();
+      Optional<FloatValue> val = a.sqrtExact();
       if (val.isEmpty()) {
         // Abort if 'a' is not a square number
         break;
@@ -1682,7 +1685,7 @@ class FloatP {
     return r.withPrecision(format);
   }
 
-  private FloatP pow_(FloatP pExponent, @Nullable Map<Integer, Integer> powStats) {
+  private FloatValue pow_(FloatValue pExponent, @Nullable Map<Integer, Integer> powStats) {
     /* For transcendental functions like pow(x) the calculation has to be repeated with increasing
      * precision until enough (valid) digits are available to round the value correctly. For this we
      * define a list of intermediate formats that was specially optimized for the precision of the
@@ -1714,7 +1717,7 @@ class FloatP {
       extendedPrecisions.add(m, m.extended());
     }
 
-    FloatP r = nan(format);
+    FloatValue r = nan(format);
     boolean done = false;
 
     for (Format p : extendedPrecisions.build()) {
@@ -1722,24 +1725,24 @@ class FloatP {
         // a^x = exp(x * ln a)
         Format ext = new Format(p.expBits, p.sigBits - format.sigBits);
 
-        FloatP a = this.withPrecision(p);
-        FloatP x = pExponent.withPrecision(p);
+        FloatValue a = this.withPrecision(p);
+        FloatValue x = pExponent.withPrecision(p);
 
         // The next call calculates ln with the current precision.
         // TODO: Figure out why this is enough?
-        FloatP lna = a.ln_();
-        FloatP xlna = x.multiply(lna).withPrecision(ext);
+        FloatValue lna = a.ln_();
+        FloatValue xlna = x.multiply(lna).withPrecision(ext);
 
         // Check if we call e^x with x close to zero
         boolean nearZero = !xlna.abs().greaterThan(minNormal(format));
 
         // Calculate a bound for the value of e^(x * ln a)
         // TODO: Call exp only once and *then* check if we're too close to a break point
-        FloatP xlna1 = xlna.plus1Ulp().withPrecision(p);
-        FloatP xlna2 = xlna.minus1Ulp().withPrecision(p);
+        FloatValue xlna1 = xlna.plus1Ulp().withPrecision(p);
+        FloatValue xlna2 = xlna.minus1Ulp().withPrecision(p);
 
-        FloatP exlna1 = nearZero ? xlna1.expm1_() : xlna1.exp_();
-        FloatP exlna2 = nearZero ? xlna2.expm1_() : xlna2.exp_();
+        FloatValue exlna1 = nearZero ? xlna1.expm1_() : xlna1.exp_();
+        FloatValue exlna2 = nearZero ? xlna2.expm1_() : xlna2.exp_();
 
         // Proceed if the result is stable in the original precision
         // If the result was close to zero we have to use an extended format that allows larger
@@ -1760,7 +1763,7 @@ class FloatP {
     return r.withPrecision(format);
   }
 
-  public FloatP roundToInteger(RoundingMode rm) {
+  public FloatValue roundToInteger(RoundingMode rm) {
     // If the argument is infinite, just return it
     if (isInfinite()) {
       return this;
@@ -1797,10 +1800,10 @@ class FloatP {
     if (resultExponent > format.maxExp()) {
       return isNegative() ? negativeInfinity(format) : infinity(format);
     }
-    return new FloatP(format, sign, resultExponent, resultSignificand);
+    return new FloatValue(format, sign, resultExponent, resultSignificand);
   }
 
-  public static FloatP fromInteger(Format format, BigInteger number) {
+  public static FloatValue fromInteger(Format format, BigInteger number) {
     // Return +0.0 for input 0
     if (number.equals(BigInteger.ZERO)) {
       return zero(format);
@@ -1828,7 +1831,7 @@ class FloatP {
       return sign ? negativeInfinity(format) : infinity(format);
     }
 
-    return new FloatP(format, sign, exponent, significand);
+    return new FloatValue(format, sign, exponent, significand);
   }
 
   public BigInteger toInteger() {
@@ -1946,7 +1949,7 @@ class FloatP {
   }
 
   /** Parse input string as a floating point number. */
-  public static FloatP fromString(Format p, String input) {
+  public static FloatValue fromString(Format p, String input) {
     return fromStringWithStats(p, input, null);
   }
 
@@ -1962,8 +1965,8 @@ class FloatP {
    * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">How to Read Floating Point
    *     Numbers Accurately</a>
    */
-  private static FloatP fromLiteralHex(Format p, boolean sign, String digits, int expValue) {
-    FloatP r = fromInteger(p, new BigInteger(digits, 16));
+  private static FloatValue fromLiteralHex(Format p, boolean sign, String digits, int expValue) {
+    FloatValue r = fromInteger(p, new BigInteger(digits, 16));
     int finalExp = expValue - 4 * (digits.length() - 1);
     r = r.withExponent(r.exponent + finalExp);
     return sign ? r.negate() : r;
@@ -1973,13 +1976,13 @@ class FloatP {
    * Create a floating point value from its base10 representation.
    *
    * <p>This conversion is more difficult as 10 and 2 are not "commensurable" as was defined in
-   * {@link FloatP#fromLiteralHex(Format, boolean, String, int)}. The conversion can't simply be
+   * {@link FloatValue#fromLiteralHex(Format, boolean, String, int)}. The conversion can't simply be
    * done one digit at a time as each digit in decimal format represents log(2) bits in binary, and
    * this number is not rational. Instead, we will use an iterative algorithm that increases its
    * precision until enough extra digits are available to ensure correct rounding to the target
    * format.
    */
-  private static FloatP fromLiteralDec(
+  private static FloatValue fromLiteralDec(
       Format p, boolean sign, String digits, int expValue, Map<Integer, Integer> fromStringStats) {
     // Read in the mantissa as in integer value
     BigInteger mantissa = new BigInteger(digits);
@@ -2035,7 +2038,7 @@ class FloatP {
     }
 
     boolean done = false;
-    FloatP r = nan(p);
+    FloatValue r = nan(p);
 
     // We run the conversion in a loop and increase the precision between runs to make sure that
     // enough precision was used to allow for correct rounding.
@@ -2055,14 +2058,14 @@ class FloatP {
         // - The term "10" for the exponent is also integer, and we use fromInteger() again. Then we
         //   use powInt() to calculate the exponent of the float.
         // - The two parts can now be multiplied to get the final value.
-        FloatP f = fromInteger(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
-        FloatP e =
+        FloatValue f = fromInteger(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
+        FloatValue e =
             fromInteger(ext, 10)
                 .powInt(BigInteger.valueOf(expValue - (digits.length() - 1) - diff));
 
         // Rounding check: make sure we have enough precision.
-        FloatP val1 = f.plus1Ulp().multiply(e);
-        FloatP val2 = f.minus1Ulp().multiply(e);
+        FloatValue val1 = f.plus1Ulp().multiply(e);
+        FloatValue val2 = f.minus1Ulp().multiply(e);
 
         if (equalModuloP(p, val1, val2)) {
           done = true;
@@ -2084,7 +2087,7 @@ class FloatP {
    * @param fromStringStats Histogram with the number of extra bits used in all calls to
    *     fromString()
    */
-  static FloatP fromStringWithStats(
+  static FloatValue fromStringWithStats(
       Format p, String input, @Nullable Map<Integer, Integer> fromStringStats) {
     // TODO: Add error handling for broken inputs.
     if ("inf".equals(input)) {
@@ -2140,7 +2143,7 @@ class FloatP {
     }
   }
 
-  public static FloatP fromInteger(Format pFormat, int number) {
+  public static FloatValue fromInteger(Format pFormat, int number) {
     return fromInteger(pFormat, BigInteger.valueOf(number));
   }
 

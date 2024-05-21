@@ -33,15 +33,15 @@ import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * Abstract test class for the {@link CFloat} interface.
  *
  * <p>The idea behind this class is to compare two different implementations of the CFloat
- * interface. We alwys use {@link FloatP} as the "tested" implementation and compare it to a second
- * "reference" implementation. There are currently 3 supported implementations that can be used as a
- * reference:
+ * interface. We alwys use {@link FloatValue} as the "tested" implementation and compare it to a
+ * second "reference" implementation. There are currently 3 supported implementations that can be
+ * used as a reference:
  *
  * <ul>
  *   <li>{@link CFloatNative}, uses native C code to calculate its results
@@ -138,14 +138,15 @@ abstract class AbstractCFloatTestBase {
   /** Construct a CFloatImpl from a BigFloat test value. */
   CFloatImpl testValueToCFloatImpl(BigFloat value, Format format) {
     if (value.isNaN()) {
-      return new CFloatImpl(value.sign() ? FloatP.nan(format).negate() : FloatP.nan(format));
+      return new CFloatImpl(
+          value.sign() ? FloatValue.nan(format).negate() : FloatValue.nan(format));
     } else if (value.isInfinite()) {
       return new CFloatImpl(
-          value.sign() ? FloatP.negativeInfinity(format) : FloatP.infinity(format));
+          value.sign() ? FloatValue.negativeInfinity(format) : FloatValue.infinity(format));
     } else {
       long exp = value.exponent(format.minExp(), format.maxExp());
       BigInteger sig = value.significand(format.minExp(), format.maxExp());
-      return new CFloatImpl(new FloatP(format, value.sign(), exp, sig));
+      return new CFloatImpl(new FloatValue(format, value.sign(), exp, sig));
     }
   }
 

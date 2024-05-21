@@ -13,20 +13,20 @@ import java.math.BigInteger;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.RoundingMode;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 
 /**
- * Adapter class for {@link FloatP} that implements the CFloat interface.
+ * Adapter class for {@link FloatValue} that implements the CFloat interface.
  *
  * <p>This class provides an entirely Java based implementation of the CFloat interface and should
  * be used over the now deprecated {@link CFloatNative}.
  *
- * <p>Unlike {@link FloatP} this class does not expect arguments to have the same precision.
+ * <p>Unlike {@link FloatValue} this class does not expect arguments to have the same precision.
  */
 public class CFloatImpl extends CFloat {
   private final CFloatWrapper wrapper;
-  private final FloatP delegate;
+  private final FloatValue delegate;
 
   public CFloatImpl(CFloatWrapper pWrapper, int pType) {
     wrapper = pWrapper;
@@ -48,7 +48,7 @@ public class CFloatImpl extends CFloat {
     wrapper = fromImpl(delegate);
   }
 
-  public CFloatImpl(FloatP pValue) {
+  public CFloatImpl(FloatValue pValue) {
     delegate = pValue;
     wrapper = fromImpl(pValue);
   }
@@ -62,7 +62,7 @@ public class CFloatImpl extends CFloat {
     };
   }
 
-  private FloatP toMyFloat(CFloatWrapper floatWrapper, CNativeType pType) {
+  private FloatValue toMyFloat(CFloatWrapper floatWrapper, CNativeType pType) {
     Format format = toFormat(pType);
     long signMask = 1L << format.expBits();
     long exponentMask = signMask - 1;
@@ -84,10 +84,10 @@ public class CFloatImpl extends CFloat {
         mantissa = mantissa.add(leadingOne);
       }
     }
-    return new FloatP(format, sign, exponent, mantissa);
+    return new FloatValue(format, sign, exponent, mantissa);
   }
 
-  private CFloatWrapper fromImpl(FloatP floatValue) {
+  private CFloatWrapper fromImpl(FloatValue floatValue) {
     ImmutableList<Format> tiny = ImmutableList.of(Format.Float8, Format.Float16, Format.Float32);
     if (tiny.contains(floatValue.getFormat())) {
       // FIXME: In Float8 and Float16 this may be broken for subnormal numbers
@@ -111,24 +111,24 @@ public class CFloatImpl extends CFloat {
     throw new IllegalArgumentException();
   }
 
-  private FloatP parseFloat(
+  private FloatValue parseFloat(
       String repr, Format format, @Nullable Map<Integer, Integer> fromStringMap) {
     if ("nan".equals(repr)) {
-      return FloatP.nan(format);
+      return FloatValue.nan(format);
     }
     if ("-inf".equals(repr)) {
-      return FloatP.negativeInfinity(format);
+      return FloatValue.negativeInfinity(format);
     }
     if ("inf".equals(repr)) {
-      return FloatP.infinity(format);
+      return FloatValue.infinity(format);
     }
     if ("-0.0".equals(repr)) {
-      return FloatP.negativeZero(format);
+      return FloatValue.negativeZero(format);
     }
     if ("0.0".equals(repr)) {
-      return FloatP.zero(format);
+      return FloatValue.zero(format);
     }
-    return FloatP.fromStringWithStats(format, repr, fromStringMap);
+    return FloatValue.fromStringWithStats(format, repr, fromStringMap);
   }
 
   @Override
@@ -146,7 +146,7 @@ public class CFloatImpl extends CFloat {
       CFloatImpl mf = (CFloatImpl) f;
       p = p.sup(mf.delegate.getFormat());
     }
-    FloatP r = delegate.withPrecision(p);
+    FloatValue r = delegate.withPrecision(p);
     for (CFloat f : pSummands) {
       CFloatImpl mf = (CFloatImpl) f;
       r = r.add(mf.delegate.withPrecision(p));
@@ -169,7 +169,7 @@ public class CFloatImpl extends CFloat {
       CFloatImpl mf = (CFloatImpl) f;
       p = p.sup(mf.delegate.getFormat());
     }
-    FloatP r = delegate.withPrecision(p);
+    FloatValue r = delegate.withPrecision(p);
     for (CFloat f : pFactors) {
       CFloatImpl mf = (CFloatImpl) f;
       r = r.multiply(mf.delegate.withPrecision(p));
@@ -198,7 +198,7 @@ public class CFloatImpl extends CFloat {
     return new CFloatImpl(delegate.ln());
   }
 
-  /** See {@link FloatP#lnWithStats} */
+  /** See {@link FloatValue#lnWithStats} */
   CFloat lnWithStats(Map<Integer, Integer> lnStats) {
     return new CFloatImpl(delegate.lnWithStats(lnStats));
   }
@@ -208,7 +208,7 @@ public class CFloatImpl extends CFloat {
     return new CFloatImpl(delegate.exp());
   }
 
-  /** See {@link FloatP#expWithStats} */
+  /** See {@link FloatValue#expWithStats} */
   CFloat expWithStats(Map<Integer, Integer> expStats) {
     return new CFloatImpl(delegate.expWithStats(expStats));
   }
@@ -221,7 +221,7 @@ public class CFloatImpl extends CFloat {
     throw new UnsupportedOperationException();
   }
 
-  /** See {@link FloatP#powWithStats} */
+  /** See {@link FloatValue#powWithStats} */
   CFloat powToWithStats(CFloat pExponent, Map<Integer, Integer> powStats) {
     if (pExponent instanceof CFloatImpl myExponent) {
       return new CFloatImpl(delegate.powWithStats(myExponent.delegate, powStats));
@@ -332,7 +332,7 @@ public class CFloatImpl extends CFloat {
     return wrapper;
   }
 
-  public FloatP getValue() {
+  public FloatValue getValue() {
     return delegate;
   }
 

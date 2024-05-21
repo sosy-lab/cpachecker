@@ -12,7 +12,7 @@ import java.util.List;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * Tests the CFloat interface for 8 bit floating point values.

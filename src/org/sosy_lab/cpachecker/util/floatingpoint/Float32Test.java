@@ -14,7 +14,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatP.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /** Tests the CFloat interface for 32 bit floating point values. */
 @RunWith(Parameterized.class)
