@@ -1034,12 +1034,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CFANode newCFANode() {
     assert cfa != null;
-    CFANode nextNode = new CFANode(cfa.getFunction());
     ImmutableSet.Builder<CSimpleDeclaration> builder = new ImmutableSet.Builder<>();
     builder.addAll(FluentIterable.concat(scope.getVariablesInScope()));
     builder.addAll(globalScope.getGlobalVars().values());
-    nextNode.setVariableInScope(builder.build());
-    return nextNode;
+    return new CFANode(cfa.getFunction(), builder.build());
   }
 
   /**

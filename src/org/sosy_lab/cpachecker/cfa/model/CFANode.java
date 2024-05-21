@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -51,7 +52,9 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   // set of variables out of scope after this node.
   // lazy initialization: first null, then final set
   private Set<CSimpleDeclaration> outOfScopeVariables = null;
-  private ImmutableSet<CSimpleDeclaration> inScopeVariables = null;
+  // This will only be filled for C CFA's, since it is currently not needed for other languages.
+  // It is only present if the CFA was created with this in mind.
+  private Optional<ImmutableSet<CSimpleDeclaration>> inScopeVariables = Optional.empty();
 
   // list of summary edges
   private FunctionSummaryEdge leavingSummaryEdge = null;
@@ -79,6 +82,13 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   public CFANode(AFunctionDeclaration pFunction) {
     function = pFunction;
     nodeNumber = idGenerator.getFreshId();
+  }
+
+  public CFANode(
+      AFunctionDeclaration pFunction, ImmutableSet<CSimpleDeclaration> pInScopeVariables) {
+    function = pFunction;
+    nodeNumber = idGenerator.getFreshId();
+    inScopeVariables = Optional.of(pInScopeVariables);
   }
 
   public int getNodeNumber() {
@@ -331,15 +341,7 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
     return Collections.unmodifiableSet(outOfScopeVariables);
   }
 
-  public void setVariableInScope(Collection<CSimpleDeclaration> pVariables) {
-    inScopeVariables = ImmutableSet.copyOf(pVariables);
-  }
-
-  public Set<CSimpleDeclaration> getVariablesInScope() {
-    if (inScopeVariables == null) { // lazy
-      return ImmutableSet.of();
-    }
-
+  public Optional<ImmutableSet<CSimpleDeclaration>> getVariablesInScope() {
     return inScopeVariables;
   }
 }
