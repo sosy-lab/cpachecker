@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -29,6 +31,23 @@ public final class CFunctionEntryNode extends FunctionEntryNode {
       final Optional<CVariableDeclaration> pReturnVariable) {
 
     super(pFileLocation, pExitNode, pFunctionDefinition, pReturnVariable);
+  }
+
+  public CFunctionEntryNode(
+      final FileLocation pFileLocation,
+      final CFunctionDeclaration pFunctionDefinition,
+      final @Nullable FunctionExitNode pExitNode,
+      final Optional<CVariableDeclaration> pReturnVariable,
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
+
+    super(
+        pFileLocation,
+        pExitNode,
+        pFunctionDefinition,
+        pReturnVariable,
+        pLocalInScopeVariables,
+        pGlobalInScopeVariables);
   }
 
   @Override

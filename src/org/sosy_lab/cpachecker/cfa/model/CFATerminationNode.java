@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.DoNotCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 /** A CFANode that marks the end of a path. */
 public final class CFATerminationNode extends CFANode {
@@ -18,6 +20,13 @@ public final class CFATerminationNode extends CFANode {
 
   public CFATerminationNode(AFunctionDeclaration pFunction) {
     super(pFunction);
+  }
+
+  public CFATerminationNode(
+      AFunctionDeclaration pFunction,
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
+    super(pFunction, pLocalInScopeVariables, pGlobalInScopeVariables);
   }
 
   @Override

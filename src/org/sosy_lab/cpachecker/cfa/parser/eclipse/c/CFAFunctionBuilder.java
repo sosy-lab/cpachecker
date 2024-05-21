@@ -472,10 +472,18 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     final FileLocation fileloc = astCreator.getLocation(declaration);
-    final FunctionExitNode returnNode = new FunctionExitNode(fdef);
+    final FunctionExitNode returnNode =
+        new FunctionExitNode(
+            fdef, scope.getVariablesInScope(), globalScope.getGlobalVarsDeclarations());
 
     final FunctionEntryNode startNode =
-        new CFunctionEntryNode(fileloc, fdef, returnNode, scope.getReturnVariable());
+        new CFunctionEntryNode(
+            fileloc,
+            fdef,
+            returnNode,
+            scope.getReturnVariable(),
+            scope.getVariablesInScope(),
+            globalScope.getGlobalVarsDeclarations());
     returnNode.setEntryNode(startNode);
     cfa = startNode;
     blocks.add(new FunctionBlock(startNode));
@@ -762,7 +770,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       labelName = localLabel.getName();
     }
 
-    CFALabelNode labelNode = new CFALabelNode(cfa.getFunction(), labelName);
+    CFALabelNode labelNode =
+        new CFALabelNode(
+            cfa.getFunction(),
+            labelName,
+            scope.getVariablesInScope(),
+            globalScope.getGlobalVarsDeclarations());
     locStack.push(labelNode);
 
     if (localLabel == null) {
@@ -1641,7 +1654,11 @@ class CFAFunctionBuilder extends ASTVisitor {
             continueStatement.getRawSignature(), fileloc, prevNode, loopStartNode, "continue");
     addToCFA(blankEdge);
 
-    CFANode nextNode = new CFANode(cfa.getFunction());
+    CFANode nextNode =
+        new CFANode(
+            cfa.getFunction(),
+            scope.getVariablesInScope(),
+            globalScope.getGlobalVarsDeclarations());
     locStack.push(nextNode);
   }
 
@@ -1861,7 +1878,11 @@ class CFAFunctionBuilder extends ASTVisitor {
             firstSwitchNode,
             postSwitchNode));
 
-    locStack.push(new CFANode(cfa.getFunction()));
+    locStack.push(
+        new CFANode(
+            cfa.getFunction(),
+            scope.getVariablesInScope(),
+            globalScope.getGlobalVarsDeclarations()));
 
     switchDefaultStack.push(null);
     switchDefaultFileLocationStack.push(null);

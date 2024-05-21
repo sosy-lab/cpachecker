@@ -300,6 +300,7 @@ class FunctionScope extends AbstractScope {
 
     vars.put(name, declaration);
     varsWithNewNames.put(declaration.getName(), declaration);
+    modifiedLocalVars = true;
   }
 
   @Override

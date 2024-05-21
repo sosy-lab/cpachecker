@@ -12,9 +12,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.DoNotCall;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 public final class FunctionExitNode extends CFANode {
 
@@ -23,6 +25,13 @@ public final class FunctionExitNode extends CFANode {
 
   public FunctionExitNode(AFunctionDeclaration pFunction) {
     super(pFunction);
+  }
+
+  public FunctionExitNode(
+      AFunctionDeclaration pFunction,
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
+    super(pFunction, pLocalInScopeVariables, pGlobalInScopeVariables);
   }
 
   public void setEntryNode(FunctionEntryNode pEntryNode) {

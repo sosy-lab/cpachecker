@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.DoNotCall;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 // TODO should be sealed but cannot permit subclasses in other packages until we use modules
 public abstract non-sealed class FunctionEntryNode extends CFANode {
@@ -44,6 +46,21 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
       final Optional<? extends AVariableDeclaration> pReturnVariable) {
 
     super(pFunctionDefinition);
+    location = checkNotNull(pFileLocation);
+    functionDefinition = pFunctionDefinition;
+    exitNode = pExitNode;
+    returnVariable = pReturnVariable.orElse(null);
+  }
+
+  protected FunctionEntryNode(
+      final FileLocation pFileLocation,
+      @Nullable FunctionExitNode pExitNode,
+      final AFunctionDeclaration pFunctionDefinition,
+      final Optional<? extends AVariableDeclaration> pReturnVariable,
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
+
+    super(pFunctionDefinition, pLocalInScopeVariables, pGlobalInScopeVariables);
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     exitNode = pExitNode;

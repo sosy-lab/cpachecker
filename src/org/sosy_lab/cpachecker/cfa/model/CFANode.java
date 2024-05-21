@@ -346,12 +346,12 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   }
 
   public Optional<ImmutableSet<CSimpleDeclaration>> getVariablesInScope() {
-    // if (localInScopeVariables.isEmpty() && globalInScopeVariables.isEmpty()) {
-    //  return Optional.empty();
-    // }
+    if (localInScopeVariables.isEmpty() && globalInScopeVariables.isEmpty()) {
+      return Optional.empty();
+    }
 
     return Optional.of(
-        (new ImmutableSet.Builder<CSimpleDeclaration>())
+        new ImmutableSet.Builder<CSimpleDeclaration>()
             .addAll(localInScopeVariables.orElse(ImmutableSet.of()))
             .addAll(globalInScopeVariables.orElse(ImmutableSet.of()))
             .build());

@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 /** A CFANode for a location that a label in the original source code. */
 public final class CFALabelNode extends CFANode {
@@ -20,6 +22,16 @@ public final class CFALabelNode extends CFANode {
 
   public CFALabelNode(AFunctionDeclaration pFunction, String pLabel) {
     super(pFunction);
+    checkArgument(!pLabel.isEmpty());
+    label = pLabel;
+  }
+
+  public CFALabelNode(
+      AFunctionDeclaration pFunction,
+      String pLabel,
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
+    super(pFunction, pLocalInScopeVariables, pGlobalInScopeVariables);
     checkArgument(!pLabel.isEmpty());
     label = pLabel;
   }
