@@ -26,9 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 // TODO: Add support for more rounding modes
 // TODO: Add more functions (like sin(x), etc)
-// TODO: Refactor and split off format as its own class
-//  This would allow us to created some of the constants (and tables) only once per bit size.
-//  On the other hand it may complicate the interface.
+// TODO: Use the same extended formats for exp, ln and pow. This will help reduce memory use as
+//  constants have to be calculated for fewer precisions.
 // TODO: Make castToOther return an Optional
 //  This is needed when the target type for castToOther is too small for the integer value of the
 //  float. See the comment before toByte() for more details.
