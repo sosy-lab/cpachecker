@@ -172,7 +172,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Deque<CFANode> blockStarts = new ArrayDeque<>();
 
   private final FunctionScope scope;
-  private final GlobalScope globalScope;
   private final ASTConverter astCreator;
   private final ParseContext parseContext;
   private final EclipseCParserOptions options;
@@ -188,7 +187,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       LogManagerWithoutDuplicates pLogger,
       ShutdownNotifier pShutdownNotifier,
       FunctionScope pScope,
-      GlobalScope pGlobalScope,
       ParseContext pParseContext,
       MachineModel pMachine,
       String staticVariablePrefix,
@@ -198,7 +196,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     scope = pScope;
-    globalScope = pGlobalScope;
     astCreator =
         new ASTConverter(
             pOptions,
@@ -1035,10 +1032,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode newCFANode() {
     assert cfa != null;
     CFANode nextNode = new CFANode(cfa.getFunction());
-    ImmutableSet.Builder<CSimpleDeclaration> builder = new ImmutableSet.Builder<>();
-    builder.addAll(FluentIterable.concat(scope.getVariablesInScope()));
-    builder.addAll(globalScope.getGlobalVars().values());
-    nextNode.setVariableInScope(builder.build());
     return nextNode;
   }
 
