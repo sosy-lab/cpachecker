@@ -134,10 +134,7 @@ public class CFloatImpl extends CFloat {
   @Override
   public CFloat add(CFloat pSummand) {
     if (pSummand instanceof CFloatImpl mySummand) {
-      Format p = delegate.getFormat().sup(mySummand.delegate.getFormat());
-      FloatP arg1 = delegate.withPrecision(p);
-      FloatP arg2 = mySummand.delegate.withPrecision(p);
-      return new CFloatImpl(arg1.add(arg2));
+      return new CFloatImpl(delegate.add(mySummand.delegate));
     }
     throw new UnsupportedOperationException();
   }
@@ -160,10 +157,7 @@ public class CFloatImpl extends CFloat {
   @Override
   public CFloat multiply(CFloat pFactor) {
     if (pFactor instanceof CFloatImpl myFactor) {
-      Format p = delegate.getFormat().sup(myFactor.delegate.getFormat());
-      FloatP arg1 = delegate.withPrecision(p);
-      FloatP arg2 = myFactor.delegate.withPrecision(p);
-      return new CFloatImpl(arg1.multiply(arg2));
+      return new CFloatImpl(delegate.multiply(myFactor.delegate));
     }
     throw new UnsupportedOperationException();
   }
@@ -186,10 +180,7 @@ public class CFloatImpl extends CFloat {
   @Override
   public CFloat subtract(CFloat pSubtrahend) {
     if (pSubtrahend instanceof CFloatImpl mySubtrahend) {
-      Format p = delegate.getFormat().sup(mySubtrahend.delegate.getFormat());
-      FloatP arg1 = delegate.withPrecision(p);
-      FloatP arg2 = mySubtrahend.delegate.withPrecision(p);
-      return new CFloatImpl(arg1.subtract(arg2));
+      return new CFloatImpl(delegate.subtract(mySubtrahend.delegate));
     }
     throw new UnsupportedOperationException();
   }
@@ -197,10 +188,7 @@ public class CFloatImpl extends CFloat {
   @Override
   public CFloat divideBy(CFloat pDivisor) {
     if (pDivisor instanceof CFloatImpl myDivisor) {
-      Format p = delegate.getFormat().sup(myDivisor.delegate.getFormat());
-      FloatP arg1 = delegate.withPrecision(p);
-      FloatP arg2 = myDivisor.delegate.withPrecision(p);
-      return new CFloatImpl(arg1.divide(arg2));
+      return new CFloatImpl(delegate.divide(myDivisor.delegate));
     }
     throw new UnsupportedOperationException();
   }
@@ -228,10 +216,7 @@ public class CFloatImpl extends CFloat {
   @Override
   public CFloat powTo(CFloat pExponent) {
     if (pExponent instanceof CFloatImpl myExponent) {
-      Format p = delegate.getFormat().sup(myExponent.delegate.getFormat());
-      FloatP arg1 = delegate.withPrecision(p);
-      FloatP arg2 = myExponent.delegate.withPrecision(p);
-      return new CFloatImpl(arg1.pow(arg2));
+      return new CFloatImpl(delegate.pow(myExponent.delegate));
     }
     throw new UnsupportedOperationException();
   }
@@ -239,10 +224,7 @@ public class CFloatImpl extends CFloat {
   /** See {@link FloatP#powWithStats} */
   CFloat powToWithStats(CFloat pExponent, Map<Integer, Integer> powStats) {
     if (pExponent instanceof CFloatImpl myExponent) {
-      Format p = delegate.getFormat().sup(myExponent.delegate.getFormat());
-      FloatP arg1 = delegate.withPrecision(p);
-      FloatP arg2 = myExponent.delegate.withPrecision(p);
-      return new CFloatImpl(arg1.powWithStats(arg2, powStats));
+      return new CFloatImpl(delegate.powWithStats(myExponent.delegate, powStats));
     }
     throw new UnsupportedOperationException();
   }

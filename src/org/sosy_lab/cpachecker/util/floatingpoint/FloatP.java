@@ -530,21 +530,28 @@ class FloatP {
   }
 
   public boolean greaterThan(FloatP number) {
-    if (this.isNan() || number.isNan()) {
+    // Find a common precision and convert both arguments to this precision
+    // Find a common precision and convert both arguments to this precision
+    Format p = format.sup(number.format);
+
+    FloatP a = this.withPrecision(p);
+    FloatP b = number.withPrecision(p);
+
+    if (a.isNan() || b.isNan()) {
       return false;
     }
-    if (this.isInfinite() && !this.isNegative()) {
+    if (a.isInfinite() && !a.isNegative()) {
       // inf > x = true, unless x=inf
-      if (number.isInfinite() && !number.isNegative()) {
+      if (b.isInfinite() && !b.isNegative()) {
         return false;
       }
       return true;
     }
-    if (this.isInfinite() && this.isNegative() && number.isInfinite() && number.isNegative()) {
+    if (a.isInfinite() && a.isNegative() && b.isInfinite() && b.isNegative()) {
       // -inf > x = true, unless x=-inf
       return false;
     }
-    FloatP r = this.subtract(number);
+    FloatP r = a.subtract(b);
     if (r.isZero()) {
       return false;
     }
@@ -552,12 +559,17 @@ class FloatP {
   }
 
   public FloatP add(FloatP number) {
+    // Find a common precision and convert both arguments to this precision
+    Format p = format.sup(number.format);
+
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a = number;
-    FloatP b = this;
+    FloatP a, b;
     if (exponent >= number.exponent) {
-      a = this;
-      b = number;
+      a = this.withPrecision(p);
+      b = number.withPrecision(p);
+    } else {
+      a = number.withPrecision(p);
+      b = this.withPrecision(p);
     }
 
     // Handle special cases:
@@ -674,12 +686,17 @@ class FloatP {
   }
 
   public FloatP multiply(FloatP number) {
+    // Find a common precision and convert both arguments to this precision
+    Format p = format.sup(number.format);
+
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a = number;
-    FloatP b = this;
+    FloatP a, b;
     if (exponent >= number.exponent) {
-      a = this;
-      b = number;
+      a = this.withPrecision(p);
+      b = number.withPrecision(p);
+    } else {
+      a = number.withPrecision(p);
+      b = this.withPrecision(p);
     }
 
     // Handle special cases:
@@ -791,12 +808,17 @@ class FloatP {
    * directly. The result may have between p and 2p+1 bits.
    */
   private FloatP multiplyExact(FloatP number) {
+    // Find a common precision and convert both arguments to this precision
+    Format p = format.sup(number.format);
+
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a = number;
-    FloatP b = this;
+    FloatP a, b;
     if (exponent >= number.exponent) {
-      a = this;
-      b = number;
+      a = this.withPrecision(p);
+      b = number.withPrecision(p);
+    } else {
+      a = number.withPrecision(p);
+      b = this.withPrecision(p);
     }
 
     // Handle special cases:
@@ -907,9 +929,13 @@ class FloatP {
   }
 
   public FloatP divide(FloatP number) {
-    FloatP a = this.withPrecision(format.extended());
-    FloatP b = number.withPrecision(format.extended());
-    return a.divide_(b).withPrecision(format);
+    // Find a common precision and convert both arguments to this precision
+    Format p = format.sup(number.format);
+
+    FloatP a = this.withPrecision(p.extended());
+    FloatP b = number.withPrecision(p.extended());
+
+    return a.divide_(b).withPrecision(p);
   }
 
   /**
@@ -1533,12 +1559,14 @@ class FloatP {
    * @param powStats Histogram with the number of extra bits used in all calls to pow()
    */
   FloatP powWithStats(FloatP pExponent, @Nullable Map<Integer, Integer> powStats) {
-    FloatP a = this;
-    FloatP x = pExponent;
+    // Find a common precision and convert both arguments to this precision
+    Format p = format.sup(pExponent.format);
+
+    FloatP a = this.withPrecision(p);
+    FloatP x = pExponent.withPrecision(p);
 
     // Handle special cases
     // See https://en.cppreference.com/w/c/numeric/math/pow for the full definition
-
     if (a.isOne() || x.isZero()) {
       // pow(+1, exponent) returns 1 for any exponent, even when exponent is NaN
       // pow(base, ±0) returns 1 for any base, even when base is NaN
