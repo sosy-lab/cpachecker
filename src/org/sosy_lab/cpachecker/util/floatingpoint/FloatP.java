@@ -1327,8 +1327,8 @@ class FloatP {
    * Calculate the faculty.
    *
    * <p>We use dynamic programming and store intermediate results in the Map from the second
-   * argument. This speeds up the calculation of k! for all k<100 in {@link FloatP#mkExpTable} as
-   * results can be reused across multiple function calls.
+   * argument. This speeds up the calculation of k! in {@link FloatP#lookupExpTable(int) as results
+   * can be reused across multiple function calls.
    */
   private static BigInteger fac(int k, Map<Integer, BigInteger> facMap) {
     return facMap.computeIfAbsent(
