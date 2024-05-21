@@ -733,7 +733,8 @@ public class CoreComponentsFactory {
       }
 
       if (useTubeInterpolation) {
-        algorithm = new TubeInterpolationAlgorithm(cfa, config, shutdownNotifier, logger, algorithm);
+        algorithm =
+            new TubeInterpolationAlgorithm(cfa, config, shutdownNotifier, logger, algorithm);
       }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);

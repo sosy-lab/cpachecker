@@ -52,9 +52,7 @@ public class TubeInterpolationAlgorithm implements Algorithm {
   private final Algorithm algorithm;
 
   @FileOption(Type.OUTPUT_FILE)
-  @Option(
-      secure = true,
-      description = "where to write interpolation output")
+  @Option(secure = true, description = "where to write interpolation output")
   private final Path outputPath = Path.of("interpolants.txt");
 
   public TubeInterpolationAlgorithm(

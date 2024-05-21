@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -69,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 public class CounterexampleToCodeVisitor
     extends AAstNodeVisitor<Void, UnsupportedOperationException> {
 
-  private static final String GLOBAL_SCOPE = "__global__";
   private static final String UNIQUE_SEPARATOR = "_";
   private final Deque<String> returnVariables;
   private final Map<String, Integer> variableIds;
@@ -77,10 +77,13 @@ public class CounterexampleToCodeVisitor
   private boolean inAssignment = false;
   private boolean inBinaryExpression = false;
 
+  private final Deque<Class<?>> callStack;
+
   public CounterexampleToCodeVisitor() {
     variableIds = new HashMap<>();
     cCode = new StringBuilder();
     returnVariables = new ArrayDeque<>();
+    callStack = new ArrayDeque<>();
   }
 
   private String getVariableId(String name, boolean increase) {
@@ -88,10 +91,7 @@ public class CounterexampleToCodeVisitor
     if (!variableIds.containsKey(name)) {
       variableIds.put(name, 0);
     }
-    int id =
-        increase
-            ? variableIds.merge(name, 1, Integer::sum)
-            : variableIds.get(name);
+    int id = increase ? variableIds.merge(name, 1, Integer::sum) : variableIds.get(name);
     return name + UNIQUE_SEPARATOR + id;
   }
 
@@ -100,11 +100,14 @@ public class CounterexampleToCodeVisitor
   }
 
   private void endStatement() {
-    cCode.append(";\n");
+    if (callStack.size() == 1) {
+      cCode.append(";\n");
+    }
   }
 
   @Override
   protected Void visit(AFunctionCallExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
     List<? extends AParameterDeclaration> originalParameters = exp.getDeclaration().getParameters();
     List<? extends AExpression> inputParameters = exp.getParameterExpressions();
     Preconditions.checkArgument(
@@ -118,6 +121,7 @@ public class CounterexampleToCodeVisitor
         assign();
       }
       cCode.append(exp.getDeclaration().getName()).append("();\n");
+      callStack.pop();
       return null;
     }
     inAssignment = true;
@@ -130,28 +134,44 @@ public class CounterexampleToCodeVisitor
       endStatement();
     }
     inAssignment = false;
+    callStack.pop();
     return null;
   }
 
   @Override
   protected Void visit(AInitializerExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
     exp.getExpression().accept_(this);
+    callStack.pop();
     return null;
   }
 
   @Override
   protected Void visit(AFunctionCallStatement stmt) throws UnsupportedOperationException {
+    callStack.push(stmt.getClass());
     stmt.getFunctionCallExpression().accept_(this);
+    endStatement();
+    callStack.pop();
     return null;
   }
 
   @Override
   protected Void visit(AFunctionCallAssignmentStatement stmt) throws UnsupportedOperationException {
+    callStack.push(stmt.getClass());
     if (stmt.getLeftHandSide() instanceof CIdExpression id) {
       inAssignment = true;
       returnVariables.push(getVariableId(id.toQualifiedASTString(), false));
       stmt.getRightHandSide().accept_(this);
       inAssignment = false;
+      callStack.pop();
+      return null;
+    }
+    if (stmt.getLeftHandSide() instanceof CFieldReference field) {
+      inAssignment = true;
+      returnVariables.push(getVariableId(field.toQualifiedASTString(), false));
+      stmt.getRightHandSide().accept_(this);
+      inAssignment = false;
+      callStack.pop();
       return null;
     }
     throw new AssertionError("Only IdExpressions are supported");
@@ -159,23 +179,28 @@ public class CounterexampleToCodeVisitor
 
   @Override
   protected Void visit(AExpressionStatement stmt) throws UnsupportedOperationException {
+    callStack.push(stmt.getClass());
     stmt.getExpression().accept_(this);
+    callStack.pop();
     return null;
   }
 
   @Override
   protected Void visit(AExpressionAssignmentStatement stmt) throws UnsupportedOperationException {
+    callStack.push(stmt.getClass());
     inAssignment = true;
     stmt.getLeftHandSide().accept_(this);
     assign();
     stmt.getRightHandSide().accept_(this);
     endStatement();
+    callStack.pop();
     inAssignment = false;
     return null;
   }
 
   @Override
   protected Void visit(AReturnStatement stmt) throws UnsupportedOperationException {
+    callStack.push(stmt.getClass());
     if (stmt.asAssignment().isPresent() && !returnVariables.isEmpty()) {
       String variable = returnVariables.pop();
       cCode.append(variable);
@@ -185,33 +210,40 @@ public class CounterexampleToCodeVisitor
       inAssignment = false;
       endStatement();
     }
+    callStack.pop();
     return null;
   }
 
   @Override
   protected Void visit(AFunctionDeclaration decl) throws UnsupportedOperationException {
+    callStack.push(decl.getClass());
     if (decl.getName().equals("main")) {
       cCode.append(decl.toASTString().replace(";", " {\n"));
     } else if (decl.getName().contains("__VERIFIER_nondet")) {
       cCode.append(decl.toASTString()).append("\n");
     }
+    callStack.pop();
     return null;
   }
 
   @Override
   protected Void visit(AParameterDeclaration decl) throws UnsupportedOperationException {
+    callStack.push(decl.getClass());
     cCode.append(decl.getType().toASTString(getVariableId(decl.getQualifiedName(), true)));
+    callStack.pop();
     return null;
   }
 
   @Override
   protected Void visit(AVariableDeclaration decl) throws UnsupportedOperationException {
+    callStack.push(decl.getClass());
     cCode.append(decl.getType().toASTString(getVariableId(decl.getQualifiedName(), false)));
     if (decl.getInitializer() != null) {
       assign();
       decl.getInitializer().accept_(this);
     }
     endStatement();
+    callStack.pop();
     return null;
   }
 
@@ -231,17 +263,18 @@ public class CounterexampleToCodeVisitor
 
   @Override
   public Void visit(ABinaryExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
     inBinaryExpression = true;
     boolean isLogicalOperator = false;
     if (exp.getOperator() instanceof BinaryOperator binaryOp) {
       isLogicalOperator = binaryOp.isLogicalOperator();
     }
     if (isLogicalOperator && !inAssignment) {
-      cCode.append("if (!(");
+      cCode.append("klee_assume(!(");
       exp.getOperand1().accept_(this);
       cCode.append(" ").append(exp.getOperator().getOperator()).append(" ");
       exp.getOperand2().accept_(this);
-      cCode.append(")) { return 0;}\n");
+      cCode.append("));\n");
     } else {
       exp.getOperand1().accept_(this);
       cCode.append(" ").append(exp.getOperator().getOperator()).append(" ");
@@ -249,42 +282,57 @@ public class CounterexampleToCodeVisitor
       endStatement();
     }
     inBinaryExpression = false;
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(ACastExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
+    cCode.append("(").append(exp.getCastType().toASTString("")).append(") ");
+    exp.getOperand().accept_(this);
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(ACharLiteralExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
     cCode.append(exp.toASTString());
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(AFloatLiteralExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
     cCode.append(exp.toASTString());
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(AIntegerLiteralExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
     cCode.append(exp.toASTString());
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(AStringLiteralExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
     cCode.append(exp.toASTString());
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(AUnaryExpression exp) throws UnsupportedOperationException {
+    callStack.push(exp.getClass());
     cCode.append(exp.getOperator().getOperator());
     exp.getOperand().accept_(this);
+    callStack.pop();
     return null;
   }
 
@@ -323,6 +371,7 @@ public class CounterexampleToCodeVisitor
 
   @Override
   public Void visit(CInitializerList pInitializerList) throws UnsupportedOperationException {
+    cCode.append(pInitializerList.toQualifiedASTString());
     return null;
   }
 
@@ -334,6 +383,9 @@ public class CounterexampleToCodeVisitor
 
   @Override
   public Void visit(CFieldReference pIastFieldReference) throws UnsupportedOperationException {
+    callStack.push(pIastFieldReference.getClass());
+    cCode.append(getVariableId(pIastFieldReference.toQualifiedASTString(), false));
+    callStack.pop();
     return null;
   }
 
@@ -345,21 +397,49 @@ public class CounterexampleToCodeVisitor
   @Override
   public Void visit(CComplexCastExpression complexCastExpression)
       throws UnsupportedOperationException {
+    callStack.push(complexCastExpression.getClass());
+    cCode
+        .append("(")
+        .append(complexCastExpression.getExpressionType().toASTString(""))
+        .append(") ");
+    complexCastExpression.getOperand().accept_(this);
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(CComplexTypeDeclaration pDecl) throws UnsupportedOperationException {
+    callStack.push(pDecl.getClass());
+    cCode.append(pDecl.toASTString()).append("\n");
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(CTypeDefDeclaration pDecl) throws UnsupportedOperationException {
+    callStack.push(pDecl.getClass());
+    cCode.append(pDecl.toASTString()).append("\n");
+    callStack.pop();
     return null;
   }
 
   @Override
   public Void visit(CEnumerator pDecl) throws UnsupportedOperationException {
+    callStack.push(pDecl.getClass());
+    cCode.append(pDecl.toASTString()).append("\n");
+    callStack.pop();
+    return null;
+  }
+
+  @Override
+  public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+      throws UnsupportedOperationException {
+    callStack.push(pIastArraySubscriptExpression.getClass());
+    pIastArraySubscriptExpression.getArrayExpression().accept_(this);
+    cCode.append("[");
+    pIastArraySubscriptExpression.getSubscriptExpression().accept_(this);
+    cCode.append("]");
+    callStack.pop();
     return null;
   }
 
@@ -427,7 +507,7 @@ public class CounterexampleToCodeVisitor
   }
 
   public String finish() {
-    String result = cCode.append("}").toString();
+    String result = cCode.append("ERROR: return 1;\n}").toString();
     return FluentIterable.from(Splitter.on("\n").splitToList(result))
         .filter(s -> !s.equals(";"))
         .join(Joiner.on("\n"));

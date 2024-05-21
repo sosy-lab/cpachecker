@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tubes;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -56,8 +59,13 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options
+@Options(prefix = "tubes")
 public class CounterexampleToC implements Algorithm {
+
+  enum Action {
+    EXPORT_CEX_TO_C,
+    EXPORT_CEX_INPUTS
+  }
 
   private final Algorithm algorithm;
   private final Configuration config;
@@ -67,10 +75,28 @@ public class CounterexampleToC implements Algorithm {
 
   @Option(
       secure = true,
-      name = "cexToC.exportPath",
+      name = "errorInputs",
       description = "export counterexample to file, if one is found")
   @FileOption(Type.OUTPUT_FILE)
-  private Path exportErrorPath = Path.of("nondets.txt");
+  private Path exportErrorInputs = Path.of("nondets.txt");
+
+  @Option(
+      secure = true,
+      name = "counterExampleFiles",
+      description = "File name for analysis report in case a counterexample was found.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate counterExampleFiles =
+      PathTemplate.ofFormatString("Counterexample.inline.%d.c");
+
+  @Option(secure = true, name = "actions", description = "Actions to perform")
+  private List<Action> actions = ImmutableList.of(Action.EXPORT_CEX_TO_C);
+
+  @Option(
+      secure = true,
+      description = "How many satisfying assignments to find per CEX; -1 for all")
+  private int maxAssignments = 10;
+
+  private int exportedCounterexamples = 0;
 
   public CounterexampleToC(
       Algorithm pAlgorithm,
@@ -85,24 +111,30 @@ public class CounterexampleToC implements Algorithm {
     logger = pLogger;
     notifier = pNotifier;
     cfa = pCfa;
-    if (exportErrorPath == null) {
+    if (exportErrorInputs == null) {
       throw new InvalidConfigurationException(
-          "Counterexample export path not specified. Please set the option cexToC.exportPath=<path>");
+          "Counterexample export path not specified. Please set the option"
+              + " cexToC.exportPath=<path>");
     }
     try {
-      Files.write(exportErrorPath, new byte[0]);
+      Files.write(exportErrorInputs, new byte[0]);
     } catch (IOException pE) {
-      throw new CPAException("Cannot write file " + exportErrorPath, pE);
+      throw new CPAException("Cannot write file " + exportErrorInputs, pE);
     }
   }
 
-  public String convertCounterexampleToC(CounterexampleInfo counterexample) {
-    CounterexampleToCodeVisitor visitor = new CounterexampleToCodeVisitor();
-    counterexample
-        .getTargetPath()
-        .getFullPath()
-        .forEach(edge -> edge.getRawAST().ifPresent(ast -> ast.accept_(visitor)));
-    return visitor.finish();
+  private void convertCounterexamplesToC(Collection<CounterexampleInfo> counterexamples)
+      throws IOException {
+    for (CounterexampleInfo counterexample : counterexamples) {
+      CounterexampleToCodeVisitor visitor = new CounterexampleToCodeVisitor();
+      counterexample
+          .getTargetPath()
+          .getFullPath()
+          .forEach(edge -> edge.getRawAST().ifPresent(ast -> ast.accept_(visitor)));
+      String cCode = visitor.finish();
+      IO.writeFile(
+          counterExampleFiles.getPath(exportedCounterexamples++), StandardCharsets.UTF_8, cCode);
+    }
   }
 
   private List<Map<String, Object>> assignments(Solver solver, BooleanFormula pBooleanFormula)
@@ -110,28 +142,85 @@ public class CounterexampleToC implements Algorithm {
     BooleanFormula formulaWithModels = pBooleanFormula;
     BooleanFormulaManagerView bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     ImmutableList.Builder<Map<String, Object>> allIterations = ImmutableList.builder();
+    int generatedAssignments = 0;
     while (true) {
       ImmutableMap.Builder<String, Object> currentIteration = ImmutableMap.builder();
       try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
         prover.push(formulaWithModels);
-        if (prover.isUnsat()) {
+        if (prover.isUnsat() || generatedAssignments == maxAssignments) {
           break;
         }
+        generatedAssignments++;
+        BooleanFormula assignments = bmgr.makeTrue();
         for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
           BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
           if (formula.toString().contains("__VERIFIER_nondet")) {
-            formulaWithModels = bmgr.and(formulaWithModels, bmgr.not(formula));
+            assignments = bmgr.and(assignments, formula);
             currentIteration.put(modelAssignment.getName(), modelAssignment.getValue());
           }
         }
+        formulaWithModels = bmgr.and(formulaWithModels, bmgr.not(assignments));
         allIterations.add(currentIteration.buildOrThrow());
       }
     }
     return allIterations.build();
   }
 
+  private void exportErrorInducingInputs(Collection<CounterexampleInfo> counterExamples)
+      throws CPAException,
+          InterruptedException,
+          InvalidConfigurationException,
+          SolverException,
+          IOException {
+    Solver solver = Solver.create(config, logger, notifier);
+    PathFormulaManager pmgr =
+        new PathFormulaManagerImpl(
+            solver.getFormulaManager(), config, logger, notifier, cfa, AnalysisDirection.FORWARD);
+    ImmutableList.Builder<String> cexLinesBuilder = ImmutableList.builder();
+    for (CounterexampleInfo counterExample : counterExamples) {
+      PathFormula cexPath = pmgr.makeEmptyPathFormula();
+      Set<String> before = ImmutableSet.of();
+      ImmutableMap.Builder<String, Integer> variableToLineNumber = ImmutableMap.builder();
+      for (CFAEdge cfaEdge : counterExample.getTargetPath().getFullPath()) {
+        cexPath = pmgr.makeAnd(cexPath, cfaEdge);
+        Set<String> after =
+            solver.getFormulaManager().extractVariables(cexPath.getFormula()).keySet();
+        for (String variable : Sets.difference(after, before)) {
+          variableToLineNumber.put(variable, cfaEdge.getFileLocation().getStartingLineNumber());
+        }
+        before = after;
+      }
+      List<Map<String, Object>> assignments = assignments(solver, cexPath.getFormula());
+      Multimap<String, String> variableToValues = ArrayListMultimap.create();
+      for (Map<String, Object> assignment : assignments) {
+        assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
+      }
+      ImmutableMap<String, Integer> lines = variableToLineNumber.buildOrThrow();
+      cexLinesBuilder.add(
+          from(variableToValues.keySet())
+              .transform(
+                  variable ->
+                      lines.get(variable)
+                          + " "
+                          + Joiner.on(" ").join(variableToValues.get(variable)))
+              .join(Joiner.on(" & ")));
+    }
+    ImmutableList<String> cexLines = cexLinesBuilder.build();
+    if (!cexLines.isEmpty()) {
+      if (exportErrorInputs.toFile().exists()) {
+        cexLinesBuilder.addAll(Files.readAllLines(exportErrorInputs, StandardCharsets.UTF_8));
+      }
+      IO.writeFile(
+          exportErrorInputs,
+          StandardCharsets.UTF_8,
+          Joiner.on("\n").join(ImmutableSet.copyOf(cexLinesBuilder.build())) + "\n");
+    }
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+    Preconditions.checkState(
+        ImmutableSet.copyOf(actions).size() == actions.size(), "Duplicate actions");
     AlgorithmStatus status = algorithm.run(reachedSet);
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
@@ -139,52 +228,23 @@ public class CounterexampleToC implements Algorithm {
                 .filter(AbstractStates::isTargetState)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
-    try {
-      Solver solver = Solver.create(config, logger, notifier);
-      PathFormulaManager pmgr =
-          new PathFormulaManagerImpl(
-              solver.getFormulaManager(), config, logger, notifier, cfa, AnalysisDirection.FORWARD);
-      ImmutableList.Builder<String> cexLinesBuilder = ImmutableList.builder();
-      for (CounterexampleInfo counterExample : counterExamples) {
-        PathFormula cexPath = pmgr.makeEmptyPathFormula();
-        Set<String> before = ImmutableSet.of();
-        ImmutableMap.Builder<String, Integer> variableToLineNumber = ImmutableMap.builder();
-        for (CFAEdge cfaEdge : counterExample.getTargetPath().getFullPath()) {
-          cexPath = pmgr.makeAnd(cexPath, cfaEdge);
-          Set<String> after =
-              solver.getFormulaManager().extractVariables(cexPath.getFormula()).keySet();
-          for (String variable : Sets.difference(after, before)) {
-            variableToLineNumber.put(variable, cfaEdge.getFileLocation().getStartingLineNumber());
+    for (Action action : ImmutableSet.copyOf(actions)) {
+      switch (action) {
+        case EXPORT_CEX_TO_C:
+          try {
+            convertCounterexamplesToC(counterExamples.toList());
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not export counterexample to C");
           }
-          before = after;
-        }
-        List<Map<String, Object>> assignments = assignments(solver, cexPath.getFormula());
-        Multimap<String, String> variableToValues = ArrayListMultimap.create();
-        for (Map<String, Object> assignment : assignments) {
-          assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
-        }
-        ImmutableMap<String, Integer> lines = variableToLineNumber.buildOrThrow();
-        cexLinesBuilder.add(
-            from(variableToValues.keys())
-                .transform(
-                    variable ->
-                        lines.get(variable)
-                            + " "
-                            + Joiner.on("\n").join(variableToValues.get(variable)))
-                .join(Joiner.on(" & ")));
-        logger.log(Level.INFO, convertCounterexampleToC(counterExample));
+          break;
+        case EXPORT_CEX_INPUTS:
+          try {
+            exportErrorInducingInputs(counterExamples.toList());
+          } catch (IOException | InvalidConfigurationException | SolverException e) {
+            logger.logUserException(Level.WARNING, e, "Could not export counterexample inputs");
+          }
+          break;
       }
-      ImmutableList<String> cexLines = cexLinesBuilder.build();
-      if (!cexLines.isEmpty()) {
-        IO.appendToFile(
-            exportErrorPath, StandardCharsets.UTF_8, Joiner.on(",\n").join(cexLines) + "\n");
-      }
-    } catch (InvalidConfigurationException pE) {
-      throw new CPAException("Invalid configuration", pE);
-    } catch (SolverException pE) {
-      throw new CPAException("Invalid solver calls", pE);
-    } catch (IOException pE) {
-      throw new CPAException("Cannot write file " + exportErrorPath, pE);
     }
     return status;
   }
