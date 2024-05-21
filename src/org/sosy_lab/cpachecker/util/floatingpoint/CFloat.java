@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
  * This abstract class is used to implement classes which provide floating point arithmetic
  * according to close to hardware level C compilations.
  */
-public abstract class CFloat {
+abstract class CFloat {
 
   /**
    * Add another {@link CFloat} to <code>this</code> and return the resulting {@link CFloat}.

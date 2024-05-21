@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
  *
  * <p>Unlike {@link FloatValue} this class does not expect arguments to have the same precision.
  */
-public class CFloatImpl extends CFloat {
+class CFloatImpl extends CFloat {
   private final CFloatWrapper wrapper;
   private final FloatValue delegate;
 

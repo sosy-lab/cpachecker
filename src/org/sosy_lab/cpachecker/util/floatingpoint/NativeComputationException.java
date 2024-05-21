@@ -15,7 +15,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
  * <p>Such exceptional events should normally indicate some false usage of the library like trying
  * to use an unimplemented type-flag or a type that cannot be used for the desired operation.
  */
-public class NativeComputationException extends Exception {
+class NativeComputationException extends Exception {
 
   private static final long serialVersionUID = 1L;
 

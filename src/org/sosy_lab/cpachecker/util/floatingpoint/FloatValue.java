@@ -191,12 +191,13 @@ public class FloatValue {
       Preconditions.checkArgument(sigBits >= 1, "Significand field must be at least one bit wide");
     }
 
-    static final Format Float8 = new Format(4, 3);
-    static final Format Float16 = new Format(5, 10);
-    static final Format Float32 = new Format(8, 23);
-    static final Format Float64 = new Format(11, 52);
-    static final Format Float128 = new Format(15, 112);
-    static final Format Float256 = new Format(19, 236);
+    public static final Format Float8 = new Format(4, 3);
+    public static final Format Float16 = new Format(5, 10);
+    public static final Format Float32 = new Format(8, 23);
+    public static final Format Float64 = new Format(11, 52);
+    public static final Format Float128 = new Format(15, 112);
+    public static final Format Float256 = new Format(19, 236);
+    public static final Format Extended = new Format(15, 63);
 
     /**
      * The exponent 'bias' of a FloatP value in this format.

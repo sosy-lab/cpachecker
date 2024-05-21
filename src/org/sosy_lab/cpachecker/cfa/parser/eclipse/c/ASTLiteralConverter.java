@@ -30,9 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatImpl;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * This Class contains functions, that convert literals (chars, numbers) from C-source into
@@ -156,17 +155,18 @@ class ASTLiteralConverter {
     // an unsuffixed floating constant has type double. If suffixed by the letter f or F, it has
     // type float. If suffixed by the letter l or L, it has type long double.
 
-    CFloat cFloat;
+    // FIXME: Remove the suffix from the input to avoid parsing it twice
+    FloatValue cFloat;
     if (pValueStr.endsWith("L") || pValueStr.endsWith("l")) {
-      cFloat = new CFloatImpl(pValueStr, CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+      cFloat = FloatValue.fromString(Format.Extended, pValueStr);
     } else if (pValueStr.endsWith("F") || pValueStr.endsWith("f")) {
-      cFloat = new CFloatImpl(pValueStr, CFloatNativeAPI.FP_TYPE_SINGLE);
+      cFloat = FloatValue.fromString(Format.Float32, pValueStr);
     } else {
       // literal has no suffix declared
-      cFloat = new CFloatImpl(pValueStr, CFloatNativeAPI.FP_TYPE_DOUBLE);
+      cFloat = FloatValue.fromString(Format.Float64, pValueStr);
     }
 
-    if (cFloat.isInfinity()) {
+    if (cFloat.isInfinite()) {
       if (cFloat.isNegative()) {
         return CFloatLiteralExpression.forNegativeInfinity(pFileLoc, pType);
       } else {
