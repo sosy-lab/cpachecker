@@ -563,7 +563,8 @@ class FloatP {
     Format p = format.sup(number.format);
 
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a, b;
+    FloatP a;
+    FloatP b;
     if (exponent >= number.exponent) {
       a = this.withPrecision(p);
       b = number.withPrecision(p);
@@ -690,7 +691,8 @@ class FloatP {
     Format p = format.sup(number.format);
 
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a, b;
+    FloatP a;
+    FloatP b;
     if (exponent >= number.exponent) {
       a = this.withPrecision(p);
       b = number.withPrecision(p);
@@ -812,7 +814,8 @@ class FloatP {
     Format p = format.sup(number.format);
 
     // Make sure the first argument has the larger (or equal) exponent
-    FloatP a, b;
+    FloatP a;
+    FloatP b;
     if (exponent >= number.exponent) {
       a = this.withPrecision(p);
       b = number.withPrecision(p);
@@ -1327,7 +1330,7 @@ class FloatP {
    * Calculate the faculty.
    *
    * <p>We use dynamic programming and store intermediate results in the Map from the second
-   * argument. This speeds up the calculation of k! in {@link FloatP#lookupExpTable(int) as results
+   * argument. This speeds up the calculation of k! in {@link FloatP#lookupExpTable(int)} as results
    * can be reused across multiple function calls.
    */
   private static BigInteger fac(int k, Map<Integer, BigInteger> facMap) {
