@@ -90,8 +90,7 @@ class FloatP {
    * @param f The name ofthe constant.
    * @param arg An index for the name.
    */
-  private record Key(Format format, String f, int arg) {
-  }
+  private record Key(Format format, String f, int arg) {}
 
   /**
    * Map with pre-calculated constants.
