@@ -86,9 +86,9 @@ class FloatP {
    * Key for the {@link FloatP#constants} Map.
    *
    * @param format Specified the precision and exponent range of the format that the constant was
-   *               calculated for.
-   * @param f      The name ofthe constant.
-   * @param arg    An index for the name.
+   *     calculated for.
+   * @param f The name ofthe constant.
+   * @param arg An index for the name.
    */
   private record Key(Format format, String f, int arg) {
   }
