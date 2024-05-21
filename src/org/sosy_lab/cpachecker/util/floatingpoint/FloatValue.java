@@ -436,11 +436,11 @@ public class FloatValue {
   private FloatValue withExponent(long pExponent) {
     if (pExponent > format.maxExp()) {
       return sign ? negativeInfinity(format) : infinity(format);
-    }
-    if (pExponent < format.minExp()) {
+    } else if (pExponent < format.minExp()) {
       throw new IllegalArgumentException(); // FIXME: Handle subnormal numbers
+    } else {
+      return new FloatValue(format, sign, pExponent, significand);
     }
-    return new FloatValue(format, sign, pExponent, significand);
   }
 
   /** Clone the value with a new sign. */
@@ -457,14 +457,11 @@ public class FloatValue {
   public FloatValue withPrecision(Format targetFormat) {
     if (format.equals(targetFormat)) {
       return this;
-    }
-    if (isNan()) {
+    } else if (isNan()) {
       return sign ? nan(targetFormat).negate() : nan(targetFormat);
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
-    }
-    if (isZero()) {
+    } else if (isZero()) {
       return sign ? negativeZero(targetFormat) : zero(targetFormat);
     }
 
@@ -530,7 +527,6 @@ public class FloatValue {
 
   public boolean greaterThan(FloatValue number) {
     // Find a common precision and convert both arguments to this precision
-    // Find a common precision and convert both arguments to this precision
     Format p = format.sup(number.format);
 
     FloatValue a = this.withPrecision(p);
@@ -538,23 +534,19 @@ public class FloatValue {
 
     if (a.isNan() || b.isNan()) {
       return false;
-    }
-    if (a.isInfinite() && !a.isNegative()) {
-      // inf > x = true, unless x=inf
-      if (b.isInfinite() && !b.isNegative()) {
+    } else if (a.isInfinite() && !a.isNegative()) {
+      // inf > b, holds unless b=inf
+      return !(b.isInfinite() && !b.isNegative());
+    } else if (a.isInfinite() && a.isNegative() && b.isInfinite() && b.isNegative()) {
+      // -inf > b, holds unless b=-inf
+      return false;
+    } else {
+      FloatValue r = a.subtract(b);
+      if (r.isZero()) {
         return false;
       }
-      return true;
+      return !r.isNegative();
     }
-    if (a.isInfinite() && a.isNegative() && b.isInfinite() && b.isNegative()) {
-      // -inf > x = true, unless x=-inf
-      return false;
-    }
-    FloatValue r = a.subtract(b);
-    if (r.isZero()) {
-      return false;
-    }
-    return !r.isNegative();
   }
 
   public FloatValue add(FloatValue number) {
@@ -573,30 +565,27 @@ public class FloatValue {
     }
 
     // Handle special cases:
-    // (1) Either argument is NaN
     if (a.isNan() || b.isNan()) {
+      // (1) Either argument is NaN
       return nan(p);
-    }
-    // (2) Both arguments are infinite
-    if (a.isInfinite() && b.isInfinite()) {
+    } else if (a.isInfinite() && b.isInfinite()) {
+      // (2) Both arguments are infinite
       if (a.isNegative() && b.isNegative()) {
         return negativeInfinity(p);
-      }
-      if (!a.isNegative() && !b.isNegative()) {
+      } else if (!a.isNegative() && !b.isNegative()) {
         return infinity(p);
+      } else {
+        return nan(p);
       }
-      return nan(p);
-    }
-    // (3) Only one argument is infinite
-    if (a.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
+    } else if (a.isInfinite()) {
+      // (3) Only one argument is infinite
+      // No need to check m as it can't be larger, and one of the args is finite
       return a;
-    }
-    // (4) Both arguments are zero (or negative zero)
-    if (a.isZero() && b.isZero()) {
+    } else if (a.isZero() && b.isZero()) {
+      // (4) Both arguments are zero (or negative zero)
       return (a.isNegative() && b.isNegative()) ? negativeZero(p) : zero(p);
-    }
-    // (5) Only one of the arguments is zero (or negative zero)
-    if (a.isZero() || b.isZero()) {
+    } else if (a.isZero() || b.isZero()) {
+      // (5) Only one of the arguments is zero (or negative zero)
       return a.isZero() ? b : a;
     }
 
@@ -701,20 +690,20 @@ public class FloatValue {
     }
 
     // Handle special cases:
-    // (1) Either argument is NaN
     if (a.isNan() || b.isNan()) {
+      // (1) Either argument is NaN
       return nan(p);
-    }
-    // (2) One of the argument is infinite
-    if (a.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
+    } else if (a.isInfinite()) {
+      // (2) One of the argument is infinite
+      // No need to check m as it can't be larger, and one of the args is finite
       if (b.isZero()) {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(p);
+      } else {
+        return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(p) : infinity(p);
       }
-      return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(p) : infinity(p);
-    }
-    // (3) One of the arguments is zero (or negative zero)
-    if (a.isZero() || b.isZero()) {
+    } else if (a.isZero() || b.isZero()) {
+      // (3) One of the arguments is zero (or negative zero)
       return (a.isNegative() ^ b.isNegative()) ? negativeZero(p) : zero(p);
     }
 
@@ -824,20 +813,20 @@ public class FloatValue {
     }
 
     // Handle special cases:
-    // (1) Either argument is NaN
     if (a.isNan() || b.isNan()) {
+      // (1) Either argument is NaN
       return nan(p);
-    }
-    // (2) One of the argument is infinite
-    if (a.isInfinite()) { // No need to check m as it can't be larger, and one of the args is finite
+    } else if (a.isInfinite()) {
+      // (2) One of the argument is infinite
+      // No need to check m as it can't be larger, and one of the args is finite
       if (b.isZero()) {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(p);
+      } else {
+        return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(p) : infinity(p);
       }
-      return (a.isNegative() ^ b.isNegative()) ? negativeInfinity(p) : infinity(p);
-    }
-    // (3) One of the arguments is zero (or negative zero)
-    if (a.isZero() || b.isZero()) {
+    } else if (a.isZero() || b.isZero()) {
+      // (3) One of the arguments is zero (or negative zero)
       return (a.isNegative() ^ b.isNegative()) ? negativeZero(p) : zero(p);
     }
 
@@ -921,13 +910,13 @@ public class FloatValue {
   private FloatValue powFast(BigInteger exp, Map<BigInteger, FloatValue> powMap) {
     if (exp.equals(BigInteger.ZERO)) {
       return one(format);
-    }
-    if (exp.equals(BigInteger.ONE)) {
+    } else if (exp.equals(BigInteger.ONE)) {
       return this;
+    } else {
+      FloatValue r = powInt_(exp.divide(BigInteger.valueOf(2)), powMap).squared();
+      FloatValue p = exp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
+      return p.multiply(r);
     }
-    FloatValue r = powInt_(exp.divide(BigInteger.valueOf(2)), powMap).squared();
-    FloatValue p = exp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
-    return p.multiply(r);
   }
 
   public FloatValue divide(FloatValue number) {
@@ -1040,32 +1029,30 @@ public class FloatValue {
     boolean resultSign = a.isNegative() ^ b.isNegative(); // Sign of the result
 
     // Handle special cases:
-    // (1) Either argument is NaN
     if (a.isNan() || b.isNan()) {
+      // (1) Either argument is NaN
       return nan(format);
-    }
-    // (2) Dividend is zero
-    if (a.isZero()) {
+    } else if (a.isZero()) {
+      // (2) Dividend is zero
       if (b.isZero()) {
         // Divisor is zero or infinite
         return resultSign ? nan(format).negate() : nan(format);
+      } else {
+        return resultSign ? negativeZero(format) : zero(format);
       }
-      return resultSign ? negativeZero(format) : zero(format);
-    }
-    // (3) Dividend is infinite
-    if (a.isInfinite()) {
+    } else if (a.isInfinite()) {
+      // (3) Dividend is infinite
       if (b.isInfinite()) {
         // Divisor is infinite
         return resultSign ? nan(format).negate() : nan(format);
+      } else {
+        return resultSign ? negativeInfinity(format) : infinity(format);
       }
+    } else if (b.isZero()) {
+      // (4) Divisor is zero (and dividend is finite)
       return resultSign ? negativeInfinity(format) : infinity(format);
-    }
-    // (4) Divisor is zero (and dividend is finite)
-    if (b.isZero()) {
-      return resultSign ? negativeInfinity(format) : infinity(format);
-    }
-    // (5) Divisor is infinite (and dividend is finite)
-    if (b.isInfinite()) {
+    } else if (b.isInfinite()) {
+      // (5) Divisor is infinite (and dividend is finite)
       return resultSign ? negativeZero(format) : zero(format);
     }
 
@@ -1107,11 +1094,9 @@ public class FloatValue {
   private FloatValue sqrt_() {
     if (isZero()) {
       return isNegative() ? negativeZero(format) : zero(format);
-    }
-    if (isNan() || isNegative()) {
+    } else if (isNan() || isNegative()) {
       return nan(format);
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return infinity(format);
     }
 
@@ -1177,8 +1162,7 @@ public class FloatValue {
   private FloatValue validPart() {
     if (isZero() || isNan() || isInfinite()) {
       return this;
-    }
-    if (BigInteger.ONE.shiftLeft(format.sigBits).equals(significand)) {
+    } else if (BigInteger.ONE.shiftLeft(format.sigBits).equals(significand)) {
       return this;
     }
     BigInteger resultSignificand = significand;
@@ -1239,8 +1223,9 @@ public class FloatValue {
   private boolean isStable(FloatValue r) {
     if (r.format.sigBits == 0) {
       return false;
+    } else {
+      return equalModuloP(format, r, r.plus1Ulp());
     }
-    return equalModuloP(format, r, r.plus1Ulp());
   }
 
   /** The exponential function e^x. */
@@ -1256,14 +1241,11 @@ public class FloatValue {
   FloatValue expWithStats(@Nullable Map<Integer, Integer> expStats) {
     if (isZero()) {
       return one(format);
-    }
-    if (isNan()) {
+    } else if (isNan()) {
       return nan(format);
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return isNegative() ? zero(format) : infinity(format);
-    }
-    if (!abs().greaterThan(minNormal(format))) {
+    } else if (!abs().greaterThan(minNormal(format))) {
       // Return one immediately if the argument is close to zero
       return one(format);
     }
@@ -1372,8 +1354,7 @@ public class FloatValue {
   private FloatValue expImpl(boolean skipTerm1) {
     if (isNan()) {
       return nan(format);
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return isNegative() ? zero(format) : infinity(format);
     }
 
@@ -1424,8 +1405,7 @@ public class FloatValue {
   FloatValue lnWithStats(@Nullable Map<Integer, Integer> lnStats) {
     if (isZero()) {
       return negativeInfinity(format);
-    }
-    if (isOne()) {
+    } else if (isOne()) {
       return zero(format);
     }
 
@@ -1494,14 +1474,11 @@ public class FloatValue {
   private FloatValue ln_() {
     if (isZero()) {
       return negativeInfinity(format);
-    }
-    if (isNan() || isNegative()) {
+    } else if (isNan() || isNegative()) {
       return nan(format);
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return infinity(format);
-    }
-    if (isOne()) {
+    } else if (isOne()) {
       return zero(format);
     }
 
@@ -1561,87 +1538,80 @@ public class FloatValue {
       // pow(+1, exponent) returns 1 for any exponent, even when exponent is NaN
       // pow(base, ±0) returns 1 for any base, even when base is NaN
       return one(p);
-    }
-    if (a.isNan() || x.isNan()) {
+    } else if (a.isNan() || x.isNan()) {
       // except where specified above, if any argument is NaN, NaN is returned
       return nan(p);
-    }
-    if (a.isZero() && x.isNegative() && x.isOddInteger()) {
-      // pow(+0, exponent), where exponent is a negative odd integer, returns +∞ and raises
-      // FE_DIVBYZERO
-      // pow(-0, exponent), where exponent is a negative odd integer, returns -∞ and raises
-      // FE_DIVBYZERO
+    } else if (a.isZero() && x.isNegative() && x.isOddInteger()) {
+      // pow(+0, exponent), where exponent is a negative odd integer
+      // returns +∞ and raises FE_DIVBYZERO
+      // pow(-0, exponent), where exponent is a negative odd integer
+      // returns -∞ and raises FE_DIVBYZERO
       return a.isNegative() ? negativeInfinity(p) : infinity(p);
-    }
-    if (a.isZero() && x.isNegative()) {
+    } else if (a.isZero() && x.isNegative()) {
       // pow(±0, -∞) returns +∞ and may raise FE_DIVBYZERO(until C23)
       // pow(±0, exponent), where exponent is negative, finite, and is an even integer or a
       // non-integer, returns +∞ and raises FE_DIVBYZERO
       return infinity(p);
-    }
-    if (a.isZero() && !x.isNegative()) {
+    } else if (a.isZero() && !x.isNegative()) {
       // pow(+0, exponent), where exponent is a positive odd integer, returns +0
       // pow(-0, exponent), where exponent is a positive odd integer, returns -0
       // pow(±0, exponent), where exponent is positive non-integer or a positive even integer,
       // returns +0
       return x.isOddInteger() ? a : zero(p);
-    }
-    if (a.isNegativeOne() && x.isInfinite()) {
+    } else if (a.isNegativeOne() && x.isInfinite()) {
       // pow(-1, ±∞) returns 1
       return one(p);
-    }
-    if (a.isInfinite() && isNegative()) {
+    } else if (a.isInfinite() && isNegative()) {
       // pow(-∞, exponent) returns -0 if exponent is a negative odd integer
       // pow(-∞, exponent) returns +0 if exponent is a negative non-integer or negative even integer
       // pow(-∞, exponent) returns -∞ if exponent is a positive odd integer
       // pow(-∞, exponent) returns +∞ if exponent is a positive non-integer or positive even integer
       FloatValue power = x.isNegative() ? zero(p) : infinity(p);
       return x.isOddInteger() ? power.negate() : power;
-    }
-    if (a.isInfinite()) {
+    } else if (a.isInfinite()) {
       // pow(+∞, exponent) returns +0 for any negative exponent
       // pow(+∞, exponent) returns +∞ for any positive exponent
       return x.isNegative() ? zero(p) : infinity(p);
-    }
-    if (x.isInfinite() && x.isNegative()) {
+    } else if (x.isInfinite() && x.isNegative()) {
       // pow(base, -∞) returns +∞ for any |base|<1
       // pow(base, -∞) returns +0 for any |base|>1
       return a.abs().greaterThan(one(p)) ? zero(p) : infinity(p);
-    }
-    if (x.isInfinite()) {
+    } else if (x.isInfinite()) {
       // pow(base, +∞) returns +0 for any |base|<1
       // pow(base, +∞) returns +∞ for any |base|>1
       return a.abs().greaterThan(one(p)) ? infinity(p) : zero(p);
-    }
-    if (a.isNegative() && !x.isInteger()) {
-      // pow(base, exponent) returns NaN and raises FE_INVALID if base is finite and negative and
-      // exponent is finite and non-integer.
+    } else if (a.isNegative() && !x.isInteger()) {
+      // pow(base, exponent)
+      // returns NaN and raises FE_INVALID if base is finite and negative and exponent is finite and
+      // non-integer.
       return nan(p);
-    }
-    if (x.isInteger()) {
+    } else if (x.isInteger()) {
+      // pow(base, exponent) where exponent is integer: calculate with powInt
       return a.powInt(x.toInteger());
-    }
-    FloatValue c1d2 = new FloatValue(p, false, -1, BigInteger.ONE.shiftLeft(p.sigBits));
-    if (x.equals(c1d2)) {
+    } else if (x.equals(new FloatValue(p, false, -1, BigInteger.ONE.shiftLeft(p.sigBits)))) {
+      // pow(base, exponent) where exponent=1/2: calculate sqrt(a) instead
       // TODO: Also include a^3/2 in this check?
       return a.sqrt();
+    } else {
+      FloatValue r = a.abs().pow_(pExponent, powStats);
+      if (a.isNegative()) {
+        // Fix the sign if `a` was negative and x an integer
+        r = r.withSign(x.isOddInteger());
+      }
+      if (r.isNan()) {
+        // If the result is NaN we assume that the real result is a floating point number (or a
+        // break
+        // point between two floating point number). Unlike exp and log, pow has many arguments
+        // where
+        // this is the case. Examples include a^0, a^1, a^k (where k is an integer), or a^0.5 (where
+        // 'a') is a square number.
+        // We still check some of the trivial cases earlier for performance reasons.
+        // The more general check is more costly, however, so it is only performed after the search
+        // in the main algorithm has failed.
+        r = a.powExact(x);
+      }
+      return r;
     }
-    FloatValue r = a.abs().pow_(pExponent, powStats);
-    if (a.isNegative()) {
-      // Fix the sign if `a` was negative and x an integer
-      r = r.withSign(x.isOddInteger());
-    }
-    if (r.isNan()) {
-      // If the result is NaN we assume that the real result is a floating point number (or a break
-      // point between two floating point number). Unlike exp and log, pow has many arguments where
-      // this is the case. Examples include a^0, a^1, a^k (where k is an integer), or a^0.5 (where
-      // 'a') is a square number.
-      // We still check some of the trivial cases earlier for performance reasons.
-      // The more general check is more costly, however, so it is only performed after the search
-      // in the main algorithm has failed.
-      r = a.powExact(x);
-    }
-    return r;
   }
 
   /** Check if the argument is a square number and, if so, return its square root. */
@@ -1762,16 +1732,14 @@ public class FloatValue {
   }
 
   public FloatValue roundToInteger(RoundingMode rm) {
-    // If the argument is infinite, just return it
     if (isInfinite()) {
+      // If the argument is infinite, just return it
       return this;
-    }
-    // For -NaN we drop the sign to make the implementation in line with MPFR
-    if (isNan()) {
+    } else if (isNan()) {
+      // For -NaN we drop the sign to make the implementation in line with MPFR
       return this.abs();
-    }
-    // If the exponent is large enough we already have an integer and can return immediately
-    if (exponent > format.sigBits) {
+    } else if (exponent > format.sigBits) {
+      // If the exponent is large enough we already have an integer and can return immediately
       return this;
     }
 
@@ -1919,31 +1887,31 @@ public class FloatValue {
   public float toFloat() {
     if (isNan()) {
       return Float.NaN;
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
+    } else {
+      int sigBits = significand.clearBit(format.sigBits).intValue();
+      int expBits = (int) (exponent + format.bias());
+      if (sign) {
+        expBits += 0x100;
+      }
+      return Float.intBitsToFloat((expBits << 23) | sigBits);
     }
-    int sigBits = significand.clearBit(format.sigBits).intValue();
-    int expBits = (int) (exponent + format.bias());
-    if (sign) {
-      expBits += 0x100;
-    }
-    return Float.intBitsToFloat((expBits << 23) | sigBits);
   }
 
   public double toDouble() {
     if (isNan()) {
       return Double.NaN;
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return isNegative() ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+    } else {
+      long sigBits = significand.clearBit(format.sigBits).longValue();
+      long expBits = exponent + format.bias();
+      if (sign) {
+        expBits += 0x800;
+      }
+      return Double.longBitsToDouble((expBits << 52) | sigBits);
     }
-    long sigBits = significand.clearBit(format.sigBits).longValue();
-    long expBits = exponent + format.bias();
-    if (sign) {
-      expBits += 0x800;
-    }
-    return Double.longBitsToDouble((expBits << 52) | sigBits);
   }
 
   /** Parse input string as a floating point number. */
@@ -2090,11 +2058,9 @@ public class FloatValue {
     // TODO: Add error handling for broken inputs.
     if ("inf".equals(input)) {
       return infinity(p);
-    }
-    if ("-inf".equals(input)) {
+    } else if ("-inf".equals(input)) {
       return negativeInfinity(p);
-    }
-    if ("nan".equals(input)) {
+    } else if ("nan".equals(input)) {
       return nan(p);
     }
     input = input.toLowerCase(Locale.getDefault());
@@ -2164,8 +2130,7 @@ public class FloatValue {
   public String toString() {
     if (isNan()) {
       return "nan";
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return isNegative() ? "-inf" : "inf";
     }
 
@@ -2217,16 +2182,15 @@ public class FloatValue {
   public String toBinaryString() {
     if (isNan()) {
       return "nan";
-    }
-    if (isInfinite()) {
+    } else if (isInfinite()) {
       return isNegative() ? "-inf" : "inf";
-    }
-    if (isZero()) {
+    } else if (isZero()) {
       return isNegative() ? "-0.0" : "0.0";
+    } else {
+      String bits = significand.toString(2);
+      bits = "0".repeat(format.sigBits + 1 - bits.length()) + bits;
+      return "%s%s.%s e%d".formatted(sign ? "-" : "", bits.charAt(0), bits.substring(1), exponent);
     }
-    String bits = significand.toString(2);
-    bits = "0".repeat(format.sigBits + 1 - bits.length()) + bits;
-    return "%s%s.%s e%d".formatted(sign ? "-" : "", bits.charAt(0), bits.substring(1), exponent);
   }
 
   long extractExpBits() {

@@ -47,30 +47,28 @@ class JFloat extends CFloat {
   private float parseFloat(String repr) {
     if ("nan".equals(repr)) {
       return Float.NaN;
-    }
-    if ("-inf".equals(repr)) {
+    } else if ("-inf".equals(repr)) {
       return Float.NEGATIVE_INFINITY;
-    }
-    if ("inf".equals(repr)) {
+    } else if ("inf".equals(repr)) {
       return Float.POSITIVE_INFINITY;
+    } else {
+      return Float.parseFloat(repr);
     }
-    return Float.parseFloat(repr);
   }
 
   @Override
   public String toString() {
     if (isNan()) {
       return "nan";
-    }
-    if (isInfinity()) {
+    } else if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
-    }
-    if (isZero()) {
+    } else if (isZero()) {
       return isNegative() ? "-0.00000000e+00" : "0.00000000e+00";
+    } else {
+      BigDecimal decimal =
+          BigDecimal.valueOf(value).plus(new MathContext(9, java.math.RoundingMode.HALF_EVEN));
+      return String.format("%.8e", decimal);
     }
-    BigDecimal decimal =
-        BigDecimal.valueOf(value).plus(new MathContext(9, java.math.RoundingMode.HALF_EVEN));
-    return String.format("%.8e", decimal);
   }
 
   @Override
@@ -125,8 +123,9 @@ class JFloat extends CFloat {
   public CFloat powTo(CFloat exponent) {
     if ((isOne() && !isNegative()) || (isOne() && exponent.isInfinity())) {
       return new JFloat(1.0f);
+    } else {
+      return new JFloat((float) Math.pow(value, toFloat(exponent.getWrapper())));
     }
-    return new JFloat((float) Math.pow(value, toFloat(exponent.getWrapper())));
   }
 
   @Override

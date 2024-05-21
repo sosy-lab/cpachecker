@@ -47,22 +47,20 @@ class JDouble extends CFloat {
   private double parseDouble(String repr) {
     if ("nan".equals(repr)) {
       return Double.NaN;
-    }
-    if ("-inf".equals(repr)) {
+    } else if ("-inf".equals(repr)) {
       return Double.NEGATIVE_INFINITY;
-    }
-    if ("inf".equals(repr)) {
+    } else if ("inf".equals(repr)) {
       return Double.POSITIVE_INFINITY;
+    } else {
+      return Double.parseDouble(repr);
     }
-    return Double.parseDouble(repr);
   }
 
   @Override
   public String toString() {
     if (isNan()) {
       return "nan";
-    }
-    if (isInfinity()) {
+    } else if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
     }
     // FIXME: Find a solution that doesn't require BigFloat

@@ -93,40 +93,36 @@ class CFloatImpl extends CFloat {
       long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
       long mantissa = bits & 0x007FFFFF;
       return new CFloatWrapper(exponent, mantissa);
-    }
-    if (Format.Float64.equals(floatValue.getFormat())) {
+    } else if (Format.Float64.equals(floatValue.getFormat())) {
       long bits = Double.doubleToRawLongBits(floatValue.toDouble());
       long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFFL;
       long mantissa = bits & 0xFFFFFFFFFFFFFL;
       return new CFloatWrapper(exponent, mantissa);
-    }
-    if (new Format(15, 63).equals(floatValue.getFormat())) {
+    } else if (new Format(15, 63).equals(floatValue.getFormat())) {
       long signBit = floatValue.isNegative() ? 1 << 15 : 0;
       long exponent = signBit + floatValue.extractExpBits() + floatValue.getFormat().bias();
       long mantissa = floatValue.extractSigBits().longValue();
       return new CFloatWrapper(exponent, mantissa);
+    } else {
+      throw new IllegalArgumentException();
     }
-    throw new IllegalArgumentException();
   }
 
   private FloatValue parseFloat(
       String repr, Format format, @Nullable Map<Integer, Integer> fromStringMap) {
     if ("nan".equals(repr)) {
       return FloatValue.nan(format);
-    }
-    if ("-inf".equals(repr)) {
+    } else if ("-inf".equals(repr)) {
       return FloatValue.negativeInfinity(format);
-    }
-    if ("inf".equals(repr)) {
+    } else if ("inf".equals(repr)) {
       return FloatValue.infinity(format);
-    }
-    if ("-0.0".equals(repr)) {
+    } else if ("-0.0".equals(repr)) {
       return FloatValue.negativeZero(format);
-    }
-    if ("0.0".equals(repr)) {
+    } else if ("0.0".equals(repr)) {
       return FloatValue.zero(format);
+    } else {
+      return FloatValue.fromStringWithStats(format, repr, fromStringMap);
     }
-    return FloatValue.fromStringWithStats(format, repr, fromStringMap);
   }
 
   @Override
@@ -338,18 +334,15 @@ class CFloatImpl extends CFloat {
   public int getType() {
     if (Format.Float16.equals(delegate.getFormat())) {
       return CNativeType.HALF.getOrdinal();
-    }
-    if (Format.Float32.equals(delegate.getFormat())) {
+    } else if (Format.Float32.equals(delegate.getFormat())) {
       return CNativeType.SINGLE.getOrdinal();
-    }
-    if (Format.Float64.equals(delegate.getFormat())) {
+    } else if (Format.Float64.equals(delegate.getFormat())) {
       return CNativeType.DOUBLE.getOrdinal();
-    }
-    Format ext = new Format(15, 63);
-    if (ext.equals(delegate.getFormat())) {
+    } else if (Format.Extended.equals(delegate.getFormat())) {
       return CNativeType.LONG_DOUBLE.getOrdinal();
+    } else {
+      throw new IllegalStateException();
     }
-    throw new IllegalStateException();
   }
 
   @Override

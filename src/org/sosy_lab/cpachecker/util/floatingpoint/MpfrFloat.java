@@ -101,25 +101,24 @@ class MpfrFloat extends CFloat {
   private BigFloat parseBigFloat(String repr) {
     if ("nan".equals(repr)) {
       return BigFloat.NaN(format.precision);
-    }
-    if ("-inf".equals(repr)) {
+    } else if ("-inf".equals(repr)) {
       return BigFloat.negativeInfinity(format.precision);
-    }
-    if ("inf".equals(repr)) {
+    } else if ("inf".equals(repr)) {
       return BigFloat.positiveInfinity(format.precision);
+    } else {
+      return new BigFloat(repr, format);
     }
-    return new BigFloat(repr, format);
   }
 
   @Override
   public String toString() {
     if (isNan()) {
       return "nan";
-    }
-    if (isInfinity()) {
+    } else if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
+    } else {
+      return value.toString().replace(",", ".");
     }
-    return value.toString().replace(",", ".");
   }
 
   @Override
@@ -301,14 +300,13 @@ class MpfrFloat extends CFloat {
   public int getType() {
     if (format.equals(BinaryMathContext.BINARY32)) {
       return CNativeType.SINGLE.getOrdinal();
-    }
-    if (format.equals(BinaryMathContext.BINARY64)) {
+    } else if (format.equals(BinaryMathContext.BINARY64)) {
       return CNativeType.DOUBLE.getOrdinal();
-    }
-    if (format.equals(new BinaryMathContext(64, 15))) {
+    } else if (format.equals(new BinaryMathContext(64, 15))) {
       return CNativeType.LONG_DOUBLE.getOrdinal();
+    } else {
+      throw new IllegalArgumentException();
     }
-    throw new IllegalArgumentException();
   }
 
   public BigFloat toBigFloat() {
