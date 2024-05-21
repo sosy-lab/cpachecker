@@ -397,11 +397,11 @@ abstract class AbstractCFloatTestBase {
           if (ulps == 0) {
             assertWithMessage(testHeader)
                 .that(printValue(resultTested))
-                .isEqualTo(printValue(resultTested));
+                .isEqualTo(printValue(resultReference));
           } else {
             assertWithMessage(testHeader)
                 .that(printValue(resultTested))
-                .isIn(errorRange(ulps, resultTested));
+                .isIn(errorRange(ulps, resultReference));
           }
         }
       } catch (AssertionError e) {
