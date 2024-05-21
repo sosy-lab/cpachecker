@@ -11,12 +11,10 @@ package org.sosy_lab.cpachecker.util.expressions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -34,7 +32,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -519,16 +517,7 @@ public final class ExpressionTrees {
             inv,
             e -> {
               for (String name : fMgr.extractVariableNames(e)) {
-                String varName =
-                    name.contains(FUNCTION_DELIMITER)
-                        ? Iterables.get(Splitter.onPattern(FUNCTION_DELIMITER).split(name), 1)
-                        : name;
                 if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                  return false;
-                } else if (location.getVariablesInScope().stream()
-                    .map(CSimpleDeclaration::getOrigName)
-                    .noneMatch(varName::equals)) {
-                  // filter out variables which are not in scope
                   return false;
                 }
               }
@@ -903,4 +892,27 @@ public final class ExpressionTrees {
           return 4;
         }
       };
+
+  public static ExpressionTree<Object> removeCPAcheckerInternals(ExpressionTree<Object> pExprTree) {
+    ContainsCPAcheckerInternalVisitor cpacheckerInternalsVisitor =
+        new ContainsCPAcheckerInternalVisitor();
+    Function<Object, Boolean> removalFunction =
+        x -> {
+          try {
+            return ((CExpression) x).accept(cpacheckerInternalsVisitor);
+          } catch (Exception e1) {
+            return false;
+          }
+        };
+
+    RemovingStructuresVisitor<Object, Exception> visitor =
+        new RemovingStructuresVisitor<>(removalFunction);
+    ExpressionTree<Object> result;
+    try {
+      result = pExprTree.accept(visitor);
+    } catch (Exception e) {
+      return pExprTree;
+    }
+    return result;
+  }
 }

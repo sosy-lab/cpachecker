@@ -22,14 +22,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
 
   private final ARGToWitnessV2 argToWitnessV2;
-  private final ARGToWitnessV2d1 argToWitnessV2d1;
+  private final ARGToWitnessV3 argToWitnessV3;
 
   public ARGToYAMLWitnessExport(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
     argToWitnessV2 = new ARGToWitnessV2(pConfig, pCfa, pSpecification, pLogger);
-    argToWitnessV2d1 = new ARGToWitnessV2d1(pConfig, pCfa, pSpecification, pLogger);
+    argToWitnessV3 = new ARGToWitnessV3(pConfig, pCfa, pSpecification, pLogger);
   }
 
   /**
@@ -49,9 +49,9 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
       Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
       switch (witnessVersion) {
         case V2 -> argToWitnessV2.exportWitnesses(pRootState, outputFile);
-        case V2d1 -> {
-          logger.log(Level.INFO, "Exporting witnesses in Version 2.1 is currently WIP.");
-          argToWitnessV2d1.exportWitness(pRootState, outputFile);
+        case V3 -> {
+          logger.log(Level.INFO, "Exporting witnesses in Version 3 is currently WIP.");
+          argToWitnessV3.exportWitness(pRootState, outputFile);
         }
         default -> throw new AssertionError("Unknown witness version: " + witnessVersion);
       }

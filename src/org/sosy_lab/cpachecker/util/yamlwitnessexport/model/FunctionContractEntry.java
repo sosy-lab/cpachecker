@@ -39,18 +39,18 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
   private final LocationRecord location;
 
   @JsonProperty("ensures")
-  private final String ensures;
+  private final EnsuresRecord ensures;
 
   @JsonProperty("requires")
-  private final String requires;
+  private final RequiresRecord requires;
 
   @JsonProperty("format")
   @JsonInclude(JsonInclude.Include.NON_NULL)
   private final YAMLWitnessExpressionType format;
 
   public FunctionContractEntry(
-      @JsonProperty("ensures") String pEnsures,
-      @JsonProperty("requires") String pRequires,
+      @JsonProperty("ensures") EnsuresRecord pEnsures,
+      @JsonProperty("requires") RequiresRecord pRequires,
       @JsonProperty("format") YAMLWitnessExpressionType pFormat,
       @JsonProperty("location") LocationRecord pLocation) {
     location = pLocation;
@@ -63,11 +63,11 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
     return location;
   }
 
-  public String getEnsures() {
+  public EnsuresRecord getEnsures() {
     return ensures;
   }
 
-  public String getRequires() {
+  public RequiresRecord getRequires() {
     return requires;
   }
 
@@ -83,10 +83,6 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
       ObjectMapper mapper = (ObjectMapper) jp.getCodec();
       JsonNode node = mapper.readTree(jp);
 
-      // The node should now be the 'invariant' node. Move one level deeper to its children.
-      JsonNode invariantNode = node.get("invariant");
-      assert invariantNode != null;
-
       // Delegate the actual object mapping back to Jackson:
       // WaypointRecord result = mapper.treeToValue(waypointNode, WaypointRecord.class);
       // CAVEAT: does not work, since this would use the custom deserializer.
@@ -95,8 +91,8 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
       // (less elegant, but we probably never touch that code again, so it is fine):
       FunctionContractEntry result =
           new FunctionContractEntry(
-              mapper.treeToValue(node.get("ensures"), String.class),
-              mapper.treeToValue(node.get("requires"), String.class),
+              mapper.treeToValue(node.get("ensures"), EnsuresRecord.class),
+              mapper.treeToValue(node.get("requires"), RequiresRecord.class),
               mapper.treeToValue(node.get("format"), YAMLWitnessExpressionType.class),
               mapper.treeToValue(node.get("location"), LocationRecord.class));
 
@@ -111,10 +107,6 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
     public void serialize(
         FunctionContractEntry value, JsonGenerator gen, SerializerProvider serializers)
         throws IOException {
-
-      // Start a wrapper object for "function_contract"
-      gen.writeStartObject();
-      gen.writeFieldName("invariant");
 
       // start the actual InvariantEntry object
       gen.writeStartObject();
@@ -134,9 +126,6 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
       serializers.defaultSerializeValue(value.getFormat(), gen);
 
       // end the object
-      gen.writeEndObject();
-
-      // End the wrapper object
       gen.writeEndObject();
     }
   }
