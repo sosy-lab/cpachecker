@@ -241,9 +241,9 @@ public class FloatValue {
      * <p>Used when implementing binary operations on FloatP values, where a common format large
      * enough for both arguments needs to be found.
      */
-    public Format sup(Format other) {
-      int newExp = Math.max(expBits, other.expBits);
-      int newSig = Math.max(sigBits, other.sigBits);
+    public Format sup(Format pOther) {
+      int newExp = Math.max(expBits, pOther.expBits);
+      int newSig = Math.max(sigBits, pOther.sigBits);
       return new Format(newExp, newSig);
     }
   }
@@ -397,10 +397,10 @@ public class FloatValue {
   }
 
   /** Shift the significand to the right while preserving the sticky bit. */
-  private static BigInteger truncate(BigInteger pSignificand, int bits) {
-    BigInteger mask = BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE);
+  private static BigInteger truncate(BigInteger pSignificand, int pBits) {
+    BigInteger mask = BigInteger.ONE.shiftLeft(pBits).subtract(BigInteger.ONE);
     BigInteger r = pSignificand.and(mask);
-    BigInteger l = pSignificand.shiftRight(bits);
+    BigInteger l = pSignificand.shiftRight(pBits);
     return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
@@ -418,16 +418,16 @@ public class FloatValue {
    * <p>We expect the significand to be followed by 3 grs bits.
    */
   private static BigInteger applyRounding(
-      RoundingMode rm, boolean negative, BigInteger pSignificand) {
+      RoundingMode pRoundingMode, boolean pNegative, BigInteger pSignificand) {
     long grs = pSignificand.and(new BigInteger("111", 2)).longValue();
     pSignificand = pSignificand.shiftRight(3);
     BigInteger plusOne = pSignificand.add(BigInteger.ONE);
-    return switch (rm) {
+    return switch (pRoundingMode) {
       case NEAREST_AWAY -> (grs >= 4) ? plusOne : pSignificand;
       case NEAREST_EVEN ->
           ((grs == 4 && pSignificand.testBit(0)) || grs > 4) ? plusOne : pSignificand;
-      case CEILING -> (grs > 0 && !negative) ? plusOne : pSignificand;
-      case FLOOR -> (grs > 0 && negative) ? plusOne : pSignificand;
+      case CEILING -> (grs > 0 && !pNegative) ? plusOne : pSignificand;
+      case FLOOR -> (grs > 0 && pNegative) ? plusOne : pSignificand;
       case TRUNCATE -> pSignificand;
     };
   }
@@ -454,15 +454,15 @@ public class FloatValue {
    * <p>Uses "round to nearest, ties to even" for rounding when the value can not be represented
    * exactly in the new format.
    */
-  public FloatValue withPrecision(Format targetFormat) {
-    if (format.equals(targetFormat)) {
+  public FloatValue withPrecision(Format pTargetFormat) {
+    if (format.equals(pTargetFormat)) {
       return this;
     } else if (isNan()) {
-      return sign ? nan(targetFormat).negate() : nan(targetFormat);
+      return sign ? nan(pTargetFormat).negate() : nan(pTargetFormat);
     } else if (isInfinite()) {
-      return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+      return sign ? negativeInfinity(pTargetFormat) : infinity(pTargetFormat);
     } else if (isZero()) {
-      return sign ? negativeZero(targetFormat) : zero(targetFormat);
+      return sign ? negativeZero(pTargetFormat) : zero(pTargetFormat);
     }
 
     long resultExponent = Math.max(exponent, format.minExp());
@@ -477,23 +477,23 @@ public class FloatValue {
     }
 
     // Return infinity if the exponent is too large for the new encoding
-    if (resultExponent > targetFormat.maxExp()) {
-      return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    if (resultExponent > pTargetFormat.maxExp()) {
+      return sign ? negativeInfinity(pTargetFormat) : infinity(pTargetFormat);
     }
     // Return zero if the exponent is below the subnormal range
-    if (resultExponent < targetFormat.minExp() - (targetFormat.sigBits + 1)) {
-      return sign ? negativeZero(targetFormat) : zero(targetFormat);
+    if (resultExponent < pTargetFormat.minExp() - (pTargetFormat.sigBits + 1)) {
+      return sign ? negativeZero(pTargetFormat) : zero(pTargetFormat);
     }
 
     // Extend the significand with 3 grs bits
-    resultSignificand = resultSignificand.shiftLeft(targetFormat.sigBits + 3);
+    resultSignificand = resultSignificand.shiftLeft(pTargetFormat.sigBits + 3);
 
     // Use the lowest possible exponent and move the rest into the significand by shifting
     // it to the right.
     int leading = 0;
-    if (resultExponent < targetFormat.minExp()) {
-      leading = (int) Math.abs(targetFormat.minExp() - resultExponent);
-      resultExponent = targetFormat.minExp() - 1;
+    if (resultExponent < pTargetFormat.minExp()) {
+      leading = (int) Math.abs(pTargetFormat.minExp() - resultExponent);
+      resultExponent = pTargetFormat.minExp() - 1;
     }
 
     // Truncate the value and round the result
@@ -501,20 +501,20 @@ public class FloatValue {
     resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, sign, resultSignificand);
 
     // Normalize if rounding caused an overflow
-    if (resultSignificand.testBit(targetFormat.sigBits + 1)) {
+    if (resultSignificand.testBit(pTargetFormat.sigBits + 1)) {
       resultSignificand = resultSignificand.shiftRight(1); // The last bit is zero
       resultExponent += 1;
     }
-    if (leading > 0 && resultSignificand.testBit(targetFormat.sigBits)) {
+    if (leading > 0 && resultSignificand.testBit(pTargetFormat.sigBits)) {
       // Just fix the exponent if the value was subnormal before the overflow
       resultExponent += 1;
     }
 
     // Return infinity if this caused the exponent to leave the range
-    if (resultExponent > targetFormat.maxExp()) {
-      return sign ? negativeInfinity(targetFormat) : infinity(targetFormat);
+    if (resultExponent > pTargetFormat.maxExp()) {
+      return sign ? negativeInfinity(pTargetFormat) : infinity(pTargetFormat);
     }
-    return new FloatValue(targetFormat, sign, resultExponent, resultSignificand);
+    return new FloatValue(pTargetFormat, sign, resultExponent, resultSignificand);
   }
 
   public FloatValue abs() {
@@ -525,12 +525,12 @@ public class FloatValue {
     return new FloatValue(format, !sign, exponent, significand);
   }
 
-  public boolean greaterThan(FloatValue number) {
+  public boolean greaterThan(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.sup(number.format);
+    Format precision = format.sup(pNumber.format);
 
     FloatValue arg1 = this.withPrecision(precision);
-    FloatValue arg2 = number.withPrecision(precision);
+    FloatValue arg2 = pNumber.withPrecision(precision);
 
     if (arg1.isNan() || arg2.isNan()) {
       return false;
@@ -549,18 +549,18 @@ public class FloatValue {
     }
   }
 
-  public FloatValue add(FloatValue number) {
+  public FloatValue add(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.sup(number.format);
+    Format precision = format.sup(pNumber.format);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
     FloatValue arg2;
-    if (exponent >= number.exponent) {
+    if (exponent >= pNumber.exponent) {
       arg1 = this.withPrecision(precision);
-      arg2 = number.withPrecision(precision);
+      arg2 = pNumber.withPrecision(precision);
     } else {
-      arg1 = number.withPrecision(precision);
+      arg1 = pNumber.withPrecision(precision);
       arg2 = this.withPrecision(precision);
     }
 
@@ -670,22 +670,22 @@ public class FloatValue {
     return new FloatValue(precision, resultSign, resultExponent, resultSignificand);
   }
 
-  public FloatValue subtract(FloatValue number) {
-    return add(number.negate());
+  public FloatValue subtract(FloatValue pNumber) {
+    return add(pNumber.negate());
   }
 
-  public FloatValue multiply(FloatValue number) {
+  public FloatValue multiply(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.sup(number.format);
+    Format precision = format.sup(pNumber.format);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
     FloatValue arg2;
-    if (exponent >= number.exponent) {
+    if (exponent >= pNumber.exponent) {
       arg1 = this.withPrecision(precision);
-      arg2 = number.withPrecision(precision);
+      arg2 = pNumber.withPrecision(precision);
     } else {
-      arg1 = number.withPrecision(precision);
+      arg1 = pNumber.withPrecision(precision);
       arg2 = this.withPrecision(precision);
     }
 
@@ -710,7 +710,7 @@ public class FloatValue {
     }
 
     // Calculate the sign of the result
-    boolean resultSign = sign ^ number.sign;
+    boolean resultSign = sign ^ pNumber.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
@@ -799,18 +799,18 @@ public class FloatValue {
    * <p>This variant of {@link FloatValue#multiply} skips the rounding steps at the end and returns
    * directly. The result may have between p and 2p+1 bits.
    */
-  private FloatValue multiplyExact(FloatValue number) {
+  private FloatValue multiplyExact(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.sup(number.format);
+    Format precision = format.sup(pNumber.format);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
     FloatValue arg2;
-    if (exponent >= number.exponent) {
+    if (exponent >= pNumber.exponent) {
       arg1 = this.withPrecision(precision);
-      arg2 = number.withPrecision(precision);
+      arg2 = pNumber.withPrecision(precision);
     } else {
-      arg1 = number.withPrecision(precision);
+      arg1 = pNumber.withPrecision(precision);
       arg2 = this.withPrecision(precision);
     }
 
@@ -839,7 +839,7 @@ public class FloatValue {
         arg1.exponent >= precision.minExp() && arg2.exponent >= precision.minExp());
 
     // Calculate the sign of the result
-    boolean resultSign = sign ^ number.sign;
+    boolean resultSign = sign ^ pNumber.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
@@ -898,38 +898,38 @@ public class FloatValue {
    * is supposed to be reused when a^k needs to be computed for many different k as this allows us
    * to avoid recalculations of partial results during fast exponentiation.
    */
-  private FloatValue powInt_(BigInteger exp, Map<BigInteger, FloatValue> powMap) {
-    if (!powMap.containsKey(exp)) {
+  private FloatValue powInt_(BigInteger pExp, Map<BigInteger, FloatValue> pPowMap) {
+    if (!pPowMap.containsKey(pExp)) {
       FloatValue x = this;
-      if (exp.compareTo(BigInteger.ZERO) < 0) {
+      if (pExp.compareTo(BigInteger.ZERO) < 0) {
         // TODO: Find a bound for the number of extra bits needed
         Format ext = new Format(format.expBits, 2 * format.sigBits + 1);
         x = one(ext).divide_(x.withPrecision(ext));
       }
-      FloatValue r = x.powFast(exp.abs(), powMap);
-      powMap.put(exp, r);
+      FloatValue r = x.powFast(pExp.abs(), pPowMap);
+      pPowMap.put(pExp, r);
     }
-    return powMap.get(exp);
+    return pPowMap.get(pExp);
   }
 
-  private FloatValue powFast(BigInteger exp, Map<BigInteger, FloatValue> powMap) {
-    if (exp.equals(BigInteger.ZERO)) {
+  private FloatValue powFast(BigInteger pExp, Map<BigInteger, FloatValue> pPowMap) {
+    if (pExp.equals(BigInteger.ZERO)) {
       return one(format);
-    } else if (exp.equals(BigInteger.ONE)) {
+    } else if (pExp.equals(BigInteger.ONE)) {
       return this;
     } else {
-      FloatValue r = powInt_(exp.divide(BigInteger.valueOf(2)), powMap).squared();
-      FloatValue p = exp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
+      FloatValue r = powInt_(pExp.divide(BigInteger.valueOf(2)), pPowMap).squared();
+      FloatValue p = pExp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
       return p.multiply(r);
     }
   }
 
-  public FloatValue divide(FloatValue number) {
+  public FloatValue divide(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.sup(number.format);
+    Format precision = format.sup(pNumber.format);
 
     FloatValue arg1 = this.withPrecision(precision.extended());
-    FloatValue arg2 = number.withPrecision(precision.extended());
+    FloatValue arg2 = pNumber.withPrecision(precision.extended());
 
     return arg1.divide_(arg2).withPrecision(precision);
   }
@@ -943,14 +943,14 @@ public class FloatValue {
    *
    * <p>This method assumes that both arguments use the same precision.
    */
-  private FloatValue divideSlow(FloatValue number) {
+  private FloatValue divideSlow(FloatValue pNumber) {
     // Calculate the sign of the result
-    boolean resultSign = sign ^ number.sign;
+    boolean resultSign = sign ^ pNumber.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
     long exponent1 = Math.max(exponent, format.minExp());
-    long exponent2 = Math.max(number.exponent, format.minExp());
+    long exponent2 = Math.max(pNumber.exponent, format.minExp());
 
     // Normalize both arguments.
     BigInteger significand1 = significand;
@@ -960,7 +960,7 @@ public class FloatValue {
       exponent1 -= shift1;
     }
 
-    BigInteger significand2 = number.significand;
+    BigInteger significand2 = pNumber.significand;
     int shift2 = (format.sigBits + 1) - significand2.bitLength();
     if (shift2 > 0) {
       significand2 = significand2.shiftLeft(shift2);
@@ -1025,13 +1025,13 @@ public class FloatValue {
     return new FloatValue(format, resultSign, resultExponent, resultSignificand);
   }
 
-  private double lb(double number) {
-    return Math.log(number) / Math.log(2);
+  private double lb(double pNumber) {
+    return Math.log(pNumber) / Math.log(2);
   }
 
-  private FloatValue divide_(FloatValue number) {
+  private FloatValue divide_(FloatValue pNumber) {
     FloatValue arg1 = this;
-    FloatValue arg2 = number;
+    FloatValue arg2 = pNumber;
 
     boolean resultSign = arg1.isNegative() ^ arg2.isNegative(); // Sign of the result
 
@@ -1217,8 +1217,8 @@ public class FloatValue {
   }
 
   /** Compare two floating point numbers for equality when rounded to a lower precision p. * */
-  private static boolean equalModuloP(Format format, FloatValue a, FloatValue b) {
-    return a.withPrecision(format).equals(b.withPrecision(format));
+  private static boolean equalModuloP(Format pFormat, FloatValue pArg1, FloatValue pArg2) {
+    return pArg1.withPrecision(pFormat).equals(pArg2.withPrecision(pFormat));
   }
 
   /**
@@ -1227,11 +1227,11 @@ public class FloatValue {
    * <p>Needed as part of the "rounding test": We have to make sure that the number is not too close
    * to a break point before rounding.
    */
-  private boolean isStable(FloatValue r) {
-    if (r.format.sigBits == 0) {
+  private boolean isStable(FloatValue pValue) {
+    if (pValue.format.sigBits == 0) {
       return false;
     } else {
-      return equalModuloP(format, r, r.plus1Ulp());
+      return equalModuloP(format, pValue, pValue.plus1Ulp());
     }
   }
 
@@ -1243,9 +1243,9 @@ public class FloatValue {
   /**
    * Calculates e^x and records how many extra bits of precision were needed.
    *
-   * @param expStats Histogram with the number of extra bits used in all calls to exp()
+   * @param pExpStats Histogram with the number of extra bits used in all calls to exp()
    */
-  FloatValue expWithStats(@Nullable Map<Integer, Integer> expStats) {
+  FloatValue expWithStats(@Nullable Map<Integer, Integer> pExpStats) {
     if (isZero()) {
       return one(format);
     } else if (isNan()) {
@@ -1305,9 +1305,9 @@ public class FloatValue {
           r = v1;
 
           // Update statistics
-          if (expStats != null) {
+          if (pExpStats != null) {
             Integer k = p.sigBits - format.sigBits;
-            expStats.put(k, expStats.getOrDefault(k, 0) + 1);
+            pExpStats.put(k, pExpStats.getOrDefault(k, 0) + 1);
           }
         }
       }
@@ -1322,14 +1322,14 @@ public class FloatValue {
    * argument. This speeds up the calculation of k! in {@link FloatValue#lookupExpTable(int)} as
    * results can be reused across multiple function calls.
    */
-  private static BigInteger fac(int k, Map<Integer, BigInteger> facMap) {
-    return facMap.computeIfAbsent(
+  private static BigInteger fac(int k, Map<Integer, BigInteger> pFacMap) {
+    return pFacMap.computeIfAbsent(
         k,
         (Integer arg1) -> {
           if (k == 0 || k == 1) {
             return BigInteger.ONE;
           }
-          return fac(k - 1, facMap).multiply(BigInteger.valueOf(k));
+          return fac(k - 1, pFacMap).multiply(BigInteger.valueOf(k));
         });
   }
 
@@ -1356,9 +1356,9 @@ public class FloatValue {
   /**
    * Helper method that calculates e^x or e^x - 1, depending on the argument.
    *
-   * @param skipTerm1 Subtract one calculate e^x - 1 if true
+   * @param pSkipTerm1 Subtract one calculate e^x - 1 if true
    */
-  private FloatValue expImpl(boolean skipTerm1) {
+  private FloatValue expImpl(boolean pSkipTerm1) {
     if (isNan()) {
       return nan(format);
     } else if (isInfinite()) {
@@ -1376,7 +1376,7 @@ public class FloatValue {
     Map<BigInteger, FloatValue> powMap = new HashMap<>();
 
     boolean done = false;
-    int k = skipTerm1 ? 1 : 0;
+    int k = pSkipTerm1 ? 1 : 0;
 
     while (!done) {
       FloatValue s = r;
@@ -1407,9 +1407,9 @@ public class FloatValue {
   /**
    * Calculates ln(x) and records how many extra bits of precision were needed.
    *
-   * @param lnStats Histogram with the number of extra bits used in all calls to ln()
+   * @param pLnStats Histogram with the number of extra bits used in all calls to ln()
    */
-  FloatValue lnWithStats(@Nullable Map<Integer, Integer> lnStats) {
+  FloatValue lnWithStats(@Nullable Map<Integer, Integer> pLnStats) {
     if (isZero()) {
       return negativeInfinity(format);
     } else if (isOne()) {
@@ -1468,9 +1468,9 @@ public class FloatValue {
           r = v1;
 
           // Update statistics
-          if (lnStats != null) {
+          if (pLnStats != null) {
             Integer k = p.sigBits - format.sigBits;
-            lnStats.put(k, lnStats.getOrDefault(k, 0) + 1);
+            pLnStats.put(k, pLnStats.getOrDefault(k, 0) + 1);
           }
         }
       }
@@ -1530,9 +1530,9 @@ public class FloatValue {
   /**
    * Calculates a^x and records how many extra bits of precision were needed.
    *
-   * @param powStats Histogram with the number of extra bits used in all calls to pow()
+   * @param pPowStats Histogram with the number of extra bits used in all calls to pow()
    */
-  FloatValue powWithStats(FloatValue pExponent, @Nullable Map<Integer, Integer> powStats) {
+  FloatValue powWithStats(FloatValue pExponent, @Nullable Map<Integer, Integer> pPowStats) {
     // Find a common precision and convert both arguments to this precision
     Format precision = format.sup(pExponent.format);
 
@@ -1595,12 +1595,13 @@ public class FloatValue {
     } else if (arg2.isInteger()) {
       // pow(base, exponent) where exponent is integer: calculate with powInt
       return arg1.powInt(arg2.toInteger());
-    } else if (arg2.equals(new FloatValue(precision, false, -1, BigInteger.ONE.shiftLeft(precision.sigBits)))) {
+    } else if (arg2.equals(
+        new FloatValue(precision, false, -1, BigInteger.ONE.shiftLeft(precision.sigBits)))) {
       // pow(base, exponent) where exponent=1/2: calculate sqrt(a) instead
       // TODO: Also include a^3/2 in this check?
       return arg1.sqrt();
     } else {
-      FloatValue r = arg1.abs().pow_(pExponent, powStats);
+      FloatValue r = arg1.abs().pow_(pExponent, pPowStats);
       if (arg1.isNegative()) {
         // Fix the sign if `a` was negative and x an integer
         r = r.withSign(arg2.isOddInteger());
@@ -1660,7 +1661,7 @@ public class FloatValue {
     return r.withPrecision(format);
   }
 
-  private FloatValue pow_(FloatValue pExponent, @Nullable Map<Integer, Integer> powStats) {
+  private FloatValue pow_(FloatValue pExponent, @Nullable Map<Integer, Integer> pPowStats) {
     /* For transcendental functions like pow(x) the calculation has to be repeated with increasing
      * precision until enough (valid) digits are available to round the value correctly. For this we
      * define a list of intermediate formats that was specially optimized for the precision of the
@@ -1729,8 +1730,8 @@ public class FloatValue {
           r = nearZero ? one(p).add(exlna1) : exlna1;
 
           // Update statistics
-          if (powStats != null) {
-            powStats.put(ext.sigBits, powStats.getOrDefault(0, ext.sigBits) + 1);
+          if (pPowStats != null) {
+            pPowStats.put(ext.sigBits, pPowStats.getOrDefault(0, ext.sigBits) + 1);
           }
         }
       }
@@ -1738,7 +1739,7 @@ public class FloatValue {
     return r.withPrecision(format);
   }
 
-  public FloatValue roundToInteger(RoundingMode rm) {
+  public FloatValue roundToInteger(RoundingMode pRoundingMode) {
     if (isInfinite()) {
       // If the argument is infinite, just return it
       return this;
@@ -1756,7 +1757,7 @@ public class FloatValue {
 
     // Shift the fractional part to the right and then round the result
     resultSignificand = truncate(resultSignificand, (int) (format.sigBits - exponent));
-    resultSignificand = applyRounding(rm, sign, resultSignificand);
+    resultSignificand = applyRounding(pRoundingMode, sign, resultSignificand);
 
     // Recalculate the exponent
     int resultExponent = resultSignificand.bitLength() - 1;
@@ -1776,35 +1777,35 @@ public class FloatValue {
     return new FloatValue(format, sign, resultExponent, resultSignificand);
   }
 
-  public static FloatValue fromInteger(Format format, BigInteger number) {
+  public static FloatValue fromInteger(Format pFormat, BigInteger pNumber) {
     // Return +0.0 for input 0
-    if (number.equals(BigInteger.ZERO)) {
-      return zero(format);
+    if (pNumber.equals(BigInteger.ZERO)) {
+      return zero(pFormat);
     }
 
     // Get the sign and calculate the exponent
-    boolean sign = number.signum() < 0;
-    int exponent = number.abs().bitLength() - 1;
+    boolean sign = pNumber.signum() < 0;
+    int exponent = pNumber.abs().bitLength() - 1;
 
     // Truncate the number while carrying over the grs bits.
-    BigInteger significand = number.abs().shiftLeft(format.sigBits + 3);
+    BigInteger significand = pNumber.abs().shiftLeft(pFormat.sigBits + 3);
     significand = truncate(significand, exponent);
 
     // Round the result
     significand = applyRounding(RoundingMode.NEAREST_EVEN, sign, significand);
 
     // Shift the significand to the right if rounding has caused an overflow
-    if (significand.bitLength() > format.sigBits + 1) {
+    if (significand.bitLength() > pFormat.sigBits + 1) {
       significand = significand.shiftRight(1); // The dropped bit is zero
       exponent += 1;
     }
 
     // Return infinity if there is an overflow.
-    if (exponent > format.maxExp()) {
-      return sign ? negativeInfinity(format) : infinity(format);
+    if (exponent > pFormat.maxExp()) {
+      return sign ? negativeInfinity(pFormat) : infinity(pFormat);
     }
 
-    return new FloatValue(format, sign, exponent, significand);
+    return new FloatValue(pFormat, sign, exponent, significand);
   }
 
   public BigInteger toInteger() {
@@ -1922,8 +1923,8 @@ public class FloatValue {
   }
 
   /** Parse input string as a floating point number. */
-  public static FloatValue fromString(Format p, String input) {
-    return fromStringWithStats(p, input, null);
+  public static FloatValue fromString(Format pFormat, String pInput) {
+    return fromStringWithStats(pFormat, pInput, null);
   }
 
   /**
@@ -1938,11 +1939,11 @@ public class FloatValue {
    * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">How to Read Floating Point
    *     Numbers Accurately</a>
    */
-  private static FloatValue fromLiteralHex(Format p, boolean sign, String digits, int expValue) {
-    FloatValue r = fromInteger(p, new BigInteger(digits, 16));
-    int finalExp = expValue - 4 * (digits.length() - 1);
+  private static FloatValue fromLiteralHex(Format pFormat, boolean pSign, String pDigits, int pExpValue) {
+    FloatValue r = fromInteger(pFormat, new BigInteger(pDigits, 16));
+    int finalExp = pExpValue - 4 * (pDigits.length() - 1);
     r = r.withExponent(r.exponent + finalExp);
-    return sign ? r.negate() : r;
+    return pSign ? r.negate() : r;
   }
 
   /**
@@ -1956,11 +1957,11 @@ public class FloatValue {
    * format.
    */
   private static FloatValue fromLiteralDec(
-      Format p, boolean sign, String digits, int expValue, Map<Integer, Integer> fromStringStats) {
+      Format pFormat, boolean pSign, String pDigits, int pExpValue, Map<Integer, Integer> pFromStringStats) {
     // Read in the mantissa as in integer value
-    BigInteger mantissa = new BigInteger(digits);
+    BigInteger mantissa = new BigInteger(pDigits);
     if (mantissa.equals(BigInteger.ZERO)) {
-      return sign ? negativeZero(p) : zero(p);
+      return pSign ? negativeZero(pFormat) : zero(pFormat);
     }
 
     /* For the conversion from base 10 to base 2 fromString needs to repeat its calculation with
@@ -1972,52 +1973,52 @@ public class FloatValue {
      */
     // TODO: Find a better solution, or at least clean up the list of extended formats
     ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
-    if (p.equals(Format.Float8)) {
+    if (pFormat.equals(Format.Float8)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      3      3      3      3      4      4      4      4      4      9
-      extendedPrecisions.add(new Format(11, p.sigBits + 12));
-    } else if (p.equals(Format.Float16)) {
+      extendedPrecisions.add(new Format(11, pFormat.sigBits + 12));
+    } else if (pFormat.equals(Format.Float16)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      3      3      3      3      4      4      4      4      5     12
-      extendedPrecisions.add(new Format(11, p.sigBits + 3));
-      extendedPrecisions.add(new Format(11, p.sigBits + 4));
-      extendedPrecisions.add(new Format(11, p.sigBits + 5));
-      extendedPrecisions.add(new Format(11, p.sigBits + 12));
-    } else if (p.equals(Format.Float32)) {
+      extendedPrecisions.add(new Format(11, pFormat.sigBits + 3));
+      extendedPrecisions.add(new Format(11, pFormat.sigBits + 4));
+      extendedPrecisions.add(new Format(11, pFormat.sigBits + 5));
+      extendedPrecisions.add(new Format(11, pFormat.sigBits + 12));
+    } else if (pFormat.equals(Format.Float32)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      3      3      3      3      4      4      4      4      5     11
-      extendedPrecisions.add(new Format(15, p.sigBits + 3));
-      extendedPrecisions.add(new Format(15, p.sigBits + 4));
-      extendedPrecisions.add(new Format(15, p.sigBits + 5));
-      extendedPrecisions.add(new Format(15, p.sigBits + 15));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 3));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 4));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 5));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 15));
       for (int i = 16; i < 32; i++) {
-        extendedPrecisions.add(new Format(15, p.sigBits + i));
+        extendedPrecisions.add(new Format(15, pFormat.sigBits + i));
       }
-    } else if (p.equals(Format.Float64)) {
+    } else if (pFormat.equals(Format.Float64)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // p      3      3      3      4      4      4      4      5      6     10
-      extendedPrecisions.add(new Format(15, p.sigBits + 3));
-      extendedPrecisions.add(new Format(15, p.sigBits + 4));
-      extendedPrecisions.add(new Format(15, p.sigBits + 5));
-      extendedPrecisions.add(new Format(15, p.sigBits + 6));
-      extendedPrecisions.add(new Format(15, p.sigBits + 12));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 3));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 4));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 5));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 6));
+      extendedPrecisions.add(new Format(15, pFormat.sigBits + 12));
       for (int i = 13; i < 32; i++) {
-        extendedPrecisions.add(new Format(15, p.sigBits + i));
+        extendedPrecisions.add(new Format(15, pFormat.sigBits + i));
       }
     } else {
       for (int i = 1; i < 100; i++) {
-        extendedPrecisions.add(new Format(Format.Float256.expBits, p.sigBits + i));
+        extendedPrecisions.add(new Format(Format.Float256.expBits, pFormat.sigBits + i));
       }
     }
 
     boolean done = false;
-    FloatValue r = nan(p);
+    FloatValue r = nan(pFormat);
 
     // We run the conversion in a loop and increase the precision between runs to make sure that
     // enough precision was used to allow for correct rounding.
     for (Format ext : extendedPrecisions.build()) {
       if (!done) {
-        int diff = ext.sigBits - p.sigBits;
+        int diff = ext.sigBits - pFormat.sigBits;
 
         // Calculate the base2 representation of the value:
         // Let's say we have 1.2345 * 10^k as input. We first rewrite the term as 12345 * 10^k-4 to
@@ -2034,55 +2035,55 @@ public class FloatValue {
         FloatValue f = fromInteger(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
         FloatValue e =
             fromInteger(ext, 10)
-                .powInt(BigInteger.valueOf(expValue - (digits.length() - 1) - diff));
+                .powInt(BigInteger.valueOf(pExpValue - (pDigits.length() - 1) - diff));
 
         // Rounding check: make sure we have enough precision.
         FloatValue val1 = f.plus1Ulp().multiply(e);
         FloatValue val2 = f.minus1Ulp().multiply(e);
 
-        if (equalModuloP(p, val1, val2)) {
+        if (equalModuloP(pFormat, val1, val2)) {
           done = true;
-          r = sign ? val1.negate() : val1;
+          r = pSign ? val1.negate() : val1;
 
           // Update statistics
-          if (fromStringStats != null) {
-            fromStringStats.put(diff, fromStringStats.getOrDefault(diff, 0) + 1);
+          if (pFromStringStats != null) {
+            pFromStringStats.put(diff, pFromStringStats.getOrDefault(diff, 0) + 1);
           }
         }
       }
     }
-    return r.withPrecision(p);
+    return r.withPrecision(pFormat);
   }
 
   /**
    * Parse the input string and records how many extra bits of precision were needed.
    *
-   * @param fromStringStats Histogram with the number of extra bits used in all calls to
+   * @param pFromStringStats Histogram with the number of extra bits used in all calls to
    *     fromString()
    */
   static FloatValue fromStringWithStats(
-      Format p, String input, @Nullable Map<Integer, Integer> fromStringStats) {
+      Format pFormat, String pInput, @Nullable Map<Integer, Integer> pFromStringStats) {
     // TODO: Add error handling for broken inputs.
-    if ("inf".equals(input)) {
-      return infinity(p);
-    } else if ("-inf".equals(input)) {
-      return negativeInfinity(p);
-    } else if ("nan".equals(input)) {
-      return nan(p);
+    if ("inf".equals(pInput)) {
+      return infinity(pFormat);
+    } else if ("-inf".equals(pInput)) {
+      return negativeInfinity(pFormat);
+    } else if ("nan".equals(pInput)) {
+      return nan(pFormat);
     }
-    input = input.toLowerCase(Locale.getDefault());
+    pInput = pInput.toLowerCase(Locale.getDefault());
 
     // Check if it's a hex literal
     boolean isHexLiteral = false;
-    if (input.startsWith("0x")) {
+    if (pInput.startsWith("0x")) {
       isHexLiteral = true;
-      input = input.substring(2);
+      pInput = pInput.substring(2);
     }
 
     // Split off the exponent part (if there is one)
-    int sep = isHexLiteral ? input.indexOf('p') : input.indexOf('e');
-    String digits = sep > -1 ? input.substring(0, sep) : input;
-    String exponent = sep > -1 ? input.substring(sep + 1) : "0";
+    int sep = isHexLiteral ? pInput.indexOf('p') : pInput.indexOf('e');
+    String digits = sep > -1 ? pInput.substring(0, sep) : pInput;
+    String exponent = sep > -1 ? pInput.substring(sep + 1) : "0";
 
     boolean sign = false;
 
@@ -2108,14 +2109,14 @@ public class FloatValue {
 
     // Convert the value to a binary float representation
     if (isHexLiteral) {
-      return fromLiteralHex(p, sign, digits, expValue);
+      return fromLiteralHex(pFormat, sign, digits, expValue);
     } else {
-      return fromLiteralDec(p, sign, digits, expValue, fromStringStats);
+      return fromLiteralDec(pFormat, sign, digits, expValue, pFromStringStats);
     }
   }
 
-  public static FloatValue fromInteger(Format pFormat, int number) {
-    return fromInteger(pFormat, BigInteger.valueOf(number));
+  public static FloatValue fromInteger(Format pFormat, int pNumber) {
+    return fromInteger(pFormat, BigInteger.valueOf(pNumber));
   }
 
   /**
