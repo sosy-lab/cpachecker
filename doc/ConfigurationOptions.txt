@@ -4995,6 +4995,9 @@ tubes.counterExampleFiles = "Counterexample.inline.%d.c"
 # export counterexample to file, if one is found
 tubes.errorInputs = "nondets.txt"
 
+# How many satisfying assignments to find per CEX; -1 for all
+tubes.maxAssignments = 10
+
 # where to write interpolation output
 tubes.outputPath = "interpolants.txt"
 

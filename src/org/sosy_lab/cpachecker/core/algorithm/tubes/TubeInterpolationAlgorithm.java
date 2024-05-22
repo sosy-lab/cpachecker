@@ -53,7 +53,7 @@ public class TubeInterpolationAlgorithm implements Algorithm {
 
   @FileOption(Type.OUTPUT_FILE)
   @Option(secure = true, description = "where to write interpolation output")
-  private final Path outputPath = Path.of("interpolants.txt");
+  private Path outputPath = Path.of("interpolants.txt");
 
   public TubeInterpolationAlgorithm(
       CFA pCfa,
