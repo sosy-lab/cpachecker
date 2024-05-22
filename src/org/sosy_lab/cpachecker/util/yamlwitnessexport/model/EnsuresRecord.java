@@ -6,17 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.yamlwitnessexport;
+package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
-public enum YAMLWitnessVersion {
-  V2,
-  V3;
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 
-  @Override
-  public String toString() {
-    return switch (this) {
-      case V2 -> "2.0";
-      case V3 -> "3.0";
-    };
-  }
-}
+@Immutable
+public record EnsuresRecord(ImmutableList<String> clauses) {}

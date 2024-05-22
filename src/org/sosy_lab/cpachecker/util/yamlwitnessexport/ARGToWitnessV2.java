@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetElementEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
@@ -82,8 +81,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    ImmutableList.Builder<CorrectnessWitnessSetElementEntry> entries =
-        new ImmutableList.Builder<>();
+    ImmutableList.Builder<InvariantEntry> entries = new ImmutableList.Builder<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {

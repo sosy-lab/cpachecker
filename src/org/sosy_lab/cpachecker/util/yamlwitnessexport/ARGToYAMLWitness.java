@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafModificationVisitor;
 import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
 
 class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
@@ -172,9 +172,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
                       false,
                       CStorageClass.AUTO,
                       cType,
-                      "\result",
-                      "\result",
-                      node.getFunctionName() + "::\result",
+                      "\\return",
+                      "\\return",
+                      node.getFunctionName() + "::\\return",
                       null)));
     } else {
       returnVariable = Optional.empty();
@@ -200,12 +200,10 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     // will not work. A more sophisticated approach may consider all these dependencies and do an
     // actual replacement of CPAchecker internal variables
     // TODO: Improve this
-    LeafModificationVisitor<Object, Exception> cpacheckerInternalsRemoverVisitor =
-        new LeafModificationVisitor<>(
-            x -> x.toString().contains("__CPAchecker_TMP") ? Optional.empty() : Optional.of(x));
-
+    RemovingStructuresVisitor<Object, Exception> visitor =
+        new RemovingStructuresVisitor<>(x -> x.toString().contains("__CPAchecker_TMP"));
     try {
-      overapproximationOfState = overapproximationOfState.accept(cpacheckerInternalsRemoverVisitor);
+      overapproximationOfState = overapproximationOfState.accept(visitor);
     } catch (Exception e) {
       logger.log(Level.FINE, "Could not remove CPAchecker internal variables from invariant");
     }

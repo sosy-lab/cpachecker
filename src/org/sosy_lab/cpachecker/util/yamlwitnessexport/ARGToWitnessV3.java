@@ -27,14 +27,17 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetElementEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.EnsuresRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntryV3;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.RequiresRecord;
 
-class ARGToWitnessV2d1 extends ARGToYAMLWitness {
-  protected ARGToWitnessV2d1(
+class ARGToWitnessV3 extends ARGToYAMLWitness {
+  protected ARGToWitnessV3(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
@@ -51,8 +54,8 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
    * @return an invariant over approximating the abstraction at the state
    * @throws InterruptedException if the execution is interrupted
    */
-  private InvariantEntry createInvariant(Collection<ARGState> argStates, CFANode node, String type)
-      throws InterruptedException {
+  private InvariantEntryV3 createInvariant(
+      Collection<ARGState> argStates, CFANode node, String type) throws InterruptedException {
 
     // We now conjunct all the over approximations of the states and export them as loop invariants
     Optional<IterationElement> iterationStructure =
@@ -70,8 +73,8 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
             node.getFunction().getFileLocation().getFileName().toString(),
             node.getFunctionName());
 
-    InvariantEntry invariantRecord =
-        new InvariantEntry(
+    InvariantEntryV3 invariantRecord =
+        new InvariantEntryV3(
             invariant.toString(), type, YAMLWitnessExpressionType.C.toString(), locationRecord);
 
     return invariantRecord;
@@ -110,8 +113,8 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       }
       functionContractRecords.add(
           new FunctionContractEntry(
-              ensuresClause,
-              requiresClause,
+              new EnsuresRecord(ImmutableList.of(ensuresClause)),
+              new RequiresRecord(ImmutableList.of(requiresClause)),
               YAMLWitnessExpressionType.C,
               LocationRecord.createLocationRecordAtStart(location, node.getFunctionName())));
     }
@@ -157,6 +160,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
             statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
 
     exportEntries(
-        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), entries.build()), pOutputFile);
+        new CorrectnessWitnessSetEntry(getMetadata(YAMLWitnessVersion.V3), entries.build()),
+        pOutputFile);
   }
 }
