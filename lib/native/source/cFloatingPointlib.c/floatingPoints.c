@@ -23,7 +23,7 @@
 
 const char* WRAPPER = "org/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper";
 const char* NUMBER = "Number";
-const char* EXCEPTION = "org/sosy_lab/cpachecker/util/floatingpoint/NativeComputationException";
+const char* EXCEPTION = "java/lang/IllegalArgumentException";
 
 const char* EX_TEXT = "Type invalid or not supported.";
 
@@ -34,7 +34,7 @@ typedef union {t_ld_bits bitmask; long double ld_value; double d_value; float f_
  * Utility function to throw Java exceptions
  * as error handling.
  */
-void throwNativeException(JNIEnv* env, const char* message) {
+void throwException(JNIEnv* env, const char* message) {
 	jthrowable ex = (*env)->FindClass(env, EXCEPTION);
 	(*env)->ThrowNew(env, ex, message);
 }
@@ -65,7 +65,7 @@ t_ld transformWrapperFromJava(JNIEnv* env, jobject wrapper, jint type) {
 			fp_obj.bitmask.mantissa ^= mantissa;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return fp_obj;
@@ -98,7 +98,7 @@ jobject transformWrapperToJava(JNIEnv* env, t_ld fp_obj, jint type) {
 			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa));
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return wrapper;
@@ -139,7 +139,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			fp_obj.ld_value = val;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 	jobject wrapper = transformWrapperToJava(env, fp_obj, type);
 	(*env)->ReleaseStringUTFChars(env, valString, string);
@@ -169,7 +169,7 @@ JNIEXPORT jstring JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			snprintf(s, buffersize, "%.*Le", 20, fp_obj.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return (*env)->NewStringUTF(env, s);
@@ -193,7 +193,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = chooseOf3(type1, fp_1) + chooseOf3(type2, fp_2);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -218,7 +218,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = chooseOf3(type1, fp_1) + chooseOf3(type2, fp_2) + chooseOf3(type2, fp_3);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -242,7 +242,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = chooseOf3(type1, fp_1) - chooseOf3(type2, fp_2);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -266,7 +266,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = chooseOf3(type1, fp_1) * chooseOf3(type2, fp_2);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -290,7 +290,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = chooseOf3(type1, fp_1) / chooseOf3(type2, fp_2);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -334,7 +334,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			}
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	for (long long i = 0; i < size; i++) {
@@ -351,7 +351,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 				fp.ld_value = fp.ld_value + chooseOf3(types[i+1], cur_fp);
 				break;
 			default:
-				throwNativeException(env, EX_TEXT);
+				throwException(env, EX_TEXT);
 		}
 	}
 
@@ -396,7 +396,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			}
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	for (long long i = 0; i < size; i++) {
@@ -412,7 +412,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 				fp.ld_value = fp.ld_value * chooseOf3(types[i+1], cur_fp);
 				break;
 			default:
-				throwNativeException(env, EX_TEXT);
+				throwException(env, EX_TEXT);
 		}
 	}
 
@@ -434,7 +434,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = logl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -456,7 +456,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = expl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -480,7 +480,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = powl(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, maxType);
@@ -505,7 +505,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 				result.ld_value = 1.0L;
 				break;
 			default:
-				throwNativeException(env, EX_TEXT);
+				throwException(env, EX_TEXT);
 		}
 
 		// actual computation
@@ -530,7 +530,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 					fp_base.ld_value *= fp_base.ld_value;
 					break;
 				default:
-					throwNativeException(env, EX_TEXT);
+					throwException(env, EX_TEXT);
 			}
 			exp >>= 1;
 		}
@@ -555,7 +555,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = sqrtl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -577,7 +577,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = roundl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -599,7 +599,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = truncl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -621,7 +621,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = ceill(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -643,7 +643,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = floorl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -665,7 +665,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = fabsl(fp.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -682,7 +682,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return fp.ld_value == 0.0L || fp.ld_value == -0.0L;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -699,7 +699,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return fp.ld_value == 1.0L || fp.ld_value == -1.0L;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -718,7 +718,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return isgreater(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 }
 
@@ -733,7 +733,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return isnan(fp.ld_value);
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -750,7 +750,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return isinf(fp.ld_value);
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -767,7 +767,7 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return 0 != signbit(fp.ld_value);
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return 0;
@@ -790,7 +790,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.ld_value = copysign(fp_1.ld_value, fp_2.ld_value);
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, result, type);
@@ -820,7 +820,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			fp.ld_value = casted;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, fp, to_type);
@@ -846,7 +846,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 					fp.ld_value = (long double)((*env)->CallByteMethod(env, number, getValue));
 					break;
 				default:
-					throwNativeException(env, EX_TEXT);
+					throwException(env, EX_TEXT);
 			}
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_SHORT:
@@ -862,7 +862,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 					fp.ld_value = (long double)((*env)->CallShortMethod(env, number, getValue));
 					break;
 				default:
-					throwNativeException(env, EX_TEXT);
+					throwException(env, EX_TEXT);
 			}
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_TYPE_INT:
@@ -878,7 +878,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 					fp.ld_value = (long double)((*env)->CallIntMethod(env, number, getValue));
 					break;
 				default:
-					throwNativeException(env, EX_TEXT);
+					throwException(env, EX_TEXT);
 			}
 			break;
 		// this has to be adjusted according to architecture
@@ -896,11 +896,11 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 					fp.ld_value = (long double)((*env)->CallLongMethod(env, number, getValue));
 					break;
 				default:
-					throwNativeException(env, EX_TEXT);
+					throwException(env, EX_TEXT);
 			}
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 
 	return transformWrapperToJava(env, fp, to_fp_type);
@@ -920,7 +920,7 @@ JNIEXPORT jbyte JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
 			r = (int8_t) fp.ld_value;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 	return r;
 }
@@ -939,7 +939,7 @@ JNIEXPORT jshort JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloat
 			r = (int16_t) fp.ld_value;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 	return r;
 }
@@ -958,7 +958,7 @@ JNIEXPORT jint JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNa
 			r = (int32_t) fp.ld_value;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 	return r;
 }
@@ -977,7 +977,7 @@ JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatN
 		 	r = (int64_t) fp.ld_value;
 			break;
 		default:
-			throwNativeException(env, EX_TEXT);
+			throwException(env, EX_TEXT);
 	}
 	return r;
 }
