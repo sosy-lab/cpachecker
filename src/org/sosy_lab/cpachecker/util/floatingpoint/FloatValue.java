@@ -352,7 +352,7 @@ public class FloatValue {
     return (exponent == format.maxExp() + 1) && significand.equals(BigInteger.ZERO);
   }
 
-  /** True if the value is equal to zero (or negative zero). */
+  /** True if the value is equal to zero or negative zero. */
   public boolean isZero() {
     return (exponent == format.minExp() - 1) && significand.equals(BigInteger.ZERO);
   }
@@ -374,7 +374,7 @@ public class FloatValue {
     return equals(fromInteger(format, intValue));
   }
 
-  public boolean isOddInteger() {
+  private boolean isOddInteger() {
     BigInteger intValue = toInteger();
     return equals(fromInteger(format, intValue)) && intValue.testBit(0);
   }
