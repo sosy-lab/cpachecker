@@ -401,6 +401,7 @@ class CFABuilder extends ASTVisitor {
             logger,
             shutdownNotifier,
             localScope,
+            actScope,
             parseContext,
             machine,
             fileName,
