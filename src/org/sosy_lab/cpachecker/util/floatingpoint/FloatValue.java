@@ -404,12 +404,22 @@ public class FloatValue {
     return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
+  /**
+   * Supported rounding modes for {@link FloatValue#roundToInteger(RoundingMode)}.
+   *
+   * <p>All other operations currently use {@link RoundingMode#NEAREST_EVEN} by default.
+   */
   public enum RoundingMode {
-    NEAREST_AWAY, // Round to nearest, ties away from zero
-    NEAREST_EVEN, // Round to nearest, ties to even
-    CEILING, // Round toward +∞
-    FLOOR, // Round toward -∞
-    TRUNCATE // Round toward 0
+    /** Round to nearest, ties away from zero */
+    NEAREST_AWAY,
+    /** Round to nearest, ties to even */
+    NEAREST_EVEN,
+    /** Round toward +∞ */
+    CEILING,
+    /** Round toward -∞ */
+    FLOOR,
+    /** Round toward */
+    TRUNCATE
   }
 
   /**
