@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
@@ -345,15 +346,13 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
     return Collections.unmodifiableSet(outOfScopeVariables);
   }
 
-  public Optional<ImmutableSet<CSimpleDeclaration>> getVariablesInScope() {
+  public Optional<FluentIterable<CSimpleDeclaration>> getVariablesInScope() {
     if (localInScopeVariables.isEmpty() || globalInScopeVariables.isEmpty()) {
       return Optional.empty();
     }
 
     return Optional.of(
-        new ImmutableSet.Builder<CSimpleDeclaration>()
-            .addAll(localInScopeVariables.orElse(ImmutableSet.of()))
-            .addAll(globalInScopeVariables.orElse(ImmutableSet.of()))
-            .build());
+        FluentIterable.concat(
+            localInScopeVariables.orElseThrow(), globalInScopeVariables.orElseThrow()));
   }
 }

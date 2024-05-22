@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -837,7 +836,7 @@ public final class ValueAnalysisState
       // Check if the variable to be exported is actually in scope
       // but only do this if the nodes did track which variables are in scope
       if (pLocation.getVariablesInScope().isPresent()
-          && !FluentIterable.from(pLocation.getVariablesInScope().orElseThrow())
+          && !pLocation.getVariablesInScope().orElseThrow()
               .transform(CSimpleDeclaration::getOrigName)
               .contains(entry.getKey().getIdentifier())) {
         continue;
