@@ -346,7 +346,7 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   }
 
   public Optional<ImmutableSet<CSimpleDeclaration>> getVariablesInScope() {
-    if (localInScopeVariables.isEmpty() && globalInScopeVariables.isEmpty()) {
+    if (localInScopeVariables.isEmpty() || globalInScopeVariables.isEmpty()) {
       return Optional.empty();
     }
 
