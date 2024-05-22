@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -55,10 +56,8 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   private Set<CSimpleDeclaration> outOfScopeVariables = null;
   // This will only be filled for C CFA's, since it is currently not needed for other languages.
   // It is only present if the CFA was created with this in mind.
-  private transient Optional<ImmutableSet<CSimpleDeclaration>> localInScopeVariables =
-      Optional.empty();
-  private transient Optional<ImmutableSet<CSimpleDeclaration>> globalInScopeVariables =
-      Optional.empty();
+  private ImmutableSet<CSimpleDeclaration> localInScopeVariables = null;
+  private ImmutableSet<CSimpleDeclaration> globalInScopeVariables = null;
 
   // list of summary edges
   private FunctionSummaryEdge leavingSummaryEdge = null;
@@ -94,8 +93,8 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
       ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
     function = pFunction;
     nodeNumber = idGenerator.getFreshId();
-    localInScopeVariables = Optional.of(pLocalInScopeVariables);
-    globalInScopeVariables = Optional.of(pGlobalInScopeVariables);
+    localInScopeVariables = pLocalInScopeVariables;
+    globalInScopeVariables = pGlobalInScopeVariables;
   }
 
   public int getNodeNumber() {
@@ -349,12 +348,13 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   }
 
   public Optional<FluentIterable<CSimpleDeclaration>> getVariablesInScope() {
-    if (localInScopeVariables.isEmpty() || globalInScopeVariables.isEmpty()) {
+    if (localInScopeVariables == null || globalInScopeVariables == null) {
       return Optional.empty();
     }
 
     return Optional.of(
         FluentIterable.concat(
-            localInScopeVariables.orElseThrow(), globalInScopeVariables.orElseThrow()));
+            Objects.requireNonNull(localInScopeVariables),
+            Objects.requireNonNull(globalInScopeVariables)));
   }
 }

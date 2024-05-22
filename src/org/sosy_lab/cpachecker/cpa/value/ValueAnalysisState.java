@@ -836,7 +836,9 @@ public final class ValueAnalysisState
       // Check if the variable to be exported is actually in scope
       // but only do this if the nodes did track which variables are in scope
       if (pLocation.getVariablesInScope().isPresent()
-          && !pLocation.getVariablesInScope().orElseThrow()
+          && !pLocation
+              .getVariablesInScope()
+              .orElseThrow()
               .transform(CSimpleDeclaration::getOrigName)
               .contains(entry.getKey().getIdentifier())) {
         continue;
