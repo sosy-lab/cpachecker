@@ -55,8 +55,10 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   private Set<CSimpleDeclaration> outOfScopeVariables = null;
   // This will only be filled for C CFA's, since it is currently not needed for other languages.
   // It is only present if the CFA was created with this in mind.
-  private Optional<ImmutableSet<CSimpleDeclaration>> localInScopeVariables = Optional.empty();
-  private Optional<ImmutableSet<CSimpleDeclaration>> globalInScopeVariables = Optional.empty();
+  private transient Optional<ImmutableSet<CSimpleDeclaration>> localInScopeVariables =
+      Optional.empty();
+  private transient Optional<ImmutableSet<CSimpleDeclaration>> globalInScopeVariables =
+      Optional.empty();
 
   // list of summary edges
   private FunctionSummaryEdge leavingSummaryEdge = null;
