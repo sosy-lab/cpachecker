@@ -402,7 +402,7 @@ public class CounterexampleToCodeVisitor
         .append("(")
         .append(complexCastExpression.getExpressionType().toASTString(""))
         .append(") ");
-    complexCastExpression.getOperand().accept_(this);
+    complexCastExpression.getOperand().accept(this);
     callStack.pop();
     return null;
   }
@@ -435,9 +435,9 @@ public class CounterexampleToCodeVisitor
   public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression)
       throws UnsupportedOperationException {
     callStack.push(pIastArraySubscriptExpression.getClass());
-    pIastArraySubscriptExpression.getArrayExpression().accept_(this);
+    pIastArraySubscriptExpression.getArrayExpression().accept(this);
     cCode.append("[");
-    pIastArraySubscriptExpression.getSubscriptExpression().accept_(this);
+    pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
     cCode.append("]");
     callStack.pop();
     return null;
