@@ -935,6 +935,8 @@ public class FloatValue {
    * <p>This version of divide is slower and does not check for corner cases. It is still needed to
    * calculate the constants that are needed for the other, faster version of divide that uses
    * Newton's method.
+   *
+   * <p>This method assumes that both arguments use the same precision.
    */
   private FloatValue divideSlow(FloatValue number) {
     // Calculate the sign of the result
