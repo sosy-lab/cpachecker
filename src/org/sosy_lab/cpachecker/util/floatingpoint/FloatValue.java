@@ -404,7 +404,7 @@ public class FloatValue {
     return r.equals(BigInteger.ZERO) ? l : l.setBit(0);
   }
 
-  enum RoundingMode {
+  public enum RoundingMode {
     NEAREST_AWAY, // Round to nearest, ties away from zero
     NEAREST_EVEN, // Round to nearest, ties to even
     CEILING, // Round toward +∞
@@ -1939,7 +1939,8 @@ public class FloatValue {
    * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">How to Read Floating Point
    *     Numbers Accurately</a>
    */
-  private static FloatValue fromLiteralHex(Format pFormat, boolean pSign, String pDigits, int pExpValue) {
+  private static FloatValue fromLiteralHex(
+      Format pFormat, boolean pSign, String pDigits, int pExpValue) {
     FloatValue r = fromInteger(pFormat, new BigInteger(pDigits, 16));
     int finalExp = pExpValue - 4 * (pDigits.length() - 1);
     r = r.withExponent(r.exponent + finalExp);
@@ -1957,7 +1958,11 @@ public class FloatValue {
    * format.
    */
   private static FloatValue fromLiteralDec(
-      Format pFormat, boolean pSign, String pDigits, int pExpValue, Map<Integer, Integer> pFromStringStats) {
+      Format pFormat,
+      boolean pSign,
+      String pDigits,
+      int pExpValue,
+      Map<Integer, Integer> pFromStringStats) {
     // Read in the mantissa as in integer value
     BigInteger mantissa = new BigInteger(pDigits);
     if (mantissa.equals(BigInteger.ZERO)) {
