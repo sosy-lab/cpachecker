@@ -46,7 +46,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * case bounds exist on the number of extra digits that need to be calculated before the number can
  * always be rounded correctly. The same is not true for transcendental functions where such bounds
  * are unknown and may not even exist. This problem is known as <a
- * href=ttps://en.wikipedia.org/wiki/Rounding#Table-maker's_dilemma>"Table-maker's dilemma"</a>.
+ * href="https://en.wikipedia.org/wiki/Rounding#Table-maker's_dilemma">"Table-maker's dilemma"</a>.
  * Luckily for the transcendental functions {@link FloatValue#exp()}, {@link FloatValue#ln()} and
  * {@link FloatValue#pow(FloatValue)}) from this class it can be shown that only a finite number of
  * extra digits are needed for correct rounding. This follows from Lindemann’s theorem that e^z is
