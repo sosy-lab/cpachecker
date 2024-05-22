@@ -299,6 +299,7 @@ public class FloatValue {
         pFormat, false, pFormat.maxExp() + 1, BigInteger.ONE.shiftLeft(pFormat.sigBits - 1));
   }
 
+  /** Positive infinity. */
   public static FloatValue infinity(Format pFormat) {
     return new FloatValue(pFormat, false, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
@@ -328,6 +329,7 @@ public class FloatValue {
     return new FloatValue(pFormat, false, pFormat.minExp() - 1, BigInteger.ONE);
   }
 
+  /* Positive zero */
   public static FloatValue zero(Format pFormat) {
     return new FloatValue(pFormat, false, pFormat.minExp() - 1, BigInteger.ZERO);
   }
@@ -894,7 +896,7 @@ public class FloatValue {
     return this.multiply(this);
   }
 
-  /** Calculate the power function a^x where x is an integer. */
+  /** The power function a^x for integer exponents x. */
   public FloatValue powInt(BigInteger exp) {
     Map<BigInteger, FloatValue> powMap = new HashMap<>();
     return withPrecision(format.extended()).powInt_(exp, powMap).withPrecision(format);
@@ -1787,6 +1789,11 @@ public class FloatValue {
     return new FloatValue(format, sign, resultExponent, resultSignificand);
   }
 
+  /**
+   * Cast an integer value to a float.
+   *
+   * <p>Will return +/- infinity if the integer is too large for the float type.
+   */
   public static FloatValue fromInteger(Format pFormat, BigInteger pNumber) {
     // Return +0.0 for input 0
     if (pNumber.equals(BigInteger.ZERO)) {
@@ -1818,6 +1825,11 @@ public class FloatValue {
     return new FloatValue(pFormat, sign, exponent, significand);
   }
 
+  private static FloatValue fromInteger(Format pFormat, int pNumber) {
+    return fromInteger(pFormat, BigInteger.valueOf(pNumber));
+  }
+
+  /** Cast the value to a BigInteger. */
   public BigInteger toInteger() {
     if (exponent < -1) {
       return BigInteger.ZERO;
@@ -1832,24 +1844,30 @@ public class FloatValue {
     return resultSignificand;
   }
 
-  // NOTE: toByte, toShort, toInt and toLong depend on undefined behaviour
-  // According to the C99 standard:
-  // "F.4 Floating to integer conversion
-  //  If the floating value is infinite or NaN or if the integral part of the floating value exceeds
-  //  the range of the integer type, then the ‘‘invalid’’ floating-point exception is raised and the
-  //  resulting value is unspecified. Whether conversion of non-integer floating values whose
-  //  integral part is within the range of the integer type raises the ‘‘inexact’’ floating-point
-  //  exception is unspecified"
-  // However gcc does not always set the inexact flag correctly
-  // (see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27682) and the check has to be performed
-  // manually. It is also possible to check the range in advance, but this again has to be done by
-  // the programmer.
-  // We therefore try to emulate the default behaviour of gcc, which is to return a special
-  // indefinite value if the real value is out of range. For signed integers this indefinite value
-  // is 0x80000000 for int and 0x8000000000000000 for long. Conversion to byte or short happens in
-  // two steps: first the float is converted to a 32bit integer, and then this value is truncated.
-  // The indefinite value is therefore 0 in both cases.
-
+  /**
+   * Cast the value to a byte.
+   *
+   * <p>Note that the result of this operation is undefined if the integer value of the float is too
+   * large for the target type. According to the C99 standard:
+   *
+   * <pre>F.4 Floating to integer conversion
+   *  If the floating value is infinite or NaN or if the integral part of the floating value exceeds
+   *  the range of the integer type, then the ‘‘invalid’’ floating-point exception is raised and the
+   *  resulting value is unspecified. Whether conversion of non-integer floating values whose
+   *  integral part is within the range of the integer type raises the ‘‘inexact’’ floating-point
+   *  exception is unspecified</pre>
+   *
+   * However, gcc does not always set the inexact flag correctly (see <a
+   * href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27682">this</a> bugreport) and the check has
+   * to be performed manually. It is also possible to check the range in advance, but this again has
+   * to be done by the programmer.
+   *
+   * <p>We therefore try to emulate the default behaviour of gcc, which is to return a special
+   * indefinite value if the real value is out of range. For signed integers this indefinite value
+   * is 0x80000000 for int and 0x8000000000000000 for long. Conversion to byte or short happens in
+   * two steps: first the float is converted to a 32bit integer, and then this value is truncated.
+   * The indefinite value is therefore 0 in both cases.
+   */
   public byte toByte() {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
@@ -1863,6 +1881,11 @@ public class FloatValue {
     return integerValue.byteValue();
   }
 
+  /**
+   * Cast the value to a short.
+   *
+   * <p>See {@link FloatValue#toByte()} for some notes.
+   */
   public short toShort() {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
@@ -1876,6 +1899,11 @@ public class FloatValue {
     return integerValue.shortValue();
   }
 
+  /**
+   * Cast the value to an int.
+   *
+   * <p>See {@link FloatValue#toByte()} for some notes.
+   */
   public int toInt() {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
@@ -1889,6 +1917,11 @@ public class FloatValue {
     return integerValue.intValue();
   }
 
+  /**
+   * Cast the value to a long.
+   *
+   * <p>See {@link FloatValue#toByte()} for some notes.
+   */
   public long toLong() {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Long.MAX_VALUE);
@@ -2128,10 +2161,6 @@ public class FloatValue {
     } else {
       return fromLiteralDec(pFormat, sign, digits, expValue, pFromStringStats);
     }
-  }
-
-  public static FloatValue fromInteger(Format pFormat, int pNumber) {
-    return fromInteger(pFormat, BigInteger.valueOf(pNumber));
   }
 
   /**
