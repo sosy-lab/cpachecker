@@ -68,8 +68,8 @@ public class ExportAssumeEdges implements Algorithm {
       } else {
         logger.log(Level.WARNING, "Path outputPath required but is null.");
       }
-    } catch (IOException pE) {
-      throw new CPAException("Could not write to " + outputPath, pE);
+    } catch (IOException ioException) {
+      throw new CPAException("Could not write to " + outputPath, ioException);
     }
     return algorithm.run(reachedSet);
   }

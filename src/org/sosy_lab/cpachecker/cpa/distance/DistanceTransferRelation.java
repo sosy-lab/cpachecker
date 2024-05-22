@@ -49,12 +49,12 @@ public class DistanceTransferRelation extends SingleEdgeTransferRelation {
           case EXPENSIVE -> calculateDistanceExpensive(cfaEdge, distanceState);
         };
     if (result.isPresent()) {
-      if (result.getAsInt() > distanceState.getMaxDistance()) {
+      if (result.orElseThrow() > distanceState.getMaxDistance()) {
         return ImmutableSet.of();
       }
       return ImmutableSet.of(
           new DistanceAbstractState(
-              result.getAsInt(), distanceState.getVisitedNodes(), distanceState.getMaxDistance()));
+              result.orElseThrow(), distanceState.getVisitedNodes(), distanceState.getMaxDistance()));
     }
     if (distanceState.getDistance() > distanceState.getMaxDistance()) {
       return ImmutableSet.of();

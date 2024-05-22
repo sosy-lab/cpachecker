@@ -118,8 +118,8 @@ public class CounterexampleToC implements Algorithm {
     }
     try {
       Files.write(exportErrorInputs, new byte[0]);
-    } catch (IOException pE) {
-      throw new CPAException("Cannot write file " + exportErrorInputs, pE);
+    } catch (IOException ioException) {
+      throw new CPAException("Cannot write file " + exportErrorInputs, ioException);
     }
   }
 

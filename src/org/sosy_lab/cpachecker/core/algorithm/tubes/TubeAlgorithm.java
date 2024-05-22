@@ -117,8 +117,8 @@ public class TubeAlgorithm implements Algorithm {
                 .toList();
         logger.log(Level.INFO, summarize.summarize(targetPathsWithinDistance));
       }
-    } catch (InvalidConfigurationException | IOException pE) {
-      throw new CPAException("Could not create algorithm", pE);
+    } catch (InvalidConfigurationException | IOException exception) {
+      throw new CPAException("Could not create algorithm", exception);
     }
     return status;
   }
