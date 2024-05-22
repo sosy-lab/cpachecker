@@ -88,6 +88,9 @@ public class DistanceCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
+    if (counterexampleInfo == null) {
+      return new DistanceAbstractState(0, ImmutableSet.of(), maxDistance);
+    }
     ImmutableSet<@NonNull CFANode> visitedNodes =
         FluentIterable.from(counterexampleInfo.getTargetPath().getFullPath())
             .filter(e -> e != null)

@@ -79,7 +79,7 @@ public class TubeInterpolationAlgorithm implements Algorithm {
       return status;
     }
     CFAEdge current = fullPath.remove(fullPath.size() - 1);
-    while (!(current instanceof CAssumeEdge a)) {
+    while (!(current instanceof CAssumeEdge)) {
       current = fullPath.remove(fullPath.size() - 1);
     }
     CFAEdge finalCurrent = current;
@@ -115,8 +115,8 @@ public class TubeInterpolationAlgorithm implements Algorithm {
       List<BooleanFormula> interpolants =
           interpolationManager.interpolate(trace.toFormulaList()).orElseThrow();
       logger.log(Level.INFO, "Interpolants: ", interpolants);
-    } catch (InvalidConfigurationException pE) {
-      throw new CPAException("Invalid configuration", pE);
+    } catch (InvalidConfigurationException exception) {
+      throw new CPAException("Invalid configuration", exception);
     }
     return status;
   }

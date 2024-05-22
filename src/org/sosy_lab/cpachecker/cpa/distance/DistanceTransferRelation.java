@@ -54,7 +54,9 @@ public class DistanceTransferRelation extends SingleEdgeTransferRelation {
       }
       return ImmutableSet.of(
           new DistanceAbstractState(
-              result.orElseThrow(), distanceState.getVisitedNodes(), distanceState.getMaxDistance()));
+              result.orElseThrow(),
+              distanceState.getVisitedNodes(),
+              distanceState.getMaxDistance()));
     }
     if (distanceState.getDistance() > distanceState.getMaxDistance()) {
       return ImmutableSet.of();
