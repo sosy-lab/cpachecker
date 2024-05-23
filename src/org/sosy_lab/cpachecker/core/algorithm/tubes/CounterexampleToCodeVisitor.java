@@ -294,7 +294,7 @@ public class CounterexampleToCodeVisitor
     }
     if (isLogicalOperator && !inAssignment) {
       if (isLastAssume) {
-        cCode.append("klee_assume(!(");
+        cCode.append("klee_assume(");
       } else {
         cCode.append("if (!(");
       }
@@ -302,7 +302,7 @@ public class CounterexampleToCodeVisitor
       cCode.append(" ").append(exp.getOperator().getOperator()).append(" ");
       exp.getOperand2().accept_(this);
       if (isLastAssume) {
-        cCode.append("));\n");
+        cCode.append(");\n");
       } else {
         cCode.append(")) return 0;\n");
       }
