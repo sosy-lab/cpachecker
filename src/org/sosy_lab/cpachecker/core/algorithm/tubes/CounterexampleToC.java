@@ -127,11 +127,7 @@ public class CounterexampleToC implements Algorithm {
       throws IOException {
     for (CounterexampleInfo counterexample : counterexamples) {
       CounterexampleToCodeVisitor visitor = new CounterexampleToCodeVisitor();
-      counterexample
-          .getTargetPath()
-          .getFullPath()
-          .forEach(edge -> edge.getRawAST().ifPresent(ast -> ast.accept_(visitor)));
-      String cCode = visitor.finish();
+      String cCode = visitor.visit(counterexample);
       IO.writeFile(
           counterExampleFiles.getPath(exportedCounterexamples++), StandardCharsets.UTF_8, cCode);
     }

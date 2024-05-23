@@ -66,6 +66,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 public class CounterexampleToCodeVisitor
     extends AAstNodeVisitor<Void, UnsupportedOperationException> {
@@ -78,12 +81,32 @@ public class CounterexampleToCodeVisitor
   private boolean inBinaryExpression = false;
 
   private final Deque<Class<?>> callStack;
+  private boolean isLastAssume = false;
 
   public CounterexampleToCodeVisitor() {
     variableIds = new HashMap<>();
     cCode = new StringBuilder();
     returnVariables = new ArrayDeque<>();
     callStack = new ArrayDeque<>();
+  }
+
+  public String visit(CounterexampleInfo pCounterexample) {
+    CFAEdge lastAssume = null;
+    List<CFAEdge> fullPath = pCounterexample.getTargetPath().getFullPath();
+    for (int i = fullPath.size() - 1; i >= 0; i--) {
+      if (fullPath.get(i).getEdgeType() == CFAEdgeType.AssumeEdge) {
+        lastAssume = fullPath.get(i);
+        break;
+      }
+    }
+    for (CFAEdge cfaEdge : fullPath) {
+      isLastAssume = cfaEdge.equals(lastAssume);
+      cfaEdge.getRawAST().ifPresent(astNode -> astNode.accept_(this));
+    }
+    String result = cCode.append("ERROR: return 1;\n}").toString();
+    return FluentIterable.from(Splitter.on("\n").splitToList(result))
+        .filter(s -> !s.equals(";"))
+        .join(Joiner.on("\n"));
   }
 
   private String getVariableId(String name, boolean increase) {
@@ -270,11 +293,19 @@ public class CounterexampleToCodeVisitor
       isLogicalOperator = binaryOp.isLogicalOperator();
     }
     if (isLogicalOperator && !inAssignment) {
-      cCode.append("klee_assume(!(");
+      if (isLastAssume) {
+        cCode.append("klee_assume(!(");
+      } else {
+        cCode.append("if (!(");
+      }
       exp.getOperand1().accept_(this);
       cCode.append(" ").append(exp.getOperator().getOperator()).append(" ");
       exp.getOperand2().accept_(this);
-      cCode.append("));\n");
+      if (isLastAssume) {
+        cCode.append("));\n");
+      } else {
+        cCode.append(")) return 0;\n");
+      }
     } else {
       exp.getOperand1().accept_(this);
       cCode.append(" ").append(exp.getOperator().getOperator()).append(" ");
@@ -504,12 +535,5 @@ public class CounterexampleToCodeVisitor
   public Void visit(JClassInstanceCreation pJClassInstanceCreation)
       throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Java is not supported");
-  }
-
-  public String finish() {
-    String result = cCode.append("ERROR: return 1;\n}").toString();
-    return FluentIterable.from(Splitter.on("\n").splitToList(result))
-        .filter(s -> !s.equals(";"))
-        .join(Joiner.on("\n"));
   }
 }
