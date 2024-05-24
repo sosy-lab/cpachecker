@@ -126,7 +126,8 @@ public class SLARGToDotWriter {
    * @param label A text to be show in the top left of the graph
    * @throws IOException Writing to sb failed
    */
-  public static void writeRankedAbstractions(
+  @SuppressWarnings("unused")
+  private static void writeRankedAbstractions(
       Appendable sb, final Collection<SLARGState> states, String label) throws IOException {
     ARGState root = FluentIterable.from(states).filter(SLARGState::isInit).toList().get(0);
     int maxrank = 0;
