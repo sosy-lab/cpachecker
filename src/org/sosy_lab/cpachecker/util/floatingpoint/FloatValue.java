@@ -1961,99 +1961,51 @@ public class FloatValue {
       String pDigits,
       int pExpValue,
       Map<Integer, Integer> pFromStringStats) {
-    // Read in the mantissa as in integer value
+    // Parse the mantissa as an integer value
     BigInteger mantissa = new BigInteger(pDigits);
     if (mantissa.equals(BigInteger.ZERO)) {
       return pSign ? negativeZero(pFormat) : zero(pFormat);
     }
 
-    /* For the conversion from base 10 to base 2 fromString needs to repeat its calculation with
-     * increasing precision until enough (valid) digits are available to round the value correctly.
-     * For this we define a list of intermediate formats that was specially optimized for the
-     * precision of the input format. The idea is that we only have to try 2-3 different precisions
-     * before the right one is found, which is much more efficient than increasing the precision one
-     * bit at a time.
-     */
-    // TODO: Find a better solution, or at least clean up the list of extended formats
-    ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
-    if (pFormat.equals(Format.Float8)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      3      3      3      3      4      4      4      4      4      9
-      extendedPrecisions.add(new Format(11, pFormat.sigBits + 12));
-    } else if (pFormat.equals(Format.Float16)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      3      3      3      3      4      4      4      4      5     12
-      extendedPrecisions.add(new Format(11, pFormat.sigBits + 3));
-      extendedPrecisions.add(new Format(11, pFormat.sigBits + 4));
-      extendedPrecisions.add(new Format(11, pFormat.sigBits + 5));
-      extendedPrecisions.add(new Format(11, pFormat.sigBits + 12));
-    } else if (pFormat.equals(Format.Float32)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      3      3      3      3      4      4      4      4      5     11
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 3));
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 4));
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 5));
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 15));
-      for (int i = 16; i < 32; i++) {
-        extendedPrecisions.add(new Format(15, pFormat.sigBits + i));
-      }
-    } else if (pFormat.equals(Format.Float64)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      3      3      3      4      4      4      4      5      6     10
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 3));
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 4));
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 5));
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 6));
-      extendedPrecisions.add(new Format(15, pFormat.sigBits + 12));
-      for (int i = 13; i < 32; i++) {
-        extendedPrecisions.add(new Format(15, pFormat.sigBits + i));
-      }
-    } else {
-      for (int i = 1; i < 100; i++) {
-        extendedPrecisions.add(new Format(Format.Float256.expBits, pFormat.sigBits + i));
-      }
-    }
-
     boolean done = false;
     FloatValue r = nan(pFormat);
+    int k = 3;
 
     // We run the conversion in a loop and increase the precision between runs to make sure that
     // enough precision was used to allow for correct rounding.
-    for (Format ext : extendedPrecisions.build()) {
-      if (!done) {
-        int diff = ext.sigBits - pFormat.sigBits;
+    while (!done) {
+      Format ext = new Format(Format.Float256.expBits, pFormat.sigBits + k);
 
-        // Calculate the base2 representation of the value:
-        // Let's say we have 1.2345 * 10^k as input. We first rewrite the term as 12345 * 10^k-4 to
-        // make the mantissa integer. Then we extend the term further and add more zeroes:
-        // 12345 * (10^5/10^5) * 10^k-4 = 1234500000 * 10^k-9
-        // Here 5 is the number of extra digits that will be used in the calculation to ensure
-        // correct rounding. The value has to be chosen large enough, and we use the main loop to
-        // increment it and try out several different values.
-        // The term "1234500000 * 10^k-9" can now easily be converted to base2:
-        // - 123450000 is integer, and we use fromInteger() to create the mantissa of the float.
-        // - The term "10" for the exponent is also integer, and we use fromInteger() again. Then we
-        //   use powInt() to calculate the exponent of the float.
-        // - The two parts can now be multiplied to get the final value.
-        FloatValue f = fromInteger(ext, mantissa.multiply(BigInteger.TEN.pow(diff)));
-        FloatValue e =
-            fromInteger(ext, 10)
-                .powInt(BigInteger.valueOf(pExpValue - (pDigits.length() - 1) - diff));
+      // Calculate the base2 representation of the value:
+      // Let's say we have 1.2345 * 10^k as input. We first rewrite the term as 12345 * 10^k-4 to
+      // make the mantissa integer. Then we extend the term further and add more zeroes:
+      // 12345 * (10^5/10^5) * 10^k-4 = 1234500000 * 10^k-9
+      // Here 5 is the number of extra digits that will be used in the calculation to ensure
+      // correct rounding. The value has to be chosen large enough, and we use the main loop to
+      // increment it and try out several different values.
+      // The term "1234500000 * 10^k-9" can now easily be converted to base2:
+      // - 123450000 is integer, and we use fromInteger() to create the mantissa of the float.
+      // - The term "10" for the exponent is also integer, and we use fromInteger() again. Then we
+      //   use powInt() to calculate the exponent of the float.
+      // - The two parts can now be multiplied to get the final value.
+      FloatValue f = fromInteger(ext, mantissa.multiply(BigInteger.TEN.pow(k)));
+      FloatValue e =
+          fromInteger(ext, 10).powInt(BigInteger.valueOf(pExpValue - (pDigits.length() - 1) - k));
 
-        // Rounding check: make sure we have enough precision.
-        FloatValue val1 = f.plus1Ulp().multiply(e);
-        FloatValue val2 = f.minus1Ulp().multiply(e);
+      // Rounding check: make sure we have enough precision.
+      FloatValue val1 = f.plus1Ulp().multiply(e);
+      FloatValue val2 = f.minus1Ulp().multiply(e);
 
-        if (equalModuloP(pFormat, val1, val2) && r.isStable(val1.validPart())) {
-          done = true;
-          r = pSign ? val1.negate() : val1;
+      if (equalModuloP(pFormat, val1, val2) && r.isStable(val1.validPart())) {
+        done = true;
+        r = pSign ? val1.negate() : val1;
 
-          // Update statistics
-          if (pFromStringStats != null) {
-            pFromStringStats.put(diff, pFromStringStats.getOrDefault(diff, 0) + 1);
-          }
+        // Update statistics
+        if (pFromStringStats != null) {
+          pFromStringStats.put(k, pFromStringStats.getOrDefault(k, 0) + 1);
         }
       }
+      k++;
     }
     return r.withPrecision(pFormat);
   }
