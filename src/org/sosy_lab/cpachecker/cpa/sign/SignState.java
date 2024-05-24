@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
 public class SignState
     implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
@@ -201,19 +200,28 @@ public class SignState
     return "SignAnalysis";
   }
 
+  private static boolean isSIGN(String s) {
+    try {
+      SIGN.valueOf(s);
+    } catch (IllegalArgumentException ex) {
+      return false;
+    }
+    return true;
+  }
+
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     List<String> parts = propertySplitter.splitToList(pProperty);
 
     if (parts.size() == 2) {
 
-      if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
+      if (isSIGN(parts.get(0))) {
         // pProperty = value <= varName
         SIGN value = SIGN.valueOf(parts.get(0));
         SIGN varName = getSignForVariable(parts.get(1));
         return varName.covers(value);
 
-      } else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
+      } else if (isSIGN(parts.get(1))) {
         // pProperty = varName <= value
         SIGN varName = getSignForVariable(parts.get(0));
         SIGN value = SIGN.valueOf(parts.get(1));
