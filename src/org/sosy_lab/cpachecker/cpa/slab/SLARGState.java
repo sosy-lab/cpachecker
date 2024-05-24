@@ -38,7 +38,6 @@ public class SLARGState extends ARGState
 
   private boolean isInit;
   private boolean isError;
-  private boolean isAbstractionState = true;
 
   public SLARGState(
       SLARGState parent,
@@ -148,10 +147,6 @@ public class SLARGState extends ARGState
   public boolean wasExpanded() {
     return expanded;
   }*/
-
-  public boolean isAbstractionState() {
-    return isAbstractionState;
-  }
 
   @Override
   public String toString() {
