@@ -2089,7 +2089,7 @@ public class FloatValue {
         FloatValue val1 = f.plus1Ulp().multiply(e);
         FloatValue val2 = f.minus1Ulp().multiply(e);
 
-        if (equalModuloP(pFormat, val1, val2)) {
+        if (equalModuloP(pFormat, val1, val2) && r.isStable(val1.validPart())) {
           done = true;
           r = pSign ? val1.negate() : val1;
 
