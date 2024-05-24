@@ -185,7 +185,8 @@ public class FloatValue {
       // Check that the arguments are valid
       Preconditions.checkArgument(
           expBits >= 2 && expBits <= 25, "Exponent field must be between 2 and 25 bits wide");
-      Preconditions.checkArgument(sigBits >= 1, "Significand field must be at least one bit wide");
+      Preconditions.checkArgument(
+          sigBits >= 0, "Significand field must not have negative bit width");
     }
 
     public static final Format Float8 = new Format(4, 3);
