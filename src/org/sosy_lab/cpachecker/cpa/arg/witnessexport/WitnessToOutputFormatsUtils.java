@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToDotFormatter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToGraphMLFormatter;
-import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
+import org.sosy_lab.cpachecker.util.StringUtil;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -113,7 +113,7 @@ public final class WitnessToOutputFormatsUtils {
             witness.getARGStatesFor(source).stream()
                 .map(ARGState::getStateId)
                 .collect(ImmutableList.toImmutableList());
-        String nodeString = SLARGToDotWriter.generateLocationString(nodeIds).toString();
+        StringBuilder nodeString = StringUtil.convertIntegerRangesToStringCollapsed(nodeIds);
         StringBuilder labelBuilder = new StringBuilder(source);
         if (!nodeString.isEmpty()) {
           labelBuilder.append(String.format("%nARG node%s: ", nodeIds.size() == 1 ? "" : "s"));
