@@ -27,32 +27,47 @@ public class StringUtil {
     StringBuilder builder = new StringBuilder();
     int state = 0;
     int lastNumber = -1;
-    String separator = ",";
     for (Integer currentNumber : numbers) {
       switch (state) {
         case 0:
+          // initial state
           builder.append(currentNumber);
           state = 1;
           break;
         case 1:
-          if (currentNumber != lastNumber + 1 || currentNumber.equals(numbers.last())) {
+          // builder ends with lastNumber
+          if (currentNumber != lastNumber + 1) {
             builder.append(",").append(currentNumber);
             // stay in state 1
+          } else if (currentNumber.equals(numbers.last())) {
+            builder.append(",").append(currentNumber);
+            state = -1; // we should be finished, next transition would lead to exception
           } else {
             state = 2;
           }
           break;
         case 2:
+          // builder ends with lastNumber-1 (still undecided whether this becomes a range)
           if (currentNumber != lastNumber + 1) {
-            builder.append(separator).append(lastNumber).append(",").append(currentNumber);
-            separator = ",";
+            builder.append(",").append(lastNumber).append(",").append(currentNumber);
             state = 1;
           } else if (currentNumber.equals(numbers.last())) {
-            builder.append(separator).append(currentNumber);
+            builder.append("-").append(currentNumber);
             state = -1; // we should be finished, next transition would lead to exception
           } else {
-            separator = "-";
-            // stay in state 2
+            state = 3;
+          }
+          break;
+        case 3:
+          // builder ends with number that is smaller than lastNumber (we are in a range)
+          if (currentNumber != lastNumber + 1) {
+            builder.append("-").append(lastNumber).append(",").append(currentNumber);
+            state = 1;
+          } else if (currentNumber.equals(numbers.last())) {
+            builder.append("-").append(currentNumber);
+            state = -1; // we should be finished, next transition would lead to exception
+          } else {
+            // stay in state 3
           }
           break;
         default:
