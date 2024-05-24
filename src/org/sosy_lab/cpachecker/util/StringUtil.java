@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSortedSet;
@@ -20,6 +21,7 @@ public class StringUtil {
    * Continuous ranges will be abbreviated by a dash, e.g. "1-5",
    * non-continous integers will be separated by commas.
    * All integers will be sorted and duplicates are ignored.
+   * No negative values may be present.
    * Example: The integers {7,5,1,3,4,5,7} will be written as "1,3-5,7"
    */
   public static StringBuilder convertIntegerRangesToStringCollapsed(Iterable<Integer> pNumbers) {
@@ -28,6 +30,7 @@ public class StringUtil {
     int state = 0;
     int lastNumber = -1;
     for (Integer currentNumber : numbers) {
+      checkArgument(currentNumber >= 0);
       switch (state) {
         case 0:
           // initial state

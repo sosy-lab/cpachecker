@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.primitives.Ints;
 import org.junit.Test;
@@ -47,6 +48,11 @@ public class StringUtilTest {
   @Test
   public void test_duplicates_unsorted() {
     assertThat(rangeToStringCollapsed(7, 5, 1, 3, 4, 5, 7)).isEqualTo("1,3-5,7");
+  }
+
+  @Test
+  public void test_negative_number() {
+    assertThrows(IllegalArgumentException.class, () -> rangeToStringCollapsed(1, -1, 0));
   }
 
   private static String rangeToStringCollapsed(int... values) {
