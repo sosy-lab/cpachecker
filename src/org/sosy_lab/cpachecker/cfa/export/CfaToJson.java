@@ -39,8 +39,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 
 /**
- * Enables the export of all CFA {@link FunctionEntryNode}s, {@link CFANode}s, {@link CFAEdge}s and
- * relevant Metadata.
+ * Enables the export of all {@link CFA} {@link FunctionEntryNode}s, {@link CFANode}s, {@link
+ * CFAEdge}s and relevant Metadata.
  *
  * <p>The export format is JSON.
  */
@@ -68,7 +68,7 @@ public class CfaToJson {
   }
 
   /**
-   * Writes the CFA data.
+   * Writes the {@link CFA} data.
    *
    * @param pOutdir Directory to which the JSON files are to be written.
    * @throws IOException If an error with {@link FileOutputStream} or {@link JsonGenerator} occurs.
@@ -134,7 +134,7 @@ public class CfaToJson {
    *
    * <p>It specifies the serializer for {@link FunctionExitNode}.
    */
-  public abstract class FunctionEntryNodeMixin {
+  private abstract static class FunctionEntryNodeMixin {
 
     @JsonSerialize(using = CFANodeSerializer.class)
     private FunctionExitNode exitNode;
@@ -145,7 +145,7 @@ public class CfaToJson {
    *
    * <p>It specifies the serializer for {@link FunctionEntryNode}.
    */
-  public abstract class FunctionExitNodeMixin {
+  private abstract static class FunctionExitNodeMixin {
 
     @JsonSerialize(using = CFANodeSerializer.class)
     private FunctionEntryNode entryNode;
