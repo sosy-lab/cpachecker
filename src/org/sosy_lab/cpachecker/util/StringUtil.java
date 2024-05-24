@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSortedSet;
-import java.util.Collection;
 import java.util.Comparator;
 
 public class StringUtil {
@@ -23,7 +22,7 @@ public class StringUtil {
    * All integers will be sorted and duplicates are ignored.
    * Example: The integers {7,5,1,3,4,5,7} will be written as "1,3-5,7"
    */
-  public static StringBuilder convertIntegerRangesToStringCollapsed(Collection<Integer> pNumbers) {
+  public static StringBuilder convertIntegerRangesToStringCollapsed(Iterable<Integer> pNumbers) {
     ImmutableSortedSet<Integer> numbers = from(pNumbers).toSortedSet(Comparator.naturalOrder());
     StringBuilder builder = new StringBuilder();
     int state = 0;

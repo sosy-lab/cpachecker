@@ -12,6 +12,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -110,9 +111,7 @@ public final class WitnessToOutputFormatsUtils {
         sourceNode = new HashMap<>();
 
         List<Integer> nodeIds =
-            witness.getARGStatesFor(source).stream()
-                .map(ARGState::getStateId)
-                .collect(ImmutableList.toImmutableList());
+            Lists.transform(witness.getARGStatesFor(source), ARGState::getStateId);
         StringBuilder nodeString = StringUtil.convertIntegerRangesToStringCollapsed(nodeIds);
         StringBuilder labelBuilder = new StringBuilder(source);
         if (!nodeString.isEmpty()) {

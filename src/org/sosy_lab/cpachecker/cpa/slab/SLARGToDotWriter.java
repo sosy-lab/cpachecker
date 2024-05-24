@@ -87,9 +87,8 @@ public class SLARGToDotWriter {
     }
     builder.append("label=\"").append(determineLabel(pState));
 
-    Iterable<CFANode> locations = pState.getLocationNodes();
-    Collection<Integer> locationNumbers =
-        from(locations).transform(CFANode::getNodeNumber).toList();
+    Iterable<Integer> locationNumbers =
+        from(pState.getLocationNodes()).transform(CFANode::getNodeNumber);
     builder.append("@N");
     builder.append(StringUtil.convertIntegerRangesToStringCollapsed(locationNumbers));
     builder.append("\" ");
