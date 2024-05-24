@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -163,7 +162,7 @@ public final class WitnessToOutputFormatsUtils {
   }
 
   private static String determineNodeType(Witness witness, String source) {
-    Collection<ARGState> states = witness.getARGStatesFor(source);
+    ImmutableList<ARGState> states = witness.getARGStatesFor(source);
     if (!witness.getViolatedProperties().get(source).isEmpty()
         || states.stream().anyMatch(ARGState::isTarget)) {
       return "target";
