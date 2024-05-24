@@ -25,8 +25,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 // TODO: Add support for more rounding modes
 // TODO: Add more functions (like sin(x), etc)
-// TODO: Use the same extended formats for exp, ln and pow. This will help reduce memory use as
-//  constants have to be calculated for fewer precisions.
 // TODO: Make castToOther return an Optional
 //  This is needed when the target type for castToOther is too small for the integer value of the
 //  float. See the comment before toByte() for more details.
@@ -1248,6 +1246,56 @@ public class FloatValue {
     }
   }
 
+  /**
+   * Returns a list of intermediate formats with increasing precision.
+   *
+   * <p>For transcendental functions like ln, exp or pow the calculation has to be repeated with
+   * increasing precision until enough (valid) digits are available to round the value correctly.
+   * For this we define a list of intermediate formats that was specially optimized for the
+   * precision of the input format. The idea is that we only have to try 2-3 different precisions
+   * before the right one is found, which is much more efficient than increasing the precision one
+   * bit at a time.
+   */
+  private ImmutableList<Format> extendedPrecisions() {
+    ImmutableList.Builder<Format> builder = ImmutableList.builder();
+    if (format.equals(Format.Float8)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // ln     1      1      1      1      1      4      5      6      7     10
+      // exp    1      1      1      4      4      5      5      6      7     13
+      // pow    6     13     13     13     13     16     16     16     16     16
+      Format m0 = new Format(11, format.sigBits + 7);
+      Format m1 = new Format(11, format.sigBits + 19);
+      builder.add(m0, m1);
+    } else if (format.equals(Format.Float16)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // ln     1      1      1      1      1      9     10     11     12     31
+      // exp    1      1      1      6      8      9     10     12     13     26
+      // pow    7     10     13     15     17     19     20     22     23     25
+      Format m0 = new Format(11, format.sigBits + 13);
+      Format m1 = new Format(11, format.sigBits + 31);
+      builder.add(m0, m1, m1.extended());
+    } else if (format.equals(Format.Float32)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // ln     1      1      1      1     18     19     20     21     22     35
+      // exp    1      1      1      1     15     25     25     25     26     41
+      // pow   13     18     22     25     29     31     34     36     39     41
+      Format m0 = new Format(15, format.sigBits + 26);
+      Format m1 = new Format(15, format.sigBits + 41);
+      builder.add(m0, m1, m1.extended());
+    } else if (format.equals(Format.Float64)) {
+      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
+      // ln     1      1      1      1     44     45     46     47     48     62
+      // exp    1      1      1      1     28     54     54     55     55     68
+      // pow   31     39     44     49     53     57     61     64     67     70
+      Format m0 = new Format(Format.Float256.expBits, format.sigBits + 55);
+      Format m1 = new Format(Format.Float256.expBits, format.sigBits + 70);
+      builder.add(m0, m1, m1.extended());
+    } else {
+      builder.add(format.extended(), format.extended().extended());
+    }
+    return builder.build();
+  }
+
   /** The exponential function e^x. */
   public FloatValue exp() {
     return expWithStats(null);
@@ -1270,41 +1318,10 @@ public class FloatValue {
       return one(format);
     }
 
-    /* For transcendental functions like exp(x) the calculation has to be repeated with increasing
-     * precision until enough (valid) digits are available to round the value correctly. For this we
-     * define a list of intermediate formats that was specially optimized for the precision of the
-     * input format. The idea is that we only have to try 2-3 different precisions before the right
-     * one is found, which is much more efficient than increasing the precision one bit at a time.
-     */
-    ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
-    if (format.equals(Format.Float8)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      1      1      1      4      4      5      5      6      7     13
-      extendedPrecisions.add(new Format(11, format.sigBits + 13));
-    } else if (format.equals(Format.Float16)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      1      1      1      6      8      9     10     12     13     26
-      extendedPrecisions.add(new Format(11, format.sigBits + 13));
-      extendedPrecisions.add(new Format(11, format.sigBits + 26));
-    } else if (format.equals(Format.Float32)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      1      1      1      1     15     25     25     25     26     41
-      Format m = new Format(15, format.sigBits + 41);
-      extendedPrecisions.add(m, m.extended());
-    } else if (format.equals(Format.Float64)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p     1      1      1      1     28     54     54     55     55     68
-      Format m = new Format(Format.Float256.expBits, format.sigBits + 60);
-      extendedPrecisions.add(m, m.extended());
-    } else {
-      Format m = new Format(Format.Float256.expBits, 2 * format.sigBits);
-      extendedPrecisions.add(m, m.extended());
-    }
-
     FloatValue r = nan(format);
     boolean done = false;
 
-    for (Format p : extendedPrecisions.build()) {
+    for (Format p : extendedPrecisions()) {
       if (!done) {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         FloatValue x = withPrecision(p_ext);
@@ -1429,42 +1446,10 @@ public class FloatValue {
       return zero(format);
     }
 
-    /* For transcendental functions like ln(x) the calculation has to be repeated with increasing
-     * precision until enough (valid) digits are available to round the value correctly. For this we
-     * define a list of intermediate formats that was specially optimized for the precision of the
-     * input format. The idea is that we only have to try 2-3 different precisions before the right
-     * one is found, which is much more efficient than increasing the precision one bit at a time.
-     */
-    ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
-    if (format.equals(Format.Float8)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      1      1      1      1      1      4      5      6      7     10
-      extendedPrecisions.add(new Format(11, format.sigBits + 13));
-    } else if (format.equals(Format.Float16)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      1      1      1      1      1      9     10     11     12     31
-      extendedPrecisions.add(new Format(11, format.sigBits + 12));
-      extendedPrecisions.add(new Format(11, format.sigBits + 31));
-    } else if (format.equals(Format.Float32)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      1      1      1      1     18     19     20     21     22     35
-      Format m = new Format(15, format.sigBits + 22);
-      extendedPrecisions.add(m, m.extended());
-    } else if (format.equals(Format.Float64)) {
-      //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p      1      1      1      1     44     45     46     47     48     62
-      Format m = new Format(Format.Float256.expBits, format.sigBits + 48);
-      extendedPrecisions.add(m, m.extended());
-    } else {
-      // FIXME: Why is broken for 32bit exponents?
-      Format m = new Format(/*32*/ Format.Float256.expBits, 2 * format.sigBits);
-      extendedPrecisions.add(m, m.extended());
-    }
-
     FloatValue r = nan(format);
     boolean done = false;
 
-    for (Format p : extendedPrecisions.build()) {
+    for (Format p : extendedPrecisions()) {
       if (!done) {
         Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
         FloatValue x = withPrecision(p_ext);
@@ -1675,41 +1660,10 @@ public class FloatValue {
   }
 
   private FloatValue pow_(FloatValue pExponent, @Nullable Map<Integer, Integer> pPowStats) {
-    /* For transcendental functions like pow(x) the calculation has to be repeated with increasing
-     * precision until enough (valid) digits are available to round the value correctly. For this we
-     * define a list of intermediate formats that was specially optimized for the precision of the
-     * input format. The idea is that we only have to try 2-3 different precisions before the right
-     * one is found, which is much more efficient than increasing the precision one bit at a time.
-     */
-    ImmutableList.Builder<Format> extendedPrecisions = ImmutableList.builder();
-    if (format.equals(Format.Float8)) {
-      //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p    6     13     13     13     13     16     16     16     16     16
-      extendedPrecisions.add(new Format(11, format.sigBits + 19)); // exhaustive
-    } else if (format.equals(Format.Float16)) {
-      //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p    7     10     13     15     17     19     20     22     23     25
-      Format m = new Format(11, format.sigBits + 25);
-      extendedPrecisions.add(m, m.extended());
-    } else if (format.equals(Format.Float32)) {
-      //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p   13     18     22     25     29     31     34     36     39     41
-      Format m = new Format(15, format.sigBits + 41);
-      extendedPrecisions.add(m, m.extended());
-    } else if (format.equals(Format.Float64)) {
-      //    0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
-      // p   31     39     44     49     53     57     61     64     67     70
-      Format m = new Format(Format.Float256.expBits, format.sigBits + 71);
-      extendedPrecisions.add(m, m.extended());
-    } else {
-      Format m = new Format(Format.Float256.expBits, 2 * format.sigBits);
-      extendedPrecisions.add(m, m.extended());
-    }
-
     FloatValue r = nan(format);
     boolean done = false;
 
-    for (Format p : extendedPrecisions.build()) {
+    for (Format p : extendedPrecisions()) {
       if (!done) {
         // a^x = exp(x * ln a)
         Format ext = new Format(p.expBits, p.sigBits - format.sigBits);
