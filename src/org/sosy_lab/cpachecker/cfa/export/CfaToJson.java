@@ -24,8 +24,7 @@ import com.google.common.io.MoreFiles;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Set;
+import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,14 +37,13 @@ import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 
 /**
- * Enables the export of all {@link CFA} {@link FunctionEntryNode}s, {@link CFANode}s, {@link
- * CFAEdge}s and relevant Metadata.
+ * Enables to export all {@link CFA} {@link FunctionEntryNode}s, {@link CFANode}s, {@link CFAEdge}s
+ * and relevant Metadata.
  *
  * <p>The export format is JSON.
  */
 public final class CfaToJson {
-  private final Set<CFANode> nodes;
-  private final List<CFAEdge> edges;
+  private final CfaJsonExport cfaJsonExport;
 
   public CfaToJson(CFA pCfa) {
     CFA cfa = checkNotNull(pCfa);
@@ -62,20 +60,24 @@ public final class CfaToJson {
       CFATraversal.dfs().traverse(entryNode, visitor);
     }
 
-    nodes = nodeVisitor.getVisitedNodes();
-    edges = edgeVisitor.getVisitedEdges();
+    this.cfaJsonExport =
+        new CfaJsonExport(nodeVisitor.getVisitedNodes(), edgeVisitor.getVisitedEdges());
   }
 
   /**
-   * Writes the {@link CFA} data.
+   * This record represents the {@link CFA} data to be exported to JSON.
+   *
+   * <p>It contains all {@link CFANode}s and {@link CFAEdge}s.
+   */
+  private record CfaJsonExport(Collection<CFANode> nodes, Collection<CFAEdge> edges) {}
+
+  /**
+   * Writes the {@link CfaJsonExport} data.
    *
    * @param pOutdir Directory to which the JSON files are to be written.
    * @throws IOException If an error with {@link FileOutputStream} or {@link JsonGenerator} occurs.
    */
   public void write(Path pOutdir) throws IOException {
-    /* Acquire a configured ObjectMapper for CFA serialization. */
-    ObjectMapper cfaObjectMapper = provideConfiguredCfaObjectMapper();
-
     /* Define the file path and create any required directories. */
     Path jsonFilePath = pOutdir.resolve("cfa.json");
     MoreFiles.createParentDirectories(jsonFilePath);
@@ -85,17 +87,7 @@ public final class CfaToJson {
         JsonGenerator jsonGenerator =
             new JsonFactory().createGenerator(fileOutputStream, JsonEncoding.UTF8); ) {
 
-      jsonGenerator.writeStartObject();
-
-      /* Write all Nodes. */
-      jsonGenerator.writeFieldName("nodes");
-      cfaObjectMapper.writeValue(jsonGenerator, nodes);
-
-      /* Write all Edges. */
-      jsonGenerator.writeFieldName("edges");
-      cfaObjectMapper.writeValue(jsonGenerator, edges);
-
-      jsonGenerator.writeEndObject();
+      provideConfiguredCfaObjectMapper().writeValue(jsonGenerator, this.cfaJsonExport);
     }
   }
 
