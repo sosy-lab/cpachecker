@@ -2006,6 +2006,10 @@ public class FloatValue {
         }
       }
       k++;
+      if (k > 100) {
+        // FIXME: Remove once the rounding test is fixed
+        done = true;
+      }
     }
     return r.withPrecision(pFormat);
   }
