@@ -103,6 +103,9 @@ public class PathChecker {
               + " imprecise or potentially wrong program paths will be exported as counterexample.")
   private boolean alwaysUseImpreciseCounterexamples = false;
 
+  @Option(secure = true, description = "Reuse the last variable assignments of last iteration")
+  private boolean withReuse = false;
+
   private final LogManager logger;
   private final PathFormulaManager pmgr;
   private final Solver solver;
@@ -177,7 +180,11 @@ public class PathChecker {
       precisePath = counterexample.getPrecisePath();
     }
 
-    return createCounterexample(precisePath, counterexample);
+    if (withReuse) {
+      return createCounterexampleWithReuse(precisePath, counterexample);
+    } else {
+      return createCounterexample(precisePath, counterexample);
+    }
   }
 
   /** Determine whether the given path is the only possible path to its last state in the ARG. */
@@ -218,10 +225,57 @@ public class PathChecker {
 
       prover.push(pathFormula);
 
+      if (prover.isUnsat()) {
+        logger.log(
+            Level.WARNING,
+            "Inconsistent replayed error path! No variable values will be available.");
+        return createImpreciseCounterexample(precisePath, pInfo);
+      }
+
+      ImmutableList<ValueAssignment> model = getModel(prover);
+      CFAPathWithAssumptions pathWithAssignments =
+          assignmentToPathAllocator.allocateAssignmentsToPath(precisePath, model, ssaMaps);
+
+      CounterexampleInfo cex = CounterexampleInfo.feasiblePrecise(precisePath, pathWithAssignments);
+      addCounterexampleFormula(ImmutableList.of(pathFormula), cex);
+      addCounterexampleModel(model, cex);
+      return cex;
+
+    } catch (SolverException | CPATransferException e) {
+      // path is now suddenly a problem
+      logger.logUserException(
+          Level.WARNING, e, "Could not replay error path! No variable values will be available.");
+      return createImpreciseCounterexample(precisePath, pInfo);
+    }
+  }
+
+  /**
+   * Create a {@link CounterexampleInfo} object for a given counterexample. The path will be checked
+   * again with an SMT solver to extract a model that is as precise and simple as possible. We
+   * assume that one additional SMT query will not cause too much overhead. If the double-check
+   * fails, an imprecise result is returned.
+   *
+   * @param precisePath The precise ARGPath that represents the counterexample.
+   * @param pInfo More information about the counterexample (as fallback).
+   * @return a {@link CounterexampleInfo} instance
+   */
+  private CounterexampleInfo createCounterexampleWithReuse(
+      final ARGPath precisePath, final CounterexampleTraceInfo pInfo) throws InterruptedException {
+
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+
+      Pair<PathFormula, List<SSAMap>> replayedPath = createPrecisePathFormula(precisePath);
+      List<SSAMap> ssaMaps = replayedPath.getSecond();
+      BooleanFormula pathFormula = replayedPath.getFirstNotNull().getFormula();
+
+      prover.push(pathFormula);
+
       // check if a usable variable assignment is available (AssumeEdge property version)
       ImmutableList<ValueAssignment> variableAssignmentReuse = null;
       List<CFAEdge> edges = precisePath.getInnerEdges();
       CAssumeEdge lastAssumeEdge = null;
+      CAssumeEdge previousTestGoal = null;
+      int previousTestGoalInt = -1;
       for (int i = edges.size() - 1; i >= 0; i--) {
 
         if (edges.get(i) instanceof CAssumeEdge) {
@@ -230,6 +284,8 @@ public class PathChecker {
             lastAssumeEdge = (CAssumeEdge) edges.get(i);
           }
           if (((CAssumeEdge) edges.get(i)).getReuseAssignments() != null) {
+            previousTestGoalInt = i;
+            previousTestGoal = (CAssumeEdge) edges.get(i);
             variableAssignmentReuse =
                 ImmutableList.copyOf(((CAssumeEdge) edges.get(i)).getReuseAssignments());
             break;
@@ -243,6 +299,7 @@ public class PathChecker {
       FormulaManagerView fmgr = solver.getFormulaManager();
       BooleanFormula conjunctedVAFormula = null;
       if (variableAssignmentReuse != null) {
+
         for (ValueAssignment va : variableAssignmentReuse) {
           if (conjunctedVAFormula == null) {
             conjunctedVAFormula = va.getAssignmentAsFormula();
