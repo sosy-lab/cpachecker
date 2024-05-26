@@ -11,15 +11,15 @@ package org.sosy_lab.cpachecker.cfa.export;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.io.MoreFiles;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -107,10 +107,11 @@ public final class CfaToJson {
     /* Enable serialization with indentation and newlines. */
     objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
-    /* Add mixins for FunctionEntryNode, FunctionExitNode and CFAEdge. */
+    /* Add mixins. */
     objectMapper.addMixIn(FunctionEntryNode.class, FunctionEntryNodeMixin.class);
     objectMapper.addMixIn(FunctionExitNode.class, FunctionExitNodeMixin.class);
     objectMapper.addMixIn(CFAEdge.class, CfaEdgeMixin.class);
+    objectMapper.addMixIn(CFANode.class, CfaNodeMixin.class);
 
     return objectMapper;
   }
@@ -118,59 +119,50 @@ public final class CfaToJson {
   /**
    * This class is a mixin for {@link FunctionEntryNode}.
    *
-   * <p>It specifies the serializer for {@link FunctionExitNode}.
+   * <p>It serializes its {@link FunctionExitNode} field as number.
    */
   private abstract static class FunctionEntryNodeMixin {
 
-    @JsonSerialize(using = CfaNodeSerializer.class)
+    @JsonIdentityReference(alwaysAsId = true)
     private FunctionExitNode exitNode;
   }
 
   /**
    * This class is a mixin for {@link FunctionExitNode}.
    *
-   * <p>It specifies the serializer for {@link FunctionEntryNode}.
+   * <p>It serializes its {@link FunctionEntryNode} field as number.
    */
   private abstract static class FunctionExitNodeMixin {
 
-    @JsonSerialize(using = CfaNodeSerializer.class)
+    @JsonIdentityReference(alwaysAsId = true)
     private FunctionEntryNode entryNode;
   }
 
   /**
    * This interface is a mixin for {@link CFAEdge}.
    *
-   * <p>It specifies the serializers for the predecessor and successor {@link CFANode}s.
+   * <p>It serializes its predecessor and successor {@link CFANode}s as numbers.
    */
   private interface CfaEdgeMixin {
 
-    @JsonSerialize(using = CfaNodeSerializer.class)
+    @JsonIdentityReference(alwaysAsId = true)
     CFANode getPredecessor();
 
-    @JsonSerialize(using = CfaNodeSerializer.class)
+    @JsonIdentityReference(alwaysAsId = true)
     CFANode getSuccessor();
   }
 
-  /* A custom JSON serializer for serializing CFANode objects as their node numbers. */
-  private static class CfaNodeSerializer extends JsonSerializer<CFANode> {
-
-    /**
-     * Serializes a {@link CFANode} object to JSON.
-     *
-     * <p>It serializes a {@link CFANode} object as its node number.
-     *
-     * @param pCfaNode The {@link CFANode} object to be serialized.
-     * @param pJsonGenerator The JSON generator to write the serialized JSON to.
-     * @param pSerializerProvider The serializer provider.
-     * @throws IOException If an I/O error occurs while writing the JSON.
-     */
-    @Override
-    public void serialize(
-        CFANode pCfaNode, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
-        throws IOException {
-      pJsonGenerator.writeNumber(pCfaNode.getNodeNumber());
-    }
-  }
+  /**
+   * This class is a mixin for {@link CFANode}.
+   *
+   * <p>It prevents cyclic references by serializing the {@link CFANode} as number if the same node
+   * has already been fully serialized once.
+   */
+  @JsonIdentityInfo(
+      generator = ObjectIdGenerators.PropertyGenerator.class,
+      scope = CFANode.class,
+      property = "nodeNumber")
+  private abstract static class CfaNodeMixin {}
 }
     // TODO for (FunctionEntryNode entryNode : cfa.entryNodes()) {
     // .resolve("functions").resolve(entryNode.getFunctionName() + ".json");
