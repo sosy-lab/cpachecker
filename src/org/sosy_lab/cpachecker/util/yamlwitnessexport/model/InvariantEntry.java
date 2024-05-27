@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 
 @JsonDeserialize(using = InvariantRecordDeserializer.class)
 @JsonSerialize(using = InvariantRecordSerializer.class)
-public sealed class InvariantEntry extends AbstractInformationRecord
-    implements CorrectnessWitnessSetElementEntry permits InvariantEntryV3 {
+public non-sealed class InvariantEntry extends AbstractInformationRecord
+    implements CorrectnessWitnessSetElementEntry {
 
   @JsonProperty("location")
   @JsonInclude(JsonInclude.Include.NON_NULL)
