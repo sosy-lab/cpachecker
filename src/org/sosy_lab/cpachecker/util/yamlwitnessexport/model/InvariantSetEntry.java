@@ -21,11 +21,11 @@ public class InvariantSetEntry extends AbstractEntry {
   public final MetadataRecord metadata;
 
   @JsonProperty("content")
-  public final List<InvariantEntry> content;
+  public final List<CorrectnessWitnessSetElementEntry> content;
 
   public InvariantSetEntry(
       @JsonProperty("metadata") MetadataRecord pMetadata,
-      @JsonProperty("content") List<InvariantEntry> pContent) {
+      @JsonProperty("content") List<CorrectnessWitnessSetElementEntry> pContent) {
     super(INVARIANT_SET_ENTRY_IDENTIFIER);
     metadata = pMetadata;
     content = pContent;

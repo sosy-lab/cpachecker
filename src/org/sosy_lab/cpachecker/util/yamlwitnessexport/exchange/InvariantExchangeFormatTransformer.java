@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetElementEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
@@ -133,29 +134,31 @@ public class InvariantExchangeFormatTransformer {
 
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
-        for (InvariantEntry invariantEntry : invariantSetEntry.content) {
-          int line = invariantEntry.getLocation().getLine();
-          int column = invariantEntry.getLocation().getColumn();
-          Pair<Integer, Integer> cacheLookupKey = Pair.of(line, column);
-          String invariantString = invariantEntry.getValue();
+        for (CorrectnessWitnessSetElementEntry entryElement : invariantSetEntry.content) {
+          if (entryElement instanceof InvariantEntry invariantEntry) {
+            int line = invariantEntry.getLocation().getLine();
+            int column = invariantEntry.getLocation().getColumn();
+            Pair<Integer, Integer> cacheLookupKey = Pair.of(line, column);
+            String invariantString = invariantEntry.getValue();
 
-          // Parsing is expensive, therefore, cache everything we can
-          if (lineToSeenInvariants.get(cacheLookupKey).contains(invariantString)) {
-            continue;
+            // Parsing is expensive, therefore, cache everything we can
+            if (lineToSeenInvariants.get(cacheLookupKey).contains(invariantString)) {
+              continue;
+            }
+
+            ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
+
+            invariants.add(
+                new Invariant(
+                    invariant,
+                    line,
+                    column,
+                    invariantEntry
+                        .getType()
+                        .equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())));
+
+            lineToSeenInvariants.get(cacheLookupKey).add(invariantString);
           }
-
-          ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
-
-          invariants.add(
-              new Invariant(
-                  invariant,
-                  line,
-                  column,
-                  invariantEntry
-                      .getType()
-                      .equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())));
-
-          lineToSeenInvariants.get(cacheLookupKey).add(invariantString);
         }
       }
     }

@@ -172,9 +172,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
                       false,
                       CStorageClass.AUTO,
                       cType,
-                      "\\return",
-                      "\\return",
-                      node.getFunctionName() + "::\\return",
+                      "\result",
+                      "\result",
+                      node.getFunctionName() + "::\result",
                       null)));
     } else {
       returnVariable = Optional.empty();
