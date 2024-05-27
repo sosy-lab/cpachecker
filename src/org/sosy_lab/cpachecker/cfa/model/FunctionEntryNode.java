@@ -60,18 +60,22 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
    * @param pExitNode the corresponding function exit node, or null if the function never returns
    * @param pFunctionDefinition the function definition
    * @param pReturnVariable the variable that stores the return value of the function, if it has one
-   * @param pLocalInScopeVariables the input variables of the function as given in the function
-   *     declaration
-   * @param pGlobalInScopeVariables the global variables that are in scope at this node
+   * @param pLocalInScopeVariablesForInputProgram the input variables of the function as given in
+   *     the function declaration
+   * @param pGlobalInScopeVariablesForInputProgram the global variables that are in scope at this
+   *     node
    */
   protected FunctionEntryNode(
       final FileLocation pFileLocation,
       @Nullable FunctionExitNode pExitNode,
       final AFunctionDeclaration pFunctionDefinition,
       final Optional<? extends AVariableDeclaration> pReturnVariable,
-      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
-      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
-    super(pFunctionDefinition, pLocalInScopeVariables, pGlobalInScopeVariables);
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariablesForInputProgram,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariablesForInputProgram) {
+    super(
+        pFunctionDefinition,
+        pLocalInScopeVariablesForInputProgram,
+        pGlobalInScopeVariablesForInputProgram);
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     exitNode = pExitNode;

@@ -62,8 +62,8 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   // - null: the variables do not contain any information, for example due to not being initialized
   //         properly
   // - some set: these variables are in scope at this node
-  private ImmutableSet<CSimpleDeclaration> localInScopeVariables = null;
-  private ImmutableSet<CSimpleDeclaration> globalInScopeVariables = null;
+  private ImmutableSet<CSimpleDeclaration> localInScopeVariablesForInputProgram = null;
+  private ImmutableSet<CSimpleDeclaration> globalInScopeVariablesForInputProgram = null;
 
   // list of summary edges
   private FunctionSummaryEdge leavingSummaryEdge = null;
@@ -98,19 +98,19 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
    * original C program. This is currently being constructed during parsing.
    *
    * @param pFunction the function where this node belongs to
-   * @param pLocalInScopeVariables the set of local variables that are in scope at this node in the
-   *     original program
-   * @param pGlobalInScopeVariables the set of global variables that are in scope at this node in
-   *     the original program
+   * @param pLocalInScopeVariablesForInputProgram the set of local variables that are in scope at
+   *     this node in the original program
+   * @param pGlobalInScopeVariablesForInputProgram the set of global variables that are in scope at
+   *     this node in the original program
    */
   public CFANode(
       AFunctionDeclaration pFunction,
-      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
-      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariablesForInputProgram,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariablesForInputProgram) {
     function = pFunction;
     nodeNumber = idGenerator.getFreshId();
-    localInScopeVariables = pLocalInScopeVariables;
-    globalInScopeVariables = pGlobalInScopeVariables;
+    localInScopeVariablesForInputProgram = pLocalInScopeVariablesForInputProgram;
+    globalInScopeVariablesForInputProgram = pGlobalInScopeVariablesForInputProgram;
   }
 
   public int getNodeNumber() {
@@ -364,13 +364,14 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   }
 
   public Optional<FluentIterable<CSimpleDeclaration>> getVariablesInScope() {
-    if (localInScopeVariables == null || globalInScopeVariables == null) {
+    if (localInScopeVariablesForInputProgram == null
+        || globalInScopeVariablesForInputProgram == null) {
       return Optional.empty();
     }
 
     return Optional.of(
         FluentIterable.concat(
-            Objects.requireNonNull(localInScopeVariables),
-            Objects.requireNonNull(globalInScopeVariables)));
+            Objects.requireNonNull(localInScopeVariablesForInputProgram),
+            Objects.requireNonNull(globalInScopeVariablesForInputProgram)));
   }
 }

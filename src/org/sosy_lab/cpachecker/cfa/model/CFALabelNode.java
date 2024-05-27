@@ -32,17 +32,17 @@ public final class CFALabelNode extends CFANode {
    *
    * @param pFunction the function this node belongs to
    * @param pLabel the label of this node
-   * @param pLocalInScopeVariables the local variables that are in scope at this node in the
-   *     original program
-   * @param pGlobalInScopeVariables the global variables that are in scope at this node in the
-   *     original program
+   * @param pLocalInScopeVariablesForInputProgram the local variables that are in scope at this node
+   *     in the original program
+   * @param pGlobalInScopeVariablesForInputProgram the global variables that are in scope at this
+   *     node in the original program
    */
   public CFALabelNode(
       AFunctionDeclaration pFunction,
       String pLabel,
-      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
-      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
-    super(pFunction, pLocalInScopeVariables, pGlobalInScopeVariables);
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariablesForInputProgram,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariablesForInputProgram) {
+    super(pFunction, pLocalInScopeVariablesForInputProgram, pGlobalInScopeVariablesForInputProgram);
     checkArgument(!pLabel.isEmpty());
     label = pLabel;
   }

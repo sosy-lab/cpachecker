@@ -41,24 +41,25 @@ public final class CFunctionEntryNode extends FunctionEntryNode {
    * @param pExitNode the corresponding function exit node, or null if the function never returns
    * @param pFunctionDefinition the function definition
    * @param pReturnVariable the variable that stores the return value of the function, if it has one
-   * @param pLocalInScopeVariables the input variables of the function as given in the function
-   *     declaration
-   * @param pGlobalInScopeVariables the global variables that are in scope at this node
+   * @param pLocalInScopeVariablesForInputProgram the input variables of the function as given in
+   *     the function declaration
+   * @param pGlobalInScopeVariablesForInputProgram the global variables that are in scope at this
+   *     node
    */
   public CFunctionEntryNode(
       final FileLocation pFileLocation,
       final CFunctionDeclaration pFunctionDefinition,
       final @Nullable FunctionExitNode pExitNode,
       final Optional<CVariableDeclaration> pReturnVariable,
-      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
-      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariablesForInputProgram,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariablesForInputProgram) {
     super(
         pFileLocation,
         pExitNode,
         pFunctionDefinition,
         pReturnVariable,
-        pLocalInScopeVariables,
-        pGlobalInScopeVariables);
+        pLocalInScopeVariablesForInputProgram,
+        pGlobalInScopeVariablesForInputProgram);
   }
 
   @Override

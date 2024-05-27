@@ -32,15 +32,16 @@ public final class FunctionExitNode extends CFANode {
    * at this node for the original program.
    *
    * @param pFunction the function this node belongs to
-   * @param pLocalInScopeVariables the input variables of the function as given in the function
-   *     declaration
-   * @param pGlobalInScopeVariables the global variables that are in scope at this node
+   * @param pLocalInScopeVariablesForInputProgram the input variables of the function as given in
+   *     the function declaration
+   * @param pGlobalInScopeVariablesForInputProgram the global variables that are in scope at this
+   *     node
    */
   public FunctionExitNode(
       AFunctionDeclaration pFunction,
-      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
-      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
-    super(pFunction, pLocalInScopeVariables, pGlobalInScopeVariables);
+      ImmutableSet<CSimpleDeclaration> pLocalInScopeVariablesForInputProgram,
+      ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariablesForInputProgram) {
+    super(pFunction, pLocalInScopeVariablesForInputProgram, pGlobalInScopeVariablesForInputProgram);
   }
 
   public void setEntryNode(FunctionEntryNode pEntryNode) {
