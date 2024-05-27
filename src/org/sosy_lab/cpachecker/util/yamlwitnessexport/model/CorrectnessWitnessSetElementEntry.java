@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
 /**
- * A correctness witness contains multiple sets of entries, this interface is used to represent
- * which entries can be exported inside a set of a correctness witness.
+ * A correctness witness contains multiple entries in its content, this interface is used to
+ * represent which entries can be exported inside a set of a correctness witness.
  */
 public sealed interface CorrectnessWitnessSetElementEntry
     permits FunctionContractEntry, InvariantEntry {}
