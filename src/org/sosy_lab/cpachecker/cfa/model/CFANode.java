@@ -54,8 +54,14 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
   // set of variables out of scope after this node.
   // lazy initialization: first null, then final set
   private Set<CSimpleDeclaration> outOfScopeVariables = null;
-  // This will only be filled for C CFA's, since it is currently not needed for other languages.
-  // It is only present if the CFA was created with this in mind.
+
+  // Currently the tracking of which variables are in scope is only done for C programs, since it is
+  // implemented in the eclipse parser. Currently, this is only used for exporting witnesses in
+  // version 2.0, which are currently not defined for any other programming language than C.
+  // The variable values have the following semantics:
+  // - null: the variables do not contain any information, for example due to not being initialized
+  //         properly
+  // - some set: these variables are in scope at this node
   private ImmutableSet<CSimpleDeclaration> localInScopeVariables = null;
   private ImmutableSet<CSimpleDeclaration> globalInScopeVariables = null;
 
