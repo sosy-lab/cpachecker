@@ -26,6 +26,17 @@ public final class CFALabelNode extends CFANode {
     label = pLabel;
   }
 
+  /**
+   * Constructor for a label node with additional information about the variables in scope at this
+   * node for the original program.
+   *
+   * @param pFunction the function this node belongs to
+   * @param pLabel the label of this node
+   * @param pLocalInScopeVariables the local variables that are in scope at this node in the
+   *     original program
+   * @param pGlobalInScopeVariables the global variables that are in scope at this node in the
+   *     original program
+   */
   public CFALabelNode(
       AFunctionDeclaration pFunction,
       String pLabel,

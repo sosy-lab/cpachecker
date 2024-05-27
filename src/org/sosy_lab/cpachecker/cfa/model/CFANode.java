@@ -93,6 +93,16 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
     nodeNumber = idGenerator.getFreshId();
   }
 
+  /**
+   * Create a new CFANode with information about which variables are currently in scope in the
+   * original C program. This is currently being constructed during parsing.
+   *
+   * @param pFunction the function where this node belongs to
+   * @param pLocalInScopeVariables the set of local variables that are in scope at this node in the
+   *     original program
+   * @param pGlobalInScopeVariables the set of global variables that are in scope at this node in
+   *     the original program
+   */
   public CFANode(
       AFunctionDeclaration pFunction,
       ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,

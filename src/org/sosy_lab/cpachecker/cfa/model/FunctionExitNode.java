@@ -27,6 +27,15 @@ public final class FunctionExitNode extends CFANode {
     super(pFunction);
   }
 
+  /**
+   * Constructor for a function entry node with additional information about the variables in scope
+   * at this node for the original program.
+   *
+   * @param pFunction the function this node belongs to
+   * @param pLocalInScopeVariables the input variables of the function as given in the function
+   *     declaration
+   * @param pGlobalInScopeVariables the global variables that are in scope at this node
+   */
   public FunctionExitNode(
       AFunctionDeclaration pFunction,
       ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,

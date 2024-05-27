@@ -52,6 +52,18 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
     returnVariable = pReturnVariable.orElse(null);
   }
 
+  /**
+   * Constructor for a function entry node with additional information about the variables in scope
+   * at this node for the original program.
+   *
+   * @param pFileLocation the location in the source file
+   * @param pExitNode the corresponding function exit node, or null if the function never returns
+   * @param pFunctionDefinition the function definition
+   * @param pReturnVariable the variable that stores the return value of the function, if it has one
+   * @param pLocalInScopeVariables the input variables of the function as given in the function
+   *     declaration
+   * @param pGlobalInScopeVariables the global variables that are in scope at this node
+   */
   protected FunctionEntryNode(
       final FileLocation pFileLocation,
       @Nullable FunctionExitNode pExitNode,
@@ -59,7 +71,6 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
       final Optional<? extends AVariableDeclaration> pReturnVariable,
       ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
       ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
-
     super(pFunctionDefinition, pLocalInScopeVariables, pGlobalInScopeVariables);
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;

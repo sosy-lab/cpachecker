@@ -33,6 +33,18 @@ public final class CFunctionEntryNode extends FunctionEntryNode {
     super(pFileLocation, pExitNode, pFunctionDefinition, pReturnVariable);
   }
 
+  /**
+   * Constructor for a function entry node for a C program with additional information about the
+   * variables in scope at this node for the original program.
+   *
+   * @param pFileLocation the location in the source file
+   * @param pExitNode the corresponding function exit node, or null if the function never returns
+   * @param pFunctionDefinition the function definition
+   * @param pReturnVariable the variable that stores the return value of the function, if it has one
+   * @param pLocalInScopeVariables the input variables of the function as given in the function
+   *     declaration
+   * @param pGlobalInScopeVariables the global variables that are in scope at this node
+   */
   public CFunctionEntryNode(
       final FileLocation pFileLocation,
       final CFunctionDeclaration pFunctionDefinition,
@@ -40,7 +52,6 @@ public final class CFunctionEntryNode extends FunctionEntryNode {
       final Optional<CVariableDeclaration> pReturnVariable,
       ImmutableSet<CSimpleDeclaration> pLocalInScopeVariables,
       ImmutableSet<CSimpleDeclaration> pGlobalInScopeVariables) {
-
     super(
         pFileLocation,
         pExitNode,
