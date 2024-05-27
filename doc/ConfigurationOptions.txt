@@ -4984,7 +4984,11 @@ traceformula.reduceSelectors = false
 tubes.actions = [Action.EXPORT_CEX_TO_C]
 
 # where to write assume edges
+tubes.assumes.declarationPath = "declarations.json"
 tubes.assumes.outputPath = "assumes.txt"
+
+# whether to perform the algorithm
+tubes.assumes.performAlgorithm = true
 
 # Configuration for bounded predicate analysis
 tubes.boundedConfig = "config/boundedPredicateAnalysis.properties"

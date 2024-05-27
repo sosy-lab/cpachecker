@@ -55,6 +55,12 @@ public class ExportAssumeEdges implements Algorithm {
       description = "where to write assume edges")
   private Path declarationPath = Path.of("declarations.json");
 
+  @Option(
+      secure = true,
+      name = "assumes.performAlgorithm",
+      description = "whether to perform the algorithm")
+  private boolean performAlgorithm = true;
+
   public ExportAssumeEdges(
       Algorithm pAlgorithm, Configuration pConfiguration, CFA pCFA, LogManager pLogManager)
       throws InvalidConfigurationException {
@@ -104,6 +110,9 @@ public class ExportAssumeEdges implements Algorithm {
           "Could not write to " + outputPath + " or " + declarationPath);
       throw new CPAException(
           "Could not write to " + outputPath + " or " + declarationPath, ioException);
+    }
+    if (!performAlgorithm) {
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
     return algorithm.run(reachedSet);
   }
