@@ -117,8 +117,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
                       try {
                         return "(!("
                             + getOverapproximationOfStatesIgnoringReturnVariables(
-                                    ImmutableSet.of(pair.entry()), node)
-                                .toString()
+                                ImmutableSet.of(pair.entry()), node)
                             + ") || ("
                             + getOverapproximationOfStatesReplacingReturnVariables(
                                 ImmutableSet.of(pair.exit()), node)
