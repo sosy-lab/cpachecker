@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 @Immutable
 public final class InformationRecord extends AbstractInformationRecord {
   @JsonAlias({"value", "string"})
-  protected final String value;
+  private final String value;
 
   public InformationRecord(
       @JsonProperty("value") String string,
