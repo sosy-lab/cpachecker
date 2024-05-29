@@ -123,10 +123,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // Currently, it is unclear what to do with assumptions where the next statement is after a
     // function return. Since the variables for the assumptions may not be in scope.
     // TODO: Add a method to export these assumptions
-    if (!CFAUtils.leavingEdges(pEdge.getSuccessor())
-        .transform(CFAEdge::getSuccessor)
-        .filter(FunctionExitNode.class)
-        .isEmpty()) {
+    if (!CFAUtils.successorsOf(pEdge.getSuccessor()).filter(FunctionExitNode.class).isEmpty()) {
       return Optional.empty();
     }
 
