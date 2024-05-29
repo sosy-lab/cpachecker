@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 
 public abstract class AbstractInformationRecord {
-  @JsonAlias({"value", "string"})
-  protected final String value;
 
   @JsonProperty("type")
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -22,26 +20,20 @@ public abstract class AbstractInformationRecord {
 
   @JsonProperty("format")
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  protected final String format;
+  protected final YAMLWitnessExpressionType format;
 
   public AbstractInformationRecord(
-      @JsonProperty("value") String string,
       @JsonProperty("type") String pType,
-      @JsonProperty("format") String pFormat) {
-    value = string;
+      @JsonProperty("format") YAMLWitnessExpressionType pFormat) {
     type = pType;
     format = pFormat;
-  }
-
-  public String getValue() {
-    return value;
   }
 
   public String getType() {
     return type;
   }
 
-  public String getFormat() {
+  public YAMLWitnessExpressionType getFormat() {
     return format;
   }
 }

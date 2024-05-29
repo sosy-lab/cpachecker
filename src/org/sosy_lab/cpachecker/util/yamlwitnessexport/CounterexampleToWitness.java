@@ -80,7 +80,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     InformationRecord informationRecord =
-        new InformationRecord(statement, null, YAMLWitnessExpressionType.C.toString());
+        new InformationRecord(statement, null, YAMLWitnessExpressionType.C);
     LocationRecord location =
         LocationRecord.createLocationRecordAfterLocation(
             edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pAstCfaRelation);

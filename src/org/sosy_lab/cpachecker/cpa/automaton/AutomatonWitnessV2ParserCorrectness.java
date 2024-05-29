@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetElementEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
@@ -63,7 +63,7 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
-        for (CorrectnessWitnessSetElementEntry entryElement : invariantSetEntry.content) {
+        for (AbstractInformationRecord entryElement : invariantSetEntry.content) {
           if (entryElement instanceof InvariantEntry invariantEntry) {
             Optional<String> resultFunction =
                 Optional.ofNullable(invariantEntry.getLocation().getFunction());

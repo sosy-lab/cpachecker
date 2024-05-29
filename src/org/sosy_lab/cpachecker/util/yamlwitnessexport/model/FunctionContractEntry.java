@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntr
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)
 @JsonSerialize(using = FunctionContractRecordSerializer.class)
-public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetElementEntry {
+public class FunctionContractEntry extends AbstractInvariantEntry {
 
   @SuppressWarnings("unused")
   private static final String FUNCTION_CONTRACT_IDENTIFIER = "function_contract";
@@ -44,19 +44,15 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
   @JsonProperty("requires")
   private final String requires;
 
-  @JsonProperty("format")
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  private final YAMLWitnessExpressionType format;
-
   public FunctionContractEntry(
       @JsonProperty("ensures") String pEnsures,
       @JsonProperty("requires") String pRequires,
       @JsonProperty("format") YAMLWitnessExpressionType pFormat,
       @JsonProperty("location") LocationRecord pLocation) {
+    super(FUNCTION_CONTRACT_IDENTIFIER, pFormat);
     location = pLocation;
     ensures = pEnsures;
     requires = pRequires;
-    format = pFormat;
   }
 
   public LocationRecord getLocation() {
@@ -69,10 +65,6 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
 
   public String getRequires() {
     return requires;
-  }
-
-  public YAMLWitnessExpressionType getFormat() {
-    return format;
   }
 
   public static class FunctionContractRecordDeserializer
@@ -95,10 +87,10 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
       // (less elegant, but we probably never touch that code again, so it is fine):
       FunctionContractEntry result =
           new FunctionContractEntry(
-              mapper.treeToValue(node.get("ensures"), String.class),
-              mapper.treeToValue(node.get("requires"), String.class),
-              mapper.treeToValue(node.get("format"), YAMLWitnessExpressionType.class),
-              mapper.treeToValue(node.get("location"), LocationRecord.class));
+              mapper.treeToValue(invariantNode.get("ensures"), String.class),
+              mapper.treeToValue(invariantNode.get("requires"), String.class),
+              mapper.treeToValue(invariantNode.get("format"), YAMLWitnessExpressionType.class),
+              mapper.treeToValue(invariantNode.get("location"), LocationRecord.class));
 
       return result;
     }

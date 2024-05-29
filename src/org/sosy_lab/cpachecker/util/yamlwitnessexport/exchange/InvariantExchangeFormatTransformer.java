@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetElementEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
@@ -134,7 +134,7 @@ public class InvariantExchangeFormatTransformer {
 
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
-        for (CorrectnessWitnessSetElementEntry entryElement : invariantSetEntry.content) {
+        for (AbstractInformationRecord entryElement : invariantSetEntry.content) {
           if (entryElement instanceof InvariantEntry invariantEntry) {
             int line = invariantEntry.getLocation().getLine();
             int column = invariantEntry.getLocation().getColumn();

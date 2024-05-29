@@ -8,17 +8,27 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 
 @Immutable
 public final class InformationRecord extends AbstractInformationRecord {
+  @JsonAlias({"value", "string"})
+  protected final String value;
+
   public InformationRecord(
       @JsonProperty("value") String string,
       @JsonProperty("type") String pType,
-      @JsonProperty("format") String pFormat) {
-    super(string, pType, pFormat);
+      @JsonProperty("format") YAMLWitnessExpressionType pFormat) {
+    super(pType, pFormat);
+    value = string;
+  }
+
+  public String getValue() {
+    return value;
   }
 
   @Override
