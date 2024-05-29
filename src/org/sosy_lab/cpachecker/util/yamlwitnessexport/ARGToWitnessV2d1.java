@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import apron.NotImplementedException;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -110,9 +111,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
         ensuresClause =
             String.join(
                 " && ",
-                FluentIterable.from(ensuresArgStates)
-                    .transform(
-                        pair -> {
+                transformedImmutableSetCopy(ensuresArgStates, pair -> {
                           try {
                             return "(!("
                                 + getOverapproximationOfStatesIgnoringReturnVariables(
@@ -126,8 +125,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
                           } catch (InterruptedException | NotImplementedException e) {
                             throw new AssertionError(e);
                           }
-                        })
-                    .toSet());
+                        }));
       }
       functionContractRecords.add(
           new FunctionContractEntry(

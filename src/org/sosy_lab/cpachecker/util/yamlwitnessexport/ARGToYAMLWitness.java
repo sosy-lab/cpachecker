@@ -87,10 +87,23 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
     // TODO: This needs to be improved once we implement setjump/longjump
     /** The callstack of the order in which the function entry points where traversed */
-    private final ListMultimap<AFunctionDeclaration, ARGState> functionEntryStatesCallStack =
+    private ListMultimap<AFunctionDeclaration, ARGState> functionEntryStatesCallStack =
         ArrayListMultimap.create();
 
+    /** Enables the recovery of the callstack when an ARGState has multiple children */
+    private final Map<ARGState, ListMultimap<AFunctionDeclaration, ARGState>> callStackRecovery =
+        new HashMap<>();
+
     protected void analyze(ARGState pSuccessor) {
+      if (!pSuccessor.getParents().isEmpty()) {
+        ARGState parent = pSuccessor.getParents().stream().findFirst().orElseThrow();
+        if (callStackRecovery.containsKey(parent)) {
+          // Copy the saved callstack, since we want to return to the state we had before the
+          // branching
+          functionEntryStatesCallStack = ArrayListMultimap.create(callStackRecovery.get(parent));
+        }
+      }
+
       for (LocationState state :
           AbstractStates.asIterable(pSuccessor).filter(LocationState.class)) {
         CFANode node = state.getLocationNode();
@@ -110,6 +123,10 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
               functionExitNode,
               new FunctionEntryExitPair(
                   functionEntryNodes.remove(functionEntryNodes.size() - 1), pSuccessor));
+        }
+
+        if (pSuccessor.getChildren().size() > 1 && !callStackRecovery.containsKey(pSuccessor)) {
+          callStackRecovery.put(pSuccessor, functionEntryStatesCallStack);
         }
       }
     }
@@ -209,9 +226,15 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
       for (ExpressionTreeReportingState state : reportingStates) {
         if (stateClass.isAssignableFrom(state.getClass())) {
-          expressionsMatchingClass.add(
-              state.getFormulaApproximationInputProgramInScopeVariable(
-                  entryNode, node, cfa.getASTStructure()));
+          if (returnVariable.isPresent() && node instanceof FunctionExitNode exitNode) {
+            expressionsMatchingClass.add(
+                state.getFormulaApproximationInputProgramInScopeVariablesAndFunctionReturnVariable(
+                    entryNode, exitNode, returnVariable.orElseThrow(), cfa.getASTStructure()));
+          } else {
+            expressionsMatchingClass.add(
+                state.getFormulaApproximationInputProgramInScopeVariable(
+                    entryNode, node, cfa.getASTStructure()));
+          }
         }
       }
       expressionsPerClass.add(expressionsMatchingClass);
