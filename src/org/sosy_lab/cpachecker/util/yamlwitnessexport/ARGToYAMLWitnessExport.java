@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import apron.NotImplementedException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -44,7 +45,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
    * @throws IOException If the witness could not be written to the file.
    */
   public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
-      throws InterruptedException, IOException {
+      throws InterruptedException, IOException, NotImplementedException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
       switch (witnessVersion) {

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import apron.NotImplementedException;
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -149,12 +150,14 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
   }
 
   protected ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
-      Collection<ARGState> argStates, CFANode node) throws InterruptedException {
+      Collection<ARGState> argStates, CFANode node)
+      throws InterruptedException, NotImplementedException {
     return getOverapproximationOfStatesIgnoringReturnVariables(argStates, node, false);
   }
 
   protected ExpressionTree<Object> getOverapproximationOfStatesReplacingReturnVariables(
-      Collection<ARGState> argStates, CFANode node) throws InterruptedException {
+      Collection<ARGState> argStates, CFANode node)
+      throws InterruptedException, NotImplementedException {
     return getOverapproximationOfStatesIgnoringReturnVariables(argStates, node, true);
   }
 
@@ -171,7 +174,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   private ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
       Collection<ARGState> argStates, CFANode node, boolean pReplaceOutputVariable)
-      throws InterruptedException {
+      throws InterruptedException, NotImplementedException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
 
     FluentIterable<ExpressionTreeReportingState> reportingStates =
@@ -207,7 +210,8 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       for (ExpressionTreeReportingState state : reportingStates) {
         if (stateClass.isAssignableFrom(state.getClass())) {
           expressionsMatchingClass.add(
-              state.getFormulaApproximation(entryNode, node, returnVariable));
+              state.getFormulaApproximationInputProgramInScopeVariable(
+                  entryNode, node, cfa.getASTStructure()));
         }
       }
       expressionsPerClass.add(expressionsMatchingClass);

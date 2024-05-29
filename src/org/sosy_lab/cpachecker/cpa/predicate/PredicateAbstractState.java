@@ -12,15 +12,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import apron.NotImplementedException;
 import com.google.common.base.Preconditions;
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Optional;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -122,12 +124,36 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public ExpressionTree<Object> getFormulaApproximation(
-        FunctionEntryNode pFunctionScope,
-        CFANode pLocation,
-        Optional<AIdExpression> pFunctionReturnVariable)
-        throws InterruptedException {
+    public ExpressionTree<Object> getFormulaApproximationAllVariables(
+        FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
       return super.abstractionFormula.asExpressionTree(pLocation);
+    }
+
+    @Override
+    public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
+        FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
+        throws InterruptedException, NotImplementedException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public ExpressionTree<Object>
+        getFormulaApproximationInputProgramInScopeVariablesAndFunctionReturnVariable(
+            FunctionEntryNode pFunctionScope,
+            FunctionExitNode pLocation,
+            AIdExpression pFunctionReturnVariable,
+            AstCfaRelation pAstCfaRelation)
+            throws InterruptedException, NotImplementedException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+        FunctionEntryNode pFunctionScope,
+        FunctionExitNode pLocation,
+        AIdExpression pFunctionReturnVariable)
+        throws InterruptedException, NotImplementedException {
+      throw new NotImplementedException();
     }
 
     @Override

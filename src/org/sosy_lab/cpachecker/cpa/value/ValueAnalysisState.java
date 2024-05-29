@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import apron.NotImplementedException;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -820,10 +822,8 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope,
-      CFANode pLocation,
-      Optional<AIdExpression> pFunctionReturnVariable) {
+  public ExpressionTree<Object> getFormulaApproximationAllVariables(
+      FunctionEntryNode pFunctionScope, CFANode pLocation) {
 
     if (machineModel == null) {
       return ExpressionTrees.getTrue();
@@ -852,7 +852,7 @@ public final class ValueAnalysisState
           }
           assert cType != null && CTypes.isArithmeticType(cType);
           String id = memoryLocation.getIdentifier();
-          if (!pFunctionScope.getReturnVariable().isPresent()
+          if (pFunctionScope.getReturnVariable().isEmpty()
               || !id.equals(pFunctionScope.getReturnVariable().get().getName())) {
             FileLocation loc =
                 pLocation.getNumEnteringEdges() > 0
@@ -873,20 +873,38 @@ public final class ValueAnalysisState
             if (constraint.isPresent()) {
               result.add(LeafExpression.of(constraint.orElseThrow()));
             }
-
-          } else if (pFunctionScope.getReturnVariable().isPresent()
-              && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
-              && pFunctionReturnVariable.isPresent()
-              && pFunctionReturnVariable.orElseThrow() instanceof CIdExpression var) {
-            Optional<CExpression> constraint = buildConstraint(var, cType, num);
-            if (constraint.isPresent()) {
-              result.add(LeafExpression.of(constraint.orElseThrow()));
-            }
           }
         }
       }
     }
     return And.of(result);
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
+      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
+      throws InterruptedException, NotImplementedException {
+    throw new NotImplementedException();
+  }
+
+  @Override
+  public ExpressionTree<Object>
+      getFormulaApproximationInputProgramInScopeVariablesAndFunctionReturnVariable(
+          FunctionEntryNode pFunctionScope,
+          FunctionExitNode pLocation,
+          AIdExpression pFunctionReturnVariable,
+          AstCfaRelation pAstCfaRelation)
+          throws InterruptedException, NotImplementedException {
+    throw new NotImplementedException();
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+      FunctionEntryNode pFunctionScope,
+      FunctionExitNode pLocation,
+      AIdExpression pFunctionReturnVariable)
+      throws InterruptedException, NotImplementedException {
+    throw new NotImplementedException();
   }
 
   public static class ValueAndType implements Serializable {

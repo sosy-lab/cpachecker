@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verifyNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import apron.NotImplementedException;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -37,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -90,6 +91,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -1117,10 +1119,9 @@ public class InvariantsState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximation(
-      final FunctionEntryNode pFunctionEntryNode,
-      final CFANode pReferenceNode,
-      Optional<AIdExpression> pFunctionReturnVariable) {
+  public ExpressionTree<Object> getFormulaApproximationAllVariables(
+      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
+
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
         pFormula ->
             pFormula instanceof Variable
@@ -1193,6 +1194,33 @@ public class InvariantsState
       }
     }
     return And.of(approximationsAsCode);
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
+      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
+      throws InterruptedException, NotImplementedException {
+    throw new NotImplementedException();
+  }
+
+  @Override
+  public ExpressionTree<Object>
+      getFormulaApproximationInputProgramInScopeVariablesAndFunctionReturnVariable(
+          FunctionEntryNode pFunctionScope,
+          FunctionExitNode pLocation,
+          AIdExpression pFunctionReturnVariable,
+          AstCfaRelation pAstCfaRelation)
+          throws InterruptedException, NotImplementedException {
+    throw new NotImplementedException();
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+      FunctionEntryNode pFunctionScope,
+      FunctionExitNode pLocation,
+      AIdExpression pFunctionReturnVariable)
+      throws InterruptedException, NotImplementedException {
+    throw new NotImplementedException();
   }
 
   private ExpressionTree<Object> formulaToCode(BooleanFormula<CompoundInterval> pFormula) {

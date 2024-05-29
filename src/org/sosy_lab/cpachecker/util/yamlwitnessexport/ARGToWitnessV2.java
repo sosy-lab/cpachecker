@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import apron.NotImplementedException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -49,7 +50,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
    * @throws InterruptedException if the execution is interrupted
    */
   private InvariantEntry createInvariant(Collection<ARGState> argStates, CFANode node, String type)
-      throws InterruptedException {
+      throws InterruptedException, NotImplementedException {
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
     Optional<IterationElement> iterationStructure =
@@ -73,7 +74,8 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     return invariantEntry;
   }
 
-  void exportWitnesses(ARGState pRootState, Path pPath) throws InterruptedException, IOException {
+  void exportWitnesses(ARGState pRootState, Path pPath)
+      throws InterruptedException, IOException, NotImplementedException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 

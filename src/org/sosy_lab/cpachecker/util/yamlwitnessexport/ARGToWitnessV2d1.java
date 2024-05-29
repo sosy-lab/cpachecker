@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import apron.NotImplementedException;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -54,7 +55,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
    * @throws InterruptedException if the execution is interrupted
    */
   private InvariantEntry createInvariant(Collection<ARGState> argStates, CFANode node, String type)
-      throws InterruptedException {
+      throws InterruptedException, NotImplementedException {
 
     // We now conjunct all the over approximations of the states and export them as loop invariants
     Optional<IterationElement> iterationStructure =
@@ -92,7 +93,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
   private ImmutableList<FunctionContractEntry> handleFunctionContract(
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
       Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures)
-      throws InterruptedException {
+      throws InterruptedException, NotImplementedException {
     ImmutableList.Builder<FunctionContractEntry> functionContractRecords =
         new ImmutableList.Builder<>();
     for (FunctionEntryNode node : functionContractRequires.keySet()) {
@@ -122,7 +123,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
                                         ImmutableSet.of(pair.exit()), node)
                                     .toString()
                                 + "))";
-                          } catch (InterruptedException e) {
+                          } catch (InterruptedException | NotImplementedException e) {
                             throw new AssertionError(e);
                           }
                         })
@@ -140,7 +141,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
   }
 
   void exportWitness(ARGState pRootState, Path pOutputFile)
-      throws InterruptedException, IOException {
+      throws InterruptedException, IOException, NotImplementedException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
