@@ -111,21 +111,22 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
         ensuresClause =
             String.join(
                 " && ",
-                transformedImmutableSetCopy(ensuresArgStates, pair -> {
-                          try {
-                            return "(!("
-                                + getOverapproximationOfStatesIgnoringReturnVariables(
-                                        ImmutableSet.of(pair.entry()), node)
-                                    .toString()
-                                + ") || ("
-                                + getOverapproximationOfStatesReplacingReturnVariables(
-                                        ImmutableSet.of(pair.exit()), node)
-                                    .toString()
-                                + "))";
-                          } catch (InterruptedException | NotImplementedException e) {
-                            throw new AssertionError(e);
-                          }
-                        }));
+                transformedImmutableSetCopy(
+                    ensuresArgStates,
+                    pair -> {
+                      try {
+                        return "(!("
+                            + getOverapproximationOfStatesIgnoringReturnVariables(
+                                    ImmutableSet.of(pair.entry()), node)
+                                .toString()
+                            + ") || ("
+                            + getOverapproximationOfStatesReplacingReturnVariables(
+                                ImmutableSet.of(pair.exit()), node)
+                            + "))";
+                      } catch (InterruptedException | NotImplementedException e) {
+                        throw new AssertionError(e);
+                      }
+                    }));
       }
       functionContractRecords.add(
           new FunctionContractEntry(
