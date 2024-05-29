@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -90,7 +92,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
    */
   private ImmutableList<FunctionContractEntry> handleFunctionContract(
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
-      Multimap<FunctionExitNode, ARGState> functionContractEnsures)
+      Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures)
       throws InterruptedException {
     ImmutableList.Builder<FunctionContractEntry> functionContractRecords =
         new ImmutableList.Builder<>();
@@ -103,10 +105,29 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       String ensuresClause = "1";
       if (node.getExitNode().isPresent()
           && functionContractEnsures.containsKey(node.getExitNode().orElseThrow())) {
-        Collection<ARGState> ensuresArgStates =
+        Collection<FunctionEntryExitPair> ensuresArgStates =
             functionContractEnsures.get(node.getExitNode().orElseThrow());
         ensuresClause =
-            getOverapproximationOfStatesReplacingReturnVariables(ensuresArgStates, node).toString();
+            String.join(
+                " && ",
+                FluentIterable.from(ensuresArgStates)
+                    .transform(
+                        pair -> {
+                          try {
+                            return "(!("
+                                + getOverapproximationOfStatesIgnoringReturnVariables(
+                                        ImmutableSet.of(pair.entry()), node)
+                                    .toString()
+                                + ") || ("
+                                + getOverapproximationOfStatesReplacingReturnVariables(
+                                        ImmutableSet.of(pair.exit()), node)
+                                    .toString()
+                                + "))";
+                          } catch (InterruptedException e) {
+                            throw new AssertionError(e);
+                          }
+                        })
+                    .toSet());
       }
       functionContractRecords.add(
           new FunctionContractEntry(

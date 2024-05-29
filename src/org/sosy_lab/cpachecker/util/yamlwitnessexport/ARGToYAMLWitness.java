@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import com.google.common.base.Verify;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.graph.SuccessorsFunction;
 import com.google.common.graph.Traverser;
@@ -24,6 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -58,12 +62,19 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
 
+  /**
+   * A class to keep track of parent child relations between abstract states which enter a function
+   * and those which exit it
+   */
+  protected record FunctionEntryExitPair(ARGState entry, ARGState exit) {}
+
   /** A data structure for collecting the relevant information for a witness from an ARG */
   protected static class CollectedARGStates {
     public Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
     public Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
     public Multimap<FunctionEntryNode, ARGState> functionContractRequires = HashMultimap.create();
-    public Multimap<FunctionExitNode, ARGState> functionContractEnsures = HashMultimap.create();
+    public Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
+        HashMultimap.create();
   }
 
   /**
@@ -72,6 +83,11 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
   private static class RelevantARGStateCollector {
 
     private final CollectedARGStates collectedStates = new CollectedARGStates();
+
+    // TODO: This needs to be improved once we implement setjump/longjump
+    /** The callstack of the order in which the function entry points where traversed */
+    private final ListMultimap<AFunctionDeclaration, ARGState> functionEntryStatesCallStack =
+        ArrayListMultimap.create();
 
     protected void analyze(ARGState pSuccessor) {
       for (LocationState state :
@@ -84,9 +100,15 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
             && leavingEdges.anyMatch(e -> e instanceof FunctionCallEdge)) {
           collectedStates.functionCallInvariants.put(node, pSuccessor);
         } else if (node instanceof FunctionEntryNode functionEntryNode) {
+          functionEntryStatesCallStack.put(functionEntryNode.getFunctionDefinition(), pSuccessor);
           collectedStates.functionContractRequires.put(functionEntryNode, pSuccessor);
         } else if (node instanceof FunctionExitNode functionExitNode) {
-          collectedStates.functionContractEnsures.put(functionExitNode, pSuccessor);
+          List<ARGState> functionEntryNodes = functionEntryStatesCallStack.get(node.getFunction());
+          Verify.verify(!functionEntryNodes.isEmpty());
+          collectedStates.functionContractEnsures.put(
+              functionExitNode,
+              new FunctionEntryExitPair(
+                  functionEntryNodes.remove(functionEntryNodes.size() - 1), pSuccessor));
         }
       }
     }
@@ -116,7 +138,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     if (!stateToStatesCollector.containsKey(pRootState)) {
       RelevantARGStateCollector statesCollector = new RelevantARGStateCollector();
       for (ARGState state :
-          Traverser.forGraph(new ARGSuccessorFunction()).breadthFirst(pRootState)) {
+          Traverser.forGraph(new ARGSuccessorFunction()).depthFirstPreOrder(pRootState)) {
         statesCollector.analyze(state);
       }
 
