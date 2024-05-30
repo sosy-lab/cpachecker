@@ -100,4 +100,17 @@ public class Float64Test extends AbstractCFloatTestBase {
 
     assertThat(r1).isEqualTo(r2);
   }
+
+  @Test
+  public void withExponentBugTest() {
+    String val = "-1.8170190722456839e+05";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual1Ulp(r1, r2);
+  }
 }

@@ -193,6 +193,7 @@ public class FloatValue {
     public static final Format Float64 = new Format(11, 52);
     public static final Format Float128 = new Format(15, 112);
     public static final Format Float256 = new Format(19, 236);
+
     public static final Format Extended = new Format(15, 63);
 
     /**
@@ -232,6 +233,16 @@ public class FloatValue {
       } else {
         return new Format(Float256.expBits, 2 * sigBits + 1);
       }
+    }
+
+    /**
+     * Returns the same format but with an (effectively) unlimited exponent field.
+     *
+     * <p>Can be used to effectively avoid having to deal with subnormal numbers as they can be
+     * written in their normalized form in this larger format.
+     */
+    public Format withUnlimitedExponent() {
+      return new Format(25, sigBits);
     }
 
     /**
@@ -445,7 +456,7 @@ public class FloatValue {
 
   /** Clone the value with a new exponent. */
   private FloatValue withExponent(long pExponent) {
-    Format ext = new Format(Format.Float256.expBits(), format.sigBits);
+    Format ext = format.withUnlimitedExponent();
     FloatValue expPart =
         new FloatValue(ext, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
     return this.withPrecision(ext).multiply(expPart).withPrecision(format);
@@ -1630,7 +1641,7 @@ public class FloatValue {
 
   /** Handle cases in pow where a^x is a floating point number or a breakpoint. */
   private FloatValue powExact(FloatValue exp) {
-    Format precision = new Format(Format.Float256.expBits, format.sigBits);
+    Format precision = format.withUnlimitedExponent();
     FloatValue arg1 = this.withPrecision(precision);
     FloatValue arg2 = exp.withPrecision(precision);
 
@@ -1686,7 +1697,7 @@ public class FloatValue {
         // Proceed if the result is stable in the original precision
         // If the result was close to zero we have to use an extended format that allows larger
         // exponents. Otherwise, the values are too small and will be flushed to zero.
-        Format p0 = new Format(Format.Float256.expBits, format.sigBits);
+        Format p0 = format.withUnlimitedExponent();
 
         if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2) && isStable(exlna1.validPart())) {
           done = true;
@@ -1937,7 +1948,7 @@ public class FloatValue {
   }
 
   private static FloatValue makeValue(Format pFormat, BigInteger u, BigInteger v, int k) {
-    Format extended = new Format(Format.Float256.expBits, pFormat.sigBits);
+    Format extended = pFormat.withUnlimitedExponent();
     BigInteger q = u.divide(v);
     BigInteger r1 = u.subtract(q.multiply(v));
     BigInteger r2 = v.subtract(r1);
