@@ -2024,6 +2024,11 @@ public class FloatValue {
     expValue = (isHexLiteral ? 4 : 1) * (radix - 1) + expValue;
     digits = digits.substring(0, radix) + digits.substring(radix + 1);
 
+    // Return zero if the significand is all zeroes
+    if (digits.matches("0+")) {
+      return sign ? negativeZero(pFormat) : zero(pFormat);
+    }
+
     // Convert the value to a binary float representation
     if (isHexLiteral) {
       return fromHexadecimal(pFormat, sign, digits, expValue);
