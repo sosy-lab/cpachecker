@@ -1933,7 +1933,7 @@ public class FloatValue {
    * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">How to Read Floating Point
    *     Numbers Accurately</a>
    */
-  private static FloatValue fromLiteralHex(
+  private static FloatValue fromHexadecimal(
       Format pFormat, boolean pSign, String pDigits, int pExpValue) {
     FloatValue r = fromInteger(pFormat, new BigInteger(pDigits, 16));
     int finalExp = pExpValue - 4 * (pDigits.length() - 1);
@@ -1941,73 +1941,51 @@ public class FloatValue {
     return pSign ? r.negate() : r;
   }
 
+  private static FloatValue makeValue(Format pFormat, BigInteger u, BigInteger v, int k) {
+    Format extended = new Format(Format.Float256.expBits, pFormat.sigBits);
+    BigInteger q = u.divide(v);
+    BigInteger r1 = u.subtract(q.multiply(v));
+    BigInteger r2 = v.subtract(r1);
+    FloatValue z = fromInteger(extended, q);
+    z = z.withExponent(z.exponent + k);
+    if (r1.compareTo(r2) > 0
+        || (r1.compareTo(r2) == 0 && q.mod(BigInteger.TWO).equals(BigInteger.ZERO))) {
+      // Round up
+      z = z.plus1Ulp();
+    }
+    return z.withPrecision(pFormat);
+  }
+
+  private static FloatValue fromDecimal_(Format pFormat, BigInteger u, BigInteger v, int k) {
+    BigInteger x = u.divide(v);
+    return switch (Integer.compare(x.bitLength(), pFormat.sigBits + 1)) {
+      case -1 -> fromDecimal_(pFormat, u.shiftLeft(1), v, k - 1);
+      case +1 -> fromDecimal_(pFormat, u, v.shiftLeft(1), k + 1);
+      default -> makeValue(pFormat, u, v, k);
+    };
+  }
+
   /**
    * Create a floating point value from its base10 representation.
    *
-   * <p>This conversion is more difficult as 10 and 2 are not "commensurable" as was defined in
-   * {@link FloatValue#fromLiteralHex(Format, boolean, String, int)}. The conversion can't simply be
-   * done one digit at a time as each digit in decimal format represents log(2) bits in binary, and
-   * this number is not rational. Instead, we will use an iterative algorithm that increases its
-   * precision until enough extra digits are available to ensure correct rounding to the target
-   * format.
+   * <p>We use <b></b>AlgorithmM</b> from <a
+   * href="https://dl.acm.org/doi/pdf/10.1145/93548.93557">How to read floating point numbers
+   * accurately</a> to ensure correct rounding.
    */
-  private static FloatValue fromLiteralDec(
+  private static FloatValue fromDecimal(
       Format pFormat,
       boolean pSign,
       String pDigits,
       int pExpValue,
       Map<Integer, Integer> pFromStringStats) {
-    // Parse the mantissa as an integer value
-    BigInteger mantissa = new BigInteger(pDigits);
-    if (mantissa.equals(BigInteger.ZERO)) {
-      return pSign ? negativeZero(pFormat) : zero(pFormat);
-    }
-
-    boolean done = false;
-    FloatValue r = nan(pFormat);
-    int k = 3;
-
-    // We run the conversion in a loop and increase the precision between runs to make sure that
-    // enough precision was used to allow for correct rounding.
-    while (!done) {
-      Format ext = new Format(Format.Float256.expBits, pFormat.sigBits + k);
-
-      // Calculate the base2 representation of the value:
-      // Let's say we have 1.2345 * 10^k as input. We first rewrite the term as 12345 * 10^k-4 to
-      // make the mantissa integer. Then we extend the term further and add more zeroes:
-      // 12345 * (10^5/10^5) * 10^k-4 = 1234500000 * 10^k-9
-      // Here 5 is the number of extra digits that will be used in the calculation to ensure
-      // correct rounding. The value has to be chosen large enough, and we use the main loop to
-      // increment it and try out several different values.
-      // The term "1234500000 * 10^k-9" can now easily be converted to base2:
-      // - 123450000 is integer, and we use fromInteger() to create the mantissa of the float.
-      // - The term "10" for the exponent is also integer, and we use fromInteger() again. Then we
-      //   use powInt() to calculate the exponent of the float.
-      // - The two parts can now be multiplied to get the final value.
-      FloatValue f = fromInteger(ext, mantissa.multiply(BigInteger.TEN.pow(k)));
-      FloatValue e =
-          fromInteger(ext, 10).powInt(BigInteger.valueOf(pExpValue - (pDigits.length() - 1) - k));
-
-      // Rounding check: make sure we have enough precision.
-      FloatValue val1 = f.plus1Ulp().multiply(e);
-      FloatValue val2 = f.minus1Ulp().multiply(e);
-
-      if (equalModuloP(pFormat, val1, val2) && r.isStable(val1.validPart())) {
-        done = true;
-        r = pSign ? val1.negate() : val1;
-
-        // Update statistics
-        if (pFromStringStats != null) {
-          pFromStringStats.put(k, pFromStringStats.getOrDefault(k, 0) + 1);
-        }
-      }
-      k++;
-      if (k > 100) {
-        // FIXME: Remove once the rounding test is fixed
-        done = true;
-      }
-    }
-    return r.withPrecision(pFormat);
+    int k = pExpValue - (pDigits.length() - 1);
+    BigInteger f = new BigInteger(pDigits);
+    BigInteger e = BigInteger.TEN.pow(Math.abs(k));
+    FloatValue r =
+        k > 0
+            ? fromDecimal_(pFormat, f.multiply(e), BigInteger.ONE, 0)
+            : fromDecimal_(pFormat, f, e, 0);
+    return pSign ? r.negate() : r;
   }
 
   /**
@@ -2064,9 +2042,9 @@ public class FloatValue {
 
     // Convert the value to a binary float representation
     if (isHexLiteral) {
-      return fromLiteralHex(pFormat, sign, digits, expValue);
+      return fromHexadecimal(pFormat, sign, digits, expValue);
     } else {
-      return fromLiteralDec(pFormat, sign, digits, expValue, pFromStringStats);
+      return fromDecimal(pFormat, sign, digits, expValue, pFromStringStats);
     }
   }
 
