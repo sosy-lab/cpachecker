@@ -121,7 +121,7 @@ class CFloatImpl extends CFloat {
     } else if ("0.0".equals(repr)) {
       return FloatValue.zero(format);
     } else {
-      return FloatValue.fromStringWithStats(format, repr, fromStringMap);
+      return FloatValue.fromString(format, repr);
     }
   }
 

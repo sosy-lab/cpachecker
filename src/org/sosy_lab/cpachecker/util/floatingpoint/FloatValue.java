@@ -1916,11 +1916,6 @@ public class FloatValue {
     }
   }
 
-  /** Parse input string as a floating point number. */
-  public static FloatValue fromString(Format pFormat, String pInput) {
-    return fromStringWithStats(pFormat, pInput, null);
-  }
-
   /**
    * Create a floating point value from its base16 representation.
    *
@@ -1973,11 +1968,7 @@ public class FloatValue {
    * accurately</a> to ensure correct rounding.
    */
   private static FloatValue fromDecimal(
-      Format pFormat,
-      boolean pSign,
-      String pDigits,
-      int pExpValue,
-      Map<Integer, Integer> pFromStringStats) {
+      Format pFormat, boolean pSign, String pDigits, int pExpValue) {
     int k = pExpValue - (pDigits.length() - 1);
     BigInteger f = new BigInteger(pDigits);
     BigInteger e = BigInteger.TEN.pow(Math.abs(k));
@@ -1988,14 +1979,8 @@ public class FloatValue {
     return pSign ? r.negate() : r;
   }
 
-  /**
-   * Parse the input string and records how many extra bits of precision were needed.
-   *
-   * @param pFromStringStats Histogram with the number of extra bits used in all calls to
-   *     fromString()
-   */
-  static FloatValue fromStringWithStats(
-      Format pFormat, String pInput, @Nullable Map<Integer, Integer> pFromStringStats) {
+  /** Parse input string as a floating point number. */
+  public static FloatValue fromString(Format pFormat, String pInput) {
     // TODO: Add error handling for broken inputs.
     if ("inf".equals(pInput)) {
       return infinity(pFormat);
@@ -2044,7 +2029,7 @@ public class FloatValue {
     if (isHexLiteral) {
       return fromHexadecimal(pFormat, sign, digits, expValue);
     } else {
-      return fromDecimal(pFormat, sign, digits, expValue, pFromStringStats);
+      return fromDecimal(pFormat, sign, digits, expValue);
     }
   }
 
