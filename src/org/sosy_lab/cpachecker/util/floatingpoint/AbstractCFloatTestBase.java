@@ -550,15 +550,6 @@ abstract class AbstractCFloatTestBase {
     return new CFloatImpl(repr, getFloatType());
   }
 
-  /**
-   * Create a test value for the tested implementation by parsing a String.
-   *
-   * <p>This version takes a Map with statistics as an additional argument.
-   */
-  CFloat toTestedImpl(String repr, Map<Integer, Integer> fromStringStats) {
-    return new CFloatImpl(repr, getFloatType(), fromStringStats);
-  }
-
   /** Create a test value for the reference implementation. */
   CFloat toReferenceImpl(BigFloat value) {
     checkState(
@@ -592,14 +583,13 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void fromStringTest() {
-    Map<Integer, Integer> fromStringStats = new HashMap<>();
     for (BigFloat arg : unaryTestValues()) {
       try {
         // Calculate result with the reference implementation
         BigFloat resultReference = toBigFloat(toReferenceImpl(printBigFloat(arg)));
 
         // Calculate result with the tested implementation
-        BigFloat resultTested = toBigFloat(toTestedImpl(printBigFloat(arg), fromStringStats));
+        BigFloat resultTested = toBigFloat(toTestedImpl(printBigFloat(arg)));
 
         // Calculate result with the reference implementation
         if (!resultTested.equals(resultReference)) {
@@ -613,7 +603,6 @@ abstract class AbstractCFloatTestBase {
         throw new RuntimeException(printTestHeader("fromString", arg), t);
       }
     }
-    // printStatistics(fromStringStats);
   }
 
   @Test

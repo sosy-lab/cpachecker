@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Map;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
@@ -32,17 +31,12 @@ class CFloatImpl extends CFloat {
   }
 
   public CFloatImpl(String repr, int pType) {
-    delegate = parseFloat(repr, toFormat(CFloatNativeAPI.toNativeType(pType)), null);
+    delegate = parseFloat(repr, toFormat(CFloatNativeAPI.toNativeType(pType)));
     wrapper = fromImpl(delegate);
   }
 
   public CFloatImpl(String repr, Format pFormat) {
-    delegate = parseFloat(repr, pFormat, null);
-    wrapper = fromImpl(delegate);
-  }
-
-  public CFloatImpl(String repr, Format pFormat, Map<Integer, Integer> fromStringStats) {
-    delegate = parseFloat(repr, pFormat, fromStringStats);
+    delegate = parseFloat(repr, pFormat);
     wrapper = fromImpl(delegate);
   }
 
@@ -108,8 +102,7 @@ class CFloatImpl extends CFloat {
     }
   }
 
-  private FloatValue parseFloat(
-      String repr, Format format, @Nullable Map<Integer, Integer> fromStringMap) {
+  private FloatValue parseFloat(String repr, Format format) {
     if ("nan".equals(repr)) {
       return FloatValue.nan(format);
     } else if ("-inf".equals(repr)) {
