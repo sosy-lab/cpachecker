@@ -445,13 +445,10 @@ public class FloatValue {
 
   /** Clone the value with a new exponent. */
   private FloatValue withExponent(long pExponent) {
-    if (pExponent > format.maxExp()) {
-      return sign ? negativeInfinity(format) : infinity(format);
-    } else if (pExponent < format.minExp()) {
-      throw new IllegalArgumentException(); // FIXME: Handle subnormal numbers
-    } else {
-      return new FloatValue(format, sign, pExponent, significand);
-    }
+    Format ext = new Format(Format.Float256.expBits(), format.sigBits);
+    FloatValue expPart =
+        new FloatValue(ext, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
+    return this.withPrecision(ext).multiply(expPart).withPrecision(format);
   }
 
   /** Clone the value with a new sign. */
