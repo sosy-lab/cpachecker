@@ -1943,9 +1943,8 @@ public class FloatValue {
     BigInteger r2 = v.subtract(r1);
     FloatValue z = fromInteger(extended, q);
     z = z.withExponent(z.exponent + k);
-    if (r1.compareTo(r2) > 0
-        || (r1.compareTo(r2) == 0 && q.mod(BigInteger.TWO).equals(BigInteger.ZERO))) {
-      // Round up
+    boolean isEven = q.mod(BigInteger.TWO).equals(BigInteger.ZERO);
+    if (r1.compareTo(r2) > 0 || (r1.compareTo(r2) == 0 && !isEven)) { // Round up
       z = z.plus1Ulp();
     }
     return z.withPrecision(pFormat);
