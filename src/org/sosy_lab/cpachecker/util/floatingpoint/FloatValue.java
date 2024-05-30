@@ -1206,12 +1206,11 @@ public class FloatValue {
 
   /** The minimal distance between two floating point values with the same exponent. */
   private FloatValue oneUlp() {
-    BigInteger resultSignificand = BigInteger.ONE.shiftLeft(format.sigBits);
-    long resultExponent = exponent - format.sigBits;
-    if (resultExponent < format.minExp()) {
+    if (exponent < format.minExp()) {
       return sign ? minValue(format).negate() : minValue(format);
+    } else {
+      return one(format).withExponent(exponent - format.sigBits);
     }
-    return new FloatValue(format, sign, resultExponent, resultSignificand);
   }
 
   /** Returns the next larger floating point number. */
