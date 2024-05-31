@@ -20,8 +20,6 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.EnumerationFormula;
-import org.sosy_lab.java_smt.api.FloatingPointFormula;
-import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -89,11 +87,6 @@ class ModelView implements Model {
   @Override
   public @Nullable String evaluate(EnumerationFormula f) {
     return (String) evaluateImpl(f);
-  }
-
-  @Override
-  public @Nullable FloatingPointNumber evaluate(FloatingPointFormula f) {
-    return (FloatingPointNumber) evaluateImpl(f);
   }
 
   @Override

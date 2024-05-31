@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -240,12 +239,6 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public FloatingPointFormula remainder(
-      FloatingPointFormula dividend, FloatingPointFormula divisor) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
-  }
-
-  @Override
   public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
   }
@@ -352,23 +345,6 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   public FloatingPointFormula makeNumber(
       Rational n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return wrap(type, numericFormulaManager.makeNumber(n));
-  }
-
-  @Override
-  public FloatingPointFormula makeNumber(
-      BigInteger exponent, BigInteger mantissa, boolean signBit, FloatingPointType type) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
-    // // assume a normal FP-type, such as Float32 or Float64, where the exponent fits into 32 bit.
-    // int bias = (1 << (type.getExponentSize() - 1)) - 1;
-    // int exponentValue = exponent.intValue() - bias;
-    // BigDecimal normalizedMantissa = new BigDecimal(mantissa)
-    //     .divide(BigDecimal.valueOf(1L << type.getMantissaSize()))
-    //     .add(BigDecimal.ONE); // Adding the implicit leading 1
-    // BigDecimal n = normalizedMantissa.multiply(BigDecimal.valueOf(2).pow(exponentValue));
-    // if (signBit) {
-    //   n = n.negate();
-    // }
-    // return wrap(type, numericFormulaManager.makeNumber(n));
   }
 
   @Override
