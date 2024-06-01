@@ -208,6 +208,6 @@ class ReplaceIntegerWithBitvectorTheory extends BaseManagerView implements Integ
   @Override
   public IntegerFormula modulo(IntegerFormula pNumber1, IntegerFormula pNumber2) {
     return wrap(
-        FormulaType.IntegerType, bvFormulaManager.modulo(unwrap(pNumber1), unwrap(pNumber2), true));
+        FormulaType.IntegerType, bvFormulaManager.smodulo(unwrap(pNumber1), unwrap(pNumber2)));
   }
 }

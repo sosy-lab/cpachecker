@@ -580,22 +580,17 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVModulo() throws InterruptedException {
-      skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.PRINCESS, Solvers.Z3);
+      skipTestForSolvers(Solvers.SMTINTERPOL);
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.equal(
-              bvmgrv.modulo(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true),
-              bvmgrv.makeVariable(5, "z"));
-      BooleanFormula unsigned =
-          bvmgrv.equal(
-              bvmgrv.modulo(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false),
+              bvmgrv.smodulo(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
       String expected = "((x % y) == z)";
       if (solverToUse() == Solvers.CVC4) {
         expected = "(((0 == y) ? x : (x % y)) == z)";
       }
       checkThat(converter.formulaToCExpression(signed)).isEquivalentTo(expected);
-      checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo(expected);
     }
 
     @Test

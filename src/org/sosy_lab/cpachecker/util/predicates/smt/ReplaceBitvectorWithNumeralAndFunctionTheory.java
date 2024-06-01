@@ -211,8 +211,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   }
 
   @Override
-  public BitvectorFormula modulo(
-      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+  public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     if (numericFormulaManager instanceof IntegerFormulaManager) {
       return wrap(
@@ -221,6 +220,12 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     } else {
       return makeUf(getFormulaType(pNumber1), moduloUfDecl, pNumber1, pNumber2);
     }
+  }
+
+  @Override
+  public BitvectorFormula remainder(
+      BitvectorFormula numerator, BitvectorFormula denumerator, boolean signed) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
   /**
@@ -249,7 +254,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   }
 
   /**
-   * @see BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)
+   * @see BitvectorFormulaManagerView#smodulo(BitvectorFormula, BitvectorFormula)
    */
   @SuppressWarnings("unchecked")
   private Formula getC99ReplacementForSMTlib2Modulo(final T f1, final T f2) {
@@ -333,6 +338,26 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   public BitvectorFormula shiftLeft(BitvectorFormula pNumber, BitvectorFormula pToShift) {
     assert getLength(pNumber) == getLength(pToShift) : "Expect operators to have the same size";
     return makeUf(getFormulaType(pNumber), leftShiftUfDecl, pNumber, pToShift);
+  }
+
+  @Override
+  public BitvectorFormula rotateLeft(BitvectorFormula number, int toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateLeft(BitvectorFormula number, BitvectorFormula toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateRight(BitvectorFormula number, int toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateRight(BitvectorFormula number, BitvectorFormula toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
   @Override

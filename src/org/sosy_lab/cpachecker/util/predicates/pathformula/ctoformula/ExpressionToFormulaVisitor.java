@@ -249,7 +249,7 @@ public class ExpressionToFormulaVisitor
         ret = mgr.makeDivide(f1, f2, signed);
         break;
       case MODULO:
-        ret = mgr.makeModulo(f1, f2, signed);
+        ret = mgr.makeModulo(f1, f2);
 
         addModuloConstraints(exp, f1, f2, signed, ret);
 
@@ -354,7 +354,7 @@ public class ExpressionToFormulaVisitor
         // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
         // actually want to generate a modular congruence condition mod (-b):
         modulo = modulo.abs();
-        BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
+        BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo);
         if (!bfmgr.isTrue(modularCongruence)) {
           constraints.addConstraint(modularCongruence);
         }
