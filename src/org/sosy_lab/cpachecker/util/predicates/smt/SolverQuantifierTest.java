@@ -50,6 +50,7 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
 
   @Before
   public void setUp() {
+    requireIntegers();
     requireArrays();
     requireQuantifiers();
 
