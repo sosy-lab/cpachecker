@@ -20,6 +20,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -1409,7 +1410,7 @@ public class FormulaManagerView {
   public Optional<BooleanFormula> stripNegation(BooleanFormula f) {
     return booleanFormulaManager.visit(
         f,
-        new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
+        new DefaultBooleanFormulaVisitor<>() {
           @Override
           protected Optional<BooleanFormula> visitDefault() {
             return Optional.empty();
@@ -1433,7 +1434,7 @@ public class FormulaManagerView {
   public List<BooleanFormula> splitNumeralEqualityIfPossible(BooleanFormula formula) {
     return visit(
         formula,
-        new DefaultFormulaVisitor<List<BooleanFormula>>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected List<BooleanFormula> visitDefault(Formula f) {
             return ImmutableList.of((BooleanFormula) f);
@@ -1551,7 +1552,7 @@ public class FormulaManagerView {
 
     return booleanFormulaManager.visit(
         t,
-        new DefaultBooleanFormulaVisitor<Boolean>() {
+        new DefaultBooleanFormulaVisitor<>() {
 
           @Override
           public Boolean visitDefault() {
@@ -1590,7 +1591,7 @@ public class FormulaManagerView {
     final AtomicBoolean containsITE = new AtomicBoolean(false);
     visitRecursively(
         f,
-        new DefaultFormulaVisitor<TraversalProcess>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault(Formula pF) {
             return TraversalProcess.CONTINUE;
@@ -1625,7 +1626,7 @@ public class FormulaManagerView {
 
     visitRecursively(
         f,
-        new DefaultFormulaVisitor<TraversalProcess>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault(Formula pF) {
             return TraversalProcess.CONTINUE;
@@ -1732,25 +1733,13 @@ public class FormulaManagerView {
    */
   private Map<String, Formula> myGetDesiredVariables(
       BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUF) {
-    Map<String, Formula> result = new HashMap<>();
-
-    Map<String, Formula> vars;
+    final Map<String, Formula> vars;
     if (extractUF) {
       vars = manager.extractVariablesAndUFs(pFormula);
     } else {
       vars = manager.extractVariables(pFormula);
     }
-
-    for (Entry<String, Formula> entry : vars.entrySet()) {
-
-      String name = entry.getKey();
-      Formula varFormula = entry.getValue();
-      if (pIsDesired.apply(name)) {
-        result.put(name, varFormula);
-      }
-    }
-
-    return result;
+    return Maps.filterKeys(vars, pIsDesired);
   }
 
   /**
@@ -1817,7 +1806,7 @@ public class FormulaManagerView {
   public <T extends Formula> Optional<IfThenElseParts<T>> splitIfThenElse(final T pF) {
     return visit(
         pF,
-        new DefaultFormulaVisitor<Optional<IfThenElseParts<T>>>() {
+        new DefaultFormulaVisitor<>() {
 
           @Override
           protected Optional<IfThenElseParts<T>> visitDefault(Formula f) {
@@ -1993,7 +1982,7 @@ public class FormulaManagerView {
     BooleanFormula f = parse(s);
     return visit(
         f,
-        new DefaultFormulaVisitor<Formula>() {
+        new DefaultFormulaVisitor<>() {
 
           @Override
           protected Formula visitDefault(Formula pF) {
