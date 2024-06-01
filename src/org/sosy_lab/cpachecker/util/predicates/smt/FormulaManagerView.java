@@ -1365,7 +1365,7 @@ public class FormulaManagerView {
     final ImmutableSet.Builder<BooleanFormula> result = ImmutableSet.builder();
     booleanFormulaManager.visitRecursively(
         pFormula,
-        new DefaultBooleanFormulaVisitor<TraversalProcess>() {
+        new DefaultBooleanFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault() {
             return TraversalProcess.CONTINUE;
@@ -1385,7 +1385,9 @@ public class FormulaManagerView {
           public TraversalProcess visitAtom(
               BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
             if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
-              result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
+              for (BooleanFormula partialAtom : splitNumeralEqualityIfPossible(atom)) {
+                result.addAll(extractAtoms(partialAtom, false));
+              }
             }
             result.add(atom);
             return TraversalProcess.CONTINUE;

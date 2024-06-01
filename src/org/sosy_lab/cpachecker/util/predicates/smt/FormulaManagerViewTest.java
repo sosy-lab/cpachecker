@@ -12,9 +12,10 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +73,7 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
   private void testExtractAtoms_SplitEqualities(
       BooleanFormula atom1,
-      BooleanFormula atom1ineq,
+      List<BooleanFormula> atom1Inequalities,
       BooleanFormula atom2,
       BooleanFormula atom3,
       BooleanFormula atom4,
@@ -87,26 +88,36 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
             stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
 
     // Assert that atoms contains all of atom1-5
-    // and another atom that is equivalent to atom1ineq
-    assertThat(atoms).hasSize(6);
+    // and another two atoms that are equivalent to atom1Inequalities
+    assertThat(atoms).hasSize(7);
     assertThat(atoms).containsAtLeastElementsIn(expected);
 
-    atoms = Sets.difference(atoms, expected);
-    BooleanFormula remainingAtom = Iterables.getOnlyElement(atoms);
-    assertThatFormula(remainingAtom).isEquivalentTo(stripNot(atom1ineq));
+    Set<BooleanFormula> remainingAtoms = Sets.difference(atoms, expected);
+
+    Iterator<BooleanFormula> it = remainingAtoms.iterator();
+    if (Solvers.OPENSMT == solverToUse()) {
+      // OpenSMT uses "a=1" instead of "1=a", nd this results in a different split-result.
+      assertThatFormula(it.next()).isEquivalentTo(stripNot(atom1Inequalities.get(1)));
+      assertThatFormula(it.next()).isEquivalentTo(stripNot(atom1Inequalities.get(0)));
+    } else {
+      assertThatFormula(it.next()).isEquivalentTo(stripNot(atom1Inequalities.get(0)));
+      assertThatFormula(it.next()).isEquivalentTo(stripNot(atom1Inequalities.get(1)));
+    }
   }
 
   private <T extends NumeralFormula> void testExtractAtoms_SplitEqualities_numeral(
       NumeralFormulaManager<T, ? extends T> nmgr) throws SolverException, InterruptedException {
 
     BooleanFormula atom1 = nmgr.equal(nmgr.makeVariable("a"), nmgr.makeNumber(1));
-    BooleanFormula atom1ineq = nmgr.lessOrEquals(nmgr.makeVariable("a"), nmgr.makeNumber(1));
+    BooleanFormula atom1leq = nmgr.lessOrEquals(nmgr.makeVariable("a"), nmgr.makeNumber(1));
+    BooleanFormula atom1geq = nmgr.greaterOrEquals(nmgr.makeVariable("a"), nmgr.makeNumber(1));
     BooleanFormula atom2 = nmgr.greaterThan(nmgr.makeVariable("b"), nmgr.makeNumber(2));
     BooleanFormula atom3 = nmgr.greaterOrEquals(nmgr.makeVariable("c"), nmgr.makeNumber(3));
     BooleanFormula atom4 = nmgr.lessThan(nmgr.makeVariable("d"), nmgr.makeNumber(4));
     BooleanFormula atom5 = nmgr.lessOrEquals(nmgr.makeVariable("e"), nmgr.makeNumber(5));
 
-    testExtractAtoms_SplitEqualities(atom1, atom1ineq, atom2, atom3, atom4, atom5);
+    testExtractAtoms_SplitEqualities(
+        atom1, List.of(atom1leq, atom1geq), atom2, atom3, atom4, atom5);
   }
 
   @Test
@@ -125,8 +136,10 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
       throws SolverException, InterruptedException {
     bvmgr = mgrv.getBitvectorFormulaManager();
     BooleanFormula atom1 = bvmgr.equal(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1));
-    BooleanFormula atom1ineq =
+    BooleanFormula atom1leq =
         bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), true);
+    BooleanFormula atom1geq =
+        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), true);
     BooleanFormula atom2 =
         bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), true);
     BooleanFormula atom3 =
@@ -136,7 +149,8 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
     BooleanFormula atom5 =
         bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), true);
 
-    testExtractAtoms_SplitEqualities(atom1, atom1ineq, atom2, atom3, atom4, atom5);
+    testExtractAtoms_SplitEqualities(
+        atom1, List.of(atom1leq, atom1geq), atom2, atom3, atom4, atom5);
   }
 
   private void assertIsConjunctive(BooleanFormula f) {
