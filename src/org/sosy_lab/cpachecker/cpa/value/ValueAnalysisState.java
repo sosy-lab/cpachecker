@@ -889,11 +889,48 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope,
-      FunctionExitNode pLocation,
-      AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable) {
+    if (machineModel == null) {
+      return ExpressionTrees.getTrue();
+    }
+
+    ExpressionTree<Object> result = ExpressionTrees.getTrue();
+
+    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      Value valueOfEntry = entry.getValue().getValue();
+      if (valueOfEntry instanceof EnumConstantValue) {
+        continue;
+      }
+      NumericValue num = valueOfEntry.asNumericValue();
+      if (num != null) {
+        MemoryLocation memoryLocation = entry.getKey();
+        Type type = entry.getValue().getType();
+        if (!memoryLocation.isReference()
+            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
+            && type instanceof CType cType
+            && CTypes.isArithmeticType((CType) type)) {
+          if (cType instanceof CBitFieldType) {
+            cType = ((CBitFieldType) cType).getType();
+          }
+          if (cType instanceof CElaboratedType) {
+            cType = ((CElaboratedType) cType).getRealType();
+          }
+          assert cType != null && CTypes.isArithmeticType(cType);
+          String id = memoryLocation.getIdentifier();
+          if (pFunctionScope.getReturnVariable().isPresent()
+              && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
+              && pFunctionReturnVariable instanceof CIdExpression var) {
+            Optional<CExpression> constraint = buildConstraint(var, cType, num);
+            if (constraint.isPresent()) {
+              result = LeafExpression.of(constraint.orElseThrow());
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return result;
   }
 
   public static class ValueAndType implements Serializable {
