@@ -64,17 +64,6 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public ExpressionTree<Object>
-      getFormulaApproximationInputProgramInScopeVariablesAndFunctionReturnVariable(
-          FunctionEntryNode pFunctionScope,
-          FunctionExitNode pLocation,
-          AIdExpression pFunctionReturnVariable,
-          AstCfaRelation pAstCfaRelation)
-          throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
-  }
-
-  @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope,
       FunctionExitNode pLocation,

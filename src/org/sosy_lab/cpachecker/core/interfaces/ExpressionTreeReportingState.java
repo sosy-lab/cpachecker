@@ -55,31 +55,6 @@ public interface ExpressionTreeReportingState extends AbstractState {
       throws InterruptedException, NotImplementedException;
 
   /**
-   * Returns an ExpressionTree over-approximating the state only considering the variables which are
-   * in scope at the given location in the original program and replacing the return variable of the
-   * function with the given variable. This means that, in ACSL notation, every expression should
-   * have the keyword \return replaced with the given variable i.e. \return > 0 becomes result > 0
-   * if the given variable is result. This is particularly useful in order to export function
-   * contracts.
-   *
-   * @param pFunctionScope the function entry node
-   * @param pLocation the formula should at least try to approximate variables referenced by
-   *     entering edges at this location
-   * @param pFunctionReturnVariable the variable to replace function return expressions with
-   * @param pAstCfaRelation the relation between the AST and the CFA
-   * @return the formula approximation
-   * @throws InterruptedException if the computation is interrupted
-   * @throws NotImplementedException if the computation is not implemented
-   */
-  ExpressionTree<Object>
-      getFormulaApproximationInputProgramInScopeVariablesAndFunctionReturnVariable(
-          FunctionEntryNode pFunctionScope,
-          FunctionExitNode pLocation,
-          AIdExpression pFunctionReturnVariable,
-          AstCfaRelation pAstCfaRelation)
-          throws InterruptedException, NotImplementedException;
-
-  /**
    * Only return the formula approximation for the return variable of the function. This means that,
    * in ACSL notation, every expression should have the keyword \return replaced with the given
    * variable i.e. \return > 0 becomes result > 0 if the given variable is result. This is
