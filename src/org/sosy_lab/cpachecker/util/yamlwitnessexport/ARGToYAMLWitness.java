@@ -126,7 +126,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         }
 
         if (pSuccessor.getChildren().size() > 1 && !callStackRecovery.containsKey(pSuccessor)) {
-          callStackRecovery.put(pSuccessor, functionEntryStatesCallStack);
+          callStackRecovery.put(pSuccessor, ArrayListMultimap.create(functionEntryStatesCallStack));
         }
       }
     }
