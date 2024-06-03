@@ -21,8 +21,9 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry.AbstractInvariantEntryDelegateDeserializer;
 
 /**
- * A correctness witness contains multiple entries in its content, this interface is used to
- * represent which entries can be exported inside a set of a correctness witness.
+ * A correctness witness contains a list of `invariant_set`s. Each of them in turn contains multiple
+ * `invariant` entries in their content. This interface is used to represent which entries can be
+ * exported as an `invariant` inside the `contents` of an `invariant_set`.
  */
 @JsonDeserialize(using = AbstractInvariantEntryDelegateDeserializer.class)
 public abstract class AbstractInvariantEntry extends AbstractInformationRecord {
