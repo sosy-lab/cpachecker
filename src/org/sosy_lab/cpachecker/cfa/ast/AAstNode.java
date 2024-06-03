@@ -34,11 +34,11 @@ public interface AAstNode extends Serializable {
   String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames);
 
   default String toASTString() {
-    return toASTString(false, true);
+    return toASTString(false, false);
   }
 
   default String toParenthesizedASTString() {
-    return toParenthesizedASTString(false, true);
+    return toParenthesizedASTString(false, false);
   }
 
   default String toQualifiedASTString() {
