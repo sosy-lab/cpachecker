@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
-
 import apron.NotImplementedException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -96,25 +95,26 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       throws InterruptedException, NotImplementedException {
     ImmutableList.Builder<FunctionContractEntry> functionContractRecords =
         new ImmutableList.Builder<>();
-    for (FunctionEntryNode node : functionContractRequires.keySet()) {
-      Collection<ARGState> requiresArgStates = functionContractRequires.get(node);
+    for (FunctionEntryNode functionEntryNode : functionContractRequires.keySet()) {
+      Collection<ARGState> requiresArgStates = functionContractRequires.get(functionEntryNode);
 
-      FileLocation location = node.getFileLocation();
+      FileLocation location = functionEntryNode.getFileLocation();
       String requiresClause =
-          getOverapproximationOfStatesIgnoringReturnVariables(requiresArgStates, node).toString();
+          getOverapproximationOfStatesIgnoringReturnVariables(requiresArgStates, functionEntryNode)
+              .toString();
       StringBuilder ensuresClause = new StringBuilder("1");
-      if (node.getExitNode().isPresent()
-          && functionContractEnsures.containsKey(node.getExitNode().orElseThrow())) {
+      if (functionEntryNode.getExitNode().isPresent()
+          && functionContractEnsures.containsKey(functionEntryNode.getExitNode().orElseThrow())) {
         Collection<FunctionEntryExitPair> ensuresArgStates =
-            functionContractEnsures.get(node.getExitNode().orElseThrow());
+            functionContractEnsures.get(functionEntryNode.getExitNode().orElseThrow());
         for (FunctionEntryExitPair pair : ensuresArgStates) {
           String stateOfTheInput =
               getOverapproximationOfStatesIgnoringReturnVariables(
-                      ImmutableSet.of(pair.entry()), node)
+                      ImmutableSet.of(pair.entry()), functionEntryNode)
                   .toString();
           String stateOfTheOutput =
               getOverapproximationOfStatesWithOnlyReturnVariables(
-                      ImmutableSet.of(pair.exit()), node)
+                      ImmutableSet.of(pair.exit()), functionEntryNode)
                   .toString();
           String implication = "!(" + stateOfTheInput + ") || (" + stateOfTheOutput + ")";
           ensuresClause.append(" && ").append(implication);
@@ -125,7 +125,8 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
               ensuresClause.toString(),
               requiresClause,
               YAMLWitnessExpressionType.C,
-              LocationRecord.createLocationRecordAtStart(location, node.getFunctionName())));
+              LocationRecord.createLocationRecordAtStart(
+                  location, functionEntryNode.getFunctionName())));
     }
 
     return functionContractRecords.build();
