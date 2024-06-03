@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -298,7 +299,7 @@ public class CFAToCTranslator {
     String lFunctionHeader =
         pFunctionStartNode
             .getFunctionDefinition()
-            .toASTString(NAMES_QUALIFIED, false)
+            .toASTString(AAstNodeRepresentation.DEFAULT)
             .replace(";", "");
     return new FunctionDefinition(
         lFunctionHeader, createCompoundStatement(pFunctionStartNode, null));
@@ -355,9 +356,15 @@ public class CFAToCTranslator {
           // must be if-branch, first in list
           assert ifAndElseEdge.get(0) == currentEdge;
           if (assumeEdge.getTruthAssumption()) {
-            cond = "if (" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED, false) + ")";
+            cond =
+                "if ("
+                    + assumeEdge.getExpression().toASTString(AAstNodeRepresentation.DEFAULT)
+                    + ")";
           } else {
-            cond = "if (!(" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED, false) + "))";
+            cond =
+                "if (!("
+                    + assumeEdge.getExpression().toASTString(AAstNodeRepresentation.DEFAULT)
+                    + "))";
           }
         } else {
           // must be else-branch, second in list
@@ -479,12 +486,14 @@ public class CFAToCTranslator {
           // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
           if (lDeclarationEdge
               .getDeclaration()
-              .toASTString(NAMES_QUALIFIED, false)
+              .toASTString(AAstNodeRepresentation.DEFAULT)
               .contains("__CPAchecker_TMP_")) {
-            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED, false);
+            declaration =
+                lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
           } else {
             // TODO check if works without lDeclarationEdge.getRawStatement();
-            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED, false);
+            declaration =
+                lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
 
             if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
               CVariableDeclaration varDecl =

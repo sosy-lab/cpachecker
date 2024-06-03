@@ -33,15 +33,14 @@ public final class CInitializerList extends AbstractInitializer implements CInit
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append("{ ");
     Joiner.on(", ")
         .appendTo(
             lASTString,
-            transform(
-                initializerList, cinit -> cinit.toASTString(pQualified, pOriginalVariableNames)));
+            transform(initializerList, cinit -> cinit.toASTString(pAAstNodeRepresentation)));
     lASTString.append(" }");
 
     return lASTString.toString();

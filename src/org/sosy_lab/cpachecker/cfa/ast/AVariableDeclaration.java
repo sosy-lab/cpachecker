@@ -43,20 +43,19 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
-    if (pQualified) {
-      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
-    } else if (pOriginalVariableNames) {
-      lASTString.append(getType().toASTString(getOrigName()));
-    } else {
-      lASTString.append(getType().toASTString(getName()));
-    }
+    lASTString.append(
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> getType().toASTString(getName());
+          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+        });
 
     if (initializer != null) {
       lASTString.append(" = ");
-      lASTString.append(initializer.toASTString(pQualified, pOriginalVariableNames));
+      lASTString.append(initializer.toASTString(pAAstNodeRepresentation));
     }
 
     lASTString.append(";");

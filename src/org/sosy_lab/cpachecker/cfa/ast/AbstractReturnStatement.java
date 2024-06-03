@@ -28,11 +28,9 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "return"
-        + (expression != null
-            ? " " + expression.toASTString(pQualified, pOriginalVariableNames)
-            : "")
+        + (expression != null ? " " + expression.toASTString(pAAstNodeRepresentation) : "")
         + ";";
   }
 
