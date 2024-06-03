@@ -102,7 +102,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
 
       FileLocation location = node.getFileLocation();
       String requiresClause =
-          getOverapproximationOfStatesReplacingReturnVariables(requiresArgStates, node).toString();
+          getOverapproximationOfStatesIgnoringReturnVariables(requiresArgStates, node).toString();
       String ensuresClause = "1";
       if (node.getExitNode().isPresent()
           && functionContractEnsures.containsKey(node.getExitNode().orElseThrow())) {
@@ -119,7 +119,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
                             + getOverapproximationOfStatesIgnoringReturnVariables(
                                 ImmutableSet.of(pair.entry()), node)
                             + ") || ("
-                            + getOverapproximationOfStatesReplacingReturnVariables(
+                            + getOverapproximationOfStatesWithOnlyReturnVariables(
                                 ImmutableSet.of(pair.exit()), node)
                             + "))";
                       } catch (InterruptedException | NotImplementedException e) {

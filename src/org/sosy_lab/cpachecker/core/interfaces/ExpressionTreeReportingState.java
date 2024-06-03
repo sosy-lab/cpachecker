@@ -86,8 +86,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * particularly useful in order to export function contracts.
    *
    * @param pFunctionScope the function entry node
-   * @param pLocation the formula should at least try to approximate variables referenced by the
-   *     entering edges at this location
+   * @param pLocation the formula should approximate the return variables at this location
    * @param pFunctionReturnVariable the variable to replace function return expressions with
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted

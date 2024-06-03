@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
 
@@ -166,75 +166,90 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     return stateToStatesCollector.get(pRootState);
   }
 
+  /**
+   * This is a wrapper for the function type to also throw {@link InterruptedException} and {@link
+   * NotImplementedException}. This is inspired by: <a
+   * href="https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception">https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception</a>
+   *
+   * @param <T> the type of the input parameter
+   * @param <R> the type of the return value
+   */
+  @FunctionalInterface
+  public interface NotImplementedThrowingFunction<T, R> {
+    R apply(T t) throws InterruptedException, NotImplementedException;
+  }
+
   protected ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
       Collection<ARGState> argStates, CFANode node)
       throws InterruptedException, NotImplementedException {
-    return getOverapproximationOfStatesIgnoringReturnVariables(argStates, node, false);
+    FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
+    return getOverapproximationOfStates(
+        argStates,
+        (ExpressionTreeReportingState x) ->
+            x.getFormulaApproximationInputProgramInScopeVariable(
+                entryNode, node, cfa.getASTStructure()));
   }
 
-  protected ExpressionTree<Object> getOverapproximationOfStatesReplacingReturnVariables(
+  protected ExpressionTree<Object> getOverapproximationOfStatesWithOnlyReturnVariables(
       Collection<ARGState> argStates, CFANode node)
       throws InterruptedException, NotImplementedException {
-    return getOverapproximationOfStatesIgnoringReturnVariables(argStates, node, true);
+    AIdExpression returnVariable;
+    if (node.getFunction().getType().getReturnType() instanceof CType cType) {
+      if (cType instanceof CVoidType) {
+        return ExpressionTrees.getTrue();
+      }
+      returnVariable =
+          new CIdExpression(
+              FileLocation.DUMMY,
+              new CVariableDeclaration(
+                  FileLocation.DUMMY,
+                  false,
+                  CStorageClass.AUTO,
+                  cType,
+                  "\result",
+                  "\result",
+                  node.getFunctionName() + "::\result",
+                  null));
+    } else {
+      // Currently we do not export witnesses for other programming languages than C, therefore
+      // everything else is currently not supported.
+      throw new NotImplementedException();
+    }
+
+    FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
+    return getOverapproximationOfStates(
+        argStates,
+        (ExpressionTreeReportingState x) -> {
+          Verify.verify(node instanceof FunctionExitNode);
+          return x.getFormulaApproximationFunctionReturnVariableOnly(
+              entryNode, (FunctionExitNode) node, returnVariable);
+        });
   }
 
   /**
-   * Provdes an overapproximation of the abstractions encoded by the arg states at the location of
+   * Provides an overapproximation of the abstractions encoded by the arg states at the location of
    * the node.
    *
-   * @param argStates the arg states encoding abstractions of the state
-   * @param node the node at whose location the state should be over approximated
-   * @param pReplaceOutputVariable if this is true, then return variables from functions are
-   *     included in the over approximation using \return for them. If not, they are ignored
+   * @param pArgStates the arg states encoding abstractions of the state
    * @return an over approximation of the abstraction at the state
    * @throws InterruptedException if the call to this function is interrupted
    */
-  private ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
-      Collection<ARGState> argStates, CFANode node, boolean pReplaceOutputVariable)
+  private ExpressionTree<Object> getOverapproximationOfStates(
+      Collection<ARGState> pArgStates,
+      NotImplementedThrowingFunction<ExpressionTreeReportingState, ExpressionTree<Object>>
+          pStateToAbstraction)
       throws InterruptedException, NotImplementedException {
-    FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
-
     FluentIterable<ExpressionTreeReportingState> reportingStates =
-        FluentIterable.from(argStates)
+        FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)
             .filter(ExpressionTreeReportingState.class);
     List<List<ExpressionTree<Object>>> expressionsPerClass = new ArrayList<>();
-
-    // TODO: Extend this to also include java Variables
-    Optional<AIdExpression> returnVariable;
-    if (pReplaceOutputVariable
-        && node.getFunction().getType().getReturnType() instanceof CType cType
-        && !(cType instanceof CVoidType)) {
-      returnVariable =
-          Optional.of(
-              new CIdExpression(
-                  FileLocation.DUMMY,
-                  new CVariableDeclaration(
-                      FileLocation.DUMMY,
-                      false,
-                      CStorageClass.AUTO,
-                      cType,
-                      "\result",
-                      "\result",
-                      node.getFunctionName() + "::\result",
-                      null)));
-    } else {
-      returnVariable = Optional.empty();
-    }
 
     for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
       List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
       for (ExpressionTreeReportingState state : reportingStates) {
         if (stateClass.isAssignableFrom(state.getClass())) {
-          if (returnVariable.isPresent() && node instanceof FunctionExitNode exitNode) {
-            expressionsMatchingClass.add(
-                state.getFormulaApproximationInputProgramInScopeVariablesAndFunctionReturnVariable(
-                    entryNode, exitNode, returnVariable.orElseThrow(), cfa.getASTStructure()));
-          } else {
-            expressionsMatchingClass.add(
-                state.getFormulaApproximationInputProgramInScopeVariable(
-                    entryNode, node, cfa.getASTStructure()));
-          }
+          expressionsMatchingClass.add(pStateToAbstraction.apply(state));
         }
       }
       expressionsPerClass.add(expressionsMatchingClass);
