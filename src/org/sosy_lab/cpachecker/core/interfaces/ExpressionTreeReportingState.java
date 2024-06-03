@@ -12,7 +12,6 @@ import apron.NotImplementedException;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
@@ -60,16 +59,14 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * variable i.e. \return > 0 becomes result > 0 if the given variable is result. This is
    * particularly useful in order to export function contracts.
    *
-   * @param pFunctionScope the function entry node
-   * @param pLocation the formula should approximate the return variables at this location
+   * @param pFunctionScope the function entry node. It references the {@link
+   *     org.sosy_lab.cpachecker.cfa.model.FunctionExitNode} if it exists
    * @param pFunctionReturnVariable the variable to replace function return expressions with
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted
    * @throws NotImplementedException if the computation is not implemented
    */
   ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope,
-      FunctionExitNode pLocation,
-      AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, NotImplementedException;
 }

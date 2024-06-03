@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import apron.NotImplementedException;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 import java.io.Serializable;
 import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -21,7 +22,6 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
@@ -138,11 +138,12 @@ public abstract sealed class PredicateAbstractState
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-        FunctionEntryNode pFunctionScope,
-        FunctionExitNode pLocation,
-        AIdExpression pFunctionReturnVariable)
+        FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
         throws InterruptedException, NotImplementedException {
-      throw new NotImplementedException();
+      // TODO: Filer out all of the variables which are not the return variables and replace its
+      // name
+      Verify.verify(pFunctionScope.getExitNode().isPresent());
+      return super.abstractionFormula.asExpressionTree(pFunctionScope.getExitNode().orElseThrow());
     }
 
     @Override

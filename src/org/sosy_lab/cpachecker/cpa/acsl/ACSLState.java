@@ -87,9 +87,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope,
-      FunctionExitNode pLocation,
-      AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, NotImplementedException {
     throw new NotImplementedException();
   }

@@ -219,11 +219,8 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
     return getOverapproximationOfStates(
         argStates,
-        (ExpressionTreeReportingState x) -> {
-          Verify.verify(node instanceof FunctionExitNode);
-          return x.getFormulaApproximationFunctionReturnVariableOnly(
-              entryNode, (FunctionExitNode) node, returnVariable);
-        });
+        (ExpressionTreeReportingState x) ->
+            x.getFormulaApproximationFunctionReturnVariableOnly(entryNode, returnVariable));
   }
 
   /**

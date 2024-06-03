@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -1206,7 +1205,6 @@ public class InvariantsState
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope,
-      FunctionExitNode pLocation,
       AIdExpression pFunctionReturnVariable)
       throws InterruptedException, NotImplementedException {
     throw new NotImplementedException();
