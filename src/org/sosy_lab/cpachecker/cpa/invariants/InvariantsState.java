@@ -1204,8 +1204,7 @@ public class InvariantsState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope,
-      AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, NotImplementedException {
     throw new NotImplementedException();
   }

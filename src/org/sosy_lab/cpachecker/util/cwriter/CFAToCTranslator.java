@@ -59,9 +59,6 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
 public class CFAToCTranslator {
 
-  // Use original, unqualified names for variables
-  private static final boolean NAMES_QUALIFIED = false;
-
   private static class NodeAndBlock {
     private final CFANode node;
     private final CompoundStatement currentBlock;
