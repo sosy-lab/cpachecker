@@ -214,7 +214,7 @@ public class CounterexampleToC implements Algorithm {
           String variable = variableValue.getKey();
           String value = variableValue.getValue().toString();
           int line = Objects.requireNonNull(lines.get(variable));
-          preciseCexExport.append(String.format("line %d: %s == %s\n", line, variable, value));
+          preciseCexExport.append(String.format("line %d: %s == %s%n", line, variable, value));
         }
         IO.writeFile(
             counterExamplePerVariable.getPath(exportedPreciseCounterexamples++),
