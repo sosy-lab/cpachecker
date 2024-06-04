@@ -172,7 +172,7 @@ public class CounterexampleToC implements Algorithm {
           }
         }
         formulaWithModels = bmgr.and(formulaWithModels, bmgr.not(assignments));
-        allIterations.add(currentIteration.buildOrThrow());
+        allIterations.add(currentIteration.buildKeepingLast());
       }
     }
     return allIterations.build();
