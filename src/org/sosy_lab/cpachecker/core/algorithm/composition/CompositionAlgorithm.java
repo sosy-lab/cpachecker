@@ -313,6 +313,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
         final AlgSelectionBooleanVector selectionContext = timeSelectionStrategy.extractStatisticsFromCfa();
         final Pair<Integer, Integer> timeLimits = TimeLimitSelection.getTimeLimits(selectionContext);
+        logger.log(Level.INFO, "Time limits: ", timeLimits.getFirst(), " ", timeLimits.getSecond());
 
         var newConfigs = getTimeLimitAnnotatedValues(timeLimits);
         selectionStrategy.initializeAlgorithmContexts(newConfigs);
