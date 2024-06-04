@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 public interface ExpressionTreeReportingState extends AbstractState {
 
   class ReportingMethodNotImplementedException extends Exception {
+    @Serial private static final long serialVersionUID = -1208757812;
 
     public ReportingMethodNotImplementedException(String pMessage) {
       super(pMessage);
