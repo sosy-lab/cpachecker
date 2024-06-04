@@ -110,7 +110,6 @@ public final class CfaToJson {
     /* Add mixins. */
     objectMapper.addMixIn(FunctionEntryNode.class, FunctionEntryNodeMixin.class);
     objectMapper.addMixIn(FunctionExitNode.class, FunctionExitNodeMixin.class);
-    objectMapper.addMixIn(CFAEdge.class, CfaEdgeMixin.class);
     objectMapper.addMixIn(CFANode.class, CfaNodeMixin.class);
 
     return objectMapper;
@@ -136,20 +135,6 @@ public final class CfaToJson {
 
     @JsonIdentityReference(alwaysAsId = true)
     private FunctionEntryNode entryNode;
-  }
-
-  /**
-   * This interface is a mixin for {@link CFAEdge}.
-   *
-   * <p>It serializes its predecessor and successor {@link CFANode}s as numbers.
-   */
-  private interface CfaEdgeMixin {
-
-    @JsonIdentityReference(alwaysAsId = true)
-    CFANode getPredecessor();
-
-    @JsonIdentityReference(alwaysAsId = true)
-    CFANode getSuccessor();
   }
 
   /**
