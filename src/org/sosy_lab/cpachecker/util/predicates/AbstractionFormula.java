@@ -124,9 +124,9 @@ public class AbstractionFormula implements Serializable {
   }
 
   public ExpressionTree<Object> asExpressionTree(
-      CFANode pLocation, Function<String, Boolean> pVariableNameFilter)
+      CFANode pLocation, Function<String, Boolean> pExcludeVariablesFilter)
       throws InterruptedException {
-    return ExpressionTrees.fromFormula(asFormula(), fMgr, pLocation, pVariableNameFilter);
+    return ExpressionTrees.fromFormula(asFormula(), fMgr, pLocation, pExcludeVariablesFilter);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */

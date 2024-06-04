@@ -522,7 +522,7 @@ public final class ExpressionTrees {
       BooleanFormula formula,
       FormulaManagerView fMgr,
       CFANode location,
-      Function<String, Boolean> variableNameFilter)
+      Function<String, Boolean> pExcludeVariablesFilter)
       throws InterruptedException {
 
     BooleanFormula inv = formula;
@@ -532,7 +532,7 @@ public final class ExpressionTrees {
             inv,
             e -> {
               for (String name : fMgr.extractVariableNames(e)) {
-                if (!variableNameFilter.apply(name)) {
+                if (pExcludeVariablesFilter.apply(name)) {
                   return false;
                 }
               }
