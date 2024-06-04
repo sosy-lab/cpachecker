@@ -131,14 +131,15 @@ public abstract sealed class PredicateAbstractState
     @Override
     public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
         FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-        throws InterruptedException, UnsupportedOperationException {
-      throw new UnsupportedOperationException();
+        throws InterruptedException, ReportingMethodNotImplementedException {
+      throw new ReportingMethodNotImplementedException(
+          "The method 'getFormulaApproximationInputProgramInScopeVariable' is currently implemented");
     }
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
         FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-        throws InterruptedException, UnsupportedOperationException {
+        throws InterruptedException, ReportingMethodNotImplementedException {
       // TODO: Filer out all of the variables which are not the return variables and replace its
       // name
       Verify.verify(pFunctionScope.getExitNode().isPresent());

@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -167,7 +168,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   /**
    * This is a wrapper for the function type to also throw {@link InterruptedException} and {@link
-   * UnsupportedOperationException}. This is inspired by: <a
+   * ReportingMethodNotImplementedException}. This is inspired by: <a
    * href="https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception">https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception</a>
    *
    * @param <T> the type of the input parameter
@@ -175,12 +176,12 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   @FunctionalInterface
   public interface NotImplementedThrowingFunction<T, R> {
-    R apply(T t) throws InterruptedException, UnsupportedOperationException;
+    R apply(T t) throws InterruptedException, ReportingMethodNotImplementedException;
   }
 
   protected ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
       Collection<ARGState> argStates, CFANode node)
-      throws InterruptedException, UnsupportedOperationException {
+      throws InterruptedException, ReportingMethodNotImplementedException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
     return getOverapproximationOfStates(
         argStates,
@@ -189,7 +190,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   protected ExpressionTree<Object> getOverapproximationOfStatesWithOnlyReturnVariables(
       Collection<ARGState> argStates, CFANode node)
-      throws InterruptedException, UnsupportedOperationException {
+      throws InterruptedException, ReportingMethodNotImplementedException {
     AIdExpression returnVariable;
     if (node.getFunction().getType().getReturnType() instanceof CType cType) {
       if (cType instanceof CVoidType) {
@@ -232,7 +233,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       Collection<ARGState> pArgStates,
       NotImplementedThrowingFunction<ExpressionTreeReportingState, ExpressionTree<Object>>
           pStateToAbstraction)
-      throws InterruptedException, UnsupportedOperationException {
+      throws InterruptedException, ReportingMethodNotImplementedException {
     FluentIterable<ExpressionTreeReportingState> reportingStates =
         FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)

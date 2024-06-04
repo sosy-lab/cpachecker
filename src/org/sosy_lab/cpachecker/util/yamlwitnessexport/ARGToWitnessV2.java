@@ -20,6 +20,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
@@ -49,7 +50,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
    * @throws InterruptedException if the execution is interrupted
    */
   private InvariantEntry createInvariant(Collection<ARGState> argStates, CFANode node, String type)
-      throws InterruptedException, UnsupportedOperationException {
+      throws InterruptedException, ReportingMethodNotImplementedException {
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
     Optional<IterationElement> iterationStructure =
@@ -74,7 +75,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
   }
 
   void exportWitnesses(ARGState pRootState, Path pPath)
-      throws InterruptedException, IOException, UnsupportedOperationException {
+      throws InterruptedException, IOException, ReportingMethodNotImplementedException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 

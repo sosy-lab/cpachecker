@@ -16,6 +16,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -44,7 +45,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
    * @throws IOException If the witness could not be written to the file.
    */
   public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
-      throws InterruptedException, IOException, UnsupportedOperationException {
+      throws InterruptedException, IOException, ReportingMethodNotImplementedException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
       switch (witnessVersion) {

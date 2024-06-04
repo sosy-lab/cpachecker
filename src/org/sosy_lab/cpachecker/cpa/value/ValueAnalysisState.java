@@ -882,8 +882,9 @@ public final class ValueAnalysisState
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, UnsupportedOperationException {
-    throw new UnsupportedOperationException();
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException(
+        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for 'ValueAnalysisState'");
   }
 
   @Override

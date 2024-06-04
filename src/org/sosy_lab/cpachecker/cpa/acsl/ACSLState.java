@@ -79,15 +79,17 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, UnsupportedOperationException {
-    throw new UnsupportedOperationException();
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException(
+        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for 'ACSLState'");
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, UnsupportedOperationException {
-    throw new UnsupportedOperationException();
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException(
+        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for 'ACSLState'");
   }
 
   public boolean hasAnnotations() {

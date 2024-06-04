@@ -26,6 +26,13 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
  */
 public interface ExpressionTreeReportingState extends AbstractState {
 
+  class ReportingMethodNotImplementedException extends Exception {
+
+    public ReportingMethodNotImplementedException(String pMessage) {
+      super(pMessage);
+    }
+  }
+
   /**
    * Returns an ExpressionTree over-approximating the state.
    *
@@ -51,7 +58,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    */
   ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, UnsupportedOperationException;
+      throws InterruptedException, ReportingMethodNotImplementedException;
 
   /**
    * Only return the formula approximation for the return variable of the function. This means that,
@@ -68,5 +75,5 @@ public interface ExpressionTreeReportingState extends AbstractState {
    */
   ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, UnsupportedOperationException;
+      throws InterruptedException, ReportingMethodNotImplementedException;
 }
