@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -93,8 +94,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
       Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    ImmutableList.Builder<FunctionContractEntry> functionContractRecords =
-        new ImmutableList.Builder<>();
+    Builder<FunctionContractEntry> functionContractRecords = new Builder<>();
     for (FunctionEntryNode functionEntryNode : functionContractRequires.keySet()) {
       Collection<ARGState> requiresArgStates = functionContractRequires.get(functionEntryNode);
 
@@ -102,7 +102,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       String requiresClause =
           getOverapproximationOfStatesIgnoringReturnVariables(requiresArgStates, functionEntryNode)
               .toString();
-      StringBuilder ensuresClause = new StringBuilder("1");
+      ImmutableSet.Builder<String> ensuresClause = new ImmutableSet.Builder<>();
       if (functionEntryNode.getExitNode().isPresent()
           && functionContractEnsures.containsKey(functionEntryNode.getExitNode().orElseThrow())) {
         Collection<FunctionEntryExitPair> ensuresArgStates =
@@ -116,13 +116,16 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
               getOverapproximationOfStatesWithOnlyReturnVariables(
                       ImmutableSet.of(pair.exit()), functionEntryNode)
                   .toString();
-          String implication = "!(" + stateOfTheInput + ") || (" + stateOfTheOutput + ")";
-          ensuresClause.append(" && ").append(implication);
+          String implication = "(!(" + stateOfTheInput + ") || (" + stateOfTheOutput + "))";
+          ensuresClause.add(implication);
         }
+      } else {
+        // If we do not have an exit node then we do not have any ensures clause
+        ensuresClause.add("1");
       }
       functionContractRecords.add(
           new FunctionContractEntry(
-              ensuresClause.toString(),
+              String.join(" && ", ensuresClause.build()),
               requiresClause,
               YAMLWitnessExpressionType.C,
               LocationRecord.createLocationRecordAtStart(
