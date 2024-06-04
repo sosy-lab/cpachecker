@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -112,7 +114,19 @@ public class AbstractionFormula implements Serializable {
   }
 
   public ExpressionTree<Object> asExpressionTree(CFANode pLocation) throws InterruptedException {
-    return ExpressionTrees.fromFormula(asFormula(), fMgr, pLocation);
+    return ExpressionTrees.fromFormula(
+        asFormula(),
+        fMgr,
+        pLocation,
+        name ->
+            name.contains(FUNCTION_DELIMITER)
+                && !name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER));
+  }
+
+  public ExpressionTree<Object> asExpressionTree(
+      CFANode pLocation, Function<String, Boolean> pVariableNameFilter)
+      throws InterruptedException {
+    return ExpressionTrees.fromFormula(asFormula(), fMgr, pLocation, pVariableNameFilter);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */

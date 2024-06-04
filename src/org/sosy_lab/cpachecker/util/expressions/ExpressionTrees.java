@@ -42,7 +42,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /** This is a utility class for common operations on {@link ExpressionTree}s */
 public final class ExpressionTrees {
 
-  private static final String FUNCTION_DELIMITER = "::";
+  public static final String FUNCTION_DELIMITER = "::";
 
   @SuppressWarnings("unchecked")
   public static <LeafType> ExpressionTree<LeafType> getTrue() {
@@ -492,6 +492,18 @@ public final class ExpressionTrees {
     return pSource.accept(converter);
   }
 
+  public static ExpressionTree<Object> fromFormula(
+      BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
+      throws InterruptedException {
+    return fromFormula(
+        formula,
+        fMgr,
+        location,
+        name ->
+            name.contains(FUNCTION_DELIMITER)
+                && !name.startsWith(location.getFunctionName() + FUNCTION_DELIMITER));
+  }
+
   /**
    * Builds an expression tree for the given {@link BooleanFormula}. If the formula is invalid, i.e.
    * a literal/variable from another method is present (not in scope), the expression tree
@@ -503,21 +515,24 @@ public final class ExpressionTrees {
    * @param formula the formula to transform
    * @param fMgr the formula manger having the formula "in scope"
    * @param location to determine the current method for checking the scope.
+   * @param variableNameFilter a filter for variable names, which should be considered.
    * @return the expression tree representing the formula.
    */
   public static ExpressionTree<Object> fromFormula(
-      BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
+      BooleanFormula formula,
+      FormulaManagerView fMgr,
+      CFANode location,
+      Function<String, Boolean> variableNameFilter)
       throws InterruptedException {
 
     BooleanFormula inv = formula;
-    String prefix = location.getFunctionName() + FUNCTION_DELIMITER;
 
     inv =
         fMgr.filterLiterals(
             inv,
             e -> {
               for (String name : fMgr.extractVariableNames(e)) {
-                if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
+                if (!variableNameFilter.apply(name)) {
                   return false;
                 }
               }
