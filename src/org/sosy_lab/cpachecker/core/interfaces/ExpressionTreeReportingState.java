@@ -51,7 +51,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    */
   ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, NotImplementedException;
+      throws InterruptedException, UnsupportedOperationException;
 
   /**
    * Only return the formula approximation for the return variable of the function. This means that,
@@ -68,5 +68,5 @@ public interface ExpressionTreeReportingState extends AbstractState {
    */
   ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, NotImplementedException;
+      throws InterruptedException, UnsupportedOperationException;
 }

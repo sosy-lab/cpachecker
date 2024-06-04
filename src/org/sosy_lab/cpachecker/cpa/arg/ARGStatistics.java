@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import apron.NotImplementedException;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
@@ -426,7 +425,7 @@ public class ARGStatistics implements Statistics {
           if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
             try {
               argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
-            } catch (IOException | NotImplementedException e) {
+            } catch (IOException | UnsupportedOperationException e) {
               logger.logUserException(
                   Level.WARNING,
                   e,

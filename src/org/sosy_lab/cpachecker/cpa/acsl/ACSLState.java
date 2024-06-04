@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import apron.NotImplementedException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -80,15 +79,15 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
+      throws InterruptedException, UnsupportedOperationException {
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
+      throws InterruptedException, UnsupportedOperationException {
+    throw new UnsupportedOperationException();
   }
 
   public boolean hasAnnotations() {

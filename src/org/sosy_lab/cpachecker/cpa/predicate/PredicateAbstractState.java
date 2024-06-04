@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import apron.NotImplementedException;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import java.io.Serializable;
@@ -132,14 +131,14 @@ public abstract sealed class PredicateAbstractState
     @Override
     public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
         FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-        throws InterruptedException, NotImplementedException {
-      throw new NotImplementedException();
+        throws InterruptedException, UnsupportedOperationException {
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
         FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-        throws InterruptedException, NotImplementedException {
+        throws InterruptedException, UnsupportedOperationException {
       // TODO: Filer out all of the variables which are not the return variables and replace its
       // name
       Verify.verify(pFunctionScope.getExitNode().isPresent());

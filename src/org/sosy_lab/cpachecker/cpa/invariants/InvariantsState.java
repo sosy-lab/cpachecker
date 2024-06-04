@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verifyNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import apron.NotImplementedException;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -1198,15 +1197,15 @@ public class InvariantsState
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
+      throws InterruptedException, UnsupportedOperationException {
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
+      throws InterruptedException, UnsupportedOperationException {
+    throw new UnsupportedOperationException();
   }
 
   private ExpressionTree<Object> formulaToCode(BooleanFormula<CompoundInterval> pFormula) {

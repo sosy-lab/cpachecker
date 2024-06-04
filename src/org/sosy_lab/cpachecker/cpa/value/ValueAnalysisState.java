@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import apron.NotImplementedException;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -883,8 +882,8 @@ public final class ValueAnalysisState
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
+      throws InterruptedException, UnsupportedOperationException {
+    throw new UnsupportedOperationException();
   }
 
   @Override

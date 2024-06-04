@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
-import apron.NotImplementedException;
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -168,7 +167,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   /**
    * This is a wrapper for the function type to also throw {@link InterruptedException} and {@link
-   * NotImplementedException}. This is inspired by: <a
+   * UnsupportedOperationException}. This is inspired by: <a
    * href="https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception">https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception</a>
    *
    * @param <T> the type of the input parameter
@@ -176,12 +175,12 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   @FunctionalInterface
   public interface NotImplementedThrowingFunction<T, R> {
-    R apply(T t) throws InterruptedException, NotImplementedException;
+    R apply(T t) throws InterruptedException, UnsupportedOperationException;
   }
 
   protected ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
       Collection<ARGState> argStates, CFANode node)
-      throws InterruptedException, NotImplementedException {
+      throws InterruptedException, UnsupportedOperationException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
     return getOverapproximationOfStates(
         argStates,
@@ -190,7 +189,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   protected ExpressionTree<Object> getOverapproximationOfStatesWithOnlyReturnVariables(
       Collection<ARGState> argStates, CFANode node)
-      throws InterruptedException, NotImplementedException {
+      throws InterruptedException, UnsupportedOperationException {
     AIdExpression returnVariable;
     if (node.getFunction().getType().getReturnType() instanceof CType cType) {
       if (cType instanceof CVoidType) {
@@ -211,7 +210,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     } else {
       // Currently we do not export witnesses for other programming languages than C, therefore
       // everything else is currently not supported.
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
 
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
@@ -233,7 +232,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       Collection<ARGState> pArgStates,
       NotImplementedThrowingFunction<ExpressionTreeReportingState, ExpressionTree<Object>>
           pStateToAbstraction)
-      throws InterruptedException, NotImplementedException {
+      throws InterruptedException, UnsupportedOperationException {
     FluentIterable<ExpressionTreeReportingState> reportingStates =
         FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)

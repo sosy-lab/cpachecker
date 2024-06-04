@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.witnessjoiner;
 
-import apron.NotImplementedException;
 import java.util.ArrayList;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -58,15 +57,15 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
+      throws InterruptedException, UnsupportedOperationException {
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, NotImplementedException {
-    throw new NotImplementedException();
+      throws InterruptedException, UnsupportedOperationException {
+    throw new UnsupportedOperationException();
   }
 
   @Override
