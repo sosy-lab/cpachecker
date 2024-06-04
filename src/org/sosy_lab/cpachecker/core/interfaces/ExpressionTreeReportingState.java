@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import apron.NotImplementedException;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -21,8 +20,9 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
  *
  * <p>It is recommended to implement all methods in this class, in particular if the goal is to
  * export correct witnesses. Since this is a crucial part of the export. If this is not possible or
- * not needed, the methods can be implemented to throw a {@link NotImplementedException}. Be aware
- * that if you do this the export of witnesses will not be possible.
+ * not needed, the methods can be implemented to throw a {@link
+ * ReportingMethodNotImplementedException}. Be aware that if you do this the export of witnesses
+ * will not be possible.
  */
 public interface ExpressionTreeReportingState extends AbstractState {
 
@@ -54,7 +54,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pAstCfaRelation the relation between the AST and the CFA
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted
-   * @throws NotImplementedException if the computation is not implemented
+   * @throws ReportingMethodNotImplementedException if the computation is not implemented
    */
   ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
@@ -71,7 +71,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pFunctionReturnVariable the variable to replace function return expressions with
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted
-   * @throws NotImplementedException if the computation is not implemented
+   * @throws ReportingMethodNotImplementedException if the computation is not implemented
    */
   ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)

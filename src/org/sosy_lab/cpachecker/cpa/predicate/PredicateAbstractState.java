@@ -133,7 +133,8 @@ public abstract sealed class PredicateAbstractState
         FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
         throws InterruptedException, ReportingMethodNotImplementedException {
       throw new ReportingMethodNotImplementedException(
-          "The method 'getFormulaApproximationInputProgramInScopeVariable' is currently implemented");
+          "The method 'getFormulaApproximationInputProgramInScopeVariable' is currently"
+              + " implemented");
     }
 
     @Override

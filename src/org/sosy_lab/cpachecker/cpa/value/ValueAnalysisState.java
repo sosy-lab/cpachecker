@@ -884,7 +884,8 @@ public final class ValueAnalysisState
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for 'ValueAnalysisState'");
+        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
+            + " 'ValueAnalysisState'");
   }
 
   @Override

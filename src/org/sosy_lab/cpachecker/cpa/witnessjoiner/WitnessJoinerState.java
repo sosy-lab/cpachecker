@@ -59,7 +59,8 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented in 'WitnessJoinerState");
+        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented in"
+            + " 'WitnessJoinerState");
   }
 
   @Override
@@ -67,7 +68,8 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented in 'WitnessJoinerState'");
+        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented in"
+            + " 'WitnessJoinerState'");
   }
 
   @Override

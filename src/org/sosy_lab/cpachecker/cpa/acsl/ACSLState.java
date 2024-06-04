@@ -81,7 +81,8 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for 'ACSLState'");
+        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
+            + " 'ACSLState'");
   }
 
   @Override
@@ -89,7 +90,8 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for 'ACSLState'");
+        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
+            + " 'ACSLState'");
   }
 
   public boolean hasAnnotations() {

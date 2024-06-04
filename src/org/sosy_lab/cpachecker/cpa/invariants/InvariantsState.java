@@ -1199,7 +1199,8 @@ public class InvariantsState
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for InvariantsState.");
+        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
+            + " InvariantsState.");
   }
 
   @Override
@@ -1207,7 +1208,8 @@ public class InvariantsState
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for InvariantsState.");
+        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
+            + " InvariantsState.");
   }
 
   private ExpressionTree<Object> formulaToCode(BooleanFormula<CompoundInterval> pFormula) {
