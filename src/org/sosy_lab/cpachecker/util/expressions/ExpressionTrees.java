@@ -515,7 +515,7 @@ public final class ExpressionTrees {
    * @param formula the formula to transform
    * @param fMgr the formula manger having the formula "in scope"
    * @param location to determine the current method for checking the scope.
-   * @param variableNameFilter a filter for variable names, which should be considered.
+   * @param pExcludeVariablesFilter a filter for variable names, which should not be considered.
    * @return the expression tree representing the formula.
    */
   public static ExpressionTree<Object> fromFormula(
