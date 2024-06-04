@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -94,7 +93,8 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
       Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    Builder<FunctionContractEntry> functionContractRecords = new Builder<>();
+    ImmutableList.Builder<FunctionContractEntry> functionContractRecords =
+        new ImmutableList.Builder<>();
     for (FunctionEntryNode functionEntryNode : functionContractRequires.keySet()) {
       Collection<ARGState> requiresArgStates = functionContractRequires.get(functionEntryNode);
 
