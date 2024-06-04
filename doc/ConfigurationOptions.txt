@@ -4994,10 +4994,14 @@ tubes.assumes.performAlgorithm = true
 tubes.boundedConfig = "config/boundedPredicateAnalysis.properties"
 
 # File name for analysis report in case a counterexample was found.
+tubes.counterExampleFiles = "Counterexample.variable.%d.txt"
 tubes.counterExampleFiles = "Counterexample.inline.%d.c"
 
 # export counterexample to file, if one is found
 tubes.errorInputs = "nondets.txt"
+
+# Export all assignments, not just nondet ones
+tubes.exportAllAssignments = false
 
 # How many satisfying assignments to find per CEX; -1 for all
 tubes.maxAssignments = 10
