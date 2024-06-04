@@ -66,6 +66,9 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * variable i.e. \return > 0 becomes result > 0 if the given variable is result. This is
    * particularly useful in order to export function contracts.
    *
+   * <p>The returned expression is only allowed to contain the given pFunctionReturnVariable and
+   * constants. It is not allowed to contain any other variables.
+   *
    * @param pFunctionScope the function entry node. It references the {@link
    *     org.sosy_lab.cpachecker.cfa.model.FunctionExitNode} if it exists
    * @param pFunctionReturnVariable the variable to replace function return expressions with
