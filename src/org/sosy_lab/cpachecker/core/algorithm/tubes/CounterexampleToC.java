@@ -12,6 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -191,13 +192,13 @@ public class CounterexampleToC implements Algorithm {
     for (CounterexampleInfo counterExample : counterExamples) {
       PathFormula cexPath = pmgr.makeEmptyPathFormula();
       Set<String> before = ImmutableSet.of();
-      ImmutableMap.Builder<String, Integer> variableToLineNumber = ImmutableMap.builder();
+      ImmutableMap.Builder<String, CFAEdge> variableToLineNumber = ImmutableMap.builder();
       for (CFAEdge cfaEdge : counterExample.getTargetPath().getFullPath()) {
         cexPath = pmgr.makeAnd(cexPath, cfaEdge);
         Set<String> after =
             solver.getFormulaManager().extractVariables(cexPath.getFormula()).keySet();
         for (String variable : Sets.difference(after, before)) {
-          variableToLineNumber.put(variable, cfaEdge.getFileLocation().getStartingLineNumber());
+          variableToLineNumber.put(variable, cfaEdge);
         }
         before = after;
       }
@@ -207,14 +208,21 @@ public class CounterexampleToC implements Algorithm {
       for (Map<String, Object> assignment : assignments) {
         assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
       }
-      ImmutableMap<String, Integer> lines = variableToLineNumber.buildOrThrow();
+      ImmutableMap<String, CFAEdge> lines = variableToLineNumber.buildOrThrow();
       for (Map<String, Object> assignment : assignments) {
         StringBuilder preciseCexExport = new StringBuilder();
         for (Entry<String, Object> variableValue : assignment.entrySet()) {
           String variable = variableValue.getKey();
           String value = variableValue.getValue().toString();
-          int line = Objects.requireNonNull(lines.get(variable));
-          preciseCexExport.append(String.format("line %d: %s == %s%n", line, variable, value));
+          CFAEdge cfaEdge = Objects.requireNonNull(lines.get(variable));
+          if (variable.contains("::")) {
+            variable = Splitter.on("::").limit(2).splitToList(variable).get(1);
+          }
+          if (variable.contains("@")) {
+            variable = Splitter.on("@").limit(2).splitToList(variable).get(0);
+          }
+          preciseCexExport.append(cfaEdge).append('\n');
+          preciseCexExport.append("  ").append(variable).append(" == ").append(value).append(";\n");
         }
         IO.writeFile(
             counterExamplePerVariable.getPath(exportedPreciseCounterexamples++),
@@ -225,7 +233,9 @@ public class CounterexampleToC implements Algorithm {
           from(variableToValues.keySet())
               .transform(
                   variable ->
-                      lines.get(variable)
+                      Objects.requireNonNull(lines.get(variable))
+                              .getFileLocation()
+                              .getStartingLineInOrigin()
                           + " "
                           + Joiner.on(" ").join(variableToValues.get(variable)))
               .join(Joiner.on(" & ")));
