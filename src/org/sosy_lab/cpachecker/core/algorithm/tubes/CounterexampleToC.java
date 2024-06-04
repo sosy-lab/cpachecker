@@ -26,6 +26,8 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
@@ -85,6 +87,14 @@ public class CounterexampleToC implements Algorithm {
       name = "counterExampleFiles",
       description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate counterExamplePerVariable =
+      PathTemplate.ofFormatString("Counterexample.variable.%d.c");
+
+  @Option(
+      secure = true,
+      name = "counterExampleFiles",
+      description = "File name for analysis report in case a counterexample was found.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles =
       PathTemplate.ofFormatString("Counterexample.inline.%d.c");
 
@@ -96,7 +106,11 @@ public class CounterexampleToC implements Algorithm {
       description = "How many satisfying assignments to find per CEX; -1 for all")
   private int maxAssignments = 10;
 
+  @Option(secure = true, description = "Export all assignments, not just nondet ones")
+  private boolean exportAllAssignments = false;
+
   private int exportedCounterexamples = 0;
+  private int exportedPreciseCounterexamples = 0;
 
   public CounterexampleToC(
       Algorithm pAlgorithm,
@@ -133,7 +147,8 @@ public class CounterexampleToC implements Algorithm {
     }
   }
 
-  private List<Map<String, Object>> assignments(Solver solver, BooleanFormula pBooleanFormula)
+  private List<Map<String, Object>> assignments(
+      Solver solver, BooleanFormula pBooleanFormula, boolean pExportAllAssignments)
       throws SolverException, InterruptedException {
     BooleanFormula formulaWithModels = pBooleanFormula;
     BooleanFormulaManagerView bmgr = solver.getFormulaManager().getBooleanFormulaManager();
@@ -150,7 +165,7 @@ public class CounterexampleToC implements Algorithm {
         BooleanFormula assignments = bmgr.makeTrue();
         for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
           BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-          if (formula.toString().contains("__VERIFIER_nondet")) {
+          if (formula.toString().contains("__VERIFIER_nondet") || pExportAllAssignments) {
             assignments = bmgr.and(assignments, formula);
             currentIteration.put(modelAssignment.getName(), modelAssignment.getValue());
           }
@@ -186,12 +201,26 @@ public class CounterexampleToC implements Algorithm {
         }
         before = after;
       }
-      List<Map<String, Object>> assignments = assignments(solver, cexPath.getFormula());
+      List<Map<String, Object>> assignments =
+          assignments(solver, cexPath.getFormula(), exportAllAssignments);
       Multimap<String, String> variableToValues = ArrayListMultimap.create();
       for (Map<String, Object> assignment : assignments) {
         assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
       }
       ImmutableMap<String, Integer> lines = variableToLineNumber.buildOrThrow();
+      for (Map<String, Object> assignment : assignments) {
+        StringBuilder preciseCexExport = new StringBuilder();
+        for (Entry<String, Object> variableValue : assignment.entrySet()) {
+          String variable = variableValue.getKey();
+          String value = variableValue.getValue().toString();
+          int line = Objects.requireNonNull(lines.get(variable));
+          preciseCexExport.append(String.format("line %d: %s == %s\n", line, variable, value));
+        }
+        IO.writeFile(
+            counterExamplePerVariable.getPath(exportedPreciseCounterexamples++),
+            StandardCharsets.UTF_8,
+            preciseCexExport.toString());
+      }
       cexLinesBuilder.add(
           from(variableToValues.keySet())
               .transform(
