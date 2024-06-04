@@ -88,7 +88,7 @@ public class CounterexampleToC implements Algorithm {
       description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExamplePerVariable =
-      PathTemplate.ofFormatString("Counterexample.variable.%d.c");
+      PathTemplate.ofFormatString("Counterexample.variable.%d.txt");
 
   @Option(
       secure = true,
