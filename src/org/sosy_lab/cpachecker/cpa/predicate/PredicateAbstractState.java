@@ -147,7 +147,6 @@ public abstract sealed class PredicateAbstractState
       Verify.verify(pFunctionScope.getExitNode().isPresent());
       FunctionExitNode functionExitNode = pFunctionScope.getExitNode().orElseThrow();
       return super.abstractionFormula.asExpressionTree(
-          functionExitNode,
           name ->
               name.contains(FUNCTION_DELIMITER)
                   && (!name.startsWith(functionExitNode.getFunctionName() + FUNCTION_DELIMITER)
