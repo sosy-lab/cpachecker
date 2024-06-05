@@ -126,7 +126,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public ExpressionTree<Object> getFormulaApproximationAllVariables(
+    public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
         FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
       return super.abstractionFormula.asExpressionTree(pLocation);
     }

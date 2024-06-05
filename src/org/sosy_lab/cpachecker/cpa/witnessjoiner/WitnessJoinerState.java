@@ -36,7 +36,7 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariables(
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
       final FunctionEntryNode pFunctionScope, final CFANode pLocation) throws InterruptedException {
 
     ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newFactory();

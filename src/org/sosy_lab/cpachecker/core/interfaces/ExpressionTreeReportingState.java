@@ -43,7 +43,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    *     entering edges
    * @throws InterruptedException if the computation is interrupted
    */
-  ExpressionTree<Object> getFormulaApproximationAllVariables(
+  ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
       FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException;
 
   /**

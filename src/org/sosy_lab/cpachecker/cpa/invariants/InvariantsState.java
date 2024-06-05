@@ -1117,7 +1117,7 @@ public class InvariantsState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariables(
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
       final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
 
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =

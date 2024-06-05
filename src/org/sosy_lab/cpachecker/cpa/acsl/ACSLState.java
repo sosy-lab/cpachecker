@@ -54,7 +54,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariables(
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
     return toExpressionTree();
   }

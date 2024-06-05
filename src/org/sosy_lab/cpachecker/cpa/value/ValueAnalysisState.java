@@ -821,7 +821,7 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariables(
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
 
     if (machineModel == null) {
