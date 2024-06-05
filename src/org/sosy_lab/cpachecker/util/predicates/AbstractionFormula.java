@@ -118,13 +118,13 @@ public class AbstractionFormula implements Serializable {
         asFormula(),
         fMgr,
         name ->
-            name.contains(FUNCTION_DELIMITER)
-                && !name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER));
+            !name.contains(FUNCTION_DELIMITER)
+                || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER));
   }
 
-  public ExpressionTree<Object> asExpressionTree(Function<String, Boolean> pExcludeVariablesFilter)
+  public ExpressionTree<Object> asExpressionTree(Function<String, Boolean> pIncludeVariablesFilter)
       throws InterruptedException {
-    return ExpressionTrees.fromFormula(asFormula(), fMgr, pExcludeVariablesFilter);
+    return ExpressionTrees.fromFormula(asFormula(), fMgr, pIncludeVariablesFilter);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */

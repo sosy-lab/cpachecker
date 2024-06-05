@@ -148,12 +148,11 @@ public abstract sealed class PredicateAbstractState
       FunctionExitNode functionExitNode = pFunctionScope.getExitNode().orElseThrow();
       return super.abstractionFormula.asExpressionTree(
           name ->
-              name.contains(FUNCTION_DELIMITER)
-                  && (!name.startsWith(functionExitNode.getFunctionName() + FUNCTION_DELIMITER)
-                      || !Splitter.on(FUNCTION_DELIMITER)
-                          .splitToList(name)
-                          .get(1)
-                          .equals(pFunctionReturnVariable.getName())));
+              name.startsWith(functionExitNode.getFunctionName() + FUNCTION_DELIMITER)
+                  && Splitter.on(FUNCTION_DELIMITER)
+                      .splitToList(name)
+                      .get(1)
+                      .equals(pFunctionReturnVariable.getName()));
     }
 
     @Override

@@ -498,10 +498,9 @@ public final class ExpressionTrees {
     return fromFormula(
         formula,
         fMgr,
-        location,
         name ->
-            name.contains(FUNCTION_DELIMITER)
-                && !name.startsWith(location.getFunctionName() + FUNCTION_DELIMITER));
+            !name.contains(FUNCTION_DELIMITER)
+                || name.startsWith(location.getFunctionName() + FUNCTION_DELIMITER));
   }
 
   /**
@@ -514,13 +513,13 @@ public final class ExpressionTrees {
    *
    * @param formula the formula to transform
    * @param fMgr the formula manger having the formula "in scope"
-   * @param pExcludeVariablesFilter a filter for variable names, which should not be considered.
+   * @param pIncludeVariablesFilter a filter for variable names, which should not be considered.
    * @return the expression tree representing the formula.
    */
   public static ExpressionTree<Object> fromFormula(
       BooleanFormula formula,
       FormulaManagerView fMgr,
-      Function<String, Boolean> pExcludeVariablesFilter)
+      Function<String, Boolean> pIncludeVariablesFilter)
       throws InterruptedException {
 
     BooleanFormula inv = formula;
@@ -530,7 +529,7 @@ public final class ExpressionTrees {
             inv,
             e -> {
               for (String name : fMgr.extractVariableNames(e)) {
-                if (pExcludeVariablesFilter.apply(name)) {
+                if (!pIncludeVariablesFilter.apply(name)) {
                   return false;
                 }
               }
