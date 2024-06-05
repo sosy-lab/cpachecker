@@ -492,6 +492,18 @@ public final class ExpressionTrees {
     return pSource.accept(converter);
   }
 
+  /**
+   * Builds an expression tree for the given {@link BooleanFormula}. If the formula is invalid, i.e.
+   * a literal/variable from another method is present (not in scope), the expression tree
+   * representing true is returned.
+   *
+   * <p>Hint: This method can be used to get a C-like assumptions from a boolean formula, obtained
+   * using the toString() method of the expression tree
+   *
+   * @param formula the formula to transform
+   * @param fMgr the formula manger having the formula "in scope"
+   * @return the expression tree representing the formula.
+   */
   public static ExpressionTree<Object> fromFormula(
       BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
       throws InterruptedException {
@@ -504,12 +516,12 @@ public final class ExpressionTrees {
   }
 
   /**
-   * Builds an expression tree for the given {@link BooleanFormula}. If the formula is invalid, i.e.
-   * a literal/variable from another method is present (not in scope), the expression tree
+   * Builds an expression tree for the given {@link BooleanFormula}. If the formula contains
+   * variables which do not match the filter pIncludeVariablesFilter the expression tree
    * representing true is returned.
    *
    * <p>Hint: This method can be used to get a C-like assumptions from a boolean formula, obtained
-   * using the toStrng() method of the expression tree
+   * using the toString() method of the expression tree
    *
    * @param formula the formula to transform
    * @param fMgr the formula manger having the formula "in scope"
