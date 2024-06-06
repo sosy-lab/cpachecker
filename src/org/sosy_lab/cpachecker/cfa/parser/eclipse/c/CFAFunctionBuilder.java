@@ -480,9 +480,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final FileLocation fileloc = astCreator.getLocation(declaration);
     final FunctionExitNode returnNode = new FunctionExitNode(fdef);
+    trackScopeInformation(returnNode);
 
     final FunctionEntryNode startNode =
         new CFunctionEntryNode(fileloc, fdef, returnNode, scope.getReturnVariable());
+    trackScopeInformation(startNode);
+
     returnNode.setEntryNode(startNode);
     cfa = startNode;
     blocks.add(new FunctionBlock(startNode));
@@ -770,6 +773,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     CFALabelNode labelNode = new CFALabelNode(cfa.getFunction(), labelName);
+    trackScopeInformation(labelNode);
     locStack.push(labelNode);
 
     if (localLabel == null) {
@@ -1036,20 +1040,23 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFACreationUtils.addEdgeToCFA(edge, logger, options.showDeadCode());
   }
 
+  private void trackScopeInformation(CFANode pNode) {
+    for (ASimpleDeclaration elem : scope.getVariablesInScope()) {
+      if (elem instanceof AVariableDeclaration variable) {
+        cfaNodeToAstLocalVariablesInScope.put(pNode, variable);
+      } else if (elem instanceof AParameterDeclaration parameter) {
+        cfaNodeToAstParametersInScope.put(pNode, parameter);
+      }
+    }
+  }
+
   /**
    * @category helper
    */
   private CFANode newCFANode() {
     assert cfa != null;
     CFANode nextNode = new CFANode(cfa.getFunction());
-
-    for (ASimpleDeclaration elem : scope.getVariablesInScope()) {
-      if (elem instanceof AVariableDeclaration variable) {
-        cfaNodeToAstLocalVariablesInScope.put(nextNode, variable);
-      } else if (elem instanceof AParameterDeclaration parameter) {
-        cfaNodeToAstParametersInScope.put(nextNode, parameter);
-      }
-    }
+    trackScopeInformation(nextNode);
     return nextNode;
   }
 
@@ -1657,6 +1664,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     addToCFA(blankEdge);
 
     CFANode nextNode = new CFANode(cfa.getFunction());
+    trackScopeInformation(nextNode);
     locStack.push(nextNode);
   }
 
@@ -1877,6 +1885,7 @@ class CFAFunctionBuilder extends ASTVisitor {
             postSwitchNode));
 
     locStack.push(new CFANode(cfa.getFunction()));
+    trackScopeInformation(locStack.peek());
 
     switchDefaultStack.push(null);
     switchDefaultFileLocationStack.push(null);
