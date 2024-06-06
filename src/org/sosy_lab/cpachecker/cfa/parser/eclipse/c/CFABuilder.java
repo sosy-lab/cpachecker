@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -344,8 +344,10 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
-    ImmutableListMultimap.Builder<CFANode, AVariableDeclaration> cfaNodeToAstLocalVariablesInScope = ImmutableListMultimap.builder();
-    ImmutableListMultimap.Builder<CFANode, AParameterDeclaration> cfaNodeToAstParametersInScope = ImmutableListMultimap.builder();
+    ImmutableMultimap.Builder<CFANode, AVariableDeclaration> cfaNodeToAstLocalVariablesInScope =
+        ImmutableSetMultimap.builder();
+    ImmutableMultimap.Builder<CFANode, AParameterDeclaration> cfaNodeToAstParametersInScope =
+        ImmutableSetMultimap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
 
