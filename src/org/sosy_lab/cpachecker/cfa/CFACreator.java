@@ -665,7 +665,7 @@ public class CFACreator {
     stats.processingTime.stop();
 
     if (pParseResult.astStructure().isPresent()) {
-      cfa.setASTStructure(pParseResult.astStructure().orElseThrow());
+      cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow());
     }
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();

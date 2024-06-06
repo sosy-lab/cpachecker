@@ -229,13 +229,13 @@ public final class CfaMetadata implements Serializable {
   }
 
   /**
-   * Returns the AST structure for the CFA, if it's stored in this metadata instance.
+   * Returns the relation between the AST and the CFA, if it's stored in this metadata instance.
    *
    * @return If this metadata instance contains the AST structure for the CFA, an optional
    *     containing the AST structure is returned. Otherwise, if this metadata instance does not
    *     contain the AST structure for the CFA, an empty optional is returned.
    */
-  public AstCfaRelation getASTStructure() {
+  public AstCfaRelation getAstCfaRelation() {
     return astCFARelation;
   }
 
@@ -257,7 +257,7 @@ public final class CfaMetadata implements Serializable {
    *     null} to create an instance without AST structure)
    * @return a copy of this metadata instance, but with the specified AST structure
    */
-  public CfaMetadata withASTStructure(@Nullable AstCfaRelation pAstCfaRelation) {
+  public CfaMetadata withAstCfaRelation(@Nullable AstCfaRelation pAstCfaRelation) {
     return new CfaMetadata(
         machineModel,
         cfaLanguage,
