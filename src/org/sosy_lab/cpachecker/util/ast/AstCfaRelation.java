@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
-import com.google.common.base.Verify;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -208,14 +207,6 @@ public final class AstCfaRelation {
   }
 
   public FluentIterable<AbstractSimpleDeclaration> getVariablesAndParametersInScope(CFANode pNode) {
-    Verify.verify(
-        cfaNodeToAstLocalVariablesInScope.containsKey(pNode),
-        "No local variables in scope for node %s",
-        pNode);
-    Verify.verify(
-        cfaNodeToAstParametersInScope.containsKey(pNode),
-        "No parameters in scope for node %s",
-        pNode);
     return FluentIterable.concat(
         cfaNodeToAstLocalVariablesInScope.get(pNode),
         cfaNodeToAstParametersInScope.get(pNode),

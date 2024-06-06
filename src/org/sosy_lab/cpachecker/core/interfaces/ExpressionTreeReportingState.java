@@ -58,7 +58,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @throws InterruptedException if the computation is interrupted
    * @throws ReportingMethodNotImplementedException if the computation is not implemented
    */
-  ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
+  ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException;
 

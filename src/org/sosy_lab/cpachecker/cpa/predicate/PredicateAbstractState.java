@@ -132,12 +132,16 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariable(
+    public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
         FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
         throws InterruptedException, ReportingMethodNotImplementedException {
-      throw new ReportingMethodNotImplementedException(
-          "The method 'getFormulaApproximationInputProgramInScopeVariable' is currently"
-              + " implemented");
+      return super.abstractionFormula.asExpressionTree(
+          name ->
+              !name.contains(FUNCTION_DELIMITER)
+                  || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER)
+                  || !pAstCfaRelation
+                      .getVariablesAndParametersInScope(pLocation)
+                      .anyMatch(var -> var.getName().equals(name)));
     }
 
     @Override

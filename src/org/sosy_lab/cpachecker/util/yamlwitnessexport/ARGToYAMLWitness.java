@@ -186,7 +186,8 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     return getOverapproximationOfStates(
         argStates,
         (ExpressionTreeReportingState x) ->
-            x.getFormulaApproximationAllVariablesInFunctionScope(entryNode, node));
+            x.getFormulaApproximationInputProgramInScopeVariables(
+                entryNode, node, cfa.getAstCfaRelation()));
   }
 
   protected ExpressionTree<Object> getOverapproximationOfStatesWithOnlyReturnVariables(
