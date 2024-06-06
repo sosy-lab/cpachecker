@@ -9,14 +9,18 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.DeclarationElement;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
@@ -28,7 +32,10 @@ class AstCfaRelationBuilder {
   public static AstCfaRelation getASTCFARelation(
       CSourceOriginMapping pSourceOriginMapping,
       ImmutableSet<CFAEdge> pEdges,
-      List<IASTTranslationUnit> pAsts) {
+      List<IASTTranslationUnit> pAsts,
+      ImmutableMultimap<CFANode, AVariableDeclaration> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMultimap<CFANode, AParameterDeclaration> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableSet<AVariableDeclaration> pGlobalVariables) {
     AstLocationClassifier classifier = new AstLocationClassifier(pSourceOriginMapping);
     for (IASTTranslationUnit ast : pAsts) {
       ast.accept(classifier);
@@ -37,7 +44,10 @@ class AstCfaRelationBuilder {
         getIfStructures(pEdges, classifier),
         getIterationStructures(pEdges, classifier),
         classifier.getStatementOffsetsToLocations(),
-        getStatementStructures(pEdges, classifier));
+        getStatementStructures(pEdges, classifier),
+        pCfaNodeToAstLocalVariablesInScope,
+        pCfaNodeToAstParametersVariablesInScope,
+        pGlobalVariables);
   }
 
   private static ImmutableSet<IfElement> getIfStructures(

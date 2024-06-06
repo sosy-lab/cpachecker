@@ -12,6 +12,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,6 +40,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -340,6 +343,10 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
+    ImmutableMultimap.Builder<CFANode, AVariableDeclaration> cfaNodeToAstLocalVariablesInScope =
+        ImmutableMultimap.builder();
+    ImmutableMultimap.Builder<CFANode, AParameterDeclaration> cfaNodeToAstParametersInScope =
+        ImmutableMultimap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
 
@@ -358,7 +365,9 @@ class CFABuilder extends ASTVisitor {
             actFunctions,
             actTypes,
             actTypeDefs,
-            actVars);
+            actVars,
+            cfaNodeToAstLocalVariablesInScope,
+            cfaNodeToAstParametersInScope);
       }
     }
 
@@ -380,6 +389,10 @@ class CFABuilder extends ASTVisitor {
       result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
     }
 
+    result =
+        result.withInScopeInformation(
+            cfaNodeToAstLocalVariablesInScope.build(), cfaNodeToAstParametersInScope.build());
+
     return result;
   }
 
@@ -390,7 +403,9 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CFunctionDeclaration> functions,
       ImmutableMap<String, CComplexTypeDeclaration> types,
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
-      ImmutableMap<String, CSimpleDeclaration> globalVars)
+      ImmutableMap<String, CSimpleDeclaration> globalVars,
+      ImmutableMultimap.Builder<CFANode, AVariableDeclaration> cfaNodeToAstLocalVariablesInScope,
+      ImmutableMultimap.Builder<CFANode, AParameterDeclaration> cfaNodeToAstParametersInScope)
       throws InterruptedException {
 
     FunctionScope localScope =
@@ -405,7 +420,9 @@ class CFABuilder extends ASTVisitor {
             machine,
             fileName,
             sideAssignmentStack,
-            checkBinding);
+            checkBinding,
+            cfaNodeToAstLocalVariablesInScope,
+            cfaNodeToAstParametersInScope);
 
     declaration.accept(functionBuilder);
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
@@ -17,6 +18,8 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -43,7 +46,9 @@ public record ParseResult(
     List<Path> fileNames,
     Optional<AstCfaRelation> astStructure,
     Optional<List<FileLocation>> commentLocations,
-    Optional<List<SyntacticBlock>> blocks) {
+    Optional<List<SyntacticBlock>> blocks,
+    Optional<ImmutableMultimap<CFANode, AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
+    Optional<ImmutableMultimap<CFANode, AParameterDeclaration>> cfaNodeToAstParametersInScope) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -55,6 +60,8 @@ public record ParseResult(
         pCfaNodes,
         pGlobalDeclarations,
         pFileNames,
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty());
@@ -74,7 +81,9 @@ public record ParseResult(
         pFileNames,
         Optional.empty(),
         Optional.of(pCommentLocations),
-        Optional.of(pBlocks));
+        Optional.of(pBlocks),
+        Optional.empty(),
+        Optional.empty());
   }
 
   public boolean isEmpty() {
@@ -96,6 +105,25 @@ public record ParseResult(
         fileNames,
         Optional.of(pAstCfaRelation),
         commentLocations,
-        blocks);
+        blocks,
+        cfaNodeToAstLocalVariablesInScope,
+        cfaNodeToAstParametersInScope);
+  }
+
+  public ParseResult withInScopeInformation(
+      ImmutableMultimap<CFANode, AVariableDeclaration> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMultimap<CFANode, AParameterDeclaration> pCfaNodeToAstParametersInScope) {
+    Verify.verify(cfaNodeToAstLocalVariablesInScope.isEmpty());
+    Verify.verify(cfaNodeToAstParametersInScope.isEmpty());
+    return new ParseResult(
+        functions,
+        cfaNodes,
+        globalDeclarations,
+        fileNames,
+        astStructure,
+        commentLocations,
+        blocks,
+        Optional.of(pCfaNodeToAstLocalVariablesInScope),
+        Optional.of(pCfaNodeToAstParametersInScope));
   }
 }
