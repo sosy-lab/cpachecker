@@ -525,7 +525,7 @@ public final class ExpressionTrees {
    *
    * @param formula the formula to transform
    * @param fMgr the formula manger having the formula "in scope"
-   * @param pIncludeVariablesFilter a filter for variable names, which should not be considered.
+   * @param pIncludeVariablesFilter a filter for variable names, which should be considered.
    * @return the expression tree representing the formula.
    */
   public static ExpressionTree<Object> fromFormula(
