@@ -56,7 +56,6 @@ public class TaskRecord {
   }
 
   private static String getSpecificationAsString(Specification pSpecification) throws IOException {
-    ImmutableList.Builder<String> unifiedSpecificationBuilder = new ImmutableList.Builder<>();
     String defaultReturnSpecification = "";
     if (pSpecification.getFiles().size() != 1) {
       // Currently there is no semantics for witnesses when multiple properties are checked
