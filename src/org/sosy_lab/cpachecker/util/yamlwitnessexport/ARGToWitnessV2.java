@@ -60,6 +60,8 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     }
 
     FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+    // TODO: The original name of the variables should be used here. This requires a visitor to
+    // rename them
     ExpressionTree<Object> invariant =
         getOverapproximationOfStatesIgnoringReturnVariables(argStates, node);
     LocationRecord locationRecord =
