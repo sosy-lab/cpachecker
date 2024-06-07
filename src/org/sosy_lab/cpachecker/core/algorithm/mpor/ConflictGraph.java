@@ -10,31 +10,28 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * A simple implementation of a directed graph with parallel edges.
- * Nodes are Integers of thread IDs. <br/>
- * Edges are conflict relations between thread IDs as Integer tuples
- * in the form (from, to) e.g. (1,0).
+ * A simple implementation of a directed graph with parallel edges. Nodes are Integers of thread
+ * IDs. <br>
+ * Edges are conflict relations between thread IDs as Integer tuples in the form (from, to) e.g.
+ * (1,0).
  */
 public class ConflictGraph {
 
-  /**
-   * This HashMap represents the nodes (keys) and edges
-   * (keys as from, values (HashSets) as to).
-   */
-  private HashMap<Integer, HashSet<Integer>> graph;
+  /** This HashMap represents the nodes (keys) and edges (keys as from, values (HashSets) as to). */
+  private Map<Integer, Set<Integer>> graph;
 
-  /**
-   * Creates an empty ConflictGraph.
-   */
+  /** Creates an empty ConflictGraph. */
   public ConflictGraph() {
     graph = new HashMap<>();
   }
 
   /**
    * Creates a node with the given thread ID
+   *
    * @param pThreadId node ID to be added
    * @throws IllegalArgumentException if a node with pThreadId already exists
    */
@@ -47,11 +44,12 @@ public class ConflictGraph {
 
   /**
    * Creates an edge as an int tuple in the form (from, to)
+   *
    * @param pFrom the thread ID of the outgoing node
    * @param pTo the thread ID of the reached node
    * @throws IllegalArgumentException if a node with pFrom or pTo do not exist
    */
-  public void addEdge (int pFrom, int pTo) {
+  public void addEdge(int pFrom, int pTo) {
     if (!hasNode(pFrom)) {
       throw new IllegalArgumentException("pFrom ID " + pFrom + " does not exist as a node");
     }
@@ -63,10 +61,11 @@ public class ConflictGraph {
 
   /**
    * Returns the set of directly reachable active threads of the node pThreadId.
+   *
    * @param pThreadId the ID of the thread
    * @return set of thread IDs that are directly reachable from pThreadId
    */
-  public HashSet<Integer> getSuccessors (int pThreadId) {
+  public Set<Integer> getSuccessors(int pThreadId) {
     return graph.get(pThreadId);
   }
 
@@ -80,7 +79,7 @@ public class ConflictGraph {
   /**
    * @return tuples with nodes and outgoing edges, e.g. {(0,{1,2}), (1,{0,3})}
    */
-  public HashMap<Integer, HashSet<Integer>> getEdges() {
+  public Map<Integer, Set<Integer>> getEdges() {
     return graph;
   }
 

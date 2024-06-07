@@ -6,6 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Algorithms and data structures for Modular Partial Order Reduction. 
-    Bachelor Thesis of Noah König, 2024. */
+/**
+ * Algorithms and data structures for Modular Partial Order Reduction. Bachelor Thesis of Noah
+ * König, 2024.
+ */
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
