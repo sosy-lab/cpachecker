@@ -18,11 +18,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class ModularPartialOrderReduction implements Algorithm {
+/**
+ * This is an implementation of a Partial Order Reduction (POR) algorithm,
+ * presented in the 2022 paper "Sound Sequentialization for Concurrent Program Verification".
+ * This algorithm aims at producing a reduced sequentialization of a parallel C program.
+ * The approach is meant to be a Modular Partial Order Reduction (MPOR):
+ * we reuse an existing verifier capable of verifying sequential C programs.
+ */
+public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
@@ -30,10 +43,33 @@ public class ModularPartialOrderReduction implements Algorithm {
     throw new UnsupportedOperationException("Unimplemented method 'run'");
   }
 
+  private final ConfigurableProgramAnalysis cpa;
+  private final LogManager logger;
+  private final Configuration config;
+  private final ShutdownNotifier shutdownNotifier;
+  private final Specification specification;
+  private final CFA cfa;
+
+  public MPORAlgorithm(
+      ConfigurableProgramAnalysis pCpa,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
+      CFA pCfa) {
+
+    cpa = pCpa;
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    specification = pSpecification;
+    cfa = pCfa;
+  }
+
   /**
    * ONLY use this function if pSCCs was computed using Trajans SCC Algorithm because it returns the
    * SCCs in a reverse topological sort (from maximal to minimal), allowing us to simply return the
-   * first SCCs in the set.
+   * first SCC in the set.
    *
    * @param pSCCs as a set of sets of Integers
    * @return topologically maximal SCC, i.e. the SCC with the least outgoing edges

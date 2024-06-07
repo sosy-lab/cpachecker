@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -346,6 +347,12 @@ public class CoreComponentsFactory {
           "stop the analysis with the result unknown if the program does not satisfies certain"
               + " restrictions.")
   private boolean unknownIfUnrestrictedProgram = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.MPOR",
+      description = "use MPOR algorithm for sequentializing a parallel C program")
+  private boolean useMPOR = false;
 
   @Option(
       secure = true,
@@ -696,6 +703,10 @@ public class CoreComponentsFactory {
       if (cpa instanceof ARGCPA && forceCexStore) {
         algorithm =
             new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
+      }
+
+      if (useMPOR) {
+        algorithm = new MPORAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
 
       if (useMPV) {
