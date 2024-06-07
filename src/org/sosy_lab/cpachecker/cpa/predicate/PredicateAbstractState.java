@@ -137,11 +137,12 @@ public abstract sealed class PredicateAbstractState
         throws InterruptedException, ReportingMethodNotImplementedException {
       return super.abstractionFormula.asExpressionTree(
           name ->
-              !name.contains(FUNCTION_DELIMITER)
-                  || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER)
-                  || !pAstCfaRelation
+              (!name.contains(FUNCTION_DELIMITER)
+                      || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
+                  && pAstCfaRelation
                       .getVariablesAndParametersInScope(pLocation)
-                      .anyMatch(var -> var.getName().equals(name)));
+                      .anyMatch(var -> var.getName().equals(name))
+                  && !name.contains("__CPAchecker_"));
     }
 
     @Override

@@ -914,7 +914,8 @@ public final class ValueAnalysisState
                   || !id.equals(pFunctionScope.getReturnVariable().get().getName()))
               && pAstCfaRelation
                   .getVariablesAndParametersInScope(pLocation)
-                  .anyMatch(v -> v.getName().equals(id))) {
+                  .anyMatch(v -> v.getName().equals(id))
+              && !id.contains("__CPAchecker_")) {
             FileLocation loc =
                 pLocation.getNumEnteringEdges() > 0
                     ? pLocation.getEnteringEdge(0).getFileLocation()
