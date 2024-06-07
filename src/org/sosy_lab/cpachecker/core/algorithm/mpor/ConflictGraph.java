@@ -1,0 +1,92 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * A simple implementation of a directed graph with parallel edges.
+ * Nodes are Integers of thread IDs. <br/>
+ * Edges are conflict relations between thread IDs as Integer tuples
+ * in the form (from, to) e.g. (1,0).
+ */
+public class ConflictGraph {
+
+  /**
+   * This HashMap represents the nodes (keys) and edges
+   * (keys as from, values (HashSets) as to).
+   */
+  private HashMap<Integer, HashSet<Integer>> graph;
+
+  /**
+   * Creates an empty ConflictGraph.
+   */
+  public ConflictGraph() {
+    graph = new HashMap<>();
+  }
+
+  /**
+   * Creates a node with the given thread ID
+   * @param pThreadId node ID to be added
+   */
+  public void addNode(int pThreadId) {
+    if (hasNode(pThreadId)) {
+      throw new IllegalArgumentException("pThreadId " + pThreadId + " is a node already");
+    }
+    graph.put(pThreadId, new HashSet<>());
+  }
+
+  /**
+   * Creates an edge as an int tuple in the form (from, to)
+   * @param pFrom the thread ID of the outgoing node
+   * @param pTo the thread ID of the reached node
+   */
+  public void addEdge (int pFrom, int pTo) {
+    if (!hasNode(pFrom)) {
+      throw new IllegalArgumentException("pFrom ID " + pFrom + " does not exist as a node");
+    }
+    if (!hasNode(pTo)) {
+      throw new IllegalArgumentException("pTo ID " + pTo + " does not exist as a node");
+    }
+    graph.get(pFrom).add(pTo);
+  }
+
+  /**
+   * Returns the set of directly reachable active threads of the node pThreadId.
+   * @param pThreadId the ID of the thread
+   * @return set of thread IDs that are directly reachable from pThreadId
+   */
+  public HashSet<Integer> getSuccessors (int pThreadId) {
+    return graph.get(pThreadId);
+  }
+
+  /**
+   * @return set of nodes with thread IDs, e.g. {0, 1, 3}
+   */
+  public Set<Integer> getNodes() {
+    return graph.keySet();
+  }
+
+  /**
+   * @return tuples with nodes and outgoing edges, e.g. {(0,{1,2}), (1,{0,3})}
+   */
+  public HashMap<Integer, HashSet<Integer>> getEdges() {
+    return graph;
+  }
+
+  /**
+   * @param pThreadId the thread ID / ID of the node
+   * @return true if pThreadId exists as a key in the HashMap
+   */
+  private boolean hasNode(int pThreadId) {
+    return graph.containsKey(pThreadId);
+  }
+}
