@@ -36,6 +36,7 @@ public class ConflictGraph {
   /**
    * Creates a node with the given thread ID
    * @param pThreadId node ID to be added
+   * @throws IllegalArgumentException if a node with pThreadId already exists
    */
   public void addNode(int pThreadId) {
     if (hasNode(pThreadId)) {
@@ -48,6 +49,7 @@ public class ConflictGraph {
    * Creates an edge as an int tuple in the form (from, to)
    * @param pFrom the thread ID of the outgoing node
    * @param pTo the thread ID of the reached node
+   * @throws IllegalArgumentException if a node with pFrom or pTo do not exist
    */
   public void addEdge (int pFrom, int pTo) {
     if (!hasNode(pFrom)) {

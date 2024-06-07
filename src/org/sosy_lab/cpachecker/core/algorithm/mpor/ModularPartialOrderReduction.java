@@ -34,6 +34,7 @@ public class ModularPartialOrderReduction implements Algorithm {
     public static ImmutableSet<Integer> computeTopologicallyMaximalSCC (ImmutableSet<ImmutableSet<Integer>> pSCCs) {
         Preconditions.checkNotNull(pSCCs);
         Preconditions.checkNotNull(pSCCs.iterator().next());
+
         return pSCCs.iterator().next();
     }
 
