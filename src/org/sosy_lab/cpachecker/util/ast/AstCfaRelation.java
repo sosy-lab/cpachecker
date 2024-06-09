@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.ast;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.errorprone.annotations.concurrent.LazyInit;
@@ -57,8 +56,10 @@ public final class AstCfaRelation {
 
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
-  private final ImmutableMultimap<CFANode, AVariableDeclaration> cfaNodeToAstLocalVariablesInScope;
-  private final ImmutableMultimap<CFANode, AParameterDeclaration> cfaNodeToAstParametersInScope;
+  private final ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>>
+      cfaNodeToAstLocalVariablesInScope;
+  private final ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>>
+      cfaNodeToAstParametersInScope;
   private final ImmutableSet<AVariableDeclaration> globalVariables;
 
   public AstCfaRelation(
@@ -66,8 +67,9 @@ public final class AstCfaRelation {
       ImmutableSet<IterationElement> pIterationStructures,
       ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations,
       ImmutableSet<StatementElement> pStatementElements,
-      ImmutableMultimap<CFANode, AVariableDeclaration> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMultimap<CFANode, AParameterDeclaration> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>>
+          pCfaNodeToAstParametersVariablesInScope,
       ImmutableSet<AVariableDeclaration> pGlobalVariables) {
     ifElements = pIfElements;
     iterationStructures = pIterationStructures;
@@ -208,8 +210,8 @@ public final class AstCfaRelation {
 
   public FluentIterable<AbstractSimpleDeclaration> getVariablesAndParametersInScope(CFANode pNode) {
     return FluentIterable.concat(
-        cfaNodeToAstLocalVariablesInScope.get(pNode),
-        cfaNodeToAstParametersInScope.get(pNode),
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
         globalVariables);
   }
 }

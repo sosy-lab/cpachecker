@@ -15,7 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.math.BigInteger;
@@ -75,7 +75,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.FunctionBlock;
@@ -183,8 +182,9 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final ShutdownNotifier shutdownNotifier;
   private final CheckBindingVisitor checkBinding;
   private final Sideassignments sideAssignmentStack;
-  ImmutableMultimap.Builder<CFANode, AVariableDeclaration> cfaNodeToAstLocalVariablesInScope;
-  ImmutableMultimap.Builder<CFANode, AParameterDeclaration> cfaNodeToAstParametersInScope;
+  ImmutableMap.Builder<CFANode, ImmutableSet<AVariableDeclaration>>
+      cfaNodeToAstLocalVariablesInScope;
+  ImmutableMap.Builder<CFANode, ImmutableSet<AParameterDeclaration>> cfaNodeToAstParametersInScope;
 
   private boolean encounteredAsm = false;
 
@@ -198,8 +198,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       String staticVariablePrefix,
       Sideassignments pSideAssignmentStack,
       CheckBindingVisitor pCheckBinding,
-      ImmutableMultimap.Builder<CFANode, AVariableDeclaration> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMultimap.Builder<CFANode, AParameterDeclaration> pCfaNodeToAstParametersInScope) {
+      ImmutableMap.Builder<CFANode, ImmutableSet<AVariableDeclaration>>
+          pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMap.Builder<CFANode, ImmutableSet<AParameterDeclaration>>
+          pCfaNodeToAstParametersInScope) {
     options = pOptions;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -1041,13 +1043,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   private void trackScopeInformation(CFANode pNode) {
-    for (ASimpleDeclaration elem : scope.getVariablesInScope()) {
-      if (elem instanceof AVariableDeclaration variable) {
-        cfaNodeToAstLocalVariablesInScope.put(pNode, variable);
-      } else if (elem instanceof AParameterDeclaration parameter) {
-        cfaNodeToAstParametersInScope.put(pNode, parameter);
-      }
-    }
+    cfaNodeToAstLocalVariablesInScope.put(pNode, scope.getVariablesInScope());
+    cfaNodeToAstParametersInScope.put(pNode, scope.getParameters());
   }
 
   /**

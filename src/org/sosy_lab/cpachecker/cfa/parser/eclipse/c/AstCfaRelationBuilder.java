@@ -33,8 +33,9 @@ class AstCfaRelationBuilder {
       CSourceOriginMapping pSourceOriginMapping,
       ImmutableSet<CFAEdge> pEdges,
       List<IASTTranslationUnit> pAsts,
-      ImmutableMultimap<CFANode, AVariableDeclaration> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMultimap<CFANode, AParameterDeclaration> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>>
+          pCfaNodeToAstParametersVariablesInScope,
       ImmutableSet<AVariableDeclaration> pGlobalVariables) {
     AstLocationClassifier classifier = new AstLocationClassifier(pSourceOriginMapping);
     for (IASTTranslationUnit ast : pAsts) {

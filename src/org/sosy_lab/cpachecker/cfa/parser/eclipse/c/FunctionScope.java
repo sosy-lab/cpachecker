@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -27,6 +28,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -61,8 +64,10 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
 
   // Cache for all local variables in the current scope.
-  private ImmutableSet<CSimpleDeclaration> localVarsDeclarations = ImmutableSet.of();
+  private ImmutableSet<AVariableDeclaration> localVarsDeclarations = ImmutableSet.of();
+  private ImmutableSet<AParameterDeclaration> parameterDeclarations = ImmutableSet.of();
   private boolean modifiedLocalVars = true;
+  private boolean modifiedParameters = true;
 
   private CFunctionDeclaration currentFunction = null;
   private Optional<CVariableDeclaration> returnVariable = null;
@@ -186,13 +191,27 @@ class FunctionScope extends AbstractScope {
   }
 
   /** returns all variables in the current scopes and caches them for further reuse. */
-  public ImmutableSet<CSimpleDeclaration> getVariablesInScope() {
+  public ImmutableSet<AVariableDeclaration> getVariablesInScope() {
     if (modifiedLocalVars) {
       localVarsDeclarations =
-          ImmutableSet.copyOf(Iterables.concat(getVariablesOfMostLocalScopes()));
+          FluentIterable.concat(getVariablesOfMostLocalScopes())
+              .filter(AVariableDeclaration.class)
+              .toSet();
       modifiedLocalVars = false;
     }
     return localVarsDeclarations;
+  }
+
+  /** returns all parameters in the current scopes and caches them for further reuse. */
+  public ImmutableSet<AParameterDeclaration> getParameters() {
+    if (modifiedParameters) {
+      parameterDeclarations =
+          ImmutableSet.copyOf(
+              FluentIterable.concat(getVariablesOfMostLocalScopes())
+                  .filter(CParameterDeclaration.class));
+      modifiedParameters = false;
+    }
+    return parameterDeclarations;
   }
 
   @Override
@@ -300,6 +319,7 @@ class FunctionScope extends AbstractScope {
     vars.put(name, declaration);
     varsWithNewNames.put(declaration.getName(), declaration);
     modifiedLocalVars = true;
+    modifiedParameters = true;
   }
 
   @Override

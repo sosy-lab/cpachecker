@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
@@ -47,8 +47,8 @@ public record ParseResult(
     Optional<AstCfaRelation> astStructure,
     Optional<List<FileLocation>> commentLocations,
     Optional<List<SyntacticBlock>> blocks,
-    Optional<ImmutableMultimap<CFANode, AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
-    Optional<ImmutableMultimap<CFANode, AParameterDeclaration>> cfaNodeToAstParametersInScope) {
+    Optional<ImmutableMap<CFANode,  ImmutableSet<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
+    Optional<ImmutableMap<CFANode,  ImmutableSet<AParameterDeclaration>>> cfaNodeToAstParametersInScope) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -111,8 +111,8 @@ public record ParseResult(
   }
 
   public ParseResult withInScopeInformation(
-      ImmutableMultimap<CFANode, AVariableDeclaration> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMultimap<CFANode, AParameterDeclaration> pCfaNodeToAstParametersInScope) {
+      ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
     Verify.verify(cfaNodeToAstLocalVariablesInScope.isEmpty());
     Verify.verify(cfaNodeToAstParametersInScope.isEmpty());
     return new ParseResult(

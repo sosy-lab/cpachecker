@@ -12,8 +12,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -344,10 +343,10 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
-    ImmutableMultimap.Builder<CFANode, AVariableDeclaration> cfaNodeToAstLocalVariablesInScope =
-        ImmutableSetMultimap.builder();
-    ImmutableMultimap.Builder<CFANode, AParameterDeclaration> cfaNodeToAstParametersInScope =
-        ImmutableSetMultimap.builder();
+    ImmutableMap.Builder<CFANode, ImmutableSet<AVariableDeclaration>>
+        cfaNodeToAstLocalVariablesInScope = ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, ImmutableSet<AParameterDeclaration>>
+        cfaNodeToAstParametersInScope = ImmutableMap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
 
@@ -392,7 +391,10 @@ class CFABuilder extends ASTVisitor {
 
     result =
         result.withInScopeInformation(
-            cfaNodeToAstLocalVariablesInScope.build(), cfaNodeToAstParametersInScope.build());
+            // We want to explicitly throw an error if a
+            // key was added more than once, since this would be a bug
+            cfaNodeToAstLocalVariablesInScope.buildOrThrow(),
+            cfaNodeToAstParametersInScope.buildOrThrow());
 
     return result;
   }
@@ -405,8 +407,10 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CComplexTypeDeclaration> types,
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
       ImmutableMap<String, CSimpleDeclaration> globalVars,
-      ImmutableMultimap.Builder<CFANode, AVariableDeclaration> cfaNodeToAstLocalVariablesInScope,
-      ImmutableMultimap.Builder<CFANode, AParameterDeclaration> cfaNodeToAstParametersInScope)
+      ImmutableMap.Builder<CFANode, ImmutableSet<AVariableDeclaration>>
+          cfaNodeToAstLocalVariablesInScope,
+      ImmutableMap.Builder<CFANode, ImmutableSet<AParameterDeclaration>>
+          cfaNodeToAstParametersInScope)
       throws InterruptedException {
 
     FunctionScope localScope =
