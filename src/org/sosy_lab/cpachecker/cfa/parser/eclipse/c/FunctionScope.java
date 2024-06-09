@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -154,7 +155,7 @@ class FunctionScope extends AbstractScope {
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
     // Optimizations to keep track of all variables which are in scope
     ImmutableSet.Builder<AVariableDeclaration> newScopeBuilder = new ImmutableSet.Builder<>();
-    if (localVarsStackWitNewNames.peekLast() != null) {
+    if (!localVarsStackWitNewNames.isEmpty()) {
       newScopeBuilder.addAll(Objects.requireNonNull(localVarsStackWitNewNames.peekLast()).build());
     }
     localVarsStackWitNewNames.addLast(newScopeBuilder);
@@ -203,7 +204,7 @@ class FunctionScope extends AbstractScope {
 
   /** returns all variables in the current scopes and caches them for further reuse. */
   public ImmutableSet<AVariableDeclaration> getVariablesInScope() {
-    if (modifiedLocalVars && localVarsStackWitNewNames.peekLast() != null) {
+    if (modifiedLocalVars && !localVarsStackWitNewNames.isEmpty()) {
       localVarsDeclarations = Objects.requireNonNull(localVarsStackWitNewNames.peekLast()).build();
       modifiedLocalVars = false;
     }
@@ -329,7 +330,8 @@ class FunctionScope extends AbstractScope {
 
     // Optimizations to keep track of all variables which are in scope
     if (declaration instanceof AVariableDeclaration pAVariableDeclaration) {
-      localVarsStackWitNewNames.getLast().add(pAVariableDeclaration);
+      Verify.verify(!localVarsStackWitNewNames.isEmpty());
+      localVarsStackWitNewNames.peekLast().add(pAVariableDeclaration);
       modifiedLocalVars = true;
     } else if (declaration instanceof AParameterDeclaration) {
       modifiedParameters = true;
