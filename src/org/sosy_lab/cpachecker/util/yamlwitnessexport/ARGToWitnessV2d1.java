@@ -127,7 +127,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
           new FunctionContractEntry(
               String.join(" && ", ensuresClause.build()),
               requiresClause,
-              YAMLWitnessExpressionType.C,
+              YAMLWitnessExpressionType.ACSL,
               LocationRecord.createLocationRecordAtStart(
                   location, functionEntryNode.getFunctionName())));
     }
