@@ -86,11 +86,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         break;
       }
     }
-    if (!isParallel) {
-      throw new IllegalArgumentException(
-          "invalid input program: expected at least one pthread_create call. MPOR analyzes parallel"
-              + " programs");
-    }
+    Preconditions.checkArgument(
+        isParallel, "MPOR expects parallel program with at least one pthread_create call");
   }
 
   // TODO use GlobalAccessChecker to check whether a CfaEdge reads or writes global / shared
