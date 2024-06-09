@@ -22,18 +22,20 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
- * This is an implementation of a Partial Order Reduction (POR) algorithm,
- * presented in the 2022 paper "Sound Sequentialization for Concurrent Program Verification".
- * This algorithm aims at producing a reduced sequentialization of a parallel C program.
- * The approach is meant to be a Modular Partial Order Reduction (MPOR):
- * we reuse an existing verifier capable of verifying sequential C programs.
+ * This is an implementation of a Partial Order Reduction (POR) algorithm, presented in the 2022
+ * paper "Sound Sequentialization for Concurrent Program Verification". This algorithm aims at
+ * producing a reduced sequentialization of a parallel C program. The reduced sequentialization can
+ * be given to an existing verifier capable of verifying sequential C programs. The POR and the
+ * verifier serve as modules, hence MPOR (Modular Partial Order Reduction).
  */
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
@@ -50,6 +52,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final Specification specification;
   private final CFA cfa;
 
+  // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
+
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
@@ -64,7 +68,44 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     specification = pSpecification;
     cfa = pCfa;
+
+    checkForParallelProgram(cfa);
   }
+
+  /**
+   * Checks whether any edge in the CFA contains a pthread_create call. If that is not the case, the
+   * user is informed that MPOR is meant to analyze parallel programs.
+   *
+   * @param pCfa the CFA whose edges we analyze
+   */
+  private void checkForParallelProgram(CFA pCfa) {
+    boolean isParallel = false;
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
+      if (cfaEdge.getRawStatement().contains(PthreadFunction.CREATE.name)) {
+        isParallel = true;
+      }
+    }
+    if (!isParallel) {
+      // TODO inform user that program is not parallel
+      //  should the program continue if that is not the case?
+    }
+  }
+
+  // TODO use GlobalAccessChecker to check whether a CfaEdge reads or writes global / shared
+  //  variables?
+  // TODO find out what isImporantForThreading (sic) in ThreadingTransferRelation does
+
+  // TODO use ThreadingState to get Thread IDs?
+  //  or use the CFAEdge to find pthread_create statements and extract the ID from that.
+  //  keep in mind that we need to keep track of all current states and edges for all threads.
+
+  // TODO use CFAEdge getRawStatement or getCode to find out about thread creations,
+  //  joins, barriers, etc.? use in combination with CFAEdgeType?
+
+  // TODO use CFAToCTranslator translateCfa to generate a C program based on a CFA
+  //  this will be used for the reduced and sequentialized CFA
+
+  // TODO see CFAUtils.java for helpful functions
 
   /**
    * ONLY use this function if pSCCs was computed using Trajans SCC Algorithm because it returns the
@@ -87,7 +128,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * Algorithm (1972) and the algorithms in {@link org.sosy_lab.cpachecker.util.GraphUtils}.
    *
    * <p>The algorithm returns the SCCs in reverse topological order (from maximal to minimal) and
-   * has a complexity of O(N + E) where N is the number of nodes and E the number of edges.
+   * has a linear complexity of O(N + E) where N is the number of nodes and E the number of edges.
    *
    * @return a set of sets of thread ids that form an SCC
    */
