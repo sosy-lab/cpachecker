@@ -80,9 +80,9 @@ class FunctionScope extends AbstractScope {
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
-      String currentFile,
+      String pCurrentFile,
       Scope pArtificialScope) {
-    super(currentFile);
+    super(pCurrentFile);
 
     globalFunctions = pFunctions;
     typedefs = pTypedefs;
