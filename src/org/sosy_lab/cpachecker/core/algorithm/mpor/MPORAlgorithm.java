@@ -74,7 +74,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /**
    * Checks whether any edge in the CFA contains a pthread_create call. If that is not the case, the
-   * user is informed that MPOR is meant to analyze parallel programs.
+   * algorithm ends and the user is informed that MPOR is meant to analyze parallel programs.
    *
    * @param pCfa the CFA whose edges we analyze
    */
@@ -83,11 +83,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
       if (cfaEdge.getRawStatement().contains(PthreadFunction.CREATE.name)) {
         isParallel = true;
+        break;
       }
     }
     if (!isParallel) {
-      // TODO inform user that program is not parallel
-      //  should the program continue if that is not the case?
+      throw new IllegalArgumentException(
+          "invalid input program: expected at least one pthread_create call. MPOR analyzes parallel"
+              + " programs");
     }
   }
 
