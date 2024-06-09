@@ -47,8 +47,10 @@ public record ParseResult(
     Optional<AstCfaRelation> astStructure,
     Optional<List<FileLocation>> commentLocations,
     Optional<List<SyntacticBlock>> blocks,
-    Optional<ImmutableMap<CFANode,  ImmutableSet<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
-    Optional<ImmutableMap<CFANode,  ImmutableSet<AParameterDeclaration>>> cfaNodeToAstParametersInScope) {
+    Optional<ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>>>
+        cfaNodeToAstLocalVariablesInScope,
+    Optional<ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>>>
+        cfaNodeToAstParametersInScope) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,

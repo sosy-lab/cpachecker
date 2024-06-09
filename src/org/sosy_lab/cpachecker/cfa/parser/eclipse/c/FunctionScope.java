@@ -25,6 +25,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -66,6 +67,8 @@ class FunctionScope extends AbstractScope {
   // Cache for all local variables in the current scope.
   private ImmutableSet<AVariableDeclaration> localVarsDeclarations = ImmutableSet.of();
   private ImmutableSet<AParameterDeclaration> parameterDeclarations = ImmutableSet.of();
+  private final Deque<ImmutableSet.Builder<AVariableDeclaration>> localVarsStackWitNewNames =
+      new ArrayDeque<>();
   private boolean modifiedLocalVars = true;
   private boolean modifiedParameters = true;
 
@@ -149,6 +152,12 @@ class FunctionScope extends AbstractScope {
     varsStackWitNewNames.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
+    // Optimizations to keep track of all variables which are in scope
+    ImmutableSet.Builder<AVariableDeclaration> newScopeBuilder = new ImmutableSet.Builder<>();
+    if (localVarsStackWitNewNames.peekLast() != null) {
+      newScopeBuilder.addAll(Objects.requireNonNull(localVarsStackWitNewNames.peekLast()).build());
+    }
+    localVarsStackWitNewNames.addLast(newScopeBuilder);
   }
 
   public void leaveBlock() {
@@ -158,6 +167,8 @@ class FunctionScope extends AbstractScope {
     typesStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
+    // Optimizations to keep track of all variables which are in scope
+    localVarsStackWitNewNames.removeLast();
     modifiedLocalVars = true;
   }
 
@@ -192,11 +203,8 @@ class FunctionScope extends AbstractScope {
 
   /** returns all variables in the current scopes and caches them for further reuse. */
   public ImmutableSet<AVariableDeclaration> getVariablesInScope() {
-    if (modifiedLocalVars) {
-      localVarsDeclarations =
-          FluentIterable.concat(getVariablesOfMostLocalScopes())
-              .filter(AVariableDeclaration.class)
-              .toSet();
+    if (modifiedLocalVars && localVarsStackWitNewNames.peekLast() != null) {
+      localVarsDeclarations = Objects.requireNonNull(localVarsStackWitNewNames.peekLast()).build();
       modifiedLocalVars = false;
     }
     return localVarsDeclarations;
@@ -318,8 +326,14 @@ class FunctionScope extends AbstractScope {
 
     vars.put(name, declaration);
     varsWithNewNames.put(declaration.getName(), declaration);
-    modifiedLocalVars = true;
-    modifiedParameters = true;
+
+    // Optimizations to keep track of all variables which are in scope
+    if (declaration instanceof AVariableDeclaration pAVariableDeclaration) {
+      localVarsStackWitNewNames.getLast().add(pAVariableDeclaration);
+      modifiedLocalVars = true;
+    } else if (declaration instanceof AParameterDeclaration) {
+      modifiedParameters = true;
+    }
   }
 
   @Override

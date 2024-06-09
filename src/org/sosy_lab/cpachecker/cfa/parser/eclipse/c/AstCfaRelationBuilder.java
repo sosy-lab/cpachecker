@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Map;
