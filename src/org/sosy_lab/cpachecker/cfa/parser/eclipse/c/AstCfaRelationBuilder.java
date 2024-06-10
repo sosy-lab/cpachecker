@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -32,10 +33,9 @@ class AstCfaRelationBuilder {
       CSourceOriginMapping pSourceOriginMapping,
       ImmutableSet<CFAEdge> pEdges,
       List<IASTTranslationUnit> pAsts,
-      ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>>
-          pCfaNodeToAstParametersVariablesInScope,
-      ImmutableSet<AVariableDeclaration> pGlobalVariables) {
+      Map<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      Map<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      Set<AVariableDeclaration> pGlobalVariables) {
     AstLocationClassifier classifier = new AstLocationClassifier(pSourceOriginMapping);
     for (IASTTranslationUnit ast : pAsts) {
       ast.accept(classifier);

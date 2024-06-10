@@ -10,13 +10,14 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -47,10 +48,8 @@ public record ParseResult(
     Optional<AstCfaRelation> astStructure,
     Optional<List<FileLocation>> commentLocations,
     Optional<List<SyntacticBlock>> blocks,
-    Optional<ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>>>
-        cfaNodeToAstLocalVariablesInScope,
-    Optional<ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>>>
-        cfaNodeToAstParametersInScope) {
+    Optional<Map<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
+    Optional<Map<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -113,8 +112,8 @@ public record ParseResult(
   }
 
   public ParseResult withInScopeInformation(
-      ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
+      Map<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      Map<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
     Verify.verify(cfaNodeToAstLocalVariablesInScope.isEmpty());
     Verify.verify(cfaNodeToAstParametersInScope.isEmpty());
     return new ParseResult(

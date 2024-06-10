@@ -182,9 +182,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final ShutdownNotifier shutdownNotifier;
   private final CheckBindingVisitor checkBinding;
   private final Sideassignments sideAssignmentStack;
-  ImmutableMap.Builder<CFANode, ImmutableSet<AVariableDeclaration>>
-      cfaNodeToAstLocalVariablesInScope;
-  ImmutableMap.Builder<CFANode, ImmutableSet<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
+  ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
 
   private boolean encounteredAsm = false;
 
@@ -198,10 +197,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       String staticVariablePrefix,
       Sideassignments pSideAssignmentStack,
       CheckBindingVisitor pCheckBinding,
-      ImmutableMap.Builder<CFANode, ImmutableSet<AVariableDeclaration>>
-          pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMap.Builder<CFANode, ImmutableSet<AParameterDeclaration>>
-          pCfaNodeToAstParametersInScope) {
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
     options = pOptions;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;

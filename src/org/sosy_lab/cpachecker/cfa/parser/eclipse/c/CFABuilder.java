@@ -12,7 +12,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -343,10 +342,10 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
-    ImmutableMap.Builder<CFANode, ImmutableSet<AVariableDeclaration>>
-        cfaNodeToAstLocalVariablesInScope = ImmutableMap.builder();
-    ImmutableMap.Builder<CFANode, ImmutableSet<AParameterDeclaration>>
-        cfaNodeToAstParametersInScope = ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope =
+        ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
+        ImmutableMap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
 
@@ -407,10 +406,8 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CComplexTypeDeclaration> types,
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
       ImmutableMap<String, CSimpleDeclaration> globalVars,
-      ImmutableMap.Builder<CFANode, ImmutableSet<AVariableDeclaration>>
-          cfaNodeToAstLocalVariablesInScope,
-      ImmutableMap.Builder<CFANode, ImmutableSet<AParameterDeclaration>>
-          cfaNodeToAstParametersInScope)
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
       throws InterruptedException {
 
     FunctionScope localScope =

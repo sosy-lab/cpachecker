@@ -14,8 +14,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
@@ -56,21 +58,18 @@ public final class AstCfaRelation {
 
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
-  private final ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>>
-      cfaNodeToAstLocalVariablesInScope;
-  private final ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>>
-      cfaNodeToAstParametersInScope;
-  private final ImmutableSet<AVariableDeclaration> globalVariables;
+  private final Map<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
+  private final Map<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  private final Set<AVariableDeclaration> globalVariables;
 
   public AstCfaRelation(
       ImmutableSet<IfElement> pIfElements,
       ImmutableSet<IterationElement> pIterationStructures,
       ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations,
       ImmutableSet<StatementElement> pStatementElements,
-      ImmutableMap<CFANode, ImmutableSet<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMap<CFANode, ImmutableSet<AParameterDeclaration>>
-          pCfaNodeToAstParametersVariablesInScope,
-      ImmutableSet<AVariableDeclaration> pGlobalVariables) {
+      Map<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      Map<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      Set<AVariableDeclaration> pGlobalVariables) {
     ifElements = pIfElements;
     iterationStructures = pIterationStructures;
     statementOffsetsToLocations = pStatementOffsetsToLocations;
