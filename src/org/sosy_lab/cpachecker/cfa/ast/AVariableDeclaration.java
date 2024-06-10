@@ -13,7 +13,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class AVariableDeclaration extends AbstractDeclaration {
+public abstract class AVariableDeclaration extends AbstractDeclaration
+    implements Comparable<AVariableDeclaration> {
 
   private static final long serialVersionUID = -8792173769663524307L;
   private final String qualifiedName;
@@ -86,5 +87,10 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
     return obj instanceof AVariableDeclaration other
         && super.equals(obj)
         && qualifiedName.equals(other.qualifiedName);
+  }
+
+  @Override
+  public int compareTo(AVariableDeclaration pOther) {
+    return getQualifiedName().compareTo(pOther.getQualifiedName());
   }
 }

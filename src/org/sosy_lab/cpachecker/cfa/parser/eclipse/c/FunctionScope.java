@@ -14,7 +14,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -26,8 +25,8 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
@@ -66,11 +66,9 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
 
   // Cache for all local variables in the current scope.
-  private ImmutableSet<AVariableDeclaration> localVarsDeclarations = ImmutableSet.of();
   private ImmutableSet<AParameterDeclaration> parameterDeclarations = ImmutableSet.of();
-  private final Deque<ImmutableSet.Builder<AVariableDeclaration>> localVarsStackWitNewNames =
+  private final Deque<PersistentSet<AVariableDeclaration>> localVarsStackWitNewNames =
       new ArrayDeque<>();
-  private boolean modifiedLocalVars = true;
   private boolean modifiedParameters = true;
 
   private CFunctionDeclaration currentFunction = null;
@@ -95,6 +93,7 @@ class FunctionScope extends AbstractScope {
     varsListWithNewNames.push(pGlobalVars);
 
     artificialScope = pArtificialScope;
+    localVarsStackWitNewNames.add(PersistentSet.of());
 
     enterBlock();
   }
@@ -154,11 +153,7 @@ class FunctionScope extends AbstractScope {
     varsList.addLast(varsStack.getLast());
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
     // Optimizations to keep track of all variables which are in scope
-    ImmutableSet.Builder<AVariableDeclaration> newScopeBuilder = new ImmutableSet.Builder<>();
-    if (!localVarsStackWitNewNames.isEmpty()) {
-      newScopeBuilder.addAll(Objects.requireNonNull(localVarsStackWitNewNames.peekLast()).build());
-    }
-    localVarsStackWitNewNames.addLast(newScopeBuilder);
+    localVarsStackWitNewNames.addLast(localVarsStackWitNewNames.peekLast());
   }
 
   public void leaveBlock() {
@@ -170,7 +165,6 @@ class FunctionScope extends AbstractScope {
     labelsNodeStack.removeLast();
     // Optimizations to keep track of all variables which are in scope
     localVarsStackWitNewNames.removeLast();
-    modifiedLocalVars = true;
   }
 
   /** returns only the most local scope, i.e., the scope between the nearest curly brackets. */
@@ -203,12 +197,8 @@ class FunctionScope extends AbstractScope {
   }
 
   /** returns all variables in the current scopes and caches them for further reuse. */
-  public ImmutableSet<AVariableDeclaration> getVariablesInScope() {
-    if (modifiedLocalVars && !localVarsStackWitNewNames.isEmpty()) {
-      localVarsDeclarations = Objects.requireNonNull(localVarsStackWitNewNames.peekLast()).build();
-      modifiedLocalVars = false;
-    }
-    return localVarsDeclarations;
+  public Set<AVariableDeclaration> getVariablesInScope() {
+    return localVarsStackWitNewNames.peekLast();
   }
 
   /** returns all parameters in the current scopes and caches them for further reuse. */
@@ -330,9 +320,8 @@ class FunctionScope extends AbstractScope {
 
     // Optimizations to keep track of all variables which are in scope
     if (declaration instanceof AVariableDeclaration pAVariableDeclaration) {
-      Verify.verify(!localVarsStackWitNewNames.isEmpty());
-      localVarsStackWitNewNames.peekLast().add(pAVariableDeclaration);
-      modifiedLocalVars = true;
+      localVarsStackWitNewNames.addLast(
+          localVarsStackWitNewNames.removeLast().addAndCopy(pAVariableDeclaration));
     } else if (declaration instanceof AParameterDeclaration) {
       modifiedParameters = true;
     }
