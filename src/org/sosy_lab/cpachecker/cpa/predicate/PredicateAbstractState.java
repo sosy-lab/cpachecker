@@ -141,7 +141,13 @@ public abstract sealed class PredicateAbstractState
                       || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
                   && pAstCfaRelation
                       .getVariablesAndParametersInScope(pLocation)
-                      .anyMatch(var -> var.getName().equals(name))
+                      .anyMatch(
+                          var ->
+                              // For local variables
+                              (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
+                                      .equals(name)
+                                  // For global variables
+                                  || var.getName().equals(name))
                   && !name.contains("__CPAchecker_"));
     }
 
