@@ -312,14 +312,52 @@ abstract class CFloat {
     Preconditions.checkState(getType() == CNativeType.SINGLE.getOrdinal());
     long exponent = getExponent();
     long mantissa = getMantissa();
-    return Float.intBitsToFloat((int) ((exponent << 23) + mantissa));
+    return Float.intBitsToFloat((int) ((exponent << getMantissaLength()) + mantissa));
   }
 
   public Double toDouble() {
     Preconditions.checkState(getType() == CNativeType.DOUBLE.getOrdinal());
     long exponent = getExponent();
     long mantissa = getMantissa();
-    return Double.longBitsToDouble((exponent << 52) + mantissa);
+    return Double.longBitsToDouble((exponent << getMantissaLength()) + mantissa);
+  }
+
+  public final int getExponentLength() {
+    int res =
+        switch (getType()) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE -> 8;
+          case CFloatNativeAPI.FP_TYPE_DOUBLE -> 11;
+          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> 15;
+          default ->
+              throw new IllegalArgumentException("Unimplemented floating point type: " + getType());
+        };
+
+    return res;
+  }
+
+  public final long getBias() {
+    long bias =
+        switch (getType()) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE,
+                  CFloatNativeAPI.FP_TYPE_DOUBLE,
+                  CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ->
+              getExponentMask() / 2;
+          default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
+        };
+    return bias;
+  }
+
+  public final int getMantissaLength() {
+    int res =
+        switch (getType()) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE -> 23;
+          case CFloatNativeAPI.FP_TYPE_DOUBLE -> 52;
+          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> 64;
+          default ->
+              throw new IllegalArgumentException("Unimplemented floating point type: " + getType());
+        };
+
+    return res;
   }
 
   public final long getSignBitMask() {
