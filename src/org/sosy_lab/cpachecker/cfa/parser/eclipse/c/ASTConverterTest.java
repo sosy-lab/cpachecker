@@ -206,7 +206,11 @@ public class ASTConverterTest {
             new TestCase("0x5ep2", "376.00000000000000", CNumericTypes.FLOAT),
             new TestCase("0x5ep-2", "23.500000000000000", CNumericTypes.FLOAT),
             new TestCase(
-                "3.41E+38", "341000000000000000000000000000000000000", CNumericTypes.DOUBLE));
+                "3.41E+38", "341000000000000000000000000000000000000", CNumericTypes.DOUBLE),
+            new TestCase("-308e-2f", "-3.0800000000000001", CNumericTypes.FLOAT),
+            new TestCase("-308L", "-308.00000000000000", CNumericTypes.LONG_DOUBLE),
+            new TestCase("-0x308p-2F", "-194.00000000000000", CNumericTypes.FLOAT),
+            new TestCase("-0x30al", "-778.00000000000000", CNumericTypes.LONG_DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
