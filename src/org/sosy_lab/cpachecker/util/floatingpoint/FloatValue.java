@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -70,6 +71,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *     11.6.3 Rounding test)</a>
  */
 public class FloatValue extends Number {
+  @Serial
+  private static final long serialVersionUID = 293351032085106407L;
+
   /**
    * Map with the pre-calculated values of k!
    *
