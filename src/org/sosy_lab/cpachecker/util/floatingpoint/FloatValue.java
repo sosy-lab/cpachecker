@@ -1872,7 +1872,7 @@ public class FloatValue extends Number {
   /**
    * Cast the value to a short.
    *
-   * <p>See {@link FloatValue#toByte()} for some notes.
+   * <p>See {@link FloatValue#byteValue()} for some notes.
    */
   @Override
   public short shortValue() {
@@ -1891,7 +1891,7 @@ public class FloatValue extends Number {
   /**
    * Cast the value to an int.
    *
-   * <p>See {@link FloatValue#toByte()} for some notes.
+   * <p>See {@link FloatValue#byteValue()} for some notes.
    */
   @Override
   public int intValue() {
@@ -1910,7 +1910,7 @@ public class FloatValue extends Number {
   /**
    * Cast the value to a long.
    *
-   * <p>See {@link FloatValue#toByte()} for some notes.
+   * <p>See {@link FloatValue#byteValue()} for some notes.
    */
   @Override
   public long longValue() {
