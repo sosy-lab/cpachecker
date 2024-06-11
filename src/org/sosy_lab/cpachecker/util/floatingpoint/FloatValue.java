@@ -2001,6 +2001,15 @@ public class FloatValue {
     }
     pInput = pInput.toLowerCase(Locale.getDefault());
 
+    boolean sign = false;
+
+    // Determine the sign
+    char pre = pInput.charAt(0);
+    if (pre == '+' || pre == '-') {
+      pInput = pInput.substring(1);
+      sign = pre == '-';
+    }
+
     // Check if it's a hex literal
     boolean isHexLiteral = false;
     if (pInput.startsWith("0x")) {
@@ -2012,15 +2021,6 @@ public class FloatValue {
     int sep = isHexLiteral ? pInput.indexOf('p') : pInput.indexOf('e');
     String digits = sep > -1 ? pInput.substring(0, sep) : pInput;
     String exponent = sep > -1 ? pInput.substring(sep + 1) : "0";
-
-    boolean sign = false;
-
-    // Determine the sign
-    char pre = digits.charAt(0);
-    if (pre == '+' || pre == '-') {
-      digits = digits.substring(1);
-      sign = pre == '-';
-    }
 
     int expValue = Integer.parseInt(exponent);
 
