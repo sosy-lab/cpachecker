@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -71,8 +72,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *     11.6.3 Rounding test)</a>
  */
 public class FloatValue extends Number {
-  @Serial
-  private static final long serialVersionUID = 293351032085106407L;
+  @Serial private static final long serialVersionUID = 293351032085106407L;
 
   /**
    * Map with the pre-calculated values of k!
@@ -185,7 +185,9 @@ public class FloatValue extends Number {
    * <p>The precision of a FloatP is equivalent to the length of its significand. Here the 'hidden
    * bit' is not counted. The exponent range can be derived from the width of the exponent field.
    */
-  public record Format(int expBits, int sigBits) {
+  public record Format(int expBits, int sigBits) implements Serializable {
+    @Serial private static final long serialVersionUID = -6677404553596078315L;
+
     public Format {
       // Check that the arguments are valid
       Preconditions.checkArgument(
