@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public class SignCExpressionVisitor
     extends DefaultCExpressionVisitor<SIGN, UnrecognizedCodeException>
@@ -142,14 +142,12 @@ public class SignCExpressionVisitor
   @Override
   public SIGN visit(CFloatLiteralExpression pIastFloatLiteralExpression)
       throws UnrecognizedCodeException {
-    BigDecimal value = pIastFloatLiteralExpression.getValue();
-    int cResult = value.compareTo(BigDecimal.ZERO);
-    if (cResult == 1) {
-      return SIGN.PLUS;
-    } else if (cResult == -1) {
-      return SIGN.MINUS;
+    FloatValue value = pIastFloatLiteralExpression.getValue();
+    if (value.isZero()) {
+      return SIGN.ZERO;
+    } else {
+      return value.isNegative() ? SIGN.MINUS : SIGN.PLUS;
     }
-    return SIGN.ZERO;
   }
 
   @Override

@@ -18,6 +18,8 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
 public record NumericValue(Number number) implements Value {
@@ -54,7 +56,7 @@ public record NumericValue(Number number) implements Value {
    * Returns the floating point stored in the container as double. *
    *
    * <p>Warning: This silently truncates and rounds the value to fit into a double. Use {@link
-   * #bigDecimalValue() or #bigIntegerValue()} instead.
+   * #floatingPointValue() or #bigIntegerValue()} instead.
    */
   public double doubleValue() {
     return number.doubleValue();
@@ -65,7 +67,9 @@ public record NumericValue(Number number) implements Value {
    *
    * <p>WARNING: This silently rounds numbers that are stored as a {@link Rational}.
    */
+  @Deprecated
   public BigDecimal bigDecimalValue() {
+    // TODO: Remove in favour of floatingPointValue()
     if (number instanceof BigDecimal decimal) {
       return decimal;
     } else if (number instanceof Double || number instanceof Float) {
@@ -87,6 +91,33 @@ public record NumericValue(Number number) implements Value {
     }
   }
 
+  public FloatValue floatingPointValue() {
+    // TODO: Add a parameter for the target precision
+    Format format = Format.Float64;
+    if (number instanceof FloatValue floatValue) {
+      return floatValue;
+    } else if (number instanceof Double doubleValue) {
+      // if we use number.toString() for float values, the toString() method
+      // will not print the full double but only the number of digits
+      // necessary to distinguish it from the surrounding double-values.
+      // This will result in an incorrect value of the BigDecimal.
+      // Instead, use the floats themselves to get the precise value.
+      //
+      // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
+      return FloatValue.fromDouble(doubleValue);
+    } else if (number instanceof Float floatValue) {
+      return FloatValue.fromFloat(floatValue);
+    } else if (number instanceof BigInteger bigInt) {
+      return FloatValue.fromInteger(format, bigInt);
+    } else if (number instanceof Rational rat) {
+      FloatValue n = FloatValue.fromInteger(format, rat.getNum());
+      FloatValue d = FloatValue.fromInteger(format, rat.getDen());
+      return n.divide(d);
+    } else {
+      return FloatValue.fromString(format, number.toString());
+    }
+  }
+
   /**
    * Returns a {@link BigInteger} value representing the stored number.
    *
@@ -99,7 +130,7 @@ public record NumericValue(Number number) implements Value {
         || number instanceof Float
         || number instanceof BigDecimal
         || number instanceof Rational) {
-      return bigDecimalValue().toBigInteger();
+      return floatingPointValue().toInteger();
     } else {
       return new BigInteger(number.toString());
     }
@@ -153,11 +184,10 @@ public record NumericValue(Number number) implements Value {
       return new NumericValue(rat.negate());
     } else if (NegativeNaN.VALUE.equals(number)) {
       return new NumericValue(Double.NaN);
-    } else if (number instanceof BigDecimal bd && bd.signum() == 0) {
-      return new NumericValue(-bd.doubleValue());
+    } else if (number instanceof FloatValue floatValue) {
+      return new NumericValue(floatValue.negate());
     } else {
-      // if the stored number is a 'casual' number, just negate it
-      return new NumericValue(bigDecimalValue().negate());
+      throw new IllegalArgumentException();
     }
   }
 

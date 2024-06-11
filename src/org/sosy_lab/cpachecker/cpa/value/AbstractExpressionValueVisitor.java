@@ -677,9 +677,9 @@ public abstract class AbstractExpressionValueVisitor
           Level.WARNING,
           "expression causes arithmetic exception (%s): %s %s %s",
           e.getMessage(),
-          lNum.bigDecimalValue(),
+          lNum.floatingPointValue(),
           op.getOperator(),
-          rNum.bigDecimalValue());
+          rNum.floatingPointValue());
       return Value.UnknownValue.getInstance();
     }
   }
@@ -2466,6 +2466,7 @@ public abstract class AbstractExpressionValueVisitor
     return castNumeric(numericValue, type, machineModel, size);
   }
 
+  @SuppressWarnings("deprecation")
   private static Value castNumeric(
       @NonNull final NumericValue numericValue,
       final CType type,
@@ -2556,7 +2557,7 @@ public abstract class AbstractExpressionValueVisitor
             result = new NumericValue(numericValue.doubleValue());
 
           } else if (size == machineModel.getSizeofFloat128() * 8) {
-            result = new NumericValue(numericValue.bigDecimalValue());
+            result = new NumericValue(numericValue.floatingPointValue());
           } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
 
             if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg2.constraint;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /**
  * Class for transforming {@link CExpression} objects into their {@link SymbolicExpression}
@@ -291,7 +291,7 @@ public class ExpressionTransformer
   @Override
   public Collection<SymbolicExpressionAndSMGState> visit(
       final CFloatLiteralExpression pIastFloatLiteralExpression) throws CPATransferException {
-    final BigDecimal value = pIastFloatLiteralExpression.getValue();
+    final FloatValue value = pIastFloatLiteralExpression.getValue();
     final Type floatType = pIastFloatLiteralExpression.getExpressionType();
 
     return ImmutableList.of(
@@ -457,7 +457,7 @@ public class ExpressionTransformer
     return new NumericValue(pValue);
   }
 
-  private Value createNumericValue(BigDecimal pValue) {
+  private Value createNumericValue(FloatValue pValue) {
     return new NumericValue(pValue);
   }
 

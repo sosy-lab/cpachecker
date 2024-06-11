@@ -13,9 +13,9 @@ import static java.lang.Character.isDigit;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -150,37 +150,34 @@ class ASTLiteralConverter {
   @VisibleForTesting
   CLiteralExpression parseFloatLiteral(
       FileLocation pFileLoc, CType pType, String pValueStr, IASTLiteralExpression pExp) {
+    String input = pValueStr.toLowerCase(Locale.ROOT);
 
     // According to section 6.4.4.2 "Floating constants" of the C standard,
     // an unsuffixed floating constant has type double. If suffixed by the letter f or F, it has
     // type float. If suffixed by the letter l or L, it has type long double.
-
-    // FIXME: Remove the suffix from the input to avoid parsing it twice
-    FloatValue cFloat;
-    if (pValueStr.endsWith("L") || pValueStr.endsWith("l")) {
-      cFloat = FloatValue.fromString(Format.Extended, pValueStr);
-    } else if (pValueStr.endsWith("F") || pValueStr.endsWith("f")) {
-      cFloat = FloatValue.fromString(Format.Float32, pValueStr);
+    Format format;
+    if (input.endsWith("l")) {
+      input = input.substring(0, input.length() - 1);
+      format = Format.Extended;
+    } else if (input.endsWith("f")) {
+      input = input.substring(0, input.length() - 1);
+      format = Format.Float32;
     } else {
-      // literal has no suffix declared
-      cFloat = FloatValue.fromString(Format.Float64, pValueStr);
+      format = Format.Float64;
     }
 
-    if (cFloat.isInfinite()) {
-      if (cFloat.isNegative()) {
-        return CFloatLiteralExpression.forNegativeInfinity(pFileLoc, pType);
-      } else {
-        return CFloatLiteralExpression.forPositiveInfinity(pFileLoc, pType);
-      }
-    }
-
+    FloatValue value;
     try {
-      BigDecimal value = new BigDecimal(cFloat.toString());
-      return new CFloatLiteralExpression(pFileLoc, pType, value);
+      value = FloatValue.fromString(format, input);
     } catch (NumberFormatException e) {
       throw parseContext.parseError(
-          String.format("unable to parse floating point literal (%s)", cFloat.toString()), pExp);
+          String.format("unable to parse floating point literal (%s)", pValueStr), pExp);
     }
+
+    // Round the parsed value to the target type
+    value = value.withPrecision(Format.fromCType(pType));
+
+    return new CFloatLiteralExpression(pFileLoc, pType, value);
   }
 
   @VisibleForTesting

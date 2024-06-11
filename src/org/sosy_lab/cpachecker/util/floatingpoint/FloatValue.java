@@ -22,6 +22,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 // TODO: Add support for more rounding modes
 // TODO: Add more functions (like sin(x), etc)
@@ -66,7 +69,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
  *     11.6.3 Rounding test)</a>
  */
-public class FloatValue {
+public class FloatValue extends Number {
   /**
    * Map with the pre-calculated values of k!
    *
@@ -255,6 +258,24 @@ public class FloatValue {
       int newExp = Math.max(expBits, pOther.expBits);
       int newSig = Math.max(sigBits, pOther.sigBits);
       return new Format(newExp, newSig);
+    }
+
+    /**
+     * Construct a Format for a {@link CType}.
+     *
+     * <p>Throws a {@link NumberFormatException} if the {@link CType} is not a floating point type.
+     */
+    public static Format fromCType(CType pType) {
+      // TODO: Add support for 'long double'
+      CBasicType basicType = ((CSimpleType) pType).getType();
+      return switch (basicType) {
+        case FLOAT -> Format.Float32;
+        case DOUBLE -> Format.Float64;
+        case FLOAT128 -> Format.Float128;
+        default ->
+            throw new NumberFormatException(
+                String.format("Invalid type for float infinity: %s", pType));
+      };
     }
   }
 
@@ -1830,7 +1851,8 @@ public class FloatValue {
    * two steps: first the float is converted to a 32bit integer, and then this value is truncated.
    * The indefinite value is therefore 0 in both cases.
    */
-  public byte toByte() {
+  @Override
+  public byte byteValue() {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
     BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
@@ -1848,7 +1870,8 @@ public class FloatValue {
    *
    * <p>See {@link FloatValue#toByte()} for some notes.
    */
-  public short toShort() {
+  @Override
+  public short shortValue() {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
     BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
@@ -1866,7 +1889,8 @@ public class FloatValue {
    *
    * <p>See {@link FloatValue#toByte()} for some notes.
    */
-  public int toInt() {
+  @Override
+  public int intValue() {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
     BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
@@ -1884,7 +1908,8 @@ public class FloatValue {
    *
    * <p>See {@link FloatValue#toByte()} for some notes.
    */
-  public long toLong() {
+  @Override
+  public long longValue() {
     BigInteger integerValue = toInteger();
     BigInteger maxPositive = BigInteger.valueOf(Long.MAX_VALUE);
     BigInteger maxNegative = BigInteger.valueOf(Long.MIN_VALUE);
@@ -1897,7 +1922,36 @@ public class FloatValue {
     return integerValue.longValue();
   }
 
-  public float toFloat() {
+  public static FloatValue fromFloat(float pFloat) {
+    Format format = Format.Float32;
+    if (Float.isNaN(pFloat)) {
+      return FloatValue.nan(format);
+    } else if (Float.isInfinite(pFloat)) {
+      return (pFloat < 0.0) ? FloatValue.negativeInfinity(format) : FloatValue.infinity(format);
+    } else {
+      int floatBits = Float.floatToIntBits(pFloat);
+
+      // Get the sign
+      boolean sign = ((floatBits >> 23) & 0x100) != 0;
+
+      // Extract exponent and significand
+      int expBits = (floatBits >> 23) & 0xFF;
+      int sigBits = floatBits & 0x7FFFFF;
+
+      // Add the hidden bit to the significand
+      if (expBits != 0) {
+        sigBits += 1 << 23;
+      }
+
+      // Remove the bias from the exponent
+      long exp = expBits - format.bias();
+
+      return new FloatValue(Format.Float32, sign, exp, BigInteger.valueOf(sigBits));
+    }
+  }
+
+  @Override
+  public float floatValue() {
     if (isNan()) {
       return Float.NaN;
     } else if (isInfinite()) {
@@ -1912,7 +1966,36 @@ public class FloatValue {
     }
   }
 
-  public double toDouble() {
+  public static FloatValue fromDouble(double pDouble) {
+    Format format = Format.Float64;
+    if (Double.isNaN(pDouble)) {
+      return FloatValue.nan(format);
+    } else if (Double.isInfinite(pDouble)) {
+      return (pDouble < 0.0) ? FloatValue.negativeInfinity(format) : FloatValue.infinity(format);
+    } else {
+      long doubleBits = Double.doubleToLongBits(pDouble);
+
+      // Get the sign
+      boolean sign = ((doubleBits >> 52) & 0x800) != 0;
+
+      // Extract exponent and significand
+      long expBits = (doubleBits >> 52) & 0x7FF;
+      long sigBits = doubleBits & 0xFFFFFFFFFFFFFL;
+
+      // Add the hidden bit to the significand
+      if (expBits != 0) {
+        sigBits += 1L << 52;
+      }
+
+      // Remove the bias from the exponent
+      long exp = expBits - format.bias();
+
+      return new FloatValue(Format.Float64, sign, exp, BigInteger.valueOf(sigBits));
+    }
+  }
+
+  @Override
+  public double doubleValue() {
     if (isNan()) {
       return Double.NaN;
     } else if (isInfinite()) {

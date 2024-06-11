@@ -14,7 +14,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -834,12 +833,7 @@ public final class ValueAnalysisState
                 long value = num.getNumber().longValue();
                 val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
               } else if (simpleType.getType().isFloatingPointType()) {
-                double value = num.getNumber().doubleValue();
-                if (((Double) value).isNaN() || ((Double) value).isInfinite()) {
-                  // Cannot represent this here
-                  continue;
-                }
-                val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
+                val = new CFloatLiteralExpression(loc, simpleType, num.floatingPointValue());
               } else {
                 throw new AssertionError("Unexpected type: " + simpleType);
               }

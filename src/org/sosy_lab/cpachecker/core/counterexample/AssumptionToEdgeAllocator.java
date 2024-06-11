@@ -106,6 +106,8 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge and a given {@link
@@ -1408,38 +1410,22 @@ public class AssumptionToEdgeAllocator {
     }
 
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
+      Format format = Format.fromCType(pType);
 
-      if (pValue instanceof Rational) {
-        double val = ((Rational) pValue).doubleValue();
-        if (Double.isInfinite(val) || Double.isNaN(val)) {
-          // TODO return correct value
-          return UnknownValueLiteral.getInstance();
-        }
-        return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
-
-      } else if (pValue instanceof Double) {
-        double doubleValue = ((Double) pValue);
-        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
-          // TODO return correct value
-          return UnknownValueLiteral.getInstance();
-        }
-        return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
-      } else if (pValue instanceof Float) {
-        float floatValue = ((Float) pValue);
-        if (Float.isInfinite(floatValue) || Double.isNaN(floatValue)) {
-          // TODO return correct value
-          return UnknownValueLiteral.getInstance();
-        }
-        return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(floatValue), pType);
+      if (pValue instanceof Rational rationalValue) {
+        FloatValue n = FloatValue.fromInteger(format, rationalValue.getNum());
+        FloatValue d = FloatValue.fromInteger(format, rationalValue.getDen());
+        return ExplicitValueLiteral.valueOf(n.divide(d), pType);
+      } else if (pValue instanceof Double doubleValue) {
+        return ExplicitValueLiteral.valueOf(FloatValue.fromDouble(doubleValue), pType);
+      } else if (pValue instanceof Float floatValue) {
+        return ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), pType);
       }
 
-      BigDecimal val;
-
-      // TODO support rationals
+      FloatValue val;
       try {
-        val = new BigDecimal(pValue.toString());
+        val = FloatValue.fromString(format, pValue.toString());
       } catch (NumberFormatException e) {
-
         logger.log(Level.INFO, "Can't parse " + value + " as value for the counter-example path.");
         return UnknownValueLiteral.getInstance();
       }
@@ -2119,7 +2105,7 @@ public class AssumptionToEdgeAllocator {
       return new ExplicitValueLiteral(literal);
     }
 
-    public static ValueLiteral valueOf(BigDecimal value, CSimpleType pType) {
+    public static ValueLiteral valueOf(FloatValue value, CSimpleType pType) {
 
       CFloatLiteralExpression literal =
           new CFloatLiteralExpression(FileLocation.DUMMY, pType, value);

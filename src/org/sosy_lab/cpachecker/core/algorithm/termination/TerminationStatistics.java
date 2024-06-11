@@ -106,6 +106,8 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "termination")
@@ -702,9 +704,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         termVal = ((ConstantTerm) entry.getValue()).getValue();
 
         if (termVal instanceof BigDecimal) {
+          // FIXME: Conversion from BigDecimal to FloatValue is lossy and may cause rounding issues
           litexpr =
               new CFloatLiteralExpression(
-                  FileLocation.DUMMY, CNumericTypes.FLOAT, (BigDecimal) termVal);
+                  FileLocation.DUMMY,
+                  CNumericTypes.FLOAT,
+                  FloatValue.fromString(Format.Float32, termVal.toString()));
         } else if (termVal instanceof BigInteger) {
           litexpr =
               CIntegerLiteralExpression.createDummyLiteral(
@@ -727,10 +732,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return CIntegerLiteralExpression.createDummyLiteral(
           rat.numerator().divide(rat.denominator()).longValue(), CNumericTypes.INT);
     } else {
-      return new CFloatLiteralExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.FLOAT,
-          new BigDecimal(rat.numerator()).divide(new BigDecimal(rat.denominator())));
+      FloatValue n = FloatValue.fromInteger(Format.Float32, rat.numerator());
+      FloatValue d = FloatValue.fromInteger(Format.Float32, rat.numerator());
+      return new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.FLOAT, n.divide(d));
     }
   }
 

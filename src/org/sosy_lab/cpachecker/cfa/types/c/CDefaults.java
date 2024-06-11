@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -22,6 +21,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 public final class CDefaults {
 
@@ -39,8 +40,18 @@ public final class CDefaults {
       CBasicType basicType = ((CSimpleType) type).getType();
       return switch (basicType) {
         case CHAR -> initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
-        case DOUBLE, FLOAT128, FLOAT ->
-            initializerFor(new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO), fileLoc);
+        case FLOAT ->
+            initializerFor(
+                new CFloatLiteralExpression(fileLoc, type, FloatValue.zero(Format.Float32)),
+                fileLoc);
+        case DOUBLE ->
+            initializerFor(
+                new CFloatLiteralExpression(fileLoc, type, FloatValue.zero(Format.Float64)),
+                fileLoc);
+        case FLOAT128 ->
+            initializerFor(
+                new CFloatLiteralExpression(fileLoc, type, FloatValue.zero(Format.Float128)),
+                fileLoc);
         case UNSPECIFIED, BOOL, INT128, INT ->
             initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
         default -> throw new AssertionError("Unknown basic type '" + basicType + "'");

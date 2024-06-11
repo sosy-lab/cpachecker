@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.simplification;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -95,7 +94,7 @@ public class ExpressionSimplificationVisitor
       } else if (basicType.isFloatingPointType()) {
         try {
           return new CFloatLiteralExpression(
-              expr.getFileLocation(), type, numericResult.bigDecimalValue());
+              expr.getFileLocation(), type, numericResult.floatingPointValue());
         } catch (NumberFormatException nfe) {
           // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
           logger.logf(
@@ -283,13 +282,7 @@ public class ExpressionSimplificationVisitor
             return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           case FLOAT:
           case DOUBLE:
-            double v = negatedValue.doubleValue();
-            // Check if v is -0.0; if so, we cannot simplify it,
-            // because we cannot represent it with BigDecimal
-            if (v == 0 && 1 / v < 0) {
-              return new CUnaryExpression(loc, exprType, op, unaryOperator);
-            }
-            return new CFloatLiteralExpression(loc, exprType, BigDecimal.valueOf(v));
+            return new CFloatLiteralExpression(loc, exprType, negatedValue.floatingPointValue());
           default:
             // fall-through and return the original expression
         }
@@ -357,7 +350,8 @@ public class ExpressionSimplificationVisitor
                   expr.getFileLocation(), type, v.bigIntegerValue());
             case FLOAT:
             case DOUBLE:
-              return new CFloatLiteralExpression(expr.getFileLocation(), type, v.bigDecimalValue());
+              return new CFloatLiteralExpression(
+                  expr.getFileLocation(), type, v.floatingPointValue());
             default:
               // fall-through and return the original expression
           }

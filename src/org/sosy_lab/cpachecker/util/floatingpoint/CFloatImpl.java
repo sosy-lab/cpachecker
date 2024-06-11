@@ -83,12 +83,12 @@ class CFloatImpl extends CFloat {
     ImmutableList<Format> tiny = ImmutableList.of(Format.Float8, Format.Float16, Format.Float32);
     if (tiny.contains(floatValue.getFormat())) {
       // FIXME: In Float8 and Float16 this may be broken for subnormal numbers
-      long bits = Float.floatToRawIntBits(floatValue.toFloat());
+      long bits = Float.floatToRawIntBits(floatValue.floatValue());
       long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
       long mantissa = bits & 0x007FFFFF;
       return new CFloatWrapper(exponent, mantissa);
     } else if (Format.Float64.equals(floatValue.getFormat())) {
-      long bits = Double.doubleToRawLongBits(floatValue.toDouble());
+      long bits = Double.doubleToRawLongBits(floatValue.doubleValue());
       long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFFL;
       long mantissa = bits & 0xFFFFFFFFFFFFFL;
       return new CFloatWrapper(exponent, mantissa);
@@ -298,10 +298,10 @@ class CFloatImpl extends CFloat {
   @Override
   public Number castToOther(CNativeType toType) {
     return switch (toType) {
-      case CHAR -> delegate.toByte();
-      case SHORT -> delegate.toShort();
-      case INT -> delegate.toInt();
-      case LONG -> delegate.toLong();
+      case CHAR -> delegate.byteValue();
+      case SHORT -> delegate.shortValue();
+      case INT -> delegate.intValue();
+      case LONG -> delegate.longValue();
       case SINGLE -> throw new IllegalArgumentException();
       case DOUBLE -> throw new IllegalArgumentException();
       case LONG_DOUBLE -> throw new IllegalArgumentException();

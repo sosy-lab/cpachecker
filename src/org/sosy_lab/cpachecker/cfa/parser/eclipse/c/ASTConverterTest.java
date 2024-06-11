@@ -197,20 +197,19 @@ public class ASTConverterTest {
     record TestCase(String input, String expected, CType type) {}
     ImmutableList<TestCase> input_output =
         ImmutableList.of(
-            new TestCase("0", "0.0000000000000000", CNumericTypes.DOUBLE),
-            new TestCase("-0", "0.0000000000000000", CNumericTypes.DOUBLE),
-            new TestCase("0xf", "15.0000000", CNumericTypes.DOUBLE),
-            new TestCase("5e2", "500.00000000000000", CNumericTypes.FLOAT),
-            new TestCase("5e+2", "500.00000000000000", CNumericTypes.FLOAT),
-            new TestCase("0x5e2", "1506.0000000000000", CNumericTypes.FLOAT),
-            new TestCase("0x5ep2", "376.00000000000000", CNumericTypes.FLOAT),
-            new TestCase("0x5ep-2", "23.500000000000000", CNumericTypes.FLOAT),
-            new TestCase(
-                "3.41E+38", "341000000000000000000000000000000000000", CNumericTypes.DOUBLE),
-            new TestCase("-308e-2f", "-3.0800000000000001", CNumericTypes.FLOAT),
-            new TestCase("-308L", "-308.00000000000000", CNumericTypes.LONG_DOUBLE),
-            new TestCase("-0x308p-2F", "-194.00000000000000", CNumericTypes.FLOAT),
-            new TestCase("-0x30al", "-778.00000000000000", CNumericTypes.LONG_DOUBLE));
+            new TestCase("0", "0.0000000000000000e+00", CNumericTypes.DOUBLE),
+            new TestCase("-0", "-0.0000000000000000e+00", CNumericTypes.DOUBLE),
+            new TestCase("0xfp00", "1.5000000000000000e+01", CNumericTypes.DOUBLE),
+            new TestCase("5e2", "5.00000000e+02", CNumericTypes.FLOAT),
+            new TestCase("5e+2", "5.00000000e+02", CNumericTypes.FLOAT),
+            new TestCase("0x5e2", "1.50600000e+03", CNumericTypes.FLOAT),
+            new TestCase("0x5ep2", "3.76000000e+02", CNumericTypes.FLOAT),
+            new TestCase("0x5ep-2", "2.35000000e+01", CNumericTypes.FLOAT),
+            new TestCase("3.41E+38", "3.4100000000000000e+38", CNumericTypes.DOUBLE),
+            new TestCase("-308e-2f", "-3.07999992e+00", CNumericTypes.FLOAT),
+            new TestCase("-308L", "-3.0800000000000000e+02", CNumericTypes.LONG_DOUBLE),
+            new TestCase("-0x308p-2F", "-1.94000000e+02", CNumericTypes.FLOAT),
+            new TestCase("-0x30al", "-7.7800000000000000e+02", CNumericTypes.LONG_DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
@@ -218,7 +217,7 @@ public class ASTConverterTest {
             (CFloatLiteralExpression)
                 converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
 
-        assertThat(literal.getValue().toPlainString()).isEqualTo(test.expected());
+        assertThat(literal.getValue().toString()).isEqualTo(test.expected());
         assertThat(test.type()).isSameInstanceAs(literal.getExpressionType());
       }
     }

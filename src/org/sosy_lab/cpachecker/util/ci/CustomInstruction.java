@@ -1180,9 +1180,9 @@ public class CustomInstruction {
                 + aciFloatExp.getExpressionType()
                 + ").");
       }
-      if (ciExp.getValue().compareTo(aciFloatExp.getValue()) != 0) {
+      if (!ciExp.getValue().equals(aciFloatExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException(
-            "The value of the CCharLiteralExpression of ci "
+            "The value of the FloatLiteralExpression of ci "
                 + ciExp
                 + " and aci "
                 + aciFloatExp

@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.math.BigDecimal;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /** This class represents the float number literal AST node type. */
 public final class JFloatLiteralExpression extends AFloatLiteralExpression
@@ -20,7 +20,7 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
 
   private static final long serialVersionUID = -8344145326316408368L;
 
-  public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
+  public JFloatLiteralExpression(FileLocation pFileLocation, FloatValue pValue) {
     super(pFileLocation, JSimpleType.getFloat(), pValue);
   }
 

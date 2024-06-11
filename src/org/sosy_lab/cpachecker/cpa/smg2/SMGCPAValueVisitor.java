@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -870,7 +871,7 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(CFloatLiteralExpression e) throws CPATransferException {
     // Floating point value expression
-    BigDecimal value = e.getValue();
+    FloatValue value = e.getValue();
 
     // We simply return the Value, as if a mapping to SMGValue is needed only after Value is written
     // into the memory, but when writing a mapping is created anyway
@@ -1151,6 +1152,7 @@ public class SMGCPAValueVisitor
   }
 
   /** Taken from the value analysis CPA. TODO: check that all casts are correct and add missing. */
+  @SuppressWarnings("deprecation")
   private Value castNumeric(
       @NonNull final NumericValue numericValue,
       final CType type,
@@ -1234,7 +1236,7 @@ public class SMGCPAValueVisitor
             // 64 bit means Java double
             result = new NumericValue(numericValue.doubleValue());
           } else if (size == machineModel.getSizeofFloat128() * 8) {
-            result = new NumericValue(numericValue.bigDecimalValue());
+            result = new NumericValue(numericValue.floatingPointValue());
           } else if (size == machineModel.getSizeofLongDouble() * bitPerByte
               || size == machineModel.getSizeofDouble()) {
 
@@ -2456,9 +2458,9 @@ public class SMGCPAValueVisitor
           Level.WARNING,
           "expression causes arithmetic exception (%s): %s %s %s",
           e.getMessage(),
-          lNum.bigDecimalValue(),
+          lNum.floatingPointValue(),
           op.getOperator(),
-          rNum.bigDecimalValue());
+          rNum.floatingPointValue());
       return Value.UnknownValue.getInstance();
     }
   }

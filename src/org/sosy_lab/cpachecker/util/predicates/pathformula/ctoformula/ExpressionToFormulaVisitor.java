@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.For
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -461,7 +462,9 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
-    return mgr.getFloatingPointFormulaManager().makeNumber(fExp.getValue(), (FloatingPointType) t);
+    // FIXME: Remove this hack and convert to FloatingPointNumber directly
+    BigDecimal repr = new BigDecimal(fExp.getValue().toString());
+    return mgr.getFloatingPointFormulaManager().makeNumber(repr, (FloatingPointType) t);
   }
 
   @Override

@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -127,6 +126,7 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.xml.sax.SAXException;
@@ -1451,13 +1451,7 @@ public class ValueAnalysisTransferRelation
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
               if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
                   .contains(paramType.getType())) {
-                final BigDecimal integralPartValue =
-                    switch (paramType.getType()) {
-                      case FLOAT -> BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
-                      case DOUBLE ->
-                          BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
-                      default -> throw new AssertionError("Unsupported float type: " + paramType);
-                    };
+                FloatValue integralPartValue = numericValue.floatingPointValue();
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
                         functionCallExpression.getFileLocation(), paramType, integralPartValue);

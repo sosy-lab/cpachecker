@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import org.junit.Test;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 public class NumericValueTest {
 
@@ -65,54 +65,54 @@ public class NumericValueTest {
   @Test
   public void bigDecimalValue_conversionFromPositiveLong() {
     NumericValue val = new NumericValue(5L);
-    BigDecimal result = val.bigDecimalValue();
-    assertThat(result).isEqualToIgnoringScale(5);
+    FloatValue result = val.floatingPointValue();
+    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "5"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromDouble() {
     NumericValue val = new NumericValue(5.3d);
-    BigDecimal result = val.bigDecimalValue();
-    assertThat(result).isEqualToIgnoringScale(BigDecimal.valueOf(5.3));
+    FloatValue result = val.floatingPointValue();
+    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "5.3"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromFloat() {
     NumericValue val = new NumericValue(5.3f);
-    BigDecimal result = val.bigDecimalValue();
-    assertThat(result).isEqualToIgnoringScale(BigDecimal.valueOf(5.3f));
+    FloatValue result = val.floatingPointValue();
+    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float32, "5.3"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromRationalWithDecimals() {
     Rational input = Rational.of(BigInteger.ONE, BigInteger.TWO);
     NumericValue val = new NumericValue(input);
-    BigDecimal result = val.bigDecimalValue();
-    assertThat(result).isEqualToIgnoringScale(BigDecimal.valueOf(0.5));
+
+    FloatValue result = val.floatingPointValue();
+    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "0.5"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromRationalWithInfiniteDecimals() {
     Rational input = Rational.of(BigInteger.ONE, BigInteger.valueOf(3));
     NumericValue val = new NumericValue(input);
-    BigDecimal result = val.bigDecimalValue();
-    BigDecimal expected = BigDecimal.ONE.divide(BigDecimal.valueOf(3), 100, RoundingMode.HALF_UP);
-    assertThat(result).isEqualToIgnoringScale(expected);
+    FloatValue result = val.floatingPointValue();
+    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "0.3333333333333333"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromRationalWithoutDecimals() {
     Rational input = Rational.of(BigInteger.TEN, BigInteger.TWO);
     NumericValue val = new NumericValue(input);
-    BigDecimal result = val.bigDecimalValue();
-    assertThat(result).isEqualToIgnoringScale(5);
+    FloatValue result = val.floatingPointValue();
+    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "5"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromInteger() {
     NumericValue val = new NumericValue(10);
-    BigDecimal result = val.bigDecimalValue();
-    assertThat(result).isEqualToIgnoringScale(10);
+    FloatValue result = val.floatingPointValue();
+    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "10"));
   }
 
   @Test

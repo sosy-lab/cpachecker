@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -144,6 +143,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 class ASTConverter {
 
@@ -2773,22 +2774,9 @@ class ASTConverter {
     }
   }
 
-  private BigDecimal parseFloatLiteral(String valueStr) {
-
-    BigDecimal value;
-    try {
-      value = new BigDecimal(valueStr);
-    } catch (NumberFormatException nfe1) {
-      try {
-        // this might be a hex floating point literal
-        // BigDecimal doesn't support this, but Double does
-        // TODO handle hex floating point literals that are too large for Double
-        value = BigDecimal.valueOf(Double.parseDouble(valueStr));
-      } catch (NumberFormatException nfe2) {
-        throw new CFAGenerationRuntimeException("Illegal floating point literal", nfe2);
-      }
-    }
-    return value;
+  private FloatValue parseFloatLiteral(String valueStr) {
+    // TODO: Add support for "f" and "l" suffix and use a parameter for the target type
+    return FloatValue.fromString(Format.Float64, valueStr);
   }
 
   private BigInteger parseIntegerLiteral(String s, ASTNode e) {

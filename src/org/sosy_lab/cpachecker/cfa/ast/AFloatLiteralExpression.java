@@ -8,31 +8,27 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.math.BigDecimal;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public abstract class AFloatLiteralExpression extends ALiteralExpression {
 
   private static final long serialVersionUID = 8161363025296340648L;
-  private final BigDecimal value;
+  private final FloatValue value;
 
-  protected AFloatLiteralExpression(FileLocation pFileLocation, Type pType, BigDecimal pValue) {
+  protected AFloatLiteralExpression(FileLocation pFileLocation, Type pType, FloatValue pValue) {
     super(pFileLocation, pType);
     value = pValue;
   }
 
   @Override
-  public BigDecimal getValue() {
+  public FloatValue getValue() {
     return value;
   }
 
   @Override
   public String toASTString() {
-    // If the value is integral and has no zeroes after the decimal point yet, add one
-    if (value.scale() <= 0) {
-      return String.format("%.1f", value);
-    }
     return value.toString();
   }
 

@@ -14,7 +14,6 @@ import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -94,6 +93,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.llvm_j.BasicBlock;
 import org.sosy_lab.llvm_j.Function;
 import org.sosy_lab.llvm_j.LLVMException;
@@ -1341,7 +1342,8 @@ public class CFABuilder {
         CBasicType basicType = ((CSimpleType) canonicalType).getType();
         if (basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
           // use expected type for float, not canonical
-          zeroExpression = new CFloatLiteralExpression(loc, pExpectedType, BigDecimal.ZERO);
+          Format format = basicType == CBasicType.FLOAT ? Format.Float32 : Format.Float64;
+          zeroExpression = new CFloatLiteralExpression(loc, pExpectedType, FloatValue.zero(format));
         } else {
           zeroExpression = CIntegerLiteralExpression.ZERO;
         }
