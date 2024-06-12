@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -19,13 +18,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -58,8 +57,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final Specification specification;
   private final CFA cfa;
 
-  /** A mapping of CFAEdges to a set of thread IDs possibly executing the CFAEdge. */
-  private Map<CFAEdge, Set<Integer>> threadIds;
+  /** A mapping of function names to a set of executing thread IDs. */
+  // TODO create a function for this
+  private Map<String, Set<Integer>> functionThreadIds;
+
+  /** A set of function names that are start routines extracted from pthread_create calls. */
+  private Set<String> startRoutines;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
@@ -79,7 +82,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     cfa = pCfa;
 
     // TODO check for C program
+    // TODO give the CFA as a parameter to all these functions so that the functions can be reused
+    //  outside of this class too. (maybe make static?...)
     checkForParallelProgram();
+    extractThreadStartRoutines();
   }
 
   /**
@@ -89,13 +95,43 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void checkForParallelProgram() {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(cfa)) {
-      if (PthreadFunction.isEdgeCallToPthreadFunction(cfaEdge, PthreadFunction.CREATE)) {
+      if (PthreadFunction.isEdgeFunction(cfaEdge, PthreadFunction.CREATE)) {
         isParallel = true;
         break;
       }
     }
     Preconditions.checkArgument(
         isParallel, "MPOR expects parallel program with at least one pthread_create call");
+  }
+
+  /**
+   * Searches the CFA for phtread_create calls and extracts the start routine (i.e. the function the
+   * thread is executing) through regular expressions. The start routines (= function names) are
+   * stored in {@link MPORAlgorithm#startRoutines}.
+   */
+  private void extractThreadStartRoutines() {
+    startRoutines = new HashSet<>();
+    // use a regex to extract the start routine from parameters given to pthread_create
+    String startRoutineRegex =
+        "pthread_create\\s*\\(\\s*[^,]*,\\s*[^,]*,\\s*([^\\s,]*)\\s*,\\s*[^)]*\\)";
+    Pattern pattern = Pattern.compile(startRoutineRegex);
+
+    // go through all edges and search for pthread_create calls
+    for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(cfa)) {
+      if (PthreadFunction.isEdgeFunction(cfaEdge, PthreadFunction.CREATE)) {
+
+        // use the regex on the code of the current CFA Edge
+        Matcher matcher = pattern.matcher(cfaEdge.getCode());
+        if (matcher.find()) {
+          String startRoutine = matcher.group(1);
+          // if the function is given as a pointer, extract only the name
+          if (startRoutine.charAt(0) == '&') {
+            startRoutine = startRoutine.substring(1);
+          }
+          startRoutines.add(startRoutine);
+        }
+      }
+    }
   }
 
   // TODO create a function that maps thread ids (in the analysis, we will use our own thread ids,

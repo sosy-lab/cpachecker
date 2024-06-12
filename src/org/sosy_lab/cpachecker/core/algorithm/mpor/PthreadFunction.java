@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 
 public enum PthreadFunction {
   CREATE("pthread_create");
@@ -24,8 +23,7 @@ public enum PthreadFunction {
   /**
    * @return true if the given CFAEdge is a call to the given pthread function
    */
-  public static boolean isEdgeCallToPthreadFunction(CFAEdge pCFAEdge, PthreadFunction pPthreadFunction) {
-    return pCFAEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)
-        && pCFAEdge.getRawStatement().contains(pPthreadFunction.name);
+  public static boolean isEdgeFunction(CFAEdge pCFAEdge, PthreadFunction pPthreadFunction) {
+    return pCFAEdge.getCode().contains(pPthreadFunction.name);
   }
 }

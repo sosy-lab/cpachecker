@@ -289,8 +289,8 @@ public class CFAUtils {
 
   /**
    * The allEdges function contains {@link FunctionSummaryEdge}s, leading to parallel edges (two
-   * edges from node A to B) in the return value. This function filters out all
-   * {@link FunctionSummaryEdge}s.
+   * edges from node A to B) in the return value. This function filters out all {@link
+   * FunctionSummaryEdge}s.
    *
    * @param pCfa CFA whose edges we filter
    * @return {@link FluentIterable} of {@link CFAEdge}s that are not instances of {@link
