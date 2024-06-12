@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -36,12 +39,15 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * producing a reduced sequentialization of a parallel C program. The reduced sequentialization can
  * be given to an existing verifier capable of verifying sequential C programs. The POR and the
  * verifier serve as modules, hence MPOR (Modular Partial Order Reduction).
+ *
+ * <p>Using an unbounded number of threads (e.g. while(true) { pthread_create... }) is undefined
+ * behavior.
  */
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    // TODO Auto-generated method stub
+    // TODO this method is called once initially with the set of reached states in the ARG
     throw new UnsupportedOperationException("Unimplemented method 'run'");
   }
 
@@ -51,6 +57,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final ShutdownNotifier shutdownNotifier;
   private final Specification specification;
   private final CFA cfa;
+
+  /** A mapping of CFAEdges to a set of thread IDs possibly executing the CFAEdge. */
+  private Map<CFAEdge, Set<Integer>> threadIds;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
@@ -69,19 +78,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     specification = pSpecification;
     cfa = pCfa;
 
-    checkForParallelProgram(cfa);
+    // TODO check for C program
+    checkForParallelProgram();
   }
 
   /**
    * Checks whether any edge in the CFA contains a pthread_create call. If that is not the case, the
    * algorithm ends and the user is informed that MPOR is meant to analyze parallel programs.
-   *
-   * @param pCfa the CFA whose edges we analyze
    */
-  private void checkForParallelProgram(CFA pCfa) {
+  private void checkForParallelProgram() {
     boolean isParallel = false;
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
-      if (cfaEdge.getRawStatement().contains(PthreadFunction.CREATE.name)) {
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(cfa)) {
+      if (isEdgeCallToPthreadFunction(cfaEdge, PthreadFunction.CREATE)) {
         isParallel = true;
         break;
       }
@@ -89,6 +97,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     Preconditions.checkArgument(
         isParallel, "MPOR expects parallel program with at least one pthread_create call");
   }
+
+  // TODO create a function that maps thread ids (in the analysis, we will use our own thread ids,
+  //  runtime ids are not relevant) to their main functions (preferably in the form of a CfaEdge)
+  // TODO is this idea sufficient to map from any CfaEdge to a thread id?
 
   // TODO use GlobalAccessChecker to check whether a CfaEdge reads or writes global / shared
   //  variables?
@@ -114,6 +126,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pSCCs as a set of sets of Integers
    * @return topologically maximal SCC, i.e. the SCC with the least outgoing edges
    */
+  // TODO remove this function, the name is misleading.
+  //  simply take the first SCC and comment that its ok because Trajans algorithm computes a reverse
+  //  topological sort as a byproduct, no need to have a function for this.
   private ImmutableSet<Integer> computeTopologicallyMaximalSCC(
       ImmutableSet<ImmutableSet<Integer>> pSCCs) {
     Preconditions.checkNotNull(pSCCs);
@@ -221,5 +236,28 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       } while (pNode != currentNode);
       pSccList.add(scc);
     }
+  }
+
+  // Helper Functions ===========================================================================
+
+  /**
+   * @return true if the given CFAEdge is a call to the given pthread function
+   */
+  private boolean isEdgeCallToPthreadFunction(CFAEdge pCFAEdge, PthreadFunction pPthreadFunction) {
+    return pCFAEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)
+        && pCFAEdge.getRawStatement().contains(pPthreadFunction.name);
+  }
+
+  /**
+   * The allEdges function in {@link CFAUtils} contains {@link FunctionSummaryEdge}s, leading to
+   * parallel edges (two edges from note A to B) in the return value. This function filters out all
+   * {@link FunctionSummaryEdge}s.
+   *
+   * @param pCfa CFA whose edges we filter
+   * @return {@link FluentIterable} of {@link CFAEdge}s that are not instances of {@link
+   *     FunctionSummaryEdge}
+   */
+  private FluentIterable<CFAEdge> allUniqueEdges(CFA pCfa) {
+    return CFAUtils.allEdges(pCfa).filter(edge -> !(edge instanceof FunctionSummaryEdge));
   }
 }
