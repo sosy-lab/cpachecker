@@ -1958,6 +1958,10 @@ public class FloatValue extends Number {
 
   @Override
   public float floatValue() {
+    return withPrecision(Format.Float32).toFloat();
+  }
+
+  private float toFloat() {
     if (isNan()) {
       return Float.NaN;
     } else if (isInfinite()) {
@@ -2002,6 +2006,10 @@ public class FloatValue extends Number {
 
   @Override
   public double doubleValue() {
+    return withPrecision(Format.Float64).toDouble();
+  }
+
+  private double toDouble() {
     if (isNan()) {
       return Double.NaN;
     } else if (isInfinite()) {
