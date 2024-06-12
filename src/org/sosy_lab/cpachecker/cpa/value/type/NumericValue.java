@@ -129,7 +129,8 @@ public record NumericValue(Number number) implements Value {
     } else if (number instanceof Double
         || number instanceof Float
         || number instanceof BigDecimal
-        || number instanceof Rational) {
+        || number instanceof Rational
+        || number instanceof FloatValue) {
       return floatingPointValue().toInteger();
     } else {
       return new BigInteger(number.toString());
