@@ -106,8 +106,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * Searches the CFA for phtread_create calls and returns the names of start routines (i.e. the
-   * function name the thread is executing).
+   * Searches the CFA for phtread_create calls and returns the start routines (i.e. the function the
+   * thread is executing).
    *
    * @param pCfa the CFA to be analyzed
    * @return set of functions that are start routines in pthread_create calls
@@ -118,6 +118,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       if (PthreadFunction.isEdgeCallToFunction(cfaEdge, PthreadFunction.CREATE)) {
         AAstNode aAstNode = cfaEdge.getRawAST().get();
         CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
+        // extract the third parameter of pthread_create which points to the start routine function
         CUnaryExpression cUnaryExpression =
             (CUnaryExpression)
                 cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions().get(2);

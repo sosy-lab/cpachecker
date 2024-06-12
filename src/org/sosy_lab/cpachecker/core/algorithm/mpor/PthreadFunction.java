@@ -14,8 +14,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public enum PthreadFunction {
-  CREATE("pthread_create");
-  // TODO more pthread functions
+  CANCEL("pthread_cancel"),
+  CREATE("pthread_create"),
+  DETACH("pthread_detach"),
+  EXIT("pthread_exit"),
+  JOIN("pthread_join"),
+  MUTEX_INIT("pthread_mutex_init"),
+  MUTEX_LOCK("pthread_mutex_lock"),
+  MUTEX_UNLOCK("pthread_mutex_unlock");
+  // TODO unsure about yield, mutex_destroy
+  //  pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER; // used instead of mutex init
+  //  pthread_barrier stuff
+  //  etc. probably a lot more things
 
   public final String name;
 
