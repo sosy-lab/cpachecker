@@ -2050,13 +2050,20 @@ public class FloatValue extends Number {
     return z.withPrecision(pFormat);
   }
 
-  private static FloatValue fromDecimal_(Format pFormat, BigInteger u, BigInteger v, int k) {
+  private static FloatValue fromDecimal_(Format pFormat, BigInteger u, BigInteger v) {
     BigInteger x = u.divide(v);
-    return switch (Integer.compare(x.bitLength(), pFormat.sigBits + 1)) {
-      case -1 -> fromDecimal_(pFormat, u.shiftLeft(1), v, k - 1);
-      case +1 -> fromDecimal_(pFormat, u, v.shiftLeft(1), k + 1);
-      default -> makeValue(pFormat, u, v, k);
-    };
+    int k = 0;
+    while (x.bitLength() != pFormat.sigBits + 1) {
+      if (x.bitLength() < pFormat.sigBits + 1) {
+        u = u.shiftLeft(1);
+        k--;
+      } else {
+        v = v.shiftLeft(1);
+        k++;
+      }
+      x = u.divide(v);
+    }
+    return makeValue(pFormat, u, v, k);
   }
 
   /**
@@ -2072,9 +2079,7 @@ public class FloatValue extends Number {
     BigInteger f = new BigInteger(pDigits);
     BigInteger e = BigInteger.TEN.pow(Math.abs(k));
     FloatValue r =
-        k > 0
-            ? fromDecimal_(pFormat, f.multiply(e), BigInteger.ONE, 0)
-            : fromDecimal_(pFormat, f, e, 0);
+        k > 0 ? fromDecimal_(pFormat, f.multiply(e), BigInteger.ONE) : fromDecimal_(pFormat, f, e);
     return pSign ? r.negate() : r;
   }
 
