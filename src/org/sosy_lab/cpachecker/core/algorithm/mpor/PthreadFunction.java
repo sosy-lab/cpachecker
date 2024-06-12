@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+
 public enum PthreadFunction {
   CREATE("pthread_create");
   // TODO more pthread functions
@@ -16,5 +19,13 @@ public enum PthreadFunction {
 
   private PthreadFunction(String pName) {
     this.name = pName;
+  }
+
+  /**
+   * @return true if the given CFAEdge is a call to the given pthread function
+   */
+  public static boolean isEdgeCallToPthreadFunction(CFAEdge pCFAEdge, PthreadFunction pPthreadFunction) {
+    return pCFAEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)
+        && pCFAEdge.getRawStatement().contains(pPthreadFunction.name);
   }
 }

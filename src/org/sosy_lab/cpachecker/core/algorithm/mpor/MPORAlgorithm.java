@@ -89,7 +89,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void checkForParallelProgram() {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(cfa)) {
-      if (isEdgeCallToPthreadFunction(cfaEdge, PthreadFunction.CREATE)) {
+      if (PthreadFunction.isEdgeCallToPthreadFunction(cfaEdge, PthreadFunction.CREATE)) {
         isParallel = true;
         break;
       }
@@ -236,28 +236,5 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       } while (pNode != currentNode);
       pSccList.add(scc);
     }
-  }
-
-  // Helper Functions ===========================================================================
-
-  /**
-   * @return true if the given CFAEdge is a call to the given pthread function
-   */
-  private boolean isEdgeCallToPthreadFunction(CFAEdge pCFAEdge, PthreadFunction pPthreadFunction) {
-    return pCFAEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)
-        && pCFAEdge.getRawStatement().contains(pPthreadFunction.name);
-  }
-
-  /**
-   * The allEdges function in {@link CFAUtils} contains {@link FunctionSummaryEdge}s, leading to
-   * parallel edges (two edges from note A to B) in the return value. This function filters out all
-   * {@link FunctionSummaryEdge}s.
-   *
-   * @param pCfa CFA whose edges we filter
-   * @return {@link FluentIterable} of {@link CFAEdge}s that are not instances of {@link
-   *     FunctionSummaryEdge}
-   */
-  private FluentIterable<CFAEdge> allUniqueEdges(CFA pCfa) {
-    return CFAUtils.allEdges(pCfa).filter(edge -> !(edge instanceof FunctionSummaryEdge));
   }
 }

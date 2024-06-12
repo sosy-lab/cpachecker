@@ -287,6 +287,19 @@ public class CFAUtils {
     return FluentIterable.from(pCfa.nodes()).transformAndConcat(CFAUtils::allLeavingEdges);
   }
 
+  /**
+   * The allEdges function contains {@link FunctionSummaryEdge}s, leading to parallel edges (two
+   * edges from node A to B) in the return value. This function filters out all
+   * {@link FunctionSummaryEdge}s.
+   *
+   * @param pCfa CFA whose edges we filter
+   * @return {@link FluentIterable} of {@link CFAEdge}s that are not instances of {@link
+   *     FunctionSummaryEdge}
+   */
+  public static FluentIterable<CFAEdge> allUniqueEdges(CFA pCfa) {
+    return allEdges(pCfa).filter(edge -> !(edge instanceof FunctionSummaryEdge));
+  }
+
   @SuppressWarnings("unchecked")
   public static FluentIterable<FunctionCallEdge> enteringEdges(final FunctionEntryNode node) {
     return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
