@@ -15,7 +15,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.For
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -67,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -461,10 +462,18 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCodeException {
-    FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
-    // FIXME: Remove this hack and convert to FloatingPointNumber directly
-    BigDecimal repr = new BigDecimal(fExp.getValue().toString());
-    return mgr.getFloatingPointFormulaManager().makeNumber(repr, (FloatingPointType) t);
+    FloatingPointType t = (FloatingPointType) conv.getFormulaTypeFromCType(fExp.getExpressionType());
+    FloatingPointFormulaManager fmgr = mgr.getFloatingPointFormulaManager();
+
+    // FIXME: Remove this hack and use FloatingPointNumber directly
+    FloatValue value = fExp.getValue();
+    if (value.isNan()) {
+      return fmgr.makeNaN(t);
+    } else if (value.isInfinite()) {
+      return value.isNegative() ? fmgr.makeMinusInfinity(t) : fmgr.makePlusInfinity(t);
+    } else {
+      return fmgr.makeNumber(value.toString(), t);
+    }
   }
 
   @Override
