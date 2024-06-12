@@ -462,7 +462,8 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCodeException {
-    FloatingPointType t = (FloatingPointType) conv.getFormulaTypeFromCType(fExp.getExpressionType());
+    FloatingPointType t =
+        (FloatingPointType) conv.getFormulaTypeFromCType(fExp.getExpressionType());
     FloatingPointFormulaManager fmgr = mgr.getFloatingPointFormulaManager();
 
     // FIXME: Remove this hack and use FloatingPointNumber directly
