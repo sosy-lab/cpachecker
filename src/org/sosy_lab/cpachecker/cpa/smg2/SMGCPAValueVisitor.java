@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -1152,7 +1153,6 @@ public class SMGCPAValueVisitor
   }
 
   /** Taken from the value analysis CPA. TODO: check that all casts are correct and add missing. */
-  @SuppressWarnings("deprecation")
   private Value castNumeric(
       @NonNull final NumericValue numericValue,
       final CType type,
@@ -1229,24 +1229,18 @@ public class SMGCPAValueVisitor
 
           if (isNan(numericValue) || isInfinity(numericValue)) {
             result = numericValue;
-          } else if (size == machineModel.getSizeofFloat() * 8) {
+          } else if (size == machineModel.getSizeofFloat() * bitPerByte) {
             // 32 bit means Java float
             result = new NumericValue(numericValue.floatValue());
-          } else if (size == machineModel.getSizeofDouble() * 8) {
+          } else if (size == machineModel.getSizeofDouble() * bitPerByte) {
             // 64 bit means Java double
             result = new NumericValue(numericValue.doubleValue());
-          } else if (size == machineModel.getSizeofFloat128() * 8) {
-            result = new NumericValue(numericValue.floatingPointValue());
-          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte
-              || size == machineModel.getSizeofDouble()) {
-
-            if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
-              result = new NumericValue(numericValue.doubleValue());
-            } else if (numericValue.bigDecimalValue().floatValue() == numericValue.floatValue()) {
-              result = new NumericValue(numericValue.floatValue());
-            } else {
-              result = UnknownValue.getInstance();
-            }
+          } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
+            result =
+                new NumericValue(numericValue.floatingPointValue().withPrecision(Format.Float128));
+          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+            result =
+                new NumericValue(numericValue.floatingPointValue().withPrecision(Format.Extended));
           } else {
             // TODO: Think of floating point types!
             throw new AssertionError("Unhandled floating point type: " + type);

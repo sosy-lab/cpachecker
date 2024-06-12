@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * This Visitor implements an evaluation strategy of simply typed expressions. An expression is
@@ -2466,7 +2467,6 @@ public abstract class AbstractExpressionValueVisitor
     return castNumeric(numericValue, type, machineModel, size);
   }
 
-  @SuppressWarnings("deprecation")
   private static Value castNumeric(
       @NonNull final NumericValue numericValue,
       final CType type,
@@ -2555,18 +2555,12 @@ public abstract class AbstractExpressionValueVisitor
           } else if (size == SIZE_OF_JAVA_DOUBLE) {
             // 64 bit means Java double
             result = new NumericValue(numericValue.doubleValue());
-
-          } else if (size == machineModel.getSizeofFloat128() * 8) {
-            result = new NumericValue(numericValue.floatingPointValue());
+          } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
+            result =
+                new NumericValue(numericValue.floatingPointValue().withPrecision(Format.Float128));
           } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
-
-            if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
-              result = new NumericValue(numericValue.doubleValue());
-            } else if (numericValue.bigDecimalValue().floatValue() == numericValue.floatValue()) {
-              result = new NumericValue(numericValue.floatValue());
-            } else {
-              result = UnknownValue.getInstance();
-            }
+            result =
+                new NumericValue(numericValue.floatingPointValue().withPrecision(Format.Extended));
           } else {
             throw new AssertionError("Unhandled floating point type: " + type);
           }

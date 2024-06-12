@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -36,7 +35,7 @@ public record NumericValue(Number number) implements Value {
    * ensured using `getType()` that this container contains an integer.
    *
    * <p>Warning: This silently truncates and rounds the value to fit into a long. Use {@link
-   * #bigDecimalValue() or #bigIntegerValue()} instead.
+   * #bigIntegerValue()} instead.
    */
   public long longValue() {
     return number.longValue();
@@ -46,7 +45,7 @@ public record NumericValue(Number number) implements Value {
    * Returns the floating point stored in the container as float.
    *
    * <p>Warning: This silently truncates and rounds the value to fit into a float. Use {@link
-   * #bigDecimalValue() or #bigIntegerValue()} instead.
+   * #bigIntegerValue()} instead.
    */
   public float floatValue() {
     return number.floatValue();
@@ -60,35 +59,6 @@ public record NumericValue(Number number) implements Value {
    */
   public double doubleValue() {
     return number.doubleValue();
-  }
-
-  /**
-   * Returns a BigDecimal value representing the stored number.
-   *
-   * <p>WARNING: This silently rounds numbers that are stored as a {@link Rational}.
-   */
-  @Deprecated
-  public BigDecimal bigDecimalValue() {
-    // TODO: Remove in favour of floatingPointValue()
-    if (number instanceof BigDecimal decimal) {
-      return decimal;
-    } else if (number instanceof Double || number instanceof Float) {
-      // if we use number.toString() for float values, the toString() method
-      // will not print the full double but only the number of digits
-      // necessary to distinguish it from the surrounding double-values.
-      // This will result in an incorrect value of the BigDecimal.
-      // Instead, use the floats themselves to get the precise value.
-      //
-      // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
-      return BigDecimal.valueOf(number.doubleValue());
-    } else if (number instanceof BigInteger bigInt) {
-      return new BigDecimal(bigInt);
-    } else if (number instanceof Rational rat) {
-      return new BigDecimal(rat.getNum())
-          .divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
-    } else {
-      return new BigDecimal(number.toString());
-    }
   }
 
   public FloatValue floatingPointValue() {
