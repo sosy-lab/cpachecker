@@ -116,7 +116,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     Set<CFunctionType> threadStartRoutines = new HashSet<>();
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
       if (PthreadFunction.isEdgeCallToFunction(cfaEdge, PthreadFunction.CREATE)) {
-        AAstNode aAstNode = cfaEdge.getRawAST().get();
+        AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
         CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
         // extract the third parameter of pthread_create which points to the start routine function
         CUnaryExpression cUnaryExpression =

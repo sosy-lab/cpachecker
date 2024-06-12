@@ -39,8 +39,8 @@ public enum PthreadFunction {
   public static boolean isEdgeCallToFunction(CFAEdge pCfaEdge, PthreadFunction pPthreadFunction) {
     Optional<AAstNode> aAstNode = pCfaEdge.getRawAST();
     return aAstNode.isPresent()
-        && aAstNode.get() instanceof CFunctionCallStatement
-        && ((CFunctionCallStatement) aAstNode.get())
+        && aAstNode.orElseThrow() instanceof CFunctionCallStatement
+        && ((CFunctionCallStatement) aAstNode.orElseThrow())
             .getFunctionCallExpression()
             .getFunctionNameExpression()
             .toASTString()
