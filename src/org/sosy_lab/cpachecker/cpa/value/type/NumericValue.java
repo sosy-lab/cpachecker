@@ -153,41 +153,42 @@ public record NumericValue(Number number) implements Value {
    * @return the negation of this objects value
    */
   public NumericValue negate() {
-    // TODO explicitfloat: handle the remaining different implementations of Number properly
-    // check if number is infinite or NaN
     if (number instanceof Float numberToNegate) {
+      // check if number is infinite or NaN
       if (numberToNegate.equals(Float.POSITIVE_INFINITY)) {
         return new NumericValue(Float.NEGATIVE_INFINITY);
-
       } else if (numberToNegate.equals(Float.NEGATIVE_INFINITY)) {
         return new NumericValue(Float.POSITIVE_INFINITY);
-
       } else if (numberToNegate.equals(Float.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
       } else {
         return new NumericValue(-numberToNegate);
       }
     } else if (number instanceof Double numberToNegate) {
+      // check if number is infinite or NaN
       if (numberToNegate.equals(Double.POSITIVE_INFINITY)) {
         return new NumericValue(Double.NEGATIVE_INFINITY);
-
       } else if (numberToNegate.equals(Double.NEGATIVE_INFINITY)) {
         return new NumericValue(Double.POSITIVE_INFINITY);
-
       } else if (numberToNegate.equals(Double.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
       } else {
         return new NumericValue(-numberToNegate);
       }
-    } else if (number instanceof BigInteger bigInt) {
-      return new NumericValue(bigInt.negate());
-    } else if (number instanceof Rational rat) {
-      return new NumericValue(rat.negate());
     } else if (NegativeNaN.VALUE.equals(number)) {
       return new NumericValue(Double.NaN);
+    } else if (number instanceof BigInteger
+        || number instanceof Long
+        || number instanceof Integer
+        || number instanceof Short
+        || number instanceof Byte) {
+      return new NumericValue(bigIntegerValue().negate());
+    } else if (number instanceof Rational rat) {
+      return new NumericValue(rat.negate());
     } else if (number instanceof FloatValue floatValue) {
       return new NumericValue(floatValue.negate());
     } else {
+      // TODO explicitfloat: handle the remaining different implementations of Number properly
       throw new IllegalArgumentException();
     }
   }
