@@ -31,16 +31,15 @@ public final class CDesignatedInitializer extends AbstractInitializer implements
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder sb = new StringBuilder();
     Joiner.on("")
         .appendTo(
             sb,
             transform(
-                designators,
-                cdesignator -> cdesignator.toASTString(pQualified, pOriginalVariableNames)));
+                designators, cdesignator -> cdesignator.toASTString(pAAstNodeRepresentation)));
     sb.append(" = ");
-    sb.append(right.toASTString(pQualified, pOriginalVariableNames));
+    sb.append(right.toASTString(pAAstNodeRepresentation));
     return sb.toString();
   }
 

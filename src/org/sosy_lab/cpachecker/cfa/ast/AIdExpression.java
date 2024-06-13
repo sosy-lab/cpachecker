@@ -36,30 +36,35 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames) {
-    return toASTString(pQualified, pOriginalVariableNames);
+  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
-    if (pQualified) {
-      ASimpleDeclaration decl = getDeclaration();
-      if (decl != null) {
-        String qualName = decl.getQualifiedName();
-        if (qualName != null) {
-          return qualName.replace("::", "__");
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return switch (pAAstNodeRepresentation) {
+      case QUALIFIED -> {
+        ASimpleDeclaration decl = getDeclaration();
+        if (decl != null) {
+          String qualName = decl.getQualifiedName();
+          if (qualName != null) {
+            yield qualName.replace("::", "__");
+          }
         }
+        yield name;
       }
-    } else if (pOriginalVariableNames) {
-      ASimpleDeclaration decl = getDeclaration();
-      if (decl != null) {
-        String origName = decl.getOrigName();
-        if (origName != null) {
-          return origName;
+      case ORIGINAL_NAMES -> {
+        ASimpleDeclaration decl = getDeclaration();
+        if (decl != null) {
+          String origName = decl.getOrigName();
+          if (origName != null) {
+            yield origName;
+          }
         }
+        yield name;
       }
-    }
-    return name;
+      case DEFAULT -> name;
+    };
   }
 
   public ASimpleDeclaration getDeclaration() {

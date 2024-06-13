@@ -26,7 +26,7 @@ public final class CFieldDesignator extends CDesignator {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString();
   }
 
@@ -36,8 +36,8 @@ public final class CFieldDesignator extends CDesignator {
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified, boolean pOriginalVariableNames) {
-    return toASTString(pQualified, pOriginalVariableNames);
+  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override

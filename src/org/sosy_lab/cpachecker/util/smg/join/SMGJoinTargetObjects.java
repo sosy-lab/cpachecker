@@ -81,7 +81,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
     if (!inputSMG1.isValid(pToEdge1.pointsTo())
         && !isDLLS(pToEdge1.pointsTo())
         && !inputSMG2.isValid(pToEdge2.pointsTo())) {
-      destSMG = destSMG.copyAndInvalidateObject(newObject);
+      destSMG = destSMG.copyAndInvalidateObject(newObject, true);
     }
     // add mappings step 12
     mapping1.addMapping(pToEdge1.pointsTo(), newObject);

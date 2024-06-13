@@ -22,8 +22,7 @@ CPAchecker is licensed under the [Apache 2.0 License](https://www.apache.org/lic
 with copyright by [Dirk Beyer](https://www.sosy-lab.org/people/beyer/) and others
 (cf. [Authors.md](Authors.md) for full list of all contributors).
 Third-party libraries are under various other licenses and copyrights,
-cf. `lib/java-runtime-licenses.txt` for an overview
-and the files in the directory `LICENSES` for the full license texts.
+cf. the files in the directory `LICENSES` for the full license texts.
 In particular, MathSAT is available for research and evaluation purposes only
 (cf. `LICENSES/LicenseRef-MathSAT-CPAchecker.txt`),
 so make sure to use a different SMT solver if necessary.
@@ -95,7 +94,7 @@ Verifying a Program with CPAchecker
    for executing the Linux version of CPAchecker.
 
    If you installed CPAchecker using Docker, the above example command line would look like this:
-   `docker run -v $(pwd):/workdir -u $UID:$GID registry.gitlab.com/sosy-lab/software/cpachecker -default /cpachecker/doc/examples/example.c`
+   `docker run -v $(pwd):/workdir -u $UID:$GID sosylab/cpachecker -default /cpachecker/doc/examples/example.c`
    This command makes the current directory available in the container,
    so to verify a program in the current directory just provide its file name
    instead of the example that is bundled with CPAchecker.

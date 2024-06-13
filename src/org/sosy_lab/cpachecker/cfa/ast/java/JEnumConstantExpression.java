@@ -38,7 +38,7 @@ public final class JEnumConstantExpression extends AbstractExpression implements
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString();
   }
 

@@ -46,10 +46,12 @@ class TypeHierachyConverter {
 
   public final LogManager logger;
   public final THTypeConverter typeConverter;
+  private final THTypeTable typeTable;
 
   public TypeHierachyConverter(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
     typeConverter = new THTypeConverter(pTypeTable);
+    typeTable = pTypeTable;
   }
 
   /**
@@ -65,7 +67,7 @@ class TypeHierachyConverter {
 
     if (methodBinding == null) {
       logger.log(Level.WARNING, md.getName(), "can't be resolved.");
-      return JMethodDeclaration.createUnresolvedMethodDeclaration();
+      return typeTable.getUnresolvableMethodDeclaration();
     }
 
     String methodName = NameConverter.convertName(methodBinding);
@@ -192,13 +194,13 @@ class TypeHierachyConverter {
     IMethodBinding methodBinding = md.resolveBinding();
 
     if (methodBinding == null) {
-      return JClassType.createUnresolvableType();
+      return typeTable.getUnresolvableClassType();
     }
 
     ITypeBinding typeBinding = methodBinding.getDeclaringClass();
 
     if (typeBinding == null) {
-      return JClassType.createUnresolvableType();
+      return typeTable.getUnresolvableClassType();
     }
 
     return typeConverter.convertClassOrInterfaceType(typeBinding);
@@ -210,7 +212,7 @@ class TypeHierachyConverter {
     if (type instanceof JClassType) {
       return (JClassType) type;
     } else {
-      return JClassType.createUnresolvableType();
+      return typeTable.getUnresolvableClassType();
     }
   }
 

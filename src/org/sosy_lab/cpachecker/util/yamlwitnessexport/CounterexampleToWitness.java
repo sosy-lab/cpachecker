@@ -80,7 +80,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     InformationRecord informationRecord =
-        new InformationRecord(statement, null, YAMLWitnessExpressionType.C.toString());
+        new InformationRecord(statement, null, YAMLWitnessExpressionType.C);
     LocationRecord location =
         LocationRecord.createLocationRecordAfterLocation(
             edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pAstCfaRelation);
@@ -123,10 +123,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // Currently, it is unclear what to do with assumptions where the next statement is after a
     // function return. Since the variables for the assumptions may not be in scope.
     // TODO: Add a method to export these assumptions
-    if (!CFAUtils.leavingEdges(pEdge.getSuccessor())
-        .transform(CFAEdge::getSuccessor)
-        .filter(FunctionExitNode.class)
-        .isEmpty()) {
+    if (!CFAUtils.successorsOf(pEdge.getSuccessor()).filter(FunctionExitNode.class).isEmpty()) {
       return Optional.empty();
     }
 
@@ -320,8 +317,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       Path outputFile = pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString());
       switch (witnessVersion) {
         case V2 -> exportWitnessVersion2(pCex, outputFile);
-        case V3 ->
-            logger.log(Level.INFO, "There is currently no version 3 for Violation Witnesses.");
+        case V2d1 ->
+            logger.log(Level.INFO, "There is currently no version 2.1 for Violation Witnesses.");
         default -> throw new AssertionError("Unknown witness version: " + witnessVersion);
       }
     }

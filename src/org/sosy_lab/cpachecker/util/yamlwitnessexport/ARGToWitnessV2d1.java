@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -22,22 +23,20 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetElementEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.CorrectnessWitnessSetEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.EnsuresRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntryV3;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.RequiresRecord;
 
-class ARGToWitnessV3 extends ARGToYAMLWitness {
-  protected ARGToWitnessV3(
+class ARGToWitnessV2d1 extends ARGToYAMLWitness {
+  protected ARGToWitnessV2d1(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
@@ -54,8 +53,8 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
    * @return an invariant over approximating the abstraction at the state
    * @throws InterruptedException if the execution is interrupted
    */
-  private InvariantEntryV3 createInvariant(
-      Collection<ARGState> argStates, CFANode node, String type) throws InterruptedException {
+  private InvariantEntry createInvariant(Collection<ARGState> argStates, CFANode node, String type)
+      throws InterruptedException, ReportingMethodNotImplementedException {
 
     // We now conjunct all the over approximations of the states and export them as loop invariants
     Optional<IterationElement> iterationStructure =
@@ -73,9 +72,8 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
             node.getFunction().getFileLocation().getFileName().toString(),
             node.getFunctionName());
 
-    InvariantEntryV3 invariantRecord =
-        new InvariantEntryV3(
-            invariant.toString(), type, YAMLWitnessExpressionType.C.toString(), locationRecord);
+    InvariantEntry invariantRecord =
+        new InvariantEntry(invariant.toString(), type, YAMLWitnessExpressionType.C, locationRecord);
 
     return invariantRecord;
   }
@@ -93,37 +91,52 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
    */
   private ImmutableList<FunctionContractEntry> handleFunctionContract(
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
-      Multimap<FunctionExitNode, ARGState> functionContractEnsures)
-      throws InterruptedException {
+      Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures)
+      throws InterruptedException, ReportingMethodNotImplementedException {
     ImmutableList.Builder<FunctionContractEntry> functionContractRecords =
         new ImmutableList.Builder<>();
-    for (FunctionEntryNode node : functionContractRequires.keySet()) {
-      Collection<ARGState> requiresArgStates = functionContractRequires.get(node);
+    for (FunctionEntryNode functionEntryNode : functionContractRequires.keySet()) {
+      Collection<ARGState> requiresArgStates = functionContractRequires.get(functionEntryNode);
 
-      FileLocation location = node.getFileLocation();
+      FileLocation location = functionEntryNode.getFileLocation();
       String requiresClause =
-          getOverapproximationOfStatesReplacingReturnVariables(requiresArgStates, node).toString();
-      String ensuresClause = "1";
-      if (node.getExitNode().isPresent()
-          && functionContractEnsures.containsKey(node.getExitNode().orElseThrow())) {
-        Collection<ARGState> ensuresArgStates =
-            functionContractEnsures.get(node.getExitNode().orElseThrow());
-        ensuresClause =
-            getOverapproximationOfStatesReplacingReturnVariables(ensuresArgStates, node).toString();
+          getOverapproximationOfStatesIgnoringReturnVariables(requiresArgStates, functionEntryNode)
+              .toString();
+      ImmutableSet.Builder<String> ensuresClause = new ImmutableSet.Builder<>();
+      if (functionEntryNode.getExitNode().isPresent()
+          && functionContractEnsures.containsKey(functionEntryNode.getExitNode().orElseThrow())) {
+        Collection<FunctionEntryExitPair> ensuresArgStates =
+            functionContractEnsures.get(functionEntryNode.getExitNode().orElseThrow());
+        for (FunctionEntryExitPair pair : ensuresArgStates) {
+          String stateOfTheInput =
+              getOverapproximationOfStatesIgnoringReturnVariables(
+                      ImmutableSet.of(pair.entry()), functionEntryNode)
+                  .toString();
+          String stateOfTheOutput =
+              getOverapproximationOfStatesWithOnlyReturnVariables(
+                      ImmutableSet.of(pair.exit()), functionEntryNode)
+                  .toString();
+          String implication = "(!(" + stateOfTheInput + ") || (" + stateOfTheOutput + "))";
+          ensuresClause.add(implication);
+        }
+      } else {
+        // If we do not have an exit node then we do not have any ensures clause
+        ensuresClause.add("1");
       }
       functionContractRecords.add(
           new FunctionContractEntry(
-              new EnsuresRecord(ImmutableList.of(ensuresClause)),
-              new RequiresRecord(ImmutableList.of(requiresClause)),
-              YAMLWitnessExpressionType.C,
-              LocationRecord.createLocationRecordAtStart(location, node.getFunctionName())));
+              String.join(" && ", ensuresClause.build()),
+              requiresClause,
+              YAMLWitnessExpressionType.ACSL,
+              LocationRecord.createLocationRecordAtStart(
+                  location, functionEntryNode.getFunctionName())));
     }
 
     return functionContractRecords.build();
   }
 
   void exportWitness(ARGState pRootState, Path pOutputFile)
-      throws InterruptedException, IOException {
+      throws InterruptedException, IOException, ReportingMethodNotImplementedException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
@@ -131,8 +144,7 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    ImmutableList.Builder<CorrectnessWitnessSetElementEntry> entries =
-        new ImmutableList.Builder<>();
+    ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
@@ -160,7 +172,6 @@ class ARGToWitnessV3 extends ARGToYAMLWitness {
             statesCollector.functionContractRequires, statesCollector.functionContractEnsures));
 
     exportEntries(
-        new CorrectnessWitnessSetEntry(getMetadata(YAMLWitnessVersion.V3), entries.build()),
-        pOutputFile);
+        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), entries.build()), pOutputFile);
   }
 }

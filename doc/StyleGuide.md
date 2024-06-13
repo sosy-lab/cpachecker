@@ -13,7 +13,7 @@ Style & Coding Guide
 
 The style guide of this project is the [Google Java Style](https://google.github.io/styleguide/javaguide.html)
 and we format all code with [google-java-format](https://github.com/google/google-java-format).
-we recommend to install the google-java-format plugin for your IDE,
+We recommend to install the google-java-format plugin for your IDE,
 otherwise you need to execute `ant format-source` before each commit.
 
 Further guidelines that are worth reading:
@@ -29,7 +29,7 @@ with considerably less effort!
 
 ## Additional rules and hints
 
-### Spelling
+### Spelling and Naming
 
 - Try to avoid typos.
 - Interfaces are not named with a leading `I`.
@@ -49,6 +49,7 @@ with considerably less effort!
 - For a set of names of concepts (e.g., of files, classes),
   the prefix order induced by the names should
   represent the semantic relation and structure of the concepts.
+- Avoid negations in names, e.g., for parameters, fields etc.
 
 ### Compilation
 
@@ -62,15 +63,18 @@ with considerably less effort!
 ### Design
 
 - Prefer immutable objects, for own classes and for collections
-  (https://github.com/google/guava/wiki/ImmutableCollectionsExplained).
+  (cf. [Guava's explanation of immutable collections](https://github.com/google/guava/wiki/ImmutableCollectionsExplained)).
   Do not add setters unless really required!
-  For collections use Guava's types, cf. below.
-- Avoid null, replace it with real objects, or (at last resort) Optional:
-  https://github.com/google/guava/wiki/UsingAndAvoidingNullExplained
-  In fields and private context, null is acceptable if there is no nicer solution.
-- Avoid boolean parameters. They carry no semantics
+  For collections use Guava's types, cf. [below](#use-guavas-immutable-data-structures).
+- Avoid `null`, replace it with real objects, or (at last resort) `Optional`
+  (cf. [Guava's explanation of avoiding `null`](https://github.com/google/guava/wiki/UsingAndAvoidingNullExplained))
+  and make your code `null`-hostile:
+  actively preventing `null` by adding pre-condition checks
+  finds bugs and makes the code easier to understand.
+  In fields and private context, `null` is acceptable if there is no nicer solution.
+- Avoid `boolean` parameters. They carry no semantics
   and make it hard to understand for the reader what effect they have
-  (cf. http://martinfowler.com/bliki/FlagArgument.html)
+  (cf. [Martin Fowler's explanation](http://martinfowler.com/bliki/FlagArgument.html)).
 
 ### Configuration Options
 
@@ -96,13 +100,23 @@ with considerably less effort!
   * non-public classes, methods and fields
 - Please add comments wherever sensible,
   but make sure to add comments for the top three items!
-- All command-line options need to be explained in doc/Configuration.txt.
+- All command-line options need to be explained in [`doc/Configuration.txt`](Configuration.txt).
 - All `@Option` fields need to have a non-empty description
   that explains (to a user) what the option does.
+- All top-level configuration files (`config/*.properties`) need to have a description
+  that explains (to a user) what the configuration does.
+- Add references to external sources wherever possible,
+  e.g., to papers describing implemented concepts or any relevant standard
+  like C, Java, witnesses, etc.
+  Use deep links and precise references to the relevant parts.
+- Self-documenting code is usually better than an explicit comment describing what it does.
+  This is achieved by using functions and variables with descriptive names.
+  But do not take this as an excuse to omit useful comments
+  that describe the reason for some particular code or background context.
 
 ### Collections and Data Structures
 
-- Use Guava's immutable data structures as described below in the separate section!
+- Use Guava's immutable data structures as described [below in the separate section](#use-guavas-immutable-data-structures)!
 - Use arrays only with primitive types (`int`, `long`, etc.)
   or when existing APIs require them.
   Otherwise never use arrays of object types, use lists instead.
@@ -124,45 +138,54 @@ with considerably less effort!
 
 ### Coding
 
+- Make sure that CPAchecker remains deterministic,
+  i.e., use fixed seeds and do not iterate over collections with non-deterministic order.
 - Never have public fields,
   never have non-private non-final fields,
   and try to keep all other non-private fields to a minimum.
-- If you use null in method parameters or return values, annotate them with @Nullable.
+- If you use null in method parameters, return values, or fields,
+  annotate them with `@Nullable`.
 - Mark fields as final, if they are never modified,
   and try to make them final, if they are modified (-> immutability).
 - Prefer enhanced for-loop over `List.get(int)`.
 - Use try-with-resources instead of manually calling `close()`.
-- For Function, Predicate, and Optional,
+- For `Function`, `Predicate`, and `Optional`,
   use the JDK types instead of the Guava types where possible.
-  For Optional fields in serializable classes, make them @Nullable instead.
+  For Optional fields in serializable classes, make them `@Nullable` instead.
 - Do not over-use functional idioms!
   When an imperative version of the code is shorter and easier to read,
   it should be preferred.
+- Avoid long and complex anonymous functions, especially if deeply nested.
+  Turning them into a regular method and using a method reference
+  makes the code easier to read and understand
+  (e.g., because the function now has a name describing what it does).
 - Use `Integer`, `Double`, `Long`, `Boolean` etc. only when necessary (this is, inside generics like in `List<Integer>`).
   In fields, method parameters and return values, and local parameters,
   it is better to use the corresponding primitive types like int.
-- Never call the constructor of `Integer`, `Double`, `Long`, `Boolean`, etc.!
-  Use the `valueOf()` method, it may do caching.
-- Never call the `String` constructor.
-  Strings do not need copying, and for other uses there is the `valueOf()` method.
 - Be very careful when implementing `Comparator` or `Comparable`!
   The logic for comparison is typically very error prone.
   For example, one must not use integer subtraction or integer negation,
   because both can overflow and cause a wrong result.
   Try to avoid implementing Comparators and instead use Guava's Ordering
-  or the Comparator utilities that exist since Java 8
-  (static methods on `Comparator` interface).
-  If you implement `Comparator` or `Comparable`, use Guava's `ComparisonChain`
-  or at least methods like `Integer.compare` for comparison.
+  or the static methods on the `Comparator` interface.
+  If you implement `Comparator` or `Comparable`,
+  follow our below instructions for [`compareTo` methods](#compareto-methods).
 - Avoid `Cloneable` and `clone()`, use copy constructors instead if you need them
   (you don't if you use immutable classes).
 - Never swallow an exception.
   If throwing another exception, add the original one as the cause.
   If logging, use the appropriate logger methods (c.f. [`Logging.md`](Logging.md)).
-- Do not catch `Exception`, catch only the specific exception types
+- Do not catch unchecked exceptions, these are used to signal bugs,
+  so catching them hides bugs.
+  If case it is really required, catch only the most specific type
+  and only from the smallest possible part of the code.
+  In particular, never catch `Exception`, only the specific exception types
   that need to be caught!
-- Always put `@Override` when implementing an overriding method
-  (Eclipse does this automatically).
+- Always use arrow rules inside `switch` instead of case labels
+  (`case foo ->` instead of `case foo:`).
+- Use `switch` expressions instead of `switch` statements as far as possible,
+  this allows the compiler to check exhaustiveness.
+- Do not write `this.` were not necessary.
 
 ### Use Guava's immutable data structures
 
@@ -212,20 +235,16 @@ Avoid the following classes:
 
 | Avoid                          | Replacement          | Why? |
 |--------------------------------|----------------------|------|
-| com.google.common.base.Objects | java.util.Objects    | only necessary for older Java |
 | com.google.common.base.Optional| java.util.Optional   | only necessary for older Java, mix of types is confusing |
 | java.io.**PrintStream**        | BufferedOutputStream | Swallows IOExceptions, but use for CPAchecker's statistics is ok |
 | java.io.**PrintWriter**        | BufferedWriter       | Swallows IOExceptions |
-| java.util.Hashtable            | HashMap              | old and deprecated |
 | java.util.**LinkedList**       | ArrayList/ArrayDeque | inefficient, but note that ArrayDeque does not accept null and is slower when modifying in the middle |
-| java.util.Stack                | Deque                | old and deprecated |
-| java.util.Vector               | ArrayList            | old and deprecated |
 | org.junit.**Assert**           | Truth.assertThat     | much better failure messages |
 
-For Guava's Optional, usage that is hidden inside fluent method chains is ok
+For Guava's `Optional`, usage that is hidden inside fluent method chains is ok
 (Example: `FluentIterable.from(...).first().orNull()`)
 but using it as a type (for declaring variables etc.) is not
-as it introduces confusion with Java's Optional.
+as it introduces confusion with Java's `Optional`.
 
 
 ### equals methods
@@ -234,13 +253,15 @@ Writing a correct `equals()` implementation can be tricky.
 It needs to ensure that it fulfills the contract of `equals()`
 (reflexive, symmetric, transitive), returns `false` for `null`,
 does not crash for unexpected types, and is consistent with `hashCode()`.
-For data classes, the recommended alternative to writing `equals()`
-is to use a `record`.
+**For data classes, the recommended alternative to writing `equals()`
+is to use a [`record class`](https://docs.oracle.com/en/java/javase/17/language/records.html).**
 If this is not possible, please use one of the following patterns.
 General notes:
 - The `this == pOther` check in in `equals` is optional.
-- If a field is nullable (but only then),
-  compare it with `Objects.equals(Object a, Object b)`.
+- Primitive fields need to be compared using `==`,
+  object fields with `Object.equals(Object other)`
+  and `@Nullable` object fields (but only those)
+  with `Objects.equals(Object a, Object b)`.
 - In class hierarchies, each class should check its own fields
   and delegate to `super.equals()` for the rest.
 
@@ -252,7 +273,7 @@ public void equals(@Nullable Object pOther) {
   }
   return pOther instanceof MyClass other
       && field1.equals(other.field1)
-      && field2.equals(other.field2)
+      && primitiveField2 == other.primitiveField2
       && ...;
 }
 ```
@@ -271,7 +292,7 @@ public void equals(@Nullable Object pOther) {
   }
   MyClass other = (MyClass) pOther;
   return field1.equals(other.field1)
-      && field2.equals(other.field2)
+      && primitiveField2 == other.field2
       && ...;
 }
 ```
@@ -322,9 +343,9 @@ e.g., because more than one field needs to be compared:
 ```java
 public int compareTo(MyClass other) {
   return ComparisonChain.start()
-    .compare(field1, other.field1)
-    .compare(field2, other.field2)
-    .result();
+      .compare(field1, other.field1)
+      .compare(field2, other.field2)
+      .result();
 }
 ```
 

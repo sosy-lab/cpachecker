@@ -13,7 +13,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class AVariableDeclaration extends AbstractDeclaration {
+public abstract class AVariableDeclaration extends AbstractDeclaration
+    implements Comparable<AVariableDeclaration> {
 
   private static final long serialVersionUID = -8792173769663524307L;
   private final String qualifiedName;
@@ -43,20 +44,19 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
-    if (pQualified) {
-      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
-    } else if (pOriginalVariableNames) {
-      lASTString.append(getType().toASTString(getOrigName()));
-    } else {
-      lASTString.append(getType().toASTString(getName()));
-    }
+    lASTString.append(
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> getType().toASTString(getName());
+          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+        });
 
     if (initializer != null) {
       lASTString.append(" = ");
-      lASTString.append(initializer.toASTString(pQualified, pOriginalVariableNames));
+      lASTString.append(initializer.toASTString(pAAstNodeRepresentation));
     }
 
     lASTString.append(";");
@@ -87,5 +87,10 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
     return obj instanceof AVariableDeclaration other
         && super.equals(obj)
         && qualifiedName.equals(other.qualifiedName);
+  }
+
+  @Override
+  public int compareTo(AVariableDeclaration pOther) {
+    return getQualifiedName().compareTo(pOther.getQualifiedName());
   }
 }

@@ -29,16 +29,15 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 
 /** ARGState for Symbolic Locations */
-public class SLARGState extends ARGState
+public final class SLARGState extends ARGState
     implements AbstractState, Targetable, AbstractStateWithLocations {
 
   private static final long serialVersionUID = -1008999926741613988L;
-  private Map<SLARGState, EdgeSet> parentsToEdgeSets;
-  private Map<SLARGState, EdgeSet> childrenToEdgeSets;
+  private final Map<SLARGState, EdgeSet> parentsToEdgeSets;
+  private final Map<SLARGState, EdgeSet> childrenToEdgeSets;
 
-  private boolean isInit;
-  private boolean isError;
-  private boolean isAbstractionState = true;
+  private final boolean isInit;
+  private final boolean isError;
 
   public SLARGState(
       SLARGState parent,
@@ -148,10 +147,6 @@ public class SLARGState extends ARGState
   public boolean wasExpanded() {
     return expanded;
   }*/
-
-  public boolean isAbstractionState() {
-    return isAbstractionState;
-  }
 
   @Override
   public String toString() {

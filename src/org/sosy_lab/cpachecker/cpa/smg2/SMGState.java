@@ -18,6 +18,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.math.BigInteger;
@@ -1101,6 +1102,11 @@ public class SMGState
             pFunctionDefinition, machineModel, variableArgumentsInOrder));
   }
 
+  /** Copy SMGState and adds a new dummy frame for tests. */
+  public SMGState copyAndAddDummyStackFrame() {
+    return copyAndReplaceMemoryModel(memoryModel.copyAndAddDummyStackFrame());
+  }
+
   @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
@@ -1154,7 +1160,7 @@ public class SMGState
   }
 
   private boolean checkStackFrameEqualityForTwoStates(
-      SMGState pOther, EqualityCache<Value> equalityCache) {
+      SMGState pOther, EqualityCache<Value> equalityCache, EqualityCache<SMGObject> objectCache) {
     Iterator<CFunctionDeclarationAndOptionalValue> thisStackFrames =
         memoryModel.getFunctionDeclarationsFromStackFrames().iterator();
     Iterator<CFunctionDeclarationAndOptionalValue> otherStackFrames =
@@ -1173,7 +1179,7 @@ public class SMGState
         Value thisRetVal = thisFrame.getReturnValue();
         // TODO: overapproximation is OK! We can accept that a concrete value is covered by a
         // overapproximation
-        if (!areValuesEqual(this, thisRetVal, pOther, otherRetVal, equalityCache)) {
+        if (!areValuesEqual(this, thisRetVal, pOther, otherRetVal, equalityCache, objectCache)) {
           return false;
         }
       } else {
@@ -1186,7 +1192,7 @@ public class SMGState
   }
 
   private boolean checkEqualityOfMemoryForTwoStates(
-      SMGState pOther, EqualityCache<Value> equalityCache) {
+      SMGState pOther, EqualityCache<Value> equalityCache, EqualityCache<SMGObject> objectCache) {
     // We check the tolerant way; i.e. ignore all type information
     // Get all (global and local) variables
     PersistentMap<MemoryLocation, ValueAndValueSize> thisAllMemLocAndValues =
@@ -1202,7 +1208,8 @@ public class SMGState
       // Now check the equality of all values. For concrete values, we allow overapproximations.
       // Pointers/memory is compared by shape, subsumtion is allowed for equal linked lists, such
       // that the smaller subsumes the larger (5+ >= 6+)
-      if (!areValuesEqual(this, thisValueAndType.getValue(), pOther, otherValue, equalityCache)) {
+      if (!areValuesEqual(
+          this, thisValueAndType.getValue(), pOther, otherValue, equalityCache, objectCache)) {
         return false;
       }
       // Remove the checked values (don't double-check later)
@@ -1225,6 +1232,7 @@ public class SMGState
     return true;
   }
 
+  /** Returns number of times the value is saved in memory (stack variables, heap etc.) */
   public int getNumberOfValueUsages(Value value) {
     return memoryModel.getNumberOfValueUsages(value);
   }
@@ -1234,6 +1242,12 @@ public class SMGState
     // This state needs the same amount of variables as the other state
     if (getSize() != pOther.getSize()) {
       return false;
+    }
+
+    if (getMemoryModel().getSmg().getNumberOfAbstractedLists() < 1
+        && pOther.getMemoryModel().getSmg().getNumberOfAbstractedLists() < 1) {
+      // return false;
+      // TODO: think about this more
     }
 
     if (!pOther.constraintsState.containsAll(constraintsState)) {
@@ -1247,10 +1261,11 @@ public class SMGState
       return false;
     }
 
-    // Cache equalities that we already found
+    // Cache value equalities and object (shape) equalities that we already found
     EqualityCache<Value> equalityCache = EqualityCache.of();
+    EqualityCache<SMGObject> objectCache = EqualityCache.of();
     // Check that both have the same stack frames
-    if (!checkStackFrameEqualityForTwoStates(pOther, equalityCache)) {
+    if (!checkStackFrameEqualityForTwoStates(pOther, equalityCache, objectCache)) {
       return false;
     }
 
@@ -1259,7 +1274,7 @@ public class SMGState
     // pointers is lessOrEqual)
     // Validity is checked while checking values and the shape!
     // There might linger some invalidated memory with no connection and that's fine.
-    return checkEqualityOfMemoryForTwoStates(pOther, equalityCache);
+    return checkEqualityOfMemoryForTwoStates(pOther, equalityCache, objectCache);
   }
 
   /**
@@ -1279,9 +1294,19 @@ public class SMGState
       @Nullable Value thisValue,
       SMGState otherState,
       @Nullable Value otherValue,
-      EqualityCache<Value> equalityCache) {
+      EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache) {
     return areValuesEqual(
-        thisState, thisValue, otherState, otherValue, equalityCache, new HashSet<>(), false);
+        thisState,
+        thisValue,
+        otherState,
+        otherValue,
+        ImmutableMap.of(),
+        equalityCache,
+        objectCache,
+        new HashSet<>(),
+        false,
+        false);
   }
 
   /**
@@ -1305,8 +1330,11 @@ public class SMGState
         thisValue,
         otherState,
         otherValue,
+        ImmutableMap.of(),
+        new EqualityCache<>(),
         new EqualityCache<>(),
         new HashSet<>(),
+        false,
         false);
   }
 
@@ -1326,9 +1354,12 @@ public class SMGState
       @Nullable Value thisValue,
       SMGState otherState,
       @Nullable Value otherValue,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache,
       Set<Value> thisAlreadyCheckedPointers,
-      boolean treatSymbolicsAsEqualWEqualConstrains) {
+      boolean treatSymbolicsAsEqualWEqualConstrains,
+      boolean allowAbstractedSelfPointers) {
     // Comparing pointers leads to == true, but they may be not equal because of the heap!!!
     if (thisValue == otherValue && thisValue.isExplicitlyKnown()) {
       return true;
@@ -1369,9 +1400,12 @@ public class SMGState
           thisValue,
           otherState,
           otherValue,
+          exemptOffsetsPerObject,
           equalityCache,
+          objectCache,
           thisAlreadyCheckedPointers,
-          treatSymbolicsAsEqualWEqualConstrains)) {
+          treatSymbolicsAsEqualWEqualConstrains,
+          allowAbstractedSelfPointers)) {
         equalityCache.addEquality(thisValue, otherValue);
         return true;
       }
@@ -1384,11 +1418,11 @@ public class SMGState
     // Each state generates a unique ConstantSymbolicExpression id (as its statically generated)
     // Comparable is only that both are ConstantSymbolicExpressions and the type matches and
     // that they do represent the same location
-    if (thisValue instanceof SymbolicExpression
-        && otherValue instanceof SymbolicExpression
-        && ((SymbolicExpression) thisValue)
-            .getType()
-            .equals(((SymbolicExpression) otherValue).getType())) {
+    if ((thisValue instanceof SymbolicExpression thisSymExpr
+        && otherValue instanceof SymbolicExpression otherSymExpr
+        && thisSymExpr.getType().equals(otherSymExpr.getType()))) {
+      // Note: SymbolicIdentifier without const expr wrapper are pointers,
+      //   while those with wrapper are values
       if (thisValue.equals(otherValue)) {
         return true;
       } else if (treatSymbolicsAsEqualWEqualConstrains
@@ -1436,9 +1470,12 @@ public class SMGState
       Value thisAddress,
       SMGState otherState,
       Value otherAddress,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache,
       Set<Value> thisAlreadyCheckedPointers,
-      boolean treatSymbolicsAsEqualWEqualConstrains) {
+      boolean treatSymbolicsAsEqualWEqualConstrains,
+      boolean allowAbstractedSelfPointers) {
     // Careful, dereference might materialize new memory out of abstractions!
     Optional<SMGStateAndOptionalSMGObjectAndOffset> thisDeref =
         thisState.dereferencePointerWithoutMaterilization(thisAddress);
@@ -1465,13 +1502,21 @@ public class SMGState
       Value otherObjSize = otherObj.getSize();
       Value thisDerefOffset = thisDerefObjAndOffset.getOffsetForObject();
       Value otherDerefOffset = otherDerefObjAndOffset.getOffsetForObject();
+      SMGTargetSpecifier thisSpecifier = thisState.memoryModel.getPointerSpecifier(thisAddress);
+      SMGTargetSpecifier otherSpecifier = otherState.memoryModel.getPointerSpecifier(otherAddress);
       if (!thisDerefOffset.equals(otherDerefOffset)) {
         return false;
-      } else if (!thisState
-          .memoryModel
-          .getPointerSpecifier(thisAddress)
-          .equals(otherState.memoryModel.getPointerSpecifier(otherAddress))) {
-        return false;
+      } else if (!thisSpecifier.equals(otherSpecifier)) {
+        // For abstracting self-pointers in linked lists,
+        //   we allow all to be equal to region while abstracting
+        boolean thisEqAll = thisSpecifier.equals(SMGTargetSpecifier.IS_ALL_POINTER);
+        boolean otherEqAll = otherSpecifier.equals(SMGTargetSpecifier.IS_ALL_POINTER);
+        boolean thisEqReg = thisSpecifier.equals(SMGTargetSpecifier.IS_REGION);
+        boolean otherEqReg = otherSpecifier.equals(SMGTargetSpecifier.IS_REGION);
+        if (!(allowAbstractedSelfPointers
+            && ((thisEqAll && otherEqReg) || (otherEqAll && thisEqReg)))) {
+          return false;
+        }
       } else if (!(thisObjSize.equals(otherObjSize)
           && thisObj.getNestingLevel() == otherObj.getNestingLevel()
           && thisObj.getOffset().compareTo(otherObj.getOffset()) == 0)) {
@@ -1485,9 +1530,12 @@ public class SMGState
             thisObj,
             otherState,
             otherObj,
+            exemptOffsetsPerObject,
             equalityCache,
+            objectCache,
             thisAlreadyCheckedPointers,
-            treatSymbolicsAsEqualWEqualConstrains);
+            treatSymbolicsAsEqualWEqualConstrains,
+            allowAbstractedSelfPointers);
       }
 
       if (!getMemoryModel().isObjectValid(thisObj)
@@ -1496,15 +1544,28 @@ public class SMGState
         return true;
       }
 
-      return checkEqualValuesForTwoStatesWithExemptions(
+      if (objectCache.isEqualityKnown(thisObj, otherObj)) {
+        return true;
+      } else {
+        // Assume them to be equal from here on, this way we don't check them multiple times
+        // This also means we need to remove it if it's found to be not equal!
+        objectCache.addEquality(thisObj, otherObj);
+      }
+
+      if (checkEqualValuesForTwoStatesWithExemptions(
           thisObj,
           otherObj,
-          ImmutableList.of(),
+          exemptOffsetsPerObject,
           thisState,
           otherState,
           equalityCache,
+          objectCache,
           thisAlreadyCheckedPointers,
-          treatSymbolicsAsEqualWEqualConstrains);
+          treatSymbolicsAsEqualWEqualConstrains,
+          allowAbstractedSelfPointers)) {
+        return true;
+      }
+      objectCache.removeEquality(thisObj, otherObj);
     }
     return false;
   }
@@ -1517,10 +1578,16 @@ public class SMGState
       SMGObject thisObj,
       SMGState otherState,
       SMGObject otherObj,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache,
       Set<Value> thisPointerValueAlreadyVisited,
-      boolean treatSymbolicsAsEqualWEqualConstrains) {
+      boolean treatSymbolicsAsEqualWEqualConstrains,
+      boolean allowAbstractedSelfPointers) {
 
+    if (objectCache.isEqualityKnown(thisObj, otherObj)) {
+      return true;
+    }
     // If one is DLL and the other is SLL, something is wrong
     if ((otherObj instanceof SMGDoublyLinkedListSegment
             && !(thisObj instanceof SMGDoublyLinkedListSegment)
@@ -1548,14 +1615,63 @@ public class SMGState
         return checkEqualValuesForTwoStatesWithExemptions(
             thisSLL,
             otherSLL,
-            ImmutableList.of(),
+            exemptOffsetsPerObject,
             thisState,
             otherState,
             equalityCache,
+            objectCache,
             thisPointerValueAlreadyVisited,
-            treatSymbolicsAsEqualWEqualConstrains);
+            treatSymbolicsAsEqualWEqualConstrains,
+            allowAbstractedSelfPointers);
       }
     } else {
+      // We could end up here because of abstraction with one abstracted element and a
+      // concrete element and both have a self pointer and next/prev pointers blocked
+      List<BigInteger> exemptOffsetsThis = exemptOffsetsPerObject.get(otherObj);
+      List<BigInteger> exemptOffsetsOther = exemptOffsetsPerObject.get(otherObj);
+      BigInteger neededNext;
+      BigInteger neededPrev = null;
+      if (exemptOffsetsOther == null
+          || exemptOffsetsThis == null
+          || exemptOffsetsThis.isEmpty()
+          || exemptOffsetsOther.isEmpty()) {
+        return false;
+      }
+
+      if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
+        Preconditions.checkArgument(!(thisObj instanceof SMGSinglyLinkedListSegment));
+        neededNext = otherSLL.getNextOffset();
+        if (otherObj instanceof SMGDoublyLinkedListSegment otherDLL) {
+          neededPrev = otherDLL.getPrevOffset();
+        }
+      } else {
+        SMGSinglyLinkedListSegment thisSLL = (SMGSinglyLinkedListSegment) thisObj;
+        Preconditions.checkArgument(!(otherObj instanceof SMGSinglyLinkedListSegment));
+        neededNext = thisSLL.getNextOffset();
+        if (thisObj instanceof SMGDoublyLinkedListSegment thisDLL) {
+          neededPrev = thisDLL.getPrevOffset();
+        }
+      }
+
+      if (exemptOffsetsOther.contains(neededNext) && exemptOffsetsThis.contains(neededNext)) {
+        if (neededPrev != null) {
+          if (!exemptOffsetsOther.contains(neededPrev) || !exemptOffsetsThis.contains(neededPrev)) {
+            return false;
+          }
+        }
+        return checkEqualValuesForTwoStatesWithExemptions(
+            thisObj,
+            otherObj,
+            exemptOffsetsPerObject,
+            thisState,
+            otherState,
+            equalityCache,
+            objectCache,
+            thisPointerValueAlreadyVisited,
+            treatSymbolicsAsEqualWEqualConstrains,
+            allowAbstractedSelfPointers);
+      }
+
       // Don't check for equality of abstracted and concrete lists for lessOrEqual!
       return false;
     }
@@ -1569,33 +1685,36 @@ public class SMGState
    *
    * @param thisObject object of the this state to compare.
    * @param otherObject object of the other state to compare.
-   * @param exemptOffsets exempt offsets, e.g. nfo, pfo offsets.
+   * @param exemptOffsetsPerObject exempt offsets, e.g. nfo, pfo offsets per object (objects might
+   *     be visited again! through pointers).
    * @param thisState the state to which the this object belongs.
    * @param otherState the state to which the other object belongs.
    * @param equalityCache basic value check cache.
    * @param treatSymbolicsAsEqualWEqualConstrains true if you want 2 non-equal symbolic variables
    *     with the same constraints to be treated as equals.
    * @return true if the 2 memory sections given are equal. False else.
-   * @throws SMGException for critical errors.
    */
   public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
-      ImmutableList<BigInteger> exemptOffsets,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache,
-      boolean treatSymbolicsAsEqualWEqualConstrains)
-      throws SMGException {
+      EqualityCache<SMGObject> objectCache,
+      boolean treatSymbolicsAsEqualWEqualConstrains,
+      boolean allowAbstractedSelfPointers) {
     return checkEqualValuesForTwoStatesWithExemptions(
         thisObject,
         otherObject,
-        exemptOffsets,
+        exemptOffsetsPerObject,
         thisState,
         otherState,
         equalityCache,
+        objectCache,
         new HashSet<>(),
-        treatSymbolicsAsEqualWEqualConstrains);
+        treatSymbolicsAsEqualWEqualConstrains,
+        allowAbstractedSelfPointers);
   }
 
   /**
@@ -1613,7 +1732,29 @@ public class SMGState
   public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
-      ImmutableList<BigInteger> exemptOffsets,
+      Map<SMGObject, List<BigInteger>> exemptOffsets,
+      SMGState thisState,
+      SMGState otherState,
+      EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache) {
+    return checkEqualValuesForTwoStatesWithExemptions(
+        thisObject,
+        otherObject,
+        exemptOffsets,
+        thisState,
+        otherState,
+        equalityCache,
+        objectCache,
+        new HashSet<>(),
+        false,
+        false);
+  }
+
+  // Test only version of checkEqualValuesForTwoStatesWithExemptions
+  public boolean checkEqualValuesForTwoStatesWithExemptions(
+      SMGObject thisObject,
+      SMGObject otherObject,
+      Map<SMGObject, List<BigInteger>> exemptOffsets,
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache) {
@@ -1624,7 +1765,9 @@ public class SMGState
         thisState,
         otherState,
         equalityCache,
+        EqualityCache.of(),
         new HashSet<>(),
+        false,
         false);
   }
 
@@ -1632,23 +1775,27 @@ public class SMGState
    * Compare 2 values, but do not compare the exempt offsets. Compares pointers by shape of the
    * memory they point to. Needed for lists and their next/prev pointers.
    *
-   * @param thisObject object of the this state to compare.
-   * @param otherObject object of the other state to compare.
-   * @param exemptOffsets exempt offsets, e.g. nfo, pfo offsets.
-   * @param thisState the state to which the this object belongs.
-   * @param otherState the state to which the other object belongs.
+   * @param thisObject object of the thisState to compare.
+   * @param otherObject object of the otherState to compare.
+   * @param exemptOffsetsPerObject exempt offsets, e.g. nfo, pfo offsets per object (objects might
+   *     be visited again! through pointers).
+   * @param thisState the state to which the thisObject belongs.
+   * @param otherState the state to which the otherObject belongs.
    * @param equalityCache basic value check cache.
    * @return true if the 2 memory sections given are equal. False else.
    */
   private boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
-      ImmutableList<BigInteger> exemptOffsets,
+      Map<SMGObject, List<BigInteger>> exemptOffsetsPerObject,
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache,
+      EqualityCache<SMGObject> objectCache,
       Set<Value> thisPointerValuesAlreadyVisited,
-      boolean treatSymbolicsAsEqualWEqualConstrains) {
+      boolean treatSymbolicsAsEqualWEqualConstrains,
+      boolean allowAbstractedSelfPointers) {
+
     Preconditions.checkArgument(
         thisState.getMemoryModel().getSmg().getObjects().contains(thisObject));
     Preconditions.checkArgument(
@@ -1661,7 +1808,9 @@ public class SMGState
             .getSmg()
             .getSMGObjectsWithSMGHasValueEdges()
             .getOrDefault(otherObject, PersistentSet.of())) {
-      if (!exemptOffsets.contains(hve.getOffset())) {
+      if (!exemptOffsetsPerObject
+          .getOrDefault(otherObject, ImmutableList.of())
+          .contains(hve.getOffset())) {
         otherOffsetToHVEdgeMap.put(hve.getOffset(), hve);
       }
     }
@@ -1675,11 +1824,14 @@ public class SMGState
             .getSmg()
             .getSMGObjectsWithSMGHasValueEdges()
             .getOrDefault(thisObject, PersistentSet.of())) {
-      if (!exemptOffsets.contains(hve.getOffset())) {
+      if (!exemptOffsetsPerObject
+          .getOrDefault(otherObject, ImmutableList.of())
+          .contains(hve.getOffset())) {
         thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
         if (memoryModel.getSmg().isPointer(hve.hasValue())) {
           // Pointers are necessary!!!!
-          if (otherOffsetToHVEdgeMap.get(hve.getOffset()) == null) {
+          SMGHasValueEdge otherHVE = otherOffsetToHVEdgeMap.get(hve.getOffset());
+          if (otherHVE == null) {
             return false;
           }
         }
@@ -1709,9 +1861,12 @@ public class SMGState
           thisHVEValue,
           otherState,
           otherHVEValue,
+          exemptOffsetsPerObject,
           equalityCache,
+          objectCache,
           thisPointerValuesAlreadyVisited,
-          treatSymbolicsAsEqualWEqualConstrains)) {
+          treatSymbolicsAsEqualWEqualConstrains,
+          allowAbstractedSelfPointers)) {
         return false;
       }
       // They are equal, we don't need to check it again later
@@ -1739,9 +1894,12 @@ public class SMGState
           thisHVEValue,
           otherState,
           otherHVEValue,
+          exemptOffsetsPerObject,
           equalityCache,
+          objectCache,
           thisPointerValuesAlreadyVisited,
-          treatSymbolicsAsEqualWEqualConstrains)) {
+          treatSymbolicsAsEqualWEqualConstrains,
+          allowAbstractedSelfPointers)) {
         return false;
       }
       equalityCache.addEquality(thisHVEValue, otherHVEValue);
@@ -2703,6 +2861,7 @@ public class SMGState
       boolean preciseRead,
       boolean materialize)
       throws SMGException {
+    Preconditions.checkArgument(!(pObject instanceof SMGSinglyLinkedListSegment));
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ImmutableList.of(
           ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject)));
@@ -2731,7 +2890,7 @@ public class SMGState
     SMGValue readSMGValue = readSMGValueEdge.hasValue();
     ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     if (memoryModel.getSmg().isPointer(readSMGValue)
-        && memoryModel.getSmg().pointsToMaterializableList(readSMGValue, pFieldOffset)
+        && memoryModel.getSmg().pointsToMaterializableList(readSMGValue)
         && exactRead
         && materialize) {
       // TODO: do we need to materialize if the object read is abstract (and we read non head)?
@@ -3182,7 +3341,7 @@ public class SMGState
       }
 
       // Perform free by invalidating the object behind the address and delete all its edges.
-      SymbolicProgramConfiguration newSPC = currentMemModel.invalidateSMGObject(regionToFree);
+      SymbolicProgramConfiguration newSPC = currentMemModel.invalidateSMGObject(regionToFree, true);
       // state in our implementation.
       // performConsistencyCheck(SMGRuntimeCheck.HALF);
       returnBuilder.add(currentState.copyAndReplaceMemoryModel(newSPC));
@@ -4278,10 +4437,20 @@ public class SMGState
     }
     // Values not equal, continue traverse
     EqualityCache<Value> eqCache = EqualityCache.of();
+    EqualityCache<SMGObject> objectCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-            nextObj, root, ImmutableList.of(nfo, pfo), this, this, eqCache, new HashSet<>(), true)
+            nextObj,
+            root,
+            ImmutableMap.of(nextObj, ImmutableList.of(nfo, pfo), root, ImmutableList.of(nfo, pfo)),
+            this,
+            this,
+            eqCache,
+            objectCache,
+            new HashSet<>(),
+            true,
+            true)
         || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)
-        || !isPointerTargetOffsetEqualTo(root, pfo, prevPointerTargetOffset)) {
+        || !isPointerTargetOffsetEqualTo(nextObj, pfo, prevPointerTargetOffset)) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoDLL(
           nextObj,
@@ -4508,8 +4677,18 @@ public class SMGState
 
     // Values not equal, continue traverse
     EqualityCache<Value> eqCache = EqualityCache.of();
+    EqualityCache<SMGObject> objectCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-            nextObj, root, ImmutableList.of(nfo), this, this, eqCache, new HashSet<>(), true)
+            nextObj,
+            root,
+            ImmutableMap.of(nextObj, ImmutableList.of(nfo), root, ImmutableList.of(nfo)),
+            this,
+            this,
+            eqCache,
+            objectCache,
+            new HashSet<>(),
+            true,
+            true)
         || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)) {
       // split lists, e.g. for 3+, 3+ -> concrete -> 3+ -> 0
       return abstractIntoSLL(
@@ -4594,11 +4773,17 @@ public class SMGState
           currentState.copyAndReplaceMemoryModel(
               currentState
                   .getMemoryModel()
-                  .copyAndSetSpecifierOfPtrsTowards(newSLL, 0, SMGTargetSpecifier.IS_LAST_POINTER));
+                  .copyAndSetSpecifierOfPtrsTowards(
+                      newSLL,
+                      0,
+                      SMGTargetSpecifier.IS_LAST_POINTER,
+                      ImmutableSet.of(SMGTargetSpecifier.IS_REGION)));
     }
     // replaceAllPointersTowardsWithAndIncrementNestingLevel
     // sets ALL specifier for all pointers towards root, except for first specifiers,
     // if root is abstracted and first specifiers for non-abstracted root
+    // This also ignores self-pointers in root, as they need to be == with nextObj anyway.
+    //   They are then deleted in copyAndRemoveObjectAndAssociatedSubSMG().
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
@@ -4699,7 +4884,7 @@ public class SMGState
         Set<SMGObject> otherPresentObjects = memoryModel.getObjectsValidInOtherStackFrames();
         if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())) {
           return copyAndReplaceMemoryModel(
-              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow()));
+              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), false));
         }
       }
     }
@@ -5113,6 +5298,12 @@ public class SMGState
      */
     public boolean isEqualityKnown(V thisEqual, V otherEqual) {
       return knownKey(thisEqual) && isEqualForKnownKey(thisEqual, otherEqual);
+    }
+
+    public void removeEquality(V pThisObj, V pOtherObj) {
+      if (knownKey(pThisObj)) {
+        primitiveCache.remove(pThisObj, pOtherObj);
+      }
     }
   }
 }

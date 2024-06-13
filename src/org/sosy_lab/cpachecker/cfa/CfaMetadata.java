@@ -36,7 +36,8 @@ public final class CfaMetadata implements Serializable {
   private static final long serialVersionUID = -4976424764995656485L;
 
   private final MachineModel machineModel;
-  private final Language language;
+  private final Language cfaLanguage;
+  private final Language inputLanguage;
   // `fileNames` isn't `final` due to serialization, but shouldn't be reassigned anywhere else
   private transient ImmutableList<Path> fileNames;
   private final FunctionEntryNode mainFunctionEntry;
@@ -49,7 +50,8 @@ public final class CfaMetadata implements Serializable {
 
   private CfaMetadata(
       MachineModel pMachineModel,
-      Language pLanguage,
+      Language pCFALanguage,
+      Language pInputLanguage,
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness,
@@ -58,7 +60,8 @@ public final class CfaMetadata implements Serializable {
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables) {
     machineModel = checkNotNull(pMachineModel);
-    language = checkNotNull(pLanguage);
+    cfaLanguage = checkNotNull(pCFALanguage);
+    inputLanguage = checkNotNull(pInputLanguage);
     fileNames = ImmutableList.copyOf(pFileNames);
     mainFunctionEntry = checkNotNull(pMainFunctionEntry);
     connectedness = checkNotNull(pConnectedness);
@@ -76,7 +79,8 @@ public final class CfaMetadata implements Serializable {
    *
    * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
    *     types)
-   * @param pLanguage the programming language of the CFA (e.g., C, Java, etc.)
+   * @param pCFALanguage the programming language of the CFA (e.g., C, Java, etc.)
+   * @param pInputLanguage the input language of the CFA (e.g., C, Java, etc.)
    * @param pFileNames the source code files from which the CFA was created
    * @param pMainFunctionEntry the entry point of the program represented by the CFA
    * @param pConnectedness specifies whether the CFA is a supergraph
@@ -86,13 +90,15 @@ public final class CfaMetadata implements Serializable {
    */
   public static CfaMetadata forMandatoryAttributes(
       MachineModel pMachineModel,
-      Language pLanguage,
+      Language pCFALanguage,
+      Language pInputLanguage,
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness) {
     return new CfaMetadata(
         pMachineModel,
-        pLanguage,
+        pCFALanguage,
+        pInputLanguage,
         pFileNames,
         pMainFunctionEntry,
         pConnectedness,
@@ -122,7 +128,8 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withMachineModel(MachineModel pMachineModel) {
     return new CfaMetadata(
         checkNotNull(pMachineModel),
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
@@ -138,7 +145,16 @@ public final class CfaMetadata implements Serializable {
    * @return the programming language of the CFA (e.g., C, Java, etc.)
    */
   public Language getLanguage() {
-    return language;
+    return cfaLanguage;
+  }
+
+  /**
+   * Returns the input language of the CFA.
+   *
+   * @return the input language of the CFA (e.g., C, Java, etc.)
+   */
+  public Language getInputLanguage() {
+    return inputLanguage;
   }
 
   /**
@@ -171,7 +187,8 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withMainFunctionEntry(FunctionEntryNode pMainFunctionEntry) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         checkNotNull(pMainFunctionEntry),
         connectedness,
@@ -200,7 +217,8 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withConnectedness(CfaConnectedness pConnectedness) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         checkNotNull(pConnectedness),
@@ -211,13 +229,13 @@ public final class CfaMetadata implements Serializable {
   }
 
   /**
-   * Returns the AST structure for the CFA, if it's stored in this metadata instance.
+   * Returns the relation between the AST and the CFA, if it's stored in this metadata instance.
    *
    * @return If this metadata instance contains the AST structure for the CFA, an optional
    *     containing the AST structure is returned. Otherwise, if this metadata instance does not
    *     contain the AST structure for the CFA, an empty optional is returned.
    */
-  public AstCfaRelation getASTStructure() {
+  public AstCfaRelation getAstCfaRelation() {
     return astCFARelation;
   }
 
@@ -239,10 +257,11 @@ public final class CfaMetadata implements Serializable {
    *     null} to create an instance without AST structure)
    * @return a copy of this metadata instance, but with the specified AST structure
    */
-  public CfaMetadata withASTStructure(@Nullable AstCfaRelation pAstCfaRelation) {
+  public CfaMetadata withAstCfaRelation(@Nullable AstCfaRelation pAstCfaRelation) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
@@ -262,7 +281,8 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withLoopStructure(@Nullable LoopStructure pLoopStructure) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
@@ -294,7 +314,8 @@ public final class CfaMetadata implements Serializable {
       @Nullable VariableClassification pVariableClassification) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
@@ -325,7 +346,8 @@ public final class CfaMetadata implements Serializable {
   public CfaMetadata withLiveVariables(@Nullable LiveVariables pLiveVariables) {
     return new CfaMetadata(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
@@ -358,7 +380,8 @@ public final class CfaMetadata implements Serializable {
   public int hashCode() {
     return Objects.hash(
         machineModel,
-        language,
+        cfaLanguage,
+        inputLanguage,
         fileNames,
         mainFunctionEntry,
         connectedness,
@@ -374,7 +397,8 @@ public final class CfaMetadata implements Serializable {
     }
     return pObject instanceof CfaMetadata other
         && machineModel == other.machineModel
-        && language == other.language
+        && cfaLanguage == other.cfaLanguage
+        && inputLanguage == other.inputLanguage
         && Objects.equals(fileNames, other.fileNames)
         && Objects.equals(mainFunctionEntry, other.mainFunctionEntry)
         && connectedness == other.connectedness
@@ -387,7 +411,8 @@ public final class CfaMetadata implements Serializable {
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("machineModel", machineModel)
-        .add("language", language)
+        .add("language", cfaLanguage)
+        .add("inputLanguage", inputLanguage)
         .add("fileNames", fileNames)
         .add("mainFunctionEntry", mainFunctionEntry)
         .add("connectedness", connectedness)
