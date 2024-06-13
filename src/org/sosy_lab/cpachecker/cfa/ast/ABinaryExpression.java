@@ -44,12 +44,12 @@ public abstract class ABinaryExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return operand1.toParenthesizedASTString(pQualified)
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return operand1.toParenthesizedASTString(pAAstNodeRepresentation)
         + " "
         + operator.getOperator()
         + " "
-        + operand2.toParenthesizedASTString(pQualified);
+        + operand2.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   @Override

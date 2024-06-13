@@ -66,7 +66,7 @@ public class WitnessExporter {
         for (ExpressionTreeReportingState etrs :
             AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
           approximations.add(
-              etrs.getFormulaApproximation(
+              etrs.getFormulaApproximationAllVariablesInFunctionScope(
                   cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
         }
         stateInvariants.add(factory.and(approximations));

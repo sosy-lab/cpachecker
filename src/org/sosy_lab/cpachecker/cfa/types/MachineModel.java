@@ -64,7 +64,12 @@ public enum MachineModel {
       8, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      return "ILP32";
+    }
+  },
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
@@ -98,7 +103,12 @@ public enum MachineModel {
       16, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      return "LP64";
+    }
+  },
 
   /** Machine model representing an ARM machine with alignment: */
   ARM(
@@ -132,7 +142,13 @@ public enum MachineModel {
       8, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      throw new AssertionError(
+          "ARM machine model is not yet defined in the YAML witness specification");
+    }
+  },
 
   /** Machine model representing an ARM64 machine with alignment: */
   ARM64(
@@ -166,7 +182,13 @@ public enum MachineModel {
       16, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      );
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      throw new AssertionError(
+          "ARM64 machine model is not yet defined in the YAML witness specification");
+    }
+  };
 
   // numeric types
   private final int sizeofShortInt;
@@ -200,12 +222,12 @@ public enum MachineModel {
   private final int alignofMalloc;
 
   // according to ANSI C, sizeof(char) is always 1
-  private final int mSizeofChar = 1;
-  private final int mAlignofChar = 1;
+  private static final int mSizeofChar = 1;
+  private static final int mAlignofChar = 1;
   private final boolean defaultCharSigned;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
-  private final int mSizeofCharInBits = 8;
+  private static final int mSizeofCharInBits = 8;
   private final CSimpleType intptr_t;
   private final CSimpleType uintptr_t;
 
@@ -384,20 +406,15 @@ public enum MachineModel {
       return false;
     }
 
-    switch (t.getType()) {
-      case CHAR:
-        return isDefaultCharSigned();
-      case FLOAT:
-      case DOUBLE:
-        return true;
-      case INT:
-        throw new AssertionError("Canonical type of INT should always have sign modifier");
-      case UNSPECIFIED:
-        throw new AssertionError("Canonical type should never be UNSPECIFIED");
-      default:
-        // bool, void
-        return false;
-    }
+    return switch (t.getType()) {
+      case CHAR -> isDefaultCharSigned();
+      case FLOAT, DOUBLE -> true;
+      case INT ->
+          throw new AssertionError("Canonical type of INT should always have sign modifier");
+      case UNSPECIFIED -> throw new AssertionError("Canonical type should never be UNSPECIFIED");
+      default -> // bool, void
+          false;
+    };
   }
 
   public int getSizeofCharInBits() {
@@ -757,4 +774,12 @@ public enum MachineModel {
     }
     return BigInteger.ZERO;
   }
+
+  /**
+   * This method returns a description of the machine model as defined by the YAML witness
+   * specification.
+   *
+   * @return a description of the machine model as defined by the YAML witness specification
+   */
+  public abstract String getMachineModelForYAMLWitnessSpecification();
 }

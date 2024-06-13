@@ -71,7 +71,7 @@ public final class JFieldDeclaration extends JVariableDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
     if (visibility != null) {
@@ -86,15 +86,16 @@ public final class JFieldDeclaration extends JVariableDeclaration {
       lASTString.append("static ");
     }
 
-    if (pQualified) {
-      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
-    } else {
-      lASTString.append(getType().toASTString(getName()));
-    }
+    lASTString.append(
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> getType().toASTString(getName());
+          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+        });
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString(pQualified));
+      lASTString.append(getInitializer().toASTString(pAAstNodeRepresentation));
     }
 
     lASTString.append(";");

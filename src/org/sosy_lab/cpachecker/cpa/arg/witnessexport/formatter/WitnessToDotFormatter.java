@@ -97,20 +97,14 @@ public class WitnessToDotFormatter extends WitnessToOutputFormatter<String> {
   }
 
   private static String getColorForNode(NodeFlag f) {
-    switch (f) {
-      case ISFRONTIER:
-        return "color=orange";
-      case ISVIOLATION:
-        return "color=red";
-      case ISENTRY:
-        return "color=green";
-      case ISSINKNODE:
-        return "color=blue";
-      case ISCYCLEHEAD:
-        return "shape=doublecircle";
-      default:
-        return "";
-    }
+    return switch (f) {
+      case ISFRONTIER -> "color=orange";
+      case ISVIOLATION -> "color=red";
+      case ISENTRY -> "color=green";
+      case ISSINKNODE -> "color=blue";
+      case ISCYCLEHEAD -> "shape=doublecircle";
+      default -> "";
+    };
   }
 
   @Override

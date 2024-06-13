@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="-heap">6000M</option>
 
-  <resultfiles>**.graphml*</resultfiles>
+  <resultfiles>**/witness*.*</resultfiles>
   <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 

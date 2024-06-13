@@ -36,8 +36,8 @@ public abstract class AUnaryExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return operator.getOperator() + operand.toParenthesizedASTString(pQualified);
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return operator.getOperator() + operand.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   @Override

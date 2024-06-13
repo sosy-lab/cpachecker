@@ -8,11 +8,38 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 2.3
-----------------------------
-* Now by default, CPAchecker tries to generate a test harness when a property violation is found.
-  The test harness can reproduce the found violation through test execution.
+Changes since CPAchecker 2.3.1
+------------------------------
+* Container images on Docker Hub  
+  The official container images of CPAchecker are now also available
+  as [`sosylab/cpachecker` on Docker Hub](https://hub.docker.com/r/sosylab/cpachecker).
+
+
+Changes from CPAchecker 2.3 to CPAchecker 2.3.1
+-----------------------------------------------
+* Dual Approximated Reachability (DAR)  
+  A new reachability-safety analysis (config `-bmc-interpolationDualSequence`),
+  which adopts a hardware model-checking algorithm
+  proposed by Yakir Vizel, Orna Grumberg, and Sharon Shoham
+  (cf. ["Intertwined Forward-Backward Reachability Analysis Using Interpolants", Proc. TACAS, 2013](https://doi.org/10.1007/978-3-642-36742-7_22))
+  for software verification, has been added to CPAchecker.
+* Export of test harnesses enabled by default for found property violations  
+  The test harness can reproduce the found violation through execution
+  of the input program linked against the test harness.
   See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
+* Improved export for witnesses version 2.0  
+  The export of witnesses version 2.0 is now faster,
+  no longer depends on exporting witnesses version 1.0,
+  and shares its configuration options with the export of witnesses version 1.0.
+* Improved analysis for memory safety based on symbolic memory graphs (SMG)  
+  The SMG analysis (configuration `-smg`) was replaced with a reimplementation
+  that brings several improvements such as increased soundness,
+  a better list abstraction, and better performance.
+  The previous analysis is temporarily available as `-smg-old`,
+  but it will be removed in the next release
+  together with the previous implementation
+  and all other configurations based on it.
+
 
 Changes from CPAchecker 2.2 to CPAchecker 2.3
 ---------------------------------------------
@@ -30,7 +57,7 @@ Changes from CPAchecker 2.2 to CPAchecker 2.3
   In addition to the existing LassoRanker-based analysis
   CPAchecker now has an analysis for termination that is based on transforming
   the property to a safety property.
-  This analysis can be used with `-predicateAnalysis--termination`.
+  This analysis can be used with `-terminationToSafety`.
 - New Yaml-based witness format.  
   CPAchecker now supports [version 2.0 of the witness format](https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/doc/README-YAML.md)
   (both as output and input).

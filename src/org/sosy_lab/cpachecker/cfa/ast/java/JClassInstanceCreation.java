@@ -65,9 +65,10 @@ public sealed class JClassInstanceCreation extends JMethodInvocationExpression
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "new "
-        + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
+        + getExpressionType()
+            .toASTString(getFunctionNameExpression().toASTString(pAAstNodeRepresentation));
   }
 
   @Override

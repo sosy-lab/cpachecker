@@ -27,8 +27,8 @@ public abstract class AFunctionCallStatement extends AbstractStatement implement
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return functionCall.toASTString(pQualified) + ";";
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return functionCall.toASTString(pAAstNodeRepresentation) + ";";
   }
 
   @Override

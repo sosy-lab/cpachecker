@@ -66,7 +66,7 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
     }
 
     @Override
-    public String toASTString(boolean pQualified) {
+    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
       return toASTString();
     }
 
@@ -92,7 +92,7 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
     }
 
     @Override
-    public String toASTString(boolean pQualified) {
+    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
       return toASTString();
     }
 

@@ -43,11 +43,15 @@ public final class CUnaryExpression extends AUnaryExpression implements CExpress
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     if (getOperator() == UnaryOperator.SIZEOF || getOperator() == UnaryOperator.ALIGNOF) {
-      return getOperator().getOperator() + "(" + getOperand().toASTString(pQualified) + ")";
+      return getOperator().getOperator()
+          + "("
+          + getOperand().toASTString(pAAstNodeRepresentation)
+          + ")";
     } else {
-      return getOperator().getOperator() + getOperand().toParenthesizedASTString(pQualified);
+      return getOperator().getOperator()
+          + getOperand().toParenthesizedASTString(pAAstNodeRepresentation);
     }
   }
 

@@ -139,14 +139,12 @@ public class BDDCompressExpressionVisitor extends DefaultCExpressionVisitor<Regi
 
     assert lVal.length == rVal.length;
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
-    switch (binaryOperator) {
-      case EQUALS:
-        return bvmgr.wrapLast(bvmgr.makeLogicalEqual(lVal, rVal), lVal.length);
-      case NOT_EQUALS:
-        return bvmgr.wrapLast(bvmgr.makeNot(bvmgr.makeLogicalEqual(lVal, rVal)), lVal.length);
-      default:
-        throw new AssertionError("no support for further operators: " + binaryOperator);
-    }
+    return switch (binaryOperator) {
+      case EQUALS -> bvmgr.wrapLast(bvmgr.makeLogicalEqual(lVal, rVal), lVal.length);
+      case NOT_EQUALS ->
+          bvmgr.wrapLast(bvmgr.makeNot(bvmgr.makeLogicalEqual(lVal, rVal)), lVal.length);
+      default -> throw new AssertionError("no support for further operators: " + binaryOperator);
+    };
   }
 
   @Override

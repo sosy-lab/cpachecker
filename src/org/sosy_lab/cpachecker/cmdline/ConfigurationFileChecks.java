@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cmdline;
 
-import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
@@ -141,6 +140,8 @@ public class ConfigurationFileChecks {
           "pcc.strategy",
           "pcc.cmc.configFiles",
           "pcc.cmc.file",
+          // only handled if a witness in witness format 2.0 (YAML) is provided with -witness
+          "witness.matchOffsetsWhenCreatingViolationAutomatonFromYAML",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "cpa.automaton.treatErrorsAsTargets",
@@ -492,7 +493,6 @@ public class ConfigurationFileChecks {
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
       config = configBuilder.build();
     }
-    final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.ALL);
@@ -510,12 +510,7 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)));
-    } catch (IllegalArgumentException e) {
-      if (isJava) {
-        assume().withMessage("Java frontend has a bug and cannot be run twice").fail();
-      }
-      throw e;
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);
@@ -525,13 +520,11 @@ public class ConfigurationFileChecks {
         .withMessage(
             "Failure in CPAchecker run with following log\n%s\n\nlog with level WARNING or higher",
             formatLogRecords(logHandler.getStoredLogRecords()))
-        .about(streams())
         .that(getSevereMessages(options, logHandler))
         .isEmpty();
 
     assume()
         .withMessage("messages indicating missing input files")
-        .about(streams())
         .that(
             logHandler.getStoredLogRecords().stream()
                 .map(LogRecord::getMessage)
@@ -576,7 +569,7 @@ public class ConfigurationFileChecks {
       return parse(configFile)
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
-          .setOption("differential.program", createEmptyProgram(false))
+          .setOption("differential.program", createEmptyProgram(Language.C))
           .setOption("statistics.memory", "false")
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
@@ -585,8 +578,8 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private String createEmptyProgram(boolean pIsJava) throws IOException {
-    return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
+  private String createEmptyProgram(Language pLanguage) throws IOException {
+    return TestDataTools.getEmptyProgram(tempFolder, pLanguage);
   }
 
   private Stream<String> getSevereMessages(

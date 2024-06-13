@@ -55,6 +55,7 @@ The following command-line arguments are allowed:
  - `-debug` 			enables the JVM debug interface on TCP port 5005 for remote debugging
  - `-disable-java-assertions`	disables assertions in CPAchecker for improved performance (recommended for benchmarking)
  - `-heap HEAP_SIZE`		sets the heap size of the JVM
+ - `-stack STACK_SIZE`		sets the stack size of the JVM
  - `-setprop <KEY>=<VALUE>`	sets any option: `KEY = VALUE`
 
 The file [doc/ConfigurationOptions.txt](ConfigurationOptions.txt) contains an explanation
@@ -177,10 +178,12 @@ will be used just with their regular names (without prefix).
 The same section name can be used several times in a file.
 
 Other configuration files can be included with `#include file`.
-Paths need to be relative to the file with the include statement,
-or absolute.
 Options from included files will be overwritten by options
 with the same names in the including file,
 no matter where the include statement is placed.
 Sections of the including file have no effect on the treatment
 of options in the included file, and vice versa.
+
+All relative paths specified in a configuration file
+(e.g., for `#include` or for values of options like `specification`)
+are interpreted as relative to the directory of the respective configuration file.

@@ -16,6 +16,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
@@ -46,11 +47,13 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /** Parser based on Eclipse CDT */
 class EclipseCParser implements CParser {
@@ -127,7 +130,7 @@ class EclipseCParser implements CParser {
       }
     }
 
-    return buildCFA(astUnits, parseContext, scope);
+    return buildCFA(astUnits, parseContext, scope, pSourceOriginMapping);
   }
 
   @Override
@@ -308,7 +311,10 @@ class EclipseCParser implements CParser {
    *     variables
    */
   private ParseResult buildCFA(
-      List<IASTTranslationUnit> asts, ParseContext parseContext, Scope pScope)
+      List<IASTTranslationUnit> asts,
+      ParseContext parseContext,
+      Scope pScope,
+      CSourceOriginMapping pSourceOriginMapping)
       throws CParserException, InterruptedException {
 
     checkArgument(!asts.isEmpty());
@@ -335,8 +341,21 @@ class EclipseCParser implements CParser {
         }
       }
 
-      return builder.createCFA();
+      ParseResult result = builder.createCFA();
 
+      result =
+          result.withASTStructure(
+              AstCfaRelationBuilder.getASTCFARelation(
+                  pSourceOriginMapping,
+                  result.getCFAEdges(),
+                  asts,
+                  result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
+                  result.cfaNodeToAstParametersInScope().orElseThrow(),
+                  FluentIterable.from(result.globalDeclarations())
+                      .transform(Pair::getFirst)
+                      .filter(AVariableDeclaration.class)
+                      .toSet()));
+      return result;
     } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);
     } finally {
@@ -434,6 +453,11 @@ class EclipseCParser implements CParser {
     @Override
     public boolean isMappingToIdenticalLineNumbers() {
       return delegate.isMappingToIdenticalLineNumbers();
+    }
+
+    @Override
+    public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
+      return delegate.getStartColumn(pAnalysisFileName, pAnalysisCodeLine, pOffset);
     }
   }
 }

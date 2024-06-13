@@ -36,7 +36,7 @@ public final class JSuperConstructorInvocation extends JClassInstanceCreation {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString();
   }
 

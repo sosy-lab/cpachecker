@@ -97,7 +97,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.ast.ASTStructure;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -172,12 +171,6 @@ public class CFACreator {
       name = "analysis.useGlobalVars",
       description = "add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
-
-  @Option(
-      secure = true,
-      name = "analysis.useASTStructure",
-      description = "add AST structure information to CFA.")
-  private boolean useASTStructure = false;
 
   @Option(
       secure = true,
@@ -320,6 +313,8 @@ public class CFACreator {
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
 
+  private Language inputLanguage = Language.C;
+
   // data structures for parsing ACSL annotations
   private final List<FileLocation> commentPositions = new ArrayList<>();
   private final List<SyntacticBlock> blocks = new ArrayList<>();
@@ -401,6 +396,7 @@ public class CFACreator {
 
     stats.parserInstantiationTime.start();
     String regExPattern;
+    inputLanguage = language;
     switch (language) {
       case JAVA:
         regExPattern = "^" + VALID_JAVA_FUNCTION_NAME_PATTERN + "$";
@@ -470,7 +466,7 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.getFunctions().get(mainFunctionName);
+      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
       CFA cfa = createCFA(parseResult, mainFunction);
@@ -510,11 +506,11 @@ public class CFACreator {
 
       switch (language) {
         case JAVA:
-          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.getFunctions());
-          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.getFunctions());
+          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.functions());
+          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
           break;
         case C:
-          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          mainFunction = getCMainFunction(sourceFiles, c.functions());
           break;
         default:
           throw new AssertionError();
@@ -589,11 +585,11 @@ public class CFACreator {
         CfaMetadata.forMandatoryAttributes(
             machineModel,
             language,
-            pParseResult.getFileNames(),
+            inputLanguage,
+            pParseResult.fileNames(),
             mainFunction,
             CfaConnectedness.UNCONNECTED_FUNCTIONS);
-    MutableCFA cfa =
-        new MutableCFA(pParseResult.getFunctions(), pParseResult.getCFANodes(), cfaMetadata);
+    MutableCFA cfa = new MutableCFA(pParseResult.functions(), pParseResult.cfaNodes(), cfaMetadata);
 
     stats.checkTime.start();
 
@@ -607,7 +603,7 @@ public class CFACreator {
     // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
     stats.processingTime.start();
 
-    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.getGlobalDeclarations());
+    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.globalDeclarations());
 
     // Check CFA again after post-processings
     stats.checkTime.start();
@@ -622,11 +618,6 @@ public class CFACreator {
     // Annotate CFA nodes with reverse postorder information for later use.
     cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
-    if (useASTStructure) {
-      stats.astStructureTime.start();
-      addASTStructure(cfa, config, logger);
-      stats.astStructureTime.stop();
-    }
     // get loop information
     // (needs post-order information)
     if (useLoopStructure) {
@@ -668,16 +659,20 @@ public class CFACreator {
         && (cfa.getVarClassification().isPresent() || cfa.getLanguage() != Language.C)) {
       cfa.setLiveVariables(
           LiveVariables.create(
-              pParseResult.getGlobalDeclarations(), cfa, logger, shutdownNotifier, config));
+              pParseResult.globalDeclarations(), cfa, logger, shutdownNotifier, config));
     }
 
     stats.processingTime.stop();
 
+    if (pParseResult.astStructure().isPresent()) {
+      cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow());
+    }
+
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
-    if (pParseResult instanceof ParseResultWithCommentLocations withCommentLocations) {
-      commentPositions.addAll(withCommentLocations.getCommentLocations());
-      blocks.addAll(withCommentLocations.getBlocks());
+    if (pParseResult.blocks().isPresent() && pParseResult.commentLocations().isPresent()) {
+      commentPositions.addAll(pParseResult.commentLocations().orElseThrow());
+      blocks.addAll(pParseResult.blocks().orElseThrow());
     }
 
     // check the super CFA starting at the main function
@@ -997,15 +992,6 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private void addASTStructure(MutableCFA cfa, Configuration pConfig, LogManager pLogger)
-      throws InterruptedException {
-    try {
-      cfa.setASTStructure(new ASTStructure(pConfig, shutdownNotifier, pLogger, cfa));
-    } catch (IOException | InvalidConfigurationException e) {
-      logger.logUserException(Level.WARNING, e, "Could not analyze AST structure of program.");
-    }
-  }
-
   private void addLoopStructure(MutableCFA cfa) {
     try {
       cfa.setLoopStructure(LoopStructure.getLoopStructure(cfa));
@@ -1064,10 +1050,10 @@ public class CFACreator {
 
       final CFAEdge newEdge =
           switch (cfa.getLanguage()) {
-            case C -> new CDeclarationEdge(
-                rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
-            case JAVA -> new JDeclarationEdge(
-                rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+            case C ->
+                new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
+            case JAVA ->
+                new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
             default -> throw new AssertionError("unknown language");
           };
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);

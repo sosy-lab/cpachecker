@@ -25,8 +25,8 @@ public abstract class AbstractAstNode implements AAstNode {
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return "(" + toASTString(pQualified) + ")";
+  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "(" + toASTString(pAAstNodeRepresentation) + ")";
   }
 
   @Override

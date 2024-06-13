@@ -40,57 +40,26 @@ public class ACSLType {
   }
 
   public CType toCType() {
-    switch (Ascii.toLowerCase(typeName)) {
-      case "_bool":
-        return CNumericTypes.BOOL;
-      case "char":
-        return CNumericTypes.CHAR;
-      case "signed char":
-        return CNumericTypes.SIGNED_CHAR;
-      case "unsigned char":
-        return CNumericTypes.UNSIGNED_CHAR;
-      case "int":
-        return CNumericTypes.INT;
-      case "signed":
-      case "signed int":
-        return CNumericTypes.SIGNED_INT;
-      case "unsigned":
-      case "unsigned int":
-        return CNumericTypes.UNSIGNED_INT;
-      case "short":
-      case "short int":
-      case "signed short":
-      case "signed short int":
-        return CNumericTypes.SHORT_INT;
-      case "unsigned short":
-      case "unsigned short int":
-        return CNumericTypes.UNSIGNED_SHORT_INT;
-      case "long":
-      case "long int":
-        return CNumericTypes.LONG_INT;
-      case "signed long":
-      case "signed long int":
-        return CNumericTypes.SIGNED_LONG_INT;
-      case "unsigned long":
-      case "unsigned long int":
-        return CNumericTypes.UNSIGNED_LONG_INT;
-      case "long long":
-      case "long long int":
-        return CNumericTypes.LONG_LONG_INT;
-      case "signed long long":
-      case "signed long long int":
-        return CNumericTypes.SIGNED_LONG_LONG_INT;
-      case "unsigned long long":
-      case "unsigned long long int":
-        return CNumericTypes.UNSIGNED_LONG_LONG_INT;
-      case "float":
-        return CNumericTypes.FLOAT;
-      case "double":
-        return CNumericTypes.DOUBLE;
-      case "long double":
-        return CNumericTypes.LONG_DOUBLE;
-      default:
-        return new CProblemType(typeName);
-    }
+    return switch (Ascii.toLowerCase(typeName)) {
+      case "_bool" -> CNumericTypes.BOOL;
+      case "char" -> CNumericTypes.CHAR;
+      case "signed char" -> CNumericTypes.SIGNED_CHAR;
+      case "unsigned char" -> CNumericTypes.UNSIGNED_CHAR;
+      case "int" -> CNumericTypes.INT;
+      case "signed", "signed int" -> CNumericTypes.SIGNED_INT;
+      case "unsigned", "unsigned int" -> CNumericTypes.UNSIGNED_INT;
+      case "short", "short int", "signed short", "signed short int" -> CNumericTypes.SHORT_INT;
+      case "unsigned short", "unsigned short int" -> CNumericTypes.UNSIGNED_SHORT_INT;
+      case "long", "long int" -> CNumericTypes.LONG_INT;
+      case "signed long", "signed long int" -> CNumericTypes.SIGNED_LONG_INT;
+      case "unsigned long", "unsigned long int" -> CNumericTypes.UNSIGNED_LONG_INT;
+      case "long long", "long long int" -> CNumericTypes.LONG_LONG_INT;
+      case "signed long long", "signed long long int" -> CNumericTypes.SIGNED_LONG_LONG_INT;
+      case "unsigned long long", "unsigned long long int" -> CNumericTypes.UNSIGNED_LONG_LONG_INT;
+      case "float" -> CNumericTypes.FLOAT;
+      case "double" -> CNumericTypes.DOUBLE;
+      case "long double" -> CNumericTypes.LONG_DOUBLE;
+      default -> new CProblemType(typeName);
+    };
   }
 }

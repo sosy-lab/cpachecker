@@ -43,10 +43,10 @@ public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return leftHandSide.toASTString(pQualified)
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return leftHandSide.toASTString(pAAstNodeRepresentation)
         + " = "
-        + rightHandSide.toASTString(pQualified)
+        + rightHandSide.toASTString(pAAstNodeRepresentation)
         + ";";
   }
 

@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Objects;
 import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -93,20 +94,23 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    return toASTString(pDeclarator, false);
+    return toASTString(pDeclarator, AAstNodeRepresentation.DEFAULT);
   }
 
-  private String toASTString(String pDeclarator, boolean pQualified) {
+  private String toASTString(String pDeclarator, AAstNodeRepresentation pAAstNodeRepresentation) {
     checkNotNull(pDeclarator);
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + getType()
             .toASTString(
-                pDeclarator + ("[" + (length != null ? length.toASTString(pQualified) : "") + "]"));
+                pDeclarator
+                    + ("["
+                        + (length != null ? length.toASTString(pAAstNodeRepresentation) : "")
+                        + "]"));
   }
 
   public String toQualifiedASTString(String pDeclarator) {
-    return toASTString(pDeclarator, true);
+    return toASTString(pDeclarator, AAstNodeRepresentation.QUALIFIED);
   }
 
   @Override

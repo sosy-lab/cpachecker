@@ -138,16 +138,12 @@ public class FaultLocalizationByImport implements Algorithm {
 
   private FaultExplanation instantiateExplanations(
       Explanation pExplanation, List<CFAEdge> pEdgeList) {
-    switch (pExplanation) {
-      case NO_CONTEXT:
-        return NoContextExplanation.getInstance();
-      case SUSPICIOUS_CALCULATION:
-        return new SuspiciousCalculationExplanation();
-      case INFORMATION_PROVIDER:
-        return new InformationProvider(pEdgeList);
-      default:
-        throw new IllegalStateException("Unexpected value: " + pExplanation);
-    }
+    return switch (pExplanation) {
+      case NO_CONTEXT -> NoContextExplanation.getInstance();
+      case SUSPICIOUS_CALCULATION -> new SuspiciousCalculationExplanation();
+      case INFORMATION_PROVIDER -> new InformationProvider(pEdgeList);
+      default -> throw new IllegalStateException("Unexpected value: " + pExplanation);
+    };
   }
 
   private FaultScoring instantiateScoring(Scoring pScoring, CFAEdge pErrorLocation) {
@@ -469,17 +465,14 @@ public class FaultLocalizationByImport implements Algorithm {
     private FaultInfo restoreFaultInfo(JsonNode pNode) {
       InfoType type = FaultInfo.InfoType.valueOf(pNode.get("type").asText());
       String description = pNode.get("description").asText();
-      switch (type) {
-        case REASON:
-          return FaultInfo.justify(description);
-        case FIX:
-          return FaultInfo.fix(description);
-        case RANK_INFO:
-          return FaultInfo.rankInfo(
-              description, pNode.has("score") ? pNode.get("score").asDouble() : .0);
-        default:
-          throw new AssertionError("Unknown " + InfoType.class + ": " + type);
-      }
+      return switch (type) {
+        case REASON -> FaultInfo.justify(description);
+        case FIX -> FaultInfo.fix(description);
+        case RANK_INFO ->
+            FaultInfo.rankInfo(
+                description, pNode.has("score") ? pNode.get("score").asDouble() : .0);
+        default -> throw new AssertionError("Unknown " + InfoType.class + ": " + type);
+      };
     }
   }
 

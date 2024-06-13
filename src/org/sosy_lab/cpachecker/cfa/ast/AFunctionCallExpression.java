@@ -56,13 +56,14 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
   }
 
   @Override
-  public String toASTString(final boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(functionName.toParenthesizedASTString(pQualified));
+    lASTString.append(functionName.toParenthesizedASTString(pAAstNodeRepresentation));
     lASTString.append("(");
     Joiner.on(", ")
-        .appendTo(lASTString, transform(parameters, aexpr -> aexpr.toASTString(pQualified)));
+        .appendTo(
+            lASTString, transform(parameters, aexpr -> aexpr.toASTString(pAAstNodeRepresentation)));
     lASTString.append(")");
 
     return lASTString.toString();

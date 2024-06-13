@@ -68,15 +68,6 @@ SPDX-License-Identifier: Apache-2.0
     <module name="ParenPad"/>
     <module name="TypecastParenPad"/>
     <module name="WhitespaceAfter"/>
-    <module name="WhitespaceAround">
-      <property name="tokens" value="BAND,BAND_ASSIGN,BOR,BOR_ASSIGN,BSR,BSR_ASSIGN,BXOR,BXOR_ASSIGN,COLON,DIV,DIV_ASSIGN,EQUAL,LAND,LITERAL_ASSERT,LITERAL_CATCH,LITERAL_DO,LITERAL_ELSE,LITERAL_FINALLY,LITERAL_FOR,LITERAL_IF,LITERAL_RETURN,LITERAL_SYNCHRONIZED,LITERAL_TRY,LITERAL_WHILE,LOR,MINUS,MINUS_ASSIGN,MOD,MOD_ASSIGN,PLUS,PLUS_ASSIGN,QUESTION,SL,SLIST,SL_ASSIGN,SR,SR_ASSIGN,STAR,STAR_ASSIGN,TYPE_EXTENSION_AND"/>
-      <property name="allowEmptyConstructors" value="true"/>
-      <property name="allowEmptyLoops" value="true"/>
-      <property name="allowEmptyMethods" value="true"/>
-      <property name="allowEmptyTypes" value="true"/>
-      <property name="allowEmptyLambdas" value="true"/>
-      <property name="ignoreEnhancedForColon" value="false"/>
-    </module>
     <module name="NoWhitespaceBefore">
       <property name="allowLineBreaks" value="true"/>
       <property name="tokens" value="DOT"/>

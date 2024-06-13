@@ -49,10 +49,10 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return getLeftHandSide().toASTString(pQualified)
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return getLeftHandSide().toASTString(pAAstNodeRepresentation)
         + " = "
-        + getRightHandSide().toASTString(pQualified)
+        + getRightHandSide().toASTString(pAAstNodeRepresentation)
         + ";";
   }
 

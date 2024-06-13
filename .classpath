@@ -53,7 +53,6 @@ SPDX-License-Identifier: Apache-2.0
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-library-smtlib-utils.jar" sourcepath="lib/java-contrib/ultimate-library-smtlib-utils-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/commons-io.jar"/>
-	<classpathentry kind="lib" path="lib/java/test/truth-java8-extension.jar" sourcepath="lib/java-contrib/truth-java8-extension-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/checker-qual.jar" sourcepath="lib/java-contrib/checker-qual-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jhoafparser.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/pjbdd.jar" sourcepath="lib/java-contrib/pjbdd-sources.jar"/>

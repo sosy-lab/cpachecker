@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import java.math.BigInteger;
 
@@ -33,6 +34,9 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
    */
   public SMGPointsToEdge(
       SMGObject pPointsToObject, BigInteger pOffset, SMGTargetSpecifier pTargetSpecifier) {
+    Preconditions.checkNotNull(pPointsToObject);
+    Preconditions.checkNotNull(pOffset);
+    Preconditions.checkNotNull(pTargetSpecifier);
     pointsToObject = pPointsToObject;
     offset = pOffset;
     targetSpecifier = pTargetSpecifier;
@@ -71,15 +75,28 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   @Override
   public int hashCode() {
-    return super.hashCode() + 31 * pointsToObject.hashCode() + 41 * offset.intValue();
+    return targetSpecifier.hashCode() + 31 * pointsToObject.hashCode() + 41 * offset.intValue();
   }
 
   public void setTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
     targetSpecifier = pTargetSpecifier;
   }
 
+  public SMGPointsToEdge copyAndSetTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
+    return new SMGPointsToEdge(pointsToObject, offset, pTargetSpecifier);
+  }
+
   @Override
   public String toString() {
-    return " -> [" + offset + "] " + pointsToObject;
+    return " -> (" + specToString() + ") [" + offset + "] " + pointsToObject;
+  }
+
+  private String specToString() {
+    return switch (targetSpecifier) {
+      case IS_REGION -> "reg";
+      case IS_LAST_POINTER -> "lst";
+      case IS_FIRST_POINTER -> "fst";
+      case IS_ALL_POINTER -> "all";
+    };
   }
 }

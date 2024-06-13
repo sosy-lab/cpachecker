@@ -63,13 +63,13 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    String nameAsString;
-    if (pQualified) {
-      nameAsString = Strings.nullToEmpty(getQualifiedName()).replace("::", "__");
-    } else {
-      nameAsString = Strings.nullToEmpty(getName());
-    }
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    String nameAsString =
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> Strings.nullToEmpty(getName());
+          case QUALIFIED -> Strings.nullToEmpty(getQualifiedName()).replace("::", "__");
+          case ORIGINAL_NAMES -> Strings.nullToEmpty(getOrigName());
+        };
     return getType().toASTString(nameAsString) + ";";
   }
 

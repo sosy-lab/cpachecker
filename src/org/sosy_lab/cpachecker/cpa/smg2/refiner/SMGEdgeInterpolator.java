@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGInformation;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -46,7 +47,8 @@ public class SMGEdgeInterpolator
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
       final LogManagerWithoutDuplicates pLogger,
-      SMGCPAExpressionEvaluator pEvaluator)
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
     super(
@@ -58,8 +60,15 @@ public class SMGEdgeInterpolator
             pLogger,
             pCfa,
             pFeasibilityChecker.isRefineMemorySafety(),
-            pEvaluator),
-        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig), pCfa, pEvaluator),
+            pEvaluator,
+            pStatistics),
+        SMGState.of(
+            pCfa.getMachineModel(),
+            pLogger,
+            new SMGOptions(pConfig),
+            pCfa,
+            pEvaluator,
+            pStatistics),
         ValueAnalysisCPA.class,
         pConfig,
         pShutdownNotifier,

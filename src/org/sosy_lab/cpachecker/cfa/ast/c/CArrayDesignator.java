@@ -28,13 +28,13 @@ public final class CArrayDesignator extends CDesignator {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return "[" + getSubscriptExpression().toASTString(pQualified) + "]";
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "[" + getSubscriptExpression().toASTString(pAAstNodeRepresentation) + "]";
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return toASTString(pQualified);
+  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override

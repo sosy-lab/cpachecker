@@ -50,16 +50,12 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private InputState getAbstractSuccessorForEdge(CFAEdge pEdge) {
-    switch (pEdge.getEdgeType()) {
-      case DeclarationEdge:
-        return handleDeclarationEdge((ADeclarationEdge) pEdge);
-      case StatementEdge:
-        return handleStatementEdge((AStatementEdge) pEdge);
-      case FunctionCallEdge:
-        return handleFunctionCallEdge((FunctionCallEdge) pEdge);
-      default:
-        return InputState.empty();
-    }
+    return switch (pEdge.getEdgeType()) {
+      case DeclarationEdge -> handleDeclarationEdge((ADeclarationEdge) pEdge);
+      case StatementEdge -> handleStatementEdge((AStatementEdge) pEdge);
+      case FunctionCallEdge -> handleFunctionCallEdge((FunctionCallEdge) pEdge);
+      default -> InputState.empty();
+    };
   }
 
   private static InputState handleDeclarationEdge(ADeclarationEdge pEdge) {

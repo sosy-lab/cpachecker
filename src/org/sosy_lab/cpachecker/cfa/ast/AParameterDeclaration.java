@@ -29,12 +29,12 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    if (pQualified) {
-      return getType().toASTString(getQualifiedName().replace("::", "__"));
-    } else {
-      return getType().toASTString(getName());
-    }
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return switch (pAAstNodeRepresentation) {
+      case DEFAULT -> getType().toASTString(getName());
+      case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+      case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+    };
   }
 
   @Override

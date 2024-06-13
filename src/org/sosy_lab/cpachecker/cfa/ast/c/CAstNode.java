@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 public sealed interface CAstNode extends AAstNode
     permits CDesignator,
         CInitializer,
-        CInitializerList,
         CReturnStatement,
         CRightHandSide,
         CSimpleDeclaration,

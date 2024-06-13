@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
@@ -21,11 +22,11 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 /** The property is represented by one or several specification automata. */
 public final class AutomataSingleProperty extends AbstractSingleProperty {
 
-  private final List<Automaton> automata;
+  private final ImmutableList<Automaton> automata;
 
   public AutomataSingleProperty(String pName, List<Automaton> pAutomata) {
     super(pName);
-    automata = pAutomata;
+    automata = ImmutableList.copyOf(pAutomata);
   }
 
   @Override

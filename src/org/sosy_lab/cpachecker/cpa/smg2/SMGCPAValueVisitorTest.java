@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
@@ -55,7 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
@@ -164,19 +163,19 @@ public class SMGCPAValueVisitorTest {
     // null, null is fine as long as builtin functions are not used!
     evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null, makeTestSolver());
 
-    currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator);
+    currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
 
     visitor =
         new SMGCPAValueVisitor(
             evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
-  private SMGConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
-    Solver smtSolver =
-        Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
+  private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
+    Configuration config = Configuration.defaultConfiguration();
+    Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
     FormulaEncodingWithPointerAliasingOptions formulaOptions =
-        new FormulaEncodingWithPointerAliasingOptions(Configuration.defaultConfiguration());
+        new FormulaEncodingWithPointerAliasingOptions(config);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, MACHINE_MODEL, formulaOptions);
 
@@ -191,15 +190,19 @@ public class SMGCPAValueVisitorTest {
             typeHandler,
             AnalysisDirection.FORWARD);
 
-    return new SMGConstraintsSolver(
-        smtSolver, formulaManager, converter, new ConstraintsStatistics(), options);
+    return new ConstraintsSolver(
+        config, smtSolver, formulaManager, converter, new ConstraintsStatistics());
   }
 
   // Resets state and visitor to an empty state
   public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
     currentState =
         SMGState.of(
-            MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()), evaluator);
+            MACHINE_MODEL,
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            evaluator,
+            new SMGCPAStatistics());
 
     visitor =
         new SMGCPAValueVisitor(
@@ -3337,7 +3340,9 @@ public class SMGCPAValueVisitorTest {
       currentState = currentState.copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
     }
 
-    currentState = currentState.copyAndAddLocalVariable(sizeInBits, variableName, null);
+    currentState =
+        currentState.copyAndAddLocalVariable(
+            new NumericValue(BigInteger.valueOf(sizeInBits)), variableName, null);
 
     visitor =
         new SMGCPAValueVisitor(
@@ -3388,13 +3393,14 @@ public class SMGCPAValueVisitorTest {
       throws InvalidConfigurationException {
     SymbolicProgramConfiguration spc = currentState.getMemoryModel();
 
-    SMGObject smgHeapObject = SMGObject.of(0, BigInteger.valueOf(size), BigInteger.valueOf(0));
+    SMGObject smgHeapObject =
+        SMGObject.of(0, new NumericValue(BigInteger.valueOf(size)), BigInteger.valueOf(0));
     spc = spc.copyAndAddHeapObject(smgHeapObject);
 
     // Mapping to the smg points to edge
     spc =
         spc.copyAndAddPointerFromAddressToRegion(
-            addressValue, smgHeapObject, BigInteger.valueOf(offset));
+            addressValue, smgHeapObject, BigInteger.valueOf(offset), 0);
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first

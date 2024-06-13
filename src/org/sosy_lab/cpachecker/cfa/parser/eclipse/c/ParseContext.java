@@ -168,6 +168,9 @@ class ParseContext {
         l.getNodeLength(),
         startingLineInInput,
         endingLineInInput,
+        sourceOriginMapping.getStartColumn(fileName, startingLineInInput, l.getNodeOffset()),
+        sourceOriginMapping.getStartColumn(
+            fileName, endingLineInInput, l.getNodeOffset() + l.getNodeLength()),
         startingLineInOrigin,
         endingLineInOrigin,
         offsetRelatedToOrigin);

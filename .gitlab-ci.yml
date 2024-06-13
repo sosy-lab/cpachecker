@@ -12,9 +12,9 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 31cd8ffc4966957e156665dbba76679ade5bb5c9
+  REFASTER_REPO_REVISION: bba447e6b8e1df7ef8cdb6864319a4569e3e275b
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.22.0
+  REFASTER_VERSION: 2.27.1
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
@@ -55,15 +55,15 @@ configuration-checks:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-configuration-checks:jdk-21:
+configuration-checks:jdk-22:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-21
+    - build:jdk-22
   needs:
     - build-dependencies
-    - build:jdk-21
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+    - build:jdk-22
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
 
 
 configuration-documentation:
@@ -127,15 +127,15 @@ python-unit-tests:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-python-unit-tests:jdk-21:
+python-unit-tests:jdk-22:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-21
+    - build:jdk-22
   needs:
     - build-dependencies
-    - build:jdk-21
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+    - build:jdk-22
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
 
 
 javascript-build:
@@ -199,12 +199,32 @@ build-docker:test:node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.node
     IMAGE: /test:node
 
+# Build Docker images and push to Docker Hub
+# following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
+.build-docker-hub:
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /root/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}, \"https://index.docker.io/v1/\":{\"username\":\"$DOCKER_HUB_USER\",\"password\":\"$DOCKER_HUB_TOKEN\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE:$TAG --destination docker.io/sosylab/cpachecker:$TAG $EXTRA_ARGS
+  only:
+    variables:
+      - $DOCKER_HUB_USER
+      - $DOCKER_HUB_TOKEN
+
 build-docker:release:
-  extends: .build-docker
+  stage: images
+  extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":2.3"
-    EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
+    TAG: "2.3.1"
+    EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
+  only:
+    refs:
+      - schedules
+      - web
 
 
 javascript-e2e-tests:
@@ -241,7 +261,7 @@ check-format-python:
   needs: []
   image: python
   before_script:
-    - pip install 'black[jupyter]<2024'
+    - pip install 'black[jupyter]<25'
   script:
     - black . --check --diff
   <<: *pip-cache
@@ -280,10 +300,10 @@ deploy-docker:
     - build-tar
   needs:
     - build-tar
-  extends: .build-docker
+  extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.dev
-    IMAGE: ":dev"
+    TAG: "dev"
     EXTRA_ARGS: "--context dir://."
   only:
     refs:
@@ -298,6 +318,12 @@ unit-tests:jdk-17:
       junit: "output/junit/TESTS-TestSuites.xml"
 
 unit-tests:jdk-21:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
+
+unit-tests:jdk-22:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:

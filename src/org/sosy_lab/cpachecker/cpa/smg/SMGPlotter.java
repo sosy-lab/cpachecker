@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
