@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -640,7 +642,8 @@ public class SMGCPAMaterializer {
             newConcreteRegion,
             currentState,
             excludedOffsets,
-            pListSeg.getRelevantEqualities());
+            pListSeg.getRelevantEqualities(),
+            ImmutableMap.of());
 
     currentState =
         currentState.copyAndReplaceMemoryModel(
@@ -668,6 +671,8 @@ public class SMGCPAMaterializer {
    * @param excludedOffsets offsets excluded from being copied, for example nfo, pfo.
    * @param replicationCache values that are present in this cache need replication. All others need
    *     to be copied.
+   * @param copiedMemory a map from old memory to be copied to the new copy. Needed because of e.g.
+   *     DLLs, or looping memory, so that we connect the memory correctly.
    * @return a new {@link SMGState} with all values copied from sourceObj to newMemory and all
    *     pointers and havoc generators copied into new memory/values.
    */
@@ -676,9 +681,15 @@ public class SMGCPAMaterializer {
       SMGObject newMemory,
       SMGState pState,
       Set<BigInteger> excludedOffsets,
-      EqualityCache<Value> replicationCache)
+      EqualityCache<Value> replicationCache,
+      Map<SMGObject, SMGObject> copiedMemory)
       throws SMGException {
     SMGState currentState = pState.copyAllValuesFromObjToObj(sourceObj, newMemory);
+    copiedMemory =
+        ImmutableMap.<SMGObject, SMGObject>builder()
+            .putAll(copiedMemory)
+            .put(sourceObj, newMemory)
+            .buildOrThrow();
     // All HVEs copied
     PersistentSet<SMGHasValueEdge> setOfValues =
         currentState
@@ -722,16 +733,24 @@ public class SMGCPAMaterializer {
         if (oldTargetMemory.isZero()) {
           newSMGValueToWrite = SMGValue.zeroValue();
         } else {
-          SMGObjectAndSMGState copiedTargetMemoryAndState =
-              currentState.copyAndAddNewHeapObject(oldTargetMemory);
-          SMGObject newTarget = copiedTargetMemoryAndState.getSMGObject();
-
-          currentState = copiedTargetMemoryAndState.getState();
-          // Now copy all values and copy all memory for pointers again recursively
-          // TODO: this is UNSOUND! It ignores ptr specifier and connections!
-          currentState =
-              copyMemoryOfTo(
-                  oldTargetMemory, newTarget, currentState, ImmutableSet.of(), replicationCache);
+          SMGObject newTarget;
+          if (copiedMemory.containsKey(oldTargetMemory)) {
+            newTarget = copiedMemory.get(oldTargetMemory);
+          } else {
+            SMGObjectAndSMGState copiedTargetMemoryAndState =
+                currentState.copyAndAddNewHeapObject(oldTargetMemory);
+            newTarget = copiedTargetMemoryAndState.getSMGObject();
+            currentState = copiedTargetMemoryAndState.getState();
+            // Now copy all values and copy all memory for pointers again recursively
+            currentState =
+                copyMemoryOfTo(
+                    oldTargetMemory,
+                    newTarget,
+                    currentState,
+                    ImmutableSet.of(),
+                    replicationCache,
+                    copiedMemory);
+          }
           // Create a new pointer to the new memory that is equal to the old and save in newConcrete
           SMGPointsToEdge oldPTE =
               currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
@@ -928,24 +947,24 @@ public class SMGCPAMaterializer {
       SMGObject newConcreteRegion, BigInteger nfo, BigInteger pfo, SMGState state)
       throws SMGException {
     BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
-    SMGValueAndSMGState nextPointerAndState =
-        state.readSMGValue(newConcreteRegion, nfo, pointerSize);
-    SMGState currentState = nextPointerAndState.getSMGState();
+    SMGState currentState = state;
     SMGValueAndSMGState prevPointerAndState =
         currentState.readSMGValue(newConcreteRegion, pfo, pointerSize);
     currentState = prevPointerAndState.getSMGState();
-    SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
     SMGValue prevPointerValue = prevPointerAndState.getSMGValue();
+
+    // TODO: check that all previous last pointers now point to the concrete
 
     Optional<SMGPointsToEdge> prevPointerEdge =
         currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
     SMGObject currentObj = newConcreteRegion;
-    List<SMGObject> listOfObjectsVisited = new ArrayList<>();
+    // Since we materialized to the right, there needs to be a left list segment
     if (prevPointerEdge.isEmpty()) {
       return false;
     }
 
     SMGObject prevObj = prevPointerEdge.orElseThrow().pointsTo();
+    // The prev needs to be an abstracted segment with a last specifier
     if (!(prevObj instanceof SMGSinglyLinkedListSegment)) {
       return false;
     } else if (!prevPointerEdge
@@ -958,95 +977,25 @@ public class SMGCPAMaterializer {
     // There is at least 1 object before the new materialized if it is a valid list.
     // Note: there might be objects before that one! Or the prev object might look like a list
     // segment, without being one, i.e. the nfo does not point back to the start object.
-    while (state.getMemoryModel().isObjectValid(prevObj)
-        && prevObj.isSizeEqual(currentObj)
-        && !currentObj.equals(prevObj)
-        && !listOfObjectsVisited.contains(currentObj)) {
-      SMGValueAndSMGState nextOfPrevPointerAndState = state.readSMGValue(prevObj, nfo, pointerSize);
-      SMGValue nextOfPrevPointerValue = nextOfPrevPointerAndState.getSMGValue();
-      Optional<SMGPointsToEdge> nextOfPrevPointerEdge =
-          currentState.getMemoryModel().getSmg().getPTEdge(nextOfPrevPointerValue);
-      if (nextOfPrevPointerEdge.isEmpty()
-          || !nextOfPrevPointerEdge.orElseThrow().pointsTo().equals(currentObj)) {
-        return false;
-      }
-
-      if (currentObj instanceof SMGSinglyLinkedListSegment) {
-        if (!nextOfPrevPointerEdge
-            .orElseThrow()
-            .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
-          return false;
-        }
-      } else {
-        if (!nextOfPrevPointerEdge
-            .orElseThrow()
-            .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_REGION)) {
-          return false;
-        }
-      }
-      // prevPointerEdge points to prevObj
-      if (prevObj instanceof SMGSinglyLinkedListSegment) {
-        if (!prevPointerEdge
-            .orElseThrow()
-            .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
-          return false;
-        }
-      } else {
-        if (!prevPointerEdge.orElseThrow().targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
-          return false;
-        }
-      }
-      listOfObjectsVisited.add(currentObj);
-      currentObj = prevObj;
-
-      prevPointerAndState = state.readSMGValue(currentObj, pfo, pointerSize);
-      prevPointerValue = prevPointerAndState.getSMGValue();
-      prevPointerEdge = currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
-      if (prevPointerEdge.isEmpty()) {
-        // No more list segments to the left
-        break;
-      }
-      prevObj = prevPointerEdge.orElseThrow().pointsTo();
+    if (!state.getMemoryModel().isObjectValid(prevObj)
+        || !prevObj.isSizeEqual(currentObj)
+        || currentObj.equals(prevObj)) {
+      return false;
     }
-
-    nextPointerAndState = state.readSMGValue(newConcreteRegion, nfo, pointerSize);
-    nextPointerValue = nextPointerAndState.getSMGValue();
-    Optional<SMGPointsToEdge> nextPointerEdge =
-        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
-
-    if (nextPointerEdge.isPresent() && !nextPointerValue.isZero()) {
-      SMGObject nextObj = nextPointerEdge.orElseThrow().pointsTo();
-      // the next obj might have a prev pointer that is region to the new concrete
-      prevPointerAndState = state.readSMGValue(nextObj, pfo, pointerSize);
-      prevPointerValue = prevPointerAndState.getSMGValue();
-      prevPointerEdge = currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
-      if (prevPointerEdge.isPresent()
-          && prevPointerEdge.orElseThrow().pointsTo().equals(currentObj)
-          && !prevPointerEdge
-              .orElseThrow()
-              .targetSpecifier()
-              .equals(SMGTargetSpecifier.IS_REGION)) {
-        return false;
-      }
-      if (nextObj instanceof SMGSinglyLinkedListSegment) {
-        // the new concrete has a next ptr that is first
-        if (!nextPointerEdge
+    SMGValueAndSMGState nextOfPrevPointerAndState = state.readSMGValue(prevObj, nfo, pointerSize);
+    SMGValue nextOfPrevPointerValue = nextOfPrevPointerAndState.getSMGValue();
+    Optional<SMGPointsToEdge> nextOfPrevPointerEdge =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextOfPrevPointerValue);
+    // currentObj == new concrete obj
+    if (nextOfPrevPointerEdge.isEmpty()
+        || !nextOfPrevPointerEdge.orElseThrow().pointsTo().equals(currentObj)
+        || !nextOfPrevPointerEdge
             .orElseThrow()
             .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
-          return false;
-        }
-      } else {
-        // the new concrete has a next ptr that is region
-        if (!nextPointerEdge.orElseThrow().targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
-          return false;
-        }
-      }
+            .equals(SMGTargetSpecifier.IS_REGION)
+        || currentState.getMemoryModel().getNestingLevel(nextOfPrevPointerValue) != 0) {
+      return false;
     }
-
     return true;
   }
 

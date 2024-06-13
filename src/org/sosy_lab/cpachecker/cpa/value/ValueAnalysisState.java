@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -820,10 +821,8 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope,
-      CFANode pLocation,
-      Optional<AIdExpression> pFunctionReturnVariable) {
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      FunctionEntryNode pFunctionScope, CFANode pLocation) {
 
     if (machineModel == null) {
       return ExpressionTrees.getTrue();
@@ -852,7 +851,7 @@ public final class ValueAnalysisState
           }
           assert cType != null && CTypes.isArithmeticType(cType);
           String id = memoryLocation.getIdentifier();
-          if (!pFunctionScope.getReturnVariable().isPresent()
+          if (pFunctionScope.getReturnVariable().isEmpty()
               || !id.equals(pFunctionScope.getReturnVariable().get().getName())) {
             FileLocation loc =
                 pLocation.getNumEnteringEdges() > 0
@@ -873,11 +872,65 @@ public final class ValueAnalysisState
             if (constraint.isPresent()) {
               result.add(LeafExpression.of(constraint.orElseThrow()));
             }
+          }
+        }
+      }
+    }
+    return And.of(result);
+  }
 
-          } else if (pFunctionScope.getReturnVariable().isPresent()
-              && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
-              && pFunctionReturnVariable.isPresent()
-              && pFunctionReturnVariable.orElseThrow() instanceof CIdExpression var) {
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    if (machineModel == null) {
+      return ExpressionTrees.getTrue();
+    }
+
+    List<ExpressionTree<Object>> result = new ArrayList<>();
+
+    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      Value valueOfEntry = entry.getValue().getValue();
+      if (valueOfEntry instanceof EnumConstantValue) {
+        continue;
+      }
+      NumericValue num = valueOfEntry.asNumericValue();
+      if (num != null) {
+        MemoryLocation memoryLocation = entry.getKey();
+        Type type = entry.getValue().getType();
+        if (!memoryLocation.isReference()
+            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
+            && type instanceof CType cType
+            && CTypes.isArithmeticType((CType) type)) {
+          if (cType instanceof CBitFieldType) {
+            cType = ((CBitFieldType) cType).getType();
+          }
+          if (cType instanceof CElaboratedType) {
+            cType = ((CElaboratedType) cType).getRealType();
+          }
+          assert cType != null && CTypes.isArithmeticType(cType);
+          String id = memoryLocation.getIdentifier();
+          if ((pFunctionScope.getReturnVariable().isEmpty()
+                  || !id.equals(pFunctionScope.getReturnVariable().get().getName()))
+              && pAstCfaRelation
+                  .getVariablesAndParametersInScope(pLocation)
+                  .anyMatch(v -> v.getName().equals(id))
+              && !id.contains("__CPAchecker_")) {
+            FileLocation loc =
+                pLocation.getNumEnteringEdges() > 0
+                    ? pLocation.getEnteringEdge(0).getFileLocation()
+                    : pFunctionScope.getFileLocation();
+            CVariableDeclaration decl =
+                new CVariableDeclaration(
+                    loc,
+                    false,
+                    CStorageClass.AUTO,
+                    cType,
+                    id,
+                    id,
+                    memoryLocation.getExtendedQualifiedName(),
+                    null);
+            CExpression var = new CIdExpression(loc, decl);
             Optional<CExpression> constraint = buildConstraint(var, cType, num);
             if (constraint.isPresent()) {
               result.add(LeafExpression.of(constraint.orElseThrow()));
@@ -887,6 +940,52 @@ public final class ValueAnalysisState
       }
     }
     return And.of(result);
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable) {
+    if (machineModel == null) {
+      return ExpressionTrees.getTrue();
+    }
+
+    ExpressionTree<Object> result = ExpressionTrees.getTrue();
+
+    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      Value valueOfEntry = entry.getValue().getValue();
+      if (valueOfEntry instanceof EnumConstantValue) {
+        continue;
+      }
+      NumericValue num = valueOfEntry.asNumericValue();
+      if (num != null) {
+        MemoryLocation memoryLocation = entry.getKey();
+        Type type = entry.getValue().getType();
+        if (!memoryLocation.isReference()
+            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
+            && type instanceof CType cType
+            && CTypes.isArithmeticType((CType) type)) {
+          if (cType instanceof CBitFieldType) {
+            cType = ((CBitFieldType) cType).getType();
+          }
+          if (cType instanceof CElaboratedType) {
+            cType = ((CElaboratedType) cType).getRealType();
+          }
+          assert cType != null && CTypes.isArithmeticType(cType);
+          String id = memoryLocation.getIdentifier();
+          if (pFunctionScope.getReturnVariable().isPresent()
+              && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
+              && pFunctionReturnVariable instanceof CIdExpression var) {
+            Optional<CExpression> constraint = buildConstraint(var, cType, num);
+            if (constraint.isPresent()) {
+              result = LeafExpression.of(constraint.orElseThrow());
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return result;
   }
 
   public static class ValueAndType implements Serializable {

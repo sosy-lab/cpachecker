@@ -15,8 +15,9 @@
 # mkdir tmp
 # mv cpachecker.tar.bz2 tmp/
 # cp build/Dockerfile.dev tmp/Dockerfile
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:dev tmp
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:dev -t sosylab/cpachecker:dev tmp
 # docker push registry.gitlab.com/sosy-lab/software/cpachecker:dev
+# docker push sosylab/cpachecker:dev
 
 FROM ubuntu:latest
 

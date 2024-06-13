@@ -26,8 +26,8 @@ public abstract class APointerExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
-    return "*" + operand.toParenthesizedASTString(pQualified, pOriginalVariableNames);
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "*" + operand.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   @Override

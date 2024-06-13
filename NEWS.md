@@ -8,6 +8,13 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 2.3.1
+------------------------------
+* Container images on Docker Hub  
+  The official container images of CPAchecker are now also available
+  as [`sosylab/cpachecker` on Docker Hub](https://hub.docker.com/r/sosylab/cpachecker).
+
+
 Changes from CPAchecker 2.3 to CPAchecker 2.3.1
 -----------------------------------------------
 * Dual Approximated Reachability (DAR)  

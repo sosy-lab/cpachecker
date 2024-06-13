@@ -31,7 +31,7 @@ public final class JThisExpression extends AbstractExpression implements JRunTim
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString();
   }
 

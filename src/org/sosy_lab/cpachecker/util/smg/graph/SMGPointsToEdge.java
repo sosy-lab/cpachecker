@@ -88,6 +88,15 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   @Override
   public String toString() {
-    return " -> [" + offset + "] " + pointsToObject;
+    return " -> (" + specToString() + ") [" + offset + "] " + pointsToObject;
+  }
+
+  private String specToString() {
+    return switch (targetSpecifier) {
+      case IS_REGION -> "reg";
+      case IS_LAST_POINTER -> "lst";
+      case IS_FIRST_POINTER -> "fst";
+      case IS_ALL_POINTER -> "all";
+    };
   }
 }

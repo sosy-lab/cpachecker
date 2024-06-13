@@ -13,9 +13,11 @@
 # and in .gitlab-ci.yml
 #
 # Commands for building the image manually:
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:2.3.1 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest - < build/Dockerfile.release
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:2.3.1 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest -t sosylab/cpachecker:2.3.1 -t sosylab/cpachecker:latest - < build/Dockerfile.release
 # docker push registry.gitlab.com/sosy-lab/software/cpachecker:2.3.1
 # docker push registry.gitlab.com/sosy-lab/software/cpachecker:latest
+# docker push sosylab/cpachecker:2.3.1
+# docker push sosylab/cpachecker:latest
 
 FROM ubuntu:20.04
 

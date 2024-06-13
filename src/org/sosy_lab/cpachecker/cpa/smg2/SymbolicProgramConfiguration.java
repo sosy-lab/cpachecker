@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Preconditions;
@@ -19,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -560,6 +563,21 @@ public class SymbolicProgramConfiguration {
         readBlacklist);
   }
 
+  SymbolicProgramConfiguration copyAndAddDummyStackFrame() {
+    StackFrame newStackFrame = StackFrame.ofDummyStackframe();
+    return of(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping.pushAndCopy(newStackFrame),
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory,
+        readBlacklist);
+  }
+
   /**
    * Copies this {@link SymbolicProgramConfiguration} and removes the stack variable given.
    *
@@ -579,7 +597,7 @@ public class SymbolicProgramConfiguration {
       StackFrame newFrame = frame.copyAndRemoveVariable(pIdentifier);
       PersistentStack<StackFrame> newStack =
           stackVariableMapping.replace(f -> f == frame, newFrame);
-      SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
+      SMG newSmg = smg.copyAndInvalidateObject(objToRemove, true);
       return of(
           newSmg,
           globalVariableMapping,
@@ -684,7 +702,7 @@ public class SymbolicProgramConfiguration {
     for (SMGObject object : frame.getAllObjects()) {
       // Don't invalidate objects that are referenced by another stack frame!
       if (!validObjects.contains(object)) {
-        newSmg = newSmg.copyAndInvalidateObject(object);
+        newSmg = newSmg.copyAndInvalidateObject(object, false);
         newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(object);
       }
     }
@@ -1451,13 +1469,14 @@ public class SymbolicProgramConfiguration {
    * @param pObject the {@link SMGObject} to invalidate.
    * @return a new SPC with the entered object invalidated.
    */
-  public SymbolicProgramConfiguration invalidateSMGObject(SMGObject pObject) {
+  public SymbolicProgramConfiguration invalidateSMGObject(
+      SMGObject pObject, boolean deleteDanglingPointers) {
     Preconditions.checkArgument(smg.getObjects().contains(pObject));
     SymbolicProgramConfiguration newSPC = this;
     if (isObjectExternallyAllocated(pObject)) {
       newSPC = copyAndInvalidateExternalAllocation(pObject);
     }
-    SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject);
+    SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject, deleteDanglingPointers);
     assert newSMG.checkSMGSanity();
     return newSPC.copyAndReplaceSMG(newSMG).copyAndRemoveNumericAddressAssumption(pObject);
   }
@@ -1574,11 +1593,14 @@ public class SymbolicProgramConfiguration {
       getFunctionDeclarationsFromStackFrames() {
     PersistentStack<CFunctionDeclarationAndOptionalValue> decls = PersistentStack.of();
     for (StackFrame frame : stackVariableMapping) {
+      CFunctionDeclaration funcDef = frame.getFunctionDefinition();
+      if (funcDef == null) {
+        // Test frame
+        continue;
+      }
       if (frame.getReturnObject().isEmpty()) {
         decls =
-            decls.pushAndCopy(
-                CFunctionDeclarationAndOptionalValue.of(
-                    frame.getFunctionDefinition(), Optional.empty()));
+            decls.pushAndCopy(CFunctionDeclarationAndOptionalValue.of(funcDef, Optional.empty()));
       } else {
         // Search for the return Value, there might be none if we are not on the return edge
         FluentIterable<SMGHasValueEdge> edges =
@@ -1941,7 +1963,9 @@ public class SymbolicProgramConfiguration {
       } else {
         memoryString = memoryString + "invalid " + memory;
       }
-      for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
+      for (SMGHasValueEdge valueEdge :
+          ImmutableList.sortedCopyOf(
+              Comparator.comparing(o -> o.getOffset()), smg.getEdges(memory))) {
         SMGValue smgValue = valueEdge.hasValue();
         Preconditions.checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
@@ -1969,8 +1993,14 @@ public class SymbolicProgramConfiguration {
     builder.append("Local Variables per StackFrame:");
     builder.append("\n");
     for (StackFrame stackframe : stackVariableMapping) {
+      CFunctionDeclaration funDef = stackframe.getFunctionDefinition();
+      String funName;
+      if (funDef != null) {
+        funName = funDef.getQualifiedName();
+      } else {
+        funName = "DummyFrame";
+      }
       if (stackframe.getReturnObject().isPresent()) {
-        String funName = stackframe.getFunctionDefinition().getQualifiedName();
         // There is a return object!
         String retObjString = "";
         if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
@@ -1984,7 +2014,10 @@ public class SymbolicProgramConfiguration {
             .append(funName)
             .append(" return object ")
             .append(":" + retObjString + " with values: ");
-        for (SMGHasValueEdge valueEdge : smg.getEdges(stackframe.getReturnObject().orElseThrow())) {
+        for (SMGHasValueEdge valueEdge :
+            ImmutableList.sortedCopyOf(
+                Comparator.comparing(o -> o.getOffset()),
+                smg.getEdges(stackframe.getReturnObject().orElseThrow()))) {
           MemoryLocation memLoc =
               MemoryLocation.fromQualifiedName(
                   funName + "::__retval__", valueEdge.getOffset().longValueExact());
@@ -2011,7 +2044,6 @@ public class SymbolicProgramConfiguration {
         }
       } else {
         builder.append("\n");
-        String funName = stackframe.getFunctionDefinition().getQualifiedName();
         builder.append("Function ").append(funName);
         builder.append("\n");
       }
@@ -2032,7 +2064,8 @@ public class SymbolicProgramConfiguration {
               .append(memoryString)
               .append("\n");
         }
-        for (SMGHasValueEdge valueEdge : edges) {
+        for (SMGHasValueEdge valueEdge :
+            ImmutableList.sortedCopyOf(Comparator.comparing(o -> o.getOffset()), edges)) {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
@@ -2057,7 +2090,8 @@ public class SymbolicProgramConfiguration {
       builder.append("\n");
     }
     builder.append("\n");
-    builder.append("Pointers -> [pointer offset] targets[offset, size in bits) with values:");
+    builder.append(
+        "Pointers -> (spec) [pointer offset] targets[offset, size in bits) with values:");
     builder.append("\n");
 
     for (Entry<SMGValue, SMGPointsToEdge> entry : smg.getPTEdgeMapping().entrySet()) {
@@ -2065,11 +2099,18 @@ public class SymbolicProgramConfiguration {
       if (!smg.isValid(entry.getValue().pointsTo())) {
         validity = " (invalid object)";
       }
+      ImmutableList<SMGHasValueEdge> orderedHVes =
+          ImmutableList.sortedCopyOf(
+              Comparator.comparing(o -> o.getOffset()),
+              smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
+
       builder
           .append(entry.getKey())
           .append(" (" + smg.getNestingLevel(entry.getKey()) + ")")
           .append(entry.getValue())
-          .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true))
+          .append(
+              transformedImmutableListCopy(
+                  orderedHVes, hve -> (smg.isPointer(hve.hasValue()) ? "(ptr) " : "") + hve))
           .append(validity);
       builder.append("\n");
     }
@@ -2086,6 +2127,7 @@ public class SymbolicProgramConfiguration {
     return builder.toString();
   }
 
+  /** Returns number of times the value is saved in memory (stack variables, heap etc.) */
   public int getNumberOfValueUsages(Value pValue) {
     Optional<SMGValue> maybeSMGValue = getSMGValueFromValue(pValue);
     if (maybeSMGValue.isEmpty()) {
