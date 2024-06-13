@@ -199,12 +199,32 @@ build-docker:test:node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.node
     IMAGE: /test:node
 
+# Build Docker images and push to Docker Hub
+# following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
+.build-docker-hub:
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /root/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}, \"docker.io/sosylab\":{\"username\":\"$DOCKER_HUB_USER\",\"password\":\"$DOCKER_HUB_TOKEN\"\}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE:$TAG --destination docker.io/sosylab/cpachecker:$TAG $EXTRA_ARGS
+  only:
+    variables:
+      - $DOCKER_HUB_USER
+      - $DOCKER_HUB_TOKEN
+
 build-docker:release:
-  extends: .build-docker
+  stage: images
+  extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":2.3.1"
-    EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
+    TAG: "2.3.1"
+    EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
+  only:
+    refs:
+      - schedules
+      - web
 
 
 javascript-e2e-tests:
@@ -280,10 +300,10 @@ deploy-docker:
     - build-tar
   needs:
     - build-tar
-  extends: .build-docker
+  extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.dev
-    IMAGE: ":dev"
+    TAG: "dev"
     EXTRA_ARGS: "--context dir://."
   only:
     refs:

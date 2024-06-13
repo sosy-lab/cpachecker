@@ -95,7 +95,7 @@ Verifying a Program with CPAchecker
    for executing the Linux version of CPAchecker.
 
    If you installed CPAchecker using Docker, the above example command line would look like this:
-   `docker run -v $(pwd):/workdir -u $UID:$GID registry.gitlab.com/sosy-lab/software/cpachecker -default /cpachecker/doc/examples/example.c`
+   `docker run -v $(pwd):/workdir -u $UID:$GID sosylab/cpachecker -default /cpachecker/doc/examples/example.c`
    This command makes the current directory available in the container,
    so to verify a program in the current directory just provide its file name
    instead of the example that is bundled with CPAchecker.
