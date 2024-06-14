@@ -57,14 +57,14 @@ case "$platform" in
     ;;
 esac
 
-if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class" ] ; then
+if [ ! -e "$PATH_TO_CPACHECKER/classes/org/sosy_lab/cpachecker/cmdline/CPAMain.class" ] ; then
   if [ ! -e "$PATH_TO_CPACHECKER/cpachecker.jar" ] ; then
     echo "Could not find CPAchecker binary, please check path to project directory" 1>&2
     exit 1
   fi
 fi
 
-export CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar:$PATH_TO_CPACHECKER/lib/*:$PATH_TO_CPACHECKER/lib/java/runtime/*"
+export CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/classes:$PATH_TO_CPACHECKER/cpachecker.jar:$PATH_TO_CPACHECKER/lib/*:$PATH_TO_CPACHECKER/lib/java/runtime/*"
 
 # loop over all input parameters and parse them
 declare -a OPTIONS

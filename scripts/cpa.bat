@@ -30,14 +30,14 @@ IF "%PATH_TO_CPACHECKER%"=="" (
   for %%i in ("%SCRIPT%..\") do SET "PATH_TO_CPACHECKER=%%~fi"
 )
 
-IF NOT EXIST "%PATH_TO_CPACHECKER%\bin\org\sosy_lab\cpachecker\cmdline\CPAMain.class" (
+IF NOT EXIST "%PATH_TO_CPACHECKER%\classes\org\sosy_lab\cpachecker\cmdline\CPAMain.class" (
   IF NOT EXIST "%PATH_TO_CPACHECKER%\cpachecker.jar" (
     ECHO Could not find CPAchecker binary, please check path to project directory.
     EXIT 1
   )
 )
 
-SET "CLASSPATH=%CLASSPATH%;%PATH_TO_CPACHECKER%\bin;%PATH_TO_CPACHECKER%\cpachecker.jar;%PATH_TO_CPACHECKER%\lib\*;%PATH_TO_CPACHECKER%\lib\java\runtime\*"
+SET "CLASSPATH=%CLASSPATH%;%PATH_TO_CPACHECKER%\classes;%PATH_TO_CPACHECKER%\cpachecker.jar;%PATH_TO_CPACHECKER%\lib\*;%PATH_TO_CPACHECKER%\lib\java\runtime\*"
 
 REM loop over all input parameters and parse them
 SET OPTIONS=
