@@ -122,12 +122,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private Map<CFunctionType, Set<CFunctionType>> getFunctionCallHierarchy(CFA pCfa) {
     Map<CFunctionType, Set<CFunctionType>> callHierarchy = new HashMap<>();
     for (CFANode cfaNode : pCfa.nodes()) {
+      CFunctionType caller = (CFunctionType) cfaNode.getFunction().getType();
+      if (!callHierarchy.containsKey(caller)) {
+        // add the function as a key, no matter if it actually calls other functions inside of it
+        callHierarchy.put(caller, new HashSet<>());
+      }
       for (CFAEdge cfaEdge : CFAUtils.leavingEdges(cfaNode)) {
-        CFunctionType caller = (CFunctionType) cfaNode.getFunction().getType();
-        if (!callHierarchy.containsKey(caller)) {
-          // add the function as a key, no matter if it actually calls other functions inside of it
-          callHierarchy.put(caller, new HashSet<>());
-        }
         CFANode successor = cfaEdge.getSuccessor();
         if (successor instanceof FunctionEntryNode) {
           callHierarchy.get(caller).add((CFunctionType) successor.getFunction().getType());
