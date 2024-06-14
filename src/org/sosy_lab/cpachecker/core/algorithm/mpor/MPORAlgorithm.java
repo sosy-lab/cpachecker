@@ -26,6 +26,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -60,12 +62,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final Specification specification;
   private final CFA cfa;
 
-  /** A mapping of function names to a set of executing thread IDs. */
-  // TODO create a function for this
-  private Map<String, Set<Integer>> functionThreadIds;
+  /** A map of functions to sets of functions that are called inside of them. */
+  private Map<CFunctionType, Set<CFunctionType>> functionCallHierarchy;
 
   /** A set of functions that are start routines extracted from pthread_create calls. */
-  private Set<CFunctionType> startRoutines;
+  private Set<CFunctionType> threadStartRoutines;
+
+  // TODO maybe it is easier to debug if we map from ids to functions?
+  /** A map of functions to ID sets of threads executing them. */
+  private Map<CFunctionType, Set<Integer>> functionThreadIds;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
@@ -86,7 +91,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // TODO check for C program
     checkForParallelProgram(cfa);
-    startRoutines = extractThreadStartRoutines(cfa);
+    functionCallHierarchy = getFunctionCallHierarchy(cfa);
+    threadStartRoutines = getThreadStartRoutines(cfa);
+    functionThreadIds = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
   }
 
   /**
@@ -106,16 +113,43 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
+   * Goes through the given CFA and extracts all functions and functions called inside of them. The
+   * map also contains functions that do not call other functions inside of them.
+   *
+   * @param pCfa the CFA to be analyzed
+   * @return a map of functions (keys) to a set functions called inside of them (values)
+   */
+  private Map<CFunctionType, Set<CFunctionType>> getFunctionCallHierarchy(CFA pCfa) {
+    Map<CFunctionType, Set<CFunctionType>> callHierarchy = new HashMap<>();
+    for (CFANode cfaNode : pCfa.nodes()) {
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(cfaNode)) {
+        CFunctionType caller = (CFunctionType) cfaNode.getFunction().getType();
+        if (!callHierarchy.containsKey(caller)) {
+          // add the function as a key, no matter if it actually calls other functions inside of it
+          callHierarchy.put(caller, new HashSet<>());
+        }
+        CFANode successor = cfaEdge.getSuccessor();
+        if (successor instanceof FunctionEntryNode) {
+          callHierarchy.get(caller).add((CFunctionType) successor.getFunction().getType());
+        }
+      }
+    }
+    return callHierarchy;
+  }
+
+  /**
    * Searches the CFA for phtread_create calls and returns the start routines (i.e. the function the
    * thread is executing).
    *
    * @param pCfa the CFA to be analyzed
    * @return set of functions that are start routines in pthread_create calls
    */
-  private Set<CFunctionType> extractThreadStartRoutines(CFA pCfa) {
-    Set<CFunctionType> threadStartRoutines = new HashSet<>();
+  private Set<CFunctionType> getThreadStartRoutines(CFA pCfa) {
+    Set<CFunctionType> startRoutines = new HashSet<>();
+    // TODO what would happen when something like for (3 times) pthread_create is used?
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
       if (PthreadFunction.isEdgeCallToFunction(cfaEdge, PthreadFunction.CREATE)) {
+        // TODO is there a way to shorten all these casts ... ?
         AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
         CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
         // extract the third parameter of pthread_create which points to the start routine function
@@ -124,23 +158,84 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                 cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions().get(2);
         CPointerType cPointerType = (CPointerType) cUnaryExpression.getExpressionType();
         CFunctionType cFunctionType = (CFunctionType) cPointerType.getType();
-        threadStartRoutines.add(cFunctionType);
+        startRoutines.add(cFunctionType);
       }
     }
-    return threadStartRoutines;
+    return startRoutines;
   }
 
-  // TODO create a function that maps thread ids (in the analysis, we will use our own thread ids,
-  //  runtime ids are not relevant) to their main functions (preferably in the form of a CfaEdge)
-  // TODO is this idea sufficient to map from any CfaEdge to a thread id?
+  /**
+   * @param pThreadStartRoutines the set of functions serving as start routines for threads
+   * @param pFunctionCallHierarchy the mapping from functions to functions called inside of them
+   * @return the mapping from functions to a set of thread IDs executing them
+   */
+  private Map<CFunctionType, Set<Integer>> getFunctionThreadIds(
+      Set<CFunctionType> pThreadStartRoutines,
+      Map<CFunctionType, Set<CFunctionType>> pFunctionCallHierarchy) {
+
+    Map<CFunctionType, Set<Integer>> functionThreadIdMap = new HashMap<>();
+    // start with 1, 0 is reserved for the main thread
+    int currentThreadId = 1;
+    // go through all thread start routines and recursively check for function calls inside of them
+    for (CFunctionType startRoutine : pThreadStartRoutines) {
+      Set<CFunctionType> visitedCFunctionTypes = new HashSet<>();
+      functionThreadIdMap =
+          exploreFunctionCalls(
+              pFunctionCallHierarchy,
+              functionThreadIdMap,
+              startRoutine,
+              visitedCFunctionTypes,
+              currentThreadId);
+      currentThreadId++;
+    }
+    // TODO go through the main function and all functions called there. thread ID 0
+    return functionThreadIdMap;
+  }
+
+  /**
+   * Recursively iterates over the functions called in pCFunctionType and assigns pThreadId to them
+   * in pFunctionThreadIdMap.
+   *
+   * @param pFunctionCallHierarchy the mapping of functions to a set of functions called inside them
+   * @param pFunctionThreadIdMap the mapping of functions to a set of thread IDs executing it
+   * @param pCFunctionType the pCFunctionType whose function calls we extract
+   * @param pVisitedCFunctionTypes the set of CFunctionTypes that were pCFunctionType once to
+   *     prevent an infinite loop
+   * @param pThreadId the ID of the thread we assign the functions to in pFunctionThreadIdMap
+   * @return the mapping of functions to thread IDs executing them
+   */
+  private Map<CFunctionType, Set<Integer>> exploreFunctionCalls(
+      Map<CFunctionType, Set<CFunctionType>> pFunctionCallHierarchy,
+      Map<CFunctionType, Set<Integer>> pFunctionThreadIdMap,
+      CFunctionType pCFunctionType,
+      Set<CFunctionType> pVisitedCFunctionTypes,
+      int pThreadId) {
+
+    // add function to already visited functions in case there is recursion in the original program
+    if (!pVisitedCFunctionTypes.contains(pCFunctionType)) {
+      pVisitedCFunctionTypes.add(pCFunctionType);
+      // not checking if the key exists here because this should always be the case
+      Set<CFunctionType> calledFunctions = pFunctionCallHierarchy.get(pCFunctionType);
+      for (CFunctionType newCFunctionType : calledFunctions) {
+        if (!pFunctionThreadIdMap.containsKey(newCFunctionType)) {
+          pFunctionThreadIdMap.put(newCFunctionType, new HashSet<>());
+        }
+        pFunctionThreadIdMap.get(newCFunctionType).add(pThreadId);
+        // recursively check for function calls inside functions called inside pCFunctionType
+        exploreFunctionCalls(
+            pFunctionCallHierarchy,
+            pFunctionThreadIdMap,
+            newCFunctionType,
+            pVisitedCFunctionTypes,
+            pThreadId);
+      }
+    }
+    return pFunctionThreadIdMap;
+  }
 
   // TODO use GlobalAccessChecker to check whether a CfaEdge reads or writes global / shared
   //  variables?
   // TODO find out what isImporantForThreading (sic) in ThreadingTransferRelation does
-
-  // TODO use ThreadingState to get Thread IDs?
-  //  or use the CFAEdge to find pthread_create statements and extract the ID from that.
-  //  keep in mind that we need to keep track of all current states and edges for all threads.
 
   // TODO use CFAEdge getRawStatement or getCode to find out about thread creations,
   //  joins, barriers, etc.? use in combination with CFAEdgeType?

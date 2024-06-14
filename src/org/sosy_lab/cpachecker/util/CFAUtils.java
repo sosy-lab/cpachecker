@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
@@ -80,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -659,6 +661,28 @@ public class CFAUtils {
     }
 
     return true;
+  }
+
+  /**
+   * @param pCfaEdge CFAEdge to be analyzed
+   * @return true if the given CFAEdge is an instance of CFunctionCallStatement
+   */
+  public static boolean isCfaEdgeCFunctionCallStatement(CFAEdge pCfaEdge) {
+    checkNotNull(pCfaEdge);
+    Optional<AAstNode> aAstNode = pCfaEdge.getRawAST();
+    return aAstNode.isPresent() && aAstNode.orElseThrow() instanceof CFunctionCallStatement;
+  }
+
+  /**
+   * This function does not check if pCfaEdge actually is a CFunctionCallStatement. Best use in
+   * combination with {@link CFAUtils#isCfaEdgeCFunctionCallStatement(CFAEdge)}.
+   *
+   * @param pCfaEdge CFAEdge that represents a CFunctionCallStatement
+   * @return the CFunctionCallStatement of the pCfaEdge if it exists
+   */
+  public static CFunctionCallStatement getCFunctionCallStatementFromCfaEdge(CFAEdge pCfaEdge) {
+    checkNotNull(pCfaEdge);
+    return (CFunctionCallStatement) pCfaEdge.getRawAST().orElseThrow();
   }
 
   /** Get all {@link FileLocation} objects that are attached to an edge or its AST nodes. */

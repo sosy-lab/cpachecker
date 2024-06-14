@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public enum PthreadFunction {
   CANCEL("pthread_cancel"),
@@ -23,7 +21,7 @@ public enum PthreadFunction {
   MUTEX_LOCK("pthread_mutex_lock"),
   MUTEX_UNLOCK("pthread_mutex_unlock");
   // TODO unsure about yield, mutex_destroy
-  //  pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER; // used instead of mutex init
+  //  pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER; // also used instead of mutex init
   //  pthread_barrier stuff
   //  etc. probably a lot more things
 
@@ -37,10 +35,8 @@ public enum PthreadFunction {
    * @return true if the given CFAEdge is a call to the given pthread function
    */
   public static boolean isEdgeCallToFunction(CFAEdge pCfaEdge, PthreadFunction pPthreadFunction) {
-    Optional<AAstNode> aAstNode = pCfaEdge.getRawAST();
-    return aAstNode.isPresent()
-        && aAstNode.orElseThrow() instanceof CFunctionCallStatement
-        && ((CFunctionCallStatement) aAstNode.orElseThrow())
+    return CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge)
+        && CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
             .getFunctionCallExpression()
             .getFunctionNameExpression()
             .toASTString()
