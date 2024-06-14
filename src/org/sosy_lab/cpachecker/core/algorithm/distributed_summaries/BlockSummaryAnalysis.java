@@ -317,17 +317,22 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                 .build();
         BlockSummaryAnalysisWorker actor =
             (BlockSummaryAnalysisWorker) Iterables.getOnlyElement(build.actors());
-        ImmutableSet.Builder<BlockSummaryMessage> response = ImmutableSet.builder();
+        Collection<BlockSummaryMessage> response = ImmutableSet.of();
         if (inputMessages.isEmpty()) {
-          response.addAll(actor.runInitialAnalysis());
+          response = actor.runInitialAnalysis();
         } else {
-          for (Path messageFile : inputMessages) {
+          for (int i = 0; i < inputMessages.size(); i++) {
+            Path messageFile = inputMessages.get(i);
             logger.log(Level.INFO, "Handling message " + messageFile);
             BlockSummaryMessage message = converter.jsonToMessage(Files.readString(messageFile));
-            response.addAll(actor.processMessage(message));
+            if (i == inputMessages.size() - 1) {
+              response = actor.processMessage(message);
+            } else {
+              actor.storeMessage(message);
+            }
           }
         }
-        for (BlockSummaryMessage blockSummaryMessage : response.build()) {
+        for (BlockSummaryMessage blockSummaryMessage : response) {
           Files.createDirectories(outputMessages);
           Path message = outputMessages.resolve("M" + counter++ + ".json");
           Files.writeString(message, converter.messageToJson(blockSummaryMessage));

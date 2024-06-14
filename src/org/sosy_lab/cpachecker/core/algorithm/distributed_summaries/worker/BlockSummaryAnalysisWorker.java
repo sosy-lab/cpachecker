@@ -125,6 +125,21 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     }
   }
 
+  public void storeMessage(BlockSummaryMessage message)
+      throws SolverException, InterruptedException {
+    switch (message.getType()) {
+      case STATISTICS, FOUND_RESULT, ERROR, ERROR_CONDITION_UNREACHABLE -> {}
+      case ERROR_CONDITION -> {
+        dcpaAlgorithm.updateErrorCondition((BlockSummaryErrorConditionMessage) message);
+      }
+      case BLOCK_POSTCONDITION -> {
+        //noinspection ResultOfMethodCallIgnored
+        dcpaAlgorithm.shouldRepeatAnalysis((BlockSummaryPostConditionMessage) message);
+      }
+      default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
+    }
+  }
+
   @Override
   public BlockSummaryConnection getConnection() {
     return connection;
