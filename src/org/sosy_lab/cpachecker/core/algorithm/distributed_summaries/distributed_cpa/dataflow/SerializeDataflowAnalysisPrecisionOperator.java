@@ -6,10 +6,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class SerializeDataflowAnalysisPrecisionOperator implements SerializePrecisionOperator {
 
-    @Override
-    public BlockSummaryMessagePayload serializePrecision(Precision pPrecision) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'serializePrecision'");
-    }
-    
+  @Override
+  public BlockSummaryMessagePayload serializePrecision(Precision pPrecision) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'serializePrecision'");
+  }
 }

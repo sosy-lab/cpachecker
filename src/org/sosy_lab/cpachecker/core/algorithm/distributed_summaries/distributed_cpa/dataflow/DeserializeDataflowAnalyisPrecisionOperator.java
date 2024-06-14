@@ -4,12 +4,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-public class DeserializeDataflowAnalyisPrecisionOperator implements DeserializePrecisionOperator{
+public class DeserializeDataflowAnalyisPrecisionOperator implements DeserializePrecisionOperator {
 
-    @Override
-    public Precision deserializePrecision(BlockSummaryMessage pMessage) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deserializePrecision'");
-    }
-    
+  @Override
+  public Precision deserializePrecision(BlockSummaryMessage pMessage) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'deserializePrecision'");
+  }
 }

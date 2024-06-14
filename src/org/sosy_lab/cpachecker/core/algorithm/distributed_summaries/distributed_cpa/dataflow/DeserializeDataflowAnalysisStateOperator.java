@@ -6,11 +6,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class DeserializeDataflowAnalysisStateOperator implements DeserializeOperator {
 
-    @Override
-    public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deserialize'");
-    }
-
-    
+  @Override
+  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'deserialize'");
+  }
 }

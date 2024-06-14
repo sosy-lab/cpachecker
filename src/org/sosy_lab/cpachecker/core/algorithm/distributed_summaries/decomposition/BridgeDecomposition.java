@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -31,23 +30,22 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
     SingleBlockDecomposition singleBlockDecomposer = new SingleBlockDecomposition();
     List<BlockNodeWithoutGraphInformation> cutNodes = new ArrayList<>();
     List<BlockNodeWithoutGraphInformation> singleBlockNode =
-        new ArrayList<>(singleBlockDecomposer.decompose(cfa).getNodes());    
-    
+        new ArrayList<>(singleBlockDecomposer.decompose(cfa).getNodes());
+
     List<BlockNodeWithoutGraphInformation> listOfAllNodes = new ArrayList<>(singleBlockNode);
     char idPrefixChar = 'B';
-    
-    
+
     while (true) {
       for (BlockNodeWithoutGraphInformation blockNode : listOfAllNodes) {
 
-        if (shouldAddBlockNodeDirectly(blockNode)) {    
+        if (shouldAddBlockNodeDirectly(blockNode)) {
           cutNodes.add(blockNode);
-  
+
         } else if (shouldDecomposeBlockNode(blockNode)) {
           List<BlockNodeWithoutGraphInformation> newBlockNodes =
               getMoreBlockNodes(idPrefixChar + "", blockNode);
           cutNodes.addAll(newBlockNodes);
-  
+
           idPrefixChar++;
         } else if (shouldComputeBridges(blockNode)) {
           BridgeComponents components = STBridges.computeBridges(blockNode);
@@ -57,20 +55,18 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
           cutNodes.add(blockNode);
         }
       }
-     
+
       if (cutNodes.equals(listOfAllNodes)) {
         break;
       }
       listOfAllNodes = new ArrayList<>(cutNodes);
-      
+
       cutNodes.clear();
     }
     BlockGraph blockGraph = BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, listOfAllNodes);
 
     return blockGraph;
   }
-
-  
 
   private List<BlockNodeWithoutGraphInformation> getMoreBlockNodes(
       String idPrefix, BlockNodeWithoutGraphInformation blockNode) {

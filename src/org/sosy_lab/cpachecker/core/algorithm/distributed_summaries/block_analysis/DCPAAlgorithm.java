@@ -327,17 +327,8 @@ public class DCPAAlgorithm {
     return reportErrorConditions(result.getViolationStates(), null, true, "", true);
   }
 
-  /**
-   * Adds a new abstract state to the known start states and execute the configured forward
-   * analysis.
-   *
-   * @param pReceived Current message to process
-   * @return All violations and/or abstractions that occurred while running the forward analysis.
-   */
-  public Collection<BlockSummaryMessage> runAnalysis(BlockSummaryPostConditionMessage pReceived)
-      throws SolverException, InterruptedException, CPAException {
-    logger.log(Level.INFO, "Running forward analysis with new precondition");
-    // check if message is meant for this block
+  public BlockSummaryMessageProcessing shouldRepeatAnalysis(
+      BlockSummaryPostConditionMessage pReceived) throws InterruptedException, SolverException {
     AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
     BlockSummaryMessageProcessing processing =
         dcpa.getProceedOperator().processForward(deserialized);
@@ -386,25 +377,39 @@ public class DCPAAlgorithm {
         soundPredecessors.add(pReceived.getBlockId());
       }
     }
+    return repeat ? BlockSummaryMessageProcessing.proceed() : BlockSummaryMessageProcessing.stop();
+  }
+
+  /**
+   * Adds a new abstract state to the known start states and execute the configured forward
+   * analysis.
+   *
+   * @param pReceived Current message to process
+   * @return All violations and/or abstractions that occurred while running the forward analysis.
+   */
+  public Collection<BlockSummaryMessage> runAnalysis(BlockSummaryPostConditionMessage pReceived)
+      throws SolverException, InterruptedException, CPAException {
+    logger.log(Level.INFO, "Running forward analysis with new precondition");
+    // check if message is meant for this block
     // if we do not have messages from all predecessors we under-approximate, so we abort!
     // if element is top element, we abort
     // for now we do not analyze at all
-
-    if (repeat) {
-      ImmutableSet.Builder<BlockSummaryMessage> fixpointIteration = ImmutableSet.builder();
-      for (BlockSummaryErrorConditionMessage value : errors.values()) {
-        for (BlockSummaryMessage blockSummaryMessage : runAnalysisUnderCondition(value, false)) {
-          if ((blockSummaryMessage.getType() == MessageType.BLOCK_POSTCONDITION
-                  || blockSummaryMessage.getType() == MessageType.ERROR_CONDITION)
-              && soundPredecessors.containsAll(loopPredecessors)) {
-            fixpointIteration.add(blockSummaryMessage);
-          }
-        }
-      }
-      return fixpointIteration.build();
+    BlockSummaryMessageProcessing processing = shouldRepeatAnalysis(pReceived);
+    if (!processing.shouldProceed()) {
+      return processing;
     }
 
-    return ImmutableSet.of();
+    ImmutableSet.Builder<BlockSummaryMessage> fixpointIteration = ImmutableSet.builder();
+    for (BlockSummaryErrorConditionMessage value : errors.values()) {
+      for (BlockSummaryMessage blockSummaryMessage : runAnalysisUnderCondition(value, false)) {
+        if ((blockSummaryMessage.getType() == MessageType.BLOCK_POSTCONDITION
+                || blockSummaryMessage.getType() == MessageType.ERROR_CONDITION)
+            && soundPredecessors.containsAll(loopPredecessors)) {
+          fixpointIteration.add(blockSummaryMessage);
+        }
+      }
+    }
+    return fixpointIteration.build();
   }
 
   private AbstractState makeStartState() throws InterruptedException {
@@ -413,6 +418,21 @@ public class DCPAAlgorithm {
 
   private Precision makeStartPrecision() throws InterruptedException {
     return dcpa.getInitialPrecision(block.getFirst(), StateSpacePartition.getDefaultPartition());
+  }
+
+  public void updateErrorCondition(BlockSummaryErrorConditionMessage pErrorCondition) {
+    boolean covered = false;
+    Set<String> originPrefix =
+        ImmutableSet.copyOf(Splitter.on(",").splitToList(pErrorCondition.getOrigin()));
+    for (Set<String> errorPrefixes : errors.keySet()) {
+      if (originPrefix.containsAll(errorPrefixes)) {
+        covered = true;
+        break;
+      }
+    }
+    if (!covered) {
+      errors.put(originPrefix, pErrorCondition);
+    }
   }
 
   /**
@@ -437,17 +457,8 @@ public class DCPAAlgorithm {
       return processing;
     }
 
-    Set<String> originPrefix =
-        ImmutableSet.copyOf(Splitter.on(",").splitToList(pErrorCondition.getOrigin()));
-    boolean covered = false;
-    for (Set<String> errorPrefixes : errors.keySet()) {
-      if (originPrefix.containsAll(errorPrefixes)) {
-        covered = true;
-        break;
-      }
-    }
-    if (put && !covered) {
-      errors.put(originPrefix, pErrorCondition);
+    if (put) {
+      updateErrorCondition(pErrorCondition);
     }
     prepareReachedSet();
 
@@ -462,6 +473,8 @@ public class DCPAAlgorithm {
 
     status = status.update(result.getStatus());
 
+    Set<String> originPrefix =
+        ImmutableSet.copyOf(Splitter.on(",").splitToList(pErrorCondition.getOrigin()));
     boolean matched = false;
     for (Set<String> seenPrefix : seenPrefixes) {
       if (originPrefix.containsAll(seenPrefix)) {

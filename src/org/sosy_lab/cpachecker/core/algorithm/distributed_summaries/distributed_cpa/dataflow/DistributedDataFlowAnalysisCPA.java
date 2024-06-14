@@ -17,60 +17,58 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedDataFlowAnalysisCPA
-        implements ForwardingDistributedConfigurableProgramAnalysis {
+    implements ForwardingDistributedConfigurableProgramAnalysis {
 
-    private final InvariantsCPA invariantsCPA;
-    private final SerializeOperator serializeOperator;
-    private final DeserializeOperator deserializeOperator;
-    private final SerializePrecisionOperator serializePrecisionOperator;
-    private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final InvariantsCPA invariantsCPA;
+  private final SerializeOperator serializeOperator;
+  private final DeserializeOperator deserializeOperator;
+  private final SerializePrecisionOperator serializePrecisionOperator;
+  private final DeserializePrecisionOperator deserializePrecisionOperator;
 
+  public DistributedDataFlowAnalysisCPA(InvariantsCPA pInvariantsCPA) {
+    invariantsCPA = pInvariantsCPA;
+    serializeOperator = new SerializeDataflowAnalysisStateOperator();
+    deserializeOperator = new DeserializeDataflowAnalysisStateOperator();
+    serializePrecisionOperator = new SerializeDataflowAnalysisPrecisionOperator();
+    deserializePrecisionOperator = new DeserializeDataflowAnalyisPrecisionOperator();
+  }
 
+  @Override
+  public SerializeOperator getSerializeOperator() {
+    return serializeOperator;
+  }
 
-    public DistributedDataFlowAnalysisCPA(InvariantsCPA pInvariantsCPA) {
-        invariantsCPA = pInvariantsCPA;
-        serializeOperator = new SerializeDataflowAnalysisStateOperator();
-        deserializeOperator = new DeserializeDataflowAnalysisStateOperator();
-        serializePrecisionOperator = new SerializeDataflowAnalysisPrecisionOperator();
-        deserializePrecisionOperator = new DeserializeDataflowAnalyisPrecisionOperator();
-    }
+  @Override
+  public DeserializeOperator getDeserializeOperator() {
+    return deserializeOperator;
+  }
 
-    @Override
-    public SerializeOperator getSerializeOperator() {
-        return serializeOperator;
-    }
+  @Override
+  public ProceedOperator getProceedOperator() {
+    return ProceedOperator.always();
+  }
 
-    @Override
-    public DeserializeOperator getDeserializeOperator() {
-        return deserializeOperator;
-    }
+  @Override
+  public Class<? extends AbstractState> getAbstractStateClass() {
+    return InvariantsState.class;
+  }
 
-    @Override
-    public ProceedOperator getProceedOperator() {
-        return ProceedOperator.always();
-    }
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return invariantsCPA;
+  }
 
-    @Override
-    public Class<? extends AbstractState> getAbstractStateClass() {
-        return InvariantsState.class;
-    }
+  @Override
+  public boolean isTop(AbstractState pAbstractState) {
+    throw new UnsupportedOperationException("Unimplemented method 'isTop'");
+  }
 
-    @Override
-    public ConfigurableProgramAnalysis getCPA() {
-        return invariantsCPA;
-    }
-
-    @Override
-    public boolean isTop(AbstractState pAbstractState) {
-        throw new UnsupportedOperationException("Unimplemented method 'isTop'");
-    }
-
-    @Override
-    public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-            throws CPATransferException, InterruptedException, VerificationConditionException,
-            SolverException {
-        throw new UnsupportedOperationException(
-                "Unimplemented method 'computeVerificationCondition'");
-    }
-
+  @Override
+  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException,
+          InterruptedException,
+          VerificationConditionException,
+          SolverException {
+    throw new UnsupportedOperationException("Unimplemented method 'computeVerificationCondition'");
+  }
 }
