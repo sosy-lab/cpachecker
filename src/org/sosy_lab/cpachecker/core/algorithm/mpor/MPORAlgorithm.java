@@ -69,8 +69,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private Set<CFunctionType> threadStartRoutines;
 
   // TODO maybe it is easier to debug if we map from ids to functions?
-  /** A map of functions to ID sets of threads executing them. */
-  private Map<CFunctionType, Set<Integer>> functionThreadIds;
+  /** A map of thread IDs to functions executed by the thread. */
+  private Map<Integer, Set<CFunctionType>> threadIdFunctions;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
@@ -93,7 +93,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     checkForParallelProgram(cfa);
     functionCallHierarchy = getFunctionCallHierarchy(cfa);
     threadStartRoutines = getThreadStartRoutines(cfa);
-    functionThreadIds = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
+    threadIdFunctions = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
   }
 
   /**
@@ -146,10 +146,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   private Set<CFunctionType> getThreadStartRoutines(CFA pCfa) {
     Set<CFunctionType> startRoutines = new HashSet<>();
-    // TODO what would happen when something like for (3 times) pthread_create is used?
+    // add the main function as the first element of the set
+    startRoutines.add(CFAUtils.getMainFunction(pCfa));
+    // search the CFA for pthread_create calls
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
       if (PthreadFunction.isEdgeCallToFunction(cfaEdge, PthreadFunction.CREATE)) {
         // TODO is there a way to shorten all these casts ... ?
+        // TODO use loop structure to handle pthread_create calls inside loops
+        //  (function is called numerous times)
         AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
         CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
         // extract the third parameter of pthread_create which points to the start routine function
@@ -169,26 +173,25 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pFunctionCallHierarchy the mapping from functions to functions called inside of them
    * @return the mapping from functions to a set of thread IDs executing them
    */
-  private Map<CFunctionType, Set<Integer>> getFunctionThreadIds(
+  private Map<Integer, Set<CFunctionType>> getFunctionThreadIds(
       Set<CFunctionType> pThreadStartRoutines,
       Map<CFunctionType, Set<CFunctionType>> pFunctionCallHierarchy) {
 
-    Map<CFunctionType, Set<Integer>> functionThreadIdMap = new HashMap<>();
-    // start with 1, 0 is reserved for the main thread
-    int currentThreadId = 1;
+    Map<Integer, Set<CFunctionType>> functionThreadIdMap = new HashMap<>();
+    // note that the threadIds in this analysis may not be the same as when actually executing the
+    // program. the main thread may not necessarily be the one with threadId 0.
+    int currentThreadId = 0;
     // go through all thread start routines and recursively check for function calls inside of them
     for (CFunctionType startRoutine : pThreadStartRoutines) {
       Set<CFunctionType> visitedCFunctionTypes = new HashSet<>();
-      functionThreadIdMap =
-          exploreFunctionCalls(
-              pFunctionCallHierarchy,
-              functionThreadIdMap,
-              startRoutine,
-              visitedCFunctionTypes,
-              currentThreadId);
+      exploreFunctionCalls(
+          pFunctionCallHierarchy,
+          functionThreadIdMap,
+          startRoutine,
+          visitedCFunctionTypes,
+          currentThreadId);
       currentThreadId++;
     }
-    // TODO go through the main function and all functions called there. thread ID 0
     return functionThreadIdMap;
   }
 
@@ -204,9 +207,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pThreadId the ID of the thread we assign the functions to in pFunctionThreadIdMap
    * @return the mapping of functions to thread IDs executing them
    */
-  private Map<CFunctionType, Set<Integer>> exploreFunctionCalls(
+  private Map<Integer, Set<CFunctionType>> exploreFunctionCalls(
       Map<CFunctionType, Set<CFunctionType>> pFunctionCallHierarchy,
-      Map<CFunctionType, Set<Integer>> pFunctionThreadIdMap,
+      Map<Integer, Set<CFunctionType>> pFunctionThreadIdMap,
       CFunctionType pCFunctionType,
       Set<CFunctionType> pVisitedCFunctionTypes,
       int pThreadId) {
@@ -217,10 +220,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       // not checking if the key exists here because this should always be the case
       Set<CFunctionType> calledFunctions = pFunctionCallHierarchy.get(pCFunctionType);
       for (CFunctionType newCFunctionType : calledFunctions) {
-        if (!pFunctionThreadIdMap.containsKey(newCFunctionType)) {
-          pFunctionThreadIdMap.put(newCFunctionType, new HashSet<>());
+        if (!pFunctionThreadIdMap.containsKey(pThreadId)) {
+          pFunctionThreadIdMap.put(pThreadId, new HashSet<>());
         }
-        pFunctionThreadIdMap.get(newCFunctionType).add(pThreadId);
+        pFunctionThreadIdMap.get(pThreadId).add(newCFunctionType);
         // recursively check for function calls inside functions called inside pCFunctionType
         exploreFunctionCalls(
             pFunctionCallHierarchy,

@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -115,6 +116,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -271,6 +273,25 @@ public class CFAUtils {
         };
       }
     };
+  }
+
+  /**
+   * Returns the main function of the program, assuming that it is named 'main'. This was only
+   * tested with C programs.
+   *
+   * @param pCfa the CFA to be analyzed
+   * @return the main function of the CFA
+   */
+  public static CFunctionType getMainFunction(CFA pCfa) {
+    for (CFANode cfaNode : pCfa.nodes()) {
+      CFunctionDeclaration cFunctionDeclaration = (CFunctionDeclaration) cfaNode.getFunction();
+      // assuming that the main function is actually called main which should be the case
+      if (cfaNode.getFunction().getName().equals("main")) {
+        return cFunctionDeclaration.getType();
+      }
+    }
+    throw new IllegalStateException(
+        "pCfa does not contain a main method. Was it initialized properly?");
   }
 
   /**
