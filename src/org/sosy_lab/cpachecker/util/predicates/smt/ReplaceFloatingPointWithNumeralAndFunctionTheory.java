@@ -358,17 +358,6 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   public FloatingPointFormula makeNumber(
       BigInteger exponent, BigInteger mantissa, boolean signBit, FloatingPointType type) {
     throw new UnsupportedOperationException("not yet implemented for CPAchecker");
-    // // assume a normal FP-type, such as Float32 or Float64, where the exponent fits into 32 bit.
-    // int bias = (1 << (type.getExponentSize() - 1)) - 1;
-    // int exponentValue = exponent.intValue() - bias;
-    // BigDecimal normalizedMantissa = new BigDecimal(mantissa)
-    //     .divide(BigDecimal.valueOf(1L << type.getMantissaSize()))
-    //     .add(BigDecimal.ONE); // Adding the implicit leading 1
-    // BigDecimal n = normalizedMantissa.multiply(BigDecimal.valueOf(2).pow(exponentValue));
-    // if (signBit) {
-    //   n = n.negate();
-    // }
-    // return wrap(type, numericFormulaManager.makeNumber(n));
   }
 
   @Override
