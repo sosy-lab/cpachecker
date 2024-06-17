@@ -76,7 +76,7 @@ abstract class AbstractYAMLWitnessExporter {
   }
 
   protected AstCfaRelation getASTStructure() {
-    AstCfaRelation astCFARelation = cfa.getASTStructure();
+    AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
     return Verify.verifyNotNull(astCFARelation);
   }
 

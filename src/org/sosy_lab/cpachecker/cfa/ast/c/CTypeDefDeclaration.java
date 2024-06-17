@@ -32,8 +32,8 @@ public final class CTypeDefDeclaration extends CTypeDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
-    return "typedef " + super.toASTString(pQualified, pOriginalVariableNames);
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "typedef " + super.toASTString(pAAstNodeRepresentation);
   }
 
   @Override

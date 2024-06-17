@@ -21,8 +21,8 @@ public abstract class AInitializerExpression extends AbstractInitializer {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
-    return expression.toASTString(pQualified, pOriginalVariableNames);
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return expression.toASTString(pAAstNodeRepresentation);
   }
 
   public AExpression getExpression() {

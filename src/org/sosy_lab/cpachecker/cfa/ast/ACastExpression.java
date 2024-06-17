@@ -31,11 +31,11 @@ public abstract class ACastExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "("
         + getExpressionType().toASTString("")
         + ")"
-        + operand.toParenthesizedASTString(pQualified, pOriginalVariableNames);
+        + operand.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   public Type getCastType() {

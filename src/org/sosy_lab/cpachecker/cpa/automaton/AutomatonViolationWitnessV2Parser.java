@@ -335,7 +335,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         break;
       } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
         ASTElement element =
-            cfa.getASTStructure().getTightestStatementForStarting(followLine, followColumn);
+            cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn);
         transitions.add(
             handleAssumption(
                 nextStateId,
@@ -345,7 +345,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 distance,
                 follow.getConstraint().getValue()));
       } else if (follow.getType().equals(WaypointType.BRANCHING)) {
-        AstCfaRelation astCFARelation = cfa.getASTStructure();
+        AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
         Verify.verifyNotNull(astCFARelation);
 
         Optional<List<AutomatonTransition>> ifStatementTransitions =

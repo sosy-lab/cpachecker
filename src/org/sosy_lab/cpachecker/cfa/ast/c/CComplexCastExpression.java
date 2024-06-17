@@ -77,11 +77,11 @@ public final class CComplexCastExpression extends AbstractExpression implements 
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     if (isReal) {
-      return "__real__ " + operand.toASTString(pQualified, pOriginalVariableNames);
+      return "__real__ " + operand.toASTString(pAAstNodeRepresentation);
     } else {
-      return "__imag__ " + operand.toASTString(pQualified, pOriginalVariableNames);
+      return "__imag__ " + operand.toASTString(pAAstNodeRepresentation);
     }
   }
 

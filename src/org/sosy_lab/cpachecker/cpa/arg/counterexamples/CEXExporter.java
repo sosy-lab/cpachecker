@@ -334,7 +334,7 @@ public class CEXExporter {
             uniqueId,
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
-        if (cfa.getLanguage() == Language.C) {
+        if (cfa.getMetadata().getInputLanguage() == Language.C) {
           if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
             try {
               cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
