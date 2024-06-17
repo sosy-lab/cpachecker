@@ -29,6 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   python3
 
 ADD cpachecker.tar.bz2 /
+# Make cpachecker executable available for execution
+ENV PATH "${PATH}:/cpachecker/scripts"
+
 RUN mkdir /workdir
 WORKDIR /workdir
 ENTRYPOINT ["/cpachecker/scripts/cpa.sh"]
