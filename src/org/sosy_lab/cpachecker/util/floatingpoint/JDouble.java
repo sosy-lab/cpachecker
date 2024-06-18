@@ -61,7 +61,7 @@ class JDouble extends CFloat {
   @Override
   public String toString() {
     if (isNan()) {
-      return ((Double.doubleToRawLongBits(value) & 0x8000000000000000L) != 0) ? "-nan" : "nan";
+      return isNegative() ? "-nan" : "nan";
     } else if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
     }
@@ -190,15 +190,12 @@ class JDouble extends CFloat {
 
   @Override
   public boolean isNegative() {
-    return Double.compare(value, 0.0d) < 0;
+    return (Double.doubleToRawLongBits(value) & 0x8000000000000000L) != 0;
   }
 
   @Override
   public CFloat copySignFrom(CFloat source) {
-    return new JDouble(
-        Double.compare(toDouble(source.getWrapper()), 0.0d) < 0
-            ? -Math.abs(value)
-            : Math.abs(value));
+    return new JDouble(source.isNegative() ? -Math.abs(value) : Math.abs(value));
   }
 
   @Override

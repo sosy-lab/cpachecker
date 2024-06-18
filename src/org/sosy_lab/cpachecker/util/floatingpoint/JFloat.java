@@ -61,7 +61,7 @@ class JFloat extends CFloat {
   @Override
   public String toString() {
     if (isNan()) {
-      return ((Float.floatToRawIntBits(value) & 0x80000000) != 0) ? "-nan" : "nan";
+      return isNegative() ? "-nan" : "nan";
     } else if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
     } else if (isZero()) {
@@ -191,13 +191,12 @@ class JFloat extends CFloat {
 
   @Override
   public boolean isNegative() {
-    return Float.compare(value, 0.0f) < 0;
+    return (Float.floatToRawIntBits(value) & 0x80000000) != 0;
   }
 
   @Override
   public CFloat copySignFrom(CFloat source) {
-    return new JFloat(
-        Float.compare(toFloat(source.getWrapper()), 0.0f) < 0 ? -Math.abs(value) : Math.abs(value));
+    return new JFloat(source.isNegative() ? -Math.abs(value) : Math.abs(value));
   }
 
   @Override
