@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
@@ -656,6 +657,13 @@ public abstract class AbstractExpressionValueVisitor
               double lVal = lNum.doubleValue();
               double rVal = rNum.doubleValue();
               double result = arithmeticOperation(lVal, rVal, op, calculationType);
+              if (Double.isNaN(result)) {
+                // Make sure that the sign bit is not set if the result is NaN
+                // Dividing 0.0 by 0.0 seems to return -NaN, at least on my JVM and this is not what
+                // we want here.
+                // FIXME: Rewrite this entire class to operate on FloatValues
+                result = Double.NaN;
+              }
               return new NumericValue(result);
             }
           }
@@ -1477,24 +1485,25 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private Optional<Boolean> isNegative(Number pNumber) {
-    if (pNumber instanceof BigDecimal) {
-      return Optional.of(((BigDecimal) pNumber).signum() < 0);
+    if (pNumber instanceof FloatValue floatValue) {
+      return Optional.of(floatValue.isNegative());
     } else if (pNumber instanceof Float) {
       float number = pNumber.floatValue();
       if (Float.isNaN(number)) {
-        return Optional.of(false);
+        return Optional.of((Float.floatToRawIntBits(number) & 0x80000000) != 0);
       }
       return Optional.of(number < 0 || 1 / number < 0);
     } else if (pNumber instanceof Double) {
       double number = pNumber.doubleValue();
       if (Double.isNaN(number)) {
-        return Optional.of(false);
+        return Optional.of((Double.doubleToRawLongBits(number) & 0x8000000000000000L) != 0);
       }
       return Optional.of(number < 0 || 1 / number < 0);
     } else if (pNumber instanceof NegativeNaN) {
       return Optional.of(true);
     }
-    return Optional.empty();
+    // FIXME: Refactor and return 'boolean' directly. This function should be total.
+    throw new IllegalArgumentException();
   }
 
   private boolean isUnspecifiedType(CType pType) {

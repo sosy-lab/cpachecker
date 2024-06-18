@@ -1931,7 +1931,8 @@ public class FloatValue extends Number {
   public static FloatValue fromFloat(float pFloat) {
     Format format = Format.Float32;
     if (Float.isNaN(pFloat)) {
-      return FloatValue.nan(format);
+      boolean sign = (Float.floatToRawIntBits(pFloat) & 0x80000000) != 0;
+      return sign ? FloatValue.nan(format).negate() : FloatValue.nan(format);
     } else if (Float.isInfinite(pFloat)) {
       return (pFloat < 0.0) ? FloatValue.negativeInfinity(format) : FloatValue.infinity(format);
     } else {
@@ -1963,7 +1964,7 @@ public class FloatValue extends Number {
 
   private float toFloat() {
     if (isNan()) {
-      return Float.NaN;
+      return isNegative() ? Float.intBitsToFloat(0xFFC00000) : Float.NaN;
     } else if (isInfinite()) {
       return isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
     } else {
@@ -1979,7 +1980,8 @@ public class FloatValue extends Number {
   public static FloatValue fromDouble(double pDouble) {
     Format format = Format.Float64;
     if (Double.isNaN(pDouble)) {
-      return FloatValue.nan(format);
+      boolean sign = (Double.doubleToRawLongBits(pDouble) & 0x8000000000000000L) != 0;
+      return sign ? FloatValue.nan(format).negate() : FloatValue.nan(format);
     } else if (Double.isInfinite(pDouble)) {
       return (pDouble < 0.0) ? FloatValue.negativeInfinity(format) : FloatValue.infinity(format);
     } else {
@@ -2011,7 +2013,7 @@ public class FloatValue extends Number {
 
   private double toDouble() {
     if (isNan()) {
-      return Double.NaN;
+      return isNegative() ? Double.longBitsToDouble(0xFFF8000000000000L) : Double.NaN;
     } else if (isInfinite()) {
       return isNegative() ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
     } else {
@@ -2100,6 +2102,8 @@ public class FloatValue extends Number {
       return negativeInfinity(pFormat);
     } else if ("nan".equals(pInput)) {
       return nan(pFormat);
+    } else if ("-nan".equals(pInput)) {
+      return nan(pFormat).negate();
     }
     pInput = pInput.toLowerCase(Locale.getDefault());
 
@@ -2168,7 +2172,7 @@ public class FloatValue extends Number {
   @Override
   public String toString() {
     if (isNan()) {
-      return "nan";
+      return isNegative() ? "-nan" : "nan";
     } else if (isInfinite()) {
       return isNegative() ? "-inf" : "inf";
     }
@@ -2220,7 +2224,7 @@ public class FloatValue extends Number {
   /** Print the number in base2 representation. */
   public String toBinaryString() {
     if (isNan()) {
-      return "nan";
+      return isNegative() ? "-nan" : "nan";
     } else if (isInfinite()) {
       return isNegative() ? "-inf" : "inf";
     } else if (isZero()) {

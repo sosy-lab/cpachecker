@@ -83,8 +83,10 @@ public record NumericValue(Number number) implements Value {
       FloatValue n = FloatValue.fromInteger(format, rat.getNum());
       FloatValue d = FloatValue.fromInteger(format, rat.getDen());
       return n.divide(d);
+    } else if (number instanceof NegativeNaN) {
+      return FloatValue.nan(format).negate();
     } else {
-      return FloatValue.fromString(format, number.toString());
+      throw new IllegalArgumentException();
     }
   }
 
