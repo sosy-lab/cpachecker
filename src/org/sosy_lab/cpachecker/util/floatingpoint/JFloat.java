@@ -45,7 +45,9 @@ class JFloat extends CFloat {
   }
 
   private float parseFloat(String repr) {
-    if ("nan".equals(repr)) {
+    if ("-nan".equals(repr)) {
+      return Float.intBitsToFloat(0xFFC00000);
+    } else if ("nan".equals(repr)) {
       return Float.NaN;
     } else if ("-inf".equals(repr)) {
       return Float.NEGATIVE_INFINITY;
@@ -59,7 +61,7 @@ class JFloat extends CFloat {
   @Override
   public String toString() {
     if (isNan()) {
-      return "nan";
+      return ((Float.floatToRawIntBits(value) & 0x80000000) != 0) ? "-nan" : "nan";
     } else if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
     } else if (isZero()) {

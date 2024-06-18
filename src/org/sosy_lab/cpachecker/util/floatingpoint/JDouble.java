@@ -45,7 +45,9 @@ class JDouble extends CFloat {
   }
 
   private double parseDouble(String repr) {
-    if ("nan".equals(repr)) {
+    if ("-nan".equals(repr)) {
+      return Double.longBitsToDouble(0xFFF8000000000000L);
+    } else if ("nan".equals(repr)) {
       return Double.NaN;
     } else if ("-inf".equals(repr)) {
       return Double.NEGATIVE_INFINITY;
@@ -59,7 +61,7 @@ class JDouble extends CFloat {
   @Override
   public String toString() {
     if (isNan()) {
-      return "nan";
+      return ((Double.doubleToRawLongBits(value) & 0x8000000000000000L) != 0) ? "-nan" : "nan";
     } else if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
     }

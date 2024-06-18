@@ -113,7 +113,7 @@ class MpfrFloat extends CFloat {
   @Override
   public String toString() {
     if (isNan()) {
-      return "nan";
+      return isNegative() ? "-nan" : "nan";
     } else if (isInfinity()) {
       return isNegative() ? "-inf" : "inf";
     } else {

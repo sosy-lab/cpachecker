@@ -153,7 +153,7 @@ abstract class AbstractCFloatTestBase {
   /** Pretty printer for BigFloat type */
   private static String printBigFloat(BigFloat value) {
     if (value.isNaN()) {
-      return "nan";
+      return value.sign() ? "-nan" : "nan";
     }
     if (value.isInfinite()) {
       return value.sign() ? "-inf" : "inf";
@@ -190,6 +190,7 @@ abstract class AbstractCFloatTestBase {
         BigFloat.minNormal(precision, format.minExp()).negate(),
         BigFloat.minValue(precision, format.minExp()).negate(),
         BigFloat.negativeZero(precision),
+        BigFloat.NaN(precision).negate(),
         BigFloat.NaN(precision),
         BigFloat.zero(precision),
         BigFloat.minValue(precision, format.minExp()),
@@ -562,8 +563,13 @@ abstract class AbstractCFloatTestBase {
       case MPFR -> new MpfrFloat(value, getFloatType());
       case JAVA ->
           getFloatType().equals(Format.Float32)
-              ? new JFloat(value.floatValue())
-              : new JDouble(value.doubleValue());
+              ? (value.isNaN()
+                  ? new JFloat(value.sign() ? Float.intBitsToFloat(0xFFC00000) : Float.NaN)
+                  : new JFloat(value.floatValue()))
+              : (value.isNaN()
+                  ? new JDouble(
+                      value.sign() ? Double.longBitsToDouble(0xFFF8000000000000L) : Float.NaN)
+                  : new JDouble(value.doubleValue()));
       case NATIVE -> new CFloatNative(toPlainString(value), getFloatType());
     };
   }
