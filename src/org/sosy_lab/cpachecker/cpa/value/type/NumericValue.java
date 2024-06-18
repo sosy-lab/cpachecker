@@ -77,8 +77,12 @@ public record NumericValue(Number number) implements Value {
       return FloatValue.fromDouble(doubleValue);
     } else if (number instanceof Float floatValue) {
       return FloatValue.fromFloat(floatValue);
-    } else if (number instanceof BigInteger bigInt) {
-      return FloatValue.fromInteger(format, bigInt);
+    } else if (number instanceof BigInteger
+        || number instanceof Long
+        || number instanceof Integer
+        || number instanceof Short
+        || number instanceof Byte) {
+      return FloatValue.fromInteger(format, bigIntegerValue());
     } else if (number instanceof Rational rat) {
       FloatValue n = FloatValue.fromInteger(format, rat.getNum());
       FloatValue d = FloatValue.fromInteger(format, rat.getDen());
