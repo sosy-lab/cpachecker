@@ -127,6 +127,7 @@ import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.xml.sax.SAXException;
@@ -1451,7 +1452,8 @@ public class ValueAnalysisTransferRelation
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
               if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
                   .contains(paramType.getType())) {
-                FloatValue integralPartValue = numericValue.floatingPointValue();
+                FloatValue integralPartValue =
+                    numericValue.floatingPointValue().roundToInteger(RoundingMode.TRUNCATE);
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
                         functionCallExpression.getFileLocation(), paramType, integralPartValue);
