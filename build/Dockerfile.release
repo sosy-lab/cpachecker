@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   gcc \
   libgmp10 \
   libgomp1 \
-  openjdk-17-jre-headless \
+  openjdk-17-jre \
   python3
 
 COPY --from=0 /cpachecker /cpachecker
