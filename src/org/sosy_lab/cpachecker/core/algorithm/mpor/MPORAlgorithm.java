@@ -24,6 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -68,9 +69,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /** A set of functions that are start routines extracted from pthread_create calls. */
   private Set<CFunctionType> threadStartRoutines;
 
-  // TODO maybe it is easier to debug if we map from ids to functions?
   /** A map of thread IDs to functions executed by the thread. */
   private Map<Integer, Set<CFunctionType>> threadIdFunctions;
+
+  /** A map of thread IDs to CFANodes the threads are currently in. */
+  private Map<Integer, CFANode> threadNodes;
+
+  /** The set of pthread_mutex_t objects in the program. */
+  private Set<CIdExpression> mutexObjects;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
@@ -94,6 +100,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     functionCallHierarchy = getFunctionCallHierarchy(cfa);
     threadStartRoutines = getThreadStartRoutines(cfa);
     threadIdFunctions = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
+    mutexObjects = getMutexObjects(cfa);
   }
 
   /**
@@ -196,6 +203,31 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
+   * Searches the CFA for pthread_mutex_t objects given as parameters to pthread_mutex_lock calls.
+   *
+   * @param pCfa the CFA to be analyzed
+   * @return set of CIdExpressions that are instances of pthread_mutex_t used in pthread_mutex_locks
+   */
+  private Set<CIdExpression> getMutexObjects(CFA pCfa) {
+    Set<CIdExpression> mutexes = new HashSet<>();
+    for (CFAEdge cfaEdge : cfa.edges()) {
+      if (PthreadFunction.isEdgeCallToFunction(cfaEdge, PthreadFunction.MUTEX_LOCK)) {
+        AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
+        CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
+        // extract the third parameter of pthread_create which points to the start routine function
+        CUnaryExpression cUnaryExpression =
+            (CUnaryExpression)
+                cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions().get(0);
+        CIdExpression cIdExpression = (CIdExpression) cUnaryExpression.getOperand();
+        if (!mutexes.contains(cIdExpression)) {
+          mutexes.add(cIdExpression);
+        }
+      }
+    }
+    return mutexes;
+  }
+
+  /**
    * Recursively iterates over the functions called in pCFunctionType and assigns pThreadId to them
    * in pFunctionThreadIdMap.
    *
@@ -235,6 +267,20 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
     return pFunctionThreadIdMap;
   }
+
+  // TODO positional preference order ("a <q b") possible cases:
+  //  pthread_mutex_lock / mutex_unlock
+  //  pthread_join
+  //  pthread_barrier_wait
+  //  pthread_mutex_cond_wait / cond_signal
+  //  pthread_rwlock_rdlock / unlock
+  //  pthread_rwlock_wrlock / unlock
+  //  pthread_key_create / setspecific
+  //  flags (e.g. while (flag == 0); though this is difficult to extract from the code?)
+  //  __atomic_store_n / __atomic_load_n
+  //  atomic blocks
+  //  sequential blocks
+
 
   // TODO use GlobalAccessChecker to check whether a CfaEdge reads or writes global / shared
   //  variables?
