@@ -267,7 +267,7 @@ public abstract class GraphToPixelsWriter<Node> {
   }
 
   private sealed interface CanvasProvider {
-    Graphics2D createCanvas(int pWidth, int pHeight);
+    Graphics2D createCanvas(int pWidth, int pHeight) throws IOException;
 
     void writeToFile(Path pOutputFile) throws IOException, InvalidConfigurationException;
   }
@@ -309,18 +309,26 @@ public abstract class GraphToPixelsWriter<Node> {
     private SVGGraphics2D svgGenerator = null;
 
     @Override
-    public Graphics2D createCanvas(int pWidth, int pHeight) {
+    public Graphics2D createCanvas(int pWidth, int pHeight) throws IOException {
       DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation();
 
       String svgNS = "http://www.w3.org/2000/svg";
       Document document = domImpl.createDocument(svgNS, FORMAT_SVG, null);
 
-      // Create an instance of the SVG Generator.
-      // This object creation takes a long time, so only do this on demand!
-      // It takes a long time because of the call to FontManagerFactory.getInstance()
-      // in Font#getFont2D() . It is called by org.apache.batik.svggen.DOMTreeManager
-      // and currently there is no way to tell batik that we don't even need fonts.
-      svgGenerator = new SVGGraphics2D(document);
+      try {
+        // Create an instance of the SVG Generator.
+        // This object creation takes a long time, so only do this on demand!
+        // It takes a long time because of the call to FontManagerFactory.getInstance()
+        // in Font#getFont2D() . It is called by org.apache.batik.svggen.DOMTreeManager
+        // and currently there is no way to tell batik that we don't even need fonts.
+        svgGenerator = new SVGGraphics2D(document);
+      } catch (Error e) {
+        // SVGGraphics2D requires special libraries for font handling, which are not always
+        // installed (for example in a headless setting).
+        // This throws a RuntimeException; we transform that into a checked IOException,
+        // so that we handle this case
+        throw new IOException(e);
+      }
       svgGenerator.setSVGCanvasSize(new Dimension(pWidth, pHeight));
       return svgGenerator;
     }
