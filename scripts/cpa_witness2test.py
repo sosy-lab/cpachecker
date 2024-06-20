@@ -11,7 +11,6 @@
 import importlib.machinery
 import importlib.util
 import os
-import sys
 
 # We want to delegate completely to "../bin/cpa-witness2test".
 # In Bash this would be "exec ../bin/cpa-witness2test",
