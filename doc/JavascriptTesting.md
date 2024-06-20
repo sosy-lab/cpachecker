@@ -116,8 +116,8 @@ Run the below commands in your terminal for End-to-end testing:
    `docker run -it -v $(pwd):$(pwd) -w $(pwd) registry.gitlab.com/sosy-lab/software/cpachecker/test:java-node /bin/bash`
 
 2. Generate Counterexample report for a specific program (`test/programs/simple/SSAMap-bug.c`) in the root of this application using
-  `scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c` (for Unix based OS) and
-  `scripts\cpa.bat -predicateAnalysis-linear -setprop analysis.checkCounterexamples=false -setprop solver.solver=smtinterpol test\programs\simple\SSAMap-bug.c` (for Windows based OS).
+  `bin/cpachecker -predicateAnalysis test/programs/simple/SSAMap-bug.c` (for Unix based OS) and
+  `bin\cpachecker -predicateAnalysis-linear -setprop analysis.checkCounterexamples=false -setprop solver.solver=smtinterpol test\programs\simple\SSAMap-bug.c` (for Windows based OS).
 
 3. Navigate to `src/org/sosy_lab/cpachecker/core/counterexample` and run
   `npm install` and `./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update`

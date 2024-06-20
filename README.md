@@ -70,19 +70,17 @@ Verifying a Program with CPAchecker
    named `ERROR` (case insensitive) and assertions in the source code file.
    Other examples for specifications can be found in `config/specification/`
 
-4. Execute `scripts/cpa.sh [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>`
+4. Execute `bin/cpachecker [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>`
    Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
    Additional command line switches are described in doc/Configuration.md.
-   Example: `scripts/cpa.sh -config config/default.properties doc/examples/example.c`
+   Example: `bin/cpachecker -config config/default.properties doc/examples/example.c`
    This example can also be abbreviated to:
-   `scripts/cpa.sh -default doc/examples/example.c`
+   `bin/cpachecker -default doc/examples/example.c`
    Java 17 or later is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
    Example: `export JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin/java`
    for 64bit OpenJDK 17 on Ubuntu.
-   On Windows (without Cygwin or WSL),
-   you need to use `cpa.bat` instead of `cpa.sh`.
 
    Please note that not all analysis configurations are available for MacOS
    because we do not ship binaries for SMT solvers for this platform.
@@ -137,9 +135,9 @@ You can validate violation witnesses with CPA-witness2test, which is part of CPA
    and the source code file that fits the violation witness.
 2. To validate the witness, execute the following command:
    ```
-   scripts/cpa_witness2test.py -witness <WITNESS_FILE> -spec <SPEC_FILE> <SOURCE_FILE>`
+   bin/cpa-witness2test -witness <WITNESS_FILE> -spec <SPEC_FILE> <SOURCE_FILE>`
    ```
-   Addtional command line switches are viewed with `scripts/cpa_witness2test.py -h`.
+   Addtional command line switches are viewed with `bin/cpa-witness2test -h`.
 
 3. When finished, and if the violation witness is successfully validated, the console output shows `Verification result: FALSE`.
    Additionally to the console output, CPA-witness2test also creates a file `output/*.harness.c`.

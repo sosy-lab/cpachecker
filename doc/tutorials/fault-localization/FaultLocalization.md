@@ -454,7 +454,7 @@ Afterwards, we can execute the following snippet from the root directory of CPAc
 implementation:
 ```
 ant && \
-./scripts/cpa.sh \
+bin/cpachecker \
 -predicateAnalysis \
 -setprop analysis.assumes=true \
 -spec config/specification/sv-comp-reachability.spc \
