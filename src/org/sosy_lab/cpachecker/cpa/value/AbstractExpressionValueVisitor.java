@@ -14,7 +14,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -1078,13 +1077,12 @@ public abstract class AbstractExpressionValueVisitor
               assert operand1.isNumericValue();
               assert operand2.isNumericValue();
 
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
+              NumericValue op1 = operand1.asNumericValue();
+              NumericValue op2 = operand2.asNumericValue();
 
-              Value result = fdim(op1, op2, calledFunctionName);
-              if (!Value.UnknownValue.getInstance().equals(result)) {
-                return result;
-              }
+              CBasicType type =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName).getType();
+              return fdim(type, op1, op2);
             }
           }
         } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
@@ -1096,8 +1094,8 @@ public abstract class AbstractExpressionValueVisitor
               assert operand1.isNumericValue();
               assert operand2.isNumericValue();
 
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
+              NumericValue op1 = operand1.asNumericValue();
+              NumericValue op2 = operand2.asNumericValue();
 
               return fmax(op1, op2);
             }
@@ -1111,8 +1109,8 @@ public abstract class AbstractExpressionValueVisitor
               assert operand1.isNumericValue();
               assert operand2.isNumericValue();
 
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
+              NumericValue op1 = operand1.asNumericValue();
+              NumericValue op2 = operand2.asNumericValue();
 
               return fmin(op1, op2);
             }
@@ -1357,128 +1355,50 @@ public abstract class AbstractExpressionValueVisitor
     return Value.UnknownValue.getInstance();
   }
 
-  private Value fmax(Number pOp1, Number pOp2) {
+  private Value fmax(NumericValue pOp1, NumericValue pOp2) {
     if (Double.isNaN(pOp1.doubleValue())
         || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() < 0)
         || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() > 0)) {
-      return new NumericValue(pOp2);
+      return pOp2;
     }
     if (Double.isNaN(pOp2.doubleValue())
         || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() < 0)
         || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() > 0)) {
-      return new NumericValue(pOp1);
+      return pOp1;
     }
 
-    final BigDecimal op1bd;
-    final BigDecimal op2bd;
+    final FloatValue op1fp = pOp1.floatingPointValue();
+    final FloatValue op2fp = pOp2.floatingPointValue();
 
-    if (pOp1 instanceof BigDecimal) {
-      op1bd = (BigDecimal) pOp1;
-    } else {
-      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
-    }
-    if (pOp2 instanceof BigDecimal) {
-      op2bd = (BigDecimal) pOp2;
-    } else {
-      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
-    }
-
-    if (op1bd.compareTo(op2bd) > 0) {
-      return new NumericValue(op1bd);
-    }
-    return new NumericValue(op2bd);
+    return op1fp.greaterThan(op2fp) ? pOp1 : pOp2;
   }
 
-  private Value fmin(Number pOp1, Number pOp2) {
+  private Value fmin(NumericValue pOp1, NumericValue pOp2) {
     if (Double.isNaN(pOp1.doubleValue())
         || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() > 0)
         || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() < 0)) {
-      return new NumericValue(pOp2);
+      return pOp2;
     }
     if (Double.isNaN(pOp2.doubleValue())
         || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() > 0)
         || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() < 0)) {
-      return new NumericValue(pOp1);
+      return pOp1;
     }
 
-    final BigDecimal op1bd;
-    final BigDecimal op2bd;
+    final FloatValue op1fp = pOp1.floatingPointValue();
+    final FloatValue op2fp = pOp2.floatingPointValue();
 
-    if (pOp1 instanceof BigDecimal) {
-      op1bd = (BigDecimal) pOp1;
-    } else {
-      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
-    }
-    if (pOp2 instanceof BigDecimal) {
-      op2bd = (BigDecimal) pOp2;
-    } else {
-      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
-    }
-
-    if (op1bd.compareTo(op2bd) < 0) {
-      return new NumericValue(op1bd);
-    }
-    return new NumericValue(op2bd);
+    return op1fp.greaterThan(op2fp) ? pOp1 : pOp2;
   }
 
-  private Value fdim(Number pOp1, Number pOp2, String pFunctionName) {
-    if (Double.isNaN(pOp1.doubleValue()) || Double.isNaN(pOp2.doubleValue())) {
-      return new NumericValue(Double.NaN);
-    }
-
-    if (Double.isInfinite(pOp1.doubleValue())) {
-      if (Double.isInfinite(pOp2.doubleValue())) {
-        if (pOp1.doubleValue() > pOp2.doubleValue()) {
-          return new NumericValue(pOp1.doubleValue() - pOp2.doubleValue());
-        }
-        return new NumericValue(0.0);
-      }
-      if (pOp1.doubleValue() < 0) {
-        return new NumericValue(0.0);
-      }
-      return new NumericValue(pOp1);
-    }
-    if (Double.isInfinite(pOp2.doubleValue())) {
-      if (pOp2.doubleValue() < 0) {
-        return new NumericValue(Double.NaN);
-      }
-      return new NumericValue(0.0);
-    }
-
-    final BigDecimal op1bd;
-    final BigDecimal op2bd;
-
-    if (pOp1 instanceof BigDecimal) {
-      op1bd = (BigDecimal) pOp1;
-    } else {
-      op1bd = BigDecimal.valueOf(pOp1.doubleValue());
-    }
-    if (pOp2 instanceof BigDecimal) {
-      op2bd = (BigDecimal) pOp2;
-    } else {
-      op2bd = BigDecimal.valueOf(pOp2.doubleValue());
-    }
-    if (op1bd.compareTo(op2bd) > 0) {
-      BigDecimal difference = op1bd.subtract(op2bd);
-
-      CSimpleType type = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
-      BigDecimal maxValue;
-      switch (type.getType()) {
-        case FLOAT:
-          maxValue = BigDecimal.valueOf(Float.MAX_VALUE);
-          break;
-        case DOUBLE:
-          maxValue = BigDecimal.valueOf(Double.MAX_VALUE);
-          break;
-        default:
-          return Value.UnknownValue.getInstance();
-      }
-      if (difference.compareTo(maxValue) > 0) {
-        return new NumericValue(Double.POSITIVE_INFINITY);
-      }
-      return new NumericValue(difference);
-    }
-    return new NumericValue(0.0);
+  private Value fdim(CBasicType pType, NumericValue pOp1, NumericValue pOp2) {
+    return new NumericValue(
+        switch (pType) {
+          case FLOAT -> Math.max(pOp1.floatValue() - pOp2.floatValue(), 0.0);
+          case DOUBLE -> Math.max(pOp1.doubleValue() - pOp2.doubleValue(), 0.0);
+          case FLOAT128 -> throw new UnsupportedOperationException();
+          default -> throw new IllegalArgumentException();
+        });
   }
 
   private Optional<Boolean> isNegative(Number pNumber) {
@@ -2590,7 +2510,7 @@ public abstract class AbstractExpressionValueVisitor
   private static boolean isBooleanFalseRepresentation(final Number n) {
     return ((n instanceof Float || n instanceof Double) && 0 == n.doubleValue())
         || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
-        || (n instanceof BigDecimal && ((BigDecimal) n).compareTo(BigDecimal.ZERO) == 0)
+        || (n instanceof FloatValue && ((FloatValue) n).isZero())
         || 0 == n.longValue();
   }
 
