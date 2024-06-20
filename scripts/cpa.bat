@@ -33,7 +33,7 @@ IF "%PATH_TO_CPACHECKER%"=="" (
 IF NOT EXIST "%PATH_TO_CPACHECKER%\classes\org\sosy_lab\cpachecker\cmdline\CPAMain.class" (
   IF NOT EXIST "%PATH_TO_CPACHECKER%\cpachecker.jar" (
     ECHO Could not find CPAchecker binary, please check path to project directory.
-    EXIT 1
+    EXIT /B 1
   )
 )
 
@@ -92,7 +92,7 @@ IF NOT "%JAVA_HEAP_SIZE%"=="" (
   IF "%DEFAULT_HEAP_SIZE%"=="xxxx" (
     ECHO A heap size needs to be specified with -heap if -benchmark is given.
     ECHO Please see doc/Benchmark.md for further information.
-    EXIT 1
+    EXIT /B 1
   )
   ECHO Running CPAchecker with default heap size %DEFAULT_HEAP_SIZE%. Specify a larger value with -heap if you have more RAM.
 )

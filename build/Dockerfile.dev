@@ -29,6 +29,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   python3
 
 ADD cpachecker.tar.bz2 /
+# Make cpachecker executable available for execution
+ENV PATH "${PATH}:/cpachecker/scripts"
+
+# Set locale to UTF-8 to have UTF-8 encoding in JVM
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  locales \
+  && rm -rf /var/lib/apt/lists/* \
+  && locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+
 RUN mkdir /workdir
 WORKDIR /workdir
 ENTRYPOINT ["/cpachecker/scripts/cpa.sh"]
