@@ -16,7 +16,6 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -983,8 +982,9 @@ public abstract class AbstractExpressionValueVisitor
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
-              if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR));
+              if (number instanceof FloatValue floatingPointValue) {
+                return new NumericValue(
+                    floatingPointValue.roundToInteger(FloatValue.RoundingMode.FLOOR));
               } else if (number instanceof Float) {
                 return new NumericValue(Math.floor(number.floatValue()));
               } else if (number instanceof Double) {
@@ -1001,8 +1001,9 @@ public abstract class AbstractExpressionValueVisitor
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
-              if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING));
+              if (number instanceof FloatValue floatingPointValue) {
+                return new NumericValue(
+                    floatingPointValue.roundToInteger(FloatValue.RoundingMode.CEILING));
               } else if (number instanceof Float) {
                 return new NumericValue(Math.ceil(number.floatValue()));
               } else if (number instanceof Double) {
@@ -1020,8 +1021,9 @@ public abstract class AbstractExpressionValueVisitor
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
-              if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP));
+              if (number instanceof FloatValue floatingPointValue) {
+                return new NumericValue(
+                    floatingPointValue.roundToInteger(FloatValue.RoundingMode.NEAREST_AWAY));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f)) {
@@ -1045,28 +1047,23 @@ public abstract class AbstractExpressionValueVisitor
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
-              if (number instanceof BigDecimal) {
-                return new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.DOWN));
+              if (number instanceof FloatValue floatingPointValue) {
+                return new NumericValue(
+                    floatingPointValue.roundToInteger(FloatValue.RoundingMode.TRUNCATE));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f) || Float.isNaN(f)) {
                   // +/-0.0 and +/-INF and +/-NaN are returned unchanged
                   return parameter;
                 }
-                return new NumericValue(
-                    BigDecimal.valueOf(number.floatValue())
-                        .setScale(0, RoundingMode.DOWN)
-                        .floatValue());
+                return new NumericValue((float) ((int) f));
               } else if (number instanceof Double) {
                 double d = number.doubleValue();
                 if (0 == d || Double.isInfinite(d) || Double.isNaN(d)) {
                   // +/-0.0 and +/-INF and +/-NaN are returned unchanged
                   return parameter;
                 }
-                return new NumericValue(
-                    BigDecimal.valueOf(number.doubleValue())
-                        .setScale(0, RoundingMode.DOWN)
-                        .doubleValue());
+                return new NumericValue((double) ((long) d));
               } else if (number instanceof NumericValue.NegativeNaN) {
                 return parameter;
               }
