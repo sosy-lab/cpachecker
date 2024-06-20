@@ -30,6 +30,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryPrioritizeErrorConditionQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageConverter;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
@@ -91,6 +93,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "distributedSummaries")
 public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
+
+  private record OldAndNewMessages(
+      List<BlockSummaryMessage> oldMessages, List<BlockSummaryMessage> newMessages) {}
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -174,13 +179,30 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   @Option(
       description =
-          "List of input preconditions, formatted as JSON BlockSummaryPostConditionMessage."
+          "List of input files that contain preconditions and verification conditions that should"
+              + " be assumed as 'known' by block-summary analysis."
+              + " Each file must contain a single, valid JSON BlockSummaryMessage."
               + " If at least one file is provided, the block-summary analysis assumes"
-              + " the disjunction of all provided preconditions."
+              + " these pre- and verification-conditions."
               + " If no file is provided, the block-summary analysis assumes"
-              + " the precondition 'true'.",
+              + " the precondition 'true' and the verification condition 'false'.",
       secure = true)
-  private List<Path> inputMessages = ImmutableList.of();
+  private List<Path> knownConditions = ImmutableList.of();
+
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  @Option(
+      description =
+          "List of input files that contain preconditions and verification conditions that should"
+              + " be assumed as 'new' by block-summary analysis."
+              + " For each message in this list, block-summary analysis will perform a new analysis"
+              + " run in the order of occurrence."
+              + " Each file must contain a single, valid JSON BlockSummaryMessage."
+              + " If at least one file is provided, the block-summary analysis assumes"
+              + " these pre- and verification-conditions."
+              + " If no file is provided, the block-summary analysis assumes"
+              + " the precondition 'true' and the verification condition 'false'.",
+      secure = true)
+  private List<Path> newConditions = ImmutableList.of();
 
   @FileOption(Type.OUTPUT_DIRECTORY)
   @Option(description = "Where to write responses", secure = true)
@@ -219,9 +241,10 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     options = new BlockSummaryAnalysisOptions(configuration);
     stats = new HashMap<>();
 
-    if (inputMessages.stream().anyMatch(f -> !Files.isRegularFile(f))) {
+    if (Stream.concat(knownConditions.stream(), newConditions.stream())
+        .anyMatch(f -> !Files.isRegularFile(f))) {
       throw new InvalidConfigurationException(
-          "All input messages must be files that exist: " + inputMessages);
+          "All input messages must be files that exist: " + knownConditions + ", " + newConditions);
     }
   }
 
@@ -315,21 +338,23 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                     specification)
                 .addAnalysisWorker(blockNode, options)
                 .build();
+
         BlockSummaryAnalysisWorker actor =
             (BlockSummaryAnalysisWorker) Iterables.getOnlyElement(build.actors());
-        Collection<BlockSummaryMessage> response = ImmutableSet.of();
-        if (inputMessages.isEmpty()) {
-          response = actor.runInitialAnalysis();
+        // use list instead of set. Each message has a unique timestamp,
+        // so there will be no duplicates that a set can remove.
+        // But the equality checks are unnecessarily expensive
+        List<BlockSummaryMessage> response = new ArrayList<>();
+        if (knownConditions.isEmpty() && newConditions.isEmpty()) {
+          response.addAll(actor.runInitialAnalysis());
         } else {
-          for (int i = 0; i < inputMessages.size(); i++) {
-            Path messageFile = inputMessages.get(i);
-            logger.log(Level.INFO, "Handling message " + messageFile);
-            BlockSummaryMessage message = converter.jsonToMessage(Files.readString(messageFile));
-            if (i == inputMessages.size() - 1) {
-              response = actor.processMessage(message);
-            } else {
-              actor.storeMessage(message);
-            }
+          OldAndNewMessages preparedBatches =
+              prepareOldAndNewMessages(knownConditions, newConditions);
+          for (BlockSummaryMessage message : preparedBatches.oldMessages()) {
+            actor.storeMessage(message);
+          }
+          for (BlockSummaryMessage message : preparedBatches.newMessages()) {
+            response.addAll(actor.processMessage(message));
           }
         }
         for (BlockSummaryMessage blockSummaryMessage : response) {
@@ -386,6 +411,41 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
+  }
+
+  private OldAndNewMessages prepareOldAndNewMessages(
+      List<Path> pKnownConditions, List<Path> pNewConditions) throws IOException {
+    MessageConverter converter = new MessageConverter();
+    ImmutableList.Builder<BlockSummaryMessage> toBeConsideredOld = ImmutableList.builder();
+    ImmutableList.Builder<BlockSummaryMessage> toBeConsideredNew = ImmutableList.builder();
+    // known conditions always stay 'old' and never become 'true'
+    for (Path knownMessageFile : pKnownConditions) {
+      BlockSummaryMessage message = converter.jsonToMessage(Files.readString(knownMessageFile));
+      toBeConsideredOld.add(message);
+    }
+
+    // new conditions can be considered 'new' (the default), but under certain conditions
+    // we can avoid unnecessary analysis when we know that considering them 'old' is semantically
+    // equivalent.
+    // effect of a new postcondition: starts for each verification condition a new analysis run that
+    // considers all known + the new postcondition
+    // Multiple new postconditions have the same effect as only taking one of them as 'new' and the
+    // others as 'old'.
+    boolean isFirstPostcondition = true;
+    for (Path newMessageFile : pNewConditions) {
+      BlockSummaryMessage message = converter.jsonToMessage(Files.readString(newMessageFile));
+      if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
+        if (isFirstPostcondition) {
+          toBeConsideredNew.add(message);
+          isFirstPostcondition = false;
+        } else {
+          toBeConsideredOld.add(message);
+        }
+      } else {
+        toBeConsideredNew.add(message);
+      }
+    }
+    return new OldAndNewMessages(toBeConsideredOld.build(), toBeConsideredNew.build());
   }
 
   private LogManager getLogger(BlockSummaryAnalysisOptions pOptions, String workerId) {

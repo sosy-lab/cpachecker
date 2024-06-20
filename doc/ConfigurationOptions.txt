@@ -3858,12 +3858,23 @@ distributedSummaries.generateBlockGraphOnly = false
 # Import an existing decomposition from a file
 distributedSummaries.importDecomposition = no default value
 
-# List of input preconditions, formatted as JSON
-# BlockSummaryPostConditionMessage. If at least one file is provided, the
-# block-summary analysis assumes the disjunction of all provided
-# preconditions. If no file is provided, the block-summary analysis assumes
-# the precondition 'true'.
-distributedSummaries.inputMessages = []
+# List of input files that contain preconditions and verification conditions
+# that should be assumed as 'known' by block-summary analysis. Each file must
+# contain a single, valid JSON BlockSummaryMessage. If at least one file is
+# provided, the block-summary analysis assumes these pre- and
+# verification-conditions. If no file is provided, the block-summary analysis
+# assumes the precondition 'true' and the verification condition 'false'.
+distributedSummaries.knownConditions = []
+
+# List of input files that contain preconditions and verification conditions
+# that should be assumed as 'new' by block-summary analysis. For each message
+# in this list, block-summary analysis will perform a new analysis run in the
+# order of occurrence. Each file must contain a single, valid JSON
+# BlockSummaryMessage. If at least one file is provided, the block-summary
+# analysis assumes these pre- and verification-conditions. If no file is
+# provided, the block-summary analysis assumes the precondition 'true' and
+# the verification condition 'false'.
+distributedSummaries.newConditions = []
 
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
