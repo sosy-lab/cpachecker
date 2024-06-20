@@ -322,11 +322,14 @@ public abstract class GraphToPixelsWriter<Node> {
         // in Font#getFont2D() . It is called by org.apache.batik.svggen.DOMTreeManager
         // and currently there is no way to tell batik that we don't even need fonts.
         svgGenerator = new SVGGraphics2D(document);
-      } catch (Error e) {
+      } catch (LinkageError | InternalError e) {
         // SVGGraphics2D requires special libraries for font handling, which are not always
         // installed (for example in a headless setting).
-        // This throws a RuntimeException; we transform that into a checked IOException,
-        // so that we handle this case
+        // This throws a LinkageError (NoClassDefFound or UnsatisfiedLink) if libraries are missing
+        // on the system,
+        // and an InternalError if libraries exist, but the font config is not installed on the
+        // system.
+        // We transform both into a checked IOException to handle them gracefully.
         throw new IOException(e);
       }
       svgGenerator.setSVGCanvasSize(new Dimension(pWidth, pHeight));
