@@ -1388,7 +1388,7 @@ public abstract class AbstractExpressionValueVisitor
     final FloatValue op1fp = pOp1.floatingPointValue();
     final FloatValue op2fp = pOp2.floatingPointValue();
 
-    return op1fp.greaterThan(op2fp) ? pOp1 : pOp2;
+    return op2fp.greaterThan(op1fp) ? pOp1 : pOp2;
   }
 
   private Value fdim(CBasicType pType, NumericValue pOp1, NumericValue pOp2) {
