@@ -130,7 +130,9 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     switch (message.getType()) {
       case STATISTICS, FOUND_RESULT, ERROR, ERROR_CONDITION_UNREACHABLE -> {}
       case ERROR_CONDITION -> {
-        dcpaAlgorithm.updateErrorCondition((BlockSummaryErrorConditionMessage) message);
+        BlockSummaryErrorConditionMessage errorCond = (BlockSummaryErrorConditionMessage) message;
+        dcpaAlgorithm.updateErrorCondition(errorCond);
+        dcpaAlgorithm.updateSeenPrefixes(errorCond);
       }
       case BLOCK_POSTCONDITION -> {
         //noinspection ResultOfMethodCallIgnored
