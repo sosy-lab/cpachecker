@@ -339,9 +339,49 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
+  public boolean equalTo(CFloat other) {
+    if (other instanceof CFloatImpl that) {
+      return delegate.equalTo(that.delegate);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean notEqualTo(CFloat other) {
+    if (other instanceof CFloatImpl that) {
+      return delegate.notEqualTo(that.delegate);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public boolean greaterThan(CFloat other) {
     if (other instanceof CFloatImpl myOther) {
       return delegate.greaterThan(myOther.delegate);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean greaterOrEqual(CFloat other) {
+    if (other instanceof CFloatImpl that) {
+      return delegate.greaterOrEqual(that.delegate);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean lessThan(CFloat other) {
+    if (other instanceof CFloatImpl that) {
+      return delegate.lessThan(that.delegate);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean lessOrEqual(CFloat other) {
+    if (other instanceof CFloatImpl that) {
+      return delegate.lessOrEqual(that.delegate);
     }
     throw new UnsupportedOperationException();
   }

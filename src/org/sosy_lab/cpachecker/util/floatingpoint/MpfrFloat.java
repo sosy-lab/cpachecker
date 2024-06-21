@@ -309,6 +309,21 @@ class MpfrFloat extends CFloat {
     }
   }
 
+  @Override
+  public boolean equalTo(CFloat other) {
+    BigFloat that = toBigFloat(other.getWrapper());
+    return value.equalTo(that);
+  }
+
+  @Override
+  public boolean notEqualTo(CFloat other) {
+    BigFloat that = toBigFloat(other.getWrapper());
+    if (value.isNaN() || that.isNaN()) {
+      return false;
+    }
+    return value.notEqualTo(that);
+  }
+
   public BigFloat toBigFloat() {
     return value;
   }
@@ -317,5 +332,23 @@ class MpfrFloat extends CFloat {
   public boolean greaterThan(CFloat other) {
     BigFloat that = toBigFloat(other.getWrapper());
     return value.greaterThan(that);
+  }
+
+  @Override
+  public boolean greaterOrEqual(CFloat other) {
+    BigFloat that = toBigFloat(other.getWrapper());
+    return value.greaterThanOrEqualTo(that);
+  }
+
+  @Override
+  public boolean lessThan(CFloat other) {
+    BigFloat that = toBigFloat(other.getWrapper());
+    return value.lessThan(that);
+  }
+
+  @Override
+  public boolean lessOrEqual(CFloat other) {
+    BigFloat that = toBigFloat(other.getWrapper());
+    return value.lessThanOrEqualTo(that);
   }
 }

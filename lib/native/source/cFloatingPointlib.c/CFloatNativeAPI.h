@@ -235,10 +235,50 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 
 /*
  * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    isEqualFp
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isEqualFp
+  (JNIEnv *, jclass, jobject, jint, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    isNotEqualFp
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isNotEqualFp
+  (JNIEnv *, jclass, jobject, jint, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
  * Method:    isGreaterFp
  * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isGreaterFp
+  (JNIEnv *, jclass, jobject, jint, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    isGreaterEqualFp
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isGreaterEqualFp
+  (JNIEnv *, jclass, jobject, jint, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    islessFp
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_islessFp
+  (JNIEnv *, jclass, jobject, jint, jobject, jint);
+
+/*
+ * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
+ * Method:    islessEqualFp
+ * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_islessEqualFp
   (JNIEnv *, jclass, jobject, jint, jobject, jint);
 
 /*

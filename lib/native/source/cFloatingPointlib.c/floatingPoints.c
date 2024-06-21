@@ -705,6 +705,40 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 	return 0;
 }
 
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isEqualFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return fp_1.f_value == fp_2.f_value;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return chooseOf2(type1, fp_1) == chooseOf2(type2, fp_2);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return chooseOf3(type1, fp_1) == chooseOf3(type2, fp_2);
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isNotEqualFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return islessgreater(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return islessgreater(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return islessgreater(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
 JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isGreaterFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
 	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
 	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
@@ -717,6 +751,57 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 			return isgreater(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
 			return isgreater(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isGreaterEqualFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return isgreaterequal(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return isgreaterequal(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return isgreaterequal(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isLessFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return isless(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return isless(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return isless(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+		default:
+			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_isLessEqualFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			return islessequal(fp_1.f_value, fp_2.f_value);
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			return islessequal(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			return islessequal(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
 		default:
 			throwException(env, EX_TEXT);
 	}

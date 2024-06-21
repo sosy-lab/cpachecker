@@ -782,8 +782,33 @@ abstract class AbstractCFloatTestBase {
   }
 
   @Test
+  public void equalToTest() {
+    testPredicate("equalTo", (CFloat a, CFloat b) -> a.equalTo(b));
+  }
+
+  @Test
+  public void notEqualToTest() {
+    testPredicate("notEqualTo", (CFloat a, CFloat b) -> a.notEqualTo(b));
+  }
+
+  @Test
   public void greaterThanTest() {
     testPredicate("greaterThan", (CFloat a, CFloat b) -> a.greaterThan(b));
+  }
+
+  @Test
+  public void greaterOrEqualTest() {
+    testPredicate("greaterOrEqual", (CFloat a, CFloat b) -> a.greaterOrEqual(b));
+  }
+
+  @Test
+  public void lessThanTest() {
+    testPredicate("lessThan", (CFloat a, CFloat b) -> a.lessThan(b));
+  }
+
+  @Test
+  public void lessOrEqualTest() {
+    testPredicate("lessOrEqual", (CFloat a, CFloat b) -> a.lessOrEqual(b));
   }
 
   @Test

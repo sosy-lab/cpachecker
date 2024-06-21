@@ -571,6 +571,40 @@ public class FloatValue extends Number {
     return new FloatValue(format, !sign, exponent, significand);
   }
 
+  /**
+   * Equality
+   *
+   * <p>Ignores the sign of the zero and returns `false` if one of the operands is NaN. Use {@link
+   * FloatValue#equals(Object)} for a bitwise comparison of the values.
+   */
+  public boolean equalTo(FloatValue pNumber) {
+    Format precision = format.sup(pNumber.format);
+
+    FloatValue arg1 = this.withPrecision(precision);
+    FloatValue arg2 = pNumber.withPrecision(precision);
+
+    if (arg1.isNan() || arg2.isNan()) {
+      return false;
+    } else if (arg1.isZero()) {
+      return arg2.isZero();
+    } else {
+      return arg1.equals(arg2);
+    }
+  }
+
+  /**
+   * Inequality ("less than or greater")
+   *
+   * <p>Returns `false` if one of the operands is NaN. Otherwise behaves like the negation of {@link
+   * FloatValue#equalTo(FloatValue)}
+   */
+  public boolean notEqualTo(FloatValue pNumber) {
+    if (isNan() || pNumber.isNan()) {
+      return false;
+    }
+    return !equalTo(pNumber);
+  }
+
   public boolean greaterThan(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
     Format precision = format.sup(pNumber.format);
@@ -593,6 +627,21 @@ public class FloatValue extends Number {
       }
       return !r.isNegative();
     }
+  }
+
+  public boolean greaterOrEqual(FloatValue pNumber) {
+    return greaterThan(pNumber) || equalTo(pNumber);
+  }
+
+  public boolean lessThan(FloatValue pNumber) {
+    if (isNan() || pNumber.isNan()) {
+      return false;
+    }
+    return !greaterOrEqual(pNumber);
+  }
+
+  public boolean lessOrEqual(FloatValue pNumber) {
+    return pNumber.greaterOrEqual(this);
   }
 
   public FloatValue add(FloatValue pNumber) {

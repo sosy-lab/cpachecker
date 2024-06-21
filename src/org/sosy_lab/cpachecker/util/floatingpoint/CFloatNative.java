@@ -298,8 +298,33 @@ class CFloatNative extends CFloat {
   }
 
   @Override
-  public boolean greaterThan(CFloat pFloat) {
-    return CFloatNativeAPI.isGreaterFp(wrapper, type, pFloat.copyWrapper(), pFloat.getType());
+  public boolean equalTo(CFloat other) {
+    return CFloatNativeAPI.isEqualFp(wrapper, type, other.copyWrapper(), other.getType());
+  }
+
+  @Override
+  public boolean notEqualTo(CFloat other) {
+    return CFloatNativeAPI.isNotEqualFp(wrapper, type, other.copyWrapper(), other.getType());
+  }
+
+  @Override
+  public boolean greaterThan(CFloat other) {
+    return CFloatNativeAPI.isGreaterFp(wrapper, type, other.copyWrapper(), other.getType());
+  }
+
+  @Override
+  public boolean greaterOrEqual(CFloat other) {
+    return CFloatNativeAPI.isGreaterEqualFp(wrapper, type, other.copyWrapper(), other.getType());
+  }
+
+  @Override
+  public boolean lessThan(CFloat other) {
+    return CFloatNativeAPI.isLessFp(wrapper, type, other.copyWrapper(), other.getType());
+  }
+
+  @Override
+  public boolean lessOrEqual(CFloat other) {
+    return CFloatNativeAPI.isLessEqualFp(wrapper, type, other.copyWrapper(), other.getType());
   }
 
   @Override

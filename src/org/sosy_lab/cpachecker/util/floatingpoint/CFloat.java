@@ -287,6 +287,10 @@ abstract class CFloat {
    */
   public abstract int getType();
 
+  public abstract boolean equalTo(final CFloat other);
+
+  public abstract boolean notEqualTo(final CFloat other);
+
   /**
    * Compare <code>this</code> with another {@link CFloat} object and return whether <code>this
    * </code> is greater (according to floating point semantics) than the other {@link CFloat}
@@ -299,6 +303,12 @@ abstract class CFloat {
    * @return whether <code>this</code> is greater than <code>other</code>
    */
   public abstract boolean greaterThan(final CFloat other);
+
+  public abstract boolean greaterOrEqual(final CFloat other);
+
+  public abstract boolean lessThan(final CFloat other);
+
+  public abstract boolean lessOrEqual(final CFloat other);
 
   public final long getExponent() {
     return getWrapper().getExponent();

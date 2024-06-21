@@ -239,7 +239,36 @@ class JDouble extends CFloat {
   }
 
   @Override
+  public boolean equalTo(CFloat other) {
+    return value == toDouble(other.getWrapper());
+  }
+
+  @Override
+  public boolean notEqualTo(CFloat other) {
+    double that = toDouble(other.getWrapper());
+    if (Double.isNaN(value) || Double.isNaN(that)) {
+      return false;
+    }
+    return value != that;
+  }
+
+  @Override
   public boolean greaterThan(CFloat other) {
     return value > toDouble(other.getWrapper());
+  }
+
+  @Override
+  public boolean greaterOrEqual(CFloat other) {
+    return value >= toDouble(other.getWrapper());
+  }
+
+  @Override
+  public boolean lessThan(CFloat other) {
+    return value < toDouble(other.getWrapper());
+  }
+
+  @Override
+  public boolean lessOrEqual(CFloat other) {
+    return value <= toDouble(other.getWrapper());
   }
 }

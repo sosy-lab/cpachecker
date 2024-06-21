@@ -174,7 +174,22 @@ class CFloatNativeAPI {
 
   public static native boolean isNegativeFp(CFloatWrapper fp, int fp_type);
 
+  public static native boolean isEqualFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isNotEqualFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
   public static native boolean isGreaterFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isGreaterEqualFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isLessFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isLessEqualFp(
       CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
   public static native CFloatWrapper copySignFp(CFloatWrapper fp1, CFloatWrapper fp2, int fp_type);
