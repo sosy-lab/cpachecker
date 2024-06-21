@@ -1614,14 +1614,6 @@ cpa.callstack.unsupportedFunctions = {
           "__builtin_va_arg",
           "atexit"}
 
-# firing relation to be used in the precision adjustment operator
-cpa.chc.firingRelation = "Always"
-  allowed values: [Always, Maxcoeff, Sumcoeff, Homeocoeff]
-
-# generalization operator to be used in the precision adjustment operator
-cpa.chc.generalizationOperator = "Widen"
-  allowed values: [Top, Widen, WidenMax, WidenSum]
-
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
 # edges in the CFA which does not have more than one outgoing or leaving edge
