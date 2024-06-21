@@ -73,6 +73,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class DCPAAlgorithm {
 
   private final DistributedConfigurableProgramAnalysis dcpa;
+  // In this map, value 'null' means that the key 'blockId' is a loop predecessor
+  // from which we have not seen any summary message yet
   private final Map<String, BlockSummaryMessage> states;
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
@@ -445,6 +447,13 @@ public class DCPAAlgorithm {
     }
   }
 
+  public Set<String> updateSeenPrefixes(BlockSummaryErrorConditionMessage errorCond) {
+    ImmutableSet<String> originPrefixes =
+        ImmutableSet.copyOf(Splitter.on(",").splitToList(errorCond.getOrigin()));
+    seenPrefixes.add(originPrefixes);
+    return originPrefixes;
+  }
+
   /**
    * Runs the CPA under an error condition, i.e., if the current block contains a block-end edge,
    * the error condition will be attached to that edge. In case this makes the path formula
@@ -483,16 +492,15 @@ public class DCPAAlgorithm {
 
     status = status.update(result.getStatus());
 
-    Set<String> originPrefix =
-        ImmutableSet.copyOf(Splitter.on(",").splitToList(pErrorCondition.getOrigin()));
+    ImmutableSet<Set<String>> previouslySeenPrefixes = ImmutableSet.copyOf(seenPrefixes);
+    Set<String> originPrefixes = updateSeenPrefixes(pErrorCondition);
     boolean matched = false;
-    for (Set<String> seenPrefix : seenPrefixes) {
-      if (originPrefix.containsAll(seenPrefix)) {
+    for (Set<String> seenPrefix : previouslySeenPrefixes) {
+      if (originPrefixes.containsAll(seenPrefix)) {
         matched = true;
         break;
       }
     }
-    seenPrefixes.add(originPrefix);
 
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     if (!result.getBlockEndStates().isEmpty()
