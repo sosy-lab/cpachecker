@@ -346,10 +346,10 @@ public class DCPAAlgorithm {
     //  but it has no access to this attribute.
     boolean repeat = false;
     if (pReceived.isReachable()) {
+      boolean receivedMessageHasNewInformation = hasNewInformation(pReceived);
       // reset all loop predecessors if non-loop predecessor updates
       if (!loopPredecessors.isEmpty() && !loopPredecessors.contains(pReceived.getBlockId())) {
-        if (!implies(
-            (BlockSummaryPostConditionMessage) states.get(pReceived.getBlockId()), pReceived)) {
+        if (receivedMessageHasNewInformation) {
           repeat = true;
           loopPredecessors.forEach(id -> states.put(id, null));
           soundPredecessors.clear();
@@ -360,8 +360,7 @@ public class DCPAAlgorithm {
         repeat = true;
         soundPredecessors.remove(pReceived.getBlockId());
       } else {
-        if (!implies(
-            (BlockSummaryPostConditionMessage) states.get(pReceived.getBlockId()), pReceived)) {
+        if (receivedMessageHasNewInformation) {
           repeat = true;
           soundPredecessors.remove(pReceived.getBlockId());
         } else if (loopPredecessors.contains(pReceived.getBlockId())) {
@@ -378,6 +377,17 @@ public class DCPAAlgorithm {
       }
     }
     return repeat ? BlockSummaryMessageProcessing.proceed() : BlockSummaryMessageProcessing.stop();
+  }
+
+  /**
+   * Returns whether the given message provides a stronger postcondition for its block id then the
+   * postcondition already known.
+   */
+  private boolean hasNewInformation(BlockSummaryPostConditionMessage pNewMessage)
+      throws SolverException, InterruptedException {
+    BlockSummaryPostConditionMessage oldPostCond =
+        (BlockSummaryPostConditionMessage) states.get(pNewMessage.getBlockId());
+    return !implies(oldPostCond, pNewMessage);
   }
 
   /**
