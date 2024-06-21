@@ -1356,17 +1356,6 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private Value fmax(NumericValue pOp1, NumericValue pOp2) {
-    if (Double.isNaN(pOp1.doubleValue())
-        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() < 0)
-        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() > 0)) {
-      return pOp2;
-    }
-    if (Double.isNaN(pOp2.doubleValue())
-        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() < 0)
-        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() > 0)) {
-      return pOp1;
-    }
-
     final FloatValue op1fp = pOp1.floatingPointValue();
     final FloatValue op2fp = pOp2.floatingPointValue();
 
@@ -1374,21 +1363,10 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private Value fmin(NumericValue pOp1, NumericValue pOp2) {
-    if (Double.isNaN(pOp1.doubleValue())
-        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() > 0)
-        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() < 0)) {
-      return pOp2;
-    }
-    if (Double.isNaN(pOp2.doubleValue())
-        || (Double.isInfinite(pOp2.doubleValue()) && pOp2.doubleValue() > 0)
-        || (Double.isInfinite(pOp1.doubleValue()) && pOp1.doubleValue() < 0)) {
-      return pOp1;
-    }
-
     final FloatValue op1fp = pOp1.floatingPointValue();
     final FloatValue op2fp = pOp2.floatingPointValue();
 
-    return op2fp.greaterThan(op1fp) ? pOp1 : pOp2;
+    return op1fp.lessThan(op2fp) ? pOp1 : pOp2;
   }
 
   private Value fdim(CBasicType pType, NumericValue pOp1, NumericValue pOp2) {
