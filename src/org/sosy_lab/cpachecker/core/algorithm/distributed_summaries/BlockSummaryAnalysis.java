@@ -416,8 +416,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private OldAndNewMessages prepareOldAndNewMessages(
       List<Path> pKnownConditions, List<Path> pNewConditions) throws IOException {
     MessageConverter converter = new MessageConverter();
-    ImmutableList.Builder<BlockSummaryMessage> toBeConsideredOld = ImmutableList.builder();
-    ImmutableList.Builder<BlockSummaryMessage> toBeConsideredNew = ImmutableList.builder();
+    List<BlockSummaryMessage> toBeConsideredOld = new ArrayList<>();
+    List<BlockSummaryMessage> toBeConsideredNew = new ArrayList<>();
     // known conditions always stay 'old' and never become 'true'
     for (Path knownMessageFile : pKnownConditions) {
       BlockSummaryMessage message = converter.jsonToMessage(Files.readString(knownMessageFile));
@@ -436,7 +436,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockSummaryMessage message = converter.jsonToMessage(Files.readString(newMessageFile));
       if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
         if (isFirstPostcondition) {
-          toBeConsideredNew.add(message);
+          // Do postconditions first, so that information is known before error conditions are
+          // checked
+          toBeConsideredNew.add(0, message);
           isFirstPostcondition = false;
         } else {
           toBeConsideredOld.add(message);
@@ -445,7 +447,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         toBeConsideredNew.add(message);
       }
     }
-    return new OldAndNewMessages(toBeConsideredOld.build(), toBeConsideredNew.build());
+    return new OldAndNewMessages(toBeConsideredOld, toBeConsideredNew);
   }
 
   private LogManager getLogger(BlockSummaryAnalysisOptions pOptions, String workerId) {
