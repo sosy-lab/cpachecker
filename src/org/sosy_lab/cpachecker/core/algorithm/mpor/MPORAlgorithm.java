@@ -208,20 +208,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCfa the CFA to be analyzed
    * @return set of CIdExpressions that are instances of pthread_mutex_t used in pthread_mutex_locks
    */
+  // TODO what about pthread_mutex_trylock?
   private Set<CIdExpression> getMutexObjects(CFA pCfa) {
     Set<CIdExpression> mutexes = new HashSet<>();
     for (CFAEdge cfaEdge : cfa.edges()) {
       if (PthreadFunction.isEdgeCallToFunction(cfaEdge, PthreadFunction.MUTEX_LOCK)) {
         AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
         CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
-        // extract the third parameter of pthread_create which points to the start routine function
+        // extract the first parameter which is the pthread_mutex_t object
         CUnaryExpression cUnaryExpression =
             (CUnaryExpression)
                 cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions().get(0);
         CIdExpression cIdExpression = (CIdExpression) cUnaryExpression.getOperand();
-        if (!mutexes.contains(cIdExpression)) {
-          mutexes.add(cIdExpression);
-        }
+        mutexes.add(cIdExpression);
       }
     }
     return mutexes;
@@ -280,7 +279,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   //  __atomic_store_n / __atomic_load_n
   //  atomic blocks
   //  sequential blocks
-
 
   // TODO use GlobalAccessChecker to check whether a CfaEdge reads or writes global / shared
   //  variables?
