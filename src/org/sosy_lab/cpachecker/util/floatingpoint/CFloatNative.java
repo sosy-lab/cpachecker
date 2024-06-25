@@ -40,6 +40,9 @@ class CFloatNative extends CFloat {
     if (pFormat.equals(Format.Float64)) {
       pType = CNativeType.DOUBLE.getOrdinal();
     }
+    if (pFormat.equals(Format.Extended)) {
+      pType = CNativeType.LONG_DOUBLE.getOrdinal();
+    }
     checkArgument(pType >= 0);
     wrapper = CFloatNativeAPI.createFp(rep, pType);
     type = pType;

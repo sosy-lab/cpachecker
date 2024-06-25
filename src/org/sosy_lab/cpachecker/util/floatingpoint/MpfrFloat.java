@@ -27,6 +27,8 @@ class MpfrFloat extends CFloat {
   private final BinaryMathContext format;
   private final BigFloat value;
 
+  public static final BinaryMathContext BINARY_EXTENDED = new BinaryMathContext(64, 15);
+
   public MpfrFloat(BigFloat pValue, BinaryMathContext pMathContext) {
     format = pMathContext;
     value = pValue;
@@ -66,10 +68,12 @@ class MpfrFloat extends CFloat {
     // Shift the exponent and convert the values
     boolean sign = signBit != 0;
     long exponent = exponentBits - biasExponent();
-    BigInteger mantissa = BigInteger.valueOf(mantissaBits);
+    BigInteger mantissa = new BigInteger(Long.toUnsignedString(mantissaBits));
 
-    // Check that the value is "normal" (= not 0, Inf or NaN) and add the missing 1 to the mantissa
-    if (exponentBits != 0 && exponentBits != exponentMask) {
+    // Check whether the value is "normal" (= not 0, Inf or NaN) and add the missing 1 to the
+    // mantissa. This step is skipped for "extended precision" values as the format does not use a
+    // hidden bit.
+    if (!format.equals(BINARY_EXTENDED) && exponentBits != 0 && exponentBits != exponentMask) {
       BigInteger leadingOne = BigInteger.ONE.shiftLeft(format.precision - 1);
       mantissa = mantissa.add(leadingOne);
     }
@@ -95,7 +99,7 @@ class MpfrFloat extends CFloat {
         mantissa = mantissa.clearBit(format.precision - 1);
       }
     }
-    return new CFloatWrapper(signBit | exponentBits, mantissa.longValueExact());
+    return new CFloatWrapper(signBit | exponentBits, mantissa.longValue());
   }
 
   private BigFloat parseBigFloat(String repr) {

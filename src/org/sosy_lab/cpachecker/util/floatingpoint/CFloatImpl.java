@@ -27,22 +27,22 @@ class CFloatImpl extends CFloat {
 
   public CFloatImpl(CFloatWrapper pWrapper, int pType) {
     wrapper = pWrapper;
-    delegate = toMyFloat(pWrapper, CFloatNativeAPI.toNativeType(pType));
+    delegate = fromWrapper(pWrapper, CFloatNativeAPI.toNativeType(pType));
   }
 
   public CFloatImpl(String repr, int pType) {
     delegate = parseFloat(repr, toFormat(CFloatNativeAPI.toNativeType(pType)));
-    wrapper = fromImpl(delegate);
+    wrapper = toWrapper(delegate);
   }
 
   public CFloatImpl(String repr, Format pFormat) {
     delegate = parseFloat(repr, pFormat);
-    wrapper = fromImpl(delegate);
+    wrapper = toWrapper(delegate);
   }
 
   public CFloatImpl(FloatValue pValue) {
     delegate = pValue;
-    wrapper = fromImpl(pValue);
+    wrapper = toWrapper(pValue);
   }
 
   private Format toFormat(CNativeType pType) {
@@ -54,7 +54,7 @@ class CFloatImpl extends CFloat {
     };
   }
 
-  private FloatValue toMyFloat(CFloatWrapper floatWrapper, CNativeType pType) {
+  private FloatValue fromWrapper(CFloatWrapper floatWrapper, CNativeType pType) {
     Format format = toFormat(pType);
     long signMask = 1L << format.expBits();
     long exponentMask = signMask - 1;
@@ -79,7 +79,7 @@ class CFloatImpl extends CFloat {
     return new FloatValue(format, sign, exponent, mantissa);
   }
 
-  private CFloatWrapper fromImpl(FloatValue floatValue) {
+  private CFloatWrapper toWrapper(FloatValue floatValue) {
     ImmutableList<Format> tiny = ImmutableList.of(Format.Float8, Format.Float16, Format.Float32);
     if (tiny.contains(floatValue.getFormat())) {
       // FIXME: In Float8 and Float16 this may be broken for subnormal numbers

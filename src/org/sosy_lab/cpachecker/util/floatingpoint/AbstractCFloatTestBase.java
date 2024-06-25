@@ -118,15 +118,36 @@ abstract class AbstractCFloatTestBase {
           val.getValue().extractExpBits(),
           context);
     } else {
-      // We have either a CFloatNative or a JFloat/JDouble and only need to support single and
-      // double precision
       CNativeType toType = CFloatNativeAPI.toNativeType(value.getType());
-      return switch (toType) {
-        case SINGLE -> new BigFloat(value.toFloat(), BinaryMathContext.BINARY32);
-        case DOUBLE -> new BigFloat(value.toDouble(), BinaryMathContext.BINARY64);
-        case LONG_DOUBLE -> throw new UnsupportedOperationException();
-        default -> throw new IllegalArgumentException();
-      };
+      if (value instanceof CFloatNative val && toType == CNativeType.LONG_DOUBLE) {
+        // Special case for "extended precision" with CFloatNative
+        BinaryMathContext context = new BinaryMathContext(64, 15);
+        if (val.isNan()) {
+          return val.isNegative()
+              ? BigFloat.NaN(context.precision).negate()
+              : BigFloat.NaN(context.precision);
+        }
+        if (val.isInfinity()) {
+          return val.isNegative()
+              ? BigFloat.negativeInfinity(context.precision)
+              : BigFloat.positiveInfinity(context.precision);
+        }
+        CFloatWrapper wrapper = val.getWrapper();
+
+        long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Extended.bias();
+        BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
+
+        return new BigFloat(val.isNegative(), significand, exponent, context);
+      } else {
+        // We have either a CFloatNative or a JFloat/JDouble and only need to support single and
+        // double precision
+        return switch (toType) {
+          case SINGLE -> new BigFloat(value.toFloat(), BinaryMathContext.BINARY32);
+          case DOUBLE -> new BigFloat(value.toDouble(), BinaryMathContext.BINARY64);
+          case LONG_DOUBLE -> throw new UnsupportedOperationException();
+          default -> throw new IllegalArgumentException();
+        };
+      }
     }
   }
 
@@ -556,6 +577,7 @@ abstract class AbstractCFloatTestBase {
     checkState(
         getFloatType().equals(Format.Float32)
             || getFloatType().equals(Format.Float64)
+            || (getRefImpl() == ReferenceImpl.NATIVE && getFloatType().equals(Format.Extended))
             || getRefImpl() == ReferenceImpl.MPFR,
         "Backend %s only support float32 and float64 as format",
         getRefImpl());
@@ -826,6 +848,9 @@ abstract class AbstractCFloatTestBase {
     }
     if (pFormat.equals(Format.Float64)) {
       r = CNativeType.DOUBLE.getOrdinal();
+    }
+    if (pFormat.equals(Format.Extended)) {
+      r = CNativeType.LONG_DOUBLE.getOrdinal();
     }
     checkArgument(r >= 0);
     return CFloatNativeAPI.toNativeType(r);
