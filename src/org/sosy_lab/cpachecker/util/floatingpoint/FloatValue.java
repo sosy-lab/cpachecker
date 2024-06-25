@@ -2110,8 +2110,19 @@ public class FloatValue extends Number {
   }
 
   private static FloatValue fromDecimal_(Format pFormat, BigInteger u, BigInteger v) {
+    int b1 = u.bitLength();
+    int b2 = v.bitLength();
+
+    // Check the bit length of the numerator and the denominator and pull out powers of two
+    int k = -b2 + (b1 - pFormat.sigBits);
+    if (k < 0) {
+      u = u.shiftLeft(Math.abs(k));
+    } else {
+      v = v.shiftLeft(k);
+    }
+
+    // Fine tune for the actual value
     BigInteger x = u.divide(v);
-    int k = 0;
     while (x.bitLength() != pFormat.sigBits + 1) {
       if (x.bitLength() < pFormat.sigBits + 1) {
         u = u.shiftLeft(1);
