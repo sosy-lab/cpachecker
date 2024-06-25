@@ -2113,7 +2113,7 @@ public class FloatValue extends Number {
     int b1 = u.bitLength();
     int b2 = v.bitLength();
 
-    // Check the bit length of the numerator and the denominator and pull out powers of two
+    // Consider the bit length of the numerator and the denominator and pull out 2^k
     int k = -b2 + (b1 - pFormat.sigBits);
     if (k < 0) {
       u = u.shiftLeft(Math.abs(k));
@@ -2121,18 +2121,14 @@ public class FloatValue extends Number {
       v = v.shiftLeft(k);
     }
 
-    // Fine tune for the actual value
+    // Fine tune for the actual value. If the quotient is already between 1.0 and 2.0 we're done.
+    // Otherwise, multiply by 2 once more to fix the exponent.
     BigInteger x = u.divide(v);
-    while (x.bitLength() != pFormat.sigBits + 1) {
-      if (x.bitLength() < pFormat.sigBits + 1) {
-        u = u.shiftLeft(1);
-        k--;
-      } else {
-        v = v.shiftLeft(1);
-        k++;
-      }
-      x = u.divide(v);
+    if (x.bitLength() < pFormat.sigBits + 1) {
+      u = u.shiftLeft(1);
+      k--;
     }
+
     return makeValue(pFormat, u, v, k);
   }
 
