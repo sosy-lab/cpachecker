@@ -872,7 +872,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 			result.d_value = copysign(fp_1.d_value, fp_2.d_value);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			result.ld_value = copysign(fp_1.ld_value, fp_2.ld_value);
+			result.ld_value = copysignl(fp_1.ld_value, fp_2.ld_value);
 			break;
 		default:
 			throwException(env, EX_TEXT);
