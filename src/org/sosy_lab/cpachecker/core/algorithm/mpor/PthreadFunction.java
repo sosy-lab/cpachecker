@@ -31,9 +31,7 @@ public enum PthreadFunction {
     this.name = pName;
   }
 
-  /**
-   * @return true if the given CFAEdge is a call to the given pthread function
-   */
+  /** Return true if the given CFAEdge is a call to the given pthread function */
   public static boolean isEdgeCallToFunction(CFAEdge pCfaEdge, PthreadFunction pPthreadFunction) {
     return CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge)
         && CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
