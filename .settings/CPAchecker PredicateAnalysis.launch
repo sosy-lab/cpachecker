@@ -22,4 +22,3 @@ SPDX-License-Identifier: Apache-2.0
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker"/>
 <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Xmx1200m"/>
 </launchConfiguration>
-

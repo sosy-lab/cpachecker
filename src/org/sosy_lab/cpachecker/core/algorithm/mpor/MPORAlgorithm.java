@@ -89,7 +89,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** A map of thread IDs to CFANodes the threads are currently in. */
   @SuppressWarnings("unused")
-  @SuppressFBWarnings("UUF_UNUSED_FIELD, URF_UNREAD_FIELD")
+  @SuppressFBWarnings(value = {"UUF_UNUSED_FIELD, URF_UNREAD_FIELD"})
   private Map<Integer, CFANode> threadNodes;
 
   /** The set of pthread_mutex_t objects in the program. */
@@ -115,6 +115,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     cfa = pCfa;
 
     // TODO check for C program
+    cfa.getMetadata().getInputLanguage();
     checkForParallelProgram(cfa);
     functionCallHierarchy = getFunctionCallHierarchy(cfa);
     threadStartRoutines = getThreadStartRoutines(cfa);
