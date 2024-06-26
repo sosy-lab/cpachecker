@@ -203,6 +203,9 @@ analysis.algorithm.IMC = false
 # will get aborted.
 analysis.algorithm.MPI = false
 
+# use MPOR algorithm for sequentializing a parallel C program
+analysis.algorithm.MPOR = false
+
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 

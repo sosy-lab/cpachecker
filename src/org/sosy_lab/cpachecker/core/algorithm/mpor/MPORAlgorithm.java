@@ -82,15 +82,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private Set<CFunctionType> threadStartRoutines;
 
   /** A map of thread IDs to functions executed by the thread. */
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unused", "URF_UNREAD_FIELD"})
   private Map<Integer, Set<CFunctionType>> threadIdFunctions;
 
   /** A map of thread IDs to CFANodes the threads are currently in. */
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unused", "UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Map<Integer, CFANode> threadNodes;
 
   /** The set of pthread_mutex_t objects in the program. */
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unused", "URF_UNREAD_FIELD"})
   private Set<CIdExpression> mutexObjects;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
