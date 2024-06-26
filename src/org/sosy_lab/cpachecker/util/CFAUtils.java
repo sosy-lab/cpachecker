@@ -685,6 +685,8 @@ public class CFAUtils {
   }
 
   /**
+   * Returns true if the given CFAEdge is an instance of CFunctionCallStatement.
+   *
    * @param pCfaEdge CFAEdge to be analyzed
    * @return true if the given CFAEdge is an instance of CFunctionCallStatement
    */
