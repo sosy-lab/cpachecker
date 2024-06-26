@@ -119,8 +119,8 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     private final Map<String, String> additionalIfNotExistentArgs = new HashMap<>();
     private final Map<String, String> additionalArgs = new HashMap<>();
 
-    PropertyAddingCmdLineArgument(String pName) {
-      super(pName);
+    PropertyAddingCmdLineArgument(String... pNames) {
+      super(pNames);
     }
 
     @CanIgnoreReturnValue

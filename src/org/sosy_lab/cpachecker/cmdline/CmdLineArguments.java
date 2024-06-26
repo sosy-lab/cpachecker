@@ -86,55 +86,55 @@ class CmdLineArguments {
 
   private static final ImmutableSortedSet<CmdLineArgument> CMD_LINE_ARGS =
       ImmutableSortedSet.of(
-          new PropertyAddingCmdLineArgument("-stats")
+          new PropertyAddingCmdLineArgument("--stats", "-stats")
               .settingProperty("statistics.print", "true")
               .withDescription("collect statistics during the analysis and print them afterwards"),
-          new PropertyAddingCmdLineArgument("-noout")
+          new PropertyAddingCmdLineArgument("--no-output", "-noout")
               .settingProperty("output.disable", "true")
               .withDescription("disable all output (except directly specified files)"),
-          new PropertyAddingCmdLineArgument("-java")
+          new PropertyAddingCmdLineArgument("--java", "-java")
               .settingProperty("language", "JAVA")
               .withDescription("language of the sourcefile"),
-          new PropertyAddingCmdLineArgument("-32")
+          new PropertyAddingCmdLineArgument("--32", "-32")
               .settingProperty("analysis.machineModel", "Linux32")
               .withDescription("set machine model to LINUX32"),
-          new PropertyAddingCmdLineArgument("-64")
+          new PropertyAddingCmdLineArgument("--64", "-64")
               .settingProperty("analysis.machineModel", "Linux64")
               .withDescription("set machine model to LINUX64"),
-          new PropertyAddingCmdLineArgument("-preprocess")
+          new PropertyAddingCmdLineArgument("--preprocess", "-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute a preprocessor before starting the analysis"),
           new PropertyAddingCmdLineArgument("-clang")
               .settingProperty("parser.useClang", "true")
               .withDescription("use clang together with llvm frontend"),
-          new PropertyAddingCmdLineArgument("-secureMode")
+          new PropertyAddingCmdLineArgument("--secure-mode", "-secureMode")
               .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),
-          new CmdLineArgument1("-witness")
+          new CmdLineArgument1("--witness", "-witness")
               .settingOption("witness.validation.file")
               .withDescription("the witness to validate"),
-          new CmdLineArgument1("-outputpath")
+          new CmdLineArgument1("--output-path", "-outputpath")
               .settingOption("output.path")
               .withDescription("where to store the files with results, statistics, logs"),
           new CmdLineArgument1("-logfile")
               .settingOption("log.file")
               .withDescription("set a direct logfile"),
-          new CmdLineArgument1("-entryfunction")
+          new CmdLineArgument1("--entry-function", "-entryfunction")
               .settingOption("analysis.entryFunction")
               .withDescription("set the initial function for the analysis"),
-          new CmdLineArgument1("-config")
+          new CmdLineArgument1("--config", "-config")
               .settingOption(CONFIGURATION_FILE_OPTION)
               .withDescription("set the configuration for the analysis"),
-          new CmdLineArgument1("-timelimit")
+          new CmdLineArgument1("--timelimit", "-timelimit")
               .settingOption("limits.time.cpu")
               .withDescription("set a timelimit for the analysis"),
-          new CmdLineArgument1("-sourcepath")
+          new CmdLineArgument1("--source-path", "-sourcepath")
               .settingOption("java.sourcepath")
               .withDescription("set the sourcepath for the analysis of Java programs"),
-          new CmdLineArgument1("-cp", "-classpath")
+          new CmdLineArgument1("--class-path", "-cp", "-classpath")
               .settingOption("java.classpath")
               .withDescription("set the classpath for the analysis of Java programs"),
-          new CmdLineArgument1("-spec") {
+          new CmdLineArgument1("--spec", "-spec") {
             @Override
             void handleArg(Map<String, String> properties, String arg) {
               if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
@@ -151,7 +151,7 @@ class CmdLineArguments {
               handleCmc(argsIt, properties);
             }
           }.withDescription("use conditional model checking"),
-          new CmdLineArgument1("-cpas") {
+          new CmdLineArgument1("--cpas", "-cpas") {
 
             @Override
             void handleArg(Map<String, String> properties, String arg) {
@@ -167,18 +167,18 @@ class CmdLineArguments {
               .settingProperty("log.level", "off")
               .settingProperty("log.consoleLevel", "off")
               .withDescription("disable logging"),
-          new PropertyAddingCmdLineArgument("-skipRecursion")
+          new PropertyAddingCmdLineArgument("--skip-recursion", "-skipRecursion")
               .settingProperty("analysis.summaryEdges", "true")
               .settingProperty("cpa.callstack.skipRecursion", "true")
               .withDescription("skip recursive function calls"),
-          new PropertyAddingCmdLineArgument("-benchmark")
+          new PropertyAddingCmdLineArgument("--benchmark", "-benchmark")
               .settingProperty("output.disable", "true")
               .settingProperty("coverage.enabled", "false")
               .settingProperty("statistics.memory", "false")
               .withDescription(
                   "disable assertions and optional features such as output files for improved"
                       + " performance"),
-          new CmdLineArgument1("-setprop") {
+          new CmdLineArgument1("--option", "-setprop") {
 
             @Override
             void handleArg(Map<String, String> properties, String arg)
@@ -191,7 +191,7 @@ class CmdLineArguments {
               putIfNotExistent(properties, bits.get(0), bits.get(1));
             }
           }.withDescription("set an option directly"),
-          new CmdLineArgument("-printOptions") {
+          new CmdLineArgument("--print-options", "-printOptions") {
 
             @SuppressFBWarnings("DM_EXIT")
             @SuppressForbidden("System.out is correct here")
@@ -208,12 +208,12 @@ class CmdLineArguments {
               System.exit(0);
             }
           }.withDescription("print all possible options on StdOut"),
-          new PropertyAddingCmdLineArgument("-printUsedOptions")
+          new PropertyAddingCmdLineArgument("--print-used-options", "-printUsedOptions")
               .settingProperty(PRINT_USED_OPTIONS_OPTION, "true")
               .settingProperty("analysis.disable", "true")
               .overridingProperty("log.consoleLevel", "SEVERE")
               .withDescription("print all used options"),
-          new CmdLineArgument("-version") {
+          new CmdLineArgument("--version", "-version") {
 
             @SuppressFBWarnings("DM_EXIT")
             @SuppressForbidden("System.out is correct here")
@@ -224,7 +224,7 @@ class CmdLineArguments {
               System.exit(0);
             }
           }.withDescription("print version number"),
-          new CmdLineArgument("-h", "-help") {
+          new CmdLineArgument("--help", "-h", "-help") {
 
             @SuppressFBWarnings("DM_EXIT")
             @SuppressForbidden("System.out is correct here")
