@@ -136,11 +136,11 @@ class CmdLineArguments {
               .withDescription("set the classpath for the analysis of Java programs"),
           new CmdLineArgument1("--spec", "-spec") {
             @Override
-            void handleArg(Map<String, String> properties, String arg) {
-              if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
-                arg = resolveSpecificationFileOrExit(arg).toString();
+            void handleArg(Map<String, String> properties, String currentArg, String argValue) {
+              if (SPECIFICATION_FILES_PATTERN.matcher(argValue).matches()) {
+                argValue = resolveSpecificationFileOrExit(argValue).toString();
               }
-              appendOptionValue(properties, "specification", arg);
+              appendOptionValue(properties, "specification", argValue);
             }
           }.withDescription("set the specification for the main analysis"),
           new CmdLineArgument("-cmc") {
@@ -154,9 +154,9 @@ class CmdLineArguments {
           new CmdLineArgument1("--cpas", "-cpas") {
 
             @Override
-            void handleArg(Map<String, String> properties, String arg) {
+            void handleArg(Map<String, String> properties, String currentArg, String argValue) {
               properties.put("cpa", CompositeCPA.class.getName());
-              properties.put(CompositeCPA.class.getSimpleName() + ".cpas", arg);
+              properties.put(CompositeCPA.class.getSimpleName() + ".cpas", argValue);
             }
           }.withDescription("set CPAs for the analysis"),
           new PropertyAddingCmdLineArgument("-cbmc")
@@ -181,12 +181,14 @@ class CmdLineArguments {
           new CmdLineArgument1("--option", "-setprop") {
 
             @Override
-            void handleArg(Map<String, String> properties, String arg)
+            void handleArg(Map<String, String> properties, String currentArg, String argValue)
                 throws InvalidCmdlineArgumentException {
-              List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(arg);
+              List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(argValue);
               if (bits.size() != 2) {
                 throw new InvalidCmdlineArgumentException(
-                    "-setprop argument must be a key=value pair, but \"" + arg + "\" is not.");
+                    String.format(
+                        "%s argument must be a key=value pair, but \"%s\" is not.",
+                        currentArg, argValue));
               }
               putIfNotExistent(properties, bits.get(0), bits.get(1));
             }

@@ -94,7 +94,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     final void apply0(Map<String, String> properties, String currentArg, Iterator<String> args)
         throws InvalidCmdlineArgumentException {
       if (args.hasNext()) {
-        handleArg(properties, args.next());
+        handleArg(properties, currentArg, args.next());
       } else {
         throw new InvalidCmdlineArgumentException(currentArg + " argument missing.");
       }
@@ -104,12 +104,13 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
      * Handles a command-line argument.
      *
      * @param pProperties the map of configuration properties.
-     * @param pArg the value of the configuration option represented by this argument.
+     * @param pCurrentArg the command-line argument that is currently being handled
+     * @param pArgValue the value of the configuration option represented by this argument.
      */
-    void handleArg(Map<String, String> pProperties, String pArg)
+    void handleArg(Map<String, String> pProperties, String pCurrentArg, String pArgValue)
         throws InvalidCmdlineArgumentException {
       checkState(option != null);
-      putIfNotExistent(pProperties, option, pArg);
+      putIfNotExistent(pProperties, option, pArgValue);
     }
   }
 
