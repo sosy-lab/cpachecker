@@ -63,7 +63,7 @@ class CmdLineArguments {
   private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
 
   /**
-   * The directories where to look for configuration files for options like "-predicateAbstraction"
+   * The directories where to look for configuration files for options like "--predicateAbstraction"
    * that get translated into a config file name. The directories will be checked in the order they
    * are added here, and the first hit will be taken. Each directory can be mapped to an optional
    * warning that should be shown if the configuration is found there (empty string for no warning).
@@ -266,7 +266,7 @@ class CmdLineArguments {
       if (foundMatchingArg) {
         // nothing left to do
       } else if (arg.startsWith("-") && Files.notExists(Path.of(arg))) {
-        String argName = arg.substring(1); // remove "-"
+        String argName = arg.substring(arg.startsWith("--") ? 2 : 1); // remove "--" or "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
           @Nullable Path configFile = resolveConfigFile(argName);
 
@@ -345,7 +345,7 @@ class CmdLineArguments {
     }
     out.println();
     out.println("You can also specify any of the configuration files in the directory config/");
-    out.println("with -CONFIG_FILE, e.g., -default for config/default.properties.");
+    out.println("with --CONFIG_FILE, e.g., --default for config/default.properties.");
     out.println();
     out.println(
         "More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
