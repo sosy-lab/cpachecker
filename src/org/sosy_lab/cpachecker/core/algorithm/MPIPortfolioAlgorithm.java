@@ -549,9 +549,9 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
       // Bring the command-line into a format which is executable by a python-script
       ImmutableList.Builder<String> cmdLineBuilder = ImmutableList.builder();
-      cmdLineBuilder.add("bin/cpachecker").add("-config").add(configPath.toString());
+      cmdLineBuilder.add("bin/cpachecker").add("--config").add(configPath.toString());
       for (String opt : Splitter.on('\n').omitEmptyStrings().split(config.asPropertiesString())) {
-        cmdLineBuilder.add("-setprop").add(opt);
+        cmdLineBuilder.add("--setprop").add(opt);
       }
       cmdLine = cmdLineBuilder.build();
     }
