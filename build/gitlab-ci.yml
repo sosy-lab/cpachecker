@@ -49,7 +49,7 @@ build-dependencies:
   interruptible: true
   artifacts:
     paths:
-      - "bin/"
+      - "classes/"
       - "*.jar"
 
 build:jdk-11:

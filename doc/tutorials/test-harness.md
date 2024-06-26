@@ -69,7 +69,7 @@ If this is true, the program has a failing assertion.
 
 1. Run CPAchecker on this program, with its default analysis:
     ```
-    scripts/cpa.sh -default doc/examples/example_bug.c
+    bin/cpachecker -default doc/examples/example_bug.c
     ```
     Expected output:
     ```

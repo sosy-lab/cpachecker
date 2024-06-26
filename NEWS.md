@@ -13,6 +13,13 @@ Changes since CPAchecker 2.3.1
 * Container images on Docker Hub  
   The official container images of CPAchecker are now also available
   as [`sosylab/cpachecker` on Docker Hub](https://hub.docker.com/r/sosylab/cpachecker).
+* Executables of CPAchecker renamed  
+  Instead of `scripts/cpa.sh` and `scripts/cpa.bat` we now provide
+  `bin/cpachecker` and `bin/cpachecker.bat` as the main executables of CPAchecker.
+  The new executables are drop-in replacements.
+  The old executables are deprecated but will continue to exist
+  at least until the next major version of CPAchecker.
+  Similarly, we now provide `bin/cpa-witness2test` for CPA-witness2test.
 
 
 Changes from CPAchecker 2.3 to CPAchecker 2.3.1

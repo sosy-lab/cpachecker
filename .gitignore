@@ -14,8 +14,9 @@ __pycache__
 a.out
 
 # /
-/bin
+/bin/org
 /build.properties
+/classes
 /output
 /Checkstyle.html
 /Checkstyle.xml

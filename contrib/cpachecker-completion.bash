@@ -10,7 +10,7 @@
 
 #   README:
 # This script provides bash completion (the thing that happens when you press
-# the TAB key) for CPAchecker (more specifically, the `cpa.sh` executable).
+# the TAB key) for CPAchecker (more specifically, the `cpachecker` executable).
 # This script is designed for use with the bash shell, but also works with zsh.
 # To check your current shell, execute `echo $BASH`. If some path
 # to the bash command is displayed, you are using bash.
@@ -34,7 +34,7 @@
 #
 #
 #   Trying it out:
-# From the CPAchecker directory, type `scripts/cpa.sh -` and press
+# From the CPAchecker directory, type `bin/cpachecker -` and press
 # the TAB key. Bash will provide you with all possible command line options
 # for CPAchecker.
 
@@ -62,4 +62,4 @@ _cpachecker_completions() {
     fi
 }
 
-complete -o default -F _cpachecker_completions cpa.sh
+complete -o default -F _cpachecker_completions cpa.sh cpachecker

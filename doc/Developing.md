@@ -189,7 +189,7 @@ Debugging
 ---------
 
 For attaching a debugger to a CPAchecker process started on the command line (even remotely),
-just run `scripts/cpa.sh -debug ...` and point your debugger to TCP port 5005
+just run `bin/cpachecker -debug ...` and point your debugger to TCP port 5005
 of the respective machine.
 
 

@@ -82,8 +82,8 @@ be specified.
 
 The usual command line for running CPAchecker is to specify a configuration file
 (either with `-config FILE` or `-CONFIGFILE`) and a program file. Examples:
-`scripts/cpa.sh -default doc/examples/example.c` and
-`scripts/cpa.sh -config config/default.properties doc/examples/example.c`
+`bin/cpachecker -default doc/examples/example.c` and
+`bin/cpachecker -config config/default.properties doc/examples/example.c`
 
 
 Specifying the CPA(s)
