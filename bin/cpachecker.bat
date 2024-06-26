@@ -57,21 +57,25 @@ IF NOT [%1]==[] (
     SET JAVA_HEAP_SIZE=%2
     SHIFT
   ) ELSE IF [%1]==[-heap] (
+    ECHO Argument '-heap' is deprecated, we recommend replacing with '--heap'.
     SET JAVA_HEAP_SIZE=%2
     SHIFT
   ) ELSE IF [%1]==[--stack] (
     SET JAVA_STACK_SIZE=%2
     SHIFT
   ) ELSE IF [%1]==[-stack] (
+    ECHO Argument '-stack' is deprecated, we recommend replacing with '--stack'.
     SET JAVA_STACK_SIZE=%2
     SHIFT
   ) ELSE IF [%1]==[--jvm-debug] (
     SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
   ) ELSE IF [%1]==[-debug] (
+    ECHO Argument '-debug' is deprecated, we recommend replacing with '--jvm-debug'.
     SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
   ) ELSE IF [%1]==[--disable-java-assertions] (
     SET JAVA_ASSERTIONS=-da
   ) ELSE IF [%1]==[-disable-java-assertions] (
+    ECHO Argument '-disable-java-assertions' is deprecated, we recommend replacing with '--disable-java-assertions'.
     SET JAVA_ASSERTIONS=-da
   ) ELSE IF [%1]==[--option] (
     IF ["%~2"]==[%2] (

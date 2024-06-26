@@ -35,6 +35,10 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     return this;
   }
 
+  String getMainName() {
+    return names.asList().get(0);
+  }
+
   @Override
   public int compareTo(CmdLineArgument other) {
     return names.toString().compareTo(other.names.toString());

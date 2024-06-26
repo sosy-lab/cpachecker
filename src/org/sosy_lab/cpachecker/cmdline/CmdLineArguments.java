@@ -26,9 +26,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.annotations.SuppressForbidden;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
@@ -86,6 +88,7 @@ class CmdLineArguments {
 
   private static final ImmutableSortedSet<CmdLineArgument> CMD_LINE_ARGS =
       ImmutableSortedSet.of(
+          // For every argument, the main name (--long-form) needs to come first.
           new PropertyAddingCmdLineArgument("--stats", "-stats")
               .settingProperty("statistics.print", "true")
               .withDescription("collect statistics during the analysis and print them afterwards"),
@@ -251,6 +254,8 @@ class CmdLineArguments {
       throws InvalidCmdlineArgumentException {
     Map<String, String> properties = new HashMap<>();
     List<String> programs = new ArrayList<>();
+    ImmutableMap.Builder<String, String> oldStyleArguments = ImmutableMap.builder();
+    boolean hasNewStyleArguments = false;
 
     Iterator<String> argsIt = Arrays.asList(args).iterator();
 
@@ -260,6 +265,13 @@ class CmdLineArguments {
       for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {
         if (cmdLineArg.apply(properties, arg, argsIt)) {
           foundMatchingArg = true;
+          if (isOldStyleArgument(arg)) {
+            if (!arg.equals(cmdLineArg.getMainName())) {
+              oldStyleArguments.put(arg, cmdLineArg.getMainName());
+            }
+          } else {
+            hasNewStyleArguments = true;
+          }
           break;
         }
       }
@@ -283,6 +295,13 @@ class CmdLineArguments {
                     + "If you meant to specify a configuration file, the file %s does not exist.",
                 arg, String.format(from(DEFAULT_CONFIG_FILES_TEMPLATES.keySet()).get(0), argName));
           }
+
+          if (isOldStyleArgument(arg)) {
+            oldStyleArguments.put(arg, "-" + arg);
+          } else {
+            hasNewStyleArguments = true;
+          }
+
         } else {
           throw Output.fatalErrorWithHelptext("Invalid option %s", arg);
         }
@@ -292,12 +311,43 @@ class CmdLineArguments {
       }
     }
 
+    printWarningsForOldStyleArguments(oldStyleArguments.buildKeepingLast(), hasNewStyleArguments);
+
     // arguments with non-specified options are considered as file names
     if (!programs.isEmpty()) {
       putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
 
     return properties;
+  }
+
+  private static boolean isOldStyleArgument(String arg) {
+    return arg.length() > 2 // "-h" is ok
+        && arg.startsWith("-")
+        && !arg.startsWith("--"); // -foo is not ok, but --foo is
+  }
+
+  private static void printWarningsForOldStyleArguments(
+      ImmutableMap<String, String> oldStyleArguments, boolean hasNewStyleArguments) {
+    if (!oldStyleArguments.isEmpty()) {
+      String replacementSuggestions =
+          Collections3.zipMapEntries(
+                  oldStyleArguments,
+                  (oldArg, newArg) -> String.format("\n- replace '%s' with '%s'", oldArg, newArg))
+              .collect(Collectors.joining());
+
+      if (hasNewStyleArguments) {
+        throw Output.fatalError(
+            "Mix of old and new command-line arguments detected, which is not supported. "
+                + "Please adjust your command line as follows:%s",
+            replacementSuggestions);
+      } else {
+        Output.warning(
+            "Deprecated command-line arguments detected, "
+                + "we recommend adjusting your command line as follows:%s",
+            replacementSuggestions);
+      }
+    }
   }
 
   private static void handleCmc(final Iterator<String> argsIt, final Map<String, String> properties)
