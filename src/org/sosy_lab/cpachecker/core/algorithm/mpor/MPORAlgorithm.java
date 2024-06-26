@@ -50,16 +50,23 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
+  // TODO remove all @SuppressWarnings once finished
+
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // TODO this method is called once initially with the set of reached states in the ARG
     throw new UnsupportedOperationException("Unimplemented method 'run'");
   }
 
+  @SuppressWarnings("unused")
   private final ConfigurableProgramAnalysis cpa;
+  @SuppressWarnings("unused")
   private final LogManager logger;
+  @SuppressWarnings("unused")
   private final Configuration config;
+  @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
+  @SuppressWarnings("unused")
   private final Specification specification;
   private final CFA cfa;
 
@@ -70,12 +77,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private Set<CFunctionType> threadStartRoutines;
 
   /** A map of thread IDs to functions executed by the thread. */
+  @SuppressWarnings("unused")
   private Map<Integer, Set<CFunctionType>> threadIdFunctions;
 
   /** A map of thread IDs to CFANodes the threads are currently in. */
+  @SuppressWarnings("unused")
   private Map<Integer, CFANode> threadNodes;
 
   /** The set of pthread_mutex_t objects in the program. */
+  @SuppressWarnings("unused")
   private Set<CIdExpression> mutexObjects;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
@@ -303,6 +313,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO remove this function, the name is misleading.
   //  simply take the first SCC and comment that its ok because Trajans algorithm computes a reverse
   //  topological sort as a byproduct, no need to have a function for this.
+  @SuppressWarnings("unused")
   private ImmutableSet<Integer> computeTopologicallyMaximalSCC(
       ImmutableSet<ImmutableSet<Integer>> pSCCs) {
     Preconditions.checkNotNull(pSCCs);
@@ -320,6 +331,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *
    * @return a set of sets of thread ids that form an SCC
    */
+  @SuppressWarnings("unused")
   private ImmutableSet<ImmutableSet<Integer>> computeSCCs(ConflictGraph pConflictGraph) {
     Preconditions.checkNotNull(pConflictGraph);
 
