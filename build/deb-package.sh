@@ -40,15 +40,6 @@ mkdir -p "$TARGET"
 
 export CPACHECKER VERSION
 
-if [[ -z $DEBFULLNAME ]]; then
-  echo "Please define environment variable DEBFULLNAME with your name you want to use for the Debian package."
-  exit 1
-fi
-if [[ -z $DEBEMAIL ]]; then
-  echo "Please define environment variable DEBEMAIL with your name you want to use for the Debian package."
-  exit 1
-fi
-
 TEMP_DEB="$(mktemp -d)"
 BUILD_DIR="$TEMP_DEB/build"
 mkdir "$BUILD_DIR"
@@ -76,5 +67,3 @@ podman run --rm -w "$BUILD_DIR" -v "$TEMP_DEB:$TEMP_DEB:rw" -v "$ARCHIVE:/$CPACH
 cp -a "$BUILD_DIR"/debian/changelog "$(dirname "$0")/debian"
 cp -a "$TEMP_DEB"/*.* "$TARGET/"
 rm -rf "$TEMP_DEB"
-
-debsign -k "$DEBKEY" "$TARGET/cpachecker_$VERSION-"*.changes
