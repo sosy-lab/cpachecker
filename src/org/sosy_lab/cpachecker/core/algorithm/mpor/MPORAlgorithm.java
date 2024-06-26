@@ -23,6 +23,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -119,7 +120,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     specification = pSpecification;
     cfa = pCfa;
 
-    // TODO check for C program
+    checkForCProgram(cfa);
     checkForParallelProgram(cfa);
     // TODO performance stuff:
     //  merge functions that go through each Edge together into one
@@ -129,6 +130,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threadStartRoutines = getThreadStartRoutines(cfa);
     threadIdFunctions = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
     mutexObjects = getMutexObjects(cfa);
+  }
+
+  /** Checks whether the input language of the program is C and throws an exception if not. */
+  private void checkForCProgram(CFA pCfa) {
+    Preconditions.checkArgument(
+        pCfa.getMetadata().getInputLanguage().equals(Language.C), "MPOR expects C program");
   }
 
   /**
@@ -144,7 +151,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     Preconditions.checkArgument(
-        isParallel, "MPOR expects parallel program with at least one pthread_create call");
+        isParallel, "MPOR expects parallel C program with at least one pthread_create call");
   }
 
   private Set<CIdExpression> getPthreadObjects(CFA pCfa) {
