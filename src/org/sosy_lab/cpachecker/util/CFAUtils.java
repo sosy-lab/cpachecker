@@ -708,6 +708,19 @@ public class CFAUtils {
     return (CFunctionCallStatement) pCfaEdge.getRawAST().orElseThrow();
   }
 
+  public static FunctionEntryNode getFunctionEntryNodeFromCFunctionType(
+      CFA pCFA, CFunctionType pCFunctionType) {
+    checkNotNull(pCFunctionType);
+    for (CFANode cfaNode : pCFA.nodes()) {
+      if (cfaNode instanceof FunctionEntryNode
+          && cfaNode.getFunction().getType().equals(pCFunctionType)) {
+        return (FunctionEntryNode) cfaNode;
+      }
+    }
+    throw new IllegalArgumentException(
+        "the given CFA does not contain a FunctionEntryNode for the given pCFunctionType");
+  }
+
   /** Get all {@link FileLocation} objects that are attached to an edge or its AST nodes. */
   public static ImmutableSet<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
     ImmutableSet<FileLocation> result =

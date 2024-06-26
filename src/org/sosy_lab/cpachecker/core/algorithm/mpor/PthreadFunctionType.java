@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public enum PthreadFunction {
+public enum PthreadFunctionType {
   CANCEL("pthread_cancel"),
   CREATE("pthread_create"),
   DETACH("pthread_detach"),
@@ -27,17 +27,18 @@ public enum PthreadFunction {
 
   public final String name;
 
-  PthreadFunction(String pName) {
+  PthreadFunctionType(String pName) {
     this.name = pName;
   }
 
   /** Return true if the given CFAEdge is a call to the given pthread function */
-  public static boolean isEdgeCallToFunction(CFAEdge pCfaEdge, PthreadFunction pPthreadFunction) {
+  public static boolean isEdgeCallToFunctionType(
+      CFAEdge pCfaEdge, PthreadFunctionType pPthreadFunctionType) {
     return CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge)
         && CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
             .getFunctionCallExpression()
             .getFunctionNameExpression()
             .toASTString()
-            .equals(pPthreadFunction.name);
+            .equals(pPthreadFunctionType.name);
   }
 }
