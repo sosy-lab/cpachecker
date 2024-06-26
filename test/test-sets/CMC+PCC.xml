@@ -23,7 +23,7 @@ SPDX-License-Identifier: Apache-2.0
 <rundefinition name="Verification">
 		
     <tasks>
-	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=false</option>
 	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
@@ -37,7 +37,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
 <tasks>
-	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
@@ -49,7 +49,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 	
 <tasks>
-	<option name="-combinations-value10+pred-cmc"/>
+	<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
@@ -63,7 +63,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
  <tasks>
-	<option name="-combinations-value10+pred-cmc"/>
+	<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
@@ -108,7 +108,7 @@ SPDX-License-Identifier: Apache-2.0
 <rundefinition name="Verification Memory">
 		
     <tasks>
-	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
 	<option name="--option">pcc.proofgen.doPCC=false</option>
 	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
@@ -122,7 +122,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
 <tasks>
-	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
 	<option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
@@ -134,7 +134,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 	
 <tasks>
-	<option name="-combinations-value10+pred-cmc"/>
+	<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
 	<option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
@@ -148,7 +148,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
  <tasks>
-	<option name="-combinations-value10+pred-cmc"/>
+	<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
 	<option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
@@ -194,7 +194,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!-- ARG -->		
     <tasks>
-	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_arg.proof</option>
@@ -210,7 +210,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
 <tasks>
-	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_arg.proof</option>
@@ -224,7 +224,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 	
 <tasks>
-	<option name="-combinations-value10+pred-cmc"/>
+	<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_arg.proof</option>
@@ -241,7 +241,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
  <tasks>
-	<option name="-combinations-value10+pred-cmc"/>
+	<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
     <option name="--option">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_arg.proof</option>
@@ -290,7 +290,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!-- Reached set proof -->
     <tasks>
-		<option name="-combinations-valueCegar60+pred-cmc"/>
+		<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_reached.proof</option>
@@ -306,7 +306,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
     <tasks>
-	<option name="-combinations-valueCegar60+pred-cmc"/>
+	<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_reached.proof</option>
@@ -320,7 +320,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
     <tasks>
-		<option name="-combinations-value10+pred-cmc"/>
+		<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_reached.proof</option>
@@ -336,7 +336,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 	
     <tasks>
-		<option name="-combinations-value10+pred-cmc"/>
+		<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
     <option name="--option">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_reached.proof</option>
@@ -385,7 +385,7 @@ SPDX-License-Identifier: Apache-2.0
 <!-- partial reached set proof -->
  
      <tasks>
-		<option name="-combinations-valueCegar60+pred-cmc"/>
+		<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.partial.certificateType=ARG</option>
@@ -402,7 +402,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 	
     <tasks>
-		<option name="-combinations-valueCegar60+pred-cmc"/>
+		<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_partial.proof</option>
@@ -417,7 +417,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
     <tasks>
-		<option name="-combinations-value10+pred-cmc"/>
+		<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_partial.proof</option>
@@ -434,7 +434,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
     <tasks>
-		<option name="-combinations-value10+pred-cmc"/>
+		<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.partial.certificateType=ARG</option>
@@ -486,7 +486,7 @@ SPDX-License-Identifier: Apache-2.0
 <!-- CMC args proof -->
 	
     <tasks>
-		<option name="-combinations-valueCegar60+pred-cmc"/>
+		<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_cmcarg.proof</option>
 	<option name="--option">analysis.memorizeReachedAfterRestart=true</option>
@@ -504,7 +504,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
     <tasks>
-		<option name="-combinations-valueCegar60+pred-cmc"/>
+		<option name="--combinations-valueCegar60+pred-cmc"/>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_cmcarg.proof</option>
     <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
@@ -520,7 +520,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
     <tasks>
-		<option name="-combinations-value10+pred-cmc"/>
+		<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
 	<option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_cmcarg.proof</option>
     <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
@@ -538,7 +538,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
     <tasks>
-		<option name="-combinations-value10+pred-cmc"/>
+		<option name="--combinations-value10+pred-cmc"/>
 	<option name="--option">pcc.proofgen.doPCC=true</option>
     <option name="--option">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_cmcarg.proof</option>
     <option name="--option">analysis.memorizeReachedAfterRestart=true</option>

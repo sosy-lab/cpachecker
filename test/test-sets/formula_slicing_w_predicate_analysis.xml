@@ -31,7 +31,7 @@ SPDX-License-Identifier: Apache-2.0
         <option name="--option">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
         <option name="--option">cpa.predicate.ignoreIrrelevantFields=false</option>
         <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
-        <option name="-predicateAnalysis-bitprecise"/>
+        <option name="--predicateAnalysis-bitprecise"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants-bitprecise">
@@ -43,7 +43,7 @@ SPDX-License-Identifier: Apache-2.0
         <option name="--option">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
         <option name="--option">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
         <option name="--option">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
-        <option name="-predicateAnalysis-bitprecise"/>
+        <option name="--predicateAnalysis-bitprecise"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants-syntactic-bitprecise">
@@ -56,14 +56,14 @@ SPDX-License-Identifier: Apache-2.0
         <option name="--option">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
         <option name="--option">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
         <option name="--option">cpa.slicing.weakeningStrategy=syntactic</option>
-        <option name="-predicateAnalysis-bitprecise"/>
+        <option name="--predicateAnalysis-bitprecise"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis">
         <option name="--option">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
         <option name="--option">cpa.predicate.ignoreIrrelevantFields=false</option>
         <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
-        <option name="-predicateAnalysis"/>
+        <option name="--predicateAnalysis"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants">
@@ -73,7 +73,7 @@ SPDX-License-Identifier: Apache-2.0
         <option name="--option">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
         <option name="--option">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
         <option name="--option">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
-        <option name="-predicateAnalysis"/>
+        <option name="--predicateAnalysis"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants-syntactic">
@@ -84,6 +84,6 @@ SPDX-License-Identifier: Apache-2.0
         <option name="--option">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
         <option name="--option">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
         <option name="--option">cpa.slicing.weakeningStrategy=syntactic</option>
-        <option name="-predicateAnalysis"/>
+        <option name="--predicateAnalysis"/>
     </rundefinition>
 </benchmark>

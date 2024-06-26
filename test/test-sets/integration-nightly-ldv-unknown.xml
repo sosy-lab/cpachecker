@@ -21,7 +21,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">statistics.memory=true</option>
 
   <rundefinition>
-    <option name="-ldv-bam"/>
+    <option name="--ldv-bam"/>
   </rundefinition>
 
   <tasks>

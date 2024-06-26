@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">11000M</option>
 
   <rundefinition>
-    <option name="-valueAnalysis"/>
+    <option name="--valueAnalysis"/>
   </rundefinition>
 
   <columns>

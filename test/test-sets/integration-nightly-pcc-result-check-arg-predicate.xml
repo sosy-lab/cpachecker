@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">2000M</option>
 
   <rundefinition>
-    <option name="-predicateAnalysis-pcc-result-check-arg"/>
+    <option name="--predicateAnalysis-pcc-result-check-arg"/>
   </rundefinition>
 
   <tasks>

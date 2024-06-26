@@ -24,20 +24,20 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
 
     <rundefinition name="intervals">
-        <option name="-policy-intervals"/>
+        <option name="--policy-intervals"/>
     </rundefinition>
 
     <rundefinition name="intervals_w_slicing">
-        <option name="-policy-slicing"/>
+        <option name="--policy-slicing"/>
     </rundefinition>
 
     <rundefinition name="intervals_w_syntactic_slicing">
-        <option name="-policy-slicing"/>
+        <option name="--policy-slicing"/>
         <option name="--option">cpa.slicing.weakeningStrategy=syntactic</option>
     </rundefinition>
 
     <rundefinition name="slicing-k-induction">
-        <option name="-formula-slicing-k-induction"/>
+        <option name="--formula-slicing-k-induction"/>
         <option name="--option">solver.solver=z3</option>
         <option name="--option">invariantGeneration.async=false</option>
         <option name="--option">cpa.callstack.skipRecursion=true</option>
@@ -45,28 +45,28 @@ SPDX-License-Identifier: Apache-2.0
 
     <rundefinition name="k-induction-w-invariants">
         <!-- Proves 45 programs, 13 of which -formula-slicing can not prove -->
-        <option name="-bmc-induction" />
+        <option name="--bmc-induction" />
     </rundefinition>
 
     <rundefinition name="predicateAnalysis">
-        <option name="-predicateAnalysis"/>
+        <option name="--predicateAnalysis"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants">
-        <option name="-formula-slicing-w-predicate"/>
+        <option name="--formula-slicing-w-predicate"/>
     </rundefinition>
 
     <rundefinition name="just-slicing">
-        <option name="-formula-slicing"/>
+        <option name="--formula-slicing"/>
     </rundefinition>
 
     <rundefinition name="just-slicing-syntactic">
-        <option name="-formula-slicing"/>
+        <option name="--formula-slicing"/>
         <option name="--option">cpa.slicing.weakeningStrategy=syntactic</option>
     </rundefinition>
 
     <rundefinition name="just-slicing-destructive">
-        <option name="-formula-slicing"/>
+        <option name="--formula-slicing"/>
         <option name="--option">cpa.slicing.weakeningStrategy=destructive</option>
     </rundefinition>
 </benchmark>

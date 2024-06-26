@@ -21,36 +21,36 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <rundefinition name="ismc-no-fallback">
-    <option name="-bmc-interpolationSequence"/>
+    <option name="--bmc-interpolationSequence"/>
     <option name="--option">ismc.fallBack=false</option>
   </rundefinition>
 
   <rundefinition name="ismc">
-    <option name="-bmc-interpolationSequence"/>
+    <option name="--bmc-interpolationSequence"/>
   </rundefinition>
   
   <?ignore
   <rundefinition name="imc-no-fallback">
-    <option name="-bmc-interpolation"/>
+    <option name="--bmc-interpolation"/>
     <option name="--option">imc.fallBack=false</option>
   </rundefinition>
   ?>
 
   <?ignore
   <rundefinition name="imc">
-    <option name="-bmc-interpolation"/>
+    <option name="--bmc-interpolation"/>
   </rundefinition>
   ?>
 
   <?ignore
   <rundefinition name="bmc-incremental">
-    <option name="-bmc-incremental"/>
+    <option name="--bmc-incremental"/>
   </rundefinition>
   ?>
 
   <?ignore
   <rundefinition name="bmc-incremental-ABEl">
-    <option name="-bmc-incremental-ABEl"/>
+    <option name="--bmc-incremental-ABEl"/>
   </rundefinition>
   ?>
 
@@ -62,25 +62,25 @@ SPDX-License-Identifier: Apache-2.0
 
   <?ignore
   <rundefinition name="ki-kipdr">
-    <option name="-kInduction-kipdrInvariants"/>
+    <option name="--kInduction-kipdrInvariants"/>
   </rundefinition>
   ?>
 
   <?ignore
   <rundefinition name="ki-df">
-    <option name="-kInduction"></option>
+    <option name="--kInduction"></option>
   </rundefinition>
   ?>
 
   <?ignore
   <rundefinition name="predicate">
-    <option name="-predicateAnalysis"/>
+    <option name="--predicateAnalysis"/>
   </rundefinition>
   ?>
 
   <?ignore
   <rundefinition name="predicate-impact">
-    <option name="-predicateAnalysis-ImpactRefiner-ABEl"/>
+    <option name="--predicateAnalysis-ImpactRefiner-ABEl"/>
   </rundefinition>
   ?>
 

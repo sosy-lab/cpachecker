@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">2000M</option>
 
   <rundefinition>
-    <option name="-predicateAnalysis-Kojak-ABEl"/>
+    <option name="--predicateAnalysis-Kojak-ABEl"/>
   </rundefinition>
 
   <tasks>

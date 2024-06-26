@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">counterexample.export.exportFaults=true</option>
 
   <rundefinition name="errinv">
-    <option name="-predicateAnalysis-faultlocalization-errinv"/>
+    <option name="--predicateAnalysis-faultlocalization-errinv"/>
     <tasks name="fault_loc">
       <includesfile>../programs/fault_localization/fl.set</includesfile>
       <propertyfile>../config/properties/unreach-label.prp</propertyfile>

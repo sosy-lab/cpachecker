@@ -15,21 +15,21 @@
     <option name="--heap">2000M</option>
 
     <rundefinition>
-        <option name="-terminationAnalysis"/>
+        <option name="--terminationAnalysis"/>
     </rundefinition>
 
     <rundefinition>
-        <option name="-terminationToSafety"/>
+        <option name="--terminationToSafety"/>
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
     <rundefinition name="Combination">
-        <option name="-combinations-terminationCPA+lassoAnalysis"/>
+        <option name="--combinations-terminationCPA+lassoAnalysis"/>
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
     <rundefinition name="svcomp24">
-        <option name="-svcomp24--termination"/>
+        <option name="--svcomp24--termination"/>
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 

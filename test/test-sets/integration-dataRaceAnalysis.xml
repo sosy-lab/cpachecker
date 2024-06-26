@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">1500M</option>
   
   <rundefinition>
-    <option name="-dataRaceAnalysis"/>
+    <option name="--dataRaceAnalysis"/>
   </rundefinition>
 
   <tasks>

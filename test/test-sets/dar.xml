@@ -15,28 +15,28 @@
     <option name="--heap">12000M</option>
 
     <rundefinition name="dar">
-        <option name="-bmc-interpolationDualSequence"/>
+        <option name="--bmc-interpolationDualSequence"/>
         <option name="--option">dar.fallBack=false</option>
     </rundefinition>
 
     <rundefinition name="dar-without-global">
-        <option name="-bmc-interpolationDualSequence"/>
+        <option name="--bmc-interpolationDualSequence"/>
         <option name="--option">dar.fallBack=false</option>
         <option name="--option">replaceGlobalPhaseWithBMC=true</option>
     </rundefinition>
 
     <rundefinition name="bmc">
-        <option name="-bmc-incremental-ABEl"/>
+        <option name="--bmc-incremental-ABEl"/>
     </rundefinition>
 
     <rundefinition name="imc">
-        <option name="-bmc-interpolation"/>
+        <option name="--bmc-interpolation"/>
         <option name="--option">imc.fallBack=false</option>
         <option name="--option">imc.loopBoundIncrementStrategyForBMC=CONST</option>
     </rundefinition>
 
     <rundefinition name="ismc">
-        <option name="-bmc-interpolationSequence"/>
+        <option name="--bmc-interpolationSequence"/>
         <option name="--option">imc.fallBack=false</option>
     </rundefinition>
 

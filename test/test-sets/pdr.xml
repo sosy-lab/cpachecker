@@ -65,7 +65,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 -->
 
-  <option name="-pdr"/>
+  <option name="--pdr"/>
 
   <rundefinition name="standard">
     <option name="--option">dropLiteralsBeyondUnsatCoreAfterLifting=true</option>

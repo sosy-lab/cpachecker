@@ -41,17 +41,17 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/recursive-simple/f*.yml</include>
     <exclude>../programs/benchmarks/recursive-simple/fibo_25-1.yml</exclude>
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_15-2.yml</exclude>
-    <option name="-valueAnalysis-bam-rec"/>
+    <option name="--valueAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="interval">
     <include>../programs/benchmarks/recursive-simple/i*.yml</include>
-    <option name="-intervalAnalysis-bam-rec"/>
+    <option name="--intervalAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="valuePredicate">
     <include>../programs/benchmarks/recursive-simple/s*.yml</include>
-    <option name="-valueAnalysis-predicateAnalysis-bam-rec"/>
+    <option name="--valueAnalysis-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree">
@@ -59,39 +59,39 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/recursive/*01*.yml</exclude>
     <exclude>../programs/benchmarks/recursive/*02*.yml</exclude>
     <exclude>../programs/benchmarks/recursive/*03*.yml</exclude>
-    <option name="-predicateAnalysis-bam-rec"/>
+    <option name="--predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_nested">
     <include>../programs/benchmarks/recursive/*03*.yml</include>
     <option name="--option">cpa.predicate.refinement.strategy=tree_nested</option>
     <option name="--option">solver.solver=mathsat5</option>
-    <option name="-predicateAnalysis-bam-rec"/>
+    <option name="--predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_cpachecker">
     <include>../programs/benchmarks/recursive/*02*.yml</include>
     <option name="--option">cpa.predicate.refinement.strategy=tree_cpachecker</option>
     <option name="--option">solver.solver=mathsat5</option>
-    <option name="-predicateAnalysis-bam-rec"/>
+    <option name="--predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_wellscoped">
     <include>../programs/benchmarks/recursive/*01*.yml</include>
     <option name="--option">cpa.predicate.refinement.strategy=tree_wellscoped</option>
     <option name="--option">solver.solver=mathsat5</option>
-    <option name="-predicateAnalysis-bam-rec"/>
+    <option name="--predicateAnalysis-bam-rec"/>
   </tasks>
 
 
   <!-- parallel BAM -->
   <tasks name="VA-parallelBam-noCegar">
-    <option name="-valueAnalysis-parallelBam"/>
+    <option name="--valueAnalysis-parallelBam"/>
     <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
     <include>../programs/benchmarks/eca-rers2012/Problem03*.yml</include>
   </tasks>
   <tasks name="VA-parallelBam-Cegar">
-    <option name="-valueAnalysis-parallelBam-Cegar"/>
+    <option name="--valueAnalysis-parallelBam-Cegar"/>
     <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
     <include>../programs/benchmarks/eca-rers2012/Problem02*.yml</include>
   </tasks>
@@ -103,22 +103,22 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- BAM with predicate analysis -->
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <option name="--option">analysis.checkCounterexamples=true</option>
     <option name="--option">counterexample.checker=CBMC</option>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
@@ -131,14 +131,14 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <!-- exclude tasks from Forester set -->
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <option name="--option">analysis.checkCounterexamples=true</option>
     <option name="--option">counterexample.checker=CBMC</option>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
@@ -151,7 +151,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
@@ -169,7 +169,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="--skip-recursion"/>
     <option name="--option">analysis.checkCounterexamples=true</option>

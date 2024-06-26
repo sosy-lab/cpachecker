@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">500M</option>
 
   <rundefinition>
-    <option name="-ldv"/>
+    <option name="--ldv"/>
     <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
   </rundefinition>
 

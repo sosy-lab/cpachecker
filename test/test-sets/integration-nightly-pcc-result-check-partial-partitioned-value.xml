@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">2000M</option>
 
   <rundefinition>
-    <option name="-valueAnalysis-Cegar-pcc-result-check-partial-partitioned"/>
+    <option name="--valueAnalysis-Cegar-pcc-result-check-partial-partitioned"/>
   </rundefinition>
 
 

@@ -30,7 +30,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="basics">
-    <option name="-lockator-linux"/>
+    <option name="--lockator-linux"/>
     <option name="--option">cpa.usage.unsafedetector.ignoreEmptyLockset=false</option>
     <option name="--skip-recursion"/>
     <include>../programs/cpalockator/threads/*.c</include>

@@ -21,7 +21,7 @@ SPDX-License-Identifier: Apache-2.0
 <option name="--option">pcc.proofFile=arg.obj</option>
 
 <rundefinition name="PureReachDef">
-	<option name="-reachingdef-value"/>
+	<option name="--reachingdef-value"/>
 	<option name="--option">analysis.algorithm.proofCheck = true</option>
 <tasks>
 <option name="--option">pcc.proofgen.doPCC = true</option>
@@ -80,7 +80,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <?ignore
 <rundefinition name="ReachDef_ValueDF">
-	<option name="-reachingdef-value"/>
+	<option name="--reachingdef-value"/>
 	<option name="--option">cpa.value.merge=JOIN</option>
 	<option name="--option">analysis.traversal.order=BFS</option>
 	<option name="--option">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
@@ -168,7 +168,7 @@ SPDX-License-Identifier: Apache-2.0
 </rundefinition>
 
 <rundefinition name="ReachDef_ValueJOINSEP">
-	<option name="-reachingdef-value"/>
+	<option name="--reachingdef-value"/>
 	<option name="--option">analysis.traversal.order=BFS</option>
 	<option name="--option">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
 		<tasks>
@@ -255,7 +255,7 @@ SPDX-License-Identifier: Apache-2.0
 </rundefinition>
 
 <rundefinition name="ReachDef_ValueSEPJOIN">
-	<option name="-reachingdef-value"/>
+	<option name="--reachingdef-value"/>
 	<option name="--option">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.reachdef.ReachingDefCPA, cpa.value.ValueAnalysisCPA, cpa.conditions.global.GlobalConditionsCPA</option>
 	<option name="--option">cpa.value.merge=JOIN</option>
 	<option name="--option">cpa.reachdef.merge=SEP</option>
@@ -345,7 +345,7 @@ SPDX-License-Identifier: Apache-2.0
 </rundefinition>
 
 <rundefinition name="ReachDef_ValueMC">
-	<option name="-reachingdef-value"/>
+	<option name="--reachingdef-value"/>
 	<option name="--option">cpa.reachdef.merge=SEP</option>
 	<option name="--option">analysis.traversal.order=DFS</option>
 	<option name="--option">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
@@ -433,7 +433,7 @@ SPDX-License-Identifier: Apache-2.0
 </rundefinition>
 
 <rundefinition name="ReachDefDF">
-	<option name="-reachingdefinition"/>
+	<option name="--reachingdefinition"/>
 	<option name="--option">analysis.traversal.order=BFS</option>
 		<tasks>
 <option name="--option">pcc.proofgen.doPCC = true</option>
@@ -510,7 +510,7 @@ SPDX-License-Identifier: Apache-2.0
 </rundefinition>
 
 <rundefinition name="ValueDF">
-	<option name="-valueAnalysis-pcc-trac-all"/>
+	<option name="--valueAnalysis-pcc-trac-all"/>
 	<option name="--option">analysis.traversal.order=BFS</option>
 	<option name="--option">cpa.value.merge=JOIN</option>
 		<tasks>
@@ -588,7 +588,7 @@ SPDX-License-Identifier: Apache-2.0
 </rundefinition>
 
 <rundefinition name="StructureTest">
-	<option name="-reachingdef-value"/>
+	<option name="--reachingdef-value"/>
 	<option name="--option">cpa.value.merge=JOIN</option>
 	<option name="--option">analysis.traversal.order=BFS</option>
 		<tasks>
@@ -626,7 +626,7 @@ SPDX-License-Identifier: Apache-2.0
 </rundefinition>
 
 <rundefinition name="ReachDefDFCompare">
-	<option name="-reachingdefinition"/>
+	<option name="--reachingdefinition"/>
 	<option name="--option">analysis.traversal.order=BFS</option>
 		<tasks>
 <option name="--option">pcc.proofgen.doPCC = true</option>

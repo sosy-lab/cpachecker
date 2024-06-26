@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">1000M</option>
 
   <rundefinition>
-    <option name="-valueAnalysis-java-NoCegar-RTT"/>
+    <option name="--valueAnalysis-java-NoCegar-RTT"/>
   </rundefinition>
 
   <tasks>

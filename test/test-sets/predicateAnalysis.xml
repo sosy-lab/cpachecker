@@ -16,11 +16,11 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">10000M</option>
 
   <rundefinition name="ABEl">
-    <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
+    <option name="--predicateAnalysis-PredAbsRefiner-ABEl"/>
   </rundefinition>
 
   <rundefinition name="ABElf">
-    <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
+    <option name="--predicateAnalysis-PredAbsRefiner-ABElf"/>
   </rundefinition>
 
   <tasks>

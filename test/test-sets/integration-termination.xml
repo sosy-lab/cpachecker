@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">2000M</option>
 
   <rundefinition>
-    <option name="-terminationAnalysis"/>
+    <option name="--terminationAnalysis"/>
   </rundefinition>
 
   <tasks>

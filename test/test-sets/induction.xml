@@ -48,7 +48,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <rundefinition>
-    <option name="-kInduction"/>
+    <option name="--kInduction"/>
   </rundefinition>
 
   <columns>

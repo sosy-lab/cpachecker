@@ -30,7 +30,7 @@ SPDX-License-Identifier: Apache-2.0
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <option name="-lpi-svcomp16"/>
+        <option name="--lpi-svcomp16"/>
         <option name="--heap">10000m</option>
         <option name="--disable-java-assertions"/>
     </rundefinition>
@@ -40,13 +40,13 @@ SPDX-License-Identifier: Apache-2.0
             <includesfile>../programs/benchmarks/LoopsFrama.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <option name="-lpi-svcomp16"/>
+        <option name="--lpi-svcomp16"/>
         <option name="--heap">10000m</option>
         <option name="--disable-java-assertions"/>
     </rundefinition>
 
     <rundefinition name="lpi-loops-issues">
-        <option name="-policy-k-induction"/>
+        <option name="--policy-k-induction"/>
         <option name="--heap">10000m</option>
         <option name="--disable-java-assertions"/>
         <tasks name="loops">
@@ -60,7 +60,7 @@ SPDX-License-Identifier: Apache-2.0
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <option name="-policy-refinement"/>
+        <option name="--policy-refinement"/>
         <option name="--heap">10000m</option>
         <option name="--disable-java-assertions"/>
     </rundefinition>
@@ -71,7 +71,7 @@ SPDX-License-Identifier: Apache-2.0
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <option name="-policy-refinement"/>
+        <option name="--policy-refinement"/>
 
         <option name="--option">cpa.stator.policy.usePreviousBounds=true</option>
         <option name="--option">cpa.stator.policy.unrollingRefinementThreshold=2</option>
@@ -88,7 +88,7 @@ SPDX-License-Identifier: Apache-2.0
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <option name="-policy-refinement"/>
+        <option name="--policy-refinement"/>
 
         <option name="--option">cpa.stator.policy.joinOnMerge=false</option>
 
@@ -106,7 +106,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="lpi-control-flow">
-        <option name="-policy-k-induction"/>
+        <option name="--policy-k-induction"/>
         <tasks name="ECA">
             <includesfile>../programs/benchmarks/ECA.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -134,11 +134,11 @@ SPDX-License-Identifier: Apache-2.0
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <option name="-bmc-induction" />
+        <option name="--bmc-induction" />
     </rundefinition>
 
     <rundefinition name="lpi-device-drivers">
-        <option name="-lpi-svcomp16"/>
+        <option name="--lpi-svcomp16"/>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -147,7 +147,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="lpi-device-drivers-no-induction">
-        <option name="-policy-intervals"/>
+        <option name="--policy-intervals"/>
         <option name="--option">cpa.stator.policy.joinOnMerge=false</option>
         <option name="--option">cfa.findErrorNodes=true</option>
         <option name="--option">cpa.location.skipNoTargetEdges=true</option>
@@ -162,7 +162,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="lpi-device-drivers-value">
-        <option name="-policy-value"/>
+        <option name="--policy-value"/>
         <option name="--disable-java-assertions"/>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
@@ -172,7 +172,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="device-drivers-value">
-        <option name="-valueAnalysis"/>
+        <option name="--valueAnalysis"/>
         <option name="--disable-java-assertions"/>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
@@ -182,7 +182,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="lpi-productlines-value">
-        <option name="-policy-value"/>
+        <option name="--policy-value"/>
         <option name="--disable-java-assertions"/>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
@@ -192,7 +192,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="productlines-value">
-        <option name="-valueAnalysis"/>
+        <option name="--valueAnalysis"/>
         <option name="--disable-java-assertions"/>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
@@ -202,7 +202,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="lpi-device-drivers-intervals">
-        <option name="-policy-intervals"/>
+        <option name="--policy-intervals"/>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -220,7 +220,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <rundefinition name="lpi-productlines">
         <?ignore <option name="--option">cpa.stator.policy.unguidedTemplateRefinement=false</option> ?>
-        <option name="-policy-k-induction"/>
+        <option name="--policy-k-induction"/>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -228,7 +228,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="lpi-svcomp-all-control-flow">
-        <option name="-policy-k-induction"/>
+        <option name="--policy-k-induction"/>
         <option name="--heap">10000m</option>
         <option name="--disable-java-assertions"/>
         <tasks name="ECA">

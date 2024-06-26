@@ -16,53 +16,53 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">10000M</option>
 
   <rundefinition name="bmc">
-    <option name="-bmc-incremental"/>
+    <option name="--bmc-incremental"/>
   </rundefinition>
 
   <rundefinition name="bmc-memfunc-sound">
-    <option name="-bmc-incremental"/>
+    <option name="--bmc-incremental"/>
     <option name="--option">cpa.predicate.enableMemoryAssignmentFunctions=true</option>
   </rundefinition>
 
   <rundefinition name="bmc-memfunc-unsound">
-    <option name="-bmc-incremental"/>
+    <option name="--bmc-incremental"/>
     <option name="--option">cpa.predicate.enableMemoryAssignmentFunctions=true</option>
     <option name="--option">cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions=true</option>
   </rundefinition>
 
   <rundefinition name="bmc-byteheap">
-    <option name="-bmc-incremental"/>
+    <option name="--bmc-incremental"/>
     <option name="--option">cpa.predicate.useByteArrayForHeap=true</option>
   </rundefinition>
 
   <rundefinition name="bmc-byteheap-memfunc-sound">
-    <option name="-bmc-incremental"/>
+    <option name="--bmc-incremental"/>
     <option name="--option">cpa.predicate.enableMemoryAssignmentFunctions=true</option>
     <option name="--option">cpa.predicate.useByteArrayForHeap=true</option>
   </rundefinition>
 
    <rundefinition name="kInduction">
-    <option name="-kInduction"/>
+    <option name="--kInduction"/>
   </rundefinition>
 
   <rundefinition name="kInduction-memfunc-sound">
-    <option name="-kInduction"/>
+    <option name="--kInduction"/>
     <option name="--option">cpa.predicate.enableMemoryAssignmentFunctions=true</option>
   </rundefinition>
 
   <rundefinition name="kInduction-memfunc-unsound">
-    <option name="-kInduction-incremental"/>
+    <option name="--kInduction-incremental"/>
     <option name="--option">cpa.predicate.enableMemoryAssignmentFunctions=true</option>
     <option name="--option">cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions=true</option>
   </rundefinition>
 
   <rundefinition name="kInduction-byteheap">
-    <option name="-bmc-incremental"/>
+    <option name="--bmc-incremental"/>
     <option name="--option">cpa.predicate.useByteArrayForHeap=true</option>
   </rundefinition>
 
   <rundefinition name="kInduction-byteheap-memfunc-sound">
-    <option name="-bmc-incremental"/>
+    <option name="--bmc-incremental"/>
     <option name="--option">cpa.predicate.enableMemoryAssignmentFunctions=true</option>
     <option name="--option">cpa.predicate.useByteArrayForHeap=true</option>
   </rundefinition>

@@ -37,11 +37,11 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <rundefinition name="bam">
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
   </rundefinition>
 
   <rundefinition name="bam-auxiliaryPredicates">
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <option name="--option">cpa.predicate.bam.predicateComputer=AUXILIARY</option>
   </rundefinition>
 

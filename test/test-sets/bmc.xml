@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--stack" reason="CVC4 needs a larger stack">50M</option>
   <option name="--no-output"/>
   <option name="--benchmark"/>
-  <option name="-bmc"/>
+  <option name="--bmc"/>
   <option name="--option">cpa.predicate.useArraysForHeap=false</option>
 
   <!-- SV-Comp files assume that malloc always succeeds -->

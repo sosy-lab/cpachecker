@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">1500M</option>
 
   <rundefinition>
-    <option name="-octagonAnalysis-refiner"/>
+    <option name="--octagonAnalysis-refiner"/>
   </rundefinition>
 
   <!-- Integer Tests -->

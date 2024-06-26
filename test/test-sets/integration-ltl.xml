@@ -15,7 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="--no-output"/>
   <option name="--heap">1000M</option>
-  <option name="-ltl"/>
+  <option name="--ltl"/>
 
   <rundefinition/>
 

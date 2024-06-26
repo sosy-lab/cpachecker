@@ -15,7 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="--no-output"/>
   <option name="--heap">150M</option>
-  <option name="-symbolicExecution-java"/>
+  <option name="--symbolicExecution-java"/>
 
   <rundefinition/>
 

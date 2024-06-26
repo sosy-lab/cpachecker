@@ -19,14 +19,14 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="cpalien">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
-    <option name="-CPAlien"/>
+    <option name="--CPAlien"/>
     <option name="--preprocess" />
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
-    <option name="-svcomp14"/>
+    <option name="--svcomp14"/>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <rundefinition/>

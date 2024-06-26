@@ -124,48 +124,48 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- List of run definitions -->
   <rundefinition name="MathSAT5-heaparray">
-    <option name="-predicateAnalysis-heaparray"/>
+    <option name="--predicateAnalysis-heaparray"/>
     <option name="--option">solver.solver=MATHSAT5</option>
   </rundefinition>
   <rundefinition name="MathSAT5-uf">
-    <option name="-predicateAnalysis"/>
+    <option name="--predicateAnalysis"/>
     <option name="--option">solver.solver=MATHSAT5</option>
   </rundefinition>
   <rundefinition name="PRINCESS-heaparray">
-    <option name="-predicateAnalysis-heaparray"/>
+    <option name="--predicateAnalysis-heaparray"/>
     <option name="--option">solver.solver=PRINCESS</option>
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
   </rundefinition>
   <rundefinition name="PRINCESS-heaparray-quantifiers">
-    <option name="-predicateAnalysis-heaparray"/>
+    <option name="--predicateAnalysis-heaparray"/>
     <option name="--option">solver.solver=PRINCESS</option>
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.useQuantifiersOnArrays=true</option>
   </rundefinition>
   <rundefinition name="PRINCESS-uf">
-    <option name="-predicateAnalysis"/>
+    <option name="--predicateAnalysis"/>
     <option name="--option">solver.solver=PRINCESS</option>
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
   </rundefinition>
   <rundefinition name="SMTInterpol-heaparray">
-    <option name="-predicateAnalysis-heaparray"/>
+    <option name="--predicateAnalysis-heaparray"/>
     <option name="--option">solver.solver=SMTINTERPOL</option>
   </rundefinition>
   <rundefinition name="SMTInterpol-uf">
-    <option name="-predicateAnalysis"/>
+    <option name="--predicateAnalysis"/>
     <option name="--option">solver.solver=SMTINTERPOL</option>
   </rundefinition>
   <rundefinition name="Z3-heaparray">
-    <option name="-predicateAnalysis-heaparray"/>
+    <option name="--predicateAnalysis-heaparray"/>
     <option name="--option">solver.solver=Z3</option>
   </rundefinition>
   <rundefinition name="Z3-heaparray-quantifiers">
-    <option name="-predicateAnalysis-heaparray"/>
+    <option name="--predicateAnalysis-heaparray"/>
     <option name="--option">cpa.predicate.useQuantifiersOnArrays=true</option>
     <option name="--option">solver.solver=Z3</option>
   </rundefinition>
   <rundefinition name="Z3-uf">
-    <option name="-predicateAnalysis"/>
+    <option name="--predicateAnalysis"/>
     <option name="--option">solver.solver=Z3</option>
   </rundefinition>
 
