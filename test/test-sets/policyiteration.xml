@@ -151,9 +151,9 @@ SPDX-License-Identifier: Apache-2.0
         <option name="-setprop">cpa.stator.policy.joinOnMerge=false</option>
         <option name="-setprop">cfa.findErrorNodes=true</option>
         <option name="-setprop">cpa.location.skipNoTargetEdges=true</option>
-        <!--<option name="-setprop">cpa.loopbound.loopIterationsBeforeAbstraction=2</option>-->
-        <!--<option name="-setprop">cpa.loopbound.loopIterationsBeforeAbstraction=2</option>-->
-        <!--<option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=true</option>-->
+        <?ignore <option name="-setprop">cpa.loopbound.loopIterationsBeforeAbstraction=2</option> ?>
+        <?ignore <option name="-setprop">cpa.loopbound.loopIterationsBeforeAbstraction=2</option> ?>
+        <?ignore <option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=true</option> ?>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -219,7 +219,7 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
 
     <rundefinition name="lpi-productlines">
-        <!--<option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=false</option>-->
+        <?ignore <option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=false</option> ?>
         <option name="-policy-k-induction"/>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>

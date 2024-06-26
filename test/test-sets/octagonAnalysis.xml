@@ -95,7 +95,7 @@ SPDX-License-Identifier: Apache-2.0
  </rundefinition>
 
 <!-- Analyses which were compared to the octagon ones in Bachelor thesis of Thomas Stieglmaier -->
-<!--
+<?ignore
  <rundefinition name="valueAnalysis-NoCegar">
     <option name="-heap">29000M</option>
     <option name="-valueAnalysis-NoCegar"/>
@@ -111,5 +111,5 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-predicateAnalysis"/>
     <option name="-setprop">analysis.checkCounterexamples=false</option>
  </rundefinition>
--->
+?>
 </benchmark>

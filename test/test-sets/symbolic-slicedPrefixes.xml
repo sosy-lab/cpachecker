@@ -50,13 +50,15 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../../../svcomp15/Simple.set</includesfile>
   </tasks>
 
-  <!--<rundefinition name="none">
+  <?ignore
+  <rundefinition name="none">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
-  </rundefinition>-->
+  </rundefinition>
+  ?>
   <rundefinition name="random">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
@@ -71,13 +73,15 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_SHORT</option>
   </rundefinition>
-  <!--<rundefinition name="length-long">
+  <?ignore
+  <rundefinition name="length-long">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_LONG</option>
-  </rundefinition>-->
+  </rundefinition>
+  ?>
   <rundefinition name="domain-good-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
@@ -92,20 +96,24 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_GOOD_LONG</option>
   </rundefinition>
-  <!--<rundefinition name="domain-bad-short">
+  <?ignore
+  <rundefinition name="domain-bad-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_BAD_SHORT</option>
-  </rundefinition>-->
-  <!--<rundefinition name="domain-bad-long">
+  </rundefinition>
+  ?>
+  <?ignore
+  <rundefinition name="domain-bad-long">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_BAD_LONG</option>
-  </rundefinition>-->
+  </rundefinition>
+  ?>
   <rundefinition name="domain-good-width-narrow-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
@@ -127,7 +135,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_PRECISE_GOOD_LONG</option>
   </rundefinition>
-  <!--<rundefinition name="domain-precise-bad-short">
+  <?ignore
+  <rundefinition name="domain-precise-bad-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
@@ -140,7 +149,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_PRECISE_BAD_LONG</option>
-  </rundefinition>-->
+  </rundefinition>
+  ?>
   <rundefinition name="pivot-shallow-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
@@ -169,7 +179,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=PIVOT_DEEP_LONG</option>
   </rundefinition>
-  <!--<rundefinition name="width-narrow-short">
+  <?ignore
+  <rundefinition name="width-narrow-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
@@ -203,7 +214,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=WIDTH_NARROW_NO_LOOP_SHORT</option>
-  </rundefinition>-->
+  </rundefinition>
+  ?>
   <rundefinition name="assignments-fewest-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
@@ -218,20 +230,24 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSIGNMENTS_FEWEST_LONG</option>
   </rundefinition>
-  <!--<rundefinition name="assignments-most-short">
+  <?ignore
+  <rundefinition name="assignments-most-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSIGNMENTS_MOST_SHORT</option>
-  </rundefinition>-->
-  <!--<rundefinition name="assignments-most-long">
+  </rundefinition>
+  ?>
+  <?ignore
+  <rundefinition name="assignments-most-long">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSIGNMENTS_MOST_LONG</option>
-  </rundefinition>-->
+  </rundefinition>
+  ?>
   <rundefinition name="assumptions-fewest-short">
     <option name="-symbolicExecution-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>

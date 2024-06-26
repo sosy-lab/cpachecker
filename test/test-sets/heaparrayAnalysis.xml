@@ -25,7 +25,8 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <!-- Begin customized array set—needs the files being available in a special
        location -->
-  <!--<tasks name="ArraysReach10">
+  <?ignore
+  <tasks name="ArraysReach10">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach10.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
@@ -82,7 +83,8 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=250</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=250</option>
-  </tasks>-->
+  </tasks>
+  ?>
   <!-- End customized array set -->
   <!-- Begin custom additional files—needs the files being available in a
        special location -->

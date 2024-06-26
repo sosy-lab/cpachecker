@@ -78,7 +78,8 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 </rundefinition>
 
-<!--<rundefinition name="ReachDef_ValueDF">
+<?ignore
+<rundefinition name="ReachDef_ValueDF">
 	<option name="-reachingdef-value"/>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
@@ -715,7 +716,8 @@ SPDX-License-Identifier: Apache-2.0
 <option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_15_true.c</include>
 </tasks>
-</rundefinition>-->
+</rundefinition>
+?>
 
 <columns>
 <column title="Total time">Total time for CPAchecker</column>
