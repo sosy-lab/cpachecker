@@ -31,6 +31,12 @@ if [[ ! -f $ARCHIVE ]]; then
   echo "Archive '$ARCHIVE' does not exist."
   exit 1
 fi
+TARGET="${3:-}"
+if [[ -z $ARCHIVE ]]; then
+  echo "Please provide target directory as third parameter."
+  exit 1
+fi
+mkdir -p "$TARGET"
 
 export CPACHECKER VERSION
 
@@ -68,7 +74,7 @@ podman run --rm -w "$BUILD_DIR" -v "$TEMP_DEB:$TEMP_DEB:rw" -v "$ARCHIVE:/$CPACH
 '
 
 cp -a "$BUILD_DIR"/debian/changelog "$(dirname "$0")/debian"
-cp -a "$TEMP_DEB"/*.* .
+cp -a "$TEMP_DEB"/*.* "$TARGET/"
 rm -rf "$TEMP_DEB"
 
-debsign -k "$DEBKEY" cpachecker_$VERSION-*.changes
+debsign -k "$DEBKEY" "$TARGET/cpachecker_$VERSION-"*.changes
