@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -82,15 +83,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private Set<CFunctionType> threadStartRoutines;
 
   /** A map of thread IDs to functions executed by the thread. */
-  @SuppressWarnings({"unused", "URF_UNREAD_FIELD"})
+  @SuppressWarnings("unused")
+  @SuppressFBWarnings("URF_UNREAD_FIELD")
   private Map<Integer, Set<CFunctionType>> threadIdFunctions;
 
   /** A map of thread IDs to CFANodes the threads are currently in. */
-  @SuppressWarnings({"unused", "UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
+  @SuppressWarnings("unused")
+  @SuppressFBWarnings("UUF_UNUSED_FIELD, URF_UNREAD_FIELD")
   private Map<Integer, CFANode> threadNodes;
 
   /** The set of pthread_mutex_t objects in the program. */
-  @SuppressWarnings({"unused", "URF_UNREAD_FIELD"})
+  @SuppressWarnings("unused")
+  @SuppressFBWarnings("URF_UNREAD_FIELD")
   private Set<CIdExpression> mutexObjects;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
