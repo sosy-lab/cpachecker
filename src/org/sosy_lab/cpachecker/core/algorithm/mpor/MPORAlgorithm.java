@@ -84,18 +84,23 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** A map of thread IDs to functions executed by the thread. */
   @SuppressWarnings("unused")
-  @SuppressFBWarnings("URF_UNREAD_FIELD")
+  @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Map<Integer, Set<CFunctionType>> threadIdFunctions;
 
   /** A map of thread IDs to CFANodes the threads are currently in. */
   @SuppressWarnings("unused")
-  @SuppressFBWarnings(value = {"UUF_UNUSED_FIELD, URF_UNREAD_FIELD"})
+  @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Map<Integer, CFANode> threadNodes;
 
   /** The set of pthread_mutex_t objects in the program. */
   @SuppressWarnings("unused")
-  @SuppressFBWarnings("URF_UNREAD_FIELD")
+  @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Set<CIdExpression> mutexObjects;
+
+  /** The set of pthread_t objects in the program, i.e. threads */
+  @SuppressWarnings("unused")
+  @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
+  private Set<CIdExpression> pthreadObjects;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
@@ -115,8 +120,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     cfa = pCfa;
 
     // TODO check for C program
-    cfa.getMetadata().getInputLanguage();
     checkForParallelProgram(cfa);
+    // TODO performance stuff:
+    //  merge functions that go through each Edge together into one
+    //  merge functions that go through each Node together into one
+    pthreadObjects = getPthreadObjects(cfa);
     functionCallHierarchy = getFunctionCallHierarchy(cfa);
     threadStartRoutines = getThreadStartRoutines(cfa);
     threadIdFunctions = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
@@ -137,6 +145,29 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
     Preconditions.checkArgument(
         isParallel, "MPOR expects parallel program with at least one pthread_create call");
+  }
+
+  private Set<CIdExpression> getPthreadObjects(CFA pCfa) {
+    Set<CIdExpression> pthreads = new HashSet<>();
+    // search the CFA for pthread_create calls
+    for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
+      if (PthreadFunction.isEdgeCallToFunction(cfaEdge, PthreadFunction.CREATE)) {
+        // TODO is there a way to shorten all these casts ... ?
+        // TODO use loop structure to handle pthread_create calls inside loops
+        //  (function is called numerous times)
+        AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
+        CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
+        // TODO find out what happens if we access an array of pthread_t objects
+        //  e.g. array[0], what will the CIdExpression be, the pthread_t object or the array?
+        // extract the first parameter of pthread_create, i.e. the pthread_t object
+        CUnaryExpression cUnaryExpression =
+            (CUnaryExpression)
+                cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions().get(0);
+        CIdExpression cIdExpression = (CIdExpression) cUnaryExpression.getOperand();
+        pthreads.add(cIdExpression);
+      }
+    }
+    return pthreads;
   }
 
   /**
@@ -231,7 +262,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO what about pthread_mutex_trylock?
   private Set<CIdExpression> getMutexObjects(CFA pCfa) {
     Set<CIdExpression> mutexes = new HashSet<>();
-    for (CFAEdge cfaEdge : cfa.edges()) {
+    for (CFAEdge cfaEdge : pCfa.edges()) {
       if (PthreadFunction.isEdgeCallToFunction(cfaEdge, PthreadFunction.MUTEX_LOCK)) {
         AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
         CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
