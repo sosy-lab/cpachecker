@@ -10,6 +10,10 @@ SPDX-License-Identifier: Apache-2.0
 
 Changes since CPAchecker 2.3.1
 ------------------------------
+* Debian/Ubuntu package and APT repository  
+  CPAchecker is now available as an easy-to-install `.deb` package for Debian/Ubuntu
+  via the [SoSy-Lab APT repository](https://apt.sosy-lab.org).
+  Follow the link for usage instructions.
 * Container images on Docker Hub  
   The official container images of CPAchecker are now also available
   as [`sosylab/cpachecker` on Docker Hub](https://hub.docker.com/r/sosylab/cpachecker).
