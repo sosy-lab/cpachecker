@@ -333,7 +333,7 @@ class CmdLineArguments {
       String replacementSuggestions =
           Collections3.zipMapEntries(
                   oldStyleArguments,
-                  (oldArg, newArg) -> String.format("\n- replace '%s' with '%s'", oldArg, newArg))
+                  (oldArg, newArg) -> String.format("%n- replace '%s' with '%s'", oldArg, newArg))
               .collect(Collectors.joining());
 
       if (hasNewStyleArguments) {
