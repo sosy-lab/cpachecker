@@ -69,16 +69,12 @@ public class ConflictGraph {
     return graph.get(pThreadId);
   }
 
-  /**
-   * @return set of nodes with thread IDs, e.g. {0, 1, 3}
-   */
+  /** Returns set of nodes with thread IDs, e.g. {0, 1, 3} */
   public Set<Integer> getNodes() {
     return graph.keySet();
   }
 
-  /**
-   * @return tuples with nodes and outgoing edges, e.g. {(0,{1,2}), (1,{0,3})}
-   */
+  /** Returns tuples with nodes and outgoing edges, e.g. {(0,{1,2}), (1,{0,3})} */
   public Map<Integer, Set<Integer>> getEdges() {
     return graph;
   }

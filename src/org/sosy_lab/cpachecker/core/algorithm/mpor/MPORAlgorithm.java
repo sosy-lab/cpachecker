@@ -60,14 +60,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @SuppressWarnings("unused")
   private final ConfigurableProgramAnalysis cpa;
+
   @SuppressWarnings("unused")
   private final LogManager logger;
+
   @SuppressWarnings("unused")
   private final Configuration config;
+
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
+
   @SuppressWarnings("unused")
   private final Specification specification;
+
   private final CFA cfa;
 
   /** A map of functions to sets of functions that are called inside of them. */
