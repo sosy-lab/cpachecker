@@ -14,15 +14,15 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
 
-  <option name="-noout"/>
-  <option name="-heap">1500M</option>
+  <option name="--no-output"/>
+  <option name="--heap">1500M</option>
 
   <rundefinition>
   </rundefinition>
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/array.yml</include>
     <include>../programs/policyiteration/classcast_fail.yml</include>
@@ -48,8 +48,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
-    <option name="-setprop">cpa.lpi.maxExpressionSize=2</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.lpi.maxExpressionSize=2</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/octagons/octagons_loop-1.yml</include>
     <include>../programs/policyiteration/octagons/octagons_loop-2.yml</include>
@@ -57,86 +57,86 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
-    <option name="-setprop">cpa.lpi.maxExpressionSize=2</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.lpi.maxExpressionSize=2</option>
     <!-- Use explicit value analysis to track boolean variables. -->
-    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.loopbound.LoopBoundCPA,cpa.value.ValueAnalysisCPA,cpa.policyiteration.PolicyCPA</option>
-    <option name="-setprop">cpa.loopbound.trackStack=true</option>
-    <option name="-setprop">precision.trackIntAddVariables=false</option>
-    <option name="-setprop">precision.trackVariablesBesidesEqAddBool=false</option>
+    <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.loopbound.LoopBoundCPA,cpa.value.ValueAnalysisCPA,cpa.policyiteration.PolicyCPA</option>
+    <option name="--option">cpa.loopbound.trackStack=true</option>
+    <option name="--option">precision.trackIntAddVariables=false</option>
+    <option name="--option">precision.trackVariablesBesidesEqAddBool=false</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/boolean.yml</include>
   </tasks>
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
-    <option name="-setprop">cpa.lpi.allowedCoefficients=1</option>
-    <option name="-setprop">cpa.lpi.abstractionLocations=all</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.lpi.allowedCoefficients=1</option>
+    <option name="--option">cpa.lpi.abstractionLocations=all</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/formula_fail.yml</include>
   </tasks>
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
-    <option name="-setprop">cpa.loopbound.loopIterationsBeforeAbstraction=2</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.loopbound.loopIterationsBeforeAbstraction=2</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/unrolling.yml</include>
   </tasks>
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
-    <option name="-setprop">cpa.lpi.maxExpressionSize=2</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.lpi.maxExpressionSize=2</option>
     <!-- Enabling two options below make non-prefixing variation of val.det. work. -->
-    <option name="-setprop">cpa.lpi.shortCircuitSyntactic=false</option>
-    <option name="-setprop">cpa.lpi.checkPolicyInitialCondition=false</option>
+    <option name="--option">cpa.lpi.shortCircuitSyntactic=false</option>
+    <option name="--option">cpa.lpi.checkPolicyInitialCondition=false</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/valdet_prefixing.yml</include>
   </tasks>
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
     <!-- with FormulaSlicingCPA -->
-    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.loopbound.LoopBoundCPA,cpa.formulaslicing.FormulaSlicingCPA,cpa.policyiteration.PolicyCPA,cpa.targetreachability.TargetReachabilityCPA,cpa.assumptions.storage.AssumptionStorageCPA</option>
+    <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.loopbound.LoopBoundCPA,cpa.formulaslicing.FormulaSlicingCPA,cpa.policyiteration.PolicyCPA,cpa.targetreachability.TargetReachabilityCPA,cpa.assumptions.storage.AssumptionStorageCPA</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/pointers/pointer_past_abstraction-1.yml</include>
   </tasks>
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
-    <option name="-setprop">cpa.lpi.maxExpressionSize=2</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.lpi.maxExpressionSize=2</option>
     <!-- with FormulaSlicingCPA -->
-    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.loopbound.LoopBoundCPA,cpa.formulaslicing.FormulaSlicingCPA,cpa.policyiteration.PolicyCPA,cpa.targetreachability.TargetReachabilityCPA,cpa.assumptions.storage.AssumptionStorageCPA</option>
+    <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.loopbound.LoopBoundCPA,cpa.formulaslicing.FormulaSlicingCPA,cpa.policyiteration.PolicyCPA,cpa.targetreachability.TargetReachabilityCPA,cpa.assumptions.storage.AssumptionStorageCPA</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/pointers/pointer_past_abstraction-2.yml</include>
   </tasks>
 
   <tasks>
     <option name="-policy"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
-    <option name="-setprop">cpa.lpi.maxExpressionSize=2</option>
-    <option name="-setprop">cpa.lpi.linearizePolicy=false</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.lpi.maxExpressionSize=2</option>
+    <option name="--option">cpa.lpi.linearizePolicy=false</option>
     <!-- with FormulaSlicingCPA -->
-    <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.loopbound.LoopBoundCPA,cpa.formulaslicing.FormulaSlicingCPA,cpa.policyiteration.PolicyCPA,cpa.targetreachability.TargetReachabilityCPA,cpa.assumptions.storage.AssumptionStorageCPA</option>
+    <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.loopbound.LoopBoundCPA,cpa.formulaslicing.FormulaSlicingCPA,cpa.policyiteration.PolicyCPA,cpa.targetreachability.TargetReachabilityCPA,cpa.assumptions.storage.AssumptionStorageCPA</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/pointers/pointers_loop-2.yml</include>
   </tasks>
 
   <tasks>
     <option name="-policy-bam"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     <include>../programs/policyiteration/bam/*.yml</include>
   </tasks>
 
   <tasks>
     <option name="-policy-overflow"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=false</option>
-    <option name="-setprop">overflow.useLiveness=false</option>
+    <option name="--option">cpa.reportFalseAsUnknown=false</option>
+    <option name="--option">overflow.useLiveness=false</option>
     <propertyfile>../config/properties/no-overflow.prp</propertyfile>
     <include>../programs/policyiteration/overflow/*.yml</include>
   </tasks>
@@ -146,7 +146,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/loop-invgen/SpamAssassin-loop.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/invert_string-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/sum01-1.yml</exclude> <!-- flapping timeout -->

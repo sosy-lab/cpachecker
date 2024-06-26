@@ -13,13 +13,13 @@ SPDX-License-Identifier: Apache-2.0
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="300 s" hardtimelimit="400 s" memlimit="6 GB" cpuCores="2">
-    <option name="-noout" />
+    <option name="--no-output" />
 
-    <option name="-heap">6000m</option>
-    <option name="-stack">10M</option>
-    <option name="-setprop">solver.solver=z3</option>
-    <option name="-skipRecursion" />
-    <option name="-disable-java-assertions"/>
+    <option name="--heap">6000m</option>
+    <option name="--stack">10M</option>
+    <option name="--option">solver.solver=z3</option>
+    <option name="--skip-recursion" />
+    <option name="--disable-java-assertions"/>
 
     <tasks name="DeviceDriversHard">
         <!--<includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>-->
@@ -28,62 +28,62 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
 
     <rundefinition name="predicateAnalysis-bitprecise">
-        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantFields=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=false</option>
+        <option name="--option">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantFields=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
         <option name="-predicateAnalysis-bitprecise"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants-bitprecise">
-        <option name="-setprop">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
-        <option name="-setprop">cpa.predicate.encodeFloatAs=FLOAT</option>
-        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantFields=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=false</option>
-        <option name="-setprop">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
-        <option name="-setprop">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
-        <option name="-setprop">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
+        <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+        <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+        <option name="--option">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantFields=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
+        <option name="--option">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
+        <option name="--option">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
+        <option name="--option">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
         <option name="-predicateAnalysis-bitprecise"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants-syntactic-bitprecise">
-        <option name="-setprop">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
-        <option name="-setprop">cpa.predicate.encodeFloatAs=FLOAT</option>
-        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantFields=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=false</option>
-        <option name="-setprop">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
-        <option name="-setprop">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
-        <option name="-setprop">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
-        <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
+        <option name="--option">cpa.predicate.encodeBitvectorAs=BITVECTOR</option>
+        <option name="--option">cpa.predicate.encodeFloatAs=FLOAT</option>
+        <option name="--option">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantFields=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
+        <option name="--option">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
+        <option name="--option">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
+        <option name="--option">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
+        <option name="--option">cpa.slicing.weakeningStrategy=syntactic</option>
         <option name="-predicateAnalysis-bitprecise"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis">
-        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantFields=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=false</option>
+        <option name="--option">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantFields=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
         <option name="-predicateAnalysis"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants">
-        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantFields=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=false</option>
-        <option name="-setprop">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
-        <option name="-setprop">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
-        <option name="-setprop">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
+        <option name="--option">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantFields=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
+        <option name="--option">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
+        <option name="--option">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
+        <option name="--option">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
         <option name="-predicateAnalysis"/>
     </rundefinition>
 
     <rundefinition name="predicateAnalysis-w-slicing-invariants-syntactic">
-        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantFields=false</option>
-        <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=false</option>
-        <option name="-setprop">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
-        <option name="-setprop">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
-        <option name="-setprop">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
-        <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
+        <option name="--option">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantFields=false</option>
+        <option name="--option">cpa.predicate.ignoreIrrelevantVariables=false</option>
+        <option name="--option">cpa.predicate.invariants.generationStrategy=PF_INDUCTIVE_WEAKENING</option>
+        <option name="--option">cpa.slicing.selectorAnnotationMode=CONJUNCTIONS</option>
+        <option name="--option">cpa.predicate.invariants.appendToAbstractionFormula=true</option>
+        <option name="--option">cpa.slicing.weakeningStrategy=syntactic</option>
         <option name="-predicateAnalysis"/>
     </rundefinition>
 </benchmark>

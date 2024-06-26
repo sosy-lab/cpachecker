@@ -13,8 +13,8 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
 
-  <option name="-noout"/>
-  <option name="-heap">1500M</option>
+  <option name="--no-output"/>
+  <option name="--heap">1500M</option>
 
   <rundefinition/>
 
@@ -41,8 +41,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="value-concurrency-Refinement">
     <option name="-valueAnalysis-concurrency"/>
-    <option name="-setprop">analysis.algorithm.CEGAR=true</option>
-    <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
+    <option name="--option">analysis.algorithm.CEGAR=true</option>
+    <option name="--option">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
 
     <include>../programs/benchmarks/pthread-wmm/mix000.oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/mix009.oepc.yml</include>

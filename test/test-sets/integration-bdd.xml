@@ -19,8 +19,8 @@ SPDX-License-Identifier: Apache-2.0
   The rundefinition needs a runtime of 45 minutes.
   -->
 
-  <option name="-noout"/>
-  <option name="-heap">1500M</option>
+  <option name="--no-output"/>
+  <option name="--heap">1500M</option>
 
   <rundefinition/>
 
@@ -56,7 +56,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="plain-bdd">
     <option name="-bddAnalysis"/>
-    <option name="-setprop">cpa.bdd.ymlompressIntEqual=false</option>
+    <option name="--option">cpa.bdd.ymlompressIntEqual=false</option>
     <include>../programs/benchmarks/openssl/*srvr*1*.yml</include>
     <include>../programs/benchmarks/openssl-simplified/*srvr*1*.yml</include>
     <include>../programs/benchmarks/product-lines/*product3*.yml</include>

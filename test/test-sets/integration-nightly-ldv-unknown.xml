@@ -16,9 +16,9 @@ SPDX-License-Identifier: Apache-2.0
        It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
        to be checked out at test/programs/ldv-benchmarks. -->
 
-  <option name="-noout"/>
-  <option name="-heap">13000M</option>
-  <option name="-setprop">statistics.memory=true</option>
+  <option name="--no-output"/>
+  <option name="--heap">13000M</option>
+  <option name="--option">statistics.memory=true</option>
 
   <rundefinition>
     <option name="-ldv-bam"/>
