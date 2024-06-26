@@ -110,28 +110,37 @@ class CmdLineArguments {
           new PropertyAddingCmdLineArgument("-secureMode")
               .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),
-          new CmdLineArgument1("-witness", "witness.validation.file")
+          new CmdLineArgument1("-witness")
+              .settingOption("witness.validation.file")
               .withDescription("the witness to validate"),
-          new CmdLineArgument1("-outputpath", "output.path")
+          new CmdLineArgument1("-outputpath")
+              .settingOption("output.path")
               .withDescription("where to store the files with results, statistics, logs"),
-          new CmdLineArgument1("-logfile", "log.file").withDescription("set a direct logfile"),
-          new CmdLineArgument1("-entryfunction", "analysis.entryFunction")
+          new CmdLineArgument1("-logfile")
+              .settingOption("log.file")
+              .withDescription("set a direct logfile"),
+          new CmdLineArgument1("-entryfunction")
+              .settingOption("analysis.entryFunction")
               .withDescription("set the initial function for the analysis"),
-          new CmdLineArgument1("-config", CONFIGURATION_FILE_OPTION)
+          new CmdLineArgument1("-config")
+              .settingOption(CONFIGURATION_FILE_OPTION)
               .withDescription("set the configuration for the analysis"),
-          new CmdLineArgument1("-timelimit", "limits.time.cpu")
+          new CmdLineArgument1("-timelimit")
+              .settingOption("limits.time.cpu")
               .withDescription("set a timelimit for the analysis"),
-          new CmdLineArgument1("-sourcepath", "java.sourcepath")
+          new CmdLineArgument1("-sourcepath")
+              .settingOption("java.sourcepath")
               .withDescription("set the sourcepath for the analysis of Java programs"),
-          new CmdLineArgument1("-cp", "-classpath", "java.classpath")
+          new CmdLineArgument1("-cp", "-classpath")
+              .settingOption("java.classpath")
               .withDescription("set the classpath for the analysis of Java programs"),
-          new CmdLineArgument1("-spec", "specification") {
+          new CmdLineArgument1("-spec") {
             @Override
             void handleArg(Map<String, String> properties, String arg) {
               if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
                 arg = resolveSpecificationFileOrExit(arg).toString();
               }
-              appendOptionValue(properties, getOption(), arg);
+              appendOptionValue(properties, "specification", arg);
             }
           }.withDescription("set the specification for the main analysis"),
           new CmdLineArgument("-cmc") {

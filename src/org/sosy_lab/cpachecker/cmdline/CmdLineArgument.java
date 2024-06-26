@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cmdline.CmdLineArguments.putIfNotExistent;
 
 import com.google.common.base.Joiner;
@@ -78,25 +79,15 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
   /** The arg is a short replacement for an option with 'one' value given as next argument. */
   static class CmdLineArgument1 extends CmdLineArgument {
 
-    private final String option;
+    private String option;
 
-    CmdLineArgument1(String pName) {
-      super(pName);
-      option = "";
+    CmdLineArgument1(String... pNames) {
+      super(pNames);
     }
 
-    CmdLineArgument1(String pName, String pOption) {
-      super(pName);
+    CmdLineArgument1 settingOption(String pOption) {
       option = pOption;
-    }
-
-    CmdLineArgument1(String pName1, String pName2, String pOption) {
-      super(pName1, pName2);
-      option = pOption;
-    }
-
-    String getOption() {
-      return option;
+      return this;
     }
 
     @Override
@@ -117,6 +108,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
      */
     void handleArg(Map<String, String> pProperties, String pArg)
         throws InvalidCmdlineArgumentException {
+      checkState(option != null);
       putIfNotExistent(pProperties, option, pArg);
     }
   }
