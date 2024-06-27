@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -19,26 +19,28 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
  */
 public class MPORThread {
 
-  /** The pthread_t object. Set to null for the main thread. */
-  public final @Nullable CIdExpression threadObject;
+  /** The pthread_t object. Set to empty for the main thread. */
+  public final Optional<CIdExpression> threadObject;
 
   /** FunctionEntryNode of the main function (main thread) or start routine (pthreads). */
   public final FunctionEntryNode entryNode;
 
   /**
-   * FunctionExitNode of the main function (main thread) or start routine (pthreads). Can be null,
+   * FunctionExitNode of the main function (main thread) or start routine (pthreads). Can be empty,
    * see {@link FunctionEntryNode#exitNode}.
    */
-  public final @Nullable FunctionExitNode exitNode;
+  public final Optional<FunctionExitNode> exitNode;
 
   public MPORThread(
-      CIdExpression pPthreadT, FunctionEntryNode pEntryNode, FunctionExitNode pExitNode) {
-    threadObject = pPthreadT;
+      Optional<CIdExpression> pThreadObject,
+      FunctionEntryNode pEntryNode,
+      Optional<FunctionExitNode> pExitNode) {
+    threadObject = pThreadObject;
     entryNode = pEntryNode;
     exitNode = pExitNode;
   }
 
   public boolean isMain() {
-    return threadObject == null;
+    return threadObject.isEmpty();
   }
 }

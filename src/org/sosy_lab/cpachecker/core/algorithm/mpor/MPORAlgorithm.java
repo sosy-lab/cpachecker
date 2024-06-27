@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -170,8 +171,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     CFunctionType mainFunction = CFAUtils.getMainFunction(pCfa);
     FunctionEntryNode mainEntryNode =
         CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, mainFunction);
-    FunctionExitNode mainExitNode = mainEntryNode.getExitNode().get();
-    MPORThread mainThread = new MPORThread(null, mainEntryNode, mainExitNode);
+    Optional<FunctionExitNode> mainExitNode = mainEntryNode.getExitNode();
+    MPORThread mainThread = new MPORThread(Optional.empty(), mainEntryNode, mainExitNode);
     ret.add(mainThread);
 
     // search the CFA for pthread_create calls
@@ -189,7 +190,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         //  what will the CIdExpression be, the pthread_t object or the array?
         // extract the first parameter of pthread_create, i.e. the pthread_t object
         CUnaryExpression pthreadTExpression = (CUnaryExpression) cExpressions.get(0);
-        CIdExpression pthreadT = (CIdExpression) pthreadTExpression.getOperand();
+        Optional<CIdExpression> pthreadT =
+            Optional.ofNullable((CIdExpression) pthreadTExpression.getOperand());
 
         // extract the third parameter of pthread_create which points to the start routine function
         CUnaryExpression startRoutineExpression = (CUnaryExpression) cExpressions.get(2);
@@ -198,7 +200,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
-        FunctionExitNode exitNode = entryNode.getExitNode().get();
+        Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
 
         MPORThread pthread = new MPORThread(pthreadT, entryNode, exitNode);
         ret.add(pthread);
