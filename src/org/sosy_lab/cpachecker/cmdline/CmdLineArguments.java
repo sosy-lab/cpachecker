@@ -113,7 +113,7 @@ class CmdLineArguments {
           new PropertyAddingCmdLineArgument("--secure-mode", "-secureMode")
               .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),
-          new CmdLineArgument1("--witness", "-witness")
+          new CmdLineArgument1("--witness", "-w", "-witness")
               .settingOption("witness.validation.file")
               .withDescription("the witness to validate"),
           new CmdLineArgument1("--output-path", "-outputpath")
@@ -125,7 +125,7 @@ class CmdLineArguments {
           new CmdLineArgument1("--entry-function", "-entryfunction")
               .settingOption("analysis.entryFunction")
               .withDescription("set the initial function for the analysis"),
-          new CmdLineArgument1("--config", "-config")
+          new CmdLineArgument1("--config", "-c", "-config")
               .settingOption(CONFIGURATION_FILE_OPTION)
               .withDescription("set the configuration for the analysis"),
           new CmdLineArgument1("--timelimit", "-timelimit")
