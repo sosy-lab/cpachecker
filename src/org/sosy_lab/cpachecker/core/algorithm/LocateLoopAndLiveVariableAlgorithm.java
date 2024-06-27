@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -44,8 +45,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private final CProgramScope cProgramScope;
 
   public LocateLoopAndLiveVariableAlgorithm(CFA pCfa, LogManager pLogger) {
-    if (!LoopStructure.getRecursions(pCfa).isEmpty()) {
-      throw new IllegalArgumentException("Program should not have recursion!");
+    if (pCfa.getLoopStructure().orElseThrow().getAllLoops().isEmpty() && LoopStructure.getRecursions(pCfa).isEmpty()) {
+      throw new IllegalArgumentException("Program does not contain loops!");
     }
     cfa = pCfa;
     logger = pLogger;
@@ -75,15 +76,12 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     List<LoopInfo> allLoopInfos = new ArrayList<>();
 
     for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      // Determine loop location
-      // Since we assume that C programs only contain while loops as their loop structures,
-      // each while loop can have only one incoming edge connecting a non-loop node and
-      // the keyword "while" is located on the edge.
-      int loopLocation =
-          loop.getIncomingEdges().stream()
-              .mapToInt(e -> e.getFileLocation().getStartingLineInOrigin())
-              .findAny()
-              .orElseThrow();
+      // Determine loop locations. There may be more than one, as some loops have multiple
+      // loop heads, e.g., goto loop.
+      List<Integer> loopLocations = new ArrayList<>();
+      for (CFANode cfaNode : loop.getLoopHeads()) {
+        loopLocations.add(CFAUtils.allEnteringEdges(cfaNode).first().get().getFileLocation().getStartingLineInOrigin());
+      }
 
       // Determine the names of all variables used except those declared inside the loop
       Set<String> liveVariables = new HashSet<>();
@@ -111,9 +109,11 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
             type.startsWith("(") ? type.substring(1, type.length() - 2) + "*" : type);
       }
 
-      allLoopInfos.add(new LoopInfo(loopLocation, liveVariablesAndTypes));
+      for (Integer loopLocation : loopLocations) {
+        allLoopInfos.add(new LoopInfo(loopLocation, liveVariablesAndTypes));
+      }
     }
-
+    
     return allLoopInfos;
   }
 
