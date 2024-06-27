@@ -321,7 +321,7 @@ class CmdLineArguments {
     return properties;
   }
 
-  private static boolean isOldStyleArgument(String arg) {
+  static boolean isOldStyleArgument(String arg) {
     return arg.length() > 2 // "-h" is ok
         && arg.startsWith("-")
         && !arg.startsWith("--"); // -foo is not ok, but --foo is
@@ -391,7 +391,9 @@ class CmdLineArguments {
     out.println();
     out.println("OPTIONS:");
     for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {
-      out.println(" " + cmdLineArg);
+      if (!isOldStyleArgument(cmdLineArg.getMainName())) {
+        out.println(" " + cmdLineArg);
+      }
     }
     out.println();
     out.println("You can also specify any of the configuration files in the directory config/");

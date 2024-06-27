@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cmdline.CmdLineArguments.putIfNotExistent;
 
 import com.google.common.base.Joiner;
@@ -59,7 +60,8 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
 
   @Override
   public String toString() {
-    String s = Joiner.on("/").join(names);
+    String s =
+        Joiner.on("/").join(from(names).filter(arg -> !CmdLineArguments.isOldStyleArgument(arg)));
     if (description.isEmpty()) {
       return s;
     } else {
