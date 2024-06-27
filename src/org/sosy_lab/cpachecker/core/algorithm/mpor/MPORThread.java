@@ -27,7 +27,7 @@ public class MPORThread {
 
   /**
    * FunctionExitNode of the main function (main thread) or start routine (pthreads). Can be empty,
-   * see {@link FunctionEntryNode#exitNode}.
+   * see {@link FunctionEntryNode#getExitNode()}.
    */
   public final Optional<FunctionExitNode> exitNode;
 
