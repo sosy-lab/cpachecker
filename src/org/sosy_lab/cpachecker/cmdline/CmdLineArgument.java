@@ -69,7 +69,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
   @Override
   public String toString() {
     String s =
-        Joiner.on("/").join(from(names).filter(arg -> !CmdLineArguments.isOldStyleArgument(arg)));
+        from(names).filter(arg -> !CmdLineArguments.isOldStyleArgument(arg)).join(Joiner.on("/"));
     if (description.isEmpty()) {
       return s;
     } else {
