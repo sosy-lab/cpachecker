@@ -257,10 +257,16 @@ Releasing a New Version
    or trigger the scheduled GitLab CI job after pushing
    (https://gitlab.com/sosy-lab/software/cpachecker/pipeline_schedules).
 
-7. Send a mail with the release announcement to cpachecker-announce and
+7. Build `.deb` package with
+  `build/deb-package.sh <version> CPAchecker-<version>-unix.zip dist-<version>/`
+   and publish the package created in `dist-<version>/`
+   in our [APT repository](https://apt.sosy-lab.org)
+   using the [instructions](https://svn.sosy-lab.org/software/apt/README.md) there.
+
+8. Send a mail with the release announcement to cpachecker-announce and
    cpachecker-users mailing lists.
 
-8. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
+9. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
    to a new development version, which is the next possible version number
    with the suffix `-svn`.
    For example, if `1.9` was just released, the next possible feature release

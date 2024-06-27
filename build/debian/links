@@ -1,0 +1,2 @@
+/opt/cpachecker/scripts/cpa.sh /usr/bin/cpachecker
+/opt/cpachecker/scripts/cpa_witness2test.py /usr/bin/cpa-witness2test
