@@ -169,7 +169,8 @@ class CmdLineArguments {
               .settingProperty("analysis.checkCounterexamples", "true")
               .settingProperty("counterexample.checker", "CBMC")
               .withReplacementInfo(
-                  "setting the options 'analysis.checkCounterexamples=true' and 'counterexample.checker=CBMC'."),
+                  "setting the options 'analysis.checkCounterexamples=true' and"
+                      + " 'counterexample.checker=CBMC'."),
           new PropertyAddingCmdLineArgument("-nolog")
               .settingProperty("log.level", "off")
               .settingProperty("log.consoleLevel", "off")
