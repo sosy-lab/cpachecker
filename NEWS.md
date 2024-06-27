@@ -20,6 +20,16 @@ Changes since CPAchecker 2.3.1
   The old executables are deprecated but will continue to exist
   at least until the next major version of CPAchecker.
   Similarly, we now provide `bin/cpa-witness2test` for CPA-witness2test.
+* Command-line arguments of CPAchecker renamed  
+  All arguments of CPAchecker now follow standard conventions
+  and start with two dashes ("--") for long arguments, e.g., `--default`.
+  Some arguments have also been renamed slightly,
+  or have been removed due to them being rarely used.
+  As before, [`doc/Configuration.md`](https://gitlab.com/sosy-lab/software/cpachecker/-/blob/trunk/doc/Configuration.md)
+  documents the supported arguments.
+  Previous command-line arguments with a single dash are deprecated,
+  but continue to work, and CPAchecker will print warning messages
+  that inform about their recommended replacements.
 
 
 Changes from CPAchecker 2.3 to CPAchecker 2.3.1
