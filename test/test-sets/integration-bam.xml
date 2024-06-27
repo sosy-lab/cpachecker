@@ -87,12 +87,12 @@ SPDX-License-Identifier: Apache-2.0
   <!-- parallel BAM -->
   <tasks name="VA-parallelBam-noCegar">
     <option name="--valueAnalysis-parallelBam"/>
-    <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
+    <option name="--option">algorithm.parallelBam.numberOfThreads=8</option>
     <include>../programs/benchmarks/eca-rers2012/Problem03*.yml</include>
   </tasks>
   <tasks name="VA-parallelBam-Cegar">
     <option name="--valueAnalysis-parallelBam-Cegar"/>
-    <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
+    <option name="--option">algorithm.parallelBam.numberOfThreads=8</option>
     <include>../programs/benchmarks/eca-rers2012/Problem02*.yml</include>
   </tasks>
 
