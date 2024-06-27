@@ -26,7 +26,7 @@ SPDX-License-Identifier: Apache-2.0
     <column title="#blocks">Number of blocks</column>
   </columns>
 
-  <option name="--no-output"/>
+  <option name="--no-output-files"/>
   <option name="--heap">1500M</option>
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>

@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <?ignore <option name="--heap">13000M</option> ?>
   <option name="--heap">2000M</option>
   <option name="--benchmark"/>
-  <option name="--no-output"/>
+  <option name="--no-output-files"/>
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <rundefinition name="ismc-no-fallback">

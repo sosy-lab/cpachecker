@@ -30,7 +30,7 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
 
     <option name="--heap">2500m</option>
-    <option name="--no-output"/>
+    <option name="--no-output-files"/>
     <option name="--generateCFA"/>
   </rundefinition>
 </benchmark>

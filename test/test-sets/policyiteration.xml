@@ -23,7 +23,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="500 s" hardtimelimit="1000 s" memlimit="16 GB" cpuCores="1">
-    <option name="--no-output" />
+    <option name="--no-output-files" />
 
     <rundefinition name="lpi-svcomp-loops">
         <tasks name="loops">

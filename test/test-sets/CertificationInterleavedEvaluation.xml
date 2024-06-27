@@ -32,7 +32,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 <benchmark tool="cpachecker" timelimit="540 s" memlimit="3500 MB">
 <option name="--heap">2500M</option>
-<option name="--no-output"/>
+<option name="--no-output-files"/>
 <option name="--disable-java-assertions"/>
 <option name="--option">statistics.memory=false</option>
 <option name="--option">analysis.algorithm.propertyCheck=true</option>

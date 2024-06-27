@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--timelimit">900s</option>
   <!-- For real benchmarks, we would use -benchmark, but for tests we want assertions enabled.
        So only disable output files. -->
-  <option name="--no-output" />
+  <option name="--no-output-files" />
 
   <rundefinition>
     <option name="--svcomp24"/>

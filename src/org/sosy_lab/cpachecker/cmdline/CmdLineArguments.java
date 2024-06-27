@@ -92,7 +92,7 @@ class CmdLineArguments {
           new PropertyAddingCmdLineArgument("--stats", "-stats")
               .settingProperty("statistics.print", "true")
               .withDescription("collect statistics during the analysis and print them afterwards"),
-          new PropertyAddingCmdLineArgument("--no-output", "-noout")
+          new PropertyAddingCmdLineArgument("--no-output-files", "-noout")
               .settingProperty("output.disable", "true")
               .withDescription("disable all output (except directly specified files)"),
           new PropertyAddingCmdLineArgument("--java", "-java")

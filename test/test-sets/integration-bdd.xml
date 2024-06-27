@@ -19,7 +19,7 @@ SPDX-License-Identifier: Apache-2.0
   The rundefinition needs a runtime of 45 minutes.
   -->
 
-  <option name="--no-output"/>
+  <option name="--no-output-files"/>
   <option name="--heap">1500M</option>
 
   <rundefinition/>

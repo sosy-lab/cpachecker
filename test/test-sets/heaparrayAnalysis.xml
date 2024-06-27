@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
   <option name="--heap">12000M</option>
   <option name="--stack">10M</option>
-  <option name="--no-output"/>
+  <option name="--no-output-files"/>
   <option name="--disable-java-assertions"/>
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
