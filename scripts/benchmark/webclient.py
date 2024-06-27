@@ -860,7 +860,10 @@ class WebInterface:
                     elif option in ["--stats", "-stats"]:
                         # ignore, is always set by this script
                         pass
-                    elif option in ["--disable-java-assertions", "-disable-java-assertions"]:
+                    elif option in [
+                        "--disable-java-assertions",
+                        "-disable-java-assertions",
+                    ]:
                         disableAssertions = True
                     elif option in ["--java", "-java"]:
                         params.append(("option", "language=JAVA"))
