@@ -109,7 +109,7 @@ class CmdLineArguments {
               .withDescription("execute a preprocessor before starting the analysis"),
           new PropertyAddingCmdLineArgument("-clang")
               .settingProperty("parser.useClang", "true")
-              .withDescription("use clang together with llvm frontend"),
+              .withReplacementInfo("setting the option 'parser.useClang=true'"),
           new PropertyAddingCmdLineArgument("--secure-mode", "-secureMode")
               .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),
@@ -121,7 +121,7 @@ class CmdLineArguments {
               .withDescription("where to store the files with results, statistics, logs"),
           new CmdLineArgument1("-logfile")
               .settingOption("log.file")
-              .withDescription("set a direct logfile"),
+              .withReplacementInfo("setting the option 'log.file' to the desired file name"),
           new CmdLineArgument1("--entry-function", "-entryfunction")
               .settingOption("analysis.entryFunction")
               .withDescription("set the initial function for the analysis"),
@@ -153,7 +153,10 @@ class CmdLineArguments {
                 throws InvalidCmdlineArgumentException {
               handleCmc(argsIt, properties);
             }
-          }.withDescription("use conditional model checking"),
+          }.withReplacementInfo(
+              "setting the option 'analysis.restartAfterUnknown=true' and using '"
+                  + CMC_CONFIGURATION_FILES_OPTION
+                  + "' to define a sequence of analyses"),
           new CmdLineArgument1("--cpas", "-cpas") {
 
             @Override
@@ -165,11 +168,13 @@ class CmdLineArguments {
           new PropertyAddingCmdLineArgument("-cbmc")
               .settingProperty("analysis.checkCounterexamples", "true")
               .settingProperty("counterexample.checker", "CBMC")
-              .withDescription("use CBMC as counterexample checker"),
+              .withReplacementInfo(
+                  "setting the options 'analysis.checkCounterexamples=true' and 'counterexample.checker=CBMC'."),
           new PropertyAddingCmdLineArgument("-nolog")
               .settingProperty("log.level", "off")
               .settingProperty("log.consoleLevel", "off")
-              .withDescription("disable logging"),
+              .withReplacementInfo(
+                  "setting the options 'log.level=off' and 'log.consoleLevel=off'"),
           new PropertyAddingCmdLineArgument("--skip-recursion", "-skipRecursion")
               .settingProperty("analysis.summaryEdges", "true")
               .settingProperty("cpa.callstack.skipRecursion", "true")

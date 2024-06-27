@@ -19,12 +19,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 
 abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
 
   private final ImmutableSet<String> names;
   private String description = ""; // changed later, if needed
+  private @Nullable String replacementInfo;
 
   CmdLineArgument(String... pNames) {
     names = ImmutableSet.copyOf(pNames);
@@ -33,6 +35,12 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
   @CanIgnoreReturnValue
   CmdLineArgument withDescription(String pDescription) {
     description = pDescription;
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  CmdLineArgument withReplacementInfo(String pDeprecationNotice) {
+    replacementInfo = pDeprecationNotice;
     return this;
   }
 
@@ -73,6 +81,11 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
   boolean apply(Map<String, String> properties, String currentArg, Iterator<String> argsIt)
       throws InvalidCmdlineArgumentException {
     if (names.contains(currentArg)) {
+      if (replacementInfo != null) {
+        Output.warning(
+            "The command-line argument '%s' is deprecated. It can be replaced by %s.",
+            currentArg, replacementInfo);
+      }
       apply0(properties, currentArg, argsIt);
       return true;
     }
