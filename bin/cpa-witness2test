@@ -146,7 +146,7 @@ def create_parser(args_style: ArgumentStyle):
     else:
         parser = argparse.ArgumentParser(description=descr, add_help=False)
 
-    parser.add_argument(flag("help"), action="help")
+    parser.add_argument(flag("help"), "-h", action="help")
 
     parser.add_argument(
         flag("version"), action="version", version="{}".format(get_cpachecker_version())
@@ -201,6 +201,7 @@ def create_parser(args_style: ArgumentStyle):
 
     parser.add_argument(
         flag("witness"),
+        "-w",
         dest="witness_file",
         required=True,
         type=str,
