@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 Benchmarking CPAchecker
 =======================
 
-CPAchecker provides a command-line flag `-benchmark`
+CPAchecker provides a command-line flag `--benchmark`
 that should be used for all kinds of benchmarks.
 It improves performance by disabling assertions and optional features
 such as extended statistics and output files.
@@ -64,14 +64,14 @@ according to the characteristics of the input files to avoid wrong answers:
 
 - Machine model (32 vs. 64 bit):
   32-bit model is assumed by default.
-  For 64 bit, specify `-64` on the command line.
+  For 64 bit, specify `--64` on the command line.
 
 - Whether `malloc` may return null or not:
   If the program assumes `malloc` never returns null
   and you are using a predicate-based analysis,
   set `cpa.predicate.memoryAllocationsAlwaysSucceed=true`.
   Note that this assumption is true for all SV-Comp files,
-  thus this option is already set in all `-svcomp*` configurations.
+  thus this option is already set in all `--svcomp*` configurations.
 
 
 Specifying Resource Limits
@@ -85,7 +85,7 @@ the time and memory limits.
   like in this example:
   `<benchmark timelimit="900s" hardtimelimit="1000s" ...`
   The soft time limit is automatically passed as parameter to CPAchecker,
-  so there is no need to specify the `-timelimit` option manually.
+  so there is no need to specify the `--timelimit` option manually.
 
 - *Memory*.
   The memory limit is specified in SI units (i.e., 1 MB = 1,000,000 Bytes)
@@ -96,7 +96,7 @@ the time and memory limits.
   and CPAchecker will be killed if it needs more memory.
 
 Additionally, it is important to specify the amount of memory
-that Java uses for its own heap with the `-heap` command-line parameter.
+that Java uses for its own heap with the `--heap` command-line parameter.
 This value needs to be lower than the external limit.
 Setting it too low will hurt the performance due to increased garbage collection
 and provoke `OutOfMemoryError`,
@@ -107,7 +107,7 @@ start to experiment with 1000 MB less than the external limit.
 IMPORTANT: Java does not use SI units here, but IEC units (factor 1024).
 `7000M` here are 5% more than `7000 MB` for the memory limit above!
 Example:
-`<option name="-heap">7000M</option>`
+`<option name="--heap">7000M</option>`
 
 Summary:
 For correct and useful benchmarks, choose a memory limit (e.g., 8000MB),
@@ -116,7 +116,7 @@ Then specify them as follows:
 
 ```xml
 <benchmark ... timelimit="900s" hardtimelimit="1000s" memlimit="8000 MB">
-  <option name="-heap">7000M</option>
+  <option name="--heap">7000M</option>
   ...
 </benchmark>
 ```

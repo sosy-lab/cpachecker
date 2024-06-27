@@ -35,7 +35,7 @@ Prepare Programs for Verification by CPAchecker
 All programs need to pre-processed with the C pre-processor,
 i.e., they may not contain #define and #include directives.
 You can enable pre-processing inside CPAchecker
-by specifying -preprocess on the command line.
+by specifying `--preprocess` on the command line.
 Multiple C files can be given and will be linked together
 and verified as a single program (experimental feature).
 
@@ -70,13 +70,13 @@ Verifying a Program with CPAchecker
    named `ERROR` (case insensitive) and assertions in the source code file.
    Other examples for specifications can be found in `config/specification/`
 
-4. Execute `bin/cpachecker [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>`
+4. Execute `bin/cpachecker [ --config <CONFIG_FILE> ] [ --spec <SPEC_FILE> ] <SOURCE_FILE>`
    Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
    Additional command line switches are described in doc/Configuration.md.
-   Example: `bin/cpachecker -config config/default.properties doc/examples/example.c`
+   Example: `bin/cpachecker --config config/default.properties doc/examples/example.c`
    This example can also be abbreviated to:
-   `bin/cpachecker -default doc/examples/example.c`
+   `bin/cpachecker --default doc/examples/example.c`
    Java 17 or later is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
    Example: `export JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin/java`
@@ -86,13 +86,13 @@ Verifying a Program with CPAchecker
    because we do not ship binaries for SMT solvers for this platform.
    You either need to build the appropriate binaries yourself
    or use less powerful analyses that work with Java-based solvers,
-   for example this one instead of `-default`:
-   `-predicateAnalysis-linear -setprop solver.solver=SMTInterpol`
+   for example this one instead of `--default`:
+   `--predicateAnalysis-linear --option solver.solver=SMTInterpol`
    Of course you can also use solutions like Docker
    for executing the Linux version of CPAchecker.
 
    If you installed CPAchecker using Docker, the above example command line would look like this:
-   `docker run -v $(pwd):/workdir -u $UID:$GID sosylab/cpachecker -default /cpachecker/doc/examples/example.c`
+   `docker run -v $(pwd):/workdir -u $UID:$GID sosylab/cpachecker --default /cpachecker/doc/examples/example.c`
    This command makes the current directory available in the container,
    so to verify a program in the current directory just provide its file name
    instead of the example that is bundled with CPAchecker.
@@ -119,7 +119,7 @@ There are also additional output files in the directory `output/`:
        See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
  - `predmap.txt`: Predicates used by predicate analysis to prove program safety
  - `reached.txt`: Dump of all reached abstract states
- - `Statistics.txt`: Time statistics (can also be printed to console with `-stats`)
+ - `Statistics.txt`: Time statistics (can also be printed to console with `--stats`)
  
 Note that not all of these files will be available for all configurations.
 Also some of these files are only produced if an error is found (or vice-versa).
