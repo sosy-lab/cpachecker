@@ -926,8 +926,11 @@ class WebInterface:
                                 )
                             )
                         else:
-                            params.append(("configuration", option[1:]))
-                            config = option[1:]
+                            if option[1] == "-":
+                                config = option[2:]
+                            else:
+                                config = option[1:]
+                            params.append(("configuration", config))
                     else:
                         return (option, opened_files)
 
