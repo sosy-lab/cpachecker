@@ -27,7 +27,7 @@ public class FunctionPointerState
 
   private static final long serialVersionUID = -1951853216031911649L;
 
-  interface FunctionPointerTarget {}
+  public interface FunctionPointerTarget {}
 
   public static final class UnknownTarget implements FunctionPointerTarget {
     private static final UnknownTarget instance = new UnknownTarget();

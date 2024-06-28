@@ -1,0 +1,89 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.atexit;
+
+import java.util.Collection;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.functionpointer.ExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+// TODO: Handle return value for atexit. The function should return 0 if the registration succeeds
+//   and non-zero otherwise.
+// TODO: Add an option for the maximum number of functions that can be registered. According to the
+//   standard at least 32 functions need to be supported.
+
+/**
+ * Transfer relation for the atexit CPA
+ *
+ * <p>When atexit is called we store the target of the function pointer on the stack and return a
+ * new {@link AtExitState}. We use strengthening to get the target from the {@link
+ * org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA FunctionPointerCPA} after
+ * evaluating the argument with {@link ExpressionValueVisitor}.
+ */
+public class AtExitTransferRelation extends SingleEdgeTransferRelation {
+  private final LogManager logger;
+
+  @SuppressWarnings("unused")
+  public AtExitTransferRelation(LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
+    // TODO: Do we need configuration options for this?
+    logger = pLogger;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    return List.of(state);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    for (AbstractState other : otherStates) {
+      if (state instanceof AtExitState atExitState
+          && other instanceof FunctionPointerState fnState) {
+        if (cfaEdge instanceof AStatementEdge stmtEdge
+            && stmtEdge.getStatement() instanceof AFunctionCall callStmt
+            && callStmt.getFunctionCallExpression().getFunctionNameExpression()
+                instanceof AIdExpression fnExpr
+            && fnExpr.getName().equals("atexit")
+            && callStmt.getFunctionCallExpression().getParameterExpressions().get(0)
+                instanceof CExpression argExpr) {
+          // We've found a statement of the form "int r = atexit(<expr>)" or "atexit(<expr>)"
+          // Evaluate <expr> to get a target for the function pointer and store it on the stack
+          ExpressionValueVisitor evaluator =
+              new ExpressionValueVisitor(fnState.createBuilder(), UnknownTarget.getInstance());
+          FunctionPointerTarget target = argExpr.accept(evaluator);
+          return List.of(atExitState.push(target));
+        }
+      }
+    }
+    return List.of(state);
+  }
+}
