@@ -13,15 +13,15 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
 
-  <option name="-noout"/>
-  <option name="-heap">1500M</option>
+  <option name="--no-output-files"/>
+  <option name="--heap">1500M</option>
 
   <rundefinition/>
 
   <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
   <tasks name="value-concurrency">
-    <option name="-valueAnalysis-concurrency"/>
+    <option name="--valueAnalysis-concurrency"/>
 
     <include>../programs/benchmarks/pthread-atomic/*.yml</include>
     <include>../programs/benchmarks/pthread-wmm/mix000.opt.yml</include>
@@ -40,9 +40,9 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="value-concurrency-Refinement">
-    <option name="-valueAnalysis-concurrency"/>
-    <option name="-setprop">analysis.algorithm.CEGAR=true</option>
-    <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
+    <option name="--valueAnalysis-concurrency"/>
+    <option name="--option">analysis.algorithm.CEGAR=true</option>
+    <option name="--option">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
 
     <include>../programs/benchmarks/pthread-wmm/mix000.oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/mix009.oepc.yml</include>
@@ -58,7 +58,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="bdd-concurrency">
-    <option name="-bddAnalysis-concurrency"/>
+    <option name="--bddAnalysis-concurrency"/>
 
     <include>../programs/benchmarks/pthread-wmm/rfi005.yml</include>
     <include>../programs/benchmarks/pthread-wmm/rfi010.yml</include>
@@ -70,7 +70,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="bmc-concurrency">
-    <option name="-bmc-concurrency"/>
+    <option name="--bmc-concurrency"/>
 
     <include>../programs/benchmarks/pthread-wmm/mix054_*.yml</include>
     <include>../programs/benchmarks/pthread-wmm/rfi002_*.yml</include>
@@ -83,7 +83,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="predicateAnalysis-concurrency">
-    <option name="-predicateAnalysis-concurrency"/>
+    <option name="--predicateAnalysis-concurrency"/>
 
     <include>../programs/benchmarks/pthread/stack-*.yml</include>
     <include>../programs/benchmarks/pthread/stack_longer-*.yml</include>

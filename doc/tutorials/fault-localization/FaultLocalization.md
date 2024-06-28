@@ -29,19 +29,19 @@ Running Fault Localization
 
 The above-mentioned algorithms can be run by executing one of the following options:
 ```
--predicateAnalysis-faultlocalization-distanceMetrics
--predicateAnalysis-faultlocalization-errinv
--predicateAnalysis-faultlocalization-maxsatorg
--predicateAnalysis-faultlocalization-tarantula
--predicateAnalysis-faultlocalization-dstar
--predicateAnalysis-faultlocalization-ochiai
+--predicateAnalysis-faultlocalization-distanceMetrics
+--predicateAnalysis-faultlocalization-errinv
+--predicateAnalysis-faultlocalization-maxsatorg
+--predicateAnalysis-faultlocalization-tarantula
+--predicateAnalysis-faultlocalization-dstar
+--predicateAnalysis-faultlocalization-ochiai
 ```
 
 Here is a full example for running `ErrorInvariants`:
 
 ```
--predicateAnalysis-faultlocalization-errinv \
--spec config/specification/sv-comp-reachability.spc \
+--predicateAnalysis-faultlocalization-errinv \
+--spec config/specification/sv-comp-reachability.spc \
 <path to program>
 ```
 
@@ -455,9 +455,9 @@ implementation:
 ```
 ant && \
 bin/cpachecker \
--predicateAnalysis \
--setprop analysis.assumes=true \
--spec config/specification/sv-comp-reachability.spc \
+--predicateAnalysis \
+--option analysis.assumes=true \
+--spec config/specification/sv-comp-reachability.spc \
 doc/tutorials/fault-localization/factorization-plain.c
 ```
 The report can be found in `output/Counterexample.2.html`.
@@ -517,14 +517,14 @@ A "fault-info" consists of a description like "possible off-by-one-error detecte
 a type. The type is either "FIX" for a possible bug-fix, "REASON" that explains why the fault
 localization technique marked this statement, or "RANK_INFO" to explain why a certain score
 was assigned.
-Enable the option `-setprop counterexample.export.exportFaults=true` to export faults in that format
+Enable the option `--option counterexample.export.exportFaults=true` to export faults in that format
 with cpachecker.
 To import faults again, use:
 ```
--importFaults \
--setprop faultLocalization.import.importFile=<file> \
--setprop faultLocalization.import.explanations=SUSPICIOUS_CALCULATION,NO_CONTEXT \
--setprop faultLocalization.import.scorings=VARIABLE_COUNT \
+--importFaults \
+--option faultLocalization.import.importFile=<file> \
+--option faultLocalization.import.explanations=SUSPICIOUS_CALCULATION,NO_CONTEXT \
+--option faultLocalization.import.scorings=VARIABLE_COUNT \
 <program>
 ```
 This allows the application of a list of rankings and explanations to the faults that are

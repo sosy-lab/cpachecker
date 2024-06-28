@@ -129,8 +129,8 @@ public class CPABuilder {
       // By default there is a top-level CompositeCPA, and if it has no children, this means that
       // the user did not specify any meaningful configuration.
       throw new InvalidConfigurationException(
-          "Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' "
-              + "(for example, '-default', '-predicateAnalysis', or '-valueAnalysis'). "
+          "Please specify a configuration with '--config CONFIG_FILE' or '--CONFIG' "
+              + "(for example, '--default', '--predicateAnalysis', or '--valueAnalysis'). "
               + "See README.md for more details.");
     }
 
@@ -168,7 +168,7 @@ public class CPABuilder {
 
       if (insertionPoint.children.isEmpty()) { // implies cpa.cpaClass == CompositeCPA.class
         // If a specification was given, but no CPAs, insert a LocationCPA.
-        // This allows to run CPAchecker with just "-spec ..." and no other config.
+        // This allows to run CPAchecker with just "--spec ..." and no other config.
         insertionPoint.children =
             ImmutableList.of(CPAConfig.forClass(LocationCPA.class), SPECIFICATION_PLACEHOLDER);
       } else {

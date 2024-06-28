@@ -664,7 +664,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           "invGen",
           pLoopsInPath);
 
-      // may be null when -noout is specified
+      // may be null when --no-output-files is specified
       if (dumpInvariantGenerationAutomata && dumpInvariantGenerationAutomataFile != null) {
         Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
         IO.writeFile(logPath, Charset.defaultCharset(), spc);

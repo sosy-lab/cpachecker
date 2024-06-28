@@ -26,9 +26,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.annotations.SuppressForbidden;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
@@ -63,7 +65,7 @@ class CmdLineArguments {
   private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
 
   /**
-   * The directories where to look for configuration files for options like "-predicateAbstraction"
+   * The directories where to look for configuration files for options like "--predicateAbstraction"
    * that get translated into a config file name. The directories will be checked in the order they
    * are added here, and the first hit will be taken. Each directory can be mapped to an optional
    * warning that should be shown if the configuration is found there (empty string for no warning).
@@ -86,52 +88,62 @@ class CmdLineArguments {
 
   private static final ImmutableSortedSet<CmdLineArgument> CMD_LINE_ARGS =
       ImmutableSortedSet.of(
-          new PropertyAddingCmdLineArgument("-stats")
+          // For every argument, the main name (--long-form) needs to come first.
+          new PropertyAddingCmdLineArgument("--stats", "-stats")
               .settingProperty("statistics.print", "true")
               .withDescription("collect statistics during the analysis and print them afterwards"),
-          new PropertyAddingCmdLineArgument("-noout")
+          new PropertyAddingCmdLineArgument("--no-output-files", "-noout")
               .settingProperty("output.disable", "true")
               .withDescription("disable all output (except directly specified files)"),
-          new PropertyAddingCmdLineArgument("-java")
+          new PropertyAddingCmdLineArgument("--java", "-java")
               .settingProperty("language", "JAVA")
               .withDescription("language of the sourcefile"),
-          new PropertyAddingCmdLineArgument("-32")
+          new PropertyAddingCmdLineArgument("--32", "-32")
               .settingProperty("analysis.machineModel", "Linux32")
               .withDescription("set machine model to LINUX32"),
-          new PropertyAddingCmdLineArgument("-64")
+          new PropertyAddingCmdLineArgument("--64", "-64")
               .settingProperty("analysis.machineModel", "Linux64")
               .withDescription("set machine model to LINUX64"),
-          new PropertyAddingCmdLineArgument("-preprocess")
+          new PropertyAddingCmdLineArgument("--preprocess", "-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute a preprocessor before starting the analysis"),
           new PropertyAddingCmdLineArgument("-clang")
               .settingProperty("parser.useClang", "true")
-              .withDescription("use clang together with llvm frontend"),
-          new PropertyAddingCmdLineArgument("-secureMode")
+              .withReplacementInfo("setting the option 'parser.useClang=true'"),
+          new PropertyAddingCmdLineArgument("--secure-mode", "-secureMode")
               .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),
-          new CmdLineArgument1("-witness", "witness.validation.file")
+          new CmdLineArgument1("--witness", "-w", "-witness")
+              .settingOption("witness.validation.file")
               .withDescription("the witness to validate"),
-          new CmdLineArgument1("-outputpath", "output.path")
+          new CmdLineArgument1("--output-path", "-outputpath")
+              .settingOption("output.path")
               .withDescription("where to store the files with results, statistics, logs"),
-          new CmdLineArgument1("-logfile", "log.file").withDescription("set a direct logfile"),
-          new CmdLineArgument1("-entryfunction", "analysis.entryFunction")
+          new CmdLineArgument1("-logfile")
+              .settingOption("log.file")
+              .withReplacementInfo("setting the option 'log.file' to the desired file name"),
+          new CmdLineArgument1("--entry-function", "-entryfunction")
+              .settingOption("analysis.entryFunction")
               .withDescription("set the initial function for the analysis"),
-          new CmdLineArgument1("-config", CONFIGURATION_FILE_OPTION)
+          new CmdLineArgument1("--config", "-c", "-config")
+              .settingOption(CONFIGURATION_FILE_OPTION)
               .withDescription("set the configuration for the analysis"),
-          new CmdLineArgument1("-timelimit", "limits.time.cpu")
+          new CmdLineArgument1("--timelimit", "-timelimit")
+              .settingOption("limits.time.cpu")
               .withDescription("set a timelimit for the analysis"),
-          new CmdLineArgument1("-sourcepath", "java.sourcepath")
+          new CmdLineArgument1("--source-path", "-sourcepath")
+              .settingOption("java.sourcepath")
               .withDescription("set the sourcepath for the analysis of Java programs"),
-          new CmdLineArgument1("-cp", "-classpath", "java.classpath")
+          new CmdLineArgument1("--class-path", "-cp", "-classpath")
+              .settingOption("java.classpath")
               .withDescription("set the classpath for the analysis of Java programs"),
-          new CmdLineArgument1("-spec", "specification") {
+          new CmdLineArgument1("--spec", "-spec") {
             @Override
-            void handleArg(Map<String, String> properties, String arg) {
-              if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
-                arg = resolveSpecificationFileOrExit(arg).toString();
+            void handleArg(Map<String, String> properties, String currentArg, String argValue) {
+              if (SPECIFICATION_FILES_PATTERN.matcher(argValue).matches()) {
+                argValue = resolveSpecificationFileOrExit(argValue).toString();
               }
-              appendOptionValue(properties, getOption(), arg);
+              appendOptionValue(properties, "specification", argValue);
             }
           }.withDescription("set the specification for the main analysis"),
           new CmdLineArgument("-cmc") {
@@ -141,48 +153,56 @@ class CmdLineArguments {
                 throws InvalidCmdlineArgumentException {
               handleCmc(argsIt, properties);
             }
-          }.withDescription("use conditional model checking"),
-          new CmdLineArgument1("-cpas") {
+          }.withReplacementInfo(
+              "setting the option 'analysis.restartAfterUnknown=true' and using '"
+                  + CMC_CONFIGURATION_FILES_OPTION
+                  + "' to define a sequence of analyses"),
+          new CmdLineArgument1("--cpas", "-cpas") {
 
             @Override
-            void handleArg(Map<String, String> properties, String arg) {
+            void handleArg(Map<String, String> properties, String currentArg, String argValue) {
               properties.put("cpa", CompositeCPA.class.getName());
-              properties.put(CompositeCPA.class.getSimpleName() + ".cpas", arg);
+              properties.put(CompositeCPA.class.getSimpleName() + ".cpas", argValue);
             }
           }.withDescription("set CPAs for the analysis"),
           new PropertyAddingCmdLineArgument("-cbmc")
               .settingProperty("analysis.checkCounterexamples", "true")
               .settingProperty("counterexample.checker", "CBMC")
-              .withDescription("use CBMC as counterexample checker"),
+              .withReplacementInfo(
+                  "setting the options 'analysis.checkCounterexamples=true' and"
+                      + " 'counterexample.checker=CBMC'."),
           new PropertyAddingCmdLineArgument("-nolog")
               .settingProperty("log.level", "off")
               .settingProperty("log.consoleLevel", "off")
-              .withDescription("disable logging"),
-          new PropertyAddingCmdLineArgument("-skipRecursion")
+              .withReplacementInfo(
+                  "setting the options 'log.level=off' and 'log.consoleLevel=off'"),
+          new PropertyAddingCmdLineArgument("--skip-recursion", "-skipRecursion")
               .settingProperty("analysis.summaryEdges", "true")
               .settingProperty("cpa.callstack.skipRecursion", "true")
               .withDescription("skip recursive function calls"),
-          new PropertyAddingCmdLineArgument("-benchmark")
+          new PropertyAddingCmdLineArgument("--benchmark", "-benchmark")
               .settingProperty("output.disable", "true")
               .settingProperty("coverage.enabled", "false")
               .settingProperty("statistics.memory", "false")
               .withDescription(
                   "disable assertions and optional features such as output files for improved"
                       + " performance"),
-          new CmdLineArgument1("-setprop") {
+          new CmdLineArgument1("--option", "-setprop") {
 
             @Override
-            void handleArg(Map<String, String> properties, String arg)
+            void handleArg(Map<String, String> properties, String currentArg, String argValue)
                 throws InvalidCmdlineArgumentException {
-              List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(arg);
+              List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(argValue);
               if (bits.size() != 2) {
                 throw new InvalidCmdlineArgumentException(
-                    "-setprop argument must be a key=value pair, but \"" + arg + "\" is not.");
+                    String.format(
+                        "%s argument must be a key=value pair, but \"%s\" is not.",
+                        currentArg, argValue));
               }
               putIfNotExistent(properties, bits.get(0), bits.get(1));
             }
           }.withDescription("set an option directly"),
-          new CmdLineArgument("-printOptions") {
+          new CmdLineArgument("--print-options", "-printOptions") {
 
             @SuppressFBWarnings("DM_EXIT")
             @SuppressForbidden("System.out is correct here")
@@ -199,12 +219,12 @@ class CmdLineArguments {
               System.exit(0);
             }
           }.withDescription("print all possible options on StdOut"),
-          new PropertyAddingCmdLineArgument("-printUsedOptions")
+          new PropertyAddingCmdLineArgument("--print-used-options", "-printUsedOptions")
               .settingProperty(PRINT_USED_OPTIONS_OPTION, "true")
               .settingProperty("analysis.disable", "true")
               .overridingProperty("log.consoleLevel", "SEVERE")
               .withDescription("print all used options"),
-          new CmdLineArgument("-version") {
+          new CmdLineArgument("--version", "-version") {
 
             @SuppressFBWarnings("DM_EXIT")
             @SuppressForbidden("System.out is correct here")
@@ -215,7 +235,7 @@ class CmdLineArguments {
               System.exit(0);
             }
           }.withDescription("print version number"),
-          new CmdLineArgument("-h", "-help") {
+          new CmdLineArgument("--help", "-h", "-help") {
 
             @SuppressFBWarnings("DM_EXIT")
             @SuppressForbidden("System.out is correct here")
@@ -240,6 +260,8 @@ class CmdLineArguments {
       throws InvalidCmdlineArgumentException {
     Map<String, String> properties = new HashMap<>();
     List<String> programs = new ArrayList<>();
+    ImmutableMap.Builder<String, String> oldStyleArguments = ImmutableMap.builder();
+    boolean hasNewStyleArguments = false;
 
     Iterator<String> argsIt = Arrays.asList(args).iterator();
 
@@ -249,13 +271,20 @@ class CmdLineArguments {
       for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {
         if (cmdLineArg.apply(properties, arg, argsIt)) {
           foundMatchingArg = true;
+          if (isOldStyleArgument(arg)) {
+            if (!arg.equals(cmdLineArg.getMainName())) {
+              oldStyleArguments.put(arg, cmdLineArg.getMainName());
+            }
+          } else {
+            hasNewStyleArguments = true;
+          }
           break;
         }
       }
       if (foundMatchingArg) {
         // nothing left to do
       } else if (arg.startsWith("-") && Files.notExists(Path.of(arg))) {
-        String argName = arg.substring(1); // remove "-"
+        String argName = arg.substring(arg.startsWith("--") ? 2 : 1); // remove "--" or "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
           @Nullable Path configFile = resolveConfigFile(argName);
 
@@ -272,6 +301,13 @@ class CmdLineArguments {
                     + "If you meant to specify a configuration file, the file %s does not exist.",
                 arg, String.format(from(DEFAULT_CONFIG_FILES_TEMPLATES.keySet()).get(0), argName));
           }
+
+          if (isOldStyleArgument(arg)) {
+            oldStyleArguments.put(arg, "-" + arg);
+          } else {
+            hasNewStyleArguments = true;
+          }
+
         } else {
           throw Output.fatalErrorWithHelptext("Invalid option %s", arg);
         }
@@ -281,12 +317,43 @@ class CmdLineArguments {
       }
     }
 
+    printWarningsForOldStyleArguments(oldStyleArguments.buildKeepingLast(), hasNewStyleArguments);
+
     // arguments with non-specified options are considered as file names
     if (!programs.isEmpty()) {
       putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
 
     return properties;
+  }
+
+  static boolean isOldStyleArgument(String arg) {
+    return arg.length() > 2 // "-h" is ok
+        && arg.startsWith("-")
+        && !arg.startsWith("--"); // -foo is not ok, but --foo is
+  }
+
+  private static void printWarningsForOldStyleArguments(
+      ImmutableMap<String, String> oldStyleArguments, boolean hasNewStyleArguments) {
+    if (!oldStyleArguments.isEmpty()) {
+      String replacementSuggestions =
+          Collections3.zipMapEntries(
+                  oldStyleArguments,
+                  (oldArg, newArg) -> String.format("%n- replace '%s' with '%s'", oldArg, newArg))
+              .collect(Collectors.joining());
+
+      if (hasNewStyleArguments) {
+        throw Output.fatalError(
+            "Mix of old and new command-line arguments detected, which is not supported. "
+                + "Please adjust your command line as follows:%s",
+            replacementSuggestions);
+      } else {
+        Output.warning(
+            "Deprecated command-line arguments detected, "
+                + "we recommend adjusting your command line as follows:%s",
+            replacementSuggestions);
+      }
+    }
   }
 
   private static void handleCmc(final Iterator<String> argsIt, final Map<String, String> properties)
@@ -330,11 +397,13 @@ class CmdLineArguments {
     out.println();
     out.println("OPTIONS:");
     for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {
-      out.println(" " + cmdLineArg);
+      if (!isOldStyleArgument(cmdLineArg.getMainName())) {
+        out.println(" " + cmdLineArg);
+      }
     }
     out.println();
     out.println("You can also specify any of the configuration files in the directory config/");
-    out.println("with -CONFIG_FILE, e.g., -default for config/default.properties.");
+    out.println("with --CONFIG_FILE, e.g., --default for config/default.properties.");
     out.println();
     out.println(
         "More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");

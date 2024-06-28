@@ -12,4 +12,4 @@
 #Call cpachecker script to run CPAchecker and add configurations according to
 #your requirements. Only make a single cpachecker call per file. Use "$1" 
 #instead of a specific filename as those will be passed by the starexec job.
-./cpachecker -predicateAnalysis "$1"
+./cpachecker --predicateAnalysis "$1"

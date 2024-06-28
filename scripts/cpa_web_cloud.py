@@ -255,11 +255,18 @@ def _parse_cpachecker_args(cpachecker_args):
                 continue  # ignore empty arguments
 
             if option in [
+                "--heap",
                 "-heap",
+                "--timelimit",
                 "-timelimit",
+                "--entry-function",
                 "-entryfunction",
+                "--spec",
                 "-spec",
+                "--config",
+                "-c",
                 "-config",
+                "--option",
                 "-setprop",
             ]:
                 run.options.append(option)
