@@ -8,6 +8,8 @@ REM SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 REM
 REM SPDX-License-Identifier: Apache-2.0
 
+SETLOCAL
+
 IF "%JAVA%"=="" (
   IF NOT "%JAVA_HOME%"=="" (
     SET "JAVA=%JAVA_HOME%\bin\java"
