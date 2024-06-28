@@ -551,7 +551,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       ImmutableList.Builder<String> cmdLineBuilder = ImmutableList.builder();
       cmdLineBuilder.add("bin/cpachecker").add("--config").add(configPath.toString());
       for (String opt : Splitter.on('\n').omitEmptyStrings().split(config.asPropertiesString())) {
-        cmdLineBuilder.add("--setprop").add(opt);
+        cmdLineBuilder.add("--option").add(opt);
       }
       cmdLine = cmdLineBuilder.build();
     }
