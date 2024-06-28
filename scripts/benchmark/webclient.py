@@ -914,7 +914,7 @@ class WebInterface:
                         params.append(("option", next(i)))
 
                     elif option in ["--benchmark", "-benchmark"]:
-                        params.append(("option", "coverage.enabled=true"))
+                        params.append(("option", "coverage.enabled=false"))
                         params.append(("option", "output.disable=true"))
                         params.append(("option", "statistics.memory=false"))
                         disableAssertions = True

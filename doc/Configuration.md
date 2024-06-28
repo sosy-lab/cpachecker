@@ -36,7 +36,7 @@ The following command-line arguments are allowed:
  - `--cpas <CPAS>`		sets `cpa = cpa.composite.CompositeCPA` and `CompositeCPA.cpas = <CPAS>`
  - `--spec <FILE>`		sets `specification = <FILE>`
  - `--output-path <DIR>`	sets `output.path = <DIR>`
- - `--benchmark`		sets `coverage.enabled = true`, `output.disable = true`, `statistics.memory = false`, and disables assertions in CPAchecker for improved performance
+ - `--benchmark`		sets `coverage.enabled = false`, `output.disable = true`, `statistics.memory = false`, and disables assertions in CPAchecker for improved performance
  - `--no-output-files`		sets `output.disable=true`
  - `--stats`			sets `statistics.print = true`
  - `--entry-function <FUNC>`	sets `analysis.entryFunction = <FUNC>`
