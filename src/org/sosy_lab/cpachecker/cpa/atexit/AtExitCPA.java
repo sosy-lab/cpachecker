@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
 
 /**
@@ -30,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
  * @see <a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1548.pdf">C11 standard (draft),
  *     §7.22.4.2 and §7.22.4.4</a>
  */
-public class AtExitCPA extends AbstractCPA {
+public class AtExitCPA extends AbstractCPA implements ProofCheckerCPA {
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AtExitCPA.class);
   }
