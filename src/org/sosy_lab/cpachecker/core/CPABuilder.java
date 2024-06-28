@@ -168,7 +168,7 @@ public class CPABuilder {
 
       if (insertionPoint.children.isEmpty()) { // implies cpa.cpaClass == CompositeCPA.class
         // If a specification was given, but no CPAs, insert a LocationCPA.
-        // This allows to run CPAchecker with just "-spec ..." and no other config.
+        // This allows to run CPAchecker with just "--spec ..." and no other config.
         insertionPoint.children =
             ImmutableList.of(CPAConfig.forClass(LocationCPA.class), SPECIFICATION_PLACEHOLDER);
       } else {

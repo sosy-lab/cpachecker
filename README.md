@@ -135,7 +135,7 @@ You can validate violation witnesses with CPA-witness2test, which is part of CPA
    and the source code file that fits the violation witness.
 2. To validate the witness, execute the following command:
    ```
-   bin/cpa-witness2test -witness <WITNESS_FILE> -spec <SPEC_FILE> <SOURCE_FILE>`
+   bin/cpa-witness2test --witness <WITNESS_FILE> --spec <SPEC_FILE> <SOURCE_FILE>`
    ```
    Addtional command line switches are viewed with `bin/cpa-witness2test -h`.
 

@@ -806,7 +806,7 @@ class WebInterface:
         opened_files = []
         config = None
 
-        # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
+        # TODO use code from CPAchecker module, it add --stats and sets --timelimit,
         # instead of doing it here manually, too
         if self._tool_name == "CPAchecker":
             params.append(("option", "statistics.print=true"))

@@ -400,7 +400,7 @@ public class CPAchecker {
         case C:
           msg.append(
               "If the code was not preprocessed, please use a C preprocessor\n"
-                  + "or specify the -preprocess command-line argument.\n");
+                  + "or specify the --preprocess command-line argument.\n");
           break;
         case LLVM:
           msg.append(
