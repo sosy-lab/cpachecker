@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  * evaluating the argument with {@link ExpressionValueVisitor}.
  */
 public class AtExitTransferRelation extends SingleEdgeTransferRelation {
+  @SuppressWarnings("unused")
   private final LogManager logger;
 
   @SuppressWarnings("unused")
