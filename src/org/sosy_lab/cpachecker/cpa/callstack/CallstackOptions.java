@@ -28,8 +28,7 @@ class CallstackOptions {
           "_longjmp",
           "longjmp",
           "siglongjmp",
-          "__builtin_va_arg",
-          "atexit");
+          "__builtin_va_arg");
 
   @Option(secure = true, name = "depth", description = "depth of recursion bound")
   private int recursionBoundDepth = 0;
