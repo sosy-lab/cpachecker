@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.atexit;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,7 +55,7 @@ public class AtExitTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    return List.of(state);
+    return ImmutableList.of(state);
   }
 
   @Override
@@ -80,10 +80,10 @@ public class AtExitTransferRelation extends SingleEdgeTransferRelation {
           ExpressionValueVisitor evaluator =
               new ExpressionValueVisitor(fnState.createBuilder(), UnknownTarget.getInstance());
           FunctionPointerTarget target = argExpr.accept(evaluator);
-          return List.of(atExitState.push(target));
+          return ImmutableList.of(atExitState.push(target));
         }
       }
     }
-    return List.of(state);
+    return ImmutableList.of(state);
   }
 }
