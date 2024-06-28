@@ -81,13 +81,13 @@ SPDX-License-Identifier: Apache-2.0
     </target>
 
     <target name="build-witness-script" description="Build the script for witness validation as single file">
-        <property name="witness-script" value="scripts/witness_validation_web_cloud"/>
+        <property name="witness-script" value="scripts/cpachecker-cloud-web-witness"/>
         <fileset dir="." includes="lib/python-benchmark/sseclient-*.whl" id="sseclient.file"/>
         <fileset dir="." includes="lib/python-benchmark/requests-*.whl" id="requests.file"/>
         <fileset dir="." includes="lib/python-benchmark/six-*.whl" id="six.file"/>
         <!-- Write ZIP archive to witness.zip, write script header to witness.sh, and concatenate. -->
         <zip destfile="${witness-script}.zip" whenempty="fail" duplicate="fail">
-            <zipfileset dir="scripts" includes="witness_validation_web_cloud.py" fullpath="__main__.py" />
+            <zipfileset dir="scripts" includes="cpachecker-cloud-web-witness" fullpath="__main__.py" />
             <zipfileset dir="scripts" includes="benchmark/__init__.py benchmark/webclient.py" />
             <zipfileset src="${toString:sseclient.file}" />
             <zipfileset src="${toString:requests.file}" />

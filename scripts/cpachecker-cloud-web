@@ -183,7 +183,7 @@ def _init(config):
         config.cloud_master,
         config.cloud_user,
         revision,
-        user_agent="cpa_web_cloud.py",
+        user_agent="cpachecker-cloud-web",
         version=__version__,
     )
 
