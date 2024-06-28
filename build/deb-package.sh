@@ -55,8 +55,6 @@ podman run --rm -w "$BUILD_DIR" -v "$TEMP_DEB:$TEMP_DEB:rw" -v "$(realpath "$ARC
   unzip -q "/$CPACHECKER.zip"
   # clean up irrelevant stuff
   rm -rf "$CPACHECKER/lib/native/"{x86-*,*macosx,*windows}
-  # Only necessary before CPAchecker 2.4
-  rm -f "$CPACHECKER/lib/jpl"* "$CPACHECKER/lib/native/x86_64-linux/chc_lib"* "$CPACHECKER/lib/native/x86_64-linux/libjpl.so"*
 
   dch -v "$VERSION-1" "New upstream version."
   dch -r ""

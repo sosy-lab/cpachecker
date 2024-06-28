@@ -8,8 +8,8 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 2.3.1
-------------------------------
+Changes from CPAchecker 2.3.1 to CPAchecker 2.4
+-----------------------------------------------
 * Debian/Ubuntu package and APT repository  
   CPAchecker is now available as an easy-to-install `.deb` package for Debian/Ubuntu
   via the [SoSy-Lab APT repository](https://apt.sosy-lab.org).
