@@ -42,8 +42,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
         StringToBooleanFormulaParser.parseBooleanFormula(booleanFormulaString);
 
     VariableSelection<CompoundInterval> variableSelection =
-        new AcceptSpecifiedVariableSelection<CompoundInterval>(
-            booleanFormula.accept(new CollectVarsVisitor<>()));
+        new AcceptSpecifiedVariableSelection<>(booleanFormula.accept(new CollectVarsVisitor<>()));
 
     List<BooleanFormula<CompoundInterval>> assumptionParts =
         booleanFormula.accept(new SplitConjunctionsVisitor<>());

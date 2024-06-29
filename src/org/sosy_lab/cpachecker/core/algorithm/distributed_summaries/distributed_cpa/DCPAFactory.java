@@ -70,14 +70,7 @@ public class DCPAFactory {
     }
 
     if (pCPA instanceof InvariantsCPA invariantsCPA) {
-      return distribute(
-          invariantsCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pLogManager,
-          pShutdownNotifier,
-          integerToNodeMap);
+      return distribute(invariantsCPA, pBlockNode, pCFA);
     }
     if (pCPA instanceof CallstackCPA callstackCPA) {
       return distribute(callstackCPA, pCFA, integerToNodeMap);
@@ -117,22 +110,8 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      InvariantsCPA pInvariantsCPA,
-      BlockNode pBlockNode,
-      CFA pCFA,
-      Configuration pConfiguration,
-      LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier,
-      Map<Integer, CFANode> pIntegerCFANodeMap)
-      throws InvalidConfigurationException {
-    return new DistributedDataFlowAnalysisCPA(
-        pInvariantsCPA,
-        pBlockNode,
-        pCFA,
-        pConfiguration,
-        pLogManager,
-        pShutdownNotifier,
-        pIntegerCFANodeMap);
+      InvariantsCPA pInvariantsCPA, BlockNode pBlockNode, CFA pCFA) {
+    return new DistributedDataFlowAnalysisCPA(pInvariantsCPA, pBlockNode, pCFA);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

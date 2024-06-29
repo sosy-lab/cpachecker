@@ -8,12 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
-import java.util.Map;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
@@ -38,15 +33,7 @@ public class DistributedDataFlowAnalysisCPA
 
   private final BlockNode blockNode;
 
-  public DistributedDataFlowAnalysisCPA(
-      InvariantsCPA pInvariantsCPA,
-      BlockNode pNode,
-      CFA pCFA,
-      Configuration pConfiguration,
-      org.sosy_lab.common.log.LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier,
-      Map<Integer, CFANode> pIdToNodeMap)
-      throws InvalidConfigurationException {
+  public DistributedDataFlowAnalysisCPA(InvariantsCPA pInvariantsCPA, BlockNode pNode, CFA pCFA) {
     invariantsCPA = pInvariantsCPA;
     blockNode = pNode;
     serializeOperator = new SerializeDataflowAnalysisStateOperator(blockNode);

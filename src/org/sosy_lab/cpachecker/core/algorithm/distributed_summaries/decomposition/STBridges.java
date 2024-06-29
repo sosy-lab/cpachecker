@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
@@ -110,9 +111,8 @@ public class STBridges {
           }
 
           // Ensure first and last nodes are found
-          if (first == null || last == null) {
-            throw new IllegalStateException("First or last node not found in the connection.");
-          }
+          checkState(
+              first != null && last != null, "First or last node not found in the connection.");
 
           edges.add(
               new BlockNodeWithoutGraphInformation(
