@@ -100,10 +100,10 @@ class CmdLineArguments {
               .withDescription("language of the sourcefile"),
           new PropertyAddingCmdLineArgument("--32", "-32")
               .settingProperty("analysis.machineModel", "Linux32")
-              .withDescription("set machine model to LINUX32"),
+              .withDescription("set C data model to ILP32"),
           new PropertyAddingCmdLineArgument("--64", "-64")
               .settingProperty("analysis.machineModel", "Linux64")
-              .withDescription("set machine model to LINUX64"),
+              .withDescription("set C data model to LP64"),
           new PropertyAddingCmdLineArgument("--preprocess", "-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute a preprocessor before starting the analysis"),
