@@ -50,6 +50,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * <p>Using an unbounded number of threads (e.g. while(true) { pthread_create... }) is undefined
  * behavior.
  */
+@SuppressWarnings("unused")
+@SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO remove all @SuppressWarnings once finished
@@ -60,19 +62,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     throw new UnsupportedOperationException("Unimplemented method 'run'");
   }
 
-  @SuppressWarnings("unused")
   private final ConfigurableProgramAnalysis cpa;
 
-  @SuppressWarnings("unused")
   private final LogManager logger;
 
-  @SuppressWarnings("unused")
   private final Configuration config;
 
-  @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
-  @SuppressWarnings("unused")
   private final Specification specification;
 
   private final CFA cfa;
@@ -84,23 +81,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private Set<CFunctionType> threadStartRoutines;
 
   /** A map of thread IDs to functions executed by the thread. */
-  @SuppressWarnings("unused")
-  @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Map<Integer, Set<CFunctionType>> threadIdFunctions;
 
   /** A map of thread IDs to CFANodes the threads are currently in. */
-  @SuppressWarnings("unused")
-  @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Map<Integer, CFANode> threadNodes;
 
   /** The set of pthread_mutex_t objects in the program. */
-  @SuppressWarnings("unused")
-  @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Set<CIdExpression> mutexObjects;
 
   /** The set of pthread_t objects in the program, i.e. threads */
-  @SuppressWarnings("unused")
-  @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Set<MPORThread> threads;
 
   /** A map from FunctionCallEdge Predecessors to Return Nodes. */
