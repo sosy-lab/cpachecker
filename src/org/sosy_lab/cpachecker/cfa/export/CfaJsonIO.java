@@ -34,8 +34,7 @@ public abstract class CfaJsonIO {
       Set<CFANode> nodes,
       Set<CFAEdge> edges,
       NavigableMap<String, FunctionEntryNode> functions,
-      CfaMetadata metadata
-      ) {}
+      CfaMetadata metadata) {}
 
   /**
    * Configures and provides an instance of {@link ObjectMapper} for CFA serialization and
