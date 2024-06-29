@@ -14,6 +14,7 @@ import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.io.MoreFiles;
+import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -67,8 +68,9 @@ public final class CfaToJson extends CfaJsonIO {
 
     /* Write the CFA data. */
     try (FileOutputStream fileOutputStream = new FileOutputStream(pJsonFilePath.toFile());
+        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
         JsonGenerator jsonGenerator =
-            new JsonFactory().createGenerator(fileOutputStream, JsonEncoding.UTF8); ) {
+            new JsonFactory().createGenerator(bufferedOutputStream, JsonEncoding.UTF8); ) {
 
       provideConfiguredCfaObjectMapper().writeValue(jsonGenerator, this.cfaJsonData);
     }
