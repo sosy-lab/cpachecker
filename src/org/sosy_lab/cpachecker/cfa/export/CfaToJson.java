@@ -58,25 +58,20 @@ public final class CfaToJson extends CfaJsonIO {
   /**
    * Writes the {@link CFA} data.
    *
-   * @param pOutdir Directory to which JSON files are to be written.
+   * @param pJsonFilePath The path to the JSON file.
    * @throws IOException If an error with {@link FileOutputStream} or {@link JsonGenerator} occurs.
    */
-  public final void write(Path pOutdir) throws IOException {
-    /* Define the file path and create any required directories. */
-    Path jsonFilePath = pOutdir.resolve("cfa.json");
-    MoreFiles.createParentDirectories(jsonFilePath);
+  public void write(Path pJsonFilePath) throws IOException {
+    /* Create any required directories. */
+    MoreFiles.createParentDirectories(pJsonFilePath);
 
     /* Write the CFA data. */
-    try (FileOutputStream fileOutputStream = new FileOutputStream(jsonFilePath.toFile());
+    try (FileOutputStream fileOutputStream = new FileOutputStream(pJsonFilePath.toFile());
         JsonGenerator jsonGenerator =
             new JsonFactory().createGenerator(fileOutputStream, JsonEncoding.UTF8); ) {
 
       provideConfiguredCfaObjectMapper().writeValue(jsonGenerator, this.cfaJsonData);
-
-      // TODO
-      // provideConfiguredCfaObjectMapper().readValue(jsonFilePath.toFile(), CfaJsonExport.class);
     }
-  }
 
   //  private final static class CfaJsonExportDeserializer extends JsonDeserializer<CfaJsonExport> {
   //
