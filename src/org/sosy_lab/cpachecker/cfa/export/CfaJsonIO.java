@@ -31,10 +31,11 @@ public abstract class CfaJsonIO {
 
   /* This record represents the CFA data. */
   protected final record CfaJsonData(
-      CfaMetadata metadata,
       Set<CFANode> nodes,
+      Set<CFAEdge> edges,
       NavigableMap<String, FunctionEntryNode> functions,
-      Set<CFAEdge> edges) {}
+      CfaMetadata metadata
+      ) {}
 
   /**
    * Configures and provides an instance of {@link ObjectMapper} for CFA serialization and
@@ -104,9 +105,6 @@ public abstract class CfaJsonIO {
    * AstCfaRelation} is not serialized.
    */
   private static final class CfaMetadataMixin {
-
-    @JsonIdentityReference(alwaysAsId = true)
-    private FunctionEntryNode mainFunctionEntry;
 
     @JsonIgnore private AstCfaRelation astCFARelation;
   }

@@ -53,7 +53,7 @@ public final class CfaToJson extends CfaJsonIO {
     //     .resolve("functions").resolve(entryNode.getFunctionName() + ".json");
 
     this.cfaJsonData =
-        new CfaJsonData(cfa.getMetadata(), cfa.nodes(), cfa.getAllFunctions(), cfa.edges());
+        new CfaJsonData(cfa.nodes(), cfa.edges(), cfa.getAllFunctions(), cfa.getMetadata());
   }
 
   /**
