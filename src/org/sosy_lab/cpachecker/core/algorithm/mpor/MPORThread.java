@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -31,6 +33,8 @@ public class MPORThread {
    */
   public final Optional<FunctionExitNode> exitNode;
 
+  private Set<MPORMutex> mutexes = new HashSet<>();
+
   public MPORThread(
       Optional<CIdExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
@@ -42,5 +46,13 @@ public class MPORThread {
 
   public boolean isMain() {
     return threadObject.isEmpty();
+  }
+
+  public void addMutex(MPORMutex pMutex) {
+    mutexes.add(pMutex);
+  }
+
+  public Set<MPORMutex> getMutexes() {
+    return mutexes;
   }
 }

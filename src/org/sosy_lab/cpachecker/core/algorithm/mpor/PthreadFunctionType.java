@@ -31,6 +31,7 @@ public enum PthreadFunctionType {
     this.name = pName;
   }
 
+  // TODO move this function to MPORAlgorithm?
   /** Return true if the given CFAEdge is a call to the given pthread function */
   public static boolean isEdgeCallToFunctionType(
       CFAEdge pCfaEdge, PthreadFunctionType pPthreadFunctionType) {

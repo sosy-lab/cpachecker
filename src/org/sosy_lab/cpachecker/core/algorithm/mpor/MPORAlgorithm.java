@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -102,6 +103,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
   private Set<MPORThread> threads;
 
+  /** A map from FunctionCallEdge Predecessors to Return Nodes. */
+  private Map<CFANode, CFANode> functionCallEdgeNodes;
+
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
   public MPORAlgorithm(
@@ -119,16 +123,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     specification = pSpecification;
     cfa = pCfa;
 
+    // TODO group methods into prechecks, object extractions, actual algorithms on the CFA, etc.
     checkForCProgram(cfa);
     checkForParallelProgram(cfa);
+    functionCallEdgeNodes = getFunctionCallEdgeNodes(cfa);
     // TODO performance stuff:
     //  merge functions that go through each Edge together into one
     //  merge functions that go through each Node together into one
     threads = getThreads(cfa);
-    functionCallHierarchy = getFunctionCallHierarchy(cfa);
-    threadStartRoutines = getThreadStartRoutines(cfa);
-    threadIdFunctions = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
-    mutexObjects = getMutexObjects(cfa);
+    assignMutexesToThreads(threads);
+    mutexObjects = getMutexes(cfa);
+
+    // TODO create MPORState class mapping MPORThreads to their current location (CFANode)
+    // TODO not sure if we will actually use these, keeping them for now
+    // functionCallHierarchy = getFunctionCallHierarchy(cfa);
+    // threadStartRoutines = getThreadStartRoutines(cfa);
+    // threadIdFunctions = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
   }
 
   /** Checks whether the input language of the program is C and throws an exception if not. */
@@ -151,6 +161,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
     Preconditions.checkArgument(
         isParallel, "MPOR expects parallel C program with at least one pthread_create call");
+  }
+
+  /**
+   * TODO
+   *
+   * @param pCfa TODO
+   * @return TODO
+   */
+  private Map<CFANode, CFANode> getFunctionCallEdgeNodes(CFA pCfa) {
+    Map<CFANode, CFANode> ret = new HashMap<>();
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
+      if (cfaEdge instanceof FunctionCallEdge functionCallEdge) {
+        ret.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
+      }
+    }
+    return ret;
   }
 
   /**
@@ -185,6 +211,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         // TODO find out what happens if we access an array of pthread_t objects
         //  what will the CIdExpression be, the pthread_t object or the array?
         // extract the first parameter of pthread_create, i.e. the pthread_t object
+        // TODO create a CFAUtils function to extract the nth parameter from a
+        //  CFunctionCallStatement
         CUnaryExpression pthreadTExpression = (CUnaryExpression) cExpressions.get(0);
         Optional<CIdExpression> pthreadT =
             Optional.ofNullable((CIdExpression) pthreadTExpression.getOperand());
@@ -203,6 +231,111 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return ret;
+  }
+
+  /**
+   * TODO
+   *
+   * @param pThreads TODO
+   */
+  private void assignMutexesToThreads(Set<MPORThread> pThreads) {
+    for (MPORThread thread : pThreads) {
+      Set<CFANode> visitedNodes = new HashSet<>();
+      searchThreadForMutexes(thread, visitedNodes, thread.entryNode, null);
+    }
+  }
+
+  /**
+   * TODO
+   *
+   * @param pThread TODO
+   * @param pVisitedNodes keep track of already visited CFANodes to prevent an infinite loop if
+   *     there are loop structures in the CFA
+   * @param pCurrentNode TODO
+   * @param pFunctionReturnNode TODO
+   */
+  private void searchThreadForMutexes(
+      MPORThread pThread,
+      Set<CFANode> pVisitedNodes,
+      CFANode pCurrentNode,
+      CFANode pFunctionReturnNode) {
+    if (pThread.exitNode.isPresent()) {
+      if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThread.exitNode.get())) {
+        return;
+      }
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
+        // TODO this is the exact same procedure as in findMutexCfaNodes, create a function?
+        if (pCurrentNode instanceof FunctionExitNode) {
+          // if pCurrentNode is a FunctionExitNode, only consider the original calling context
+          if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
+            continue;
+          }
+          // reset FunctionReturnNode when encountering a FunctionExitNode
+          pFunctionReturnNode = null;
+        }
+        if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
+          AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
+          CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
+          List<CExpression> cExpressions =
+              cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
+          CUnaryExpression cUnaryExpression = (CUnaryExpression) cExpressions.get(0);
+          CIdExpression pthreadMutexT = (CIdExpression) cUnaryExpression.getOperand();
+          // the successor node of mutex_lock is the first inside the lock
+          MPORMutex mutex = new MPORMutex(pthreadMutexT, cfaEdge.getSuccessor());
+          findMutexCfaNodes(pThread, mutex, cfaEdge.getSuccessor(), null);
+        }
+        pVisitedNodes.add(pCurrentNode);
+        searchThreadForMutexes(
+            pThread,
+            pVisitedNodes,
+            cfaEdge.getSuccessor(),
+            functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
+      }
+    } else {
+      // TODO logic if there is no FunctionExitNode for the pThread
+    }
+  }
+
+  /**
+   * TODO
+   *
+   * @param pThread TODO
+   * @param pMutex TODO
+   * @param pCurrentNode TODO
+   * @param pFunctionReturnNode TODO
+   */
+  private void findMutexCfaNodes(
+      MPORThread pThread, MPORMutex pMutex, CFANode pCurrentNode, CFANode pFunctionReturnNode) {
+
+    // visit CFANodes only once to prevent infinite loops in case of loop structures
+    if (!pMutex.getNodes().contains(pCurrentNode)) {
+      pMutex.getNodes().add(pCurrentNode);
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
+        if (pCurrentNode instanceof FunctionExitNode) {
+          // if pCurrentNode is a FunctionExitNode, only consider the original calling context
+          if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
+            continue;
+          }
+          // reset FunctionReturnNode when encountering a FunctionExitNode
+          pFunctionReturnNode = null;
+        }
+        // TODO check if the mutex unlock uses the same pthread_mutex_t object (stored in pMutex)
+        //  create helper function extracting mutex_t from mutex call
+        if (PthreadFunctionType.isEdgeCallToFunctionType(
+            cfaEdge, PthreadFunctionType.MUTEX_UNLOCK)) {
+          // the last node inside the lock, before unlocking
+          pMutex.exitNodes.add(pCurrentNode);
+          // here, the mutex might be in the set already if there are multiple paths to an unlock
+          pThread.addMutex(pMutex);
+        } else {
+          findMutexCfaNodes(
+              pThread,
+              pMutex,
+              cfaEdge.getSuccessor(),
+              functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
+        }
+      }
+    }
   }
 
   /**
@@ -295,7 +428,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return set of CIdExpressions that are instances of pthread_mutex_t used in pthread_mutex_locks
    */
   // TODO what about pthread_mutex_trylock?
-  private Set<CIdExpression> getMutexObjects(CFA pCfa) {
+  // TODO unsure if we should consider MUTEX_INIT too?
+  private Set<CIdExpression> getMutexes(CFA pCfa) {
     Set<CIdExpression> mutexes = new HashSet<>();
     for (CFAEdge cfaEdge : pCfa.edges()) {
       if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
@@ -377,4 +511,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   //  this will be used for the reduced and sequentialized CFA
 
   // TODO see CFAUtils.java for helpful functions
+
+  // TODO create function for functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode)?
 }
