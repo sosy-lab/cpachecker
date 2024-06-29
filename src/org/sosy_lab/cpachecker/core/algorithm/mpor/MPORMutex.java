@@ -16,18 +16,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 /**
  * An object for a mutex containing the pthread_mutex_t object (not unique) and the set of all
  * CFANodes inside the lock, starting from the CFANode whose next CFAEdge is pthread_mutex_lock and
- * ending with the CFANode whose next CFAEdge is pthread_mutex_unlock.
+ * ending with the CFANode(s) whose next CFAEdge is pthread_mutex_unlock.
  */
 public class MPORMutex {
 
   public final CIdExpression pthreadMutexT;
 
-  private Set<CFANode> cfaNodes = new HashSet<>();
-
   public final CFANode entryNode;
 
-  // TODO getter setter
-  public Set<CFANode> exitNodes = new HashSet<>();
+  private Set<CFANode> cfaNodes = new HashSet<>();
+
+  private Set<CFANode> exitNodes = new HashSet<>();
 
   // TODO boolean hasNondetUnlock?
   //  if the unlock is conditional (i.e. multiple exitNodes) it has an effect on the
@@ -35,10 +34,11 @@ public class MPORMutex {
   //  leaving edges in a node
 
   /**
-   * TODO
+   * Initializes an MPORMutex with the pthread_mutex_t object and the first CFANode inside the lock.
    *
-   * @param pPthreadMutexT TODO
-   * @param pEntryNode TODO
+   * @param pPthreadMutexT the pthread_mutex_t object (not a unique identifier!)
+   * @param pEntryNode the entry CFANode of the lock, i.e. the CFANode directly after
+   *     pthread_mutex_lock
    */
   public MPORMutex(CIdExpression pPthreadMutexT, CFANode pEntryNode) {
     pthreadMutexT = pPthreadMutexT;
@@ -51,5 +51,13 @@ public class MPORMutex {
 
   public Set<CFANode> getNodes() {
     return cfaNodes;
+  }
+
+  public void addExitNode(CFANode pExitNode) {
+    exitNodes.add(pExitNode);
+  }
+
+  public Set<CFANode> getExitNodes() {
+    return exitNodes;
   }
 }

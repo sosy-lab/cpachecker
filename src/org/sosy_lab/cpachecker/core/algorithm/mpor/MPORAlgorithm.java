@@ -153,10 +153,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * TODO
+   * Searches all CFAEdges in pCfa for FunctionCallEdges and maps the predecessor CFANodes to their
+   * ReturnNodes so that context-sensitive algorithms can be performed on the CFA.
    *
-   * @param pCfa TODO
-   * @return TODO
+   * <p>E.g. a FunctionExitNode may have several leaving Edges, one for each time the function is
+   * called. With the Map, extracting only the leaving Edge resulting in the ReturnNode is possible.
+   *
+   * @param pCfa the CFA to be analyzed
+   * @return A Map of CFANodes before a FunctionCallEdge (keys) to the CFANodes where a function
+   *     continues (values, i.e. the ReturnNode) after going through the CFA of the function called.
    */
   private Map<CFANode, CFANode> getFunctionCallEdgeNodes(CFA pCfa) {
     Map<CFANode, CFANode> ret = new HashMap<>();
@@ -223,9 +228,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * TODO
+   * Searches all threads in pThreads for mutex locks and properly initializes the corresponding
+   * MPORMutex objects.
    *
-   * @param pThreads TODO
+   * @param pThreads the set of threads whose main functions / start Routines are searched
    */
   private void assignMutexesToThreads(Set<MPORThread> pThreads) {
     for (MPORThread thread : pThreads) {
@@ -235,33 +241,38 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * TODO
+   * Recursively searches the CFA of pThread for mutex_locks.
    *
-   * @param pThread TODO
+   * @param pThread the thread to be searched
    * @param pVisitedNodes keep track of already visited CFANodes to prevent an infinite loop if
    *     there are loop structures in the CFA
-   * @param pCurrentNode TODO
-   * @param pFunctionReturnNode TODO
+   * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for mutex_locks
+   * @param pFunctionReturnNode used to track the original context when entering the CFA of another
+   *     function. see {@link MPORAlgorithm#getFunctionCallEdgeNodes(CFA)} for more info.
    */
   private void searchThreadForMutexes(
       MPORThread pThread,
       Set<CFANode> pVisitedNodes,
       CFANode pCurrentNode,
       CFANode pFunctionReturnNode) {
+
     if (pThread.exitNode.isPresent()) {
-      if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThread.exitNode.get())) {
+      if (pVisitedNodes.contains(pCurrentNode)
+          || pCurrentNode.equals(pThread.exitNode.orElseThrow())) {
         return;
       }
       for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
+
         // TODO this is the exact same procedure as in findMutexCfaNodes, create a function?
+        // if pCurrentNode is a FunctionExitNode, only consider the original calling context
         if (pCurrentNode instanceof FunctionExitNode) {
-          // if pCurrentNode is a FunctionExitNode, only consider the original calling context
           if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
             continue;
           }
           // reset FunctionReturnNode when encountering a FunctionExitNode
           pFunctionReturnNode = null;
         }
+
         if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
           CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
@@ -273,6 +284,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           MPORMutex mutex = new MPORMutex(pthreadMutexT, cfaEdge.getSuccessor());
           findMutexCfaNodes(pThread, mutex, cfaEdge.getSuccessor(), null);
         }
+
         pVisitedNodes.add(pCurrentNode);
         searchThreadForMutexes(
             pThread,
@@ -286,12 +298,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * TODO
+   * Recursively searches the CFA of pThread for all CFANodes inside pMutex, i.e. until one or more
+   * mutex_unlock is encountered.
    *
-   * @param pThread TODO
-   * @param pMutex TODO
-   * @param pCurrentNode TODO
-   * @param pFunctionReturnNode TODO
+   * @param pThread the thread whose CFA we analyze
+   * @param pMutex the mutex lock whose CFANodes we want to find
+   * @param pCurrentNode the current CFANode whose leaving Edges we search for mutex_unlocks
+   * @param pFunctionReturnNode used to track the original context when entering the CFA of another
+   *     function. see {@link MPORAlgorithm#getFunctionCallEdgeNodes(CFA)} for more info.
    */
   private void findMutexCfaNodes(
       MPORThread pThread, MPORMutex pMutex, CFANode pCurrentNode, CFANode pFunctionReturnNode) {
@@ -300,20 +314,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (!pMutex.getNodes().contains(pCurrentNode)) {
       pMutex.getNodes().add(pCurrentNode);
       for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
+
+        // if pCurrentNode is a FunctionExitNode, only consider the original calling context
         if (pCurrentNode instanceof FunctionExitNode) {
-          // if pCurrentNode is a FunctionExitNode, only consider the original calling context
           if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
             continue;
           }
           // reset FunctionReturnNode when encountering a FunctionExitNode
           pFunctionReturnNode = null;
         }
+
         // TODO check if the mutex unlock uses the same pthread_mutex_t object (stored in pMutex)
         //  create helper function extracting mutex_t from mutex call
         if (PthreadFunctionType.isEdgeCallToFunctionType(
             cfaEdge, PthreadFunctionType.MUTEX_UNLOCK)) {
           // the last node inside the lock, before unlocking
-          pMutex.exitNodes.add(pCurrentNode);
+          pMutex.addExitNode(pCurrentNode);
           // here, the mutex might be in the set already if there are multiple paths to an unlock
           pThread.addMutex(pMutex);
         } else {
