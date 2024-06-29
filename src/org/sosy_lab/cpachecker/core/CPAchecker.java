@@ -47,6 +47,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.export.CfaFromJson;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
@@ -175,6 +176,13 @@ public class CPAchecker {
               + "instead of parsed from sourcefile.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path serializedCfaFile = null;
+
+  @Option(
+      secure = true,
+      name = "cfa.import.json",
+      description = "Import the CFA from a given JSON file (No source files are parsed).")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path cfaJsonFile = null;
 
   @Option(
       secure = true,
@@ -446,14 +454,14 @@ public class CPAchecker {
           ClassNotFoundException {
 
     final CFA cfa;
-    if (serializedCfaFile == null) {
+    if (serializedCfaFile == null && cfaJsonFile == null) {
       // parse file and create CFA
       logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
       CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
       stats.setCFACreator(cfaCreator);
       cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
 
-    } else {
+    } else if (cfaJsonFile == null) {
       // load CFA from serialization file
       logger.logf(Level.INFO, "Reading CFA from file \"%s\"", serializedCfaFile);
       try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
@@ -461,6 +469,13 @@ public class CPAchecker {
           ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
         cfa = (CFA) ois.readObject();
       }
+
+      assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
+
+    } else {
+      // import CFA from JSON file
+      logger.logf(Level.INFO, "Reading CFA from JSON file \"%s\"", cfaJsonFile);
+      cfa = CfaFromJson.read(cfaJsonFile);
 
       assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
     }
