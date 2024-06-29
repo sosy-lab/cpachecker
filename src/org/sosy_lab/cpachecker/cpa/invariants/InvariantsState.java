@@ -648,7 +648,7 @@ public class InvariantsState
     return cim.modulo(constant.getValue(), cim.singleton(2)).equals(cim.singleton(remainder));
   }
 
-  private InvariantsState addAssumptions(
+  public InvariantsState addAssumptions(
       Set<BooleanFormula<CompoundInterval>> pAdditionalAssumptions) {
     if (assumptions.containsAll(pAdditionalAssumptions)) {
       return this;

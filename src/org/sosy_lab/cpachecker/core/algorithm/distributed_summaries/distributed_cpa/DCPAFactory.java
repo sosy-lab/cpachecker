@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow.DistributedDataFlowAnalysisCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -66,6 +68,17 @@ public class DCPAFactory {
           pShutdownNotifier,
           integerToNodeMap);
     }
+
+    if (pCPA instanceof InvariantsCPA invariantsCPA) {
+      return distribute(
+          invariantsCPA,
+          pBlockNode,
+          pCFA,
+          pConfiguration,
+          pLogManager,
+          pShutdownNotifier,
+          integerToNodeMap);
+    }
     if (pCPA instanceof CallstackCPA callstackCPA) {
       return distribute(callstackCPA, pCFA, integerToNodeMap);
     }
@@ -91,6 +104,7 @@ public class DCPAFactory {
     if (pCPA instanceof ValueAnalysisCPA valueCPA) {
       return distribute(valueCPA);
     }
+    
     /* TODO: implement support for LocationCPA and LocationBackwardCPA
     as soon as targetCFANode is not required anymore */
     // creates CPA for every thread without communication
@@ -100,6 +114,25 @@ public class DCPAFactory {
   private static DistributedConfigurableProgramAnalysis distribute(
       ValueAnalysisCPA pValueAnalysisCPA) {
     return new DistributedValueAnalysisCPA(pValueAnalysisCPA);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      InvariantsCPA pInvariantsCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      Map<Integer, CFANode> pIntegerCFANodeMap)
+      throws InvalidConfigurationException {
+    return new DistributedDataFlowAnalysisCPA(
+        pInvariantsCPA,
+        pBlockNode,
+        pCFA,
+        pConfiguration,
+        pLogManager,
+        pShutdownNotifier,
+        pIntegerCFANodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

@@ -267,6 +267,10 @@ public class InvariantsCPA
     edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
   }
 
+  public CompoundIntervalManagerFactory getCompoundIntervalFormulaManagerFactory() {
+    return compoundIntervalManagerFactory;
+  }
+
   @Override
   public MergeOperator getMergeOperator() {
     return mergeOperator;
