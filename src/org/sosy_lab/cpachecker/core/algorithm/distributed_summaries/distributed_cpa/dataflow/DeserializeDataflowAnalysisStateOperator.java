@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -25,40 +24,43 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.StringToBooleanFormulaPars
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 
-
-
 public class DeserializeDataflowAnalysisStateOperator implements DeserializeOperator {
-    private final CFA cfa;
-    private final InvariantsCPA invariantsCPA;
+  private final CFA cfa;
+  private final InvariantsCPA invariantsCPA;
 
-    public DeserializeDataflowAnalysisStateOperator(InvariantsCPA pInvariantsCPA, CFA pCFA) {
-        cfa = pCFA;
-        invariantsCPA = pInvariantsCPA;
+  public DeserializeDataflowAnalysisStateOperator(InvariantsCPA pInvariantsCPA, CFA pCFA) {
+    cfa = pCFA;
+    invariantsCPA = pInvariantsCPA;
+  }
+
+  @Override
+  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+    String booleanFormulaString =
+        (String) pMessage.getAbstractState(InvariantsCPA.class).orElseThrow();
+
+    BooleanFormula<CompoundInterval> booleanFormula =
+        StringToBooleanFormulaParser.parseBooleanFormula(booleanFormulaString);
+
+    VariableSelection<CompoundInterval> variableSelection =
+        new AcceptSpecifiedVariableSelection<CompoundInterval>(
+            booleanFormula.accept(new CollectVarsVisitor<>()));
+
+    List<BooleanFormula<CompoundInterval>> assumptionParts =
+        booleanFormula.accept(new SplitConjunctionsVisitor<>());
+    for (BooleanFormula<CompoundInterval> assumption : assumptionParts) {
+      variableSelection = variableSelection.acceptAssumption(assumption);
     }
 
-    @Override
-    public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
-        String booleanFormulaString =
-                (String) pMessage.getAbstractState(InvariantsCPA.class).orElseThrow();
+    InvariantsState deserializedInvariantsState =
+        new InvariantsState(
+            variableSelection,
+            invariantsCPA.getCompoundIntervalFormulaManagerFactory(),
+            cfa.getMachineModel(),
+            null,
+            false);
+    deserializedInvariantsState =
+        deserializedInvariantsState.addAssumptions(Set.copyOf(assumptionParts));
 
-
-        BooleanFormula<CompoundInterval> booleanFormula = StringToBooleanFormulaParser.parseBooleanFormula(booleanFormulaString);
-        
-
-
-        VariableSelection<CompoundInterval> variableSelection = new AcceptSpecifiedVariableSelection<CompoundInterval>(booleanFormula.accept(new CollectVarsVisitor<>()));
-
-        List<BooleanFormula<CompoundInterval>> assumptionParts =
-                booleanFormula.accept(new SplitConjunctionsVisitor<>());
-        for (BooleanFormula<CompoundInterval> assumption : assumptionParts) {
-            variableSelection = variableSelection.acceptAssumption(assumption);
-        }
-
-        InvariantsState deserializedInvariantsState = new InvariantsState(variableSelection, invariantsCPA.getCompoundIntervalFormulaManagerFactory(), cfa.getMachineModel(), null, false);
-        deserializedInvariantsState = deserializedInvariantsState.addAssumptions(Set.copyOf(assumptionParts));
-
-        return deserializedInvariantsState;
-
-    }
-
+    return deserializedInvariantsState;
+  }
 }

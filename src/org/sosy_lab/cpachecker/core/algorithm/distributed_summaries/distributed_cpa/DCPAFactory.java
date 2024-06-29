@@ -104,7 +104,7 @@ public class DCPAFactory {
     if (pCPA instanceof ValueAnalysisCPA valueCPA) {
       return distribute(valueCPA);
     }
-    
+
     /* TODO: implement support for LocationCPA and LocationBackwardCPA
     as soon as targetCFANode is not required anymore */
     // creates CPA for every thread without communication

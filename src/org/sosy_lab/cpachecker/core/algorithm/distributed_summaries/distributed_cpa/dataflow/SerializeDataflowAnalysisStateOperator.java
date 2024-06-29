@@ -20,22 +20,24 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeBooleanFormulaVis
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeNumeralFormulaVisitor;
 
 public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
-    BlockNode currentBlockNode;
+  BlockNode currentBlockNode;
 
-    public SerializeDataflowAnalysisStateOperator(BlockNode pCurrentBlockNode) {
-        currentBlockNode = pCurrentBlockNode;
-    }
+  public SerializeDataflowAnalysisStateOperator(BlockNode pCurrentBlockNode) {
+    currentBlockNode = pCurrentBlockNode;
+  }
 
-    @Override
-    public BlockSummaryMessagePayload serialize(AbstractState pState) {
-        InvariantsState state = (InvariantsState) pState;
-        BooleanFormula<CompoundInterval> booleanFormula = state.asFormula();
-        SerializeNumeralFormulaVisitor numeralFormulaVisitor = new SerializeNumeralFormulaVisitor();
-        SerializeBooleanFormulaVisitor booleanFormulaVisitor = new SerializeBooleanFormulaVisitor(numeralFormulaVisitor);
-        
-        BlockSummaryMessagePayload.Builder payload = 
-            BlockSummaryMessagePayload.builder().addEntry(InvariantsCPA.class.getName(), booleanFormula.accept(booleanFormulaVisitor));
-        
-        return payload.buildPayload();
-    }
+  @Override
+  public BlockSummaryMessagePayload serialize(AbstractState pState) {
+    InvariantsState state = (InvariantsState) pState;
+    BooleanFormula<CompoundInterval> booleanFormula = state.asFormula();
+    SerializeNumeralFormulaVisitor numeralFormulaVisitor = new SerializeNumeralFormulaVisitor();
+    SerializeBooleanFormulaVisitor booleanFormulaVisitor =
+        new SerializeBooleanFormulaVisitor(numeralFormulaVisitor);
+
+    BlockSummaryMessagePayload.Builder payload =
+        BlockSummaryMessagePayload.builder()
+            .addEntry(InvariantsCPA.class.getName(), booleanFormula.accept(booleanFormulaVisitor));
+
+    return payload.buildPayload();
+  }
 }

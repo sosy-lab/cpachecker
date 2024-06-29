@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
 import java.util.Map;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,65 +30,65 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedDataFlowAnalysisCPA
-        implements ForwardingDistributedConfigurableProgramAnalysis {
+    implements ForwardingDistributedConfigurableProgramAnalysis {
 
-    private final InvariantsCPA invariantsCPA;
-    private final SerializeOperator serializeOperator;
-    private final DeserializeOperator deserializeOperator;
+  private final InvariantsCPA invariantsCPA;
+  private final SerializeOperator serializeOperator;
+  private final DeserializeOperator deserializeOperator;
 
-    private final BlockNode blockNode;
+  private final BlockNode blockNode;
 
-    public DistributedDataFlowAnalysisCPA(
-            InvariantsCPA pInvariantsCPA,
-            BlockNode pNode,
-            CFA pCFA,
-            Configuration pConfiguration,
-            org.sosy_lab.common.log.LogManager pLogManager,
-            ShutdownNotifier pShutdownNotifier,
-            Map<Integer, CFANode> pIdToNodeMap)
-            throws InvalidConfigurationException {
-        invariantsCPA = pInvariantsCPA;
-        blockNode = pNode;
-        serializeOperator = new SerializeDataflowAnalysisStateOperator(blockNode);
-        deserializeOperator = new DeserializeDataflowAnalysisStateOperator(invariantsCPA, pCFA);
-    }
+  public DistributedDataFlowAnalysisCPA(
+      InvariantsCPA pInvariantsCPA,
+      BlockNode pNode,
+      CFA pCFA,
+      Configuration pConfiguration,
+      org.sosy_lab.common.log.LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      Map<Integer, CFANode> pIdToNodeMap)
+      throws InvalidConfigurationException {
+    invariantsCPA = pInvariantsCPA;
+    blockNode = pNode;
+    serializeOperator = new SerializeDataflowAnalysisStateOperator(blockNode);
+    deserializeOperator = new DeserializeDataflowAnalysisStateOperator(invariantsCPA, pCFA);
+  }
 
-    @Override
-    public SerializeOperator getSerializeOperator() {
-        return serializeOperator;
-    }
+  @Override
+  public SerializeOperator getSerializeOperator() {
+    return serializeOperator;
+  }
 
-    @Override
-    public DeserializeOperator getDeserializeOperator() {
-        return deserializeOperator;
-    }
+  @Override
+  public DeserializeOperator getDeserializeOperator() {
+    return deserializeOperator;
+  }
 
-    @Override
-    public ProceedOperator getProceedOperator() {
-        return ProceedOperator.always();
-    }
+  @Override
+  public ProceedOperator getProceedOperator() {
+    return ProceedOperator.always();
+  }
 
-    @Override
-    public Class<? extends AbstractState> getAbstractStateClass() {
-        return InvariantsState.class;
-    }
+  @Override
+  public Class<? extends AbstractState> getAbstractStateClass() {
+    return InvariantsState.class;
+  }
 
-    @Override
-    public ConfigurableProgramAnalysis getCPA() {
-        return invariantsCPA;
-    }
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return invariantsCPA;
+  }
 
-    @Override
-    public boolean isTop(AbstractState pAbstractState) {
-        throw new UnsupportedOperationException("Unimplemented method 'isTop'");
-    }
+  @Override
+  public boolean isTop(AbstractState pAbstractState) {
+    throw new UnsupportedOperationException("Unimplemented method 'isTop'");
+  }
 
-    @Override
-    public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-            throws CPATransferException, InterruptedException, VerificationConditionException,
-            SolverException {
-        throw new UnsupportedOperationException(
-                "Unimplemented method 'computeVerificationCondition'");
-    }
-
+  @Override
+  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException,
+          InterruptedException,
+          VerificationConditionException,
+          SolverException {
+    throw new UnsupportedOperationException("Unimplemented method 'computeVerificationCondition'");
+  }
 }
