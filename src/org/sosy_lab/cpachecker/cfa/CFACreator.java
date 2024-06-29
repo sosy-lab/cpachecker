@@ -179,7 +179,7 @@ public class CFACreator {
       description = "add loop-structure information to CFA.")
   private boolean useLoopStructure = true;
 
-  @Option(secure = true, name = "cfa.export", description = "export CFA as .dot file")
+  @Option(secure = true, name = "cfa.export", description = "export CFA as .dot and JSON files")
   private boolean exportCfa = true;
 
   @Option(
@@ -223,6 +223,10 @@ public class CFACreator {
   @Option(secure = true, name = "cfa.file", description = "export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Path.of("cfa.dot");
+
+  @Option(secure = true, name = "cfa.json.file", description = "export CFA as JSON file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportCfaJsonFile = Path.of("cfa.json");
 
   @Option(
       secure = true,
@@ -1164,9 +1168,17 @@ public class CFACreator {
       try {
         Path outdir = exportCfaFile.getParent().resolve("cfa");
         new DOTBuilder2(cfa).writeGraphs(outdir);
-        new CfaToJson(cfa).write(exportCfaFile.getParent());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to dot files");
+        // continue with analysis
+      }
+    }
+
+    if (exportCfa && exportCfaJsonFile != null) {
+      try {
+        new CfaToJson(cfa).write(exportCfaJsonFile);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write CFA to JSON file");
         // continue with analysis
       }
     }
