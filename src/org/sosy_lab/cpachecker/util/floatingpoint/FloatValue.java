@@ -993,29 +993,33 @@ public class FloatValue extends Number {
    * is supposed to be reused when a^k needs to be computed for many different k as this allows us
    * to avoid recalculations of partial results during fast exponentiation.
    */
-  private FloatValue powInt_(BigInteger pExp, Map<BigInteger, FloatValue> pPowMap) {
-    if (!pPowMap.containsKey(pExp)) {
-      FloatValue x = this;
-      if (pExp.compareTo(BigInteger.ZERO) < 0) {
-        // TODO: Find a bound for the number of extra bits needed
-        Format ext = new Format(format.expBits, 2 * format.sigBits + 1);
-        x = one(ext).divide_(x.withPrecision(ext));
-      }
-      FloatValue r = x.powFast(pExp.abs(), pPowMap);
-      pPowMap.put(pExp, r);
+  private FloatValue powInt_(BigInteger x, Map<BigInteger, FloatValue> pPowMap) {
+    if (x.compareTo(BigInteger.ZERO) < 0) {
+      return one(format).divide(this.powInt_(x.abs(), pPowMap));
     }
-    return pPowMap.get(pExp);
+    for (int s = x.bitLength(); s >= 0; s--) {
+      // Fill the map with intermediate values for a^(x/2^k)
+      powFast(x.shiftRight(s), pPowMap);
+    }
+    return pPowMap.get(x);
   }
 
-  private FloatValue powFast(BigInteger pExp, Map<BigInteger, FloatValue> pPowMap) {
-    if (pExp.equals(BigInteger.ZERO)) {
-      return one(format);
-    } else if (pExp.equals(BigInteger.ONE)) {
-      return this;
-    } else {
-      FloatValue r = powInt_(pExp.divide(BigInteger.valueOf(2)), pPowMap).squared();
-      FloatValue p = pExp.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO) ? one(format) : this;
-      return p.multiply(r);
+  /**
+   * Iterative fast exponentiation.
+   *
+   * <p>Calculates a^x assuming that the map already contains the value of a^(x/2)
+   */
+  private void powFast(BigInteger x, Map<BigInteger, FloatValue> pPowMap) {
+    if (!pPowMap.containsKey(x)) {
+      if (x.equals(BigInteger.ZERO)) {
+        pPowMap.put(x, one(format));
+      } else if (x.equals(BigInteger.ONE)) {
+        pPowMap.put(x, this);
+      } else {
+        FloatValue r = pPowMap.get(x.divide(BigInteger.TWO));
+        FloatValue p = x.mod(BigInteger.TWO).equals(BigInteger.ZERO) ? one(format) : this;
+        pPowMap.put(x, p.multiply(r.squared()));
+      }
     }
   }
 
