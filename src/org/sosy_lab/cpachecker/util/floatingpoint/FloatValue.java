@@ -16,7 +16,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -981,46 +980,24 @@ public class FloatValue extends Number {
 
   /** The power function a^x for integer exponents x. */
   public FloatValue powInt(BigInteger exp) {
-    Map<BigInteger, FloatValue> powMap = new HashMap<>();
-    return withPrecision(format.extended()).powInt_(exp, powMap).withPrecision(format);
+    return withPrecision(format.extended()).powFast(exp).withPrecision(format);
   }
 
   /**
    * Calculate the power function a^x where x is an integer.
    *
-   * <p>This version is for internal use only and does not extend the precision to avoid rounding
-   * errors. The second argument is a Map containing all intermediate results of the calculation. It
-   * is supposed to be reused when a^k needs to be computed for many different k as this allows us
-   * to avoid recalculations of partial results during fast exponentiation.
+   * <p>Uses fast exponentiation to calculate the result.
    */
-  private FloatValue powInt_(BigInteger x, Map<BigInteger, FloatValue> pPowMap) {
+  private FloatValue powFast(BigInteger x) {
     if (x.compareTo(BigInteger.ZERO) < 0) {
-      return one(format).divide(this.powInt_(x.abs(), pPowMap));
+      // If x is negative we calculate 1/a^-x
+      return one(format).divide(this.powFast(x.abs()));
     }
     FloatValue r = one(format);
     for (int s = x.bitLength() - 1; s >= 0; s--) {
-      // Fill the map with intermediate values for a^(x/2^k)
-      r = powFast(r, pPowMap, x.shiftRight(s));
+      r = x.testBit(s) ? this.multiply(r.squared()) : r.squared();
     }
     return r;
-  }
-
-  /**
-   * Iterative fast exponentiation.
-   *
-   * <p>Calculates a^x from the value of 'a' and a^(x/2) and stores the returns the result.
-   */
-  private FloatValue powFast(FloatValue p, Map<BigInteger, FloatValue> pPowMap, BigInteger x) {
-    return pPowMap.computeIfAbsent(
-        x,
-        key -> {
-          if (x.equals(BigInteger.ONE)) {
-            return this;
-          } else {
-            FloatValue r = x.mod(BigInteger.TWO).equals(BigInteger.ZERO) ? one(format) : this;
-            return r.multiply(p.squared());
-          }
-        });
   }
 
   public FloatValue divide(FloatValue pNumber) {
@@ -1490,8 +1467,6 @@ public class FloatValue extends Number {
       x = x.withExponent(0);
     }
 
-    Map<BigInteger, FloatValue> powMap = new HashMap<>();
-
     boolean done = false;
     int k = pSkipTerm1 ? 1 : 0;
 
@@ -1499,7 +1474,7 @@ public class FloatValue extends Number {
       FloatValue s = r;
 
       // r(k+1) = r(k) +  x^k/k!
-      FloatValue a = x.powInt_(BigInteger.valueOf(k), powMap);
+      FloatValue a = x.powFast(BigInteger.valueOf(k));
       FloatValue b = lookupExpTable(k);
 
       r = r.add(a.multiply(b));
@@ -1586,15 +1561,13 @@ public class FloatValue extends Number {
     FloatValue x = this;
     FloatValue r = zero(format);
 
-    Map<BigInteger, FloatValue> powMap = new HashMap<>();
-
     int k = 1;
     boolean done = false;
     while (!done) {
       FloatValue r0 = r;
 
       // r(k+1) = r(k) +  x^k/k
-      FloatValue a = x.powInt_(BigInteger.valueOf(k), powMap);
+      FloatValue a = x.powFast(BigInteger.valueOf(k));
       FloatValue b = lookupLnTable(k);
       FloatValue v = a.multiply(b);
 
