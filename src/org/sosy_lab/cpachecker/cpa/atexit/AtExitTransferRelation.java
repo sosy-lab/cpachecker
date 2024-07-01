@@ -14,11 +14,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -69,15 +69,15 @@ public class AtExitTransferRelation extends SingleEdgeTransferRelation {
     for (AbstractState other : otherStates) {
       if (state instanceof AtExitState atExitState
           && other instanceof FunctionPointerState fnState) {
-        if (cfaEdge instanceof AStatementEdge stmtEdge
-            && stmtEdge.getStatement() instanceof AFunctionCall callStmt
+        if (cfaEdge instanceof CStatementEdge stmtEdge
+            && stmtEdge.getStatement() instanceof CFunctionCall callStmt
             && callStmt.getFunctionCallExpression().getFunctionNameExpression()
-                instanceof AIdExpression fnExpr
-            && fnExpr.getName().equals("atexit")
-            && callStmt.getFunctionCallExpression().getParameterExpressions().get(0)
-                instanceof CExpression argExpr) {
-          // We've found a statement of the form "int r = atexit(<expr>)" or "atexit(<expr>)"
-          // Evaluate <expr> to get a target for the function pointer and store it on the stack
+                instanceof CIdExpression fnExpr
+            && fnExpr.getName().equals("atexit")) {
+          // We've found a statement of the form "int r = atexit(argExpr)" or "atexit(argExpr)"
+          CExpression argExpr =
+              callStmt.getFunctionCallExpression().getParameterExpressions().get(0);
+          // Evaluate argExpr to get a target for the function pointer and store it on the stack
           ExpressionValueVisitor evaluator =
               new ExpressionValueVisitor(fnState.createBuilder(), UnknownTarget.getInstance());
           FunctionPointerTarget target = argExpr.accept(evaluator);
