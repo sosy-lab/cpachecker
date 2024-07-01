@@ -35,8 +35,8 @@ public class MPORMutex {
 
   /**
    * Initializes an MPORMutex with the pthread_mutex_t object and the first CFANode inside the lock.
-   * The (exit) CFANodes inside the mutex are not initialized in the constructor, see {@link
-   * MPORAlgorithm#assignMutexesToThreads(Set)}.
+   * The (exit) CFANodes inside the mutex are not initialized in the constructor, see
+   * MPORAlgorithm.assignMutexesToThreads(...).
    *
    * @param pPthreadMutexT the pthread_mutex_t object (not a unique identifier!)
    * @param pEntryNode the entry CFANode of the lock, i.e. the CFANode directly after

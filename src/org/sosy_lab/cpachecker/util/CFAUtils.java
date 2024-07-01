@@ -93,7 +93,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -300,18 +299,16 @@ public class CFAUtils {
    *
    * @param pCfaEdge CFAEdge that must be a CFunctionCallStatement
    * @param pIndex the position of the parameter to be extracted (starting at 0)
-   * @return the CUnaryExpression of the parameter at pIndex
+   * @return the CExpression of the parameter at pIndex
    * @throws IllegalArgumentException if pCfaEdge cannot be cast accordingly
    */
-  public static CUnaryExpression getParameterAtIndex(CFAEdge pCfaEdge, int pIndex) {
+  public static CExpression getParameterAtIndex(CFAEdge pCfaEdge, int pIndex) {
     if (isCfaEdgeCFunctionCallStatement(pCfaEdge)) {
       AAstNode aAstNode = pCfaEdge.getRawAST().orElseThrow();
       CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
       List<CExpression> cExpressions =
           cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
-      if (cExpressions.get(pIndex) instanceof CUnaryExpression) {
-        return (CUnaryExpression) cExpressions.get(pIndex);
-      }
+      return cExpressions.get(pIndex);
     }
     throw new IllegalArgumentException("pCfaEdge must be a CFunctionCallStatement");
   }

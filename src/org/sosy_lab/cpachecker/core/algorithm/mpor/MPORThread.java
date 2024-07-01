@@ -35,6 +35,8 @@ public class MPORThread {
 
   private Set<MPORMutex> mutexes = new HashSet<>();
 
+  private Set<MPORJoin> joins = new HashSet<>();
+
   public MPORThread(
       Optional<CIdExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
@@ -54,5 +56,13 @@ public class MPORThread {
 
   public Set<MPORMutex> getMutexes() {
     return mutexes;
+  }
+
+  public void addJoin(MPORJoin pJoin) {
+    joins.add(pJoin);
+  }
+
+  public Set<MPORJoin> getJoins() {
+    return joins;
   }
 }

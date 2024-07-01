@@ -20,6 +20,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -117,6 +118,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     //  merge functions that go through each Node together into one
     threads = getThreads(cfa);
     assignMutexesToThreads(threads);
+    assignJoinsToThreads(threads);
     mutexObjects = getMutexes(cfa);
 
     // TODO create MPORState class mapping MPORThreads to their current location (CFANode)
@@ -195,12 +197,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         // TODO find out what happens if we access an array of pthread_t objects
         //  what will the CIdExpression be, the pthread_t object or the array?
         // extract the first parameter of pthread_create, i.e. the pthread_t object
-        CUnaryExpression pthreadTExpression = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+        CUnaryExpression pthreadTExpression =
+            (CUnaryExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0);
         Optional<CIdExpression> pthreadT =
             Optional.ofNullable((CIdExpression) pthreadTExpression.getOperand());
 
         // extract the third parameter of pthread_create which points to the start routine function
-        CUnaryExpression startRoutineExpression = CFAUtils.getParameterAtIndex(cfaEdge, 2);
+        CUnaryExpression startRoutineExpression =
+            (CUnaryExpression) CFAUtils.getParameterAtIndex(cfaEdge, 2);
         CPointerType cPointerType = (CPointerType) startRoutineExpression.getExpressionType();
         CFunctionType startRoutine = (CFunctionType) cPointerType.getType();
 
@@ -261,8 +265,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         }
 
         if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
-          CIdExpression pthreadMutexT =
-              (CIdExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0).getOperand();
+          CIdExpression pthreadMutexT = (CIdExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0);
           // the successor node of mutex_lock is the first inside the lock
           MPORMutex mutex = new MPORMutex(pthreadMutexT, cfaEdge.getSuccessor());
           findMutexCfaNodes(pThread, mutex, cfaEdge.getSuccessor(), null);
@@ -277,6 +280,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     } else {
       // TODO logic if there is no FunctionExitNode for the pThread
+      //  undefined behavior / restriction?
     }
   }
 
@@ -308,8 +312,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
         if (PthreadFunctionType.isEdgeCallToFunctionType(
             cfaEdge, PthreadFunctionType.MUTEX_UNLOCK)) {
-          CIdExpression pthreadMutexT =
-              (CIdExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0).getOperand();
+          CIdExpression pthreadMutexT = (CIdExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0);
           if (pthreadMutexT.equals(pMutex.pthreadMutexT)) {
             // the last node inside the lock, before unlocking
             pMutex.addExitNode(pCurrentNode);
@@ -324,6 +327,67 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
         }
       }
+    }
+  }
+
+  /**
+   * TODO
+   *
+   * @param pThreads TODO
+   */
+  private void assignJoinsToThreads(Set<MPORThread> pThreads) {
+    for (MPORThread thread : pThreads) {
+      Set<CFANode> visitedNodes = new HashSet<>();
+      searchThreadForJoins(pThreads, thread, visitedNodes, thread.entryNode, null);
+    }
+  }
+
+  /**
+   * TODO
+   *
+   * @param pThreads TODO
+   * @param pThread TODO
+   * @param pVisitedNodes TODO
+   * @param pCurrentNode TODO
+   * @param pFunctionReturnNode TODO
+   */
+  private void searchThreadForJoins(
+      Set<MPORThread> pThreads,
+      MPORThread pThread,
+      Set<CFANode> pVisitedNodes,
+      CFANode pCurrentNode,
+      CFANode pFunctionReturnNode) {
+
+    if (pThread.exitNode.isPresent()) {
+      if (pVisitedNodes.contains(pCurrentNode)
+          || pCurrentNode.equals(pThread.exitNode.orElseThrow())) {
+        return;
+      }
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
+        // if pCurrentNode is a FunctionExitNode, only consider the original calling context
+        if (pCurrentNode instanceof FunctionExitNode) {
+          if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
+            continue;
+          }
+          pFunctionReturnNode = null; // no need, but useful for debugging and cleaner
+        }
+        if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.JOIN)) {
+          CExpression cExpression = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+          CIdExpression pthreadT = (CIdExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0);
+          MPORThread threadToTerminate = getThreadByPthreadT(pThreads, pthreadT);
+          MPORJoin join = new MPORJoin(threadToTerminate, pCurrentNode);
+          pThread.addJoin(join);
+        }
+        pVisitedNodes.add(pCurrentNode);
+        searchThreadForJoins(
+            pThreads,
+            pThread,
+            pVisitedNodes,
+            cfaEdge.getSuccessor(),
+            functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
+      }
+    } else {
+      // TODO
     }
   }
 
@@ -370,7 +434,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         // TODO use loop structure to handle pthread_create calls inside loops
         //  (function is called numerous times)
         // extract the third parameter of pthread_create which points to the start routine function
-        CUnaryExpression cUnaryExpression = CFAUtils.getParameterAtIndex(cfaEdge, 2);
+        CUnaryExpression cUnaryExpression =
+            (CUnaryExpression) CFAUtils.getParameterAtIndex(cfaEdge, 2);
         CPointerType cPointerType = (CPointerType) cUnaryExpression.getExpressionType();
         CFunctionType cFunctionType = (CFunctionType) cPointerType.getType();
         startRoutines.add(cFunctionType);
@@ -419,7 +484,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge cfaEdge : pCfa.edges()) {
       if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
         // extract the first parameter which is the pthread_mutex_t object
-        CUnaryExpression cUnaryExpression = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+        CUnaryExpression cUnaryExpression =
+            (CUnaryExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0);
         CIdExpression cIdExpression = (CIdExpression) cUnaryExpression.getOperand();
         mutexes.add(cIdExpression);
       }
@@ -494,4 +560,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO see CFAUtils.java for helpful functions
 
   // TODO create function for functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode)?
+
+  /**
+   * TODO
+   *
+   * @param pThreads TODO
+   * @param pPthreadT TODO
+   * @return TODO
+   */
+  public static MPORThread getThreadByPthreadT(Set<MPORThread> pThreads, CIdExpression pPthreadT) {
+    for (MPORThread thread : pThreads) {
+      if (thread.threadObject.isPresent()) {
+        if (thread.threadObject.orElseThrow().equals(pPthreadT)) {
+          return thread;
+        }
+      }
+    }
+    throw new IllegalArgumentException("no MPORThread with pPthreadT found in pThreads");
+  }
 }
