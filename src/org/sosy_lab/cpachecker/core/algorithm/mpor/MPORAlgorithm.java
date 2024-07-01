@@ -223,7 +223,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * Searches all threads in pThreads for mutex locks and properly initializes the corresponding
    * MPORMutex objects.
    *
-   * @param pThreads the set of threads whose main functions / start Routines are searched
+   * @param pThreads the set of threads whose main functions / start routines are searched
    */
   private void assignMutexesToThreads(Set<MPORThread> pThreads) {
     for (MPORThread thread : pThreads) {
@@ -254,7 +254,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         return;
       }
       for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
-
         // TODO this is the exact same procedure as in findMutexCfaNodes, create a function?
         // if pCurrentNode is a FunctionExitNode, only consider the original calling context
         if (pCurrentNode instanceof FunctionExitNode) {
@@ -263,14 +262,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           }
           pFunctionReturnNode = null; // no need, but useful for debugging and cleaner
         }
-
         if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
           CIdExpression pthreadMutexT = (CIdExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0);
           // the successor node of mutex_lock is the first inside the lock
           MPORMutex mutex = new MPORMutex(pthreadMutexT, cfaEdge.getSuccessor());
           findMutexCfaNodes(pThread, mutex, cfaEdge.getSuccessor(), null);
         }
-
         pVisitedNodes.add(pCurrentNode);
         searchThreadForMutexes(
             pThread,
@@ -331,9 +328,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * TODO
+   * Searches all threads in pThreads for pthread_join calls and properly initializes the
+   * corresponding MPORJoin objects.
    *
-   * @param pThreads TODO
+   * @param pThreads the set of threads whose main functions / start routines are searched
    */
   private void assignJoinsToThreads(Set<MPORThread> pThreads) {
     for (MPORThread thread : pThreads) {
@@ -343,13 +341,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * TODO
+   * Recursively searches the CFA of pThread for pthread_join calls.
    *
-   * @param pThreads TODO
-   * @param pThread TODO
-   * @param pVisitedNodes TODO
-   * @param pCurrentNode TODO
-   * @param pFunctionReturnNode TODO
+   * @param pThreads the entire set of threads, used to reference the threads that are waited on in
+   *     the join call.
+   * @param pThread the thread to be searched
+   * @param pVisitedNodes keep track of already visited CFANodes to prevent an infinite loop if
+   *     there are loop structures in the CFA
+   * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for pthread_joins
+   * @param pFunctionReturnNode used to track the original context when entering the CFA of another
+   *     function. see {@link MPORAlgorithm#getFunctionCallEdgeNodes(CFA)} for more info.
    */
   private void searchThreadForJoins(
       Set<MPORThread> pThreads,
@@ -549,24 +550,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO use GlobalAccessChecker to check whether a CfaEdge reads or writes global / shared
   //  variables?
-  // TODO find out what isImporantForThreading (sic) in ThreadingTransferRelation does
-
-  // TODO use CFAEdge getRawStatement or getCode to find out about thread creations,
-  //  joins, barriers, etc.? use in combination with CFAEdgeType?
 
   // TODO use CFAToCTranslator translateCfa to generate a C program based on a CFA
   //  this will be used for the reduced and sequentialized CFA
 
-  // TODO see CFAUtils.java for helpful functions
-
   // TODO create function for functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode)?
 
   /**
-   * TODO
+   * Searches the given Set of MPORThreads for the given pPthreadT object.
    *
-   * @param pThreads TODO
-   * @param pPthreadT TODO
-   * @return TODO
+   * @param pThreads the set of MPORThreads to be searched
+   * @param pPthreadT the pthread_t object
+   * @return the MPORThread object with pPthreadT as its threadObject (pthread_t)
+   * @throws IllegalArgumentException if no thread exists in the set whose threadObject is pPthreadT
    */
   public static MPORThread getThreadByPthreadT(Set<MPORThread> pThreads, CIdExpression pPthreadT) {
     for (MPORThread thread : pThreads) {
