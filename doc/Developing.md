@@ -273,8 +273,25 @@ Releasing a New Version
    is `1.9.1` and the new development version should be `1.9.1-svn`.
 
 
-Version Numbering and Release Tagging
--------------------------------------
+Version Numbering and Release Tagging from Release 3.0
+------------------------------------------------------
+
+We use the following schema to construct version numbers for CPAchecker releases
+(from version 3.0 onwards):
+
+- `X.Y` is a release that should be done at least *yearly*,
+  where an increase of `X` to version `X.0` indicates a major change
+  and an increase of `Y` indicates a minor change (e.g., added functionality).
+- `X.Y.Z` indicates a bug-fix release,
+  where `Z` is increased (starting from `0`).
+- Extensions with hyphen are possible,
+  for example, `-dev` indicates unstable development versions that are not released.
+
+The tags in our repository are named `cpachecker-VERSION`, e.g., `cpachecker-3.0`.
+
+
+Version Numbering and Release Tagging up to Release 2.4
+-------------------------------------------------------
 
 We use the following schema to construct version numbers for CPAchecker releases
 (from version 1.8 onwards):
