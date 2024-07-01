@@ -997,30 +997,30 @@ public class FloatValue extends Number {
     if (x.compareTo(BigInteger.ZERO) < 0) {
       return one(format).divide(this.powInt_(x.abs(), pPowMap));
     }
-    for (int s = x.bitLength(); s >= 0; s--) {
+    FloatValue r = one(format);
+    for (int s = x.bitLength() - 1; s >= 0; s--) {
       // Fill the map with intermediate values for a^(x/2^k)
-      powFast(x.shiftRight(s), pPowMap);
+      r = powFast(r, pPowMap, x.shiftRight(s));
     }
-    return pPowMap.get(x);
+    return r;
   }
 
   /**
    * Iterative fast exponentiation.
    *
-   * <p>Calculates a^x assuming that the map already contains the value of a^(x/2)
+   * <p>Calculates a^x from the value of 'a' and a^(x/2) and stores the returns the result.
    */
-  private void powFast(BigInteger x, Map<BigInteger, FloatValue> pPowMap) {
-    if (!pPowMap.containsKey(x)) {
-      if (x.equals(BigInteger.ZERO)) {
-        pPowMap.put(x, one(format));
-      } else if (x.equals(BigInteger.ONE)) {
-        pPowMap.put(x, this);
-      } else {
-        FloatValue r = pPowMap.get(x.divide(BigInteger.TWO));
-        FloatValue p = x.mod(BigInteger.TWO).equals(BigInteger.ZERO) ? one(format) : this;
-        pPowMap.put(x, p.multiply(r.squared()));
-      }
-    }
+  private FloatValue powFast(FloatValue p, Map<BigInteger, FloatValue> pPowMap, BigInteger x) {
+    return pPowMap.computeIfAbsent(
+        x,
+        key -> {
+          if (x.equals(BigInteger.ONE)) {
+            return this;
+          } else {
+            FloatValue r = x.mod(BigInteger.TWO).equals(BigInteger.ZERO) ? one(format) : this;
+            return r.multiply(p.squared());
+          }
+        });
   }
 
   public FloatValue divide(FloatValue pNumber) {
