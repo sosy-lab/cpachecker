@@ -40,7 +40,7 @@ public class AtExitCPA extends AbstractCPA implements ProofCheckerCPA {
       throws InvalidConfigurationException {
     super(
         "sep",
-        "sep",
+        "never",
         DelegateAbstractDomain.<FunctionPointerState>getInstance(),
         new AtExitTransferRelation(pLogger, pConfig));
   }
