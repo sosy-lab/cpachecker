@@ -1909,13 +1909,19 @@ public class FloatValue extends Number {
   @Override
   public byte byteValue() {
     BigInteger integerValue = toInteger();
-    BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
-    BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
+    BigInteger maxPositive =
+        BigInteger.valueOf(format.equals(Format.Extended) ? Byte.MAX_VALUE : Integer.MAX_VALUE);
+    BigInteger maxNegative =
+        BigInteger.valueOf(format.equals(Format.Extended) ? Byte.MIN_VALUE : Integer.MIN_VALUE);
     if (isNan()
         || isInfinite()
         || (integerValue.compareTo(maxPositive) > 0)
         || integerValue.compareTo(maxNegative) < 0) {
-      return 0;
+      return (format.equals(Format.Extended)
+              && integerValue.compareTo(BigInteger.valueOf(Short.MAX_VALUE)) <= 0
+              && integerValue.compareTo(BigInteger.valueOf(Short.MIN_VALUE)) >= 0)
+          ? integerValue.byteValue()
+          : 0;
     }
     return integerValue.byteValue();
   }
@@ -1928,13 +1934,15 @@ public class FloatValue extends Number {
   @Override
   public short shortValue() {
     BigInteger integerValue = toInteger();
-    BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
-    BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
+    BigInteger maxPositive =
+        BigInteger.valueOf(format.equals(Format.Extended) ? Short.MAX_VALUE : Integer.MAX_VALUE);
+    BigInteger maxNegative =
+        BigInteger.valueOf(format.equals(Format.Extended) ? Short.MIN_VALUE : Integer.MIN_VALUE);
     if (isNan()
         || isInfinite()
         || (integerValue.compareTo(maxPositive) > 0)
         || integerValue.compareTo(maxNegative) < 0) {
-      return 0;
+      integerValue = format.equals(Format.Extended) ? maxNegative : BigInteger.ZERO;
     }
     return integerValue.shortValue();
   }
