@@ -36,6 +36,18 @@ public class AtExitState implements LatticeAbstractState<AtExitState>, Graphable
     return new AtExitState(stack.pushAndCopy(pFunction));
   }
 
+  public FunctionPointerTarget peek() {
+    return stack.peek();
+  }
+
+  public AtExitState pop() {
+    return new AtExitState(stack.popAndCopy());
+  }
+
+  public boolean isEmpty() {
+    return stack.isEmpty();
+  }
+
   @Override
   public boolean equals(@Nullable Object pOther) {
     if (this == pOther) {

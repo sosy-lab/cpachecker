@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -55,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.atexit.AtExitState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
@@ -520,5 +523,32 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
         + "["
         + exp.getSubscriptExpression().toASTString()
         + "]";
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    for (AbstractState other : otherStates) {
+      if (state instanceof FunctionPointerState fnState
+          && other instanceof AtExitState atExitState) {
+        if (cfaEdge instanceof CStatementEdge stmtEdge
+            && stmtEdge.getStatement() instanceof CFunctionCallAssignmentStatement callAssignStmt
+            && callAssignStmt.getLeftHandSide() instanceof CIdExpression leftSide
+            && callAssignStmt.getRightHandSide().getFunctionNameExpression()
+                instanceof CIdExpression fnExpr
+            && fnExpr.getName().equals("__VERIFIER_atexit_next")) {
+          FunctionPointerState.Builder newState = fnState.createBuilder();
+          String varName = getLeftHandSide(leftSide, cfaEdge);
+          FunctionPointerTarget target = atExitState.peek();
+          newState.setTarget(varName, target);
+          return ImmutableList.of(newState.build());
+        }
+      }
+    }
+    return ImmutableList.of(state);
   }
 }

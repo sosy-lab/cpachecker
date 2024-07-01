@@ -16,6 +16,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -82,6 +83,19 @@ public class AtExitTransferRelation extends SingleEdgeTransferRelation {
               new ExpressionValueVisitor(fnState.createBuilder(), UnknownTarget.getInstance());
           FunctionPointerTarget target = argExpr.accept(evaluator);
           return ImmutableList.of(atExitState.push(target));
+        }
+
+        if (cfaEdge instanceof CStatementEdge stmtEdge
+            && stmtEdge.getStatement() instanceof CFunctionCallAssignmentStatement callAssignStmt
+            && callAssignStmt.getLeftHandSide() instanceof CIdExpression
+            && callAssignStmt.getRightHandSide().getFunctionNameExpression()
+                instanceof CIdExpression fnExpr
+            && fnExpr.getName().equals("__VERIFIER_atexit_next")) {
+          // Remove the last element from the stack. We have to do this here (and not when
+          // calculating the successor) to make sure that the function pointer CPA can still access
+          // the element.
+          // FIXME: Find a way to do this that does not depend on the order of the CPAs
+          return ImmutableList.of(atExitState.pop());
         }
       }
     }
