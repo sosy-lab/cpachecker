@@ -60,10 +60,10 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     // Output the collected loop information to a file
     try (BufferedWriter writer =
         Files.newBufferedWriter(Paths.get("output/AllLoopInfos.txt"), StandardCharsets.UTF_8)) {
-      StringBuilder allInfos = new StringBuilder();
+      StringBuilder allLoopInfos = new StringBuilder();
 
       for (RecursionInfo recursionInfo : getAllRecursionInfos()) {
-        allInfos.append(
+        allLoopInfos.append(
             String.format(
                 "Recursion    %-10s %-4d    %-6s    %s%n",
                 recursionInfo.FunctionName(),
@@ -73,14 +73,14 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       }
 
       for (NormalLoopInfo loopInfo : getAllNormalLoopInfos()) {
-        allInfos.append(
+        allLoopInfos.append(
             String.format(
                 "Loop    %-4d    %s%n",
                 loopInfo.loopLocation(),
                 loopInfo.liveVariablesAndTypes()));
       }
 
-      writer.append(allInfos.toString());
+      writer.append(allLoopInfos.toString());
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file AllLoopInfos.txt failed!");
     }
