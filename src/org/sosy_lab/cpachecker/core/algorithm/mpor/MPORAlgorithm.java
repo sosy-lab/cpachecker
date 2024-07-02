@@ -90,7 +90,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private Set<MPORThread> threads;
 
   /** A map from FunctionCallEdge Predecessors to Return Nodes. */
-  private Map<CFANode, CFANode> functionCallEdgeNodes;
+  private Map<CFANode, CFANode> functionCallMap;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
@@ -112,7 +112,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     // TODO group methods into prechecks, object extractions, actual algorithms on the CFA, etc.
     checkForCProgram(cfa);
     checkForParallelProgram(cfa);
-    functionCallEdgeNodes = getFunctionCallEdgeNodes(cfa);
+    functionCallMap = getFunctionCallMap(cfa);
     // TODO performance stuff:
     //  merge functions that go through each Edge together into one
     //  merge functions that go through each Node together into one
@@ -124,10 +124,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     mutexObjects = getMutexes(cfa);
 
     // TODO create MPORState class mapping MPORThreads to their current location (CFANode)
-    // TODO not sure if we will actually use these, keeping them for now
-    // functionCallHierarchy = getFunctionCallHierarchy(cfa);
-    // threadStartRoutines = getThreadStartRoutines(cfa);
-    // threadIdFunctions = getFunctionThreadIds(threadStartRoutines, functionCallHierarchy);
   }
 
   /** Checks whether the input language of the program is C and throws an exception if not. */
@@ -163,14 +159,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return A Map of CFANodes before a FunctionCallEdge (keys) to the CFANodes where a function
    *     continues (values, i.e. the ReturnNode) after going through the CFA of the function called.
    */
-  private Map<CFANode, CFANode> getFunctionCallEdgeNodes(CFA pCfa) {
-    Map<CFANode, CFANode> ret = new HashMap<>();
+  private Map<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
+    Map<CFANode, CFANode> rFunctionCallMap = new HashMap<>();
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
       if (cfaEdge instanceof FunctionCallEdge functionCallEdge) {
-        ret.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
+        rFunctionCallMap.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
       }
     }
-    return ret;
+    return rFunctionCallMap;
   }
 
   /**
@@ -181,7 +177,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return the set of threads
    */
   private Set<MPORThread> getThreads(CFA pCfa) {
-    Set<MPORThread> ret = new HashSet<>();
+    Set<MPORThread> rThreads = new HashSet<>();
 
     // add the main thread
     CFunctionType mainFunction = CFAUtils.getMainFunction(pCfa);
@@ -189,7 +185,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, mainFunction);
     Optional<FunctionExitNode> mainExitNode = mainEntryNode.getExitNode();
     MPORThread mainThread = new MPORThread(Optional.empty(), mainEntryNode, mainExitNode);
-    ret.add(mainThread);
+    rThreads.add(mainThread);
 
     // search the CFA for pthread_create calls
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
@@ -216,10 +212,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
 
         MPORThread pthread = new MPORThread(pthreadT, entryNode, exitNode);
-        ret.add(pthread);
+        rThreads.add(pthread);
       }
     }
-    return ret;
+    return rThreads;
   }
 
   /**
@@ -243,7 +239,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *     there are loop structures in the CFA
    * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for mutex_locks
    * @param pFunctionReturnNode used to track the original context when entering the CFA of another
-   *     function. see {@link MPORAlgorithm#getFunctionCallEdgeNodes(CFA)} for more info.
+   *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
    */
   private void searchThreadForMutexes(
       MPORThread pThread,
@@ -276,7 +272,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pThread,
             pVisitedNodes,
             cfaEdge.getSuccessor(),
-            functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
+            functionCallMap.getOrDefault(pCurrentNode, pFunctionReturnNode));
       }
     } else {
       // TODO logic if there is no FunctionExitNode for the pThread
@@ -292,7 +288,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pMutex the mutex lock whose CFANodes we want to find
    * @param pCurrentNode the current CFANode whose leaving Edges we search for mutex_unlocks
    * @param pFunctionReturnNode used to track the original context when entering the CFA of another
-   *     function. see {@link MPORAlgorithm#getFunctionCallEdgeNodes(CFA)} for more info.
+   *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
    */
   private void findMutexCfaNodes(
       MPORThread pThread, MPORMutex pMutex, CFANode pCurrentNode, CFANode pFunctionReturnNode) {
@@ -324,7 +320,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               pThread,
               pMutex,
               cfaEdge.getSuccessor(),
-              functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
+              functionCallMap.getOrDefault(pCurrentNode, pFunctionReturnNode));
         }
       }
     }
@@ -353,7 +349,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *     there are loop structures in the CFA
    * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for pthread_joins
    * @param pFunctionReturnNode used to track the original context when entering the CFA of another
-   *     function. see {@link MPORAlgorithm#getFunctionCallEdgeNodes(CFA)} for more info.
+   *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
    */
   private void searchThreadForJoins(
       Set<MPORThread> pThreads,
@@ -388,7 +384,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pThread,
             pVisitedNodes,
             cfaEdge.getSuccessor(),
-            functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
+            functionCallMap.getOrDefault(pCurrentNode, pFunctionReturnNode));
       }
     } else {
       // TODO
@@ -446,91 +442,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pThread,
             pVisitedNodes,
             cfaEdge.getSuccessor(),
-            functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
+            functionCallMap.getOrDefault(pCurrentNode, pFunctionReturnNode));
       }
     } else {
       // TODO
     }
-  }
-
-  /**
-   * Goes through the given CFA and extracts all functions and functions called inside of them. The
-   * map also contains functions that do not call other functions inside of them.
-   *
-   * @param pCfa the CFA to be analyzed
-   * @return a map of functions (keys) to a set functions called inside of them (values)
-   */
-  private Map<CFunctionType, Set<CFunctionType>> getFunctionCallHierarchy(CFA pCfa) {
-    Map<CFunctionType, Set<CFunctionType>> callHierarchy = new HashMap<>();
-    for (CFANode cfaNode : pCfa.nodes()) {
-      CFunctionType caller = (CFunctionType) cfaNode.getFunction().getType();
-      if (!callHierarchy.containsKey(caller)) {
-        // add the function as a key, no matter if it actually calls other functions inside of it
-        callHierarchy.put(caller, new HashSet<>());
-      }
-      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(cfaNode)) {
-        CFANode successor = cfaEdge.getSuccessor();
-        if (successor instanceof FunctionEntryNode) {
-          callHierarchy.get(caller).add((CFunctionType) successor.getFunction().getType());
-        }
-      }
-    }
-    return callHierarchy;
-  }
-
-  /**
-   * Searches the CFA for phtread_create calls and returns the start routines (i.e. the function the
-   * thread is executing).
-   *
-   * @param pCfa the CFA to be analyzed
-   * @return set of functions that are start routines in pthread_create calls
-   */
-  private Set<CFunctionType> getThreadStartRoutines(CFA pCfa) {
-    Set<CFunctionType> startRoutines = new HashSet<>();
-    // add the main function as the first element of the set
-    startRoutines.add(CFAUtils.getMainFunction(pCfa));
-    // search the CFA for pthread_create calls
-    for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
-      if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.CREATE)) {
-        // TODO is there a way to shorten all these casts ... ?
-        // TODO use loop structure to handle pthread_create calls inside loops
-        //  (function is called numerous times)
-        // extract the third parameter of pthread_create which points to the start routine function
-        CUnaryExpression cUnaryExpression =
-            (CUnaryExpression) CFAUtils.getParameterAtIndex(cfaEdge, 2);
-        CPointerType cPointerType = (CPointerType) cUnaryExpression.getExpressionType();
-        CFunctionType cFunctionType = (CFunctionType) cPointerType.getType();
-        startRoutines.add(cFunctionType);
-      }
-    }
-    return startRoutines;
-  }
-
-  /**
-   * @param pThreadStartRoutines the set of functions serving as start routines for threads
-   * @param pFunctionCallHierarchy the mapping from functions to functions called inside of them
-   * @return the mapping from functions to a set of thread IDs executing them
-   */
-  private Map<Integer, Set<CFunctionType>> getFunctionThreadIds(
-      Set<CFunctionType> pThreadStartRoutines,
-      Map<CFunctionType, Set<CFunctionType>> pFunctionCallHierarchy) {
-
-    Map<Integer, Set<CFunctionType>> functionThreadIdMap = new HashMap<>();
-    // note that the threadIds in this analysis may not be the same as when actually executing the
-    // program. the main thread may not necessarily be the one with threadId 0.
-    int currentThreadId = 0;
-    // go through all thread start routines and recursively check for function calls inside of them
-    for (CFunctionType startRoutine : pThreadStartRoutines) {
-      Set<CFunctionType> visitedCFunctionTypes = new HashSet<>();
-      exploreFunctionCalls(
-          pFunctionCallHierarchy,
-          functionThreadIdMap,
-          startRoutine,
-          visitedCFunctionTypes,
-          currentThreadId);
-      currentThreadId++;
-    }
-    return functionThreadIdMap;
   }
 
   /**
@@ -542,58 +458,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO what about pthread_mutex_trylock?
   // TODO unsure if we should consider MUTEX_INIT too?
   private Set<CIdExpression> getMutexes(CFA pCfa) {
-    Set<CIdExpression> mutexes = new HashSet<>();
+    Set<CIdExpression> rMutexes = new HashSet<>();
     for (CFAEdge cfaEdge : pCfa.edges()) {
       if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
         // extract the first parameter which is the pthread_mutex_t object
         CUnaryExpression cUnaryExpression =
             (CUnaryExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0);
         CIdExpression cIdExpression = (CIdExpression) cUnaryExpression.getOperand();
-        mutexes.add(cIdExpression);
+        rMutexes.add(cIdExpression);
       }
     }
-    return mutexes;
-  }
-
-  /**
-   * Recursively iterates over the functions called in pCFunctionType and assigns pThreadId to them
-   * in pFunctionThreadIdMap.
-   *
-   * @param pFunctionCallHierarchy the mapping of functions to a set of functions called inside them
-   * @param pFunctionThreadIdMap the mapping of functions to a set of thread IDs executing it
-   * @param pCFunctionType the pCFunctionType whose function calls we extract
-   * @param pVisitedCFunctionTypes the set of CFunctionTypes that were pCFunctionType once to
-   *     prevent an infinite loop
-   * @param pThreadId the ID of the thread we assign the functions to in pFunctionThreadIdMap
-   * @return the mapping of functions to thread IDs executing them
-   */
-  private Map<Integer, Set<CFunctionType>> exploreFunctionCalls(
-      Map<CFunctionType, Set<CFunctionType>> pFunctionCallHierarchy,
-      Map<Integer, Set<CFunctionType>> pFunctionThreadIdMap,
-      CFunctionType pCFunctionType,
-      Set<CFunctionType> pVisitedCFunctionTypes,
-      int pThreadId) {
-
-    // add function to already visited functions in case there is recursion in the original program
-    if (!pVisitedCFunctionTypes.contains(pCFunctionType)) {
-      pVisitedCFunctionTypes.add(pCFunctionType);
-      // not checking if the key exists here because this should always be the case
-      Set<CFunctionType> calledFunctions = pFunctionCallHierarchy.get(pCFunctionType);
-      for (CFunctionType newCFunctionType : calledFunctions) {
-        if (!pFunctionThreadIdMap.containsKey(pThreadId)) {
-          pFunctionThreadIdMap.put(pThreadId, new HashSet<>());
-        }
-        pFunctionThreadIdMap.get(pThreadId).add(newCFunctionType);
-        // recursively check for function calls inside functions called inside pCFunctionType
-        exploreFunctionCalls(
-            pFunctionCallHierarchy,
-            pFunctionThreadIdMap,
-            newCFunctionType,
-            pVisitedCFunctionTypes,
-            pThreadId);
-      }
-    }
-    return pFunctionThreadIdMap;
+    return rMutexes;
   }
 
   // TODO positional preference order ("a <q b") possible cases:
@@ -628,10 +503,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @throws IllegalArgumentException if no thread exists in the set whose threadObject is pPthreadT
    */
   public static MPORThread getThreadByPthreadT(Set<MPORThread> pThreads, CIdExpression pPthreadT) {
-    for (MPORThread thread : pThreads) {
-      if (thread.threadObject.isPresent()) {
-        if (thread.threadObject.orElseThrow().equals(pPthreadT)) {
-          return thread;
+    for (MPORThread rThread : pThreads) {
+      if (rThread.threadObject.isPresent()) {
+        if (rThread.threadObject.orElseThrow().equals(pPthreadT)) {
+          return rThread;
         }
       }
     }

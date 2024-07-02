@@ -122,13 +122,13 @@ public class ConflictGraph {
     }
 
     // Convert the result list to ImmutableSet<ImmutableSet<Integer>>
-    ImmutableSet.Builder<ImmutableSet<Integer>> sccs = ImmutableSet.builder();
+    ImmutableSet.Builder<ImmutableSet<Integer>> rSccs = ImmutableSet.builder();
     for (Set<Integer> scc : sccList) {
-      sccs.add(ImmutableSet.copyOf(scc));
+      rSccs.add(ImmutableSet.copyOf(scc));
     }
 
     // TODO use the first element (sccs.iterator().next()) to get the maximal SCC
-    return sccs.build();
+    return rSccs.build();
   }
 
   /**
