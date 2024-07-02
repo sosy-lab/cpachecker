@@ -1438,12 +1438,13 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Calculates expm1, that is e^x - 1.
+   * Calculates e^x - 1.
    *
    * <p>This method is used in the implementation of {@link FloatValue#pow(FloatValue)} where it
    * helps to avoid precision loss if the argument is close to zero.
    */
-  private FloatValue expm1_() {
+  private FloatValue expMinus1() {
+    // Can be computed by simply skipping the first term of the Taylor expansion
     return expImpl(true);
   }
 
@@ -1468,7 +1469,7 @@ public class FloatValue extends Number {
     }
 
     boolean done = false;
-    int k = pSkipTerm1 ? 1 : 0;
+    int k = pSkipTerm1 ? 1 : 0; // Skip the first term of the Taylor expansion to compute e^x - 1
 
     while (!done) {
       FloatValue s = r;
@@ -1744,8 +1745,8 @@ public class FloatValue extends Number {
         FloatValue xlna1 = xlna.plus1Ulp().withPrecision(p);
         FloatValue xlna2 = xlna.minus1Ulp().withPrecision(p);
 
-        FloatValue exlna1 = nearZero ? xlna1.expm1_() : xlna1.exp_();
-        FloatValue exlna2 = nearZero ? xlna2.expm1_() : xlna2.exp_();
+        FloatValue exlna1 = nearZero ? xlna1.expMinus1() : xlna1.exp_();
+        FloatValue exlna2 = nearZero ? xlna2.expMinus1() : xlna2.exp_();
 
         // Proceed if the result is stable in the original precision
         // If the result was close to zero we have to use an extended format that allows larger
