@@ -35,9 +35,10 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 /**
  * This algorithm extracts loop information from a C program.
  * 
- * <p> Specifically, we derive from each loop its loop location and the names of all variables used
- * except those declared inside the loop. A loop location refers to the line number where the loop 
- * head(the keyword while, the condition, and the opening bracket) is located.
+ * <p>
+ * There are two kinds of loops, which are classified not by their syntax but by their
+ * instrumentation processes. The first is normal loops(for, while, do-while, and goto loops). The
+ * second is recursion.
  */
 public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private final CFA cfa;
@@ -45,7 +46,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private final CProgramScope cProgramScope;
 
   public LocateLoopAndLiveVariableAlgorithm(CFA pCfa, LogManager pLogger) {
-    if (pCfa.getLoopStructure().orElseThrow().getAllLoops().isEmpty() && LoopStructure.getRecursions(pCfa).isEmpty()) {
+    if (pCfa.getLoopStructure().orElseThrow().getAllLoops().isEmpty()
+        && LoopStructure.getRecursions(pCfa).isEmpty()) {
       throw new IllegalArgumentException("Program does not contain loops!");
     }
     cfa = pCfa;
@@ -58,29 +60,47 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     // Output the collected loop information to a file
     try (BufferedWriter writer =
         Files.newBufferedWriter(Paths.get("output/AllLoopInfos.txt"), StandardCharsets.UTF_8)) {
-      StringBuilder allLoopInfos = new StringBuilder();
-      for (LoopInfo loopInfo : getAllLoopInfos()) {
-        allLoopInfos.append(
+      StringBuilder allInfos = new StringBuilder();
+
+      for (RecursionInfo recursionInfo : getAllRecursionInfos()) {
+        allInfos.append(
             String.format(
-                "%-4d    %s%n", loopInfo.loopLocation(), loopInfo.liveVariablesAndTypes()));
+                "Recursion    %-10s %-4d    %-6s    %s%n",
+                recursionInfo.FunctionName(),
+                recursionInfo.locationOfDefinition(),
+                recursionInfo.locationOfRecursiveCalls(),
+                recursionInfo.parameters()));
       }
 
-      writer.append(allLoopInfos.toString());
+      for (NormalLoopInfo loopInfo : getAllNormalLoopInfos()) {
+        allInfos.append(
+            String.format(
+                "Loop    %-4d    %s%n",
+                loopInfo.loopLocation(),
+                loopInfo.liveVariablesAndTypes()));
+      }
+
+      writer.append(allInfos.toString());
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file AllLoopInfos.txt failed!");
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private List<LoopInfo> getAllLoopInfos() {
-    List<LoopInfo> allLoopInfos = new ArrayList<>();
+  private Set<NormalLoopInfo> getAllNormalLoopInfos() {
+    Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
 
     for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
       // Determine loop locations. There may be more than one, as some loops have multiple
       // loop heads, e.g., goto loop.
       List<Integer> loopLocations = new ArrayList<>();
       for (CFANode cfaNode : loop.getLoopHeads()) {
-        loopLocations.add(CFAUtils.allEnteringEdges(cfaNode).first().get().getFileLocation().getStartingLineInOrigin());
+        loopLocations.add(
+            CFAUtils.allEnteringEdges(cfaNode)
+                .first()
+                .get()
+                .getFileLocation()
+                .getStartingLineInOrigin());
       }
 
       // Determine the names of all variables used except those declared inside the loop
@@ -98,8 +118,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         }
       }
       liveVariables.removeAll(variablesDeclaredInsideLoop);
-      liveVariables.removeIf(
-          e -> e.contains("::") && e.split("::")[1].startsWith("__CPAchecker_TMP_"));
+      liveVariables
+          .removeIf(e -> e.contains("::") && e.split("::")[1].startsWith("__CPAchecker_TMP_"));
 
       // Determine type of each variable
       for (String variable : liveVariables) {
@@ -110,11 +130,11 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       }
 
       for (Integer loopLocation : loopLocations) {
-        allLoopInfos.add(new LoopInfo(loopLocation, liveVariablesAndTypes));
+        allNormalLoopInfos.add(new NormalLoopInfo(loopLocation, liveVariablesAndTypes));
       }
     }
-    
-    return allLoopInfos;
+
+    return allNormalLoopInfos;
   }
 
   private Set<String> getVariablesFromAAstNode(AAstNode aAstNode) {
@@ -137,8 +157,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
     } else if (aAstNode instanceof CFunctionCallStatement) {
       CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
-      cFunctionCallStatement
-          .getFunctionCallExpression()
+      cFunctionCallStatement.getFunctionCallExpression()
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
 
@@ -150,22 +169,102 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
 
       CFunctionCallExpression cRightHandSide = cFunctionCallAssignmentStatement.getRightHandSide();
-      cRightHandSide
-          .getParameterExpressions()
+      cRightHandSide.getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
     }
 
     return variables;
   }
+
+  private Set<RecursionInfo> getAllRecursionInfos() {
+    Set<RecursionInfo> allRecursionInfos = new HashSet<>();
+
+    for (Loop recursion : LoopStructure.getRecursions(cfa)) {
+      String functionName = "";
+      int locationOfDefinition;
+      Set<Integer> locationOfRecursiveCalls = new HashSet<>();
+      List<String> parameters = new ArrayList<>();
+
+      // Determine function name
+      CFAEdge firstIncomingEdge = recursion.getIncomingEdges().stream().findFirst().orElseThrow();
+      AAstNode astNode = firstIncomingEdge.getRawAST().orElseThrow();
+      if (astNode instanceof CFunctionCallStatement) {
+        CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) astNode;
+        functionName =
+            cFunctionCallStatement.getFunctionCallExpression()
+                .getFunctionNameExpression()
+                .toString();
+      } else if (astNode instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement =
+            (CFunctionCallAssignmentStatement) astNode;
+        CFunctionCallExpression cRightHandSide =
+            cFunctionCallAssignmentStatement.getRightHandSide();
+        functionName = cRightHandSide.getFunctionNameExpression().toString();
+      }
+
+      // Determine location Of definition
+      locationOfDefinition =
+          cfa.getAllFunctions().get(functionName).getFileLocation().getStartingLineInOrigin();
+
+      // Determine location of recursive calls
+      for (CFAEdge cfaEdge : recursion.getInnerLoopEdges()) {
+        if (cfaEdge.getRawStatement().contains(functionName)) {
+          locationOfRecursiveCalls.add(cfaEdge.getFileLocation().getStartingLineInOrigin());
+        }
+      }
+
+      // Determine parameters
+      cfa.getAllFunctions()
+          .get(functionName)
+          .getFunctionParameters()
+          .forEach(e -> parameters.add(e.toString()));
+
+      allRecursionInfos.add(
+          new RecursionInfo(
+              functionName,
+              locationOfDefinition,
+              locationOfRecursiveCalls,
+              parameters));
+    }
+
+    return allRecursionInfos;
+  }
 }
 
+
 /**
- * Represents a container for loop information, including a loop location and a mapping from
- * variable names used in the loop to their types.
+ * Represents a container for normal loop information(for, while, do-while, and goto loop).
+ * 
+ * @param loopLocation          the line number where the loop is located
+ * @param liveVariablesAndTypes the mapping from variable names used, but not declared, in the loop
+ *                              to their types
  */
-record LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
-  LoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
+record NormalLoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
+  NormalLoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
     this.loopLocation = loopLocation;
     this.liveVariablesAndTypes = liveVariablesAndTypes;
+  }
+}
+
+
+/**
+ * Represents a container for recursion information.
+ * 
+ * @param FunctionName             the name of the function
+ * @param locationOfDefinition     the line number where the function is defined
+ * @param locationOfRecursiveCalls a set of line numbers where the recursive calls occur
+ * @param parameters               the function's parameters(type + name)
+ */
+record RecursionInfo(String FunctionName, int locationOfDefinition,
+    Set<Integer> locationOfRecursiveCalls, List<String> parameters) {
+  RecursionInfo(
+      String FunctionName,
+      int locationOfDefinition,
+      Set<Integer> locationOfRecursiveCalls,
+      List<String> parameters) {
+    this.FunctionName = FunctionName;
+    this.locationOfDefinition = locationOfDefinition;
+    this.locationOfRecursiveCalls = locationOfRecursiveCalls;
+    this.parameters = parameters;
   }
 }
