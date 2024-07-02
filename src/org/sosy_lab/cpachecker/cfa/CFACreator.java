@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
@@ -778,6 +779,14 @@ public class CFACreator {
       ExpandFunctionPointerArrayAssignments transformer =
           new ExpandFunctionPointerArrayAssignments(logger);
       transformer.replaceFunctionPointerArrayAssignments(cfa);
+    }
+
+    // add atexit handlers
+    // TODO: Add an option for this step and return "unknown" if atexit() is used without it
+    if (language == Language.C) {
+      AtExitTransformer atExitTransformer = new AtExitTransformer(cfa, logger, config);
+      atExitTransformer.replaceReturns();
+      atExitTransformer.addExitHandlers();
     }
 
     // add function pointer edges
