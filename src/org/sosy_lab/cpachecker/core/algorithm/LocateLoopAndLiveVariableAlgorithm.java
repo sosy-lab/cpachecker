@@ -62,6 +62,14 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         Files.newBufferedWriter(Paths.get("output/AllLoopInfos.txt"), StandardCharsets.UTF_8)) {
       StringBuilder allLoopInfos = new StringBuilder();
 
+      for (NormalLoopInfo loopInfo : getAllNormalLoopInfos()) {
+        allLoopInfos.append(
+            String.format(
+                "Loop    %-4d    %s%n",
+                loopInfo.loopLocation(),
+                loopInfo.liveVariablesAndTypes()));
+      }
+
       for (RecursionInfo recursionInfo : getAllRecursionInfos()) {
         allLoopInfos.append(
             String.format(
@@ -70,14 +78,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
                 recursionInfo.locationOfDefinition(),
                 recursionInfo.locationOfRecursiveCalls(),
                 recursionInfo.parameters()));
-      }
-
-      for (NormalLoopInfo loopInfo : getAllNormalLoopInfos()) {
-        allLoopInfos.append(
-            String.format(
-                "Loop    %-4d    %s%n",
-                loopInfo.loopLocation(),
-                loopInfo.liveVariablesAndTypes()));
       }
 
       writer.append(allLoopInfos.toString());
