@@ -11,7 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+// TODO rename class to better to not restrict the name to pthread stuff,
+//  e.g. __VERIFIER_atomic_begin and _end will be relevant to identify too
 public enum PthreadFunctionType {
+  BARRIER_INIT("pthread_barrier_init"),
+  BARRIER_WAIT("pthread_barrier_wait"),
   CANCEL("pthread_cancel"),
   CREATE("pthread_create"),
   DETACH("pthread_detach"),

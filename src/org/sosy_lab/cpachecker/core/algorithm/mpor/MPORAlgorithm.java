@@ -119,6 +119,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threads = getThreads(cfa);
     assignMutexesToThreads(threads);
     assignJoinsToThreads(threads);
+    // TODO
+    // assignBarriersToThreads(threads);
     mutexObjects = getMutexes(cfa);
 
     // TODO create MPORState class mapping MPORThreads to their current location (CFANode)
@@ -196,6 +198,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.CREATE)) {
         // TODO find out what happens if we access an array of pthread_t objects
         //  what will the CIdExpression be, the pthread_t object or the array?
+        //  see pthread-divine/barrier_2t.i, pthread_create call is inside loop and using an array
         // extract the first parameter of pthread_create, i.e. the pthread_t object
         CUnaryExpression pthreadTExpression =
             (CUnaryExpression) CFAUtils.getParameterAtIndex(cfaEdge, 0);
@@ -343,8 +346,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /**
    * Recursively searches the CFA of pThread for pthread_join calls.
    *
-   * @param pThreads the entire set of threads, used to reference the threads that are waited on in
-   *     the join call.
+   * @param pThreads the entire set of threads, used to reference the thread that is waited on in
+   *     the join call
    * @param pThread the thread to be searched
    * @param pVisitedNodes keep track of already visited CFANodes to prevent an infinite loop if
    *     there are loop structures in the CFA
@@ -382,6 +385,64 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         pVisitedNodes.add(pCurrentNode);
         searchThreadForJoins(
             pThreads,
+            pThread,
+            pVisitedNodes,
+            cfaEdge.getSuccessor(),
+            functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode));
+      }
+    } else {
+      // TODO
+    }
+  }
+
+  /**
+   * TODO
+   *
+   * @param pThreads TODO
+   */
+  private void assignBarriersToThreads(Set<MPORThread> pThreads) {
+    for (MPORThread thread : pThreads) {
+      Set<CFANode> visitedNodes = new HashSet<>();
+      searchThreadForBarriers(thread, visitedNodes, thread.entryNode, null);
+    }
+  }
+
+  /**
+   * TODO
+   *
+   * @param pThread TODO
+   * @param pVisitedNodes TODO
+   * @param pCurrentNode TODO
+   * @param pFunctionReturnNode TODO
+   */
+  private void searchThreadForBarriers(
+      MPORThread pThread,
+      Set<CFANode> pVisitedNodes,
+      CFANode pCurrentNode,
+      CFANode pFunctionReturnNode) {
+    // TODO see pthread-divine for example barrier programs
+    if (pThread.exitNode.isPresent()) {
+      if (pVisitedNodes.contains(pCurrentNode)
+          || pCurrentNode.equals(pThread.exitNode.orElseThrow())) {
+        return;
+      }
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
+        // if pCurrentNode is a FunctionExitNode, only consider the original calling context
+        if (pCurrentNode instanceof FunctionExitNode) {
+          if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
+            continue;
+          }
+          pFunctionReturnNode = null; // no need, but useful for debugging and cleaner
+        }
+        if (PthreadFunctionType.isEdgeCallToFunctionType(
+            cfaEdge, PthreadFunctionType.BARRIER_INIT)) {
+          // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
+          //  functions, e.g. pthread-divine/barrier_2t.i
+          //  but the general approach is identifying MPORBarriers from barrier_init calls
+          //  and then identify the corresponding MPORBarrierWaits
+        }
+        pVisitedNodes.add(pCurrentNode);
+        searchThreadForBarriers(
             pThread,
             pVisitedNodes,
             cfaEdge.getSuccessor(),
@@ -555,6 +616,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   //  this will be used for the reduced and sequentialized CFA
 
   // TODO create function for functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode)?
+
+  // Helpers =======================================================================================
 
   /**
    * Searches the given Set of MPORThreads for the given pPthreadT object.
