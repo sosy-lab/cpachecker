@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 public class MPORThread {
 
   /** The pthread_t object. Set to empty for the main thread. */
-  public final Optional<CIdExpression> threadObject;
+  public final Optional<CExpression> threadObject;
 
   /** FunctionEntryNode of the main function (main thread) or start routine (pthreads). */
   public final FunctionEntryNode entryNode;
@@ -38,7 +38,7 @@ public class MPORThread {
   private Set<MPORJoin> joins = new HashSet<>();
 
   public MPORThread(
-      Optional<CIdExpression> pThreadObject,
+      Optional<CExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
       Optional<FunctionExitNode> pExitNode) {
     threadObject = pThreadObject;

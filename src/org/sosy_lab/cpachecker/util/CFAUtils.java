@@ -93,6 +93,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -117,6 +118,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -727,10 +729,55 @@ public class CFAUtils {
     return (CFunctionCallStatement) pCfaEdge.getRawAST().orElseThrow();
   }
 
+  /**
+   * Extracts and returns the value from the given pointer. E.g. if pPointer is &id1 from
+   * pthread_create(&id1, ...), then this function returns id1.
+   *
+   * @param pPointer the pointer as a CExpression
+   * @return the value from the pointer
+   * @throws IllegalArgumentException if pPointer is not a pointer
+   */
+  public static CExpression getValueFromPointer(CExpression pPointer) {
+    if (pPointer instanceof CUnaryExpression cUnaryExpression) {
+      if (cUnaryExpression.getExpressionType() instanceof CPointerType) {
+        return cUnaryExpression.getOperand();
+      }
+    }
+    throw new IllegalArgumentException("pPointer is not a pointer");
+  }
+
+  /**
+   * Extracts the CFunctionType of pCExpression which points to a function.
+   *
+   * @param pCExpression the CExpression pointing to a function (e.g. &main)
+   * @return the CFunctionType that pCExpression points to
+   * @throws IllegalArgumentException if pCExpression is not a pointer to a function
+   */
+  public static CFunctionType getCFunctionTypeFromCExpression(CExpression pCExpression) {
+    if (pCExpression instanceof CUnaryExpression cUnaryExpression) {
+      if (cUnaryExpression.getExpressionType() instanceof CPointerType) {
+        if (cUnaryExpression.getOperand() instanceof CIdExpression cIdExpression) {
+          if (cIdExpression.getExpressionType() instanceof CFunctionType cFunctionType) {
+            return cFunctionType;
+          }
+        }
+      }
+    }
+    throw new IllegalArgumentException("pCExpression is not a pointer to a function");
+  }
+
+  /**
+   * Searches pCfa for the FunctionEntryNode of pCFunctionType and returns the FunctionEntryNode.
+   *
+   * @param pCfa the CFA to be searched for the FunctionEntryNode
+   * @param pCFunctionType the CFunctionType whose FunctionEntryNode is searched for
+   * @return the unique FunctionEntryNode for pCFunctionType
+   * @throws IllegalArgumentException if no FunctionEntryNode for the CFunctionType is found
+   */
   public static FunctionEntryNode getFunctionEntryNodeFromCFunctionType(
-      CFA pCFA, CFunctionType pCFunctionType) {
+      CFA pCfa, CFunctionType pCFunctionType) {
     checkNotNull(pCFunctionType);
-    for (CFANode cfaNode : pCFA.nodes()) {
+    for (CFANode cfaNode : pCfa.nodes()) {
       if (cfaNode instanceof FunctionEntryNode
           && cfaNode.getFunction().getType().equals(pCFunctionType)) {
         return (FunctionEntryNode) cfaNode;

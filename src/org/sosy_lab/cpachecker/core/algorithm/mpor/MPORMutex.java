@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public class MPORMutex {
 
-  public final CIdExpression pthreadMutexT;
+  public final CExpression pthreadMutexT;
 
   public final CFANode entryNode;
 
@@ -42,7 +42,7 @@ public class MPORMutex {
    * @param pEntryNode the entry CFANode of the lock, i.e. the CFANode directly after
    *     pthread_mutex_lock
    */
-  public MPORMutex(CIdExpression pPthreadMutexT, CFANode pEntryNode) {
+  public MPORMutex(CExpression pPthreadMutexT, CFANode pEntryNode) {
     pthreadMutexT = pPthreadMutexT;
     entryNode = pEntryNode;
   }
