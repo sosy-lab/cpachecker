@@ -207,9 +207,9 @@ public class ASTConverterTest {
             new TestCase("0x5ep-2", "2.35000000e+01", CNumericTypes.FLOAT),
             new TestCase("3.41E+38", "3.4100000000000000e+38", CNumericTypes.DOUBLE),
             new TestCase("-308e-2f", "-3.07999992e+00", CNumericTypes.FLOAT),
-            new TestCase("-308L", "-3.0800000000000000e+02", CNumericTypes.LONG_DOUBLE),
+            new TestCase("-308L", "-3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
             new TestCase("-0x308p-2F", "-1.94000000e+02", CNumericTypes.FLOAT),
-            new TestCase("-0x30al", "-7.7800000000000000e+02", CNumericTypes.LONG_DOUBLE));
+            new TestCase("-0x30al", "-7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
@@ -218,7 +218,7 @@ public class ASTConverterTest {
                 converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
 
         assertThat(literal.getValue().toString()).isEqualTo(test.expected());
-        assertThat(test.type()).isSameInstanceAs(literal.getExpressionType());
+        assertThat(literal.getExpressionType()).isSameInstanceAs(test.type());
       }
     }
   }

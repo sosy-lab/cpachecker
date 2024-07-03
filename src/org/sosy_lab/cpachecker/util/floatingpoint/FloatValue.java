@@ -23,8 +23,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 // TODO: Add support for more rounding modes
@@ -271,16 +270,16 @@ public class FloatValue extends Number {
      * <p>Throws a {@link NumberFormatException} if the {@link CType} is not a floating point type.
      */
     public static Format fromCType(CType pType) {
-      // TODO: Add support for 'long double'
-      CBasicType basicType = ((CSimpleType) pType).getType();
-      return switch (basicType) {
-        case FLOAT -> Format.Float32;
-        case DOUBLE -> Format.Float64;
-        case FLOAT128 -> Format.Float128;
-        default ->
-            throw new NumberFormatException(
-                String.format("Invalid type for float infinity: %s", pType));
-      };
+      if (pType.equals(CNumericTypes.FLOAT)) {
+        return Format.Float32;
+      } else if (pType.equals(CNumericTypes.DOUBLE)) {
+        return Format.Float64;
+      } else if (pType.equals(CNumericTypes.LONG_DOUBLE)) {
+        return Format.Extended;
+      } else {
+        throw new NumberFormatException(
+            String.format("Invalid type for float infinity: %s", pType));
+      }
     }
   }
 
