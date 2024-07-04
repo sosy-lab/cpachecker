@@ -53,14 +53,14 @@ Verifying a Program with CPAchecker
    [International Competition on Software Verification](http://sv-comp.sosy-lab.org/),
    which can be checked out from https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks.
 
-2. If you want to enable certain analyses like predicate analysis,
+2. Optionally: If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory config/.
    If you do not want a specific analysis,
-   we recommend `config/default.properties`.
+   we recommend the default configuration of CPAchecker.
    However, note that if you are on MacOS
    you need to provide specifically-compiled MathSAT binaries
-   for this configuration to work
+   for the default configuration to work
    (or use Docker in order to run the Linux version of CPAchecker).
    The configuration of CPAchecker is explained in doc/Configuration.md.
 
@@ -71,12 +71,13 @@ Verifying a Program with CPAchecker
    Other examples for specifications can be found in `config/specification/`
 
 4. Execute `bin/cpachecker [ --config <CONFIG_FILE> ] [ --spec <SPEC_FILE> ] <SOURCE_FILE>`
-   Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
    Additional command line switches are described in doc/Configuration.md.
-   Example: `bin/cpachecker --config config/default.properties doc/examples/example.c`
-   This example can also be abbreviated to:
-   `bin/cpachecker --default doc/examples/example.c`
+   To use the default configuration of CPAchecker,
+   pass only the source file: `bin/cpachecker doc/examples/example.c`.
+   A specific analysis (like k-induction) can be chosen
+   for example with `bin/cpachecker --config/kInduction.properties doc/examples/example.c`
+   or the equivalent abbreviation `bin/cpachecker --kInduction doc/examples/example.c`.
    Java 17 or later is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
    Example: `export JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin/java`
@@ -86,13 +87,13 @@ Verifying a Program with CPAchecker
    because we do not ship binaries for SMT solvers for this platform.
    You either need to build the appropriate binaries yourself
    or use less powerful analyses that work with Java-based solvers,
-   for example this one instead of `--default`:
+   for example this one instead of CPAchecker's default configuration:
    `--predicateAnalysis-linear --option solver.solver=SMTInterpol`
    Of course you can also use solutions like Docker
    for executing the Linux version of CPAchecker.
 
    If you installed CPAchecker using Docker, the above example command line would look like this:
-   `docker run -v $(pwd):/workdir -u $UID:$GID sosylab/cpachecker --default /cpachecker/doc/examples/example.c`
+   `docker run -v $(pwd):/workdir -u $UID:$GID sosylab/cpachecker /cpachecker/doc/examples/example.c`
    This command makes the current directory available in the container,
    so to verify a program in the current directory just provide its file name
    instead of the example that is bundled with CPAchecker.

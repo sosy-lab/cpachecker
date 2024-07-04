@@ -61,16 +61,17 @@ unknown command-line option, it checks if a file with this name
 and the ending `.properties` exists in the directory `config`
 and uses it as the configuration file.
 
-Either `--help`, `--config`, or `--cpas` has to be specified.
-
 All other arguments to CPAchecker are interpreted as code files that should be
 analyzed (option `analysis.programNames`). However, currently only one such file may
 be specified.
 
-The usual command line for running CPAchecker is to specify a configuration file
-(either with `--config FILE` or `--CONFIGFILE`) and a program file. Examples:
-`bin/cpachecker --default doc/examples/example.c` and
-`bin/cpachecker --config config/default.properties doc/examples/example.c`
+If neither `--cpas` nor a configuration file is specified,
+CPAchecker will use a default configuration
+that is recommended for most use cases.
+Typical command lines for CPAchecker are thus for example:
+- `bin/cpachecker doc/examples/example.c` (uses default analysis, which can also explicitly be requested with `--default`)
+- `bin/cpachecker --kInduction doc/examples/example.c` (chooses configuration `kInduction`)
+- `bin/cpachecker --config config/kInduction.properties doc/examples/example.c` (same as previous example)
 
 Note that before version 2.4 CPAchecker supported only
 a different set of command-line arguments, each starting with a single dash.

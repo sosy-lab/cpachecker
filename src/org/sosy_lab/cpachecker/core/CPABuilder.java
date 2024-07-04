@@ -129,9 +129,8 @@ public class CPABuilder {
       // By default there is a top-level CompositeCPA, and if it has no children, this means that
       // the user did not specify any meaningful configuration.
       throw new InvalidConfigurationException(
-          "Please specify a configuration with '--config CONFIG_FILE' or '--CONFIG' "
-              + "(for example, '--default', '--predicateAnalysis', or '--valueAnalysis'). "
-              + "See README.md for more details.");
+          "Please specify a configuration with at least one CPA or specification automaton. "
+              + "See doc/Configuration.md for more details.");
     }
 
     checkAliasUniqueness(allCpaConfigs, allAutomata);

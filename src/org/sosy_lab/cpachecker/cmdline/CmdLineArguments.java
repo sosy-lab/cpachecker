@@ -324,6 +324,12 @@ class CmdLineArguments {
       putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
 
+    if (!properties.containsKey(CONFIGURATION_FILE_OPTION) && !properties.containsKey("cpa")) {
+      // no config given, choose default
+      properties.put(
+          CONFIGURATION_FILE_OPTION, CmdLineArguments.resolveConfigFile("default").toString());
+    }
+
     return properties;
   }
 
@@ -404,6 +410,7 @@ class CmdLineArguments {
     out.println();
     out.println("You can also specify any of the configuration files in the directory config/");
     out.println("with --CONFIG_FILE, e.g., --default for config/default.properties.");
+    out.println("If no configuration is given, CPAchecker uses a default configuration.");
     out.println();
     out.println(
         "More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
