@@ -11,10 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -478,20 +476,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   public static FluentIterable<CFAEdge> contextSensitiveLeavingEdges(
       CFANode pCurrentNode, CFANode pFunctionReturnNode) {
-
-    if (!(pCurrentNode instanceof FunctionExitNode)) {
+    // if pCurrentNode is a FunctionExitNode, consider only the edge leading to pFunctionReturnNode
+    if (pCurrentNode instanceof FunctionExitNode) {
+      return CFAUtils.leavingEdges(pCurrentNode)
+          .filter(
+              cfaEdge ->
+                  !(cfaEdge instanceof FunctionSummaryEdge) // exclude parallel edges
+                      && cfaEdge.getSuccessor().equals(pFunctionReturnNode));
+    } else {
       return CFAUtils.leavingEdges(pCurrentNode);
     }
-    // if pCurrentNode is a FunctionExitNode, consider only the edge leading to pFunctionReturnNode
-    List<CFAEdge> rContextSensitiveLeavingEdges = new ArrayList<>();
-    for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
-      if (!(cfaEdge instanceof FunctionSummaryEdge)) { // exclude parallel edges
-        if (cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
-          rContextSensitiveLeavingEdges.add(cfaEdge);
-          break;
-        }
-      }
-    }
-    return FluentIterable.from(rContextSensitiveLeavingEdges);
   }
 }
