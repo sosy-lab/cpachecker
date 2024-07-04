@@ -142,6 +142,10 @@ public class CPABuilder {
           "Placeholder "
               + SPECIFICATION_PLACEHOLDER.name
               + " must occur at most once in CPA configuration!");
+    } else if (placeholderCount == 1 && allAutomata.isEmpty()) {
+      throw new InvalidConfigurationException(
+          "Configuration requires a specification, but none was given. "
+              + "Please provide one with '--spec'.");
     }
 
     // 3. Find place to add CPAs for automata and instantiate them upfront

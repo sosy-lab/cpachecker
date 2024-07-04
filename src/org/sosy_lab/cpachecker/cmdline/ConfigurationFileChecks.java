@@ -469,6 +469,7 @@ public class ConfigurationFileChecks {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
@@ -492,6 +493,17 @@ public class ConfigurationFileChecks {
       ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
       configBuilder.setOption("limits.time.cpu", options.cpuTimeRequired.toString());
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
+      config = configBuilder.build();
+    }
+    if (Strings.isNullOrEmpty(config.getProperty(SPECIFICATION_OPTION))
+        && configFile instanceof Path configFilePath
+        && (Iterables.contains(configFilePath, Path.of("components"))
+            || configFilePath.endsWith("ltl.properties"))) {
+      // Some configs require a specification due to the use of $specification.
+      // For config/components/ we do not want to hard-code a specification in the config file,
+      // but we still want to instantiate the config for testing here. So provide a dummy spec.
+      ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
+      configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/Assertion.spc");
       config = configBuilder.build();
     }
 
