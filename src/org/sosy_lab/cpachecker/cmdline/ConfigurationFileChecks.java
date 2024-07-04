@@ -213,8 +213,9 @@ public class ConfigurationFileChecks {
     private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
   }
 
+  private static final String SPECIFICATION_OPTION = "specification";
   private static final Path CONFIG_DIR = Path.of("config");
-  private static final Path SPEC_DIR = CONFIG_DIR.resolve("specification");
+  private static final Path SPEC_DIR = CONFIG_DIR.resolve(SPECIFICATION_OPTION);
   private static final Path OUTPUT_DIR = Path.of("output");
 
   @Parameters(name = "{0}")
@@ -385,7 +386,7 @@ public class ConfigurationFileChecks {
     config.inject(options);
 
     @SuppressWarnings("deprecation")
-    final String spec = config.getProperty("specification");
+    final String spec = config.getProperty(SPECIFICATION_OPTION);
     @SuppressWarnings("deprecation")
     final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
     @SuppressWarnings("deprecation")
