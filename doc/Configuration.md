@@ -41,8 +41,8 @@ The following command-line arguments are allowed:
  - `--stats`			sets `statistics.print = true`
  - `--entry-function <FUNC>`	sets `analysis.entryFunction = <FUNC>`
  - `--timelimit <TIME>`		sets `limits.time.cpu = <TIME>`
- - `--32`			sets `analysis.machineModel = Linux32` (this is the default)
- - `--64`			sets `analysis.machineModel = Linux64`
+ - `--32`			sets `analysis.machineModel = Linux32` (this is the default and suitable for 32-bit Linux on x86, i.e. ILP32)
+ - `--64`			sets `analysis.machineModel = Linux64` (this is suitable for 64-bit Linux on x86, i.e., LP64)
  - `--skip-recursion`		sets `cpa.callstack.skipRecursion = true` and `analysis.summaryEdges = true`
  - `--preprocess`		sets `parser.usePreprocessor = true`
  - `--java`  			sets `language = JAVA`

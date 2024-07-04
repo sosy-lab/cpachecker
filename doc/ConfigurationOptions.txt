@@ -336,7 +336,11 @@ analysis.initialStatesFor = {InitialStatesFor.ENTRY}
 # run interprocedural analysis
 analysis.interprocedural = true
 
-# the machine model, which determines the sizes of types like int
+# the machine model, which determines the sizes of types like int:
+# - LINUX32: ILP32 for Linux on 32-bit x86
+# - LINUX64: LP64 for Linux on 64-bit x86
+# - ARM: ILP32 for Linux on 32-bit ARM
+# - ARM64: LP64 for Linux on 64-bit ARM
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM, ARM64]
 
