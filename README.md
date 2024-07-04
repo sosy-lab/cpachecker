@@ -11,10 +11,10 @@ SPDX-License-Identifier: Apache-2.0
 Getting Started with CPAchecker
 ===============================
 
-Installation Instructions:  [`INSTALL.md`](INSTALL.md)
+Installation Instructions:  [`INSTALL.md`](INSTALL.md)  
 Develop and Contribute:     [`doc/Developing.md`](doc/Developing.md)
 
-More documentation can be found in the [`doc`](doc) directory.
+More documentation can be found in the [`doc/`](doc/) directory.
 
 License and Copyright
 ---------------------
@@ -33,7 +33,7 @@ Prepare Programs for Verification by CPAchecker
 -----------------------------------------------
 
 All programs need to pre-processed with the C pre-processor,
-i.e., they may not contain #define and #include directives.
+i.e., they may not contain `#define` and `#include` directives.
 You can enable pre-processing inside CPAchecker
 by specifying `--preprocess` on the command line.
 Multiple C files can be given and will be linked together
@@ -49,30 +49,31 @@ Verifying a Program with CPAchecker
 1. Choose a source code file that you want to be checked.
    If you use your own program, remember to pre-process it as mentioned above.
    Example: `doc/examples/example.c` or `doc/examples/example_bug.c`
-   A good source for more example programs is the benchmark set of the
-   [International Competition on Software Verification](http://sv-comp.sosy-lab.org/),
-   which can be checked out from https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks.
+   A good source for more example programs is the
+   [SV-Benchmarks](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks) repository
+   that is for example used by the
+   [International Competition on Software Verification](http://sv-comp.sosy-lab.org/).
 
-2. Optionally: If you want to enable certain analyses like predicate analysis,
-   choose a configuration file. This file defines for example which CPAs are used.
-   Standard configuration files can be found in the directory config/.
+2. Optionally: If you want to choose certain analyses like predicate analysis,
+   specify a configuration file. This file defines for example which CPAs are used.
+   Standard configuration files can be found in the directory [`config/`](config/).
    If you do not want a specific analysis,
    we recommend the default configuration of CPAchecker.
    However, note that if you are on MacOS
    you need to provide specifically-compiled MathSAT binaries
    for the default configuration to work
    (or use Docker in order to run the Linux version of CPAchecker).
-   The configuration of CPAchecker is explained in doc/Configuration.md.
+   The configuration of CPAchecker is explained in [`doc/Configuration.md`](doc/Configuration.md).
 
-3. Choose a specification file (you may not need this for some CPAs).
-   The standard configuration files use `config/specification/default.spc`
+3. Choose a specification file (you may not need this for some configurations).
+   The standard configurations use `config/specification/default.spc`
    as the default specification. With this one, CPAchecker will look for labels
    named `ERROR` (case insensitive) and assertions in the source code file.
-   Other examples for specifications can be found in `config/specification/`
+   Other examples for specifications can be found in [`config/specification/`](config/specification/)
+   in the CPAchecker directory.
 
 4. Execute `bin/cpachecker [ --config <CONFIG_FILE> ] [ --spec <SPEC_FILE> ] <SOURCE_FILE>`
-   The current directory should be the CPAchecker project directory.
-   Additional command-line arguments are described in doc/Configuration.md.
+   Additional command-line arguments are described in [`doc/Configuration.md`](doc/Configuration.md).
    To use the default configuration of CPAchecker,
    pass only the source file: `bin/cpachecker doc/examples/example.c`.
    A specific analysis (like k-induction) can be chosen

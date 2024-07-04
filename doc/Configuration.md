@@ -20,7 +20,7 @@ A configuration file specify a set of options in `key=value` format.
 All valid configuration options and their default values
 are listed in the file [`ConfigurationOptions.txt`](ConfigurationOptions.txt).
 In most cases, the standard configuration files
-in the directory `config/` should be sufficient.
+in the directory [`config/`](../config/) should be sufficient.
 A detailed format description can be found in the section below.
 
 
@@ -53,17 +53,16 @@ The following command-line arguments are allowed:
  - `--stack STACK_SIZE`		sets the stack size of the JVM
  - `--option <KEY>=<VALUE>`	sets any option: `KEY = VALUE`
 
-The file [doc/ConfigurationOptions.txt](ConfigurationOptions.txt) contains an explanation
+The file [`ConfigurationOptions.txt`](ConfigurationOptions.txt) contains an explanation
 of these options.
 The arguments `--config config/CONFIGFILE.properties` can be
 abbreviated to `--CONFIGFILE`. In other words, if CPAchecker finds an
 unknown command-line argument, it checks if a file with this name
-and the ending `.properties` exists in the directory `config`
+and the ending `.properties` exists in the directory [`config/`](../config)
 and uses it as the configuration file.
 
 All other arguments to CPAchecker are interpreted as code files that should be
-analyzed (option `analysis.programNames`). However, currently only one such file may
-be specified.
+analyzed (option `analysis.programNames`).
 
 If neither `--cpas` nor a configuration file is specified,
 CPAchecker will use a default configuration
@@ -89,16 +88,16 @@ options that should be used for only one instance of a CPA can be prefixed
 with "alias.". Their values override the options without this prefix.
 
 For example, to set the solver logfile in the PredicateCPA, you can use
-"PredicateCPA.solver.logfile=predicate.%03d.smt2", even if the real option is
-"solver.logfile" and there is no such option in the PredicateCPA.
+`PredicateCPA.solver.logfile=predicate.%03d.smt2`, even if the real option is
+`solver.logfile` and there is no such option in the PredicateCPA.
 The configuration framework will automatically remove the prefix alias and
-apply the renamed option for all classes that are build with the instance of
-ConfigurationOptions given as parameter to PredicateCPA.
+apply the renamed option for all classes that are instantiated
+as part of the PredicateCPA.
 
 If the package name starts with `org.sosy_lab.cpachecker.`, this prefix can be
 omitted.
 
-Wrapper CPAs like ARGCPA and CompositeCPA take one option "cpa" or "cpas"
+Wrapper CPAs like ARGCPA and CompositeCPA take one option `cpa` or `cpas`
 to specify the wrapped CPA, depending whether this CPA wraps one or
 several other CPAs (the latter is only used for CompositeCPA). This option
 has to be prefixed with the identifier of the CPA as described above.
