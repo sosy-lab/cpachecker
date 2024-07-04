@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 
 import java.util.HashSet;
 import java.util.Set;

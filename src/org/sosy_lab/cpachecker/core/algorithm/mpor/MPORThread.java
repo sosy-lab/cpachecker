@@ -14,6 +14,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 
 /**
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the

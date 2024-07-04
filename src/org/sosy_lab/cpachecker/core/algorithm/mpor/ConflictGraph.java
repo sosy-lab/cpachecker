@@ -46,7 +46,7 @@ public class ConflictGraph {
    * @throws IllegalArgumentException if a node with pThreadId already exists
    */
   public void addNode(int pThreadId) {
-    checkArgument(hasNode(pThreadId), "pThreadId " + pThreadId + " is a node already");
+    checkArgument(!hasNode(pThreadId), "pThreadId is a node already");
     graph.put(pThreadId, new HashSet<>());
   }
 
@@ -58,8 +58,8 @@ public class ConflictGraph {
    * @throws IllegalArgumentException if a node with pFrom or pTo do not exist
    */
   public void addEdge(int pFrom, int pTo) {
-    checkArgument(!hasNode(pFrom), "pFrom ID " + pFrom + " does not exist as a node");
-    checkArgument(!hasNode(pTo), "pTo ID " + pTo + " does not exist as a node");
+    checkArgument(hasNode(pFrom), "pFrom ID does not exist as a node");
+    checkArgument(hasNode(pTo), "pTo ID does not exist as a node");
     graph.get(pFrom).add(pTo);
   }
 

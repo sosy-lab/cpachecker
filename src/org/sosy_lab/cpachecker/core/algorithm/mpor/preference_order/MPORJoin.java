@@ -6,9 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
 
 /**
  * An object for a pthread_join call containing thread waited on and the CFANode whose next leaving

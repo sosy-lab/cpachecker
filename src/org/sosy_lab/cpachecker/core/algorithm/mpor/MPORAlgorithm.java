@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -115,10 +117,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threads = getThreads(cfa);
     assignMutexesToThreads(threads);
     assignJoinsToThreads(threads);
-    // TODO
-    // assignBarriersToThreads(threads);
-
-    // TODO create MPORState class mapping MPORThreads to their current location (CFANode)
+    // TODO assignBarriersToThreads(threads);
   }
 
   /** Checks whether the input language of the program is C and throws an exception if not. */
