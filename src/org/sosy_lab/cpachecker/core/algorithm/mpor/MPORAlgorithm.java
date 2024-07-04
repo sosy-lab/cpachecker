@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.FluentIterable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
@@ -122,7 +123,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Checks whether the input language of the program is C and throws an exception if not. */
   private void checkForCProgram(CFA pCfa) {
-    Preconditions.checkArgument(
+    checkArgument(
         pCfa.getMetadata().getInputLanguage().equals(Language.C), "MPOR expects C program");
   }
 
@@ -133,12 +134,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void checkForParallelProgram(CFA pCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
-      if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.CREATE)) {
+      if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_CREATE)) {
         isParallel = true;
         break;
       }
     }
-    Preconditions.checkArgument(
+    checkArgument(
         isParallel, "MPOR expects parallel C program with at least one pthread_create call");
   }
 
@@ -186,7 +187,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       // TODO use loop structure to handle pthread_create calls inside loops
       //  (function is called numerous times)
       //  note that in loops, the CExpression for pthreadT is not unique but always the same
-      if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.CREATE)) {
+      if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_CREATE)) {
         // extract the first parameter of pthread_create, i.e. the pthread_t value
         CExpression pthreadT =
             CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(cfaEdge, 0));
@@ -238,7 +239,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         return;
       }
       for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-        if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
+        if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           // the successor node of mutex_lock is the first inside the lock
           MPORMutex mutex = new MPORMutex(pthreadMutexT, cfaEdge.getSuccessor());
@@ -274,8 +275,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (!pMutex.getNodes().contains(pCurrentNode)) {
       pMutex.getNodes().add(pCurrentNode);
       for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-        if (PthreadFunctionType.isEdgeCallToFunctionType(
-            cfaEdge, PthreadFunctionType.MUTEX_UNLOCK)) {
+        if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_UNLOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           if (pthreadMutexT.equals(pMutex.pthreadMutexT)) {
             // the last node inside the lock, before unlocking
@@ -332,7 +332,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         return;
       }
       for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-        if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.JOIN)) {
+        if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_JOIN)) {
           CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           MPORThread threadToTerminate = getThreadByPthreadT(pThreads, pthreadT);
           MPORJoin join = new MPORJoin(threadToTerminate, pCurrentNode);
@@ -383,8 +383,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         return;
       }
       for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-        if (PthreadFunctionType.isEdgeCallToFunctionType(
-            cfaEdge, PthreadFunctionType.BARRIER_INIT)) {
+        if (isEdgeCallToFunctionType(cfaEdge, FunctionType.BARRIER_INIT)) {
           // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
           //  functions, e.g. pthread-divine/barrier_2t.i
           //  but the general approach is identifying MPORBarriers from barrier_init calls
@@ -482,5 +481,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     } else {
       return CFAUtils.leavingEdges(pCurrentNode);
     }
+  }
+
+  /**
+   * Tries to extract the CFunctionCallStatement from pCfaEdge and checks if it is a call to
+   * pFunctionType.
+   *
+   * @param pCfaEdge the CFAEdge to be analyzed
+   * @param pFunctionType the desired FunctionType
+   * @return true if pCfaEdge is a call to pFunctionType
+   */
+  public static boolean isEdgeCallToFunctionType(CFAEdge pCfaEdge, FunctionType pFunctionType) {
+    return CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge)
+        && CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            .toASTString()
+            .equals(pFunctionType.name);
   }
 }
