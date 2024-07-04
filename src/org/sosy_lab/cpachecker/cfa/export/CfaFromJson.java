@@ -16,12 +16,15 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.common.collect.HashMultiset;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.ImmutableSortedSet.Builder;
 import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
@@ -61,6 +64,7 @@ public final class CfaFromJson extends CfaJsonIO {
     SimpleModule simpleModule = new SimpleModule();
     simpleModule.addDeserializer(Multiset.class, new MultisetDeserializer());
     simpleModule.addDeserializer(ImmutableSortedSet.class, new ImmutableSortedSetDeserializer());
+    simpleModule.addDeserializer(CFAEdge.class, new CFAEdgeDeserializer());
     objectMapper.registerModule(simpleModule);
 
     /* Read CfaJsonData from file. */
@@ -94,16 +98,16 @@ public final class CfaFromJson extends CfaJsonIO {
       // TODO: Javadoc
 
       JsonNode node = pJsonParser.getCodec().readTree(pJsonParser);
-      HashMultiset<Object> multiset = HashMultiset.create();
+      List<Comparable<?>> list = new ArrayList<>();
 
       for (JsonNode elementNode : node) {
         try (JsonParser elementParser = elementNode.traverse()) {
           Object element = pDeserializationContext.readValue(elementParser, Object.class);
-          multiset.add(element);
+          list.add((Comparable<?>) element);
         }
       }
 
-      return multiset;
+      return FluentIterable.from(list).toMultiset();
     }
   }
 
@@ -132,14 +136,45 @@ public final class CfaFromJson extends CfaJsonIO {
       // TODO: Javadoc
 
       JsonNode node = pJsonParser.getCodec().readTree(pJsonParser);
-      Builder<Comparable<?>> builder = ImmutableSortedSet.naturalOrder();
+      Set<Comparable<?>> set = new HashSet<>();
+
       for (JsonNode elementNode : node) {
         try (JsonParser elementParser = elementNode.traverse()) {
-          Object element = pDeserializationContext.readValue(elementParser, Object.class);
-          builder.add((Comparable<?>) element);
+          Comparable<?> element =
+              pDeserializationContext.readValue(elementParser, Comparable.class);
+          set.add(element);
         }
       }
-      return builder.build();
+
+      return ImmutableSortedSet.copyOf(set);
+    }
+  }
+
+  /**
+   * A custom deserializer for {@link CFAEdge} objects.
+   *
+   * <p>This class is responsible for deserializing a JSON representation of a {@link CFAEdge} into
+   * a {@link CFAEdge} object.
+   */
+  private static class CFAEdgeDeserializer extends JsonDeserializer<CFAEdge> {
+
+    /**
+     * Deserializes a JSON representation of a {@link CFAEdge} into a {@link CFAEdge} object.
+     *
+     * @param pJsonParser The JSON parser.
+     * @param pDeserializationContext The deserialization context.
+     * @return The deserialized {@link CFAEdge} object.
+     * @throws IOException If an I/O error occurs during deserialization.
+     */
+    @Override
+    public CFAEdge deserialize(
+        JsonParser pJsonParser, DeserializationContext pDeserializationContext) throws IOException {
+
+      // TODO: Javadoc + Implementation
+
+      JsonNode node = pJsonParser.getCodec().readTree(pJsonParser);
+
+      return null;
     }
   }
 }
