@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.NavigableMap;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
@@ -44,23 +45,22 @@ public abstract class CfaJsonIO {
    *     indentation and newlines. On top of that, it includes mixins to prevent redundant mappings.
    */
   protected static final ObjectMapper provideConfiguredCfaObjectMapper() {
-    ObjectMapper objectMapper = new ObjectMapper();
+    return JsonMapper.builder()
 
-    /* Only map fields of objects. */
-    objectMapper.setVisibility(PropertyAccessor.ALL, Visibility.NONE);
-    objectMapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
+        /* Only map fields of objects. */
+        .visibility(PropertyAccessor.ALL, Visibility.NONE)
+        .visibility(PropertyAccessor.FIELD, Visibility.ANY)
 
-    /* Enable serialization with indentation and newlines. */
-    objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        /* Enable serialization with indentation and newlines. */
+        .enable(SerializationFeature.INDENT_OUTPUT)
 
-    /* Add mixins. */
-    objectMapper.addMixIn(FunctionEntryNode.class, FunctionEntryNodeMixin.class);
-    objectMapper.addMixIn(FunctionExitNode.class, FunctionExitNodeMixin.class);
-    objectMapper.addMixIn(CFANode.class, CfaNodeMixin.class);
-    objectMapper.addMixIn(CfaMetadata.class, CfaMetadataMixin.class);
-    objectMapper.addMixIn(Partition.class, PartitionMixin.class);
-
-    return objectMapper;
+        /* Add mixins. */
+        .addMixIn(FunctionEntryNode.class, FunctionEntryNodeMixin.class)
+        .addMixIn(FunctionExitNode.class, FunctionExitNodeMixin.class)
+        .addMixIn(CFANode.class, CfaNodeMixin.class)
+        .addMixIn(CfaMetadata.class, CfaMetadataMixin.class)
+        .addMixIn(Partition.class, PartitionMixin.class)
+        .build();
   }
 
   /**
