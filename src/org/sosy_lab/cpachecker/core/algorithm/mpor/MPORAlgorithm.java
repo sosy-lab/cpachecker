@@ -252,7 +252,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pThread,
             pVisitedNodes,
             cfaEdge.getSuccessor(),
-            functionCallMap.getOrDefault(pCurrentNode, pFunctionReturnNode));
+            getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, functionCallMap));
       }
     } else {
       // TODO logic if there is no FunctionExitNode for the pThread
@@ -291,7 +291,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               pThread,
               pMutex,
               cfaEdge.getSuccessor(),
-              functionCallMap.getOrDefault(pCurrentNode, pFunctionReturnNode));
+              getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, functionCallMap));
         }
       }
     }
@@ -347,7 +347,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pThread,
             pVisitedNodes,
             cfaEdge.getSuccessor(),
-            functionCallMap.getOrDefault(pCurrentNode, pFunctionReturnNode));
+            getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, functionCallMap));
       }
     } else {
       // TODO
@@ -398,7 +398,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pThread,
             pVisitedNodes,
             cfaEdge.getSuccessor(),
-            functionCallMap.getOrDefault(pCurrentNode, pFunctionReturnNode));
+            getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, functionCallMap));
       }
     } else {
       // TODO
@@ -446,6 +446,25 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     throw new IllegalArgumentException("no MPORThread with pPthreadT found in pThreads");
+  }
+
+  /**
+   * Searches pFunctionCallMap for pCurrentNode. If the key is present, the FunctionReturnNode is
+   * returned. If not, we take the previous pFunctionReturnNode or reset it to null if pCurrentNode
+   * is a FunctionExitNode, i.e. the previous pFunctionReturnNode is not relevant anymore in the
+   * next iteration.
+   *
+   * @param pCurrentNode the current CFANode to be analyzed
+   * @param pFunctionReturnNode the previous pFunctionReturnNode
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
+   * @return the previous or new FunctionReturnNode or null if pCurrentNode exits a function
+   */
+  public static CFANode getFunctionReturnNode(
+      CFANode pCurrentNode, CFANode pFunctionReturnNode, Map<CFANode, CFANode> pFunctionCallMap) {
+    return pFunctionCallMap.getOrDefault(
+        pCurrentNode,
+        // reset the FunctionReturnNode when encountering a FunctionExitNode
+        pCurrentNode instanceof FunctionExitNode ? null : pFunctionReturnNode);
   }
 
   /**
