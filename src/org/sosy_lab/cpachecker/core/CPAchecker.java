@@ -34,6 +34,7 @@ import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -322,6 +323,7 @@ public class CPAchecker {
       ConfigurableProgramAnalysis cpa;
       stats.cpaCreationTime.start();
       try {
+        logAboutSpecification();
         specification =
             Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
         cpa = factory.createCPA(cfa, specification);
@@ -485,6 +487,23 @@ public class CPAchecker {
           "The following options are deprecated and will be removed in the future:\n",
           Joiner.on("\n ").join(deprecatedProperties),
           "\n");
+    }
+  }
+
+  private void logAboutSpecification() {
+    try {
+      Path defaultSpec =
+          Classes.getCodeLocation(CPAchecker.class)
+              .resolveSibling("config/specification/default.spc");
+      if (specificationFiles.size() == 1
+          && Files.isSameFile(specificationFiles.get(0), defaultSpec)) {
+        logger.log(
+            Level.INFO,
+            "Using default specification, which checks for assertion failures and error labels.");
+      }
+    } catch (IOException e) {
+      // This method only logs, we do not want this to disturb CPAchecker execution on failure.
+      logger.logDebugException(e, "Failed to check whether given spec is default spec.");
     }
   }
 
