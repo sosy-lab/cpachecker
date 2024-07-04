@@ -14,7 +14,7 @@ Getting Started with CPAchecker
 Installation Instructions:  [`INSTALL.md`](INSTALL.md)
 Develop and Contribute:     [`doc/Developing.md`](doc/Developing.md)
 
-More documentation can be found in the [`doc`](doc) folder.
+More documentation can be found in the [`doc`](doc) directory.
 
 License and Copyright
 ---------------------
