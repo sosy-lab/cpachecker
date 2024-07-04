@@ -72,7 +72,7 @@ Verifying a Program with CPAchecker
 
 4. Execute `bin/cpachecker [ --config <CONFIG_FILE> ] [ --spec <SPEC_FILE> ] <SOURCE_FILE>`
    The current directory should be the CPAchecker project directory.
-   Additional command line switches are described in doc/Configuration.md.
+   Additional command-line arguments are described in doc/Configuration.md.
    To use the default configuration of CPAchecker,
    pass only the source file: `bin/cpachecker doc/examples/example.c`.
    A specific analysis (like k-induction) can be chosen
@@ -138,7 +138,7 @@ You can validate violation witnesses with CPA-witness2test, which is part of CPA
    ```
    bin/cpa-witness2test --witness <WITNESS_FILE> --spec <SPEC_FILE> <SOURCE_FILE>`
    ```
-   Addtional command line switches are viewed with `bin/cpa-witness2test -h`.
+   Addtional command-line arguments are viewed with `bin/cpa-witness2test -h`.
 
 3. When finished, and if the violation witness is successfully validated, the console output shows `Verification result: FALSE`.
    Additionally to the console output, CPA-witness2test also creates a file `output/*.harness.c`.

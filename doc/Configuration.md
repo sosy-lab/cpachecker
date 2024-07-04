@@ -24,8 +24,8 @@ in the directory `config/` should be sufficient.
 A detailed format description can be found in the section below.
 
 
-Command-line options
---------------------
+Command-line arguments
+----------------------
 Several configuration options can also be specified as command-line arguments.
 If an option appears on the command line as well as in the configuration file,
 the value from the command line overrides the one from the file.
@@ -57,7 +57,7 @@ The file [doc/ConfigurationOptions.txt](ConfigurationOptions.txt) contains an ex
 of these options.
 The arguments `--config config/CONFIGFILE.properties` can be
 abbreviated to `--CONFIGFILE`. In other words, if CPAchecker finds an
-unknown command-line option, it checks if a file with this name
+unknown command-line argument, it checks if a file with this name
 and the ending `.properties` exists in the directory `config`
 and uses it as the configuration file.
 

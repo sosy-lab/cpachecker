@@ -100,7 +100,7 @@ with considerably less effort!
   * non-public classes, methods and fields
 - Please add comments wherever sensible,
   but make sure to add comments for the top three items!
-- All command-line options need to be explained in [`doc/Configuration.txt`](Configuration.txt).
+- All command-line arguments need to be explained in [`doc/Configuration.txt`](Configuration.txt).
 - All `@Option` fields need to have a non-empty description
   that explains (to a user) what the option does.
 - All top-level configuration files (`config/*.properties`) need to have a description

@@ -35,7 +35,7 @@
 #
 #   Trying it out:
 # From the CPAchecker directory, type `bin/cpachecker -` and press
-# the TAB key. Bash will provide you with all possible command line options
+# the TAB key. Bash will provide you with all possible command line arguments
 # for CPAchecker.
 
 _cpachecker_completions() {
