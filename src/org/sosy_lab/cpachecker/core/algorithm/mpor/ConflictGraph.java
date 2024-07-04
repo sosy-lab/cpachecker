@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
@@ -27,6 +29,8 @@ import java.util.Set;
  */
 public class ConflictGraph {
 
+  // TODO replace Integer thread IDs with MPORThread objects
+
   /** This HashMap represents the nodes (keys) and edges (keys as from, values (HashSets) as to). */
   private Map<Integer, Set<Integer>> graph;
 
@@ -42,9 +46,7 @@ public class ConflictGraph {
    * @throws IllegalArgumentException if a node with pThreadId already exists
    */
   public void addNode(int pThreadId) {
-    if (hasNode(pThreadId)) {
-      throw new IllegalArgumentException("pThreadId " + pThreadId + " is a node already");
-    }
+    checkArgument(hasNode(pThreadId), "pThreadId " + pThreadId + " is a node already");
     graph.put(pThreadId, new HashSet<>());
   }
 
@@ -56,12 +58,8 @@ public class ConflictGraph {
    * @throws IllegalArgumentException if a node with pFrom or pTo do not exist
    */
   public void addEdge(int pFrom, int pTo) {
-    if (!hasNode(pFrom)) {
-      throw new IllegalArgumentException("pFrom ID " + pFrom + " does not exist as a node");
-    }
-    if (!hasNode(pTo)) {
-      throw new IllegalArgumentException("pTo ID " + pTo + " does not exist as a node");
-    }
+    checkArgument(!hasNode(pFrom), "pFrom ID " + pFrom + " does not exist as a node");
+    checkArgument(!hasNode(pTo), "pTo ID " + pTo + " does not exist as a node");
     graph.get(pFrom).add(pTo);
   }
 

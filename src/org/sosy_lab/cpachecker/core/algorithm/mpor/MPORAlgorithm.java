@@ -422,9 +422,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO use CFAToCTranslator translateCfa to generate a C program based on a CFA
   //  this will be used for the reduced and sequentialized CFA
 
-  // TODO create function for functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode)?
-  //  yes, also include setting pFunctionReturnNode to null if pCurrentNode is a FunctionExitNode
-
   // Helpers =======================================================================================
 
   /**
