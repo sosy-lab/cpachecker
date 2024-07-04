@@ -9,9 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -236,18 +240,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           || pCurrentNode.equals(pThread.exitNode.orElseThrow())) {
         return;
       }
-      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
-        // TODO this is the exact same procedure as in findMutexCfaNodes, create a function?
-        //  its best to create separate CFAs (or at least mappings from nodes to outgoing edges)
-        //  for all threads. this way we can just go through the threads CFA and not run this
-        //  algorithm everytime where we skip edges not from the original context.
-        // if pCurrentNode is a FunctionExitNode, only consider the original calling context
-        if (pCurrentNode instanceof FunctionExitNode) {
-          if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
-            continue;
-          }
-          pFunctionReturnNode = null; // no need, but useful for debugging and cleaner
-        }
+      for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
         if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.MUTEX_LOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           // the successor node of mutex_lock is the first inside the lock
@@ -283,16 +276,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     // visit CFANodes only once to prevent infinite loops in case of loop structures
     if (!pMutex.getNodes().contains(pCurrentNode)) {
       pMutex.getNodes().add(pCurrentNode);
-      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
-
-        // if pCurrentNode is a FunctionExitNode, only consider the original calling context
-        if (pCurrentNode instanceof FunctionExitNode) {
-          if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
-            continue;
-          }
-          pFunctionReturnNode = null; // no need, but useful for debugging and cleaner
-        }
-
+      for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
         if (PthreadFunctionType.isEdgeCallToFunctionType(
             cfaEdge, PthreadFunctionType.MUTEX_UNLOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
@@ -350,14 +334,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           || pCurrentNode.equals(pThread.exitNode.orElseThrow())) {
         return;
       }
-      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
-        // if pCurrentNode is a FunctionExitNode, only consider the original calling context
-        if (pCurrentNode instanceof FunctionExitNode) {
-          if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
-            continue;
-          }
-          pFunctionReturnNode = null; // no need, but useful for debugging and cleaner
-        }
+      for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
         if (PthreadFunctionType.isEdgeCallToFunctionType(cfaEdge, PthreadFunctionType.JOIN)) {
           CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           MPORThread threadToTerminate = getThreadByPthreadT(pThreads, pthreadT);
@@ -408,14 +385,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           || pCurrentNode.equals(pThread.exitNode.orElseThrow())) {
         return;
       }
-      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
-        // if pCurrentNode is a FunctionExitNode, only consider the original calling context
-        if (pCurrentNode instanceof FunctionExitNode) {
-          if (!cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
-            continue;
-          }
-          pFunctionReturnNode = null; // no need, but useful for debugging and cleaner
-        }
+      for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
         if (PthreadFunctionType.isEdgeCallToFunctionType(
             cfaEdge, PthreadFunctionType.BARRIER_INIT)) {
           // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
@@ -455,6 +425,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   //  this will be used for the reduced and sequentialized CFA
 
   // TODO create function for functionCallEdgeNodes.getOrDefault(pCurrentNode, pFunctionReturnNode)?
+  //  yes, also include setting pFunctionReturnNode to null if pCurrentNode is a FunctionExitNode
 
   // Helpers =======================================================================================
 
@@ -475,5 +446,33 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     throw new IllegalArgumentException("no MPORThread with pPthreadT found in pThreads");
+  }
+
+  /**
+   * If pCurrentNode is a FunctionExitNode, i.e. it's successor CFANodes are all nodes where the
+   * function is called, we return only the CFAEdge whose successor is pFunctionReturnNode (the
+   * original calling context).
+   *
+   * @param pCurrentNode the CFANode whose leaving Edges we analyze
+   * @param pFunctionReturnNode the return node (extracted from the original functionCallEdge)
+   * @return a FluentIterable of context-sensitive leaving CFAEdges of pCurrentNode
+   */
+  public static FluentIterable<CFAEdge> contextSensitiveLeavingEdges(
+      CFANode pCurrentNode, CFANode pFunctionReturnNode) {
+
+    if (!(pCurrentNode instanceof FunctionExitNode)) {
+      return CFAUtils.leavingEdges(pCurrentNode);
+    }
+    // if pCurrentNode is a FunctionExitNode, consider only the edge leading to pFunctionReturnNode
+    List<CFAEdge> rContextSensitiveLeavingEdges = new ArrayList<>();
+    for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrentNode)) {
+      if (!(cfaEdge instanceof FunctionSummaryEdge)) { // exclude parallel edges
+        if (cfaEdge.getSuccessor().equals(pFunctionReturnNode)) {
+          rContextSensitiveLeavingEdges.add(cfaEdge);
+          break;
+        }
+      }
+    }
+    return FluentIterable.from(rContextSensitiveLeavingEdges);
   }
 }
