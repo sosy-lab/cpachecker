@@ -180,8 +180,9 @@ public class FloatValue extends Number {
   /**
    * Defines the precision and the exponent range of a {@link FloatValue} value.
    *
-   * <p>The precision of a FloatP is equivalent to the length of its significand. Here the 'hidden
-   * bit' is not counted. The exponent range can be derived from the width of the exponent field.
+   * <p>The precision of a FloatValue is equivalent to the length of its significand. Here the
+   * 'hidden bit' is not counted. The exponent range can be derived from the width of the exponent
+   * field.
    */
   public record Format(int expBits, int sigBits) implements Serializable {
     @Serial private static final long serialVersionUID = -6677404553596078315L;
@@ -204,7 +205,7 @@ public class FloatValue extends Number {
     public static final Format Extended = new Format(15, 63);
 
     /**
-     * The exponent 'bias' of a FloatP value in this format.
+     * The exponent 'bias' of a FloatValue value in this format.
      *
      * <p>Useful when converting to the IEEE representation of the value where an unsigned integer
      * is used to represent the exponent. Adding the bias converts to IEEE, subtracting it returns
@@ -229,7 +230,7 @@ public class FloatValue extends Number {
       // We need precision m = 2p + 2 for division, and an additional 2 bits for powInt
       // See Table 12.6 in "Handbook of Floating-Point Arithmetic"
       // FIXME: Find the exact formulas
-      return new Format(Float256.expBits, 2*(1 + sigBits) + 4);
+      return new Format(Float256.expBits, 2 * (1 + sigBits) + 4);
     }
 
     /**
@@ -245,7 +246,7 @@ public class FloatValue extends Number {
     /**
      * Least upper bound of the two formats.
      *
-     * <p>Used when implementing binary operations on FloatP values, where a common format large
+     * <p>Used when implementing binary operations on FloatValue values, where a common format large
      * enough for both arguments needs to be found.
      */
     public Format sup(Format pOther) {
@@ -473,7 +474,8 @@ public class FloatValue extends Number {
   private FloatValue withExponent(long pExponent) {
     Format precision = format.withUnlimitedExponent();
     FloatValue expPart =
-        new FloatValue(precision, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
+        new FloatValue(
+            precision, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
     return this.withPrecision(precision).multiply(expPart).withPrecision(format);
   }
 
@@ -1342,7 +1344,8 @@ public class FloatValue extends Number {
       Format m1 = new Format(Format.Float256.expBits, format.sigBits + 70);
       builder.add(m0, m1, m1.intermediatePrecision());
     } else {
-      builder.add(format.intermediatePrecision(), format.intermediatePrecision().intermediatePrecision());
+      builder.add(
+          format.intermediatePrecision(), format.intermediatePrecision().intermediatePrecision());
     }
     return builder.build();
   }
