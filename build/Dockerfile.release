@@ -9,15 +9,15 @@
 # This is a Docker image for running the latest release of CPAchecker.
 # It is built weekly using GitLab CI and pushed to
 # registry.gitlab.com/sosy-lab/software/cpachecker and sosylab/cpachecker
-# (as tags :latest and :2.4).
+# (as tags :latest and :3.0).
 # The version number of latest release of CPAchecker needs to be updated here
 # and in .gitlab-ci.yml
 #
 # Commands for building the image manually:
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:2.4 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest -t sosylab/cpachecker:2.4 -t sosylab/cpachecker:latest - < build/Dockerfile.release
-# docker push registry.gitlab.com/sosy-lab/software/cpachecker:2.4
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:3.0 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest -t sosylab/cpachecker:3.0 -t sosylab/cpachecker:latest - < build/Dockerfile.release
+# docker push registry.gitlab.com/sosy-lab/software/cpachecker:3.0
 # docker push registry.gitlab.com/sosy-lab/software/cpachecker:latest
-# docker push sosylab/cpachecker:2.4
+# docker push sosylab/cpachecker:3.0
 # docker push sosylab/cpachecker:latest
 
 FROM ubuntu:20.04
@@ -25,7 +25,7 @@ FROM ubuntu:20.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
   unzip
 
-ADD https://cpachecker.sosy-lab.org/CPAchecker-2.4-unix.zip /
+ADD https://cpachecker.sosy-lab.org/CPAchecker-3.0-unix.zip /
 RUN unzip -q /CPAchecker*-unix.zip -d / && mv /CPAchecker*-unix /cpachecker
 
 FROM ubuntu:20.04
