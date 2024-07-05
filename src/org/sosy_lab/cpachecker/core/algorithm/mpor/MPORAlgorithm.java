@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -411,13 +412,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   // TODO currently untested
   private ImmutableSet<PreferenceOrder> getPreferenceOrdersForState(MPORState pState) {
-    Set<PreferenceOrder> rPreferenceOrders = new HashSet<>();
+    Builder<PreferenceOrder> rPreferenceOrders = ImmutableSet.builder();
     for (var entry : pState.threadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
       rPreferenceOrders.addAll(getMutexPreferenceOrders(pState, currentThread, currentNode));
     }
-    return ImmutableSet.copyOf(rPreferenceOrders);
+    return rPreferenceOrders.build();
   }
 
   /**
@@ -430,7 +431,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   private Set<PreferenceOrder> getMutexPreferenceOrders(
       MPORState pState, MPORThread pCurrentThread, CFANode pCurrentNode) {
-    Set<PreferenceOrder> rMutexPreferenceOrders = new HashSet<>();
+
+    Builder<PreferenceOrder> rMutexPreferenceOrders = ImmutableSet.builder();
+
     // if pCurrentThread is in a mutex lock
     for (MPORMutex mutex : pCurrentThread.getMutexes()) {
       if (mutex.getNodes().contains(pCurrentNode)) {
@@ -445,16 +448,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                 if (pthreadMutexT.equals(mutex.pthreadMutexT)) {
 
                   // extract all CFAEdges inside mutex excluding the leaving edges of exitNodes
-                  Set<CFAEdge> precedingEdges = new HashSet<>();
+                  Builder<CFAEdge> precedingEdges = ImmutableSet.builder();
                   for (CFANode cfaNode : mutex.getNodes()) {
                     if (!mutex.getExitNodes().contains(cfaNode)) {
                       // TODO this is the entire mutex, should we only include the edges reachable
                       //  from pCurrentNode? it should be equivalent
-                      precedingEdges.addAll(CFAUtils.leavingEdges(cfaNode).stream().toList());
+                      precedingEdges.addAll(CFAUtils.leavingEdges(cfaNode));
                     }
                   }
-                  rMutexPreferenceOrders.add(
-                      new PreferenceOrder(ImmutableSet.copyOf(precedingEdges), cfaEdge));
+                  rMutexPreferenceOrders.add(new PreferenceOrder(precedingEdges.build(), cfaEdge));
                 }
               }
             }
@@ -462,7 +464,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         }
       }
     }
-    return rMutexPreferenceOrders;
+    return rMutexPreferenceOrders.build();
   }
 
   // TODO positional preference order ("a <q b") possible cases:
