@@ -149,7 +149,7 @@ public class AtExitTransformer {
           && stmtEdge.getStatement() instanceof CFunctionCallStatement callStmt
           && callStmt.getFunctionCallExpression().getFunctionNameExpression()
               instanceof CIdExpression nameExpr
-          && nameExpr.getDeclaration().getName().equals("exit")) {
+          && nameExpr.getName().equals("exit")) {
         CFANode n0 = edge.getPredecessor();
         CFunctionDeclaration scope = (CFunctionDeclaration) n0.getFunction();
         FileLocation loc = edge.getFileLocation();
