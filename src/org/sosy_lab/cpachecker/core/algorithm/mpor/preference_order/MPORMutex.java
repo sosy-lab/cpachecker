@@ -22,16 +22,16 @@ public class MPORMutex {
 
   public final CExpression pthreadMutexT;
 
+  /** The CFANode directly after pthread_mutex_lock. */
   public final CFANode entryNode;
 
   private Set<CFANode> cfaNodes = new HashSet<>();
 
+  /**
+   * Set of CFANodes whose leaving CFAEdges are pthread_mutex_unlocks to pthreadMutexT. Multiple
+   * CFANodes can be exitNodes if they are reached in a nondeterministic way.
+   */
   private Set<CFANode> exitNodes = new HashSet<>();
-
-  // TODO boolean hasNondetUnlock?
-  //  if the unlock is conditional (i.e. multiple exitNodes) it has an effect on the
-  //  positional preference order: we can only prune the edges up until we encounter multiple
-  //  leaving edges in a node
 
   /**
    * Initializes an MPORMutex with the pthread_mutex_t object and the first CFANode inside the lock.

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,11 +29,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -73,6 +74,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final CFA cfa;
 
+  // TODO most of this stuff can be immutable
   /** A map of functions to sets of functions that are called inside of them. */
   private Map<CFunctionType, Set<CFunctionType>> functionCallHierarchy;
 
@@ -401,6 +403,68 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
   }
 
+  /**
+   * Computes and returns the PreferenceOrders for the current program state pState.
+   *
+   * @param pState the threads and their current CFANodes to be analyzed
+   * @return an ImmutableSet of (positional) PreferenceOrders of pState
+   */
+  // TODO currently untested
+  private ImmutableSet<PreferenceOrder> getPreferenceOrdersForState(MPORState pState) {
+    Set<PreferenceOrder> rPreferenceOrders = new HashSet<>();
+    for (var entry : pState.threadNodes.entrySet()) {
+      MPORThread currentThread = entry.getKey();
+      CFANode currentNode = entry.getValue();
+      rPreferenceOrders.addAll(getMutexPreferenceOrders(pState, currentThread, currentNode));
+    }
+    return ImmutableSet.copyOf(rPreferenceOrders);
+  }
+
+  /**
+   * Computes and returns the PreferenceOrders induced by mutex locks in the program.
+   *
+   * @param pState the current state of the program
+   * @param pCurrentThread the thread where we check if it is inside a mutex lock
+   * @param pCurrentNode the current CFANode of pCurrentThread
+   * @return the set of PreferenceOrders induced by mutex locks
+   */
+  private Set<PreferenceOrder> getMutexPreferenceOrders(
+      MPORState pState, MPORThread pCurrentThread, CFANode pCurrentNode) {
+    Set<PreferenceOrder> rMutexPreferenceOrders = new HashSet<>();
+    // if pCurrentThread is in a mutex lock
+    for (MPORMutex mutex : pCurrentThread.getMutexes()) {
+      if (mutex.getNodes().contains(pCurrentNode)) {
+
+        // search all other threads for pthread_mutex_lock calls to the same pthread_mutex_t object
+        for (var entry : pState.threadNodes.entrySet()) {
+          if (!entry.getKey().equals(pCurrentThread)) {
+            CFANode otherNode = entry.getValue();
+            for (CFAEdge cfaEdge : CFAUtils.leavingEdges(otherNode)) {
+              if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
+                CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+                if (pthreadMutexT.equals(mutex.pthreadMutexT)) {
+
+                  // extract all CFAEdges inside mutex excluding the leaving edges of exitNodes
+                  Set<CFAEdge> precedingEdges = new HashSet<>();
+                  for (CFANode cfaNode : mutex.getNodes()) {
+                    if (!mutex.getExitNodes().contains(cfaNode)) {
+                      // TODO this is the entire mutex, should we only include the edges reachable
+                      //  from pCurrentNode? it should be equivalent
+                      precedingEdges.addAll(CFAUtils.leavingEdges(cfaNode).stream().toList());
+                    }
+                  }
+                  rMutexPreferenceOrders.add(
+                      new PreferenceOrder(ImmutableSet.copyOf(precedingEdges), cfaEdge));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return rMutexPreferenceOrders;
+  }
+
   // TODO positional preference order ("a <q b") possible cases:
   //  pthread_mutex_lock / mutex_unlock
   //  pthread_join
@@ -471,13 +535,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   public static FluentIterable<CFAEdge> contextSensitiveLeavingEdges(
       CFANode pCurrentNode, CFANode pFunctionReturnNode) {
-    // if pCurrentNode is a FunctionExitNode, consider only the edge leading to pFunctionReturnNode
     if (pCurrentNode instanceof FunctionExitNode) {
       return CFAUtils.leavingEdges(pCurrentNode)
-          .filter(
-              cfaEdge ->
-                  !(cfaEdge instanceof FunctionSummaryEdge) // exclude parallel edges
-                      && cfaEdge.getSuccessor().equals(pFunctionReturnNode));
+          .filter(cfaEdge -> cfaEdge.getSuccessor().equals(pFunctionReturnNode));
     } else {
       return CFAUtils.leavingEdges(pCurrentNode);
     }
