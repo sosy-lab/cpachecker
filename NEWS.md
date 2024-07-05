@@ -8,11 +8,40 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 2.3.1
-------------------------------
+Changes since CPAchecker 2.4
+-----------------------------------------------
+* Default analysis no longer needs to be explicitly requested.  
+  If neither a configuration file nor the argument `--cpas` is given,
+  CPAchecker will automatically use its default configuration,
+  i.e., `--default` no longer needs to be used.
+
+
+Changes from CPAchecker 2.3.1 to CPAchecker 2.4
+-----------------------------------------------
+* Debian/Ubuntu package and APT repository  
+  CPAchecker is now available as an easy-to-install `.deb` package for Debian/Ubuntu
+  via the [SoSy-Lab APT repository](https://apt.sosy-lab.org).
+  Follow the link for usage instructions.
 * Container images on Docker Hub  
   The official container images of CPAchecker are now also available
   as [`sosylab/cpachecker` on Docker Hub](https://hub.docker.com/r/sosylab/cpachecker).
+* Executables of CPAchecker renamed  
+  Instead of `scripts/cpa.sh` and `scripts/cpa.bat` we now provide
+  `bin/cpachecker` and `bin/cpachecker.bat` as the main executables of CPAchecker.
+  The new executables are drop-in replacements.
+  The old executables are deprecated but will continue to exist
+  at least until the next major version of CPAchecker.
+  Similarly, we now provide `bin/cpa-witness2test` for CPA-witness2test.
+* Command-line arguments of CPAchecker renamed  
+  All arguments of CPAchecker now follow standard conventions
+  and start with two dashes ("--") for long arguments, e.g., `--default`.
+  Some arguments have also been renamed slightly,
+  or have been removed due to them being rarely used.
+  As before, [`doc/Configuration.md`](https://gitlab.com/sosy-lab/software/cpachecker/-/blob/trunk/doc/Configuration.md)
+  documents the supported arguments.
+  Previous command-line arguments with a single dash are deprecated,
+  but continue to work, and CPAchecker will print warning messages
+  that inform about their recommended replacements.
 
 
 Changes from CPAchecker 2.3 to CPAchecker 2.3.1

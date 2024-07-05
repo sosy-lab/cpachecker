@@ -34,22 +34,22 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String, NoException> {
+public class CExpressionToOriginalCodeVisitor implements CExpressionVisitor<String, NoException> {
 
-  public static final CExpressionToOrinalCodeVisitor BASIC_TRANSFORMER =
-      new CExpressionToOrinalCodeVisitor();
+  public static final CExpressionToOriginalCodeVisitor BASIC_TRANSFORMER =
+      new CExpressionToOriginalCodeVisitor();
 
   private final Map<CExpression, String> subsitution;
 
-  private CExpressionToOrinalCodeVisitor() {
+  private CExpressionToOriginalCodeVisitor() {
     this(ImmutableMap.of());
   }
 
-  private CExpressionToOrinalCodeVisitor(Map<CExpression, String> pSubsitution) {
+  private CExpressionToOriginalCodeVisitor(Map<CExpression, String> pSubsitution) {
     subsitution = ImmutableMap.copyOf(pSubsitution);
   }
 
-  public CExpressionToOrinalCodeVisitor substitute(CExpression pExpression, String pSubsitute) {
+  public CExpressionToOriginalCodeVisitor substitute(CExpression pExpression, String pSubsitute) {
     if (pSubsitute.equals(subsitution.get(Objects.requireNonNull(pExpression)))) {
       return this;
     }
@@ -60,7 +60,7 @@ public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String
       }
     }
     builder.put(pExpression, pSubsitute);
-    return new CExpressionToOrinalCodeVisitor(builder.buildOrThrow());
+    return new CExpressionToOriginalCodeVisitor(builder.buildOrThrow());
   }
 
   @Override

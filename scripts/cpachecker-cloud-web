@@ -41,7 +41,7 @@ DEFAULT_OUTPUT_PATH = "./"
 
 def _create_argument_parser():
     """
-    Create a parser for the command-line options.
+    Create a parser for the command-line arguments.
     @return: an argparse.ArgumentParser instance
     """
 
@@ -183,7 +183,7 @@ def _init(config):
         config.cloud_master,
         config.cloud_user,
         revision,
-        user_agent="cpa_web_cloud.py",
+        user_agent="cpachecker-cloud-web",
         version=__version__,
     )
 
@@ -255,11 +255,18 @@ def _parse_cpachecker_args(cpachecker_args):
                 continue  # ignore empty arguments
 
             if option in [
+                "--heap",
                 "-heap",
+                "--timelimit",
                 "-timelimit",
+                "--entry-function",
                 "-entryfunction",
+                "--spec",
                 "-spec",
+                "--config",
+                "-c",
                 "-config",
+                "--option",
                 "-setprop",
             ]:
                 run.options.append(option)

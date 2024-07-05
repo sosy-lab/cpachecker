@@ -219,7 +219,7 @@ build-docker:release:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    TAG: "2.3.1"
+    TAG: "2.4"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
   only:
     refs:
@@ -238,7 +238,7 @@ javascript-e2e-tests:
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report
-    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c
+    - bin/cpachecker -predicateAnalysis test/programs/simple/SSAMap-bug.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm ci
     - "npx webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"

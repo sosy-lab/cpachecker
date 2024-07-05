@@ -126,7 +126,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
               // recursion is unsupported
               logger.log(
                   Level.INFO,
-                  "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the"
+                  "Recursion detected, aborting. To ignore recursion, add --skip-recursion to the"
                       + " command line.");
               throw new UnsupportedCodeException("recursion", pEdge);
             }

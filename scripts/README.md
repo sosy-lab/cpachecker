@@ -9,16 +9,21 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 # Start Scripts
-(for full documentation cf. [README](../README.md) in main directory)
-- `cpa.bat`: to start CPAchecker on Windows
-- `cpa.sh`: to start CPAchecker on Linux and similar platforms
+
+The following scripts are deprecated
+and users should switch to their replacements in the `../bin` directory.
+For full documentation on how to execute CPAchecker
+cf. the [README](../README.md) in main directory.
+
+- `cpa.bat`: replaced by `../bin/cpachecker.bat`
+- `cpa.sh`: replaced by `../bin/cpachecker`
+- `cpa_witness2test.py`: replaced by `../bin/cpa-witness2test`
 
 # Benchmarking Scripts
 (an extension of [BenchExec](https://github.com/sosy-lab/benchexec))
 
 - `benchmark.py`: for benchmarking collections of runs
                 (c.f. [doc/Benchmark.md](../doc/Benchmark.md))
-- `runexecutor.py`: for benchmarking a single run
 - `table-generator.py`:
   Creates HTML and CSV tables that contain the output of several `benchmark.py` runs.
   Also creates tables with just those results differing between two or more runs.

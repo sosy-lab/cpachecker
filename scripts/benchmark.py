@@ -139,7 +139,7 @@ class Benchmark(VcloudBenchmarkBase):
                     tool_locator = benchexec.tooladapter.create_tool_locator(
                         self.config
                     )
-                    script = tool_locator.find_executable("cpa.sh", subdir="scripts")
+                    script = tool_locator.find_executable("cpachecker", subdir="bin")
                     base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
                     build_file = os.path.join(base_dir, "build.xml")
                     if (

@@ -75,7 +75,7 @@ Develop CPAchecker from within Eclipse
 2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
    from the most recent [google-java-format release](https://github.com/google/google-java-format/releases)
-   and put it into the `dropins` folder of your Eclipse installation
+   and put it into the `dropins` directory of your Eclipse installation
    (where you extracted the Eclipse archive, not the workspace).
    Open the `eclipse.ini` file in your Eclipse installation and append the following lines:
 
@@ -189,7 +189,7 @@ Debugging
 ---------
 
 For attaching a debugger to a CPAchecker process started on the command line (even remotely),
-just run `scripts/cpa.sh -debug ...` and point your debugger to TCP port 5005
+just run `bin/cpachecker --jvm-debug ...` and point your debugger to TCP port 5005
 of the respective machine.
 
 
@@ -257,18 +257,41 @@ Releasing a New Version
    or trigger the scheduled GitLab CI job after pushing
    (https://gitlab.com/sosy-lab/software/cpachecker/pipeline_schedules).
 
-7. Send a mail with the release announcement to cpachecker-announce and
+7. Build `.deb` package with
+  `build/deb-package.sh <version> CPAchecker-<version>-unix.zip dist-<version>/`
+   and publish the package created in `dist-<version>/`
+   in our [APT repository](https://apt.sosy-lab.org)
+   using the [instructions](https://svn.sosy-lab.org/software/apt/README.md) there.
+
+8. Send a mail with the release announcement to cpachecker-announce and
    cpachecker-users mailing lists.
 
-8. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
+9. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
    to a new development version, which is the next possible version number
    with the suffix `-svn`.
    For example, if `1.9` was just released, the next possible feature release
    is `1.9.1` and the new development version should be `1.9.1-svn`.
 
 
-Version Numbering and Release Tagging
--------------------------------------
+Version Numbering and Release Tagging from Release 3.0
+------------------------------------------------------
+
+We use the following schema to construct version numbers for CPAchecker releases
+(from version 3.0 onwards):
+
+- `X.Y` is a release that should be done at least *yearly*,
+  where an increase of `X` to version `X.0` indicates a major change
+  and an increase of `Y` indicates a minor change (e.g., added functionality).
+- `X.Y.Z` indicates a bug-fix release,
+  where `Z` is increased (starting from `0`).
+- Extensions with hyphen are possible,
+  for example, `-dev` indicates unstable development versions that are not released.
+
+The tags in our repository are named `cpachecker-VERSION`, e.g., `cpachecker-3.0`.
+
+
+Version Numbering and Release Tagging up to Release 2.4
+-------------------------------------------------------
 
 We use the following schema to construct version numbers for CPAchecker releases
 (from version 1.8 onwards):

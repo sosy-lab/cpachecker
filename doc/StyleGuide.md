@@ -88,8 +88,8 @@ with considerably less effort!
 - Do not use negated predicates as option name
   (use `something.enable` instead `something.disable`,
   `something.foo` instead of `something.noFoo` etc.).
-- Do not forget to update the file `doc/ConfigurationOptions.txt`
-  (done automatically by ant) and commit it together with your changes.
+- Do not forget to update the file [`ConfigurationOptions.txt`](ConfigurationOptions.txt)
+  (done automatically by `ant`) and commit it together with your changes.
 
 ### Documentation / Comments
 
@@ -100,7 +100,7 @@ with considerably less effort!
   * non-public classes, methods and fields
 - Please add comments wherever sensible,
   but make sure to add comments for the top three items!
-- All command-line options need to be explained in [`doc/Configuration.txt`](Configuration.txt).
+- All command-line arguments need to be explained in [`Configuration.md`](Configuration.md).
 - All `@Option` fields need to have a non-empty description
   that explains (to a user) what the option does.
 - All top-level configuration files (`config/*.properties`) need to have a description
