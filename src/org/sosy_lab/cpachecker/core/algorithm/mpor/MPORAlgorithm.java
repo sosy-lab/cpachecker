@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.test.MPORTest;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -122,6 +124,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     assignMutexesToThreads(threads);
     assignJoinsToThreads(threads);
     // TODO assignBarriersToThreads(threads);
+
+    MPORTest test = new MPORTest(this);
+    test.computeAllStates();
   }
 
   /** Checks whether the input language of the program is C and throws an exception if not. */
@@ -407,16 +412,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /**
    * Computes and returns the PreferenceOrders for the current program state pState.
    *
-   * @param pState the threads and their current CFANodes to be analyzed
+   * @param pThreadNodes the threads and their current CFANodes to be analyzed
    * @return an ImmutableSet of (positional) PreferenceOrders of pState
    */
   // TODO currently untested
-  private ImmutableSet<PreferenceOrder> getPreferenceOrdersForState(MPORState pState) {
-    Builder<PreferenceOrder> rPreferenceOrders = ImmutableSet.builder();
-    for (var entry : pState.threadNodes.entrySet()) {
+  public static ImmutableSet<PreferenceOrder> getPreferenceOrdersForThreadNodes(
+      ImmutableMap<MPORThread, CFANode> pThreadNodes) {
+    ImmutableSet.Builder<PreferenceOrder> rPreferenceOrders = ImmutableSet.builder();
+    for (var entry : pThreadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
-      rPreferenceOrders.addAll(getMutexPreferenceOrders(pState, currentThread, currentNode));
+      rPreferenceOrders.addAll(getMutexPreferenceOrders(pThreadNodes, currentThread, currentNode));
     }
     return rPreferenceOrders.build();
   }
@@ -424,22 +430,24 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /**
    * Computes and returns the PreferenceOrders induced by mutex locks in the program.
    *
-   * @param pState the current state of the program
+   * @param pThreadNodes the threads and their current CFANodes
    * @param pCurrentThread the thread where we check if it is inside a mutex lock
    * @param pCurrentNode the current CFANode of pCurrentThread
    * @return the set of PreferenceOrders induced by mutex locks
    */
-  private Set<PreferenceOrder> getMutexPreferenceOrders(
-      MPORState pState, MPORThread pCurrentThread, CFANode pCurrentNode) {
+  private static Set<PreferenceOrder> getMutexPreferenceOrders(
+      ImmutableMap<MPORThread, CFANode> pThreadNodes,
+      MPORThread pCurrentThread,
+      CFANode pCurrentNode) {
 
-    Builder<PreferenceOrder> rMutexPreferenceOrders = ImmutableSet.builder();
+    ImmutableSet.Builder<PreferenceOrder> rMutexPreferenceOrders = ImmutableSet.builder();
 
     // if pCurrentThread is in a mutex lock
     for (MPORMutex mutex : pCurrentThread.getMutexes()) {
       if (mutex.getNodes().contains(pCurrentNode)) {
 
         // search all other threads for pthread_mutex_lock calls to the same pthread_mutex_t object
-        for (var entry : pState.threadNodes.entrySet()) {
+        for (var entry : pThreadNodes.entrySet()) {
           if (!entry.getKey().equals(pCurrentThread)) {
             CFANode otherNode = entry.getValue();
             for (CFAEdge cfaEdge : CFAUtils.leavingEdges(otherNode)) {
@@ -453,6 +461,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     if (!mutex.getExitNodes().contains(cfaNode)) {
                       // TODO this is the entire mutex, should we only include the edges reachable
                       //  from pCurrentNode? it should be equivalent
+                      // TODO leavingEdges also means edges from another context!
+                      //  only the original context (= inside the mutex lock) should be considered
                       precedingEdges.addAll(CFAUtils.leavingEdges(cfaNode));
                     }
                   }
@@ -560,5 +570,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             .getFunctionNameExpression()
             .toASTString()
             .equals(pFunctionType.name);
+  }
+
+  // Test =======================================================================================
+
+  public Set<MPORThread> getThreads() {
+    return threads;
+  }
+
+  public Map<CFANode, CFANode> getFunctionCallMap() {
+    return functionCallMap;
   }
 }
