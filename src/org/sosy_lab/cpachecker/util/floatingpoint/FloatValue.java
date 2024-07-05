@@ -224,22 +224,12 @@ public class FloatValue extends Number {
       return rawExp - bias();
     }
 
-    /** Returns the next bigger format meant to be used for intermediate results. */
-    public Format extended() {
-      // TODO: Add support for arbitrary sizes
-      if (equals(Format.Float8)) {
-        return Float32;
-      } else if (equals(Format.Float16)) {
-        return Float32;
-      } else if (equals(Format.Float32)) {
-        return Float64;
-      } else if (equals(Format.Float64)) {
-        return Float128;
-      } else if (equals(Format.Float128)) {
-        return Float256;
-      } else {
-        return new Format(Float256.expBits, 2 * sigBits + 1);
-      }
+    /** Return a higher precision format meant to be used for intermediate results. */
+    public Format intermediatePrecision() {
+      // We need precision m = 2p + 2 for division, and an additional 2 bits for powInt
+      // See Table 12.6 in "Handbook of Floating-Point Arithmetic"
+      // FIXME: Find the exact formulas
+      return new Format(Float256.expBits, 2*(1 + sigBits) + 4);
     }
 
     /**
@@ -481,10 +471,10 @@ public class FloatValue extends Number {
 
   /** Clone the value with a new exponent. */
   private FloatValue withExponent(long pExponent) {
-    Format ext = format.withUnlimitedExponent();
+    Format precision = format.withUnlimitedExponent();
     FloatValue expPart =
-        new FloatValue(ext, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
-    return this.withPrecision(ext).multiply(expPart).withPrecision(format);
+        new FloatValue(precision, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
+    return this.withPrecision(precision).multiply(expPart).withPrecision(format);
   }
 
   /** Clone the value with a new sign. */
@@ -979,7 +969,7 @@ public class FloatValue extends Number {
 
   /** The power function a^x for integer exponents x. */
   public FloatValue powInt(BigInteger exp) {
-    return withPrecision(format.extended()).powFast(exp).withPrecision(format);
+    return withPrecision(format.intermediatePrecision()).powFast(exp).withPrecision(format);
   }
 
   /**
@@ -1002,9 +992,8 @@ public class FloatValue extends Number {
   public FloatValue divide(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
     Format precision = format.sup(pNumber.format);
-
-    FloatValue arg1 = this.withPrecision(precision.extended());
-    FloatValue arg2 = pNumber.withPrecision(precision.extended());
+    FloatValue arg1 = this.withPrecision(precision.intermediatePrecision());
+    FloatValue arg2 = pNumber.withPrecision(precision.intermediatePrecision());
 
     return arg1.divide_(arg2).withPrecision(precision);
   }
@@ -1169,8 +1158,7 @@ public class FloatValue extends Number {
     // The calculation will be done in a higher precision and the result is then rounded down.
     // 2p+2 bits are enough for the inverse square root.
     // See Table 12.6 in "Handbook of Floating-Point Arithmetic"
-    Format extended = new Format(format.expBits, 2 * format.sigBits + 2);
-    return withPrecision(extended).sqrt_().withPrecision(format);
+    return withPrecision(format.intermediatePrecision()).sqrt_().withPrecision(format);
   }
 
   private FloatValue sqrt_() {
@@ -1336,7 +1324,7 @@ public class FloatValue extends Number {
       // pow    7     10     13     15     17     19     20     22     23     25
       Format m0 = new Format(11, format.sigBits + 13);
       Format m1 = new Format(11, format.sigBits + 31);
-      builder.add(m0, m1, m1.extended());
+      builder.add(m0, m1, m1.intermediatePrecision());
     } else if (format.equals(Format.Float32)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // ln     1      1      1      1     18     19     20     21     22     35
@@ -1344,7 +1332,7 @@ public class FloatValue extends Number {
       // pow   13     18     22     25     29     31     34     36     39     41
       Format m0 = new Format(15, format.sigBits + 26);
       Format m1 = new Format(15, format.sigBits + 41);
-      builder.add(m0, m1, m1.extended());
+      builder.add(m0, m1, m1.intermediatePrecision());
     } else if (format.equals(Format.Float64)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
       // ln     1      1      1      1     44     45     46     47     48     62
@@ -1352,9 +1340,9 @@ public class FloatValue extends Number {
       // pow   31     39     44     49     53     57     61     64     67     70
       Format m0 = new Format(Format.Float256.expBits, format.sigBits + 55);
       Format m1 = new Format(Format.Float256.expBits, format.sigBits + 70);
-      builder.add(m0, m1, m1.extended());
+      builder.add(m0, m1, m1.intermediatePrecision());
     } else {
-      builder.add(format.extended(), format.extended().extended());
+      builder.add(format.intermediatePrecision(), format.intermediatePrecision().intermediatePrecision());
     }
     return builder.build();
   }
@@ -1386,8 +1374,8 @@ public class FloatValue extends Number {
 
     for (Format p : extendedPrecisions()) {
       if (!done) {
-        Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
-        FloatValue x = withPrecision(p_ext);
+        Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
+        FloatValue x = withPrecision(precision);
 
         // TODO: Call exp_ only once and *then* check if we're too close to a break point
         FloatValue v1 = x.plus1Ulp().withPrecision(p).exp_();
@@ -1513,8 +1501,8 @@ public class FloatValue extends Number {
 
     for (Format p : extendedPrecisions()) {
       if (!done) {
-        Format p_ext = new Format(p.expBits, p.sigBits - format.sigBits);
-        FloatValue x = withPrecision(p_ext);
+        Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
+        FloatValue x = withPrecision(precision);
 
         // TODO: Call ln only once and *then* check if we're too close to a break point
         FloatValue x1 = x.plus1Ulp().withPrecision(p);
@@ -1726,7 +1714,7 @@ public class FloatValue extends Number {
     for (Format p : extendedPrecisions()) {
       if (!done) {
         // a^x = exp(x * ln a)
-        Format ext = new Format(p.expBits, p.sigBits - format.sigBits);
+        Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
 
         FloatValue a = this.withPrecision(p);
         FloatValue x = pExponent.withPrecision(p);
@@ -1734,7 +1722,7 @@ public class FloatValue extends Number {
         // The next call calculates ln with the current precision.
         // TODO: Figure out why this is enough?
         FloatValue lna = a.ln_();
-        FloatValue xlna = x.multiply(lna).withPrecision(ext);
+        FloatValue xlna = x.multiply(lna).withPrecision(precision);
 
         // Check if we call e^x with x close to zero
         boolean nearZero = !xlna.abs().greaterThan(minNormal(format));
@@ -1758,7 +1746,7 @@ public class FloatValue extends Number {
 
           // Update statistics
           if (pPowStats != null) {
-            pPowStats.put(ext.sigBits, pPowStats.getOrDefault(0, ext.sigBits) + 1);
+            pPowStats.put(precision.sigBits, pPowStats.getOrDefault(0, precision.sigBits) + 1);
           }
         }
       }
@@ -2081,11 +2069,11 @@ public class FloatValue extends Number {
   }
 
   private static FloatValue makeValue(Format pFormat, BigInteger u, BigInteger v, int k) {
-    Format extended = pFormat.withUnlimitedExponent();
+    Format precision = pFormat.withUnlimitedExponent();
     BigInteger q = u.divide(v);
     BigInteger r1 = u.subtract(q.multiply(v));
     BigInteger r2 = v.subtract(r1);
-    FloatValue z = fromInteger(extended, q);
+    FloatValue z = fromInteger(precision, q);
     z = z.withExponent(z.exponent + k);
     boolean isEven = q.mod(BigInteger.TWO).equals(BigInteger.ZERO);
     if (r1.compareTo(r2) > 0 || (r1.compareTo(r2) == 0 && !isEven)) { // Round up
@@ -2238,10 +2226,10 @@ public class FloatValue extends Number {
 
     // We define an extended format that has enough precision to hold the intermediate result
     // during the conversion from binary to decimal representation
-    int ext = 2 * p + 2; // FIXME: Make sure this is enough
+    int precision = 2 * p + 2; // FIXME: Make sure this is enough
 
     // Build a term for the exponent in decimal representation
-    MathContext rm = new MathContext(ext, java.math.RoundingMode.HALF_EVEN);
+    MathContext rm = new MathContext(precision, java.math.RoundingMode.HALF_EVEN);
     BigDecimal r = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) resultExponent)));
     if (resultExponent < 0) {
       r = BigDecimal.ONE.divide(r, rm);
