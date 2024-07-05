@@ -40,6 +40,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
+// FIXME: Broken by the atexit tranformation
+//  main() does not have an exitNode as it always calls exit at the end
+
 public class CustomInstructionTest {
   private CustomInstructionApplications cia;
   private AppliedCustomInstruction aci;

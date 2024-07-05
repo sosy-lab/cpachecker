@@ -110,6 +110,7 @@ public class AutomatonTest {
 
   @Test
   public void matchEndOfProgramTest() throws Exception {
+    // FIXME: Broken by atexit transformation
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas", "cpa.location.LocationCPA",
@@ -281,6 +282,7 @@ public class AutomatonTest {
 
   @Test
   public void functionIdentifying() throws Exception {
+    // FIXME: Broken by atexit transformation
     Map<String, String> prop =
         ImmutableMap.of(
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",

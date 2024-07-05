@@ -18,6 +18,7 @@ public class ValueAnalysisTest {
   // Specification Tests
   @Test
   public void ignoreVariablesTest1() throws Exception {
+    // FIXME: Broken by ValueAnalysisPrecisionAdjustment hack
     // check whether a variable can be ignored (this will lead to a spurious counterexample be
     // found)
 
