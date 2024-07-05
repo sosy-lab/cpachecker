@@ -19,8 +19,17 @@ are supplied for other platforms.
 So some configurations or features might not work on other platforms.
 
 
-Install CPAchecker -- Binary
-----------------------------
+Install CPAchecker -- Binary Package for Debian/Ubuntu
+------------------------------------------------------
+
+1. Enable the [SoSy-Lab APT repository](https://apt.sosy-lab.org/)
+   using the instructions on the webpage.
+   This needs to be done only once.
+
+2. `sudo apt install cpachecker`
+
+Install CPAchecker -- Binary ZIP Archive
+----------------------------------------
 
 1. Install a Java Runtime Environment which is at least Java 17 compatible.
    One Linux we recommend to install a package from your distribution
@@ -33,6 +42,8 @@ Install CPAchecker -- Binary
 
 2. Extract the content of the CPAchecker zip or tar file into a directory of your choice.
 
+Please note that updates need to be installed manually.
+We recommend following our [announcement mailing list](doc/Mailing.md).
 
 Install CPAchecker -- Docker
 ----------------------------

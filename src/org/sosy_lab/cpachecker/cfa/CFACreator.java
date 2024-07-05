@@ -143,7 +143,12 @@ public class CFACreator {
   @Option(
       secure = true,
       name = "analysis.machineModel",
-      description = "the machine model, which determines the sizes of types like int")
+      description =
+          "the machine model, which determines the sizes of types like int:\n"
+              + "- LINUX32: ILP32 for Linux on 32-bit x86\n"
+              + "- LINUX64: LP64 for Linux on 64-bit x86\n"
+              + "- ARM: ILP32 for Linux on 32-bit ARM\n"
+              + "- ARM64: LP64 for Linux on 64-bit ARM")
   private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(
@@ -427,7 +432,8 @@ public class CFACreator {
 
         if (useClang) {
           if (usePreprocessor) {
-            logger.log(Level.WARNING, "Option -preprocess is ignored when used with option -clang");
+            logger.log(
+                Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
           ClangPreprocessor clang = new ClangPreprocessor(config, logger);
           parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);

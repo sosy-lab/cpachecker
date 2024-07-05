@@ -336,15 +336,11 @@ analysis.initialStatesFor = {InitialStatesFor.ENTRY}
 # run interprocedural analysis
 analysis.interprocedural = true
 
-# for benchmarking, the argument to -spec needs to be defined in the task
-# definitions. However, the goal of the backwards analysis is mostly not
-# equivalent to the defined specifications in the benchmark set. With this
-# property, the argument of -spec will be used to find target states if
-# analysis.initialStatesFor=TARGET. The backward specification will then be
-# used to create the CPA algorithm.
-analysis.invertSpecifications = false
-
-# the machine model, which determines the sizes of types like int
+# the machine model, which determines the sizes of types like int:
+# - LINUX32: ILP32 for Linux on 32-bit x86
+# - LINUX64: LP64 for Linux on 64-bit x86
+# - ARM: ILP32 for Linux on 32-bit ARM
+# - ARM64: LP64 for Linux on 64-bit ARM
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM, ARM64]
 
@@ -1595,9 +1591,6 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# whether DCPAs should ignore forward callstack
-cpa.callstack.ignoreForwardCallstackTransfers = false
-
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -1624,14 +1617,6 @@ cpa.callstack.unsupportedFunctions = {
           "siglongjmp",
           "__builtin_va_arg",
           "atexit"}
-
-# firing relation to be used in the precision adjustment operator
-cpa.chc.firingRelation = "Always"
-  allowed values: [Always, Maxcoeff, Sumcoeff, Homeocoeff]
-
-# generalization operator to be used in the precision adjustment operator
-cpa.chc.generalizationOperator = "Widen"
-  allowed values: [Top, Widen, WidenMax, WidenSum]
 
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
@@ -2169,18 +2154,12 @@ cpa.predicate.blk.alwaysAtExplicitNodes = false
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionCallNodes = false
 
-# abstraction always at function exit nodes.
-cpa.predicate.blk.alwaysAtFunctionExit = false
-
 # force abstractions at each function head (first node in the body),
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionHeads = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
-
-# abstraction always at nodes with outgoing ghost edges
-cpa.predicate.blk.alwaysAtGhostEdges = false
 
 # force abstractions at each join node, regardless of threshold
 cpa.predicate.blk.alwaysAtJoin = false
@@ -3830,76 +3809,27 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
-# Abstraction nodes are added to each block after they are created. They are
-# needed to strengthen the preconditions of blocks. Missing blocks make the
-# analysis slower but not impossible.
-distributedSummaries.allowMissingAbstractionNodes = true
+# Allows to set the algorithm for decomposing the CFA. BLOCK_OPERATOR creates
+# blocks from each merge/branching point to the next merge/branching point.
+# GIVEN_SIZE merges blocks obtained by BLOCK_OPERATOR until
+# distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK
+# creates one block around the complete CFA.
+distributedSummaries.decompositionType = BLOCK_OPERATOR
+  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
 
-# The number of blocks is dependent by the number of functions in the
-# program.A tolerance of 1 means, that we subtract 1 of the total number of
-# functions.
-distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
-
-# Where to store the block graph in JSON format
-distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
-
-# Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
-# creates blocks from each merge/branching point to the next merge/branching
-# point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
-# The final number of blocks should converge to the number of functions in
-# the program. NO_DECOMPOSITION creates one block around the CFA.
-distributedSummaries.decompositionType = MERGE_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
-             NO_DECOMPOSITION]
-
-# Whether to stop after exporting the blockgraph
-distributedSummaries.generateBlockGraphOnly = false
-
-# Import an existing decomposition from a file
-distributedSummaries.importDecomposition = no default value
-
-# List of input files that contain preconditions and verification conditions
-# that should be assumed as 'known' by block-summary analysis. Each file must
-# contain a single, valid JSON BlockSummaryMessage. If at least one file is
-# provided, the block-summary analysis assumes these pre- and
-# verification-conditions. If no file is provided, the block-summary analysis
-# assumes the precondition 'true' and the verification condition 'false'.
-distributedSummaries.knownConditions = []
-
-# List of input files that contain preconditions and verification conditions
-# that should be assumed as 'new' by block-summary analysis. For each message
-# in this list, block-summary analysis will perform a new analysis run in the
-# order of occurrence. Each file must contain a single, valid JSON
-# BlockSummaryMessage. If at least one file is provided, the block-summary
-# analysis assumes these pre- and verification-conditions. If no file is
-# provided, the block-summary analysis assumes the precondition 'true' and
-# the verification condition 'false'.
-distributedSummaries.newConditions = []
-
-# Where to write responses
-distributedSummaries.outputMessages = "messages/"
-
-# Write readable formulas to log file.
-distributedSummaries.predicate.writeReadableFormulas = false
-
-# Change the queue type. ERRROR_CONDITION prioritizes the processing
-# ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
-# ErrorCondition messages.
-distributedSummaries.queue = DEFAULT
-  enum:     [ERROR_CONDITION, DEFAULT]
+# desired number of BlockNodes
+distributedSummaries.desiredNumberOfBlocks = 5
 
 # Whether to spawn util workers. Util workers listen to every message and
 # create visual output for debugging. Workers consume resources and should
 # not be used for benchmarks.
-distributedSummaries.spawnUtilWorkers = false
+distributedSummaries.spawnUtilWorkers = true
 
-# Whether to spawn a worker for only one block id
-distributedSummaries.spawnWorkerForId = ""
+# Configuration for backward analysis in computation of distributed summaries
+distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"
 
-# How workers should behave. Unlike DSS, INVARIANTS works with guessed
-# summaries.
-distributedSummaries.strategy = DSS
-  enum:     [DSS, INVARIANTS]
+# whether error conditions are always checked for unsatisfiability
+distributedSummaries.worker.checkEveryErrorCondition = true
 
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
@@ -3908,8 +3838,18 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-block-sum
 # logfiles have the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_summary/logfiles"
 
-# output file for visualizing message exchange
-dss.logging.reportFiles = "block_analysis/block_analysis"
+# Whether loop free programs have to deny all possible error messages. Enable
+# this option to eagerly process every possible error message that occurs
+# after an precondition update.
+distributedSummaries.worker.sendEveryErrorMessage = false
+
+# whether analysis worker store circular post conditions
+distributedSummaries.worker.storeCircularPostConditions = false
+
+# Choose the workers that are spawned for each block. Contrary to DEFAULT
+# workers, SMART workers consume multiple messages at once.
+distributedSummaries.workerType = DEFAULT
+  enum:     [DEFAULT, SMART]
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -4627,6 +4567,9 @@ report.export = true
 
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
+
+# output file for visualizing message exchange
+reportFile = "block_analysis/block_analysis.json"
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value
