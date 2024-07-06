@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.test;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashSet;
 import java.util.Set;
@@ -32,11 +31,11 @@ public class MPORTest {
   // computes all possible program states (i.e. all interleavings) and the corresponding preference
   // orders, no matter if they are actually feasible
   public void computeAllStates() {
-    Builder<MPORThread, CFANode> stateBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, CFANode> stateBuilder = ImmutableMap.builder();
     for (MPORThread thread : algorithm.getThreads()) {
       stateBuilder.put(thread, thread.entryNode);
     }
-    MPORState initialState = new MPORState(stateBuilder.build(), null);
+    MPORState initialState = new MPORState(stateBuilder.buildOrThrow(), null);
     Set<MPORState> visitedStates = new HashSet<>();
     computeStates(visitedStates, initialState, null);
   }

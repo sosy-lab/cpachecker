@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -78,23 +77,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final CFA cfa;
 
   // TODO most of this stuff can be immutable
-  /** A map of functions to sets of functions that are called inside of them. */
-  private Map<CFunctionType, Set<CFunctionType>> functionCallHierarchy;
-
-  /** A set of functions that are start routines extracted from pthread_create calls. */
-  private Set<CFunctionType> threadStartRoutines;
-
-  /** A map of thread IDs to functions executed by the thread. */
-  private Map<Integer, Set<CFunctionType>> threadIdFunctions;
-
-  /** A map of thread IDs to CFANodes the threads are currently in. */
-  private Map<Integer, CFANode> threadNodes;
-
   /** The set of pthread_t objects in the program, i.e. threads */
-  private Set<MPORThread> threads;
+  private final ImmutableSet<MPORThread> threads;
 
   /** A map from FunctionCallEdge Predecessors to Return Nodes. */
-  private Map<CFANode, CFANode> functionCallMap;
+  private final ImmutableMap<CFANode, CFANode> functionCallMap;
 
   // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
 
@@ -162,14 +149,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return A Map of CFANodes before a FunctionCallEdge (keys) to the CFANodes where a function
    *     continues (values, i.e. the ReturnNode) after going through the CFA of the function called.
    */
-  private Map<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
+  private ImmutableMap<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
     Map<CFANode, CFANode> rFunctionCallMap = new HashMap<>();
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
       if (cfaEdge instanceof FunctionCallEdge functionCallEdge) {
         rFunctionCallMap.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
       }
     }
-    return rFunctionCallMap;
+    return ImmutableMap.copyOf(rFunctionCallMap);
   }
 
   /**
@@ -179,7 +166,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCfa the CFA to be analyzed
    * @return the set of threads
    */
-  private Set<MPORThread> getThreads(CFA pCfa) {
+  private ImmutableSet<MPORThread> getThreads(CFA pCfa) {
     Set<MPORThread> rThreads = new HashSet<>();
 
     // add the main thread
@@ -209,7 +196,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         rThreads.add(pthread);
       }
     }
-    return rThreads;
+    return ImmutableSet.copyOf(rThreads);
   }
 
   /**
@@ -415,7 +402,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pThreadNodes the threads and their current CFANodes to be analyzed
    * @return an ImmutableSet of (positional) PreferenceOrders of pState
    */
-  // TODO currently untested
   public static ImmutableSet<PreferenceOrder> getPreferenceOrdersForThreadNodes(
       ImmutableMap<MPORThread, CFANode> pThreadNodes) {
     ImmutableSet.Builder<PreferenceOrder> rPreferenceOrders = ImmutableSet.builder();
@@ -435,7 +421,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCurrentNode the current CFANode of pCurrentThread
    * @return the set of PreferenceOrders induced by mutex locks
    */
-  private static Set<PreferenceOrder> getMutexPreferenceOrders(
+  private static ImmutableSet<PreferenceOrder> getMutexPreferenceOrders(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       MPORThread pCurrentThread,
       CFANode pCurrentNode) {
@@ -456,7 +442,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                 if (pthreadMutexT.equals(mutex.pthreadMutexT)) {
 
                   // extract all CFAEdges inside mutex excluding the leaving edges of exitNodes
-                  Builder<CFAEdge> precedingEdges = ImmutableSet.builder();
+                  ImmutableSet.Builder<CFAEdge> precedingEdges = ImmutableSet.builder();
                   for (CFANode cfaNode : mutex.getNodes()) {
                     if (!mutex.getExitNodes().contains(cfaNode)) {
                       // TODO this is the entire mutex, should we only include the edges reachable
@@ -574,11 +560,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // Test =======================================================================================
 
-  public Set<MPORThread> getThreads() {
+  public ImmutableSet<MPORThread> getThreads() {
     return threads;
   }
 
-  public Map<CFANode, CFANode> getFunctionCallMap() {
+  public ImmutableMap<CFANode, CFANode> getFunctionCallMap() {
     return functionCallMap;
   }
 }

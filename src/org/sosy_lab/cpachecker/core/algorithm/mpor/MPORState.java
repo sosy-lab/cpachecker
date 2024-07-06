@@ -41,15 +41,15 @@ public class MPORState {
    */
   public MPORState createUpdatedState(MPORThread pThread, CFANode pUpdatedNode) {
     checkArgument(threadNodes.containsKey(pThread), "threadNodes must contain pThread");
-    ImmutableMap.Builder<MPORThread, CFANode> updatedThreadNodes = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
     for (var entry : threadNodes.entrySet()) {
       if (!entry.getKey().equals(pThread)) {
-        updatedThreadNodes.put(entry);
+        threadNodesBuilder.put(entry);
       }
     }
-    updatedThreadNodes.put(pThread, pUpdatedNode);
+    threadNodesBuilder.put(pThread, pUpdatedNode);
+    ImmutableMap<MPORThread, CFANode> updatedThreadNodes = threadNodesBuilder.buildOrThrow();
     return new MPORState(
-        updatedThreadNodes.build(),
-        MPORAlgorithm.getPreferenceOrdersForThreadNodes(updatedThreadNodes.build()));
+        updatedThreadNodes, MPORAlgorithm.getPreferenceOrdersForThreadNodes(updatedThreadNodes));
   }
 }
