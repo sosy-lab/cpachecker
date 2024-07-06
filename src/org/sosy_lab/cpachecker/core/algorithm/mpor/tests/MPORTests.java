@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.test;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -20,11 +20,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
-public class MPORTest {
+public class MPORTests {
 
   MPORAlgorithm algorithm;
 
-  public MPORTest(MPORAlgorithm pAlgorithm) {
+  public MPORTests(MPORAlgorithm pAlgorithm) {
     algorithm = pAlgorithm;
   }
 
@@ -69,20 +69,16 @@ public class MPORTest {
   }
 
   private boolean isStateVisited(Set<MPORState> pVisitedStates, MPORState pCurrentState) {
-    if (pVisitedStates.isEmpty()) {
-      return false;
-    }
-
     for (MPORState state : pVisitedStates) {
       for (var entry : state.threadNodes.entrySet()) {
         for (var innerEntry : pCurrentState.threadNodes.entrySet()) {
-          if (!entry.getKey().equals(innerEntry.getKey())
-              || !entry.getValue().equals(innerEntry.getValue())) {
-            return false;
+          if (entry.getKey().equals(innerEntry.getKey())
+              && entry.getValue().equals(innerEntry.getValue())) {
+            return true;
           }
         }
       }
     }
-    return true;
+    return false;
   }
 }

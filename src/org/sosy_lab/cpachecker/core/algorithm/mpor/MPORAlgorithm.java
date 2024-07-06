@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.test.MPORTest;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.tests.MPORTests;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -76,7 +76,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final CFA cfa;
 
-  // TODO most of this stuff can be immutable
   /** The set of pthread_t objects in the program, i.e. threads */
   private final ImmutableSet<MPORThread> threads;
 
@@ -112,7 +111,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     assignJoinsToThreads(threads);
     // TODO assignBarriersToThreads(threads);
 
-    MPORTest test = new MPORTest(this);
+    MPORTests test = new MPORTests(this);
     test.computeAllStates();
   }
 
@@ -167,7 +166,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return the set of threads
    */
   private ImmutableSet<MPORThread> getThreads(CFA pCfa) {
-    Set<MPORThread> rThreads = new HashSet<>();
+    ImmutableSet.Builder<MPORThread> rThreads = ImmutableSet.builder();
 
     // add the main thread
     CFunctionType mainFunction = CFAUtils.getMainFunction(pCfa);
@@ -196,7 +195,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         rThreads.add(pthread);
       }
     }
-    return ImmutableSet.copyOf(rThreads);
+    return rThreads.build();
   }
 
   /**
@@ -205,7 +204,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *
    * @param pThreads the set of threads whose main functions / start routines are searched
    */
-  private void assignMutexesToThreads(Set<MPORThread> pThreads) {
+  private void assignMutexesToThreads(ImmutableSet<MPORThread> pThreads) {
     for (MPORThread thread : pThreads) {
       Set<CFANode> visitedNodes = new HashSet<>();
       searchThreadForMutexes(thread, visitedNodes, thread.entryNode, null);
@@ -270,6 +269,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (!pMutex.getNodes().contains(pCurrentNode)) {
       pMutex.getNodes().add(pCurrentNode);
       for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
+        pMutex.addEdge(cfaEdge);
         if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_UNLOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           if (pthreadMutexT.equals(pMutex.pthreadMutexT)) {
@@ -295,7 +295,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *
    * @param pThreads the set of threads whose main functions / start routines are searched
    */
-  private void assignJoinsToThreads(Set<MPORThread> pThreads) {
+  private void assignJoinsToThreads(ImmutableSet<MPORThread> pThreads) {
     for (MPORThread thread : pThreads) {
       Set<CFANode> visitedNodes = new HashSet<>();
       searchThreadForJoins(pThreads, thread, visitedNodes, thread.entryNode, null);
@@ -443,15 +443,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
                   // extract all CFAEdges inside mutex excluding the leaving edges of exitNodes
                   ImmutableSet.Builder<CFAEdge> precedingEdges = ImmutableSet.builder();
-                  for (CFANode cfaNode : mutex.getNodes()) {
-                    if (!mutex.getExitNodes().contains(cfaNode)) {
-                      // TODO this is the entire mutex, should we only include the edges reachable
-                      //  from pCurrentNode? it should be equivalent
-                      // TODO leavingEdges also means edges from another context!
-                      //  only the original context (= inside the mutex lock) should be considered
-                      precedingEdges.addAll(CFAUtils.leavingEdges(cfaNode));
-                    }
-                  }
+                  // TODO this is the entire mutex, should we only include the edges reachable
+                  //  from pCurrentNode? it should be equivalent, just less performant
+                  precedingEdges.addAll(mutex.getEdges());
                   rMutexPreferenceOrders.add(new PreferenceOrder(precedingEdges.build(), cfaEdge));
                 }
               }

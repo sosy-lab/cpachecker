@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
@@ -25,7 +26,10 @@ public class MPORMutex {
   /** The CFANode directly after pthread_mutex_lock. */
   public final CFANode entryNode;
 
+  // TODO make immutable?
   private Set<CFANode> cfaNodes = new HashSet<>();
+
+  private Set<CFAEdge> cfaEdges = new HashSet<>();
 
   /**
    * Set of CFANodes whose leaving CFAEdges are pthread_mutex_unlocks to pthreadMutexT. Multiple
@@ -47,12 +51,20 @@ public class MPORMutex {
     entryNode = pEntryNode;
   }
 
-  public void addNode(CFANode pCFANode) {
-    cfaNodes.add(pCFANode);
+  public void addNode(CFANode pCfaNode) {
+    cfaNodes.add(pCfaNode);
   }
 
   public Set<CFANode> getNodes() {
     return cfaNodes;
+  }
+
+  public void addEdge(CFAEdge pCfaEdge) {
+    cfaEdges.add(pCfaEdge);
+  }
+
+  public Set<CFAEdge> getEdges() {
+    return cfaEdges;
   }
 
   public void addExitNode(CFANode pExitNode) {

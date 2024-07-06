@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Test classes which can be deleted later. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.test;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
