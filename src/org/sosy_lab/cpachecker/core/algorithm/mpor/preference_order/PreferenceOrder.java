@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
+/** TODO */
 public class PreferenceOrder {
 
   /** The set of CFAEdges that must be executed before {@link PreferenceOrder#subsequentEdge}. */

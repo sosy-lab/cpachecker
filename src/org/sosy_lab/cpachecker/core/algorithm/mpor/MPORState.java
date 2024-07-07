@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -28,28 +26,5 @@ public class MPORState {
       ImmutableSet<PreferenceOrder> pPreferenceOrders) {
     threadNodes = pThreadNodes;
     preferenceOrders = pPreferenceOrders;
-  }
-
-  /**
-   * Returns a new state with the same threadNodes map except that the key pThread is assigned the
-   * new value pUpdatedNode. This function also computes the PreferenceOrders of the new state.
-   *
-   * @param pThread The MPORThread that has a new CFANode (= state)
-   * @param pUpdatedNode The updated CFANode (= state) of pThread
-   * @return a new MPORState with the updated value pUpdatedNode at key pThread and the
-   *     corresponding PreferenceOrders
-   */
-  public MPORState createUpdatedState(MPORThread pThread, CFANode pUpdatedNode) {
-    checkArgument(threadNodes.containsKey(pThread), "threadNodes must contain pThread");
-    ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
-    for (var entry : threadNodes.entrySet()) {
-      if (!entry.getKey().equals(pThread)) {
-        threadNodesBuilder.put(entry);
-      }
-    }
-    threadNodesBuilder.put(pThread, pUpdatedNode);
-    ImmutableMap<MPORThread, CFANode> updatedThreadNodes = threadNodesBuilder.buildOrThrow();
-    return new MPORState(
-        updatedThreadNodes, MPORAlgorithm.getPreferenceOrdersForThreadNodes(updatedThreadNodes));
   }
 }

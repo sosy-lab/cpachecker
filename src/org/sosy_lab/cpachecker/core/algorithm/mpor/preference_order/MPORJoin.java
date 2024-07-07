@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
 
@@ -17,9 +18,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
  */
 public class MPORJoin {
 
+  /** The MPORThread with the pthread_t object specified in the pthread_join call. */
   public final MPORThread threadToTerminate;
 
+  /** The CFANode whose leaving CFAEdge is a call to pthread_join. */
   public final CFANode preJoinNode;
+
+  /** The CFAEdge that is a call to pthread_join. */
+  public final CFAEdge joinEdge;
 
   /**
    * Creates a new MPORJoin.
@@ -28,8 +34,9 @@ public class MPORJoin {
    * @param pPreJoinNode the CFANode right before the pthread_join call (the next CFANode is reached
    *     if pThreadToTerminate is at the exit CFANode of its start routine)
    */
-  public MPORJoin(MPORThread pThreadToTerminate, CFANode pPreJoinNode) {
+  public MPORJoin(MPORThread pThreadToTerminate, CFANode pPreJoinNode, CFAEdge pJoinEdge) {
     threadToTerminate = pThreadToTerminate;
     preJoinNode = pPreJoinNode;
+    joinEdge = pJoinEdge;
   }
 }

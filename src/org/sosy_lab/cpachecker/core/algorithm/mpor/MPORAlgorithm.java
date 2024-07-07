@@ -14,9 +14,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -76,7 +74,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final CFA cfa;
 
-  /** The set of pthread_t objects in the program, i.e. threads */
+  /** The set of threads in the program, including the main thread and all pthreads. */
   private final ImmutableSet<MPORThread> threads;
 
   /** A map from FunctionCallEdge Predecessors to Return Nodes. */
@@ -149,13 +147,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *     continues (values, i.e. the ReturnNode) after going through the CFA of the function called.
    */
   private ImmutableMap<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
-    Map<CFANode, CFANode> rFunctionCallMap = new HashMap<>();
+    ImmutableMap.Builder<CFANode, CFANode> rFunctionCallMap = ImmutableMap.builder();
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
       if (cfaEdge instanceof FunctionCallEdge functionCallEdge) {
         rFunctionCallMap.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
       }
     }
-    return ImmutableMap.copyOf(rFunctionCallMap);
+    return rFunctionCallMap.build();
   }
 
   /**
@@ -173,8 +171,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     FunctionEntryNode mainEntryNode =
         CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, mainFunction);
     Optional<FunctionExitNode> mainExitNode = mainEntryNode.getExitNode();
-    MPORThread mainThread = new MPORThread(Optional.empty(), mainEntryNode, mainExitNode);
-    rThreads.add(mainThread);
+    rThreads.add(createThread(Optional.empty(), mainEntryNode, mainExitNode));
 
     // search the CFA for pthread_create calls
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
@@ -191,11 +188,64 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
         Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
-        MPORThread pthread = new MPORThread(Optional.ofNullable(pthreadT), entryNode, exitNode);
-        rThreads.add(pthread);
+        rThreads.add(createThread(Optional.ofNullable(pthreadT), entryNode, exitNode));
       }
     }
     return rThreads.build();
+  }
+
+  /**
+   * Initializes a MPORThread object with the corresponding CFANodes and CFAEdges and returns it.
+   *
+   * @param pPthreadT the pthread_t object, set to empty for the main thread
+   * @param pEntryNode the entry node of the start routine or main function of the thread
+   * @param pExitNode the exit node of the start routine or main function of the thread
+   * @return a MPORThread object with properly initialized variables
+   */
+  private MPORThread createThread(
+      Optional<CExpression> pPthreadT,
+      FunctionEntryNode pEntryNode,
+      Optional<FunctionExitNode> pExitNode) {
+    Set<CFANode> threadNodes = new HashSet<>();
+    ImmutableSet.Builder<CFAEdge> threadEdges = ImmutableSet.builder();
+    initThreadVariables(pExitNode, threadNodes, threadEdges, pEntryNode, null);
+    return new MPORThread(
+        pPthreadT, pEntryNode, pExitNode, ImmutableSet.copyOf(threadNodes), threadEdges.build());
+  }
+
+  /**
+   * Searches the CFA of a thread specified by its entry node (the first pCurrentNode) and
+   * pExitNode.
+   *
+   * @param pExitNode the FunctionExitNode of the start routine or main function of the thread
+   * @param pThreadNodes the set of already visited CFANodes that are inside the thread
+   * @param pThreadEdges the set of CFAEdges executed by the thread
+   * @param pCurrentNode the current CFANode whose leaving CFAEdges are analyzed
+   * @param pFunctionReturnNode pFunctionReturnNode used to track the original context when entering
+   *     the CFA of another function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more
+   *     info.
+   */
+  private void initThreadVariables(
+      final Optional<FunctionExitNode> pExitNode,
+      Set<CFANode> pThreadNodes, // set so that we can use .contains
+      ImmutableSet.Builder<CFAEdge> pThreadEdges,
+      CFANode pCurrentNode,
+      CFANode pFunctionReturnNode) {
+
+    if (!pThreadNodes.contains(pCurrentNode)) {
+      pThreadNodes.add(pCurrentNode);
+      if (!pCurrentNode.equals(pExitNode.orElseThrow())) {
+        for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
+          pThreadEdges.add(cfaEdge);
+          initThreadVariables(
+              pExitNode,
+              pThreadNodes,
+              pThreadEdges,
+              cfaEdge.getSuccessor(),
+              getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, functionCallMap));
+        }
+      }
+    }
   }
 
   /**
@@ -241,14 +291,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           ImmutableSet.Builder<CFAEdge> mutexEdges = ImmutableSet.builder();
           ImmutableSet.Builder<CFANode> mutexExitNodes = ImmutableSet.builder();
           initMutexVariables(
-              pThread,
-              pthreadMutexT,
-              initialNode,
-              mutexNodes,
-              mutexEdges,
-              mutexExitNodes,
-              initialNode,
-              null);
+              pthreadMutexT, mutexNodes, mutexEdges, mutexExitNodes, initialNode, null);
           MPORMutex mutex =
               new MPORMutex(
                   pthreadMutexT,
@@ -275,9 +318,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * Recursively searches the CFA of pThread for all (entry and exit) CFANodes and CFAEdges inside
    * the mutex lock.
    *
-   * @param pThread the thread whose CFA we analyze
    * @param pPthreadMutexT the pthread_mutex_t object encountered in a pthread_mutex_lock call
-   * @param pMutexEntryNode the entry CFANode of the mutex, i.e. the successor Node of mutex_lock
    * @param pMutexNodes the set of CFANodes inside the mutex lock, made immutable once finished
    * @param pMutexEdges the set of CFAEdges inside the mutex lock
    * @param pMutexExitNodes the set of CFANodes whose leaving edge(s) are pthread_mutex_unlocks
@@ -286,9 +327,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
    */
   private void initMutexVariables(
-      final MPORThread pThread,
       final CExpression pPthreadMutexT,
-      final CFANode pMutexEntryNode,
       final Set<CFANode> pMutexNodes, // using a set so that we can use .contains(...)
       final ImmutableSet.Builder<CFAEdge> pMutexEdges,
       final ImmutableSet.Builder<CFANode> pMutexExitNodes,
@@ -307,9 +346,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           }
         } else {
           initMutexVariables(
-              pThread,
               pPthreadMutexT,
-              pMutexEntryNode,
               pMutexNodes,
               pMutexEdges,
               pMutexExitNodes,
@@ -346,7 +383,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
    */
   private void searchThreadForJoins(
-      Set<MPORThread> pThreads,
+      ImmutableSet<MPORThread> pThreads,
       MPORThread pThread,
       Set<CFANode> pVisitedNodes,
       CFANode pCurrentNode,
@@ -361,7 +398,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_JOIN)) {
           CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           MPORThread threadToTerminate = getThreadByPthreadT(pThreads, pthreadT);
-          MPORJoin join = new MPORJoin(threadToTerminate, pCurrentNode);
+          MPORJoin join = new MPORJoin(threadToTerminate, pCurrentNode, cfaEdge);
           pThread.addJoin(join);
         }
         pVisitedNodes.add(pCurrentNode);
@@ -433,13 +470,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pThreadNodes the threads and their current CFANodes to be analyzed
    * @return an ImmutableSet of (positional) PreferenceOrders of pState
    */
-  public static ImmutableSet<PreferenceOrder> getPreferenceOrdersForThreadNodes(
-      ImmutableMap<MPORThread, CFANode> pThreadNodes) {
+  public ImmutableSet<PreferenceOrder> getPreferenceOrdersForThreadNodes(
+      ImmutableSet<MPORThread> pThreads, ImmutableMap<MPORThread, CFANode> pThreadNodes) {
     ImmutableSet.Builder<PreferenceOrder> rPreferenceOrders = ImmutableSet.builder();
     for (var entry : pThreadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
       rPreferenceOrders.addAll(getMutexPreferenceOrders(pThreadNodes, currentThread, currentNode));
+      rPreferenceOrders.addAll(getJoinPreferenceOrders(pThreadNodes, currentThread, currentNode));
     }
     return rPreferenceOrders.build();
   }
@@ -452,7 +490,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCurrentNode the current CFANode of pCurrentThread
    * @return the set of PreferenceOrders induced by mutex locks
    */
-  private static ImmutableSet<PreferenceOrder> getMutexPreferenceOrders(
+  private ImmutableSet<PreferenceOrder> getMutexPreferenceOrders(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       MPORThread pCurrentThread,
       CFANode pCurrentNode) {
@@ -488,6 +526,41 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return rMutexPreferenceOrders.build();
   }
 
+  /**
+   * Computes and returns the PreferenceOrders induced by joins in the program.
+   *
+   * @param pThreads the sets of threads in the program
+   * @param pCurrentThread the thread where we check if it is calling pthread_join
+   * @param pCurrentNode the current CFANode of pCurrentThread
+   * @return the set of PreferenceOrders induced by joins
+   */
+  private ImmutableSet<PreferenceOrder> getJoinPreferenceOrders(
+      ImmutableMap<MPORThread, CFANode> pThreadNodes,
+      MPORThread pCurrentThread,
+      CFANode pCurrentNode) {
+
+    ImmutableSet.Builder<PreferenceOrder> rJoinPreferenceOrders = ImmutableSet.builder();
+
+    // if pCurrentThread is right before a pthread_join call
+    for (MPORJoin join : pCurrentThread.getJoins()) {
+      if (pCurrentNode.equals(join.preJoinNode)) {
+        CExpression pthreadT = CFAUtils.getParameterAtIndex(join.joinEdge, 0);
+        MPORThread threadToTerminate = getThreadByPthreadT(threads, pthreadT);
+        // if the thread specified as pthread_t in the pthread_join call has not yet terminated
+        CFANode threadToTerminateCurrentNode = pThreadNodes.get(threadToTerminate);
+        assert threadToTerminateCurrentNode != null;
+        if (!threadToTerminateCurrentNode.equals(threadToTerminate.exitNode.orElseThrow())) {
+          // add all CFAEdges executed by pthread_t as preceding edges
+          // TODO this is the entire thread, should we only include the edges reachable
+          //  from pCurrentNode? it should be equivalent, just less performant
+          ImmutableSet<CFAEdge> precedingEdges = threadToTerminate.cfaEdges;
+          rJoinPreferenceOrders.add(new PreferenceOrder(precedingEdges, join.joinEdge));
+        }
+      }
+    }
+    return rJoinPreferenceOrders.build();
+  }
+
   // TODO positional preference order ("a <q b") possible cases:
   //  pthread_mutex_lock / mutex_unlock
   //  pthread_join
@@ -517,7 +590,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return the MPORThread object with pPthreadT as its threadObject (pthread_t)
    * @throws IllegalArgumentException if no thread exists in the set whose threadObject is pPthreadT
    */
-  public static MPORThread getThreadByPthreadT(Set<MPORThread> pThreads, CExpression pPthreadT) {
+  public static MPORThread getThreadByPthreadT(
+      ImmutableSet<MPORThread> pThreads, CExpression pPthreadT) {
     for (MPORThread rThread : pThreads) {
       if (rThread.threadObject.isPresent()) {
         if (rThread.threadObject.orElseThrow().equals(pPthreadT)) {
@@ -540,7 +614,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return the previous or new FunctionReturnNode or null if pCurrentNode exits a function
    */
   public static CFANode getFunctionReturnNode(
-      CFANode pCurrentNode, CFANode pFunctionReturnNode, Map<CFANode, CFANode> pFunctionCallMap) {
+      CFANode pCurrentNode,
+      CFANode pFunctionReturnNode,
+      ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
     return pFunctionCallMap.getOrDefault(
         pCurrentNode,
         // reset the FunctionReturnNode when encountering a FunctionExitNode
@@ -583,6 +659,34 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             .equals(pFunctionType.name);
   }
 
+  /**
+   * Returns a new state with the same threadNodes map except that the key pThread is assigned the
+   * new value pUpdatedNode. This function also computes the PreferenceOrders of the new state.
+   *
+   * @param pThread The MPORThread that has a new CFANode (= state)
+   * @param pUpdatedNode The updated CFANode (= state) of pThread
+   * @return a new MPORState with the updated value pUpdatedNode at key pThread and the
+   *     corresponding PreferenceOrders
+   */
+  public MPORState createUpdatedState(
+      MPORState pState,
+      ImmutableSet<MPORThread> pThreads,
+      MPORThread pThread,
+      CFANode pUpdatedNode) {
+    checkArgument(pState.threadNodes.containsKey(pThread), "threadNodes must contain pThread");
+    ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
+    for (var entry : pState.threadNodes.entrySet()) {
+      if (!entry.getKey().equals(pThread)) {
+        threadNodesBuilder.put(entry);
+      }
+    }
+    threadNodesBuilder.put(pThread, pUpdatedNode);
+    ImmutableMap<MPORThread, CFANode> updatedThreadNodes = threadNodesBuilder.buildOrThrow();
+    return new MPORState(
+        updatedThreadNodes, getPreferenceOrdersForThreadNodes(pThreads, updatedThreadNodes));
+  }
+
+  // TODO these can be deleted later
   // Test =======================================================================================
 
   public ImmutableSet<MPORThread> getThreads() {

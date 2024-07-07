@@ -58,7 +58,8 @@ public class MPORTests {
       for (CFAEdge cfaEdge :
           MPORAlgorithm.contextSensitiveLeavingEdges(currentNode, pFunctionReturnNode)) {
         MPORState nextState =
-            pCurrentState.createUpdatedState(currentThread, cfaEdge.getSuccessor());
+            algorithm.createUpdatedState(
+                pCurrentState, algorithm.getThreads(), currentThread, cfaEdge.getSuccessor());
         computeStates(
             pVisitedStates,
             nextState,

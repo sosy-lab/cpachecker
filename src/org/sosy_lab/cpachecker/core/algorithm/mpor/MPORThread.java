@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
@@ -35,6 +38,11 @@ public class MPORThread {
    */
   public final Optional<FunctionExitNode> exitNode;
 
+  public final ImmutableSet<CFANode> cfaNodes;
+
+  public final ImmutableSet<CFAEdge> cfaEdges;
+
+  // TODO make immutable and put the initialize methods from MPORAlgorithm in createThread(...)
   private Set<MPORMutex> mutexes = new HashSet<>();
 
   private Set<MPORJoin> joins = new HashSet<>();
@@ -42,10 +50,15 @@ public class MPORThread {
   public MPORThread(
       Optional<CExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
-      Optional<FunctionExitNode> pExitNode) {
+      Optional<FunctionExitNode> pExitNode,
+      ImmutableSet<CFANode> pCfaNodes,
+      ImmutableSet<CFAEdge> pCfaEdges) {
+
     threadObject = pThreadObject;
     entryNode = pEntryNode;
     exitNode = pExitNode;
+    cfaNodes = pCfaNodes;
+    cfaEdges = pCfaEdges;
   }
 
   public boolean isMain() {
