@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -26,16 +25,17 @@ public class MPORMutex {
   /** The CFANode directly after pthread_mutex_lock. */
   public final CFANode entryNode;
 
-  // TODO make immutable?
-  private Set<CFANode> cfaNodes = new HashSet<>();
+  public final ImmutableSet<CFANode> cfaNodes;
 
-  private Set<CFAEdge> cfaEdges = new HashSet<>();
+  /** Set of CFAEdges inside the lock including mutex_unlock but excluding mutex_lock. */
+  public final ImmutableSet<CFAEdge> cfaEdges;
 
   /**
    * Set of CFANodes whose leaving CFAEdges are pthread_mutex_unlocks to pthreadMutexT. Multiple
    * CFANodes can be exitNodes if they are reached in a nondeterministic way.
    */
-  private Set<CFANode> exitNodes = new HashSet<>();
+  /** The CFANode whose leaving CFAEdges is pthread_mutex_unlock to pthreadMutexT. */
+  public final ImmutableSet<CFANode> exitNodes;
 
   /**
    * Initializes an MPORMutex with the pthread_mutex_t object and the first CFANode inside the lock.
@@ -46,32 +46,16 @@ public class MPORMutex {
    * @param pEntryNode the entry CFANode of the lock, i.e. the CFANode directly after
    *     pthread_mutex_lock
    */
-  public MPORMutex(CExpression pPthreadMutexT, CFANode pEntryNode) {
+  public MPORMutex(
+      CExpression pPthreadMutexT,
+      CFANode pEntryNode,
+      ImmutableSet<CFANode> pCfaNodes,
+      ImmutableSet<CFAEdge> pCfaEdges,
+      ImmutableSet<CFANode> pExitNodes) {
     pthreadMutexT = pPthreadMutexT;
     entryNode = pEntryNode;
-  }
-
-  public void addNode(CFANode pCfaNode) {
-    cfaNodes.add(pCfaNode);
-  }
-
-  public Set<CFANode> getNodes() {
-    return cfaNodes;
-  }
-
-  public void addEdge(CFAEdge pCfaEdge) {
-    cfaEdges.add(pCfaEdge);
-  }
-
-  public Set<CFAEdge> getEdges() {
-    return cfaEdges;
-  }
-
-  public void addExitNode(CFANode pExitNode) {
-    exitNodes.add(pExitNode);
-  }
-
-  public Set<CFANode> getExitNodes() {
-    return exitNodes;
+    cfaNodes = pCfaNodes;
+    cfaEdges = pCfaEdges;
+    exitNodes = pExitNodes;
   }
 }

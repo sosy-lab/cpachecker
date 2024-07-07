@@ -236,8 +236,27 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           // the successor node of mutex_lock is the first inside the lock
-          MPORMutex mutex = new MPORMutex(pthreadMutexT, cfaEdge.getSuccessor());
-          findMutexCfaNodes(pThread, mutex, cfaEdge.getSuccessor(), null);
+          CFANode initialNode = cfaEdge.getSuccessor();
+          Set<CFANode> mutexNodes = new HashSet<>(); // using a set so that we can use .contains
+          ImmutableSet.Builder<CFAEdge> mutexEdges = ImmutableSet.builder();
+          ImmutableSet.Builder<CFANode> mutexExitNodes = ImmutableSet.builder();
+          initMutexVariables(
+              pThread,
+              pthreadMutexT,
+              initialNode,
+              mutexNodes,
+              mutexEdges,
+              mutexExitNodes,
+              initialNode,
+              null);
+          MPORMutex mutex =
+              new MPORMutex(
+                  pthreadMutexT,
+                  initialNode,
+                  ImmutableSet.copyOf(mutexNodes),
+                  mutexEdges.build(),
+                  mutexExitNodes.build());
+          pThread.addMutex(mutex);
         }
         pVisitedNodes.add(pCurrentNode);
         searchThreadForMutexes(
@@ -253,35 +272,47 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * Recursively searches the CFA of pThread for all CFANodes inside pMutex, i.e. until one or more
-   * mutex_unlock is encountered.
+   * Recursively searches the CFA of pThread for all (entry and exit) CFANodes and CFAEdges inside
+   * the mutex lock.
    *
    * @param pThread the thread whose CFA we analyze
-   * @param pMutex the mutex lock whose CFANodes we want to find
+   * @param pPthreadMutexT the pthread_mutex_t object encountered in a pthread_mutex_lock call
+   * @param pMutexEntryNode the entry CFANode of the mutex, i.e. the successor Node of mutex_lock
+   * @param pMutexNodes the set of CFANodes inside the mutex lock, made immutable once finished
+   * @param pMutexEdges the set of CFAEdges inside the mutex lock
+   * @param pMutexExitNodes the set of CFANodes whose leaving edge(s) are pthread_mutex_unlocks
    * @param pCurrentNode the current CFANode whose leaving Edges we search for mutex_unlocks
    * @param pFunctionReturnNode used to track the original context when entering the CFA of another
    *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
    */
-  private void findMutexCfaNodes(
-      MPORThread pThread, MPORMutex pMutex, CFANode pCurrentNode, CFANode pFunctionReturnNode) {
+  private void initMutexVariables(
+      final MPORThread pThread,
+      final CExpression pPthreadMutexT,
+      final CFANode pMutexEntryNode,
+      final Set<CFANode> pMutexNodes, // using a set so that we can use .contains(...)
+      final ImmutableSet.Builder<CFAEdge> pMutexEdges,
+      final ImmutableSet.Builder<CFANode> pMutexExitNodes,
+      CFANode pCurrentNode,
+      CFANode pFunctionReturnNode) {
 
     // visit CFANodes only once to prevent infinite loops in case of loop structures
-    if (!pMutex.getNodes().contains(pCurrentNode)) {
-      pMutex.getNodes().add(pCurrentNode);
+    if (!pMutexNodes.contains(pCurrentNode)) {
+      pMutexNodes.add(pCurrentNode);
       for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-        pMutex.addEdge(cfaEdge);
+        pMutexEdges.add(cfaEdge);
         if (isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_UNLOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
-          if (pthreadMutexT.equals(pMutex.pthreadMutexT)) {
-            // the last node inside the lock, before unlocking
-            pMutex.addExitNode(pCurrentNode);
-            // here, the mutex might be in the set already if there are multiple paths to an unlock
-            pThread.addMutex(pMutex);
+          if (pthreadMutexT.equals(pPthreadMutexT)) {
+            pMutexExitNodes.add(pCurrentNode);
           }
         } else {
-          findMutexCfaNodes(
+          initMutexVariables(
               pThread,
-              pMutex,
+              pPthreadMutexT,
+              pMutexEntryNode,
+              pMutexNodes,
+              pMutexEdges,
+              pMutexExitNodes,
               cfaEdge.getSuccessor(),
               getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, functionCallMap));
         }
@@ -430,7 +461,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // if pCurrentThread is in a mutex lock
     for (MPORMutex mutex : pCurrentThread.getMutexes()) {
-      if (mutex.getNodes().contains(pCurrentNode)) {
+      if (mutex.cfaNodes.contains(pCurrentNode)) {
 
         // search all other threads for pthread_mutex_lock calls to the same pthread_mutex_t object
         for (var entry : pThreadNodes.entrySet()) {
@@ -445,7 +476,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                   ImmutableSet.Builder<CFAEdge> precedingEdges = ImmutableSet.builder();
                   // TODO this is the entire mutex, should we only include the edges reachable
                   //  from pCurrentNode? it should be equivalent, just less performant
-                  precedingEdges.addAll(mutex.getEdges());
+                  precedingEdges.addAll(mutex.cfaEdges);
                   rMutexPreferenceOrders.add(new PreferenceOrder(precedingEdges.build(), cfaEdge));
                 }
               }
