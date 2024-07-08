@@ -1313,7 +1313,7 @@ public class FloatValue extends Number {
    * before the right one is found, which is much more efficient than increasing the precision one
    * bit at a time.
    */
-  private ImmutableList<Format> extendedPrecisions() {
+  private ImmutableList<Format> intermediatePrecisions() {
     ImmutableList.Builder<Format> builder = ImmutableList.builder();
     if (format.equals(Format.Float8)) {
       //      0.1    0.2    0.3    0.4    0.5    0.6    0.7    0.8    0.9    1.0
@@ -1379,7 +1379,7 @@ public class FloatValue extends Number {
     FloatValue r = nan(format);
     boolean done = false;
 
-    for (Format p : extendedPrecisions()) {
+    for (Format p : intermediatePrecisions()) {
       if (!done) {
         Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
         FloatValue x = withPrecision(precision);
@@ -1506,7 +1506,7 @@ public class FloatValue extends Number {
     FloatValue r = nan(format);
     boolean done = false;
 
-    for (Format p : extendedPrecisions()) {
+    for (Format p : intermediatePrecisions()) {
       if (!done) {
         Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
         FloatValue x = withPrecision(precision);
@@ -1718,7 +1718,7 @@ public class FloatValue extends Number {
     FloatValue r = nan(format);
     boolean done = false;
 
-    for (Format p : extendedPrecisions()) {
+    for (Format p : intermediatePrecisions()) {
       if (!done) {
         // a^x = exp(x * ln a)
         Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
