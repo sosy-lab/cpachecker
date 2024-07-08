@@ -30,6 +30,7 @@ public class MPORTests {
 
   // computes all possible program states (i.e. all interleavings) and the corresponding preference
   // orders, no matter if they are actually feasible
+  // TODO this does not seem to cover all possible states?
   public void computeAllStates() {
     ImmutableMap.Builder<MPORThread, CFANode> stateBuilder = ImmutableMap.builder();
     for (MPORThread thread : algorithm.getThreads()) {
@@ -49,10 +50,8 @@ public class MPORTests {
     for (var entry : pCurrentState.threadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
-      if (currentThread.exitNode.isPresent()) {
-        if (currentNode.equals(currentThread.exitNode.orElseThrow())) {
-          continue;
-        }
+      if (currentNode.equals(currentThread.exitNode)) {
+        continue;
       }
       pVisitedStates.add(pCurrentState);
       for (CFAEdge cfaEdge :

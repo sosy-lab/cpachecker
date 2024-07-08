@@ -36,7 +36,7 @@ public class MPORThread {
    * FunctionExitNode of the main function (main thread) or start routine (pthreads). Can be empty,
    * see {@link FunctionEntryNode#getExitNode()}.
    */
-  public final Optional<FunctionExitNode> exitNode;
+  public final FunctionExitNode exitNode;
 
   public final ImmutableSet<CFANode> cfaNodes;
 
@@ -50,7 +50,7 @@ public class MPORThread {
   public MPORThread(
       Optional<CExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
-      Optional<FunctionExitNode> pExitNode,
+      FunctionExitNode pExitNode,
       ImmutableSet<CFANode> pCfaNodes,
       ImmutableSet<CFAEdge> pCfaEdges) {
 
