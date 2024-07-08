@@ -61,7 +61,7 @@ public class AtExitTransformer {
   }
 
   /** Check if the atexit() function is used by the program */
-  public boolean usesAtExit() {
+  private boolean usesAtExit() {
     for (CFAEdge edge : ImmutableList.copyOf(cfa.edges())) {
       if (edge instanceof CStatementEdge stmtEdge
           && stmtEdge.getStatement() instanceof CFunctionCallStatement callStmt
@@ -90,18 +90,6 @@ public class AtExitTransformer {
     } else {
       return Optional.empty();
     }
-  }
-
-  /** Add a new node to the CFA */
-  private CFANode mkNode(CFunctionDeclaration pDeclaration) {
-    CFANode nextNode = new CFANode(pDeclaration);
-    cfa.addNode(nextNode);
-    return nextNode;
-  }
-
-  /** Generate a new variable name */
-  private String mkTmpVariable() {
-    return "__atexit_TMP_" + variableCounter++;
   }
 
   /**
@@ -145,6 +133,18 @@ public class AtExitTransformer {
         CFACreationUtils.addEdgeUnconditionallyToCFA(exitEdge);
       }
     }
+  }
+
+  /** Add a new node to the CFA */
+  private CFANode mkNode(CFunctionDeclaration pDeclaration) {
+    CFANode nextNode = new CFANode(pDeclaration);
+    cfa.addNode(nextNode);
+    return nextNode;
+  }
+
+  /** Generate a new variable name */
+  private String mkTmpVariable() {
+    return "__atexit_TMP_" + variableCounter++;
   }
 
   /**
@@ -286,6 +286,18 @@ public class AtExitTransformer {
         CFAEdge e8 = new CStatementEdge("", callFPointer, loc, n7, n1);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e8);
       }
+    }
+  }
+
+  /**
+   * Rewrite return statements and add atexit handlers to the CFA if the atexit() is used by the
+   * program.
+   */
+  public void transformIfNeeded() {
+    if (usesAtExit()) {
+      // TODO: These two transformation could be merged
+      replaceReturns();
+      addExitHandlers();
     }
   }
 }
