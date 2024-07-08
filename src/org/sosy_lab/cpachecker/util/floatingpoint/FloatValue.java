@@ -992,12 +992,16 @@ public class FloatValue extends Number {
   }
 
   public FloatValue divide(FloatValue pNumber) {
-    // Find a common precision and convert both arguments to this precision
+    // Convert arguments to a common precision
     Format precision = format.sup(pNumber.format);
-    FloatValue arg1 = this.withPrecision(precision.intermediatePrecision());
-    FloatValue arg2 = pNumber.withPrecision(precision.intermediatePrecision());
+    // TODO: Replace with precision.intermediatePrecision()
+    //   Currently this does not seem to work as we get incorrectly rounded results for Float8
+    precision = /*precision.intermediatePrecision();*/
+        new Format(Format.Float256.expBits, 2 * (1 + precision.sigBits) + 2);
+    FloatValue arg1 = this.withPrecision(precision);
+    FloatValue arg2 = pNumber.withPrecision(precision);
 
-    return arg1.divide_(arg2).withPrecision(precision);
+    return arg1.divide_(arg2).withPrecision(format);
   }
 
   /**
