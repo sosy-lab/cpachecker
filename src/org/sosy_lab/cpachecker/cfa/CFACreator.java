@@ -785,8 +785,10 @@ public class CFACreator {
     // TODO: Add an option for this step and return "unknown" if atexit() is used without it
     if (language == Language.C) {
       AtExitTransformer atExitTransformer = new AtExitTransformer(cfa, logger, config);
-      atExitTransformer.replaceReturns();
-      atExitTransformer.addExitHandlers();
+      if (atExitTransformer.usesAtExit()) {
+        atExitTransformer.replaceReturns();
+        atExitTransformer.addExitHandlers();
+      }
     }
 
     // add function pointer edges

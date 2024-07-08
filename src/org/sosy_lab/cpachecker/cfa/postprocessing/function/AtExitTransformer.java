@@ -60,6 +60,20 @@ public class AtExitTransformer {
     config = pConfiguration;
   }
 
+  /** Check if the atexit() function is used by the program */
+  public boolean usesAtExit() {
+    for (CFAEdge edge : ImmutableList.copyOf(cfa.edges())) {
+      if (edge instanceof CStatementEdge stmtEdge
+          && stmtEdge.getStatement() instanceof CFunctionCallStatement callStmt
+          && callStmt.getFunctionCallExpression().getFunctionNameExpression()
+              instanceof CIdExpression nameExpr
+          && nameExpr.getName().equals("atexit")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * Check if it's a "return" edge and get the expression that will be returned
    *
