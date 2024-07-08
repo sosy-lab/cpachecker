@@ -226,7 +226,7 @@ public class FloatValue extends Number {
     }
 
     /** Return a higher precision format meant to be used for intermediate results. */
-    public Format intermediatePrecision() {
+    private Format intermediatePrecision() {
       // We need precision m = 2p + 2 for division, and an additional 2 bits for powInt
       // See Table 12.6 in "Handbook of Floating-Point Arithmetic"
       // FIXME: Find the exact formulas
@@ -239,7 +239,7 @@ public class FloatValue extends Number {
      * <p>Can be used to effectively avoid having to deal with subnormal numbers as they can be
      * written in their normalized form in this larger format.
      */
-    public Format withUnlimitedExponent() {
+    private Format withUnlimitedExponent() {
       return new Format(25, sigBits);
     }
 
@@ -249,7 +249,7 @@ public class FloatValue extends Number {
      * <p>Used when implementing binary operations on FloatValue values, where a common format large
      * enough for both arguments needs to be found.
      */
-    public Format sup(Format pOther) {
+    Format sup(Format pOther) {
       int newExp = Math.max(expBits, pOther.expBits);
       int newSig = Math.max(sigBits, pOther.sigBits);
       return new Format(newExp, newSig);
