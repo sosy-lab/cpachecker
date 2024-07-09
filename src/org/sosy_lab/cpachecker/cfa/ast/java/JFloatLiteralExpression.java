@@ -49,4 +49,16 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
 
     return obj instanceof JFloatLiteralExpression && super.equals(obj);
   }
+
+  @Override
+  public String toASTString() {
+    // Print the value
+    String repr = getValue().toString();
+
+    // Add a suffix if the literal has type "float"
+    JSimpleType type = (JSimpleType) getExpressionType();
+    String suffix = type.equals(JSimpleType.getFloat()) ? "f" : "";
+
+    return repr + suffix;
+  }
 }

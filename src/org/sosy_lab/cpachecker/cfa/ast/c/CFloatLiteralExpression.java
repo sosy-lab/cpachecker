@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
@@ -54,5 +56,18 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
     }
 
     return obj instanceof CFloatLiteralExpression && super.equals(obj);
+  }
+
+  @Override
+  public String toASTString() {
+    // Print the value
+    String repr = getValue().toString();
+
+    // Add a suffix if the literal has type "float" or "long double"
+    CSimpleType type = (CSimpleType) getExpressionType();
+    String suffix =
+        type.equals(CNumericTypes.FLOAT) ? "f" : type.equals(CNumericTypes.LONG_DOUBLE) ? "l" : "";
+
+    return repr + suffix;
   }
 }

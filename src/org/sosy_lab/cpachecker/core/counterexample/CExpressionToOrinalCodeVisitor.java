@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -174,14 +173,7 @@ public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String
     if (substitute != null) {
       return substitute;
     }
-    String repr = pFloatLiteralExpression.getValue().toString();
-
-    // Add a suffix if the literal has type "float" or "long double"
-    CSimpleType type = (CSimpleType) pFloatLiteralExpression.getExpressionType();
-    String suffix =
-        type.equals(CNumericTypes.FLOAT) ? "f" : type.equals(CNumericTypes.LONG_DOUBLE) ? "l" : "";
-
-    return repr + suffix;
+    return pFloatLiteralExpression.toString();
   }
 
   @Override
