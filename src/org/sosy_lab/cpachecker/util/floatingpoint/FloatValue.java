@@ -82,6 +82,14 @@ public class FloatValue extends Number {
    */
   private static final Map<Integer, BigInteger> FACTORIALS = new ConcurrentHashMap<>();
 
+  /** Names for the constants used in {@link ConstantsKey} */
+  enum ConstantsName {
+    SQRT_INITIAL_T,
+    EXP_TABLE,
+    LN_TABLE,
+    CONSTANT_LN
+  }
+
   /**
    * Key for the {@link FloatValue#CONSTANTS} Map.
    *
@@ -90,7 +98,7 @@ public class FloatValue extends Number {
    * @param f The name of the constant.
    * @param arg An index for the name.
    */
-  private record ConstantsKey(Format format, String f, int arg) {}
+  private record ConstantsKey(Format format, ConstantsName f, int arg) {}
 
   /**
    * Map with pre-calculated constants.
@@ -110,7 +118,7 @@ public class FloatValue extends Number {
    */
   private FloatValue lookupSqrtT1() {
     return CONSTANTS.computeIfAbsent(
-        new ConstantsKey(format, "SQRT_INITIAL_T", 1),
+        new ConstantsKey(format, ConstantsName.SQRT_INITIAL_T, 1),
         (ConstantsKey val) -> fromInteger(format, 48).divideSlow(fromInteger(format, 17)));
   }
 
@@ -121,7 +129,7 @@ public class FloatValue extends Number {
    */
   private FloatValue lookupSqrtT2() {
     return CONSTANTS.computeIfAbsent(
-        new ConstantsKey(format, "SQRT_INITIAL_T", 2),
+        new ConstantsKey(format, ConstantsName.SQRT_INITIAL_T, 2),
         (ConstantsKey val) -> fromInteger(format, 32).divideSlow(fromInteger(format, 17)));
   }
 
@@ -131,7 +139,7 @@ public class FloatValue extends Number {
    * <p>Required by {@link FloatValue#exp()} to speed up the expansion of the Taylor series.
    */
   private FloatValue lookupExpTable(int k) {
-    ConstantsKey key = new ConstantsKey(format, "EXP_TABLE", k);
+    ConstantsKey key = new ConstantsKey(format, ConstantsName.EXP_TABLE, k);
     if (!CONSTANTS.containsKey(key)) {
       CONSTANTS.put(key, one(format).divide_(fromInteger(format, factorial(k, FACTORIALS))));
     }
@@ -144,7 +152,7 @@ public class FloatValue extends Number {
    * <p>Required by {@link FloatValue#ln()} to speed up the expansion of the Taylor series.
    */
   private FloatValue lookupLnTable(int k) {
-    ConstantsKey key = new ConstantsKey(format, "LN_TABLE", k);
+    ConstantsKey key = new ConstantsKey(format, ConstantsName.LN_TABLE, k);
     if (!CONSTANTS.containsKey(key)) {
       CONSTANTS.put(key, one(format).divide_(fromInteger(format, k)));
     }
@@ -157,7 +165,7 @@ public class FloatValue extends Number {
    * <p>Required by {@link FloatValue#ln()} to rewrite ln(x)=ln(a*2^k) as ln(a) + k*ln(2)
    */
   private FloatValue lookupLn2() {
-    ConstantsKey key = new ConstantsKey(format, "CONSTANT_LN", 2);
+    ConstantsKey key = new ConstantsKey(format, ConstantsName.CONSTANT_LN, 2);
     if (!CONSTANTS.containsKey(key)) {
       FloatValue r = fromInteger(format, 2).sqrt_().subtract(one(format)).ln1p();
       CONSTANTS.put(key, r.withExponent(r.exponent + 1));
