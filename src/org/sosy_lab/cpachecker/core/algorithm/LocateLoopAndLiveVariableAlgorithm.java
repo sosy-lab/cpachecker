@@ -65,7 +65,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       for (NormalLoopInfo loopInfo : getAllNormalLoopInfos()) {
         allLoopInfos.append(
             String.format(
-                "Loop    %-4d    %s%n",
+                "NormalLoop    %d    %s%n",
                 loopInfo.loopLocation(),
                 loopInfo.liveVariablesAndTypes()));
       }
@@ -73,7 +73,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       for (RecursionInfo recursionInfo : getAllRecursionInfos()) {
         allLoopInfos.append(
             String.format(
-                "Recursion    %-10s %-4d    %-6s    %s%n",
+                "Recursion    %s    %d    %s    %s%n",
                 recursionInfo.FunctionName(),
                 recursionInfo.locationOfDefinition(),
                 recursionInfo.locationOfRecursiveCalls(),
