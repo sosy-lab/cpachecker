@@ -168,7 +168,7 @@ public class FloatValue extends Number {
   /** Format, defines the precision of the value and the allowed exponent range. */
   private final Format format;
 
-  /** Sign of the value */
+  /** Sign of the value, `true` if negative */
   private final boolean sign;
 
   /** Exponent of the value. */
@@ -350,7 +350,7 @@ public class FloatValue extends Number {
    * Create a floating point value.
    *
    * @param pFormat Format, defines the precision and the width of the exponent field
-   * @param pSign Sign of the value
+   * @param pSign Sign for the value, `true` if the value is negative
    * @param pExponent Exponent, without the IEEE bias
    * @param pSignificand Significand, including the leading bit that is hidden in the IEEE format
    */
