@@ -203,7 +203,7 @@ public class FloatValue extends Number {
      *
      * @see <a href="https://en.wikipedia.org/wiki/Minifloat">Wikipedia</a>
      */
-    public static final Format Float8 = new Format(4, 3);
+    static final Format Float8 = new Format(4, 3);
 
     /**
      * Half-precision floating-point format
