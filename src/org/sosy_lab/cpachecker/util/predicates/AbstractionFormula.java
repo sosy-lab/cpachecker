@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,7 +44,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  */
 public class AbstractionFormula implements Serializable {
 
-  private static final long serialVersionUID = -7756517128231447937L;
+  @Serial private static final long serialVersionUID = -7756517128231447937L;
   private @Nullable final transient Region region; // Null after de-serializing from proof
   private final transient BooleanFormula formula;
   private final BooleanFormula instantiatedFormula;
@@ -156,6 +157,7 @@ public class AbstractionFormula implements Serializable {
     return "ABS" + id + abs;
   }
 
+  @Serial
   private Object writeReplace() {
     return new SerializationProxy(this);
   }
@@ -166,12 +168,13 @@ public class AbstractionFormula implements Serializable {
    * @param in an input stream
    */
   @SuppressWarnings("UnusedVariable") // parameter is required by API
+  @Serial
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 
   private static class SerializationProxy implements Serializable {
-    private static final long serialVersionUID = 2349286L;
+    @Serial private static final long serialVersionUID = 2349286L;
     private final String instantiatedFormulaDump;
     private final PathFormula blockFormula;
 
@@ -183,6 +186,7 @@ public class AbstractionFormula implements Serializable {
       blockFormula = pAbstractionFormula.getBlockFormula();
     }
 
+    @Serial
     private Object readResolve() {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();

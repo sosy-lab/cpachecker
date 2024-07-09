@@ -14,6 +14,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectOutputStream;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -285,6 +286,7 @@ public final class SLARGState extends ARGState
   }
 
   @SuppressWarnings("unused")
+  @Serial
   private void writeObject(ObjectOutputStream unused) throws IOException {
     throw new NotSerializableException(SLARGState.class.getCanonicalName()); // see top of class
   }

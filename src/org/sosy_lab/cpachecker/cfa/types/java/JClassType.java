@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.Serial;
 import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -32,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
  */
 public final class JClassType extends JClassOrInterfaceType {
 
-  private static final long serialVersionUID = 2051770436134716617L;
+  @Serial private static final long serialVersionUID = 2051770436134716617L;
 
   private static final String NAME_OF_CLASS_OBJECT = "java.lang.Object";
   private static final String SIMPLE_NAME_OF_CLASS_OBJECT = "Object";

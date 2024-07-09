@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import com.google.common.base.Preconditions;
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -24,7 +25,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public final class AddressExpression extends SymbolicExpression {
 
-  private static final long serialVersionUID = -1498889385306613159L;
+  @Serial private static final long serialVersionUID = -1498889385306613159L;
 
   // The address Value should map to memory
   private final Value addressValue;

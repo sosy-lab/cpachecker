@@ -14,6 +14,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
+import java.io.Serial;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,7 +41,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public final class UsageState extends AbstractSerializableSingleWrapperState
     implements LatticeAbstractState<UsageState> {
 
-  private static final long serialVersionUID = -898577877284268426L;
+  @Serial private static final long serialVersionUID = -898577877284268426L;
   private TemporaryUsageStorage recentUsages;
   // private boolean isStorageCloned;
   private final FunctionContainer functionContainer;
@@ -289,30 +290,30 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
 
   /*public class UsageExitableState extends UsageState {
 
-    private static final long serialVersionUID = 1957118246209506994L;
+  @Serial    private static final long serialVersionUID = 1957118246209506994L;
 
-    private UsageExitableState(AbstractState pWrappedElement, UsageState state) {
-      super(pWrappedElement, state);
-    }
+      private UsageExitableState(AbstractState pWrappedElement, UsageState state) {
+        super(pWrappedElement, state);
+      }
 
-    public UsageExitableState(UsageState state) {
-      this(state.getWrappedState(), state);
-    }
+      public UsageExitableState(UsageState state) {
+        this(state.getWrappedState(), state);
+      }
 
-    @Override
-    public UsageExitableState clone(final AbstractState wrapped) {
-      return new UsageExitableState(wrapped, this);
-    }
+      @Override
+      public UsageExitableState clone(final AbstractState wrapped) {
+        return new UsageExitableState(wrapped, this);
+      }
 
-    @Override
-    public UsageExitableState reduce(final AbstractState wrapped) {
-      return new UsageExitableState(wrapped, this);
-    }
+      @Override
+      public UsageExitableState reduce(final AbstractState wrapped) {
+        return new UsageExitableState(wrapped, this);
+      }
 
-    public boolean isExitable() {
-      return true;
-    }
-  }*/
+      public boolean isExitable() {
+        return true;
+      }
+    }*/
 
   public static class StateStatistics {
     private StatTimer joinTimer = new StatTimer("Time for joining");
@@ -342,6 +343,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
         "Join is not supported for usage states, use merge operator");
   }
 
+  @Serial
   Object readResolve() {
     return new UsageState(
         getWrappedState(),

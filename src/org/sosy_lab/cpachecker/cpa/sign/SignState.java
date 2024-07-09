@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +27,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 public class SignState
     implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
 
-  private static final long serialVersionUID = -2507059869178203119L;
+  @Serial private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
 
@@ -168,6 +169,7 @@ public class SignState
     return signMap.hashCode();
   }
 
+  @Serial
   private Object writeReplace() {
     if (equals(TOP)) {
       return proxy;
@@ -176,20 +178,23 @@ public class SignState
     }
   }
 
+  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
   }
 
+  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
   }
 
   private static class SerialProxySign implements Serializable {
 
-    private static final long serialVersionUID = 2843708585446089623L;
+    @Serial private static final long serialVersionUID = 2843708585446089623L;
 
     public SerialProxySign() {}
 
+    @Serial
     private Object readResolve() {
       return TOP;
     }

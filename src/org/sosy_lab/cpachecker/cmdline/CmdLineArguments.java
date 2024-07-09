@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ class CmdLineArguments {
   /** Exception thrown when something invalid is specified on the command line. */
   public static class InvalidCmdlineArgumentException extends Exception {
 
-    private static final long serialVersionUID = -6526968677815416436L;
+    @Serial private static final long serialVersionUID = -6526968677815416436L;
 
     InvalidCmdlineArgumentException(final String msg) {
       super(msg);

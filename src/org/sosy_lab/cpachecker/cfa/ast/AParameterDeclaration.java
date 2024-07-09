@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
-  private static final long serialVersionUID = 7623251138394648617L;
+  @Serial private static final long serialVersionUID = 7623251138394648617L;
 
   private final Type type;
 

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ComparisonChain;
+import java.io.Serial;
 import java.io.Serializable;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -26,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 final class CompositeField implements Comparable<CompositeField>, Serializable {
 
-  private static final long serialVersionUID = -5194535211223682619L;
+  @Serial private static final long serialVersionUID = -5194535211223682619L;
 
   private final CCompositeType compositeType;
   private final String compositeTypeStr; // used for comparisons to allow sorting instances

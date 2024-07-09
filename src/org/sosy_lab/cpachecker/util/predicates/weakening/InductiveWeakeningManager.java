@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import java.io.PrintStream;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -233,7 +234,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
   private static final class TemporaryException extends RuntimeException {
 
-    private static final long serialVersionUID = -7046164286357019183L;
+    @Serial private static final long serialVersionUID = -7046164286357019183L;
 
     TemporaryException(InterruptedException e) {
       super(e);
