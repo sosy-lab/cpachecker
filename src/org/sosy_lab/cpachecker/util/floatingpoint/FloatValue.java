@@ -329,7 +329,7 @@ public class FloatValue extends Number {
     /**
      * Construct a Format for a {@link CType}.
      *
-     * <p>Throws a {@link NumberFormatException} if the {@link CType} is not a floating point type.
+     * <p>Throws a {@link IllegalArgumentException} if the {@link CType} is not a floating point type.
      */
     public static Format fromCType(CType pType) {
       if (pType.equals(CNumericTypes.FLOAT)) {
@@ -339,8 +339,8 @@ public class FloatValue extends Number {
       } else if (pType.equals(CNumericTypes.LONG_DOUBLE)) {
         return Format.Extended;
       } else {
-        throw new NumberFormatException(
-            String.format("Invalid type for float infinity: %s", pType));
+        throw new IllegalArgumentException(
+            String.format("`%s` is not a floating point type", pType));
       }
     }
   }
