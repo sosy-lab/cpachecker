@@ -280,7 +280,7 @@ public class FloatValue extends Number {
      *
      * @see <a href="https://en.wikipedia.org/wiki/Exponent_bias">Wikipedia</a>
      */
-    public long bias() {
+    long bias() {
       return (1L << (expBits - 1)) - 1;
     }
 
