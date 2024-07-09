@@ -50,7 +50,7 @@ public class ReachingDefState
   public ReachingDefState(Set<MemoryLocation> globalVariableNames) {
     localReachDefs = new HashMap<>();
     globalReachDefs = new HashMap<>();
-    addVariables(globalReachDefs, globalVariableNames, UninitializedDefinitionPoint.getInstance());
+    addVariables(globalReachDefs, globalVariableNames, UninitializedDefinitionPoint.INSTANCE);
   }
 
   public ReachingDefState(
@@ -102,7 +102,7 @@ public class ReachingDefState
       CFANode pExit) {
     ProgramDefinitionPoint definition = new ProgramDefinitionPoint(pEntry, pExit);
     Map<MemoryLocation, Set<DefinitionPoint>> localVarsDef = new HashMap<>(localReachDefs);
-    addVariables(localVarsDef, uninitVariableNames, UninitializedDefinitionPoint.getInstance());
+    addVariables(localVarsDef, uninitVariableNames, UninitializedDefinitionPoint.INSTANCE);
     addVariables(localVarsDef, parameters, definition);
     return new ReachingDefState(localVarsDef, globalReachDefs);
   }
@@ -322,48 +322,12 @@ public class ReachingDefState
 
   public interface DefinitionPoint {}
 
-  public static class UninitializedDefinitionPoint implements DefinitionPoint, Serializable {
-
-    @Serial private static final long serialVersionUID = 6987753908487106524L;
-    private static UninitializedDefinitionPoint instance = new UninitializedDefinitionPoint();
-    private static final SerialProxy writeReplace = new SerialProxy();
-
-    private UninitializedDefinitionPoint() {}
-
-    public static UninitializedDefinitionPoint getInstance() {
-      return instance;
-    }
+  public enum UninitializedDefinitionPoint implements DefinitionPoint, Serializable {
+    INSTANCE;
 
     @Override
     public String toString() {
       return "?";
-    }
-
-    @Serial
-    private Object writeReplace() {
-      return writeReplace;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    @Override
-    public boolean equals(Object pO) {
-      return pO instanceof UninitializedDefinitionPoint;
-    }
-
-    private static class SerialProxy implements Serializable {
-
-      @Serial private static final long serialVersionUID = 2843708585446089623L;
-
-      public SerialProxy() {}
-
-      @Serial
-      private Object readResolve() {
-        return instance;
-      }
     }
   }
 
