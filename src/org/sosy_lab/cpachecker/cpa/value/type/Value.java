@@ -88,7 +88,7 @@ public interface Value extends Serializable {
     }
 
     @Serial
-    Object readResolve() {
+    private Object readResolve() {
       return instance;
     }
   }

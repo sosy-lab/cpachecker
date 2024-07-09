@@ -344,7 +344,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
   }
 
   @Serial
-  Object readResolve() {
+  private Object readResolve() {
     return new UsageState(
         getWrappedState(),
         PathCopyingPersistentTreeMap.of(),
