@@ -273,9 +273,12 @@ public class FloatValue extends Number {
     /**
      * The exponent 'bias' of a FloatValue value in this format.
      *
-     * <p>Useful when converting to the IEEE representation of the value where an unsigned integer
-     * is used to represent the exponent. Adding the bias converts to IEEE, subtracting it returns
-     * the value to our representation.
+     * <p>In the IEEE 754 standard a `bias` is used to store negative exponents as unsigned numbers.
+     * This bias can be calculated from the size of the exponent field as is done by this method.
+     * The value needs to be added to the exponent to convert it to the IEEE representation.
+     * Subtracting it from the IEEE representation will return the exponent to its unbiased form.
+     *
+     * @see <a href="https://en.wikipedia.org/wiki/Exponent_bias">Wikipedia</a>
      */
     public long bias() {
       return (1L << (expBits - 1)) - 1;
