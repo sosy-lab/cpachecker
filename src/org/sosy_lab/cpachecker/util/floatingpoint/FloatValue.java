@@ -133,7 +133,7 @@ public class FloatValue extends Number {
   private FloatValue lookupExpTable(int k) {
     Key key = new Key(format, "EXP_TABLE", k);
     if (!constants.containsKey(key)) {
-      constants.put(key, one(format).divide_(fromInteger(format, fac(k, faculties))));
+      constants.put(key, one(format).divide_(fromInteger(format, factorial(k, faculties))));
     }
     return constants.get(key);
   }
@@ -1504,20 +1504,20 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Calculate the faculty.
+   * Calculate the factorial of k
    *
    * <p>We use dynamic programming and store intermediate results in the Map from the second
    * argument. This speeds up the calculation of k! in {@link FloatValue#lookupExpTable(int)} as
    * results can be reused across multiple function calls.
    */
-  private static BigInteger fac(int k, Map<Integer, BigInteger> pFacMap) {
+  private static BigInteger factorial(int k, Map<Integer, BigInteger> pFacMap) {
     return pFacMap.computeIfAbsent(
         k,
         (Integer arg1) -> {
           if (k == 0 || k == 1) {
             return BigInteger.ONE;
           }
-          return fac(k - 1, pFacMap).multiply(BigInteger.valueOf(k));
+          return factorial(k - 1, pFacMap).multiply(BigInteger.valueOf(k));
         });
   }
 
