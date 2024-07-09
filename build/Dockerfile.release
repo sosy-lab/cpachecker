@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   gcc \
   libgmp10 \
   libgomp1 \
+  locales \
   openjdk-17-jre-headless \
   python3
 
@@ -43,10 +44,7 @@ COPY --from=0 /cpachecker /cpachecker
 ENV PATH "${PATH}:/cpachecker/bin:/cpachecker/scripts"
 
 # Set locale to UTF-8 to have UTF-8 encoding in JVM
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  locales \
-  && rm -rf /var/lib/apt/lists/* \
-  && locale-gen en_US.UTF-8
+RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
