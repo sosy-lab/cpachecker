@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 public final class CFloatLiteralExpression extends AFloatLiteralExpression
     implements CLiteralExpression {
@@ -21,20 +20,6 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
 
   public CFloatLiteralExpression(FileLocation pFileLocation, CType pType, FloatValue pValue) {
     super(pFileLocation, pType, pValue);
-  }
-
-  /** Returns a <code>CFloatLiteralExpression</code> for positive infinity. */
-  public static CFloatLiteralExpression forPositiveInfinity(FileLocation pFileLocation, CType pType)
-      throws NumberFormatException {
-    return new CFloatLiteralExpression(
-        pFileLocation, pType, FloatValue.infinity(Format.fromCType(pType)));
-  }
-
-  /** Returns a <code>CFloatLiteralExpression</code> for negative infinity. */
-  public static CFloatLiteralExpression forNegativeInfinity(FileLocation pFileLocation, CType pType)
-      throws NumberFormatException {
-    return new CFloatLiteralExpression(
-        pFileLocation, pType, FloatValue.negativeInfinity(Format.fromCType(pType)));
   }
 
   @Override
