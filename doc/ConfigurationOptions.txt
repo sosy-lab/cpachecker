@@ -392,10 +392,6 @@ analysis.restartAfterUnknown = false
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
 
-# if this option is used, the CFA will be loaded from the given file instead
-# of parsed from sourcefile.
-analysis.serializedCfaFile = no default value
-
 # Split program in subprograms which can be analyzed separately afterwards
 analysis.split.program = false
 
@@ -851,10 +847,6 @@ cfa.nonReturningFunctions = {"abort", "exit"}
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
 cfa.pixelGraphicFile = "cfaPixel"
-
-# export CFA as .ser file (dump Java objects)
-cfa.serialize = false
-cfa.serializeFile = "cfa.ser.gz"
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true

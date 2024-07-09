@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class AssumeEdge extends AbstractCFAEdge {
 
-  private static final long serialVersionUID = 1953381509820035275L;
   private final boolean truthAssumption;
   private final boolean swapped;
   private final boolean artificialIntermediate;
