@@ -2238,7 +2238,46 @@ public class FloatValue extends Number {
     return pSign ? r.negate() : r;
   }
 
-  /** Parse input string as a floating point number. */
+  /**
+   * Parse input string as a floating point number
+   *
+   * <p>Valid input strings must match the following grammar:
+   *
+   * <pre>
+   * floating-constant ::=
+   *     decimal-floating-constant
+   *   | hexadecimal-floating-constant
+   *
+   * decimal-floating-constant ::=
+   *     [sign] fractional-constant [exponent-part]
+   *   | [sign] digit-sequence exponent-part
+   *
+   * hexadecimal-floating-constant ::=
+   *     `0x` hexadecimal-fractional-constant binary-exponent-part
+   *   | `0x` hexadecimal-digit-sequence binary-exponent-part
+   *
+   * fractional-constant ::=
+   *     digit* `.` digit+
+   *   | digit+ `.`
+   *
+   * exponent-part ::=
+   *     `e` [sign] digit+
+   *   | `E` [sign] digit+
+   *
+   * hexadecimal-fractional-constant ::=
+   *     hexadecimal-digit* `.` hexadecimal-digit+
+   *   | hexadecimal-digit+ `.`
+   *
+   * binary-exponent-part ::=
+   *     `p` [sign] digit+
+   *   | `P` [sign] digit+
+   *
+   * sign ::= `+` | `-`
+   *
+   * digit ::= `0` ... `9`
+   * hexadecimal-digit ::= digit | `A` ... `F` | `a` ... `f`
+   * </pre>
+   */
   public static FloatValue fromString(Format pFormat, String pInput) {
     // TODO: Add error handling for broken inputs.
     if ("inf".equals(pInput)) {
