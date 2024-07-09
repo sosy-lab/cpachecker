@@ -80,14 +80,14 @@ public class FloatValue extends Number {
    * recalculations. This is thread-safe as we use {@link java.util.concurrent.ConcurrentHashMap}
    * for the Map and the calculation of k! is side effect free.
    */
-  private static final Map<Integer, BigInteger> faculties = new ConcurrentHashMap<>();
+  private static final Map<Integer, BigInteger> FACTORIALS = new ConcurrentHashMap<>();
 
   /**
-   * Key for the {@link FloatValue#constants} Map.
+   * Key for the {@link FloatValue#CONSTANTS} Map.
    *
    * @param format Specified the precision and exponent range of the format that the constant was
    *     calculated for.
-   * @param f The name ofthe constant.
+   * @param f The name of the constant.
    * @param arg An index for the name.
    */
   private record Key(Format format, String f, int arg) {}
@@ -101,7 +101,7 @@ public class FloatValue extends Number {
    * {@link FloatValue#lookupExpTable(int)}, {@link FloatValue#lookupLnTable(int)} and {@link
    * FloatValue#lookupLn2()} should be used.
    */
-  private static final Map<Key, FloatValue> constants = new ConcurrentHashMap<>();
+  private static final Map<Key, FloatValue> CONSTANTS = new ConcurrentHashMap<>();
 
   /**
    * Lookup the value 48/17 from the constant table.
@@ -109,7 +109,7 @@ public class FloatValue extends Number {
    * <p>Required as the initial value for Newton's method in {@link FloatValue#sqrt()}
    */
   private FloatValue lookupSqrtT1() {
-    return constants.computeIfAbsent(
+    return CONSTANTS.computeIfAbsent(
         new Key(format, "SQRT_INITIAL_T", 1),
         (Key val) -> fromInteger(format, 48).divideSlow(fromInteger(format, 17)));
   }
@@ -120,7 +120,7 @@ public class FloatValue extends Number {
    * <p>Required as the initial value for Newton's method in {@link FloatValue#sqrt()}
    */
   private FloatValue lookupSqrtT2() {
-    return constants.computeIfAbsent(
+    return CONSTANTS.computeIfAbsent(
         new Key(format, "SQRT_INITIAL_T", 2),
         (Key val) -> fromInteger(format, 32).divideSlow(fromInteger(format, 17)));
   }
@@ -132,10 +132,10 @@ public class FloatValue extends Number {
    */
   private FloatValue lookupExpTable(int k) {
     Key key = new Key(format, "EXP_TABLE", k);
-    if (!constants.containsKey(key)) {
-      constants.put(key, one(format).divide_(fromInteger(format, factorial(k, faculties))));
+    if (!CONSTANTS.containsKey(key)) {
+      CONSTANTS.put(key, one(format).divide_(fromInteger(format, factorial(k, FACTORIALS))));
     }
-    return constants.get(key);
+    return CONSTANTS.get(key);
   }
 
   /**
@@ -145,10 +145,10 @@ public class FloatValue extends Number {
    */
   private FloatValue lookupLnTable(int k) {
     Key key = new Key(format, "LN_TABLE", k);
-    if (!constants.containsKey(key)) {
-      constants.put(key, one(format).divide_(fromInteger(format, k)));
+    if (!CONSTANTS.containsKey(key)) {
+      CONSTANTS.put(key, one(format).divide_(fromInteger(format, k)));
     }
-    return constants.get(key);
+    return CONSTANTS.get(key);
   }
 
   /**
@@ -158,11 +158,11 @@ public class FloatValue extends Number {
    */
   private FloatValue lookupLn2() {
     Key key = new Key(format, "CONSTANT_LN", 2);
-    if (!constants.containsKey(key)) {
+    if (!CONSTANTS.containsKey(key)) {
       FloatValue r = fromInteger(format, 2).sqrt_().subtract(one(format)).ln1p();
-      constants.put(key, r.withExponent(r.exponent + 1));
+      CONSTANTS.put(key, r.withExponent(r.exponent + 1));
     }
-    return constants.get(key);
+    return CONSTANTS.get(key);
   }
 
   /** Format, defines the precision of the value and the allowed exponent range. */
