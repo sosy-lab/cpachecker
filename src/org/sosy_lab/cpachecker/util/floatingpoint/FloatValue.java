@@ -195,13 +195,79 @@ public class FloatValue extends Number {
           sigBits >= 0, "Significand field must not have negative bit width");
     }
 
+    /**
+     * An 8bit floating-point format
+     *
+     * <p>There is no standardized IEEE 754-2008 format for 8bit values. We reserve 4 bits for the
+     * exponent and use the remaining 4 for the significand, but other choices would be possible.
+     *
+     * @see <a href="https://en.wikipedia.org/wiki/Minifloat">Wikipedia</a>
+     */
     public static final Format Float8 = new Format(4, 3);
+
+    /**
+     * Half-precision floating-point format
+     *
+     * <p>16bit binary floating point format (<b>"binary16"</b>) as defined in the IEEE 754-2008
+     * standard. Uses 4 bits for the 5 bits for the exponent and 11 for the significand.
+     *
+     * @see <a
+     *     href="https://en.wikipedia.org/wiki/Half-precision_floating-point_format">Wikipedia</a>
+     */
     public static final Format Float16 = new Format(5, 10);
+
+    /**
+     * Single-precision floating-point format
+     *
+     * <p>32bit binary floating point format (<b>"binary32"</b>) as defined in the IEEE 754-2008
+     * standard. Uses 8 bits for the exponent and 24 for the significand.
+     *
+     * @see <a
+     *     href="https://en.wikipedia.org/wiki/Single-precision_floating-point_format">Wikipedia</a>
+     */
     public static final Format Float32 = new Format(8, 23);
+
+    /**
+     * Double-precision floating-point format
+     *
+     * <p>64bit binary floating point format (<b>"binary64"</b>) as defined in the IEEE 754-2008
+     * standard. Uses 11 bits for the exponent and 53 for the significand.
+     *
+     * @see <a
+     *     href="https://en.wikipedia.org/wiki/Double-precision_floating-point_format">Wikipedia</a>
+     */
     public static final Format Float64 = new Format(11, 52);
+
+    /**
+     * Quadruple-precision floating-point format
+     *
+     * <p>128bit binary floating point format (<b>"binary128"</b>) as defined in the IEEE 754-2008
+     * standard. Uses 15 bits for the exponent and 113 for the significand.
+     *
+     * @see <a
+     *     href="https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format"f>Wikipedia</a>
+     */
     public static final Format Float128 = new Format(15, 112);
+
+    /**
+     * Octuple-precision floating-point format
+     *
+     * <p>256bit binary floating point format ("<b>binary128</b>") as defined in the IEEE 754-2008
+     * standard. Uses 19 bits for the exponent and 237 for the significand.
+     *
+     * @see <a
+     *     href="https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format">Wikipedia</a>
+     */
     public static final Format Float256 = new Format(19, 236);
 
+    /**
+     * Extended-precision floating-point format
+     *
+     * <p>80bit binary floating point format as used by the x87 FPU. Uses 15 bits for the exponent
+     * and 64 for the significand.
+     *
+     * @see <a href="https://en.wikipedia.org/wiki/Extended_precision">Wikipedia</a>
+     */
     public static final Format Extended = new Format(15, 63);
 
     /**
