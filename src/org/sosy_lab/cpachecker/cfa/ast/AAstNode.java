@@ -12,7 +12,6 @@ import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 
-@SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface AAstNode extends Serializable {
 
   public static enum AAstNodeRepresentation {
