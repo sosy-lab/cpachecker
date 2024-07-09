@@ -27,7 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libgomp1 \
   locales \
   openjdk-17-jre-headless \
-  python3
+  python3 \
+  && rm -rf /var/lib/apt/lists/*
 
 ADD cpachecker.tar.bz2 /
 # Make cpachecker executable and further scripts available for execution
