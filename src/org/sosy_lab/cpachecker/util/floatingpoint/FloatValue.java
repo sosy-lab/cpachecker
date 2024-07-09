@@ -329,7 +329,8 @@ public class FloatValue extends Number {
     /**
      * Construct a Format for a {@link CType}.
      *
-     * <p>Throws a {@link IllegalArgumentException} if the {@link CType} is not a floating point type.
+     * <p>Throws a {@link IllegalArgumentException} if the {@link CType} is not a floating point
+     * type.
      */
     public static Format fromCType(CType pType) {
       if (pType.equals(CNumericTypes.FLOAT)) {
@@ -375,6 +376,7 @@ public class FloatValue extends Number {
     significand = pSignificand;
   }
 
+  /** Return the {@link Format} of this value */
   public Format getFormat() {
     return format;
   }
@@ -401,11 +403,13 @@ public class FloatValue extends Number {
     return new FloatValue(pFormat, false, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
+  /** Largest value that can be represented in this format */
   public static FloatValue maxValue(Format pFormat) {
     BigInteger allOnes = BigInteger.ONE.shiftLeft(pFormat.sigBits + 1).subtract(BigInteger.ONE);
     return new FloatValue(pFormat, false, pFormat.maxExp(), allOnes);
   }
 
+  /* Constant 1.0 */
   public static FloatValue one(Format pFormat) {
     return new FloatValue(pFormat, false, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
@@ -426,27 +430,32 @@ public class FloatValue extends Number {
     return new FloatValue(pFormat, false, pFormat.minExp() - 1, BigInteger.ONE);
   }
 
-  /* Positive zero */
+  /** Positive zero */
   public static FloatValue zero(Format pFormat) {
     return new FloatValue(pFormat, false, pFormat.minExp() - 1, BigInteger.ZERO);
   }
 
+  /** Negative zero */
   public static FloatValue negativeZero(Format pFormat) {
     return new FloatValue(pFormat, true, pFormat.minExp() - 1, BigInteger.ZERO);
   }
 
+  /** Constant -1.0 */
   public static FloatValue negativeOne(Format pFormat) {
     return new FloatValue(pFormat, true, 0, BigInteger.ONE.shiftLeft(pFormat.sigBits));
   }
 
+  /** Negative infinity */
   public static FloatValue negativeInfinity(Format pFormat) {
     return new FloatValue(pFormat, true, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
+  /** Rue if the value is NaN */
   public boolean isNan() {
     return (exponent == format.maxExp() + 1) && (significand.compareTo(BigInteger.ZERO) > 0);
   }
 
+  /** True if the value is infinite */
   public boolean isInfinite() {
     return (exponent == format.maxExp() + 1) && significand.equals(BigInteger.ZERO);
   }
@@ -456,23 +465,32 @@ public class FloatValue extends Number {
     return (exponent == format.minExp() - 1) && significand.equals(BigInteger.ZERO);
   }
 
+  /** True if the value is +1.0 */
   public boolean isOne() {
     return one(format).equals(this);
   }
 
+  /** True if the value is -1.0 */
   public boolean isNegativeOne() {
     return negativeOne(format).equals(this);
   }
 
+  /**
+   * True if the value is negative
+   *
+   * <p>This includes the special case of -0.0
+   */
   public boolean isNegative() {
     return sign;
   }
 
+  /** True if the value is an integer, that is if there is no fractional part */
   public boolean isInteger() {
     BigInteger intValue = toInteger();
     return equals(fromInteger(format, intValue));
   }
 
+  /** True if the value is an odd integer number */
   private boolean isOddInteger() {
     BigInteger intValue = toInteger();
     return equals(fromInteger(format, intValue)) && intValue.testBit(0);
@@ -624,10 +642,12 @@ public class FloatValue extends Number {
     return new FloatValue(pTargetFormat, sign, resultExponent, resultSignificand);
   }
 
+  /** Returns the absolute value */
   public FloatValue abs() {
     return new FloatValue(format, false, exponent, significand);
   }
 
+  /** Negates the value */
   public FloatValue negate() {
     return new FloatValue(format, !sign, exponent, significand);
   }
@@ -666,6 +686,7 @@ public class FloatValue extends Number {
     return !equalTo(pNumber);
   }
 
+  /** Strictly greater than */
   public boolean greaterThan(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
     Format precision = format.sup(pNumber.format);
@@ -690,10 +711,12 @@ public class FloatValue extends Number {
     }
   }
 
+  /** Greater or equal to */
   public boolean greaterOrEqual(FloatValue pNumber) {
     return greaterThan(pNumber) || equalTo(pNumber);
   }
 
+  /** Strictly less than */
   public boolean lessThan(FloatValue pNumber) {
     if (isNan() || pNumber.isNan()) {
       return false;
@@ -701,10 +724,12 @@ public class FloatValue extends Number {
     return !greaterOrEqual(pNumber);
   }
 
+  /** Less than or equal to */
   public boolean lessOrEqual(FloatValue pNumber) {
     return pNumber.greaterOrEqual(this);
   }
 
+  /** Addition */
   public FloatValue add(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
     Format precision = format.sup(pNumber.format);
@@ -826,10 +851,12 @@ public class FloatValue extends Number {
     return new FloatValue(precision, resultSign, resultExponent, resultSignificand);
   }
 
+  /** Subtraction */
   public FloatValue subtract(FloatValue pNumber) {
     return add(pNumber.negate());
   }
 
+  /** Multiplication */
   public FloatValue multiply(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
     Format precision = format.sup(pNumber.format);
@@ -1040,7 +1067,7 @@ public class FloatValue extends Number {
     return this.multiply(this);
   }
 
-  /** The power function a^x for integer exponents x. */
+  /** The power function a^x for integer exponents x */
   public FloatValue powInt(BigInteger exp) {
     return withPrecision(format.intermediatePrecision()).powFast(exp).withPrecision(format);
   }
@@ -1062,6 +1089,7 @@ public class FloatValue extends Number {
     return r;
   }
 
+  /** Division */
   public FloatValue divide(FloatValue pNumber) {
     // Convert arguments to a common precision
     Format precision = format.sup(pNumber.format);
@@ -1231,6 +1259,7 @@ public class FloatValue extends Number {
     return r.withSign(arg1.sign ^ arg2.sign);
   }
 
+  /** Square root */
   public FloatValue sqrt() {
     // The calculation will be done in a higher precision and the result is then rounded down.
     // 2p+2 bits are enough for the inverse square root.
@@ -1425,7 +1454,7 @@ public class FloatValue extends Number {
     return builder.build();
   }
 
-  /** The exponential function e^x. */
+  /** The exponential function e^x */
   public FloatValue exp() {
     return expWithStats(null);
   }
@@ -1557,7 +1586,7 @@ public class FloatValue extends Number {
     return r;
   }
 
-  /** The natural logarithm ln(x). */
+  /** The natural logarithm ln(x) */
   public FloatValue ln() {
     return lnWithStats(null);
   }
@@ -1646,7 +1675,7 @@ public class FloatValue extends Number {
     return r;
   }
 
-  /** The power function a^x. */
+  /** The power function a^x */
   public FloatValue pow(FloatValue pExponent) {
     return powWithStats(pExponent, null);
   }
@@ -1832,6 +1861,13 @@ public class FloatValue extends Number {
     return r.withPrecision(format);
   }
 
+  /**
+   * Round to the next integer (under the given rounding mode)
+   *
+   * <p>The result is again a floating point value. To convert directly to integer use {@link
+   * FloatValue#toInteger()} or the methods {@link FloatValue#byteValue()}, {@link
+   * FloatValue#shortValue()}, {@link FloatValue#intValue()} and {@link FloatValue#longValue()}
+   */
   public FloatValue roundToInteger(RoundingMode pRoundingMode) {
     if (isInfinite()) {
       // If the argument is infinite, just return it
@@ -1871,9 +1907,9 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Cast an integer value to a float.
+   * Cast an integer value to a {@link FloatValue}
    *
-   * <p>Will return +/- infinity if the integer is too large for the float type.
+   * <p>Will return +/- infinity if the integer is too large for the chosen float type.
    */
   public static FloatValue fromInteger(Format pFormat, BigInteger pNumber) {
     // Return +0.0 for input 0
@@ -1910,7 +1946,13 @@ public class FloatValue extends Number {
     return fromInteger(pFormat, BigInteger.valueOf(pNumber));
   }
 
-  /** Cast the value to a BigInteger. */
+  /**
+   * Cast the value to a BigInteger.
+   *
+   * <p>If the value is not already an integer the fractional part will be cut off. This is
+   * equivalent to rounding with {@link RoundingMode#TRUNCATE RoundingMode.TRUNCATE}. If a different
+   * rounding mode is desired use {@link FloatValue#roundToInteger} first.
+   */
   public BigInteger toInteger() {
     if (exponent < -1) {
       return BigInteger.ZERO;
@@ -2028,6 +2070,7 @@ public class FloatValue extends Number {
     return integerValue.longValue();
   }
 
+  /** Convert a `float` to {@link FloatValue} */
   public static FloatValue fromFloat(float pFloat) {
     Format format = Format.Float32;
     if (Float.isNaN(pFloat)) {
@@ -2077,6 +2120,7 @@ public class FloatValue extends Number {
     }
   }
 
+  /** Convert a `double` to {@link FloatValue#byteValue()} */
   public static FloatValue fromDouble(double pDouble) {
     Format format = Format.Float64;
     if (Double.isNaN(pDouble)) {
@@ -2127,7 +2171,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Create a floating point value from its base16 representation.
+   * Create a floating point value from its base16 string representation.
    *
    * <p>Converting from base 16 to base 2 is a special case as the two radixes are "commensurable",
    * that is, they are both powers of another integer. In this case this integer is simply 2 and the
@@ -2184,7 +2228,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Create a floating point value from its base10 representation.
+   * Create a floating point value from its base10 string representation.
    *
    * <p>We use <b></b>AlgorithmM</b> from <a
    * href="https://dl.acm.org/doi/pdf/10.1145/93548.93557">How to read floating point numbers
@@ -2328,7 +2372,7 @@ public class FloatValue extends Number {
     return isNegative() ? "-" + repr : repr;
   }
 
-  /** Print the number in base2 representation. */
+  /** Print the number in its base2 string representation. */
   public String toBinaryString() {
     if (isNan()) {
       return isNegative() ? "-nan" : "nan";
@@ -2343,10 +2387,12 @@ public class FloatValue extends Number {
     }
   }
 
+  /** Returns the exponent field of this value */
   long extractExpBits() {
     return exponent;
   }
 
+  /** Returns the significand bits of this value */
   BigInteger extractSigBits() {
     return significand;
   }
