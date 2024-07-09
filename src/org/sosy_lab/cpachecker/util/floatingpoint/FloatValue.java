@@ -284,11 +284,13 @@ public class FloatValue extends Number {
       return (1L << (expBits - 1)) - 1;
     }
 
+    /** The largest exponent supported by this format */
     public long minExp() {
       long rawExp = 1;
       return rawExp - bias();
     }
 
+    /** The smallest (= largest negative) exponent supported by this format */
     public long maxExp() {
       long rawExp = (1L << expBits) - 2;
       return rawExp - bias();
