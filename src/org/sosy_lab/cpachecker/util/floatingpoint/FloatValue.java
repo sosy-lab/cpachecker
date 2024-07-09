@@ -2352,6 +2352,15 @@ public class FloatValue extends Number {
     return 1 + (int) Math.ceil((format.sigBits + 1) * Math.log(2) / Math.log(10));
   }
 
+  /**
+   * Print the floating point value
+   *
+   * <p>The output will be in scientific format with the number of digits printed given by the
+   * formula <code>1 + ceil(p * log_10(2))</code> where <code>p</code> is the precision of the
+   * value. This length guarantees that <code>fromString(toString(x)) = x</code> always holds. For
+   * single-precision values the number of digits is 9, for double-precision it is 17 and for
+   * extended-precision 21 digits are needed.
+   */
   @Override
   public String toString() {
     if (isNan()) {
