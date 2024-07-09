@@ -2102,18 +2102,15 @@ public class FloatValue extends Number {
 
   @Override
   public float floatValue() {
-    return withPrecision(Format.Float32).toFloat();
-  }
-
-  private float toFloat() {
-    if (isNan()) {
-      return isNegative() ? Float.intBitsToFloat(0xFFC00000) : Float.NaN;
-    } else if (isInfinite()) {
-      return isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
+    FloatValue f = withPrecision(Format.Float32);
+    if (f.isNan()) {
+      return f.isNegative() ? Float.intBitsToFloat(0xFFC00000) : Float.NaN;
+    } else if (f.isInfinite()) {
+      return f.isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
     } else {
-      int sigBits = significand.clearBit(format.sigBits).intValue();
-      int expBits = (int) (exponent + format.bias());
-      if (sign) {
+      int sigBits = f.significand.clearBit(Format.Float32.sigBits).intValue();
+      int expBits = (int) (f.exponent + Format.Float32.bias());
+      if (f.sign) {
         expBits += 0x100;
       }
       return Float.intBitsToFloat((expBits << 23) | sigBits);
@@ -2152,18 +2149,15 @@ public class FloatValue extends Number {
 
   @Override
   public double doubleValue() {
-    return withPrecision(Format.Float64).toDouble();
-  }
-
-  private double toDouble() {
-    if (isNan()) {
-      return isNegative() ? Double.longBitsToDouble(0xFFF8000000000000L) : Double.NaN;
-    } else if (isInfinite()) {
-      return isNegative() ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+    FloatValue d = withPrecision(Format.Float64);
+    if (d.isNan()) {
+      return d.isNegative() ? Double.longBitsToDouble(0xFFF8000000000000L) : Double.NaN;
+    } else if (d.isInfinite()) {
+      return d.isNegative() ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
     } else {
-      long sigBits = significand.clearBit(format.sigBits).longValue();
-      long expBits = exponent + format.bias();
-      if (sign) {
+      long sigBits = d.significand.clearBit(Format.Float64.sigBits).longValue();
+      long expBits = d.exponent + Format.Float64.bias();
+      if (d.sign) {
         expBits += 0x800;
       }
       return Double.longBitsToDouble((expBits << 52) | sigBits);
