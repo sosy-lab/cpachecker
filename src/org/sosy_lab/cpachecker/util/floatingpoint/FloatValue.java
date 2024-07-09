@@ -2165,7 +2165,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Create a floating point value from its base16 string representation.
+   * Create a floating point value from its hexadecimal string representation.
    *
    * <p>Converting from base 16 to base 2 is a special case as the two radixes are "commensurable",
    * that is, they are both powers of another integer. In this case this integer is simply 2 and the
@@ -2222,11 +2222,10 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Create a floating point value from its base10 string representation.
+   * Create a floating point value from its decimal string representation.
    *
-   * <p>We use <b></b>AlgorithmM</b> from <a
-   * href="https://dl.acm.org/doi/pdf/10.1145/93548.93557">How to read floating point numbers
-   * accurately</a> to ensure correct rounding.
+   * <p>We use <b>AlgorithmM</b> from <a href="https://dl.acm.org/doi/pdf/10.1145/93548.93557">How
+   * to read floating point numbers accurately</a> to ensure correct rounding.
    */
   private static FloatValue fromDecimal(
       Format pFormat, boolean pSign, String pDigits, int pExpValue) {
