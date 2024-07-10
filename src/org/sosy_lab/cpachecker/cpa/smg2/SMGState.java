@@ -4230,11 +4230,19 @@ public class SMGState
 
   /**
    * Returns true if there is a pointer from outside a linked list (assuming that the linked list is
-   * always the same given shape) towards the target list element given (e.g. from stack variables).
-   * Returns false if there is either no pointers towards the given object, self-pointers, or only
-   * pointers from list elements to other list elements with the correct given shape.
+   * always the same given shape) in between the element given (e.g. from stack variables). The
+   * prevObj is checked for LAST pointers only, while the nextObj is checked for all FIRST and
+   * REGION pointers. Returns false if there is either no pointers towards the given object,
+   * self-pointers, or only pointers from list elements to other list elements with the correct
+   * given shape. Abstracted elements are only checked for FIRST pointers here!
    *
-   * @param target {@link SMGObject} to check for pointers.
+   * @param prevObj {@link SMGObject} to check for pointers from outside a given list shape. This
+   *     objs next pointer points towards nextObj. Only abstracted elements are checked and only for
+   *     LAST pointers!
+   * @param nextObj {@link SMGObject} to check for pointers from outside a given list shape. This
+   *     object is connected to prevObj via prevObjs next pointer and potentially nextObjs prev
+   *     pointer points towards prevObj if there is a prev pointer. All obj types are checked, but
+   *     Abstracted elements are only checked for FIRST pointers here!
    * @param nfo suspected next pointer offset. Pointers originating from other offsets are rejected.
    * @param nextPointerTargetOffset next pointer target offset. Pointers originating with other
    *     target offsets are rejected.
@@ -4244,56 +4252,108 @@ public class SMGState
    *     other target offsets are rejected. May be empty, then its ignored.
    * @return true if there is ptrs from outside the list shape. False else.
    */
-  public boolean hasPointersFromOutsideOfList(
-      SMGObject target,
+  public boolean listElementsHaveOutsidePointerInBetween(
+      SMGObject prevObj,
+      SMGObject nextObj,
       BigInteger nfo,
       BigInteger nextPointerTargetOffset,
       Optional<BigInteger> maybePfo,
       Optional<BigInteger> prevPointerTargetOffset) {
-    SMG smg = getMemoryModel().getSmg();
-    // TODO: add cache for this combination of nfo/pfo to arguments, Map<SMGObject, Triple<nextObjs,
-    // PrevObjs, nonListObjs>>
-    // TODO: handle ALL ptrs from outside that do not have the ALL spec yet correctly
-    if (target instanceof SMGSinglyLinkedListSegment sll) {
-      Preconditions.checkArgument(
-          sll.getNextOffset().equals(nfo)
-              && sll.getNextPointerTargetOffset().equals(nextPointerTargetOffset));
-      if (target instanceof SMGDoublyLinkedListSegment dll) {
-        Preconditions.checkArgument(
-            dll.getPrevOffset().equals(maybePfo.orElseThrow())
-                && dll.getPrevPointerTargetOffset().equals(prevPointerTargetOffset.orElseThrow()));
+    // There is no outside pointer allowed in between 2 regions that are joined to form an
+    //   abstracted list segment
+
+    // S/DLLs need to be treated differently. If we check for abstraction, the direction matters.
+    // If we want to abstract a list and have a region followed by an abstracted list
+    //   (and the region can be absorbed),
+    //   but there is a first pointer from outside the list, it can not be abstracted.
+    // If the only first ptr(s) come from the region that is absorbed, that's OK!
+    // If there are last ptrs from outside the list, the region can still be absorbed
+    //   (if it has the only fst ptrs).
+    if (prevObj instanceof SMGSinglyLinkedListSegment) {
+      // TODO: remove nfo for this case?
+      if (linkedListSegmentHasPointersFromOutsideOfList(
+          prevObj,
+          nfo,
+          SMGTargetSpecifier.IS_LAST_POINTER,
+          nextPointerTargetOffset,
+          maybePfo,
+          prevPointerTargetOffset)) {
+        return true;
       }
-      // For linked lists, we want to make sure that there is no first or last pointers
-      //   not from a preceding or later list segment
-      Set<SMGValue> pointersTowardsTarget = smg.getPointerValuesForTarget(target);
-      for (SMGValue pointerTowardsTarget : pointersTowardsTarget) {
-        SMGPointsToEdge pte = smg.getPTEdge(pointerTowardsTarget).orElseThrow();
-        SMGTargetSpecifier spec = pte.targetSpecifier();
+    }
+    return objectHasOutsidePointerTowards(
+        nextObj, nfo, nextPointerTargetOffset, maybePfo, prevPointerTargetOffset);
+  }
 
-        // Ignore ALL pointers. Equality check the merging segments to make sure they are in each
-        // segment.
-        if (spec.equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
-          continue;
-        }
-
-        Set<SMGObject> objsWPointersTowardsTarget =
-            smg.getAllObjectsWithValueInThem(pointerTowardsTarget);
-        for (SMGObject objWPointersTowardsTarget : objsWPointersTowardsTarget) {
-          if (!areTwoObjectsPartOfList(
-              target,
-              objWPointersTowardsTarget,
-              nfo,
-              nextPointerTargetOffset,
-              maybePfo,
-              prevPointerTargetOffset)) {
-            return false;
-          }
-        }
-      }
-
+  /**
+   * Returns true if there is a pointer from outside a linked list (assuming that the linked list is
+   * always the same given shape) towards the target list element given (e.g. from stack variables).
+   * Returns false if there is either no pointers towards the given object, self-pointers, or only
+   * pointers from list elements to other list elements with the correct given shape. Abstracted
+   * elements are only checked for FIRST pointers here!
+   *
+   * @param object {@link SMGObject} to check for pointers from outside a given list shape.
+   *     Abstracted elements are only checked for FIRST pointers here!
+   * @param nfo suspected next pointer offset. Pointers originating from other offsets are rejected.
+   * @param nextPointerTargetOffset next pointer target offset. Pointers originating with other
+   *     target offsets are rejected.
+   * @param maybePfo suspected prev pointer offset. Pointers originating from other offsets are
+   *     rejected. May be empty, then its ignored.
+   * @param prevPointerTargetOffset suspected prev pointer target offset. Pointers originating with
+   *     other target offsets are rejected. May be empty, then its ignored.
+   * @return true if there is ptrs from outside the list shape. False else.
+   */
+  public boolean objectHasOutsidePointerTowards(
+      SMGObject object,
+      BigInteger nfo,
+      BigInteger nextPointerTargetOffset,
+      Optional<BigInteger> maybePfo,
+      Optional<BigInteger> prevPointerTargetOffset) {
+    if (object instanceof SMGSinglyLinkedListSegment) {
+      // TODO: remove pfo for this case?
+      return linkedListSegmentHasPointersFromOutsideOfList(
+          object,
+          nfo,
+          SMGTargetSpecifier.IS_FIRST_POINTER,
+          nextPointerTargetOffset,
+          maybePfo,
+          prevPointerTargetOffset);
     } else {
+      return regionHasPointersFromOutsideOfList(
+          object, nfo, nextPointerTargetOffset, maybePfo, prevPointerTargetOffset);
+    }
+  }
+
+  private boolean linkedListSegmentHasPointersFromOutsideOfList(
+      SMGObject target,
+      BigInteger nfo,
+      SMGTargetSpecifier allowedSpec,
+      BigInteger nextPointerTargetOffset,
+      Optional<BigInteger> maybePfo,
+      Optional<BigInteger> prevPointerTargetOffset) {
+    Preconditions.checkArgument(
+        target instanceof SMGSinglyLinkedListSegment sll
+            && sll.getNextOffset().equals(nfo)
+            && sll.getNextPointerTargetOffset().equals(nextPointerTargetOffset));
+
+    if (target instanceof SMGDoublyLinkedListSegment dll) {
+      Preconditions.checkArgument(
+          dll.getPrevOffset().equals(maybePfo.orElseThrow())
+              && dll.getPrevPointerTargetOffset().equals(prevPointerTargetOffset.orElseThrow()));
+    }
+
+    SMG smg = getMemoryModel().getSmg();
+    Set<SMGValue> pointersTowardsTarget = smg.getPointerValuesForTarget(target);
+    for (SMGValue pointerTowardsTarget : pointersTowardsTarget) {
+      SMGPointsToEdge pte = smg.getPTEdge(pointerTowardsTarget).orElseThrow();
+      SMGTargetSpecifier spec = pte.targetSpecifier();
+
+      if (!spec.equals(allowedSpec)) {
+        continue;
+      }
+
       Set<SMGObject> objsWPointersTowardsTarget =
-          smg.getAllSourcesForPointersPointingTowards(target);
+          smg.getAllObjectsWithValueInThem(pointerTowardsTarget);
       for (SMGObject objWPointersTowardsTarget : objsWPointersTowardsTarget) {
         if (!areTwoObjectsPartOfList(
             target,
@@ -4302,11 +4362,57 @@ public class SMGState
             nextPointerTargetOffset,
             maybePfo,
             prevPointerTargetOffset)) {
-          return false;
+          return true;
         }
       }
     }
-    return true;
+
+    return false;
+  }
+
+  /**
+   * Returns true if there is a pointer from outside a linked list (assuming that the linked list is
+   * always the same given shape) towards the target list element given (e.g. from stack variables).
+   * Returns false if there is either no pointers towards the given object, self-pointers, or only
+   * pointers from list elements to other list elements with the correct given shape.
+   *
+   * @param target {@link SMGObject} that is a REGION, to check for pointers from outside a given
+   *     list shape.
+   * @param nfo suspected next pointer offset. Pointers originating from other offsets are rejected.
+   * @param nextPointerTargetOffset next pointer target offset. Pointers originating with other
+   *     target offsets are rejected.
+   * @param maybePfo suspected prev pointer offset. Pointers originating from other offsets are
+   *     rejected. May be empty, then its ignored.
+   * @param prevPointerTargetOffset suspected prev pointer target offset. Pointers originating with
+   *     other target offsets are rejected. May be empty, then its ignored.
+   * @return true if there is ptrs from outside the list shape. False else.
+   */
+  private boolean regionHasPointersFromOutsideOfList(
+      SMGObject target,
+      BigInteger nfo,
+      BigInteger nextPointerTargetOffset,
+      Optional<BigInteger> maybePfo,
+      Optional<BigInteger> prevPointerTargetOffset) {
+    Preconditions.checkArgument(!(target instanceof SMGSinglyLinkedListSegment));
+    SMG smg = getMemoryModel().getSmg();
+    // TODO: add cache for this combination of nfo/pfo to arguments, Map<SMGObject, Triple<nextObjs,
+    // PrevObjs, nonListObjs>>
+    // TODO: handle ALL ptrs from outside that do not have the ALL spec yet correctly
+
+    Set<SMGObject> objsWPointersTowardsTarget = smg.getAllSourcesForPointersPointingTowards(target);
+    for (SMGObject objWPointersTowardsTarget : objsWPointersTowardsTarget) {
+      if (!areTwoObjectsPartOfList(
+          target,
+          objWPointersTowardsTarget,
+          nfo,
+          nextPointerTargetOffset,
+          maybePfo,
+          prevPointerTargetOffset)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -4368,10 +4474,11 @@ public class SMGState
     if (!objWPointersTowardsTarget.getSize().equals(target.getSize())) {
       // Size does not match
       return false;
-    } else if (!getMemoryModel().isHeapObject(objWPointersTowardsTarget)) {
+    } else if (!getMemoryModel().isHeapObject(objWPointersTowardsTarget)
+        || !getMemoryModel().isHeapObject(target)) {
       // Ptr source is not on the heap
       return false;
-    } else if (!smg.isValid(objWPointersTowardsTarget)) {
+    } else if (!smg.isValid(objWPointersTowardsTarget) || !smg.isValid(target)) {
       // Ptr source is not valid
       return false;
     }
@@ -4738,15 +4845,17 @@ public class SMGState
             true,
             true)
         || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)
-        || !isPointerTargetOffsetEqualTo(nextObj, pfo, prevPointerTargetOffset)) {
-      // split lists 3+ -> concrete -> 3+ -> 0
-      return abstractIntoDLL(
-          nextObj,
-          nfo,
-          nextPointerTargetOffset,
-          pfo,
-          prevPointerTargetOffset,
-          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(nextObj).build());
+        || !isPointerTargetOffsetEqualTo(nextObj, pfo, prevPointerTargetOffset)
+        || listElementsHaveOutsidePointerInBetween(
+            root,
+            nextObj,
+            nfo,
+            nextPointerTargetOffset,
+            Optional.of(pfo),
+            Optional.of(prevPointerTargetOffset))) {
+      // split lists 3+ -> concrete -> 3+ -> 0 are detected by the abstraction finder and abstracted
+      // in 2 calls to this
+      return this;
     }
     // When the equality cache is empty, identical values were found.
     // If it has values, those are equal but not identical.
@@ -5033,13 +5142,12 @@ public class SMGState
             new HashSet<>(),
             true,
             true)
-        || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)) {
-      // split lists, e.g. for 3+, 3+ -> concrete -> 3+ -> 0
-      return abstractIntoSLL(
-          nextObj,
-          nfo,
-          nextPointerTargetOffset,
-          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(nextObj).build());
+        || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)
+        || listElementsHaveOutsidePointerInBetween(
+            root, nextObj, nfo, nextPointerTargetOffset, Optional.empty(), Optional.empty())) {
+      // split lists 3+ -> concrete -> 3+ -> 0 are detected by the abstraction finder and abstracted
+      // in 2 calls to this
+      return this;
     }
     // When the equality cache is empty, identical values were found.
     // If it has values, those are equal but not identical.
