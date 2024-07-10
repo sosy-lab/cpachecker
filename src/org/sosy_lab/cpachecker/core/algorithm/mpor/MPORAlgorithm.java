@@ -68,29 +68,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO remove all @SuppressWarnings once finished
 
+  // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
+  //  contains all CFANodes visited so far
+
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     checkForCorrectInitialState(pReachedSet, threads);
-
     // if there is only one element in pReachedSet, it is our initial AbstractState
     AbstractState initialAbstractState = pReachedSet.asCollection().iterator().next();
     MPORState initialState = getInitialState(threads, initialAbstractState);
-
+    HandleState(new HashSet<>(), initialState, new HashSet<>());
     /*
 
-     (not sure if important for our algorithm) PredicateAbstractState.abstractLocations contains all
-     CFANodes visited so far
-
     overall algorithm idea:
-
-       initial AbstractState contains e.g. N149 in pthread/queue_longest.i (= functionEntryNode for
-       the main function)
-
-       initial MPORState includes that CFANode and the FunctionEntryNodes from all pthreads
-       (here, we do not check if the pthreads were already created, resulting in us checking
-       a lot of interleaving that aren't actually possible. whats important:
-       TODO does this have any impact on "a commutes with b under phi"?)
-
 
        (1) for each AbstractState in ReachedSet:
 
@@ -122,7 +112,20 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                 if one holds, "a commutes with b under phi" is not fulfilled
     */
 
-    throw new UnsupportedOperationException("Unimplemented method 'run'");
+    // TODO
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  /**
+   * Recursively checks the reached MPORStates.
+   *
+   * @param pVisitedStates the set of already visited MPORStates
+   * @param pState the current MPORState we analyze
+   * @param pSleepSet the set of CFAEdges that can safely be skipped
+   */
+  private void HandleState(
+      Set<MPORState> pVisitedStates, MPORState pState, Set<CFAEdge> pSleepSet) {
+    // TODO
   }
 
   private final ConfigurableProgramAnalysis cpa;
@@ -167,15 +170,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     specification = pSpecification;
     cfa = pCfa;
 
-    // TODO group methods into prechecks, object extractions, actual algorithms on the CFA, etc.
+    // TODO performance stuff:
+    //  merge functions that go through each Edge together into one?
+    //  merge functions that go through each Node together into one?
+
     checkForCProgram(cfa);
     checkForParallelProgram(cfa);
 
     functionCallMap = getFunctionCallMap(cfa);
     threads = getThreads(cfa);
-    // TODO performance stuff:
-    //  merge functions that go through each Edge together into one
-    //  merge functions that go through each Node together into one
+
     assignMutexesToThreads(threads);
     assignJoinsToThreads(threads);
     // TODO assignBarriersToThreads(threads);
@@ -230,7 +234,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           if (abstractState instanceof LocationState locationState) {
             correctMainFunctionEntryNode =
                 mainFunctionEntryNode.equals(locationState.getLocationNode());
-            break; // assuming that there is only one LocationState in the set
           }
         }
       }
@@ -275,9 +278,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     ImmutableSet.Builder<MPORThread> rThreads = ImmutableSet.builder();
 
     // add the main thread
-    CFunctionType mainFunction = CFAUtils.getMainFunction(pCfa);
-    FunctionEntryNode mainEntryNode =
-        CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, mainFunction);
+    FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
     FunctionExitNode mainExitNode = getFunctionExitNode(mainEntryNode);
     rThreads.add(createThread(Optional.empty(), mainEntryNode, mainExitNode));
 
@@ -563,6 +564,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (var entry : pThreadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
+      // TODO getCreationPreferenceOrders (e.g. main thread: all edges before the first pthread
+      //  creation are precedingEdges to the subsequentEdge pthread_create
       rPreferenceOrders.addAll(getMutexPreferenceOrders(pThreadNodes, currentThread, currentNode));
       rPreferenceOrders.addAll(getJoinPreferenceOrders(pThreadNodes, currentThread, currentNode));
     }

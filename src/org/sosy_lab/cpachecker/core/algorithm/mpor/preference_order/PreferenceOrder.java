@@ -27,6 +27,9 @@ public class PreferenceOrder {
   //  atomic blocks
   //  sequential blocks
 
+  // TODO before the first pthread_create call, the program is sequential (just main thread)
+  //  that is basically a PreferenceOrder too
+
   /** The set of CFAEdges that must be executed before {@link PreferenceOrder#subsequentEdge}. */
   public final ImmutableSet<CFAEdge> precedingEdges;
 
