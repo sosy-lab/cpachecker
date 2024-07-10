@@ -4310,11 +4310,16 @@ public class SMGState
   }
 
   /**
-   * @param target
-   * @param objWPointersTowardsTarget
-   * @param nfo
-   * @param nextPointerTargetOffset
-   * @return
+   * Checks that the 2 given {@link SMGObject}s are in a list, such that objWPointersTowardsTarget
+   * has either a next or prev ptr towards target. Checks validity, heap inclusion and size of
+   * objWPointersTowardsTarget.
+   *
+   * @param target the object that the ptrs from objWPointersTowardsTarget point towards.
+   * @param objWPointersTowardsTarget a potential list object for the same list target belongs to.
+   * @param nfo next pointer offset.
+   * @param nextPointerTargetOffset next pointer target offset.
+   * @return true if objWPointersTowardsTarget has pointers pointing towards target (either nfo or
+   *     pfo) and both have matching list shape.
    */
   public boolean areTwoObjectsPartOfList(
       SMGObject target,
