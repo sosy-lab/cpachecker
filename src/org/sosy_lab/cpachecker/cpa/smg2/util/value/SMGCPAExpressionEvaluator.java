@@ -1000,8 +1000,12 @@ public class SMGCPAExpressionEvaluator {
             ValueAndSMGState.ofUnknownValue(
                 currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits)));
       }
+
       if (!offsetValueInBits.isNumericValue()) {
         // We can't discern the read value, but the read itself was safe
+        // TODO: Idea: find all possible values for this access and create states with them
+        logger.log(
+            Level.INFO, "Safe read with symbolic read offset returned UNKNOWN symbolic value.");
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
       // Symbolic size, but concrete offset, we can actually read
