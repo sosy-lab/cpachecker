@@ -279,7 +279,7 @@ public class SMGCPAMaterializer {
             pListSeg,
             state,
             MINIMUM_LIST_LENGTH,
-            ImmutableSet.of(SMGTargetSpecifier.IS_ALL_POINTER, SMGTargetSpecifier.IS_LAST_POINTER));
+            ImmutableSet.of(SMGTargetSpecifier.IS_LAST_POINTER));
     SMGState currentState = newConcreteRegionAndState.getState();
     SMGObject newConcreteRegion = newConcreteRegionAndState.getSMGObject();
 
@@ -792,8 +792,7 @@ public class SMGCPAMaterializer {
                   .equals(oldOffset));
           int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
           SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
-          if (!(newTarget instanceof SMGSinglyLinkedListSegment)
-              && oldPtrTargetSpec.equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
+          if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
             // The pointer is still in all mode, reset it to region
             oldPtrNestingLvl = 0;
             oldPtrTargetSpec = SMGTargetSpecifier.IS_REGION;
