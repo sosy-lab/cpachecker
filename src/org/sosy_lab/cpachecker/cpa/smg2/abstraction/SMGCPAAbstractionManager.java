@@ -543,6 +543,8 @@ public class SMGCPAAbstractionManager {
       Optional<BigInteger> maybePrevPointerTargetOffset,
       Set<SMGObject> alreadySeenInChain,
       int remainingMinLength) {
+    // We know entering into this that prevObj is a possible list start
+    // (either because it's the first list segment, there is an external non-list pointer etc.)
     alreadySeenInChain.add(prevObj);
 
     SMG smg = state.getMemoryModel().getSmg();
@@ -550,12 +552,20 @@ public class SMGCPAAbstractionManager {
 
     if (!looping
         && state.areTwoObjectsPartOfList(
-            potentialNextObj, prevObj, maybeNfo, nextPointerTargetOffset)) {
+            potentialNextObj, prevObj, maybeNfo, nextPointerTargetOffset)
+        && !state.listElementsHaveOutsidePointerInBetween(
+            prevObj,
+            potentialNextObj,
+            maybeNfo,
+            nextPointerTargetOffset,
+            maybePfo,
+            maybePrevPointerTargetOffset)) {
       // We check the next pointer in areTwoObjectsPartOfList and the prev below to filter it later
       ImmutableList<BigInteger> exemptOffsetsOfList = ImmutableList.of(maybeNfo);
       if (maybePfo.isPresent()) {
         exemptOffsetsOfList = ImmutableList.of(maybeNfo, maybePfo.orElseThrow());
       }
+
       if (state.checkEqualValuesForTwoStatesWithExemptions(
           prevObj,
           potentialNextObj,
@@ -675,7 +685,7 @@ public class SMGCPAAbstractionManager {
       Set<SMGObject> alreadySeenInChain) {
     alreadySeenInChain.add(currentObj);
     SMG smg = state.getMemoryModel().getSmg();
-    if (state.hasPointersFromOutsideOfList(
+    if (state.objectHasOutsidePointerTowards(
         currentObj, maybeNfo, nextPointerTargetOffset, maybePfo, maybePrevPointerTargetOffset)) {
       // We only abstract sections with no outside pointers towards them, except for ALL ptrs
       return currentObj;
