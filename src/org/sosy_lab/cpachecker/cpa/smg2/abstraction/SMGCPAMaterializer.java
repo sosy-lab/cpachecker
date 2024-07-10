@@ -1071,7 +1071,7 @@ public class SMGCPAMaterializer {
         return false;
       }
     }
-    return false;
+    return true;
   }
 
   private boolean checkPointersOfMaterializedSLL(
