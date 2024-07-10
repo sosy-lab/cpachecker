@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 
 public class SMGCPAMaterializer {
 
@@ -361,7 +363,8 @@ public class SMGCPAMaterializer {
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
     Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
-    assert checkPointersOfRightHandSideMaterializedList(newConcreteRegion, nfo, pfo, currentState);
+    assert checkPointersOfRightHandSideMaterializedList(
+        newConcreteRegion, newAbsListSeg, nfo, pfo, currentState);
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     // pInitialPointer might now point to the materialized object!
     if (pInitialPointer.equals(valueOfPointerToConcreteObject)) {
@@ -907,13 +910,18 @@ public class SMGCPAMaterializer {
   }
 
   private boolean checkPointersOfRightHandSideMaterializedList(
-      SMGObject pNewConcreteRegion, BigInteger pNfo, BigInteger pPfo, SMGState pCurrentState)
+      SMGObject pNewConcreteRegion,
+      SMGSinglyLinkedListSegment pNewAbsListSeg,
+      BigInteger pNfo,
+      @Nullable BigInteger pPfo,
+      SMGState pCurrentState)
       throws SMGException {
     if (pPfo != null) {
       return checkPointersOfRightHandSideMaterializedDLL(
           pNewConcreteRegion, pNfo, pPfo, pCurrentState);
     } else {
-      return checkPointersOfRightHandSideMaterializedSLL(pNewConcreteRegion, pNfo, pCurrentState);
+      return checkPointersOfRightHandSideMaterializedSLL(
+          pNewConcreteRegion, pNewAbsListSeg, pNfo, pCurrentState);
     }
   }
 
@@ -1037,11 +1045,33 @@ public class SMGCPAMaterializer {
     return true;
   }
 
-  @SuppressWarnings("unused")
   private boolean checkPointersOfRightHandSideMaterializedSLL(
-      SMGObject newConcreteRegion, BigInteger nfo, SMGState state) {
-    // TODO:
-    return true;
+      SMGObject newConcreteRegion,
+      SMGSinglyLinkedListSegment pNewAbsListSeg,
+      BigInteger nfo,
+      SMGState state) {
+    Preconditions.checkArgument(!(pNewAbsListSeg instanceof SMGDoublyLinkedListSegment));
+    SMG smg = state.getMemoryModel().getSmg();
+    // check that the next of the abstracted SLL now points to the new concrete region
+    SMGAndHasValueEdges readValue =
+        smg.readValue(pNewAbsListSeg, nfo, smg.getSizeOfPointer(), false);
+    if (readValue.getHvEdges().size() != 1
+        || !smg.isPointer(readValue.getHvEdges().get(0).hasValue())
+        || !smg.getPTEdge(readValue.getHvEdges().get(0).hasValue())
+            .orElseThrow()
+            .pointsTo()
+            .equals(newConcreteRegion)) {
+      return false;
+    }
+    // Check that the new concrete region has only region pointers towards it
+    Set<SMGValue> ptrValuesTowardsConcrete = smg.getPointerValuesForTarget(newConcreteRegion);
+    for (SMGValue ptrTowardsConcrete : ptrValuesTowardsConcrete) {
+      SMGPointsToEdge pte = smg.getPTEdge(ptrTowardsConcrete).orElseThrow();
+      if (!pte.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
+        return false;
+      }
+    }
+    return false;
   }
 
   private boolean checkPointersOfMaterializedSLL(
