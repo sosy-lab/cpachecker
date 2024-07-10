@@ -1163,13 +1163,9 @@ public class SMGCPAMaterializer {
           currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
 
       if (prevPointer.isEmpty()) {
-        if (start.equals(toCheckObj)) {
-          // There is no prev in start, this might happen for list elements that are not
-          // abstractable
-          return true;
-        } else {
-          return false;
-        }
+        // There might be no prev in start, this might happen for list elements that are not
+        // abstractable
+        return start.equals(toCheckObj);
       } else {
         currentObj = prevPointer.orElseThrow().pointsTo();
       }

@@ -1716,12 +1716,12 @@ public class SMG {
     PersistentMap<SMGValue, Integer> pointersAndOcc =
         objectsAndPointersPointingAtThem.getOrDefault(pTarget, PathCopyingPersistentTreeMap.of());
 
-    for (Entry<SMGValue, Integer> ptrPointingAtAndOcc : pointersAndOcc.entrySet()) {
-      SMGPointsToEdge pte = pointsToEdges.get(ptrPointingAtAndOcc.getKey());
+    for (SMGValue ptrPointingAt : pointersAndOcc.keySet()) {
+      SMGPointsToEdge pte = pointsToEdges.get(ptrPointingAt);
       if (pte != null && pte.pointsTo().equals(pTarget)) {
         for (Entry<SMGObject, Integer> sourceObjsAndOcc :
             valuesToRegionsTheyAreSavedIn
-                .getOrDefault(ptrPointingAtAndOcc.getKey(), PathCopyingPersistentTreeMap.of())
+                .getOrDefault(ptrPointingAt, PathCopyingPersistentTreeMap.of())
                 .entrySet()) {
           if (results.containsKey(sourceObjsAndOcc.getKey())) {
             results.put(
@@ -1745,14 +1745,13 @@ public class SMG {
     PersistentMap<SMGValue, Integer> pointersAndOcc =
         objectsAndPointersPointingAtThem.getOrDefault(pTarget, PathCopyingPersistentTreeMap.of());
 
-    for (Entry<SMGValue, Integer> ptrPointingAtAndOcc : pointersAndOcc.entrySet()) {
-      SMGValue pointer = ptrPointingAtAndOcc.getKey();
+    for (SMGValue ptrPointingAt : pointersAndOcc.keySet()) {
       for (SMGObject sourceObjsForPTE :
           valuesToRegionsTheyAreSavedIn
-              .getOrDefault(pointer, PathCopyingPersistentTreeMap.of())
+              .getOrDefault(ptrPointingAt, PathCopyingPersistentTreeMap.of())
               .keySet()) {
         if (sourceObjsForPTE.equals(pSource)) {
-          results.add(pointer);
+          results.add(ptrPointingAt);
         }
       }
     }
@@ -2111,9 +2110,7 @@ public class SMG {
           valuesToRegionsTheyAreSavedIn.get(pointerTowards.getKey());
       // Note: there might be multiple pointers towards the 0+
       // for example a first from previous list materialization, or a last for the end of the list
-      for (Entry<SMGObject, Integer> sourceOfPointer : objects.entrySet()) {
-        builder.add(sourceOfPointer.getKey());
-      }
+      builder.addAll(objects.keySet());
     }
     ImmutableList<SMGObject> objectsWithPointersToward = builder.build();
     if (objectsWithPointersToward.isEmpty()) {

@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -1370,8 +1369,7 @@ public class SMGState
    * Removes {@link Constraint}s that consists of unused values only (that are unused in other
    * constraints).
    */
-  @Nonnull
-  SMGState removeOldConstraints() {
+  @Nullable SMGState removeOldConstraints() {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
     ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
