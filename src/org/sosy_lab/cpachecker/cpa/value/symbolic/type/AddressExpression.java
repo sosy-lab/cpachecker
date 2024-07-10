@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -34,7 +35,11 @@ public final class AddressExpression extends SymbolicExpression {
   // The offset may be any Value, but numeric values are prefered
   private final Value offset;
 
-  private AddressExpression(Value pAddress, Type pAddressType, Value pOffsetValue) {
+  private final SMGTargetSpecifier targetSpecifier;
+
+  private AddressExpression(
+      Value pAddress, Type pAddressType, Value pOffsetValue, SMGTargetSpecifier pTargetSpecifier) {
+    targetSpecifier = pTargetSpecifier;
     Preconditions.checkNotNull(pAddress);
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
@@ -45,8 +50,13 @@ public final class AddressExpression extends SymbolicExpression {
 
   // TODO: add of/withZeroOffset etc. with state
   private AddressExpression(
-      Value pAddress, Type pAddressType, Value pOffsetValue, AbstractState pAbstractState) {
+      Value pAddress,
+      Type pAddressType,
+      Value pOffsetValue,
+      AbstractState pAbstractState,
+      SMGTargetSpecifier pTargetSpecifier) {
     super(pAbstractState);
+    targetSpecifier = pTargetSpecifier;
     Preconditions.checkNotNull(pAddress);
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
@@ -55,16 +65,18 @@ public final class AddressExpression extends SymbolicExpression {
     offset = pOffsetValue;
   }
 
-  public static AddressExpression of(Value pAddress, Type pAddressType, Value pOffsetValue) {
-    return new AddressExpression(pAddress, pAddressType, pOffsetValue);
+  public static AddressExpression of(
+      Value pAddress, Type pAddressType, Value pOffsetValue, SMGTargetSpecifier targetSpecifier) {
+    return new AddressExpression(pAddress, pAddressType, pOffsetValue, targetSpecifier);
   }
 
-  public static AddressExpression withZeroOffset(Value pAddress, Type pType) {
-    return new AddressExpression(pAddress, pType, new NumericValue(0));
+  public static AddressExpression withZeroOffset(
+      Value pAddress, Type pType, SMGTargetSpecifier targetSpecifier) {
+    return new AddressExpression(pAddress, pType, new NumericValue(0), targetSpecifier);
   }
 
   public AddressExpression copyWithNewOffset(Value pOffsetValue) {
-    return new AddressExpression(addressValue, addressType, pOffsetValue);
+    return new AddressExpression(addressValue, addressType, pOffsetValue, targetSpecifier);
   }
 
   @Override
@@ -80,6 +92,10 @@ public final class AddressExpression extends SymbolicExpression {
     return offset;
   }
 
+  public SMGTargetSpecifier getTargetSpecifier() {
+    return targetSpecifier;
+  }
+
   @Override
   public Type getType() {
     return addressType;
@@ -92,7 +108,7 @@ public final class AddressExpression extends SymbolicExpression {
 
   @Override
   public SymbolicExpression copyForState(AbstractState pCurrentState) {
-    return new AddressExpression(addressValue, addressType, offset, pCurrentState);
+    return new AddressExpression(addressValue, addressType, offset, pCurrentState, targetSpecifier);
   }
 
   @Override
@@ -108,9 +124,21 @@ public final class AddressExpression extends SymbolicExpression {
   @Override
   public String toString() {
     if (addressType != null) {
-      return "Address " + addressValue + " at offset: " + offset + " | type: " + addressType;
+      return "Address "
+          + addressValue
+          + " at offset: "
+          + offset
+          + " | type: "
+          + addressType
+          + " | targetSpecifier: "
+          + targetSpecifier;
     }
-    return "Address " + addressValue + " at offset " + offset;
+    return "Address "
+        + addressValue
+        + " at offset "
+        + offset
+        + " | targetSpecifier: "
+        + targetSpecifier;
   }
 
   @Override

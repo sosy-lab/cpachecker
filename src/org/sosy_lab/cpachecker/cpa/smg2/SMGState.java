@@ -2855,7 +2855,12 @@ public class SMGState
           ValueAndSMGState addressAndState = searchOrCreateAddress(target, offsetOverall);
           return ValueAndSMGState.of(
               AddressExpression.withZeroOffset(
-                  addressAndState.getValue(), addressExprValue.getType()),
+                  addressAndState.getValue(),
+                  addressExprValue.getType(),
+                  addressAndState
+                      .getState()
+                      .getMemoryModel()
+                      .getTargetSpecifier(addressAndState.getValue())),
               addressAndState.getState());
         }
       } else {
@@ -2880,7 +2885,7 @@ public class SMGState
   }
 
   /**
-   * Takes a target and offset and tries to find a address (not AddressExpression) that fits them.
+   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them.
    * If none can be found a new address (SMGPointsToEdge) is created and returned as Value (Not
    * AddressExpression).
    *

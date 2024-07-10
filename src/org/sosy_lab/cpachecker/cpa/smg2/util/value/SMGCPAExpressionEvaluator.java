@@ -424,7 +424,12 @@ public class SMGCPAExpressionEvaluator {
       resultBuilder.add(
           ValueAndSMGState.of(
               AddressExpression.withZeroOffset(
-                  addressAndState.getValue(), operand.getExpressionType()),
+                  addressAndState.getValue(),
+                  operand.getExpressionType(),
+                  addressAndState
+                      .getState()
+                      .getMemoryModel()
+                      .getTargetSpecifier(addressAndState.getValue())),
               addressAndState.getState()));
     }
     return resultBuilder.build();

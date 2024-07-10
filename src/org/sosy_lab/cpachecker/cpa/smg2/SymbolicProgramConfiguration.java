@@ -2158,4 +2158,17 @@ public class SymbolicProgramConfiguration {
     }
     return smg.getNumberOfValueUsages(maybeSMGValue.orElseThrow());
   }
+
+  /**
+   * Returns the {@link SMGTargetSpecifier} for a given pointer {@link Value}.
+   *
+   * @param pPointerValue a pointer Value.
+   * @return the target specifier.
+   */
+  public SMGTargetSpecifier getTargetSpecifier(Value pPointerValue) {
+    Optional<SMGPointsToEdge> pte =
+        smg.getPTEdge(getSMGValueFromValue(pPointerValue).orElseThrow());
+    Preconditions.checkArgument(pte.isPresent());
+    return pte.orElseThrow().targetSpecifier();
+  }
 }
