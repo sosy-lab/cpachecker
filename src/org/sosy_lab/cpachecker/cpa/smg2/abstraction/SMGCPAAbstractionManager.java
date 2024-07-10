@@ -254,7 +254,7 @@ public class SMGCPAAbstractionManager {
               foundChains.add(candidate);
             }
             alreadySeen.addAll(candidate.suspectedElements);
-            break;
+            continue;
           }
         }
         // Incorrect or not usable next element, maybe a prev exists though,
