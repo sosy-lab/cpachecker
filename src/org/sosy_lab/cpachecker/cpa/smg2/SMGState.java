@@ -2851,8 +2851,12 @@ public class SMGState
           }
           BigInteger offsetOverall =
               offsetPointer.asNumericValue().bigIntegerValue().add(offsetAddrBI);
+          SMGTargetSpecifier specifier = addressExprValue.getTargetSpecifier();
+          Preconditions.checkArgument(
+              0 == getMemoryModel().getNestingLevel(addressExprValue.getMemoryAddress()));
           // search for existing pointer first and return if found; else make a new one
-          ValueAndSMGState addressAndState = searchOrCreateAddress(target, offsetOverall);
+          ValueAndSMGState addressAndState =
+              searchOrCreateAddress(target, offsetOverall, 0, specifier);
           return ValueAndSMGState.of(
               AddressExpression.withZeroOffset(
                   addressAndState.getValue(),
@@ -2880,8 +2884,8 @@ public class SMGState
    * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
    */
   public ValueAndSMGState searchOrCreateAddress(SMGObject targetObject, BigInteger offsetInBits) {
-    assert !targetObject.isSLL();
-    return searchOrCreateAddress(targetObject, offsetInBits, 0);
+    assert !(targetObject instanceof SMGSinglyLinkedListSegment);
+    return searchOrCreateAddress(targetObject, offsetInBits, 0, SMGTargetSpecifier.IS_REGION);
   }
 
   /**
@@ -2891,12 +2895,19 @@ public class SMGState
    *
    * @param targetObject {@link SMGObject} target.
    * @param offsetInBits Offset as BigInt.
-   * @param pointerNestingLevel new pointer nesting level
+   * @param pointerNestingLevel pointer nesting level
+   * @param pTargetSpecifier the {@link SMGTargetSpecifier}
    * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
    */
   public ValueAndSMGState searchOrCreateAddress(
-      SMGObject targetObject, BigInteger offsetInBits, int pointerNestingLevel) {
+      SMGObject targetObject,
+      BigInteger offsetInBits,
+      int pointerNestingLevel,
+      SMGTargetSpecifier pTargetSpecifier) {
     Preconditions.checkArgument(pointerNestingLevel >= 0);
+    Preconditions.checkArgument(
+        !(targetObject instanceof SMGSinglyLinkedListSegment)
+            || !pTargetSpecifier.equals(SMGTargetSpecifier.IS_REGION));
     // search for existing pointer first and return if found
     Optional<SMGValue> maybeAddressValue =
         getMemoryModel()
@@ -2913,7 +2924,8 @@ public class SMGState
 
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     SMGState newState =
-        createAndAddPointer(addressValue, targetObject, offsetInBits, pointerNestingLevel);
+        createAndAddPointer(
+            addressValue, targetObject, offsetInBits, pointerNestingLevel, pTargetSpecifier);
     return ValueAndSMGState.of(addressValue, newState);
   }
 
@@ -4009,7 +4021,7 @@ public class SMGState
    * Creates a pointer (points-to-edge) from the value to the target at the specified offset. The
    * Value is mapped to a SMGValue if no mapping exists, else the existing will be used. This does
    * not check whether a pointer already exists but will override the target if the value already
-   * has a mapping!
+   * has a mapping! The used specifier will be REGION and nesting 0.
    *
    * @param addressValue {@link Value} used as address pointing to the target at the offset.
    * @param target {@link SMGObject} where the pointer points to.
@@ -4018,7 +4030,8 @@ public class SMGState
    */
   public SMGState createAndAddPointer(
       Value addressValue, SMGObject target, BigInteger offsetInBits) {
-    return createAndAddPointer(addressValue, target, offsetInBits, 0);
+    assert !(target instanceof SMGSinglyLinkedListSegment);
+    return createAndAddPointer(addressValue, target, offsetInBits, 0, SMGTargetSpecifier.IS_REGION);
   }
 
   /**
@@ -4030,52 +4043,19 @@ public class SMGState
    * @param addressValue {@link Value} used as address pointing to the target at the offset.
    * @param target {@link SMGObject} where the pointer points to.
    * @param offsetInBits offset in the object.
+   * @param nestingLevel nesting level of the value.
+   * @param specifier {@link SMGTargetSpecifier} used for the pointer.
    * @return the new {@link SMGState} with the pointer and mapping added.
    */
   public SMGState createAndAddPointer(
-      Value addressValue, SMGObject target, BigInteger offsetInBits, SMGTargetSpecifier specifier) {
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndAddPointerFromAddressToMemory(
-            addressValue, target, offsetInBits, 0, specifier));
-  }
-
-  /**
-   * Creates a pointer (points-to-edge) from the value to the target at the specified offset. The
-   * Value is mapped to a SMGValue if no mapping exists, else the existing will be used. This does
-   * not check whether a pointer already exists but will override the target if the value already
-   * has a mapping!
-   *
-   * @param addressValue {@link Value} used as address pointing to the target at the offset.
-   * @param target {@link SMGObject} where the pointer points to.
-   * @param offsetInBits offset in the object.
-   * @param nestingLevel nestingLevel of the new ptr.
-   * @return the new {@link SMGState} with the pointer and mapping added.
-   */
-  public SMGState createAndAddPointer(
-      Value addressValue, SMGObject target, BigInteger offsetInBits, int nestingLevel) {
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndAddPointerFromAddressToRegion(
-            addressValue, target, offsetInBits, nestingLevel));
-  }
-
-  /**
-   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them
-   * (with nesting level and specifier). If none can be found a new address (SMGPointsToEdge) is
-   * created and returned as Value (Not AddressExpression).
-   *
-   * @param targetObject {@link SMGObject} target.
-   * @param offsetInBits Offset as BigInt.
-   * @param nestingLevel nesting level that the pointer needs to have.
-   * @param specifier specifier that the ptr needs to have.
-   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
-   */
-  public ValueAndSMGState searchOrCreateAddress(
-      SMGObject targetObject,
+      Value addressValue,
+      SMGObject target,
       BigInteger offsetInBits,
       int nestingLevel,
       SMGTargetSpecifier specifier) {
-    return searchOrCreateAddress(
-        targetObject, offsetInBits, nestingLevel, specifier, ImmutableSet.of());
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddPointerFromAddressToMemory(
+            addressValue, target, offsetInBits, nestingLevel, specifier));
   }
 
   /**
@@ -5387,10 +5367,14 @@ public class SMGState
             currentState.memoryModel.getSmg().getPTEdge(hve.hasValue()).orElseThrow();
         // Create new valid pointer and replace the old one in the source
         Value ptrToCopiedTarget = SymbolicValueFactory.getInstance().newIdentifier(null);
-        // TODO: fix nesting level below in createAndAddPointer
+        // TODO: is the nesting level and specifier here correct?
         currentState =
             currentState.createAndAddPointer(
-                ptrToCopiedTarget, copyOfTarget, ptEdgeToTarget.getOffset(), nestingLevel);
+                ptrToCopiedTarget,
+                copyOfTarget,
+                ptEdgeToTarget.getOffset(),
+                nestingLevel,
+                ptEdgeToTarget.targetSpecifier());
         currentState =
             currentState.writeValueWithoutChecks(
                 source,
