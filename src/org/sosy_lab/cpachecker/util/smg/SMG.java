@@ -1823,7 +1823,10 @@ public class SMG {
         specifier = SMGTargetSpecifier.IS_ALL_POINTER;
       } else {
         // Assert that there are no self-pointers, as we don't handle this case atm
-        assert !sourcesOfPtr.containsKey(oldObj);
+        // Either there is no self-pointer, or it's a fst or lst (looping list)
+        assert !sourcesOfPtr.containsKey(oldObj)
+            || specifier.equals(SMGTargetSpecifier.IS_LAST_POINTER)
+            || specifier.equals(SMGTargetSpecifier.IS_FIRST_POINTER);
       }
 
       // If the new target is an abstracted list we switch to all
