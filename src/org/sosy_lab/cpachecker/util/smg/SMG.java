@@ -2103,7 +2103,6 @@ public class SMG {
       // Note: there might be multiple pointers towards the 0+
       // for example a first from previous list materialization, or a last for the end of the list
       for (Entry<SMGObject, Integer> sourceOfPointer : objects.entrySet()) {
-        assert sourceOfPointer.getValue() == 1;
         builder.add(sourceOfPointer.getKey());
       }
     }
