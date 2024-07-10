@@ -253,7 +253,8 @@ public class SMG {
   /**
    * Removes the {@link SMGPointsToEdge} associated with the entered {@link SMGValue} iff there is a
    * {@link SMGPointsToEdge}, else does nothing. Caution when using this, should only every be used
-   * to remove values/PTEdges that are no longer used after this!
+   * to remove values/PTEdges that are no longer used after this! This will modify the pointer to
+   * object map!
    *
    * @param pValue the {@link SMGValue} for which the {@link SMGPointsToEdge} should be removed.
    * @return a new {@link SMG} in which the mapping is removed.
@@ -281,6 +282,36 @@ public class SMG {
           builder.buildOrThrow(),
           newSMG.objectsAndPointersPointingAtThem,
           newSMG.sizeOfPointer);
+    }
+    return new SMG(
+        smgObjects,
+        smgValuesAndNestingLvl,
+        hasValueEdges,
+        valuesToRegionsTheyAreSavedIn,
+        builder.buildOrThrow(),
+        objectsAndPointersPointingAtThem,
+        sizeOfPointer);
+  }
+
+  /**
+   * Removes the {@link SMGPointsToEdge} associated with the entered {@link SMGValue} iff there is a
+   * {@link SMGPointsToEdge}, else does nothing. Caution when using this, should only every be used
+   * to remove values/PTEdges that are no longer used after this! This will not modify the pointer
+   * to object map or the values and where they are saved in map.
+   *
+   * @param pValue the {@link SMGValue} for which the {@link SMGPointsToEdge} should be removed.
+   * @return a new {@link SMG} in which the mapping is removed.
+   */
+  public SMG copyAndRemovePointsToEdgeWithoutSideEffects(SMGValue pValue) {
+    if (!pointsToEdges.containsKey(pValue)) {
+      return this;
+    }
+    Preconditions.checkArgument(!valuesToRegionsTheyAreSavedIn.containsKey(pValue));
+    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
+    for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
+      if (!entry.getKey().equals(pValue)) {
+        builder = builder.put(entry);
+      }
     }
     return new SMG(
         smgObjects,
@@ -1669,8 +1700,61 @@ public class SMG {
     return results.build();
   }
 
+  @SuppressWarnings("Unused")
+  public Map<SMGObject, Integer> getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(
+      SMGObject pTarget) {
+    if (!isValid(pTarget)) {
+      return new HashMap<>();
+    }
+    Map<SMGObject, Integer> results = new HashMap<>();
+    PersistentMap<SMGValue, Integer> pointersAndOcc =
+        objectsAndPointersPointingAtThem.getOrDefault(pTarget, PathCopyingPersistentTreeMap.of());
+
+    for (Entry<SMGValue, Integer> ptrPointingAtAndOcc : pointersAndOcc.entrySet()) {
+      SMGPointsToEdge pte = pointsToEdges.get(ptrPointingAtAndOcc.getKey());
+      if (pte != null && pte.pointsTo().equals(pTarget)) {
+        for (Entry<SMGObject, Integer> sourceObjsAndOcc :
+            valuesToRegionsTheyAreSavedIn
+                .getOrDefault(ptrPointingAtAndOcc.getKey(), PathCopyingPersistentTreeMap.of())
+                .entrySet()) {
+          if (results.containsKey(sourceObjsAndOcc.getKey())) {
+            results.put(
+                sourceObjsAndOcc.getKey(),
+                results.get(sourceObjsAndOcc.getKey()) + sourceObjsAndOcc.getValue());
+          } else {
+            results.put(sourceObjsAndOcc.getKey(), results.get(sourceObjsAndOcc.getKey()));
+          }
+        }
+      }
+    }
+    return results;
+  }
+
+  public Set<SMGValue> getAllPointerValuesPointingTowardsFrom(
+      SMGObject pTarget, SMGObject pSource) {
+    if (!isValid(pTarget) || !isValid(pSource)) {
+      return ImmutableSet.of();
+    }
+    ImmutableSet.Builder<SMGValue> results = ImmutableSet.builder();
+    PersistentMap<SMGValue, Integer> pointersAndOcc =
+        objectsAndPointersPointingAtThem.getOrDefault(pTarget, PathCopyingPersistentTreeMap.of());
+
+    for (Entry<SMGValue, Integer> ptrPointingAtAndOcc : pointersAndOcc.entrySet()) {
+      SMGValue pointer = ptrPointingAtAndOcc.getKey();
+      for (SMGObject sourceObjsForPTE :
+          valuesToRegionsTheyAreSavedIn
+              .getOrDefault(pointer, PathCopyingPersistentTreeMap.of())
+              .keySet()) {
+        if (sourceObjsForPTE.equals(pSource)) {
+          results.add(pointer);
+        }
+      }
+    }
+    return results.build();
+  }
+
   /**
-   * Used to identify a object <-> value relationship. Can be used to map out the current memory.
+   * Used to identify an object <-> value relationship. Can be used to map out the current memory.
    *
    * @return the current SMGObject - HasValueEdge mappings.
    */
@@ -2238,8 +2322,9 @@ public class SMG {
         ImmutableSet.builder();
     // Precheck if there is anything to do at all
     for (SMGValue ptrValue : pointersTowardsTarget) {
-      if (!pointsToEdges.get(ptrValue).targetSpecifier().equals(pSpecifierToSet)
-          && specifierToSwitch.contains(pointsToEdges.get(ptrValue).targetSpecifier())) {
+      SMGPointsToEdge pte = pointsToEdges.get(ptrValue);
+      if (!pte.targetSpecifier().equals(pSpecifierToSet)
+          && specifierToSwitch.contains(pte.targetSpecifier())) {
         pointersTowardsTargetNeedSwitchingBuilder =
             pointersTowardsTargetNeedSwitchingBuilder.add(ptrValue);
       }

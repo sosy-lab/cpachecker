@@ -1872,13 +1872,36 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Removes the {@link SMGPointsToEdge} and {@link SMGValue} from the {@link SMG}. Caution when
-   * using this method, should only ever be applied to SMGValues that are no longer used!
+   * using this method, should only ever be applied to SMGValues that are no longer used! This has
+   * side effects and will modify the pointer to object map!
    *
    * @return a new {@link SMG} with the {@link SMGValue} and its {@link SMGPointsToEdge} removed.
    */
   public SymbolicProgramConfiguration removeLastPointerFromSMGAndCopy(SMGValue value) {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemovePointsToEdge(value).copyAndRemoveValue(value),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
+  }
+
+  /**
+   * Removes the {@link SMGPointsToEdge} and {@link SMGValue} from the {@link SMG}. Caution when
+   * using this method, should only ever be applied to SMGValues that are no longer used! This has
+   * no side effects and will not modify the pointer to object map etc.! This means this is only
+   * safe to use if there is already no entry in this map!
+   *
+   * @return a new {@link SMG} with the {@link SMGValue} and its {@link SMGPointsToEdge} removed.
+   */
+  public SymbolicProgramConfiguration removePointerFromSMGWithoutSideEffectsAndCopy(
+      SMGValue value) {
+    return new SymbolicProgramConfiguration(
+        smg.copyAndRemovePointsToEdgeWithoutSideEffects(value).copyAndRemoveValue(value),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
