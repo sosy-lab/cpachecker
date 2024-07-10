@@ -36,7 +36,7 @@ public class MPORTests {
     for (MPORThread thread : algorithm.getThreads()) {
       stateBuilder.put(thread, thread.entryNode);
     }
-    MPORState initialState = new MPORState(stateBuilder.buildOrThrow(), null);
+    MPORState initialState = new MPORState(stateBuilder.buildOrThrow(), null, null);
     Set<MPORState> visitedStates = new HashSet<>();
     computeStates(visitedStates, initialState, null);
   }
@@ -58,7 +58,7 @@ public class MPORTests {
           MPORAlgorithm.contextSensitiveLeavingEdges(currentNode, pFunctionReturnNode)) {
         MPORState nextState =
             algorithm.createUpdatedState(
-                pCurrentState, algorithm.getThreads(), currentThread, cfaEdge.getSuccessor());
+                pCurrentState, currentThread, cfaEdge.getSuccessor(), null);
         computeStates(
             pVisitedStates,
             nextState,
@@ -72,6 +72,7 @@ public class MPORTests {
     for (MPORState state : pVisitedStates) {
       for (var entry : state.threadNodes.entrySet()) {
         for (var innerEntry : pCurrentState.threadNodes.entrySet()) {
+          // TODO this is basically an equals method
           if (entry.getKey().equals(innerEntry.getKey())
               && entry.getValue().equals(innerEntry.getValue())) {
             return true;

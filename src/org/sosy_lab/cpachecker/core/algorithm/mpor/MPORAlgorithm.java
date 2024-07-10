@@ -34,9 +34,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.tests.MPORTests;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -66,7 +70,58 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    // TODO this method is called once initially with the set of reached states in the ARG
+    checkForCorrectInitialState(pReachedSet, threads);
+
+    // if there is only one element in pReachedSet, it is our initial AbstractState
+    AbstractState initialAbstractState = pReachedSet.asCollection().iterator().next();
+    MPORState initialState = getInitialState(threads, initialAbstractState);
+
+    /*
+
+     (not sure if important for our algorithm) PredicateAbstractState.abstractLocations contains all
+     CFANodes visited so far
+
+    overall algorithm idea:
+
+       initial AbstractState contains e.g. N149 in pthread/queue_longest.i (= functionEntryNode for
+       the main function)
+
+       initial MPORState includes that CFANode and the FunctionEntryNodes from all pthreads
+       (here, we do not check if the pthreads were already created, resulting in us checking
+       a lot of interleaving that aren't actually possible. whats important:
+       TODO does this have any impact on "a commutes with b under phi"?)
+
+
+       (1) for each AbstractState in ReachedSet:
+
+           create MPORState based on AbstractState and map the two
+           create MPORState PathFormula (= all visited CFAEdges so far, get newPathFormula with
+           convertEdgeToPathFormula(abstractState.getPathFormula(), CFAEdge)), the set of
+           PreferenceOrders and ConflictRelations
+
+           for each Node in MPORState
+               for each context sensitive leaving Edge of Node excluding edges that can be pruned
+               (see Algorithm 2 CompatiblePersistentSet(state))
+               use GlobalAccessChecker to check whether a CfaEdge reads or writes global
+               / shared variables. only shared variable access Edges are relevant for the algorithm
+                    create new set of AbstractStates when executing Edge, see
+                    PredicateTransferRelation.getAbstractSuccessorsForEdge(AbstractState, Edge),
+                    (repeat from (1) until all threads have terminated, i.e. all are at their
+                    exitNodes). its best to create a separate function HandleAbstractState(...)
+
+
+        (2) "a commutes with b under phi":
+
+            from MPORState / AbstractState q
+            for each possible combination (A, B) of two context-sensitive leaving edges that cannot
+            be pruned
+
+                create AbstractStates for a = [currentPath then A] and b = [currentPath then B]
+                create PathFormulas for abPath = [a then B] and baPath = [b then A]
+                check if NOT unsatcheck(a, abPath) and NOT unsatCheck(b, baPath) holds
+                if one holds, "a commutes with b under phi" is not fulfilled
+    */
+
     throw new UnsupportedOperationException("Unimplemented method 'run'");
   }
 
@@ -82,13 +137,20 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final CFA cfa;
 
-  /** The set of threads in the program, including the main thread and all pthreads. */
-  private final ImmutableSet<MPORThread> threads;
-
-  /** A map from FunctionCallEdge Predecessors to Return Nodes. */
+  /**
+   * A map from FunctionCallEdge Predecessors to Return Nodes. Needs to be initialized before {@link
+   * MPORAlgorithm#threads}.
+   */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
 
-  // TODO a reduced and sequentialized CFA that is created based on the POR algorithm
+  /**
+   * The set of threads in the program, including the main thread and all pthreads. Needs to be
+   * initialized after {@link MPORAlgorithm#functionCallMap}.
+   */
+  private final ImmutableSet<MPORThread> threads;
+
+  // TODO use CFAToCTranslator translateCfa to generate a C program based on a CFA
+  //  this will be used for the reduced and sequentialized CFA
 
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -142,6 +204,40 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
     checkArgument(
         isParallel, "MPOR expects parallel C program with at least one pthread_create call");
+  }
+
+  /**
+   * Checks if the initial ReachedSet is correct.
+   *
+   * @param pReachedSet the initial ReachedSet in {@link MPORAlgorithm#run}
+   * @param pThreads the set of MPORThreads in the program
+   * @throws IllegalArgumentException if the ReachedSet's length is not 1 or if the LocationNode of
+   *     the initial AbstractState is not the main FunctionEntryNode
+   */
+  private void checkForCorrectInitialState(
+      ReachedSet pReachedSet, ImmutableSet<MPORThread> pThreads) {
+
+    boolean oneInitialState = pReachedSet.asCollection().size() == 1;
+    checkArgument(oneInitialState, "the initial ReachedSet should contain only one AbstractState");
+
+    FunctionEntryNode mainFunctionEntryNode = getMainThread(pThreads).entryNode;
+    boolean correctMainFunctionEntryNode = false;
+    // take the first AbstractState, there is only one anyway
+    if (pReachedSet.asCollection().iterator().next() instanceof ARGState argState) {
+      // extract the LocationState containing the LocationNode of the initial AbstractState
+      if (argState.getWrappedState() instanceof CompositeState compositeState) {
+        for (AbstractState abstractState : compositeState.getWrappedStates()) {
+          if (abstractState instanceof LocationState locationState) {
+            correctMainFunctionEntryNode =
+                mainFunctionEntryNode.equals(locationState.getLocationNode());
+            break; // assuming that there is only one LocationState in the set
+          }
+        }
+      }
+    }
+    checkArgument(
+        correctMainFunctionEntryNode,
+        "the initial AbstractState's location is not the main FunctionEntryNode");
   }
 
   /**
@@ -461,8 +557,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pThreadNodes the threads and their current CFANodes to be analyzed
    * @return an ImmutableSet of (positional) PreferenceOrders for the given threadNodes
    */
-  public ImmutableSet<PreferenceOrder> getPreferenceOrdersForThreadNodes(
-      ImmutableSet<MPORThread> pThreads, ImmutableMap<MPORThread, CFANode> pThreadNodes) {
+  public static ImmutableSet<PreferenceOrder> getPreferenceOrdersForThreadNodes(
+      ImmutableMap<MPORThread, CFANode> pThreadNodes) {
     ImmutableSet.Builder<PreferenceOrder> rPreferenceOrders = ImmutableSet.builder();
     for (var entry : pThreadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
@@ -481,7 +577,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCurrentNode the current CFANode of pCurrentThread
    * @return the set of PreferenceOrders induced by mutex locks
    */
-  private ImmutableSet<PreferenceOrder> getMutexPreferenceOrders(
+  private static ImmutableSet<PreferenceOrder> getMutexPreferenceOrders(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       MPORThread pCurrentThread,
       CFANode pCurrentNode) {
@@ -523,7 +619,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCurrentNode the current CFANode of pCurrentThread
    * @return the set of PreferenceOrders induced by joins
    */
-  private ImmutableSet<PreferenceOrder> getJoinPreferenceOrders(
+  private static ImmutableSet<PreferenceOrder> getJoinPreferenceOrders(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       MPORThread pCurrentThread,
       CFANode pCurrentNode) {
@@ -534,7 +630,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (MPORJoin join : pCurrentThread.getJoins()) {
       if (pCurrentNode.equals(join.preJoinNode)) {
         CExpression pthreadT = CFAUtils.getParameterAtIndex(join.joinEdge, 0);
-        MPORThread threadToTerminate = getThreadByPthreadT(threads, pthreadT);
+        MPORThread threadToTerminate = getThreadByPthreadT(pThreadNodes, pthreadT);
         // if the thread specified as pthread_t in the pthread_join call has not yet terminated
         CFANode threadToTerminateCurrentNode = pThreadNodes.get(threadToTerminate);
         assert threadToTerminateCurrentNode != null;
@@ -548,26 +644,27 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return rJoinPreferenceOrders.build();
   }
 
-  // TODO positional preference order ("a <q b") possible cases:
-  //  pthread_mutex_lock / mutex_unlock
-  //  pthread_join
-  //  pthread_barrier_wait
-  //  pthread_mutex_cond_wait / cond_signal
-  //  pthread_rwlock_rdlock / unlock
-  //  pthread_rwlock_wrlock / unlock
-  //  pthread_key_create / setspecific
-  //  flags (e.g. while (flag == 0); though this is difficult to extract from the code?)
-  //  __atomic_store_n / __atomic_load_n
-  //  atomic blocks
-  //  sequential blocks
-
-  // TODO use GlobalAccessChecker to check whether a CfaEdge reads or writes global / shared
-  //  variables?
-
-  // TODO use CFAToCTranslator translateCfa to generate a C program based on a CFA
-  //  this will be used for the reduced and sequentialized CFA
-
   // Helpers =======================================================================================
+
+  /**
+   * Returns the initial MPORState of the program, properly initializing the map from MPORThreads to
+   * their start routines / main FunctionEntryNodes, the PreferenceOrders and the corresponding
+   * AbstractState.
+   *
+   * @param pThreads the set of Threads we put in {@link MPORState#threadNodes}
+   * @param initialAbstractState the initial AbstractState in {@link MPORAlgorithm#run}
+   * @return the initial MPORState of the program
+   */
+  private MPORState getInitialState(
+      ImmutableSet<MPORThread> pThreads, AbstractState initialAbstractState) {
+    ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      threadNodesBuilder.put(thread, thread.entryNode);
+    }
+    ImmutableMap<MPORThread, CFANode> threadNodes = threadNodesBuilder.buildOrThrow();
+    return new MPORState(
+        threadNodes, getPreferenceOrdersForThreadNodes(threadNodes), initialAbstractState);
+  }
 
   /**
    * Tries to extract the FunctionExitNode from the given FunctionEntryNode of a threads start
@@ -608,6 +705,43 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     throw new IllegalArgumentException("no MPORThread with pPthreadT found in pThreads");
+  }
+
+  /**
+   * Searches the given Set of MPORThreads for the given pPthreadT object.
+   *
+   * @param pThreadNodes the map of MPORThreads to their current CFANodes to be searched
+   * @param pPthreadT the pthread_t object as a CExpression
+   * @return the MPORThread object with pPthreadT as its threadObject (pthread_t)
+   * @throws IllegalArgumentException if no thread exists in the map whose threadObject is pPthreadT
+   */
+  public static MPORThread getThreadByPthreadT(
+      ImmutableMap<MPORThread, CFANode> pThreadNodes, CExpression pPthreadT) {
+    for (var entry : pThreadNodes.entrySet()) {
+      MPORThread rThread = entry.getKey();
+      if (rThread.threadObject.isPresent()) {
+        if (rThread.threadObject.orElseThrow().equals(pPthreadT)) {
+          return rThread;
+        }
+      }
+    }
+    throw new IllegalArgumentException("no MPORThread with pPthreadT found in pThreads");
+  }
+
+  /**
+   * Returns the MPORThread in pThreads whose pthread_t object is null.
+   *
+   * @param pThreads the set of MPORThreads to be searched
+   * @return the main thread in pThreads
+   * @throws IllegalArgumentException if the main thread is not found
+   */
+  public static MPORThread getMainThread(ImmutableSet<MPORThread> pThreads) {
+    for (MPORThread thread : pThreads) {
+      if (thread.isMain()) {
+        return thread;
+      }
+    }
+    throw new IllegalArgumentException("pThreads does not contain the main thread");
   }
 
   /**
@@ -677,10 +811,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *     corresponding PreferenceOrders
    */
   public MPORState createUpdatedState(
-      MPORState pState,
-      ImmutableSet<MPORThread> pThreads,
-      MPORThread pThread,
-      CFANode pUpdatedNode) {
+      MPORState pState, MPORThread pThread, CFANode pUpdatedNode, AbstractState pAbstractState) {
     checkArgument(pState.threadNodes.containsKey(pThread), "threadNodes must contain pThread");
     ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
     for (var entry : pState.threadNodes.entrySet()) {
@@ -691,7 +822,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threadNodesBuilder.put(pThread, pUpdatedNode);
     ImmutableMap<MPORThread, CFANode> updatedThreadNodes = threadNodesBuilder.buildOrThrow();
     return new MPORState(
-        updatedThreadNodes, getPreferenceOrdersForThreadNodes(pThreads, updatedThreadNodes));
+        updatedThreadNodes, getPreferenceOrdersForThreadNodes(updatedThreadNodes), pAbstractState);
   }
 
   // TODO these can be deleted later

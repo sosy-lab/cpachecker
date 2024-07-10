@@ -14,6 +14,19 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 /** TODO */
 public class PreferenceOrder {
 
+  // TODO positional preference order ("a <q b") possible cases:
+  //  pthread_mutex_lock / mutex_unlock
+  //  pthread_join
+  //  pthread_barrier_wait
+  //  pthread_mutex_cond_wait / cond_signal
+  //  pthread_rwlock_rdlock / unlock
+  //  pthread_rwlock_wrlock / unlock
+  //  pthread_key_create / setspecific
+  //  flags (e.g. while (flag == 0); though this is difficult to extract from the code?)
+  //  __atomic_store_n / __atomic_load_n
+  //  atomic blocks
+  //  sequential blocks
+
   /** The set of CFAEdges that must be executed before {@link PreferenceOrder#subsequentEdge}. */
   public final ImmutableSet<CFAEdge> precedingEdges;
 
