@@ -15,14 +15,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Represents the inner part of a pointer i.e. ptr + 3. The idea is that this class models the
  * address always as + offset. This does not make use of the MemoryLocation (so it is null!). The
  * idea is that the addressValue maps somehow to a memory location (representing the address
- * essentially). The type helps evaluating/using the address.
+ * essentially). The type helps to evaluate/use the address.
  */
 public final class AddressExpression extends SymbolicExpression {
 
@@ -35,11 +34,7 @@ public final class AddressExpression extends SymbolicExpression {
   // The offset may be any Value, but numeric values are prefered
   private final Value offset;
 
-  private final SMGTargetSpecifier targetSpecifier;
-
-  private AddressExpression(
-      Value pAddress, Type pAddressType, Value pOffsetValue, SMGTargetSpecifier pTargetSpecifier) {
-    targetSpecifier = pTargetSpecifier;
+  private AddressExpression(Value pAddress, Type pAddressType, Value pOffsetValue) {
     Preconditions.checkNotNull(pAddress);
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
@@ -50,13 +45,8 @@ public final class AddressExpression extends SymbolicExpression {
 
   // TODO: add of/withZeroOffset etc. with state
   private AddressExpression(
-      Value pAddress,
-      Type pAddressType,
-      Value pOffsetValue,
-      AbstractState pAbstractState,
-      SMGTargetSpecifier pTargetSpecifier) {
+      Value pAddress, Type pAddressType, Value pOffsetValue, AbstractState pAbstractState) {
     super(pAbstractState);
-    targetSpecifier = pTargetSpecifier;
     Preconditions.checkNotNull(pAddress);
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
@@ -65,18 +55,16 @@ public final class AddressExpression extends SymbolicExpression {
     offset = pOffsetValue;
   }
 
-  public static AddressExpression of(
-      Value pAddress, Type pAddressType, Value pOffsetValue, SMGTargetSpecifier targetSpecifier) {
-    return new AddressExpression(pAddress, pAddressType, pOffsetValue, targetSpecifier);
+  public static AddressExpression of(Value pAddress, Type pAddressType, Value pOffsetValue) {
+    return new AddressExpression(pAddress, pAddressType, pOffsetValue);
   }
 
-  public static AddressExpression withZeroOffset(
-      Value pAddress, Type pType, SMGTargetSpecifier targetSpecifier) {
-    return new AddressExpression(pAddress, pType, new NumericValue(0), targetSpecifier);
+  public static AddressExpression withZeroOffset(Value pAddress, Type pType) {
+    return new AddressExpression(pAddress, pType, new NumericValue(0));
   }
 
   public AddressExpression copyWithNewOffset(Value pOffsetValue) {
-    return new AddressExpression(addressValue, addressType, pOffsetValue, targetSpecifier);
+    return new AddressExpression(addressValue, addressType, pOffsetValue);
   }
 
   @Override
@@ -92,10 +80,6 @@ public final class AddressExpression extends SymbolicExpression {
     return offset;
   }
 
-  public SMGTargetSpecifier getTargetSpecifier() {
-    return targetSpecifier;
-  }
-
   @Override
   public Type getType() {
     return addressType;
@@ -108,7 +92,7 @@ public final class AddressExpression extends SymbolicExpression {
 
   @Override
   public SymbolicExpression copyForState(AbstractState pCurrentState) {
-    return new AddressExpression(addressValue, addressType, offset, pCurrentState, targetSpecifier);
+    return new AddressExpression(addressValue, addressType, offset, pCurrentState);
   }
 
   @Override
@@ -124,21 +108,9 @@ public final class AddressExpression extends SymbolicExpression {
   @Override
   public String toString() {
     if (addressType != null) {
-      return "Address "
-          + addressValue
-          + " at offset: "
-          + offset
-          + " | type: "
-          + addressType
-          + " | targetSpecifier: "
-          + targetSpecifier;
+      return "Address " + addressValue + " at offset: " + offset + " | type: " + addressType;
     }
-    return "Address "
-        + addressValue
-        + " at offset "
-        + offset
-        + " | targetSpecifier: "
-        + targetSpecifier;
+    return "Address " + addressValue + " at offset " + offset;
   }
 
   @Override

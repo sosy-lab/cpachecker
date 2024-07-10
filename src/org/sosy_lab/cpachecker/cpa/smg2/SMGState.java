@@ -2852,7 +2852,8 @@ public class SMGState
           }
           BigInteger offsetOverall =
               offsetPointer.asNumericValue().bigIntegerValue().add(offsetAddrBI);
-          SMGTargetSpecifier specifier = addressExprValue.getTargetSpecifier();
+          SMGTargetSpecifier specifier = SMGTargetSpecifier.IS_REGION;
+          assert !(target instanceof SMGSinglyLinkedListSegment);
           Preconditions.checkArgument(
               0 == getMemoryModel().getNestingLevel(addressExprValue.getMemoryAddress()));
           // search for existing pointer first and return if found; else make a new one
@@ -2860,12 +2861,7 @@ public class SMGState
               searchOrCreateAddress(target, offsetOverall, 0, specifier);
           return ValueAndSMGState.of(
               AddressExpression.withZeroOffset(
-                  addressAndState.getValue(),
-                  addressExprValue.getType(),
-                  addressAndState
-                      .getState()
-                      .getMemoryModel()
-                      .getTargetSpecifier(addressAndState.getValue())),
+                  addressAndState.getValue(), addressExprValue.getType()),
               addressAndState.getState());
         }
       } else {

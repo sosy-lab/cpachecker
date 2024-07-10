@@ -233,12 +233,7 @@ public class SMGCPAValueVisitor
             Value readFieldValue = fieldReadAndState.getValue();
             Value fieldTargetOffset = new NumericValue(BigInteger.ZERO);
             if (!(readFieldValue instanceof AddressExpression)) {
-              readFieldValue =
-                  AddressExpression.of(
-                      readFieldValue,
-                      returnType,
-                      fieldTargetOffset,
-                      currentState.getMemoryModel().getTargetSpecifier(readFieldValue));
+              readFieldValue = AddressExpression.of(readFieldValue, returnType, fieldTargetOffset);
             }
             return ImmutableList.of(ValueAndSMGState.of(readFieldValue, currentState));
           }
@@ -296,9 +291,7 @@ public class SMGCPAValueVisitor
       if (currentState.getMemoryModel().isPointer(arrayValue)) {
         arrayValue =
             AddressExpression.withZeroOffset(
-                arrayValue,
-                SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr),
-                currentState.getMemoryModel().getTargetSpecifier(arrayValue));
+                arrayValue, SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr));
       } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
         // Not a valid pointer/address
         // TODO: log this!
@@ -391,13 +384,7 @@ public class SMGCPAValueVisitor
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
-                    AddressExpression.withZeroOffset(
-                        readPointerAndState.getValue(),
-                        returnType,
-                        readPointerAndState
-                            .getState()
-                            .getMemoryModel()
-                            .getTargetSpecifier(readPointerAndState.getValue())),
+                    AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
                     newState));
           }
         }
@@ -447,13 +434,7 @@ public class SMGCPAValueVisitor
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
-                    AddressExpression.withZeroOffset(
-                        readPointerAndState.getValue(),
-                        returnType,
-                        readPointerAndState
-                            .getState()
-                            .getMemoryModel()
-                            .getTargetSpecifier(readPointerAndState.getValue())),
+                    AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
                     newState));
           }
         }
@@ -603,9 +584,7 @@ public class SMGCPAValueVisitor
             && !leftAddrExpr.isExplicitlyKnown()) {
           leftAddrExpr =
               AddressExpression.withZeroOffset(
-                  nonConstLeftValue,
-                  SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp),
-                  currentState.getMemoryModel().getTargetSpecifier(nonConstLeftValue));
+                  nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
         }
         Value rightAddrExpr = nonConstRightValue;
         if (!(nonConstRightValue instanceof AddressExpression)
@@ -613,9 +592,7 @@ public class SMGCPAValueVisitor
             && !rightAddrExpr.isExplicitlyKnown()) {
           rightAddrExpr =
               AddressExpression.withZeroOffset(
-                  nonConstRightValue,
-                  SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp),
-                  currentState.getMemoryModel().getTargetSpecifier(nonConstRightValue));
+                  nonConstRightValue, SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
         }
 
         // Pointer arithmetics case and fall through (handled inside the method)
@@ -751,9 +728,7 @@ public class SMGCPAValueVisitor
 
       } else if (evaluator.isPointerValue(value, currentState)) {
         return ValueAndSMGState.of(
-            AddressExpression.withZeroOffset(
-                value, targetType, currentState.getMemoryModel().getTargetSpecifier(value)),
-            currentState);
+            AddressExpression.withZeroOffset(value, targetType), currentState);
 
       } else if (value.isNumericValue() && options.isCastMemoryAddressesToNumeric()) {
         logger.logf(Level.FINE, "Numeric Value '%s' interpreted as memory address.", value);
@@ -940,11 +915,7 @@ public class SMGCPAValueVisitor
 
           Value addressValue;
           if (evaluator.isPointerValue(readValue, newState)) {
-            addressValue =
-                AddressExpression.withZeroOffset(
-                    readValue,
-                    returnType,
-                    currentState.getMemoryModel().getTargetSpecifier(readValue));
+            addressValue = AddressExpression.withZeroOffset(readValue, returnType);
           } else {
             // Not a known pointer value, most likely an unknown value as symbolic identifier
             addressValue = readValue;
@@ -1131,11 +1102,7 @@ public class SMGCPAValueVisitor
       if (!(value instanceof AddressExpression) && evaluator.isPointerValue(value, currentState)) {
         // For pointer deref on arrays only
         value =
-            AddressExpression.of(
-                value,
-                e.getExpressionType(),
-                new NumericValue(BigInteger.ZERO),
-                currentState.getMemoryModel().getTargetSpecifier(value));
+            AddressExpression.of(value, e.getExpressionType(), new NumericValue(BigInteger.ZERO));
       }
 
       if (!(value instanceof AddressExpression)) {
@@ -1201,13 +1168,7 @@ public class SMGCPAValueVisitor
           // In the pointer case we would need to encapsulate it again
           builder.add(
               ValueAndSMGState.of(
-                  AddressExpression.withZeroOffset(
-                      readValueAndState.getValue(),
-                      returnType,
-                      readValueAndState
-                          .getState()
-                          .getMemoryModel()
-                          .getTargetSpecifier(readValueAndState.getValue())),
+                  AddressExpression.withZeroOffset(readValueAndState.getValue(), returnType),
                   currentState));
         } else {
           builder.add(readValueAndState);
