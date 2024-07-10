@@ -185,23 +185,16 @@ public class SMGCPAMaterializer {
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
-    if (state
-        .getMemoryModel()
-        .getSmg()
-        .getPTEdge(pointerValueTowardsThisSegment)
-        .orElseThrow()
-        .targetSpecifier()
-        .equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
+    SMGPointsToEdge pte =
+        state.getMemoryModel().getSmg().getPTEdge(pointerValueTowardsThisSegment).orElseThrow();
+    if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
       returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
-    } else if (state
-        .getMemoryModel()
-        .getSmg()
-        .getPTEdge(pointerValueTowardsThisSegment)
-        .orElseThrow()
-        .targetSpecifier()
-        .equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
+    } else if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
       returnStates.add(SMGValueAndSMGState.of(currentState, prevPointerValue));
     } else {
+      // It's not really unknown, but most likely wrong!
+      // While it is theoretically possible that we traverse some ALL memory and end up here,
+      // most likely it's just a wrongly labeled ALL pointer that should be FST or LST.
       throw new SMGException("Unknown pointer specifier towards 0+ list segment.");
     }
 
@@ -458,7 +451,7 @@ public class SMGCPAMaterializer {
     // switch it to the 0+
     // Create the now smaller abstracted list
     SMGObjectAndSMGState newAbsListSegAndState =
-        decrementAbstrLSAndCopyValuesAndSwitchPointers(pListSeg, currentState);
+        decrementAbstrLSAndPointersAndCopyValuesAndSwitchPointers(pListSeg, currentState);
     SMGSinglyLinkedListSegment newAbsListSeg =
         (SMGSinglyLinkedListSegment) newAbsListSegAndState.getSMGObject();
     currentState = newAbsListSegAndState.getState();
@@ -564,7 +557,8 @@ public class SMGCPAMaterializer {
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
     Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
-    assert checkPointersOfMaterializedList(newConcreteRegion, nfo, pfo, currentState);
+    assert checkPointersOfLeftHandSideMaterializedList(
+        newConcreteRegion, newAbsListSeg, nfo, pfo, currentState);
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     // pInitialPointer might now point to the materialized object!
     if (currentState
@@ -898,9 +892,21 @@ public class SMGCPAMaterializer {
         .orElseThrow();
   }
 
-  private boolean checkPointersOfMaterializedList(
-      SMGObject pNewConcreteRegion, BigInteger pNfo, BigInteger pPfo, SMGState pCurrentState)
+  private boolean checkPointersOfLeftHandSideMaterializedList(
+      SMGObject pNewConcreteRegion,
+      SMGSinglyLinkedListSegment newAbsListSeg,
+      BigInteger pNfo,
+      BigInteger pPfo,
+      SMGState pCurrentState)
       throws SMGException {
+    for (SMGValue valuesPointingTo :
+        pCurrentState.getMemoryModel().getSmg().getPointerValuesForTarget(newAbsListSeg)) {
+      if (newAbsListSeg.getMinLength() != 0
+          && pCurrentState.getMemoryModel().getSmg().getNestingLevel(valuesPointingTo)
+              >= newAbsListSeg.getMinLength()) {
+        return false;
+      }
+    }
     if (pPfo == null) {
       return checkPointersOfMaterializedSLL(pNewConcreteRegion, pNfo, pCurrentState);
     } else {
@@ -915,6 +921,14 @@ public class SMGCPAMaterializer {
       @Nullable BigInteger pPfo,
       SMGState pCurrentState)
       throws SMGException {
+    for (SMGValue valuesPointingTo :
+        pCurrentState.getMemoryModel().getSmg().getPointerValuesForTarget(pNewAbsListSeg)) {
+      if (pNewAbsListSeg.getMinLength() != 0
+          && pCurrentState.getMemoryModel().getSmg().getNestingLevel(valuesPointingTo)
+              >= pNewAbsListSeg.getMinLength()) {
+        return false;
+      }
+    }
     if (pPfo != null) {
       return checkPointersOfRightHandSideMaterializedDLL(
           pNewConcreteRegion, pNfo, pPfo, pCurrentState);
@@ -928,6 +942,8 @@ public class SMGCPAMaterializer {
   private boolean checkPointersOfMaterializedDLL(
       SMGObject newConcreteRegion, BigInteger nfo, BigInteger pfo, SMGState state)
       throws SMGException {
+    // We can only check the connection of new concrete elements to new abstract,
+    // the direction of the mat is specified via the matFromRight flag
     BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
     SMGValueAndSMGState nextPointerAndState =
         state.readSMGValue(newConcreteRegion, nfo, pointerSize);
@@ -963,10 +979,11 @@ public class SMGCPAMaterializer {
         }
       }
     }
+
     listOfObjects.add(newConcreteRegion);
     Optional<SMGPointsToEdge> nextPointer =
         currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
-    // There is always a next obj
+    // There is always a next obj if mat from left
     Preconditions.checkArgument(nextPointer.isPresent());
     SMGObject abstractObjectFollowingNewConcrete = nextPointer.orElseThrow().pointsTo();
     listOfObjects.add(abstractObjectFollowingNewConcrete);
@@ -980,6 +997,7 @@ public class SMGCPAMaterializer {
     if (nextNextPointer.isPresent()) {
       listOfObjects.add(nextNextPointer.orElseThrow().pointsTo());
     }
+
     if (!checkList(start, nfo, listOfObjects, currentState)) {
       return false;
     }
@@ -1128,10 +1146,16 @@ public class SMGCPAMaterializer {
           currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
 
       if (prevPointer.isEmpty()) {
-        return false;
+        if (start.equals(toCheckObj)) {
+          // There is no prev in start, this might happen for list elements that are not
+          // abstractable
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        currentObj = prevPointer.orElseThrow().pointsTo();
       }
-
-      currentObj = prevPointer.orElseThrow().pointsTo();
     }
     return true;
   }
