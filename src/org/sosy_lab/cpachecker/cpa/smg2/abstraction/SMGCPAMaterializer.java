@@ -415,8 +415,7 @@ public class SMGCPAMaterializer {
             pListSeg,
             state,
             Integer.max(pListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH),
-            ImmutableSet.of(
-                SMGTargetSpecifier.IS_ALL_POINTER, SMGTargetSpecifier.IS_FIRST_POINTER));
+            ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER));
     SMGState currentState = newConcreteRegionAndState.getState();
     SMGObject newConcreteRegion = newConcreteRegionAndState.getSMGObject();
     assert currentState.getMemoryModel().getSmg().checkNotAbstractedNestingLevelConsistency();
