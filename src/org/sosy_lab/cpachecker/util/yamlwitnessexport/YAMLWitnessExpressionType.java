@@ -20,7 +20,7 @@ public enum YAMLWitnessExpressionType {
   public String toString() {
     return switch (this) {
       case C -> "c_expression";
-      case ACSL -> "ACSL";
+      case ACSL -> "acsl_expression";
     };
   }
 
@@ -28,7 +28,7 @@ public enum YAMLWitnessExpressionType {
   public static YAMLWitnessExpressionType fromKeyword(String keyword) {
     return switch (keyword) {
       case "c_expression" -> C;
-      case "ACSL" -> ACSL;
+      case "acsl_expression" -> ACSL;
       default -> throw new IllegalArgumentException("Unknown keyword: " + keyword);
     };
   }

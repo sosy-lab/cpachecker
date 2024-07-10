@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
@@ -20,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public final class CEnumerator extends AbstractSimpleDeclaration implements CSimpleDeclaration {
 
-  private static final long serialVersionUID = -2526725372840523651L;
+  @Serial private static final long serialVersionUID = -2526725372840523651L;
 
   private final long value;
   private @Nullable CEnumType enumType;

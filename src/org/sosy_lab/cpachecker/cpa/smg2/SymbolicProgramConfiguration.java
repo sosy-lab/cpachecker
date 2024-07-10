@@ -1230,10 +1230,9 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Copy SPC and add a pointer to an object at a specified offset. The target needs to be a region
-   * (not a LIST)! If the mapping Value <-> SMGValue does not exist it is created, else the old
-   * SMGValue is used. If there was a pointer from this SMGValue to an SMGObject it is replaced with
-   * the one given.
+   * Copy SPC and add a pointer to an object at a specified offset. If the mapping, Value <->
+   * SMGValue, does not exist it is created, else the old SMGValue is used. If there was a pointer
+   * from this SMGValue to an SMGObject it is replaced with the one given.
    *
    * @param address the {@link Value} representing the address to the {@link SMGObject} at the
    *     specified offset.
@@ -1243,31 +1242,13 @@ public class SymbolicProgramConfiguration {
    * @return a copy of the SPC with the pointer to the {@link SMGObject} and the specified offset
    *     added.
    */
-  public SymbolicProgramConfiguration copyAndAddPointerFromAddressToRegion(
-      Value address, SMGObject target, BigInteger offsetInBits, int nestingLevel) {
-    // If there is no SMGValue for this address we create it, else we use the existing
-    SymbolicProgramConfiguration spc = copyAndCreateValue(address, nestingLevel);
-    SMGValue smgAddress = spc.getSMGValueFromValue(address).orElseThrow();
-    spc = spc.updateNestingLevel(smgAddress, nestingLevel);
-    // Now we create a points-to-edge from this value to the target object at the
-    // specified offset, overriding any existing from this value
-    assert !(target instanceof SMGSinglyLinkedListSegment);
-    SMGPointsToEdge pointsToEdge =
-        new SMGPointsToEdge(target, offsetInBits, SMGTargetSpecifier.IS_REGION);
-    return spc.copyAndReplaceSMG(
-        spc.getSmg()
-            .copyAndAddValue(smgAddress, nestingLevel)
-            .copyAndAddPTEdge(pointsToEdge, smgAddress));
-  }
-
-  // For testing only (as we never create abstracted memory out of nothing)
   public SymbolicProgramConfiguration copyAndAddPointerFromAddressToMemory(
       Value address,
       SMGObject target,
       BigInteger offsetInBits,
       int nestingLevel,
       SMGTargetSpecifier pSMGTargetSpecifier) {
-    // If there is no SMGValue for this address we create it, else we use the existing
+    // If there is no SMGValue for this Value (address) we create it, else we use the existing
     SymbolicProgramConfiguration spc = copyAndCreateValue(address, nestingLevel);
     SMGValue smgAddress = spc.getSMGValueFromValue(address).orElseThrow();
     spc = spc.updateNestingLevel(smgAddress, nestingLevel);
@@ -1872,13 +1853,36 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Removes the {@link SMGPointsToEdge} and {@link SMGValue} from the {@link SMG}. Caution when
-   * using this method, should only ever be applied to SMGValues that are no longer used!
+   * using this method, should only ever be applied to SMGValues that are no longer used! This has
+   * side effects and will modify the pointer to object map!
    *
    * @return a new {@link SMG} with the {@link SMGValue} and its {@link SMGPointsToEdge} removed.
    */
   public SymbolicProgramConfiguration removeLastPointerFromSMGAndCopy(SMGValue value) {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemovePointsToEdge(value).copyAndRemoveValue(value),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
+  }
+
+  /**
+   * Removes the {@link SMGPointsToEdge} and {@link SMGValue} from the {@link SMG}. Caution when
+   * using this method, should only ever be applied to SMGValues that are no longer used! This has
+   * no side effects and will not modify the pointer to object map etc.! This means this is only
+   * safe to use if there is already no entry in this map!
+   *
+   * @return a new {@link SMG} with the {@link SMGValue} and its {@link SMGPointsToEdge} removed.
+   */
+  public SymbolicProgramConfiguration removePointerFromSMGWithoutSideEffectsAndCopy(
+      SMGValue value) {
+    return new SymbolicProgramConfiguration(
+        smg.copyAndRemovePointsToEdgeWithoutSideEffects(value).copyAndRemoveValue(value),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
@@ -2134,5 +2138,18 @@ public class SymbolicProgramConfiguration {
       return 0;
     }
     return smg.getNumberOfValueUsages(maybeSMGValue.orElseThrow());
+  }
+
+  /**
+   * Returns the {@link SMGTargetSpecifier} for a given pointer {@link Value}.
+   *
+   * @param pPointerValue a pointer Value.
+   * @return the target specifier.
+   */
+  public SMGTargetSpecifier getTargetSpecifier(Value pPointerValue) {
+    Optional<SMGPointsToEdge> pte =
+        smg.getPTEdge(getSMGValueFromValue(pPointerValue).orElseThrow());
+    Preconditions.checkArgument(pte.isPresent());
+    return pte.orElseThrow().targetSpecifier();
   }
 }

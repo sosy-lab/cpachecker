@@ -37,7 +37,6 @@ class Dependencies {
   private final Map<String, Partition> varToPartition = new HashMap<>();
 
   /** table to get a partition for a edge. */
-  // we use subtype, because we might serialize the table, and FindBugs complains.
   final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
 
   /**

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -25,7 +26,7 @@ public sealed class JReturnStatement extends AbstractReturnStatement implements 
 
   // TODO refactor to be either abstract or final
 
-  private static final long serialVersionUID = -7073556363348785665L;
+  @Serial private static final long serialVersionUID = -7073556363348785665L;
 
   public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special

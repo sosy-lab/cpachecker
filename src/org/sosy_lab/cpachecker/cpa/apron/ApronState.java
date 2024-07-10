@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.math.DoubleMath;
 import gmp.Mpfr;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,7 +58,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
  */
 public class ApronState implements AbstractState, Serializable, FormulaReportingState {
 
-  private static final long serialVersionUID = -7953805400649927048L;
+  @Serial private static final long serialVersionUID = -7953805400649927048L;
 
   enum Type {
     INT,
@@ -701,6 +702,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     return newState;
   }
 
+  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     byte[] serialized;
@@ -713,6 +715,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     out.write(serialized);
   }
 
+  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -35,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class JConstructorDeclaration extends JMethodDeclaration {
 
-  private static final long serialVersionUID = -581061338706783666L;
+  @Serial private static final long serialVersionUID = -581061338706783666L;
 
   public JConstructorDeclaration(
       FileLocation pFileLocation,

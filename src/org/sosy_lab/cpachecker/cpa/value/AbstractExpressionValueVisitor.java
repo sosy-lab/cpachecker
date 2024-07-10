@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
+import java.io.Serial;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -2750,7 +2751,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   protected static class IllegalOperationException extends CPAException {
 
-    private static final long serialVersionUID = 5420891133452817345L;
+    @Serial private static final long serialVersionUID = 5420891133452817345L;
 
     public IllegalOperationException(String msg) {
       super(msg);

@@ -339,7 +339,11 @@ analysis.initialStatesFor = {InitialStatesFor.ENTRY}
 # run interprocedural analysis
 analysis.interprocedural = true
 
-# the machine model, which determines the sizes of types like int
+# the machine model, which determines the sizes of types like int:
+# - LINUX32: ILP32 for Linux on 32-bit x86
+# - LINUX64: LP64 for Linux on 64-bit x86
+# - ARM: ILP32 for Linux on 32-bit ARM
+# - ARM64: LP64 for Linux on 64-bit ARM
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM, ARM64]
 
@@ -390,10 +394,6 @@ analysis.restartAfterUnknown = false
 
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
-
-# if this option is used, the CFA will be loaded from the given file instead
-# of parsed from sourcefile.
-analysis.serializedCfaFile = no default value
 
 # Split program in subprograms which can be analyzed separately afterwards
 analysis.split.program = false
@@ -850,10 +850,6 @@ cfa.nonReturningFunctions = {"abort", "exit"}
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
 cfa.pixelGraphicFile = "cfaPixel"
-
-# export CFA as .ser file (dump Java objects)
-cfa.serialize = false
-cfa.serializeFile = "cfa.ser.gz"
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
@@ -1616,14 +1612,6 @@ cpa.callstack.unsupportedFunctions = {
           "siglongjmp",
           "__builtin_va_arg",
           "atexit"}
-
-# firing relation to be used in the precision adjustment operator
-cpa.chc.firingRelation = "Always"
-  allowed values: [Always, Maxcoeff, Sumcoeff, Homeocoeff]
-
-# generalization operator to be used in the precision adjustment operator
-cpa.chc.generalizationOperator = "Widen"
-  allowed values: [Top, Widen, WidenMax, WidenSum]
 
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of

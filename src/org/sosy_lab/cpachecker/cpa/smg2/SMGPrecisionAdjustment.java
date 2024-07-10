@@ -293,6 +293,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
+    resultState = resultState.removeOldConstraints();
+
     return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
   }
 

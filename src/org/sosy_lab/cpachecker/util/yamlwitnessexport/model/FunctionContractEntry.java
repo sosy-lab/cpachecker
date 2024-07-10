@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntr
 @Immutable
 @JsonDeserialize(using = FunctionContractRecordDeserializer.class)
 @JsonSerialize(using = FunctionContractRecordSerializer.class)
-public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetElementEntry {
+public class FunctionContractEntry extends AbstractInvariantEntry {
 
   @SuppressWarnings("unused")
   private static final String FUNCTION_CONTRACT_IDENTIFIER = "function_contract";
@@ -39,40 +39,32 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
   private final LocationRecord location;
 
   @JsonProperty("ensures")
-  private final EnsuresRecord ensures;
+  private final String ensures;
 
   @JsonProperty("requires")
-  private final RequiresRecord requires;
-
-  @JsonProperty("format")
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  private final YAMLWitnessExpressionType format;
+  private final String requires;
 
   public FunctionContractEntry(
-      @JsonProperty("ensures") EnsuresRecord pEnsures,
-      @JsonProperty("requires") RequiresRecord pRequires,
+      @JsonProperty("ensures") String pEnsures,
+      @JsonProperty("requires") String pRequires,
       @JsonProperty("format") YAMLWitnessExpressionType pFormat,
       @JsonProperty("location") LocationRecord pLocation) {
+    super(FUNCTION_CONTRACT_IDENTIFIER, pFormat);
     location = pLocation;
     ensures = pEnsures;
     requires = pRequires;
-    format = pFormat;
   }
 
   public LocationRecord getLocation() {
     return location;
   }
 
-  public EnsuresRecord getEnsures() {
+  public String getEnsures() {
     return ensures;
   }
 
-  public RequiresRecord getRequires() {
+  public String getRequires() {
     return requires;
-  }
-
-  public YAMLWitnessExpressionType getFormat() {
-    return format;
   }
 
   public static class FunctionContractRecordDeserializer
@@ -83,6 +75,10 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
       ObjectMapper mapper = (ObjectMapper) jp.getCodec();
       JsonNode node = mapper.readTree(jp);
 
+      // The node should now be the 'invariant' node. Move one level deeper to its children.
+      JsonNode invariantNode = node.get("invariant");
+      assert invariantNode != null;
+
       // Delegate the actual object mapping back to Jackson:
       // WaypointRecord result = mapper.treeToValue(waypointNode, WaypointRecord.class);
       // CAVEAT: does not work, since this would use the custom deserializer.
@@ -91,10 +87,10 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
       // (less elegant, but we probably never touch that code again, so it is fine):
       FunctionContractEntry result =
           new FunctionContractEntry(
-              mapper.treeToValue(node.get("ensures"), EnsuresRecord.class),
-              mapper.treeToValue(node.get("requires"), RequiresRecord.class),
-              mapper.treeToValue(node.get("format"), YAMLWitnessExpressionType.class),
-              mapper.treeToValue(node.get("location"), LocationRecord.class));
+              mapper.treeToValue(invariantNode.get("ensures"), String.class),
+              mapper.treeToValue(invariantNode.get("requires"), String.class),
+              mapper.treeToValue(invariantNode.get("format"), YAMLWitnessExpressionType.class),
+              mapper.treeToValue(invariantNode.get("location"), LocationRecord.class));
 
       return result;
     }
@@ -107,6 +103,10 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
     public void serialize(
         FunctionContractEntry value, JsonGenerator gen, SerializerProvider serializers)
         throws IOException {
+
+      // Start a wrapper object for "function_contract"
+      gen.writeStartObject();
+      gen.writeFieldName("invariant");
 
       // start the actual InvariantEntry object
       gen.writeStartObject();
@@ -126,6 +126,9 @@ public non-sealed class FunctionContractEntry implements CorrectnessWitnessSetEl
       serializers.defaultSerializeValue(value.getFormat(), gen);
 
       // end the object
+      gen.writeEndObject();
+
+      // End the wrapper object
       gen.writeEndObject();
     }
   }

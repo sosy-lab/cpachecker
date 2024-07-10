@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -20,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public final class CTypeDefDeclaration extends CTypeDeclaration {
 
-  private static final long serialVersionUID = -8939387997205706731L;
+  @Serial private static final long serialVersionUID = -8939387997205706731L;
 
   public CTypeDefDeclaration(
       FileLocation pFileLocation,
@@ -32,8 +33,8 @@ public final class CTypeDefDeclaration extends CTypeDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
-    return "typedef " + super.toASTString(pQualified, pOriginalVariableNames);
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "typedef " + super.toASTString(pAAstNodeRepresentation);
   }
 
   @Override

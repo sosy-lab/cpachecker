@@ -87,7 +87,7 @@ public class CPAMain {
 
     if (args.length == 0) {
       // be nice to user
-      args = new String[] {"-help"};
+      args = new String[] {"--help"};
     }
 
     // initialize various components

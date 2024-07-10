@@ -11,10 +11,10 @@ SPDX-License-Identifier: Apache-2.0
 Getting Started with CPAchecker
 ===============================
 
-Installation Instructions:  [`INSTALL.md`](INSTALL.md)
+Installation Instructions:  [`INSTALL.md`](INSTALL.md)  
 Develop and Contribute:     [`doc/Developing.md`](doc/Developing.md)
 
-More documentation can be found in the [`doc`](doc) folder.
+More documentation can be found in the [`doc/`](doc/) directory.
 
 License and Copyright
 ---------------------
@@ -22,8 +22,7 @@ CPAchecker is licensed under the [Apache 2.0 License](https://www.apache.org/lic
 with copyright by [Dirk Beyer](https://www.sosy-lab.org/people/beyer/) and others
 (cf. [Authors.md](Authors.md) for full list of all contributors).
 Third-party libraries are under various other licenses and copyrights,
-cf. `lib/java-runtime-licenses.txt` for an overview
-and the files in the directory `LICENSES` for the full license texts.
+cf. the files in the directory `LICENSES` for the full license texts.
 In particular, MathSAT is available for research and evaluation purposes only
 (cf. `LICENSES/LicenseRef-MathSAT-CPAchecker.txt`),
 so make sure to use a different SMT solver if necessary.
@@ -34,9 +33,9 @@ Prepare Programs for Verification by CPAchecker
 -----------------------------------------------
 
 All programs need to pre-processed with the C pre-processor,
-i.e., they may not contain #define and #include directives.
+i.e., they may not contain `#define` and `#include` directives.
 You can enable pre-processing inside CPAchecker
-by specifying -preprocess on the command line.
+by specifying `--preprocess` on the command line.
 Multiple C files can be given and will be linked together
 and verified as a single program (experimental feature).
 
@@ -50,52 +49,52 @@ Verifying a Program with CPAchecker
 1. Choose a source code file that you want to be checked.
    If you use your own program, remember to pre-process it as mentioned above.
    Example: `doc/examples/example.c` or `doc/examples/example_bug.c`
-   A good source for more example programs is the benchmark set of the
-   [International Competition on Software Verification](http://sv-comp.sosy-lab.org/),
-   which can be checked out from https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks.
+   A good source for more example programs is the
+   [SV-Benchmarks](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks) repository
+   that is for example used by the
+   [International Competition on Software Verification](http://sv-comp.sosy-lab.org/).
 
-2. If you want to enable certain analyses like predicate analysis,
-   choose a configuration file. This file defines for example which CPAs are used.
-   Standard configuration files can be found in the directory config/.
+2. Optionally: If you want to choose certain analyses like predicate analysis,
+   specify a configuration file. This file defines for example which CPAs are used.
+   Standard configuration files can be found in the directory [`config/`](config/).
    If you do not want a specific analysis,
-   we recommend `config/default.properties`.
+   we recommend the default configuration of CPAchecker.
    However, note that if you are on MacOS
    you need to provide specifically-compiled MathSAT binaries
-   for this configuration to work
+   for the default configuration to work
    (or use Docker in order to run the Linux version of CPAchecker).
-   The configuration of CPAchecker is explained in doc/Configuration.md.
+   The configuration of CPAchecker is explained in [`doc/Configuration.md`](doc/Configuration.md).
 
-3. Choose a specification file (you may not need this for some CPAs).
-   The standard configuration files use `config/specification/default.spc`
+3. Choose a specification file (you may not need this for some configurations).
+   The standard configurations use `config/specification/default.spc`
    as the default specification. With this one, CPAchecker will look for labels
    named `ERROR` (case insensitive) and assertions in the source code file.
-   Other examples for specifications can be found in `config/specification/`
+   Other examples for specifications can be found in [`config/specification/`](config/specification/)
+   in the CPAchecker directory.
 
-4. Execute `scripts/cpa.sh [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>`
-   Either a configuration file or a specification file needs to be given.
-   The current directory should be the CPAchecker project directory.
-   Additional command line switches are described in doc/Configuration.md.
-   Example: `scripts/cpa.sh -config config/default.properties doc/examples/example.c`
-   This example can also be abbreviated to:
-   `scripts/cpa.sh -default doc/examples/example.c`
+4. Execute `bin/cpachecker [ --config <CONFIG_FILE> ] [ --spec <SPEC_FILE> ] <SOURCE_FILE>`
+   Additional command-line arguments are described in [`doc/Configuration.md`](doc/Configuration.md).
+   To use the default configuration of CPAchecker,
+   pass only the source file: `bin/cpachecker doc/examples/example.c`.
+   A specific analysis (like k-induction) can be chosen
+   for example with `bin/cpachecker --config/kInduction.properties doc/examples/example.c`
+   or the equivalent abbreviation `bin/cpachecker --kInduction doc/examples/example.c`.
    Java 17 or later is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
    Example: `export JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin/java`
    for 64bit OpenJDK 17 on Ubuntu.
-   On Windows (without Cygwin or WSL),
-   you need to use `cpa.bat` instead of `cpa.sh`.
 
    Please note that not all analysis configurations are available for MacOS
    because we do not ship binaries for SMT solvers for this platform.
    You either need to build the appropriate binaries yourself
    or use less powerful analyses that work with Java-based solvers,
-   for example this one instead of `-default`:
-   `-predicateAnalysis-linear -setprop solver.solver=SMTInterpol`
+   for example this one instead of CPAchecker's default configuration:
+   `--predicateAnalysis-linear --option solver.solver=SMTInterpol`
    Of course you can also use solutions like Docker
    for executing the Linux version of CPAchecker.
 
    If you installed CPAchecker using Docker, the above example command line would look like this:
-   `docker run -v $(pwd):/workdir -u $UID:$GID registry.gitlab.com/sosy-lab/software/cpachecker -default /cpachecker/doc/examples/example.c`
+   `docker run -v $(pwd):/workdir -u $UID:$GID sosylab/cpachecker /cpachecker/doc/examples/example.c`
    This command makes the current directory available in the container,
    so to verify a program in the current directory just provide its file name
    instead of the example that is bundled with CPAchecker.
@@ -122,7 +121,7 @@ There are also additional output files in the directory `output/`:
        See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
  - `predmap.txt`: Predicates used by predicate analysis to prove program safety
  - `reached.txt`: Dump of all reached abstract states
- - `Statistics.txt`: Time statistics (can also be printed to console with `-stats`)
+ - `Statistics.txt`: Time statistics (can also be printed to console with `--stats`)
  
 Note that not all of these files will be available for all configurations.
 Also some of these files are only produced if an error is found (or vice-versa).
@@ -138,9 +137,9 @@ You can validate violation witnesses with CPA-witness2test, which is part of CPA
    and the source code file that fits the violation witness.
 2. To validate the witness, execute the following command:
    ```
-   scripts/cpa_witness2test.py -witness <WITNESS_FILE> -spec <SPEC_FILE> <SOURCE_FILE>`
+   bin/cpa-witness2test --witness <WITNESS_FILE> --spec <SPEC_FILE> <SOURCE_FILE>`
    ```
-   Addtional command line switches are viewed with `scripts/cpa_witness2test.py -h`.
+   Addtional command-line arguments are viewed with `bin/cpa-witness2test -h`.
 
 3. When finished, and if the violation witness is successfully validated, the console output shows `Verification result: FALSE`.
    Additionally to the console output, CPA-witness2test also creates a file `output/*.harness.c`.

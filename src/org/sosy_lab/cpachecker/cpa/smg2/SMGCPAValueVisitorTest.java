@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 // TODO: run with more machine models
@@ -3399,8 +3400,12 @@ public class SMGCPAValueVisitorTest {
 
     // Mapping to the smg points to edge
     spc =
-        spc.copyAndAddPointerFromAddressToRegion(
-            addressValue, smgHeapObject, BigInteger.valueOf(offset), 0);
+        spc.copyAndAddPointerFromAddressToMemory(
+            addressValue,
+            smgHeapObject,
+            BigInteger.valueOf(offset),
+            0,
+            SMGTargetSpecifier.IS_REGION);
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first

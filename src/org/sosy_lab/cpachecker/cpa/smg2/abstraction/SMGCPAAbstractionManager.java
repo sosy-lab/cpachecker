@@ -254,7 +254,7 @@ public class SMGCPAAbstractionManager {
               foundChains.add(candidate);
             }
             alreadySeen.addAll(candidate.suspectedElements);
-            break;
+            continue;
           }
         }
         // Incorrect or not usable next element, maybe a prev exists though,
@@ -543,25 +543,29 @@ public class SMGCPAAbstractionManager {
       Optional<BigInteger> maybePrevPointerTargetOffset,
       Set<SMGObject> alreadySeenInChain,
       int remainingMinLength) {
+    // We know entering into this that prevObj is a possible list start
+    // (either because it's the first list segment, there is an external non-list pointer etc.)
     alreadySeenInChain.add(prevObj);
 
     SMG smg = state.getMemoryModel().getSmg();
     boolean looping = alreadySeenInChain.contains(potentialNextObj);
-    if (!looping
-        && smg.isValid(potentialNextObj)
-        && state.getMemoryModel().isHeapObject(potentialNextObj)
-        && state.getMemoryModel().isHeapObject(prevObj)
-        && potentialNextObj.getSize().isNumericValue()
-        && potentialNextObj
-            .getSize()
-            .asNumericValue()
-            .bigIntegerValue()
-            .equals(prevObj.getSize().asNumericValue().bigIntegerValue())) {
 
+    if (!looping
+        && state.areTwoObjectsPartOfList(
+            potentialNextObj, prevObj, maybeNfo, nextPointerTargetOffset)
+        && !state.listElementsHaveOutsidePointerInBetween(
+            prevObj,
+            potentialNextObj,
+            maybeNfo,
+            nextPointerTargetOffset,
+            maybePfo,
+            maybePrevPointerTargetOffset)) {
+      // We check the next pointer in areTwoObjectsPartOfList and the prev below to filter it later
       ImmutableList<BigInteger> exemptOffsetsOfList = ImmutableList.of(maybeNfo);
       if (maybePfo.isPresent()) {
         exemptOffsetsOfList = ImmutableList.of(maybeNfo, maybePfo.orElseThrow());
       }
+
       if (state.checkEqualValuesForTwoStatesWithExemptions(
           prevObj,
           potentialNextObj,
@@ -575,7 +579,7 @@ public class SMGCPAAbstractionManager {
 
         // filter out DLLs where we accidentally used the pfo as nfo and are at the "end"
         if (maybeNfo.subtract(smg.getSizeOfPointer()).compareTo(BigInteger.ZERO) >= 0) {
-          // We assume nfo to follow pfo directly
+          // We assume pfo to follow nfo directly
           SMGHasValueEdge maybeRealNext =
               smg.readValue(
                       potentialNextObj,
@@ -678,16 +682,14 @@ public class SMGCPAAbstractionManager {
       BigInteger nextPointerTargetOffset,
       Optional<BigInteger> maybePfo,
       Optional<BigInteger> maybePrevPointerTargetOffset,
-      Set<SMGObject> alreadySeenInChain)
-      throws SMGException {
+      Set<SMGObject> alreadySeenInChain) {
     alreadySeenInChain.add(currentObj);
     SMG smg = state.getMemoryModel().getSmg();
-    /* TODO: either remove or re-enable eq check
-    ImmutableList<BigInteger> exemptOffsetsOfList = ImmutableList.of(maybeNfo);
-    if (maybePfo.isPresent()) {
-      exemptOffsetsOfList = ImmutableList.of(maybeNfo, maybePfo.orElseThrow());
+    if (state.objectHasOutsidePointerTowards(
+        currentObj, maybeNfo, nextPointerTargetOffset, maybePfo, maybePrevPointerTargetOffset)) {
+      // We only abstract sections with no outside pointers towards them, except for ALL ptrs
+      return currentObj;
     }
-    */
     if (maybePfo.isPresent()) {
       Preconditions.checkArgument(maybePrevPointerTargetOffset.isPresent());
       // We suspect it's a DLL, so we use the prev pointers as far as possible
@@ -709,45 +711,19 @@ public class SMGCPAAbstractionManager {
         //  (invalid objs that are non 0 in chain etc.)
         // Use the more advanced equality check that checks pointers via memory shape
         if (alreadySeenInChain.contains(maybePrevObj)
-            || !state.getMemoryModel().isHeapObject(maybePrevObj)
-            || !smg.isValid(maybePrevObj)
-            || !maybeBackPointerEdge.getOffset().equals(maybePrevPointerTargetOffset.orElseThrow())
-            || !maybePrevObj.getSize().isNumericValue()
-            || !maybePrevObj
-                .getSize()
-                .asNumericValue()
-                .bigIntegerValue()
-                .equals(currentObj.getSize().asNumericValue().bigIntegerValue())) {
-          // if (!state.checkEqualValuesForTwoStatesWithExemptions(
-          //   currentObj, maybePrevObj, exemptOffsetsOfList, state, state, equalityCache, true)) {
+            || !state.areTwoObjectsPartOfList(
+                currentObj, maybePrevObj, maybeNfo, nextPointerTargetOffset)) {
           return currentObj;
-          // }
         }
-        List<SMGHasValueEdge> valuesInMaybePrevHeapObj =
-            ImmutableList.sortedCopyOf(
-                Comparator.comparing(SMGHasValueEdge::getOffset),
-                smg.getSMGObjectsWithSMGHasValueEdges()
-                    .getOrDefault(maybePrevObj, PersistentSet.of()));
 
-        // Next checking
-        for (SMGHasValueEdge maybePrevHVE : valuesInMaybePrevHeapObj) {
-          if (maybePrevHVE.getOffset().equals(maybeNfo)) {
-            Optional<SMGPointsToEdge> maybePTE = smg.getPTEdge(maybePrevHVE.hasValue());
-
-            if (maybePTE.isPresent()
-                && maybePTE.orElseThrow().pointsTo().equals(currentObj)
-                && maybePTE.orElseThrow().getOffset().equals(nextPointerTargetOffset)) {
-              // maybePrevObj is a list element to the left
-              return lookThroughPrev(
-                  maybePrevObj,
-                  maybeNfo,
-                  nextPointerTargetOffset,
-                  maybePfo,
-                  maybePrevPointerTargetOffset,
-                  alreadySeenInChain);
-            }
-          }
-        }
+        // maybePrevObj is a list element to the left
+        return lookThroughPrev(
+            maybePrevObj,
+            maybeNfo,
+            nextPointerTargetOffset,
+            maybePfo,
+            maybePrevPointerTargetOffset,
+            alreadySeenInChain);
       }
 
     } else {
@@ -761,45 +737,21 @@ public class SMGCPAAbstractionManager {
         }
 
         for (SMGObject maybePrevObj : objsWithPtrsTowardsHeapObj) {
+          // We search for segments to the left here
           if (alreadySeenInChain.contains(maybePrevObj)
-              || !smg.isValid(maybePrevObj)
-              || !state.getMemoryModel().isHeapObject(maybePrevObj)
-              || !maybePrevObj.getSize().isNumericValue()
-              || !maybePrevObj
-                  .getSize()
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .equals(currentObj.getSize().asNumericValue().bigIntegerValue())) {
+              || !state.areTwoObjectsPartOfList(
+                  currentObj, maybePrevObj, maybeNfo, nextPointerTargetOffset)) {
             continue;
           }
-          List<SMGHasValueEdge> valuesInMaybePrevHeapObj =
-              ImmutableList.sortedCopyOf(
-                  Comparator.comparing(SMGHasValueEdge::getOffset),
-                  smg.getSMGObjectsWithSMGHasValueEdges()
-                      .getOrDefault(maybePrevObj, PersistentSet.of()));
 
-          // Next checking
-          for (SMGHasValueEdge maybePrevHVE : valuesInMaybePrevHeapObj) {
-            if (maybePrevHVE.getOffset().equals(maybeNfo)) {
-              Optional<SMGPointsToEdge> maybePTE = smg.getPTEdge(maybePrevHVE.hasValue());
-
-              if (maybePTE.isPresent()
-                  && maybePTE
-                      .orElseThrow()
-                      .equals(pte) // && state.checkEqualValuesForTwoStatesWithExemptions(
-              // currentObj, maybePrevObj, exemptOffsetsOfList, state, state, equalityCache, true)
-              ) {
-                // maybePrevObj is a list element to the left
-                return lookThroughPrev(
-                    maybePrevObj,
-                    maybeNfo,
-                    nextPointerTargetOffset,
-                    maybePfo,
-                    maybePrevPointerTargetOffset,
-                    alreadySeenInChain);
-              }
-            }
-          }
+          // maybePrevObj is a list element to the left
+          return lookThroughPrev(
+              maybePrevObj,
+              maybeNfo,
+              nextPointerTargetOffset,
+              maybePfo,
+              maybePrevPointerTargetOffset,
+              alreadySeenInChain);
         }
       }
     }
