@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGJoinSPC;
+import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
@@ -4225,6 +4226,200 @@ public class SMGState
       }
     }
     return trackedHeapValues.build();
+  }
+
+  /**
+   * Returns true if there is a pointer from outside a linked list (assuming that the linked list is
+   * always the same given shape) towards the target list element given (e.g. from stack variables).
+   * Returns false if there is either no pointers towards the given object, self-pointers, or only
+   * pointers from list elements to other list elements with the correct given shape.
+   *
+   * @param target {@link SMGObject} to check for pointers.
+   * @param nfo suspected next pointer offset. Pointers originating from other offsets are rejected.
+   * @param nextPointerTargetOffset next pointer target offset. Pointers originating with other
+   *     target offsets are rejected.
+   * @param maybePfo suspected prev pointer offset. Pointers originating from other offsets are
+   *     rejected. May be empty, then its ignored.
+   * @param prevPointerTargetOffset suspected prev pointer target offset. Pointers originating with
+   *     other target offsets are rejected. May be empty, then its ignored.
+   * @return true if there is ptrs from outside the list shape. False else.
+   */
+  public boolean hasPointersFromOutsideOfList(
+      SMGObject target,
+      BigInteger nfo,
+      BigInteger nextPointerTargetOffset,
+      Optional<BigInteger> maybePfo,
+      Optional<BigInteger> prevPointerTargetOffset) {
+    SMG smg = getMemoryModel().getSmg();
+    // TODO: add cache for this combination of nfo/pfo to arguments, Map<SMGObject, Triple<nextObjs,
+    // PrevObjs, nonListObjs>>
+    // TODO: handle ALL ptrs from outside that do not have the ALL spec yet correctly
+    if (target instanceof SMGSinglyLinkedListSegment sll) {
+      Preconditions.checkArgument(
+          sll.getNextOffset().equals(nfo)
+              && sll.getNextPointerTargetOffset().equals(nextPointerTargetOffset));
+      if (target instanceof SMGDoublyLinkedListSegment dll) {
+        Preconditions.checkArgument(
+            dll.getPrevOffset().equals(maybePfo.orElseThrow())
+                && dll.getPrevPointerTargetOffset().equals(prevPointerTargetOffset.orElseThrow()));
+      }
+      // For linked lists, we want to make sure that there is no first or last pointers
+      //   not from a preceding or later list segment
+      Set<SMGValue> pointersTowardsTarget = smg.getPointerValuesForTarget(target);
+      for (SMGValue pointerTowardsTarget : pointersTowardsTarget) {
+        SMGPointsToEdge pte = smg.getPTEdge(pointerTowardsTarget).orElseThrow();
+        SMGTargetSpecifier spec = pte.targetSpecifier();
+
+        // Ignore ALL pointers. Equality check the merging segments to make sure they are in each
+        // segment.
+        if (spec.equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
+          continue;
+        }
+
+        Set<SMGObject> objsWPointersTowardsTarget =
+            smg.getAllObjectsWithValueInThem(pointerTowardsTarget);
+        for (SMGObject objWPointersTowardsTarget : objsWPointersTowardsTarget) {
+          if (!areTwoObjectsPartOfList(
+              target,
+              objWPointersTowardsTarget,
+              nfo,
+              nextPointerTargetOffset,
+              maybePfo,
+              prevPointerTargetOffset)) {
+            return false;
+          }
+        }
+      }
+
+    } else {
+      Set<SMGObject> objsWPointersTowardsTarget =
+          smg.getAllSourcesForPointersPointingTowards(target);
+      for (SMGObject objWPointersTowardsTarget : objsWPointersTowardsTarget) {
+        if (!areTwoObjectsPartOfList(
+            target,
+            objWPointersTowardsTarget,
+            nfo,
+            nextPointerTargetOffset,
+            maybePfo,
+            prevPointerTargetOffset)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @param target
+   * @param objWPointersTowardsTarget
+   * @param nfo
+   * @param nextPointerTargetOffset
+   * @return
+   */
+  public boolean areTwoObjectsPartOfList(
+      SMGObject target,
+      SMGObject objWPointersTowardsTarget,
+      BigInteger nfo,
+      BigInteger nextPointerTargetOffset) {
+    return areTwoObjectsPartOfList(
+        target,
+        objWPointersTowardsTarget,
+        nfo,
+        nextPointerTargetOffset,
+        Optional.empty(),
+        Optional.empty());
+  }
+
+  /**
+   * Checks that the 2 given {@link SMGObject}s are in a list, such that objWPointersTowardsTarget
+   * has either a next or prev ptr towards target. Checks validity, heap inclusion and size of
+   * objWPointersTowardsTarget.
+   *
+   * @param target the object that the ptrs from objWPointersTowardsTarget point towards.
+   * @param objWPointersTowardsTarget a potential list object for the same list target belongs to.
+   * @param nfo next pointer offset.
+   * @param nextPointerTargetOffset next pointer target offset.
+   * @param maybePfo prev ptr offset. Empty for ignoring it.
+   * @param prevPointerTargetOffset prev ptr target offset. Empty for ignoring.
+   * @return true if objWPointersTowardsTarget has pointers pointing towards target (either nfo or
+   *     pfo) and both have matching list shape.
+   */
+  public boolean areTwoObjectsPartOfList(
+      SMGObject target,
+      SMGObject objWPointersTowardsTarget,
+      BigInteger nfo,
+      BigInteger nextPointerTargetOffset,
+      Optional<BigInteger> maybePfo,
+      Optional<BigInteger> prevPointerTargetOffset) {
+    SMG smg = getMemoryModel().getSmg();
+    // Pointer from the list to the list are OK.
+    // TODO: Alternatively pointer that point towards each list segment are OK.
+
+    // 1 or more ptrs towards target
+    if (objWPointersTowardsTarget.equals(target)) {
+      // Self-pointer is OK?
+      // return false;
+    }
+    if (!objWPointersTowardsTarget.getSize().equals(target.getSize())) {
+      // Size does not match
+      return false;
+    } else if (!getMemoryModel().isHeapObject(objWPointersTowardsTarget)) {
+      // Ptr source is not on the heap
+      return false;
+    } else if (!smg.isValid(objWPointersTowardsTarget)) {
+      // Ptr source is not valid
+      return false;
+    }
+
+    if (target instanceof SMGSinglyLinkedListSegment sllTarget) {
+      if (!sllTarget.getNextOffset().equals(nfo)
+          || !sllTarget.getNextPointerTargetOffset().equals(nextPointerTargetOffset)) {
+        return false;
+      }
+    }
+    if (objWPointersTowardsTarget instanceof SMGSinglyLinkedListSegment sllOtherObj) {
+      if (!sllOtherObj.getNextOffset().equals(nfo)
+          || !sllOtherObj.getNextPointerTargetOffset().equals(nextPointerTargetOffset)) {
+        return false;
+      }
+    }
+
+    SMGAndHasValueEdges nfoReadEdges =
+        smg.readValue(objWPointersTowardsTarget, nfo, smg.getSizeOfPointer(), false);
+    if (nfoReadEdges.getHvEdges().size() != 1
+        || !smg.isPointer(nfoReadEdges.getHvEdges().get(0).hasValue())
+        || !smg.getPTEdge(nfoReadEdges.getHvEdges().get(0).hasValue())
+            .orElseThrow()
+            .pointsTo()
+            .equals(target)
+        || !smg.getPTEdge(nfoReadEdges.getHvEdges().get(0).hasValue())
+            .orElseThrow()
+            .getOffset()
+            .equals(nextPointerTargetOffset)) {
+      // Next ptr location/Offset does not match
+      if (maybePfo.isEmpty()) {
+        return false;
+      } else {
+        BigInteger pfo = maybePfo.orElseThrow();
+        SMGAndHasValueEdges pfoReadEdges =
+            smg.readValue(objWPointersTowardsTarget, pfo, smg.getSizeOfPointer(), false);
+        if (pfoReadEdges.getHvEdges().size() != 1
+            || !smg.isPointer(pfoReadEdges.getHvEdges().get(0).hasValue())
+            || !smg.getPTEdge(pfoReadEdges.getHvEdges().get(0).hasValue())
+                .orElseThrow()
+                .pointsTo()
+                .equals(target)
+            || !smg.getPTEdge(pfoReadEdges.getHvEdges().get(0).hasValue())
+                .orElseThrow()
+                .getOffset()
+                .equals(prevPointerTargetOffset.orElseThrow())) {
+          // Prev ptr location does not match
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   /**
