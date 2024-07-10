@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * An implementation of multi-precision floating point numbers that generalizes the IEEE 751
+ * An implementation of multi-precision floating point numbers that generalizes the IEEE 754
  * standard to arbitrary bit sizes.
  */
 package org.sosy_lab.cpachecker.util.floatingpoint;
