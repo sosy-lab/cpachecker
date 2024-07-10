@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstantSymbolicExpressionLocator;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGInterpolant;
@@ -81,6 +83,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -197,7 +200,7 @@ public class SMGState
     statistics = pStatistics;
   }
 
-  private SMGState of(ImmutableList<Constraint> pConstraints) {
+  private SMGState copyWithAddedConstraints(ImmutableList<Constraint> pConstraints) {
     checkNotNull(pConstraints);
     return new SMGState(
         machineModel,
@@ -208,6 +211,21 @@ public class SMGState
         materializer,
         lastCheckedMemoryAccess,
         constraintsState.copyWithNew(pConstraints),
+        evaluator,
+        statistics);
+  }
+
+  private SMGState copyWithNewConstraints(Set<Constraint> pConstraints) {
+    checkNotNull(pConstraints);
+    return new SMGState(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        errorInfo,
+        materializer,
+        lastCheckedMemoryAccess,
+        new ConstraintsState(pConstraints),
         evaluator,
         statistics);
   }
@@ -246,7 +264,7 @@ public class SMGState
 
   public SMGState addConstraint(Constraint pConstraint) {
     checkNotNull(pConstraint);
-    return of(listAndElement(constraintsState, pConstraint));
+    return copyWithAddedConstraints(listAndElement(constraintsState, pConstraint));
   }
 
   public SMGState updateLastCheckedMemoryBounds(Constraint pConstraint) {
@@ -1250,8 +1268,17 @@ public class SMGState
       // TODO: think about this more
     }
 
-    if (!pOther.constraintsState.containsAll(constraintsState)) {
-      // TODO: kick out constraints of outdated (unused) values and look into merge of constraints
+    // This removed unused symbolic values from the constraints
+    if (!pOther
+        .removeOldConstraints()
+        .getConstraints()
+        .containsAll(this.removeOldConstraints().getConstraints())) {
+      // TODO: Problem: there might still be distinct symbolic values with the same constraints.
+      //   => Compare those by location.
+      //   Example: imagine a loop, the loop bound may be against a nondet() function,
+      //     the comparison is always i (concretely known, for example 1) < nondet().
+      //     The nondet() might be reassigned each loop, thus different.
+      //     But since the constraint is equal for location, that would be OK!
       return false;
     }
 
@@ -1336,6 +1363,48 @@ public class SMGState
         new HashSet<>(),
         false,
         false);
+  }
+
+  /**
+   * Removes {@link Constraint}s that consists of unused values only (that are unused in other
+   * constraints).
+   */
+  @Nonnull
+  SMGState removeOldConstraints() {
+    ConstantSymbolicExpressionLocator symIdentVisitor =
+        ConstantSymbolicExpressionLocator.getInstance();
+    ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
+    // This removed unused symbolic values from the constraints
+    for (Constraint constraint : getConstraints()) {
+      Set<ConstantSymbolicExpression> identifiers = constraint.accept(symIdentVisitor);
+      // Check that those are truly used somewhere, otherwise remove the constraint
+      for (ConstantSymbolicExpression identifier : identifiers) {
+        Optional<SMGValue> maybeSMGValue = memoryModel.getSMGValueFromValue(identifier);
+        SymbolicValue usedIdentifier = identifier;
+        // Current interpretation: if at least 1 symbolic is present and used, keep constraint
+        if (maybeSMGValue.isEmpty()
+            && identifier.getValue() instanceof SymbolicIdentifier symIdent) {
+          maybeSMGValue = memoryModel.getSMGValueFromValue(symIdent);
+          usedIdentifier = symIdent;
+        }
+        if (maybeSMGValue.isPresent()
+            && memoryModel.getSmg().getNumberOfSMGValueUsages(maybeSMGValue.orElseThrow()) > 0) {
+          constraints.add(constraint);
+        }
+        ImmutableSet.Builder<Constraint> tmpCopy = ImmutableSet.builder();
+        for (Constraint constraintToCopy : getConstraints()) {
+          if (constraintToCopy != constraint) {
+            tmpCopy.add(constraintToCopy);
+          }
+        }
+        // TODO: This is expensive and does not delete isolated cyclic unused sym value constraints
+        // The value might be part of other constraints though
+        if (copyWithNewConstraints(tmpCopy.build()).valueContainedInConstraints(usedIdentifier)) {
+          constraints.add(constraint);
+        }
+      }
+    }
+    return copyWithNewConstraints(constraints.build());
   }
 
   /**
