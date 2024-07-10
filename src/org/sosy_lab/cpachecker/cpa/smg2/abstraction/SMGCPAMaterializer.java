@@ -146,7 +146,8 @@ public class SMGCPAMaterializer {
                     pListSeg,
                     nextPointerValue,
                     0,
-                    ImmutableSet.of(SMGTargetSpecifier.IS_FIRST_POINTER)));
+                    ImmutableSet.of(
+                        SMGTargetSpecifier.IS_FIRST_POINTER, SMGTargetSpecifier.IS_ALL_POINTER)));
 
     // Last ptr to the current
     // Important: last pointer specifier need to be region for the non-extended case
@@ -187,9 +188,26 @@ public class SMGCPAMaterializer {
 
     SMGPointsToEdge pte =
         state.getMemoryModel().getSmg().getPTEdge(pointerValueTowardsThisSegment).orElseThrow();
+
     if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
+      assert pte.getOffset()
+          .equals(
+              currentState
+                  .getMemoryModel()
+                  .getSmg()
+                  .getPTEdge(nextPointerValue)
+                  .orElseThrow()
+                  .getOffset());
       returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
     } else if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
+      assert pte.getOffset()
+          .equals(
+              currentState
+                  .getMemoryModel()
+                  .getSmg()
+                  .getPTEdge(prevPointerValue)
+                  .orElseThrow()
+                  .getOffset());
       returnStates.add(SMGValueAndSMGState.of(currentState, prevPointerValue));
     } else {
       // It's not really unknown, but most likely wrong!
@@ -451,7 +469,7 @@ public class SMGCPAMaterializer {
     // switch it to the 0+
     // Create the now smaller abstracted list
     SMGObjectAndSMGState newAbsListSegAndState =
-        decrementAbstrLSAndPointersAndCopyValuesAndSwitchPointers(pListSeg, currentState);
+        decrementAbstrLSAndCopyValuesAndSwitchPointers(pListSeg, currentState);
     SMGSinglyLinkedListSegment newAbsListSeg =
         (SMGSinglyLinkedListSegment) newAbsListSegAndState.getSMGObject();
     currentState = newAbsListSegAndState.getState();
@@ -901,9 +919,8 @@ public class SMGCPAMaterializer {
       throws SMGException {
     for (SMGValue valuesPointingTo :
         pCurrentState.getMemoryModel().getSmg().getPointerValuesForTarget(newAbsListSeg)) {
-      if (newAbsListSeg.getMinLength() != 0
-          && pCurrentState.getMemoryModel().getSmg().getNestingLevel(valuesPointingTo)
-              >= newAbsListSeg.getMinLength()) {
+      int ptrNstLvl = pCurrentState.getMemoryModel().getSmg().getNestingLevel(valuesPointingTo);
+      if (newAbsListSeg.getMinLength() != 0 && ptrNstLvl >= newAbsListSeg.getMinLength()) {
         return false;
       }
     }
