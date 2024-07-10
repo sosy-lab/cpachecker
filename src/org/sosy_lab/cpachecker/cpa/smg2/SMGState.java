@@ -1600,18 +1600,26 @@ public class SMGState
 
     if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL
         && thisObj instanceof SMGSinglyLinkedListSegment thisSLL) {
-      if (thisSLL.getMinLength() >= otherSLL.getMinLength()
-          && thisSLL.getNextOffset().compareTo(otherSLL.getNextOffset()) == 0
-          && thisSLL.getHeadOffset().compareTo(otherSLL.getHeadOffset()) == 0) {
-
-        if (otherObj instanceof SMGDoublyLinkedListSegment otherDLL
-            && thisObj instanceof SMGDoublyLinkedListSegment thisDLL) {
-          if (thisDLL.getPrevOffset().compareTo(otherDLL.getPrevOffset()) != 0) {
-            // Check that the values are equal and that the back pointer is as well
-            return false;
-          }
+      if (thisSLL.getNextOffset().compareTo(otherSLL.getNextOffset()) != 0
+          && thisSLL.getHeadOffset().compareTo(otherSLL.getHeadOffset()) != 0) {
+        return false;
+      }
+      if (otherObj instanceof SMGDoublyLinkedListSegment otherDLL
+          && thisObj instanceof SMGDoublyLinkedListSegment thisDLL) {
+        if (thisDLL.getPrevOffset().compareTo(otherDLL.getPrevOffset()) != 0) {
+          // Check that the values are equal and that the back pointer is as well
+          return false;
         }
+      }
+
+      if (thisSLL.getMinLength() >= otherSLL.getMinLength()) {
+        // This is a look through case (either one subsumses the other by being larger,
+        //   or potentially larger with 0+, or a 0+ is at some point found in the list later on)
+        // FIXME: missing cases
+
         // Check that the values are equal and that the next and back pointers are as well
+        // If we check 2 lists that are connected, the exemption list will exclude
+        //   nfo/pfo for those objects
         return checkEqualValuesForTwoStatesWithExemptions(
             thisSLL,
             otherSLL,
@@ -1623,6 +1631,32 @@ public class SMGState
             thisPointerValueAlreadyVisited,
             treatSymbolicsAsEqualWEqualConstrains,
             allowAbstractedSelfPointers);
+
+      } else if (exemptOffsetsPerObject.containsKey(thisSLL)
+          && exemptOffsetsPerObject.containsKey(otherSLL)) {
+        List<BigInteger> thisExempt = exemptOffsetsPerObject.get(thisSLL);
+        List<BigInteger> otherExempt = exemptOffsetsPerObject.get(otherSLL);
+        Set<BigInteger> thisListOffsets = ImmutableSet.of(thisSLL.getNextOffset());
+        Set<BigInteger> otherListOffsets = ImmutableSet.of(otherSLL.getNextOffset());
+        if (otherObj instanceof SMGDoublyLinkedListSegment otherDLL
+            && thisObj instanceof SMGDoublyLinkedListSegment thisDLL) {
+          thisListOffsets = ImmutableSet.of(thisSLL.getNextOffset(), thisDLL.getPrevOffset());
+          otherListOffsets = ImmutableSet.of(otherSLL.getNextOffset(), otherDLL.getPrevOffset());
+        }
+        if (thisExempt.containsAll(thisListOffsets) && otherExempt.containsAll(otherListOffsets)) {
+          // We only compare the content of 2 lists (e.g. 0+ and 3+ merging)
+          return checkEqualValuesForTwoStatesWithExemptions(
+              thisSLL,
+              otherSLL,
+              exemptOffsetsPerObject,
+              thisState,
+              otherState,
+              equalityCache,
+              objectCache,
+              thisPointerValueAlreadyVisited,
+              treatSymbolicsAsEqualWEqualConstrains,
+              allowAbstractedSelfPointers);
+        }
       }
     } else {
       // We could end up here because of abstraction with one abstracted element and a
