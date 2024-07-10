@@ -113,10 +113,7 @@ abstract class AbstractCFloatTestBase {
             : BigFloat.positiveInfinity(context.precision);
       }
       return new BigFloat(
-          val.isNegative(),
-          val.getValue().extractSigBits(),
-          val.getValue().extractExpBits(),
-          context);
+          val.isNegative(), val.getValue().getSignificand(), val.getValue().getExponent(), context);
     } else {
       CNativeType toType = CFloatNativeAPI.toNativeType(value.getType());
       if (value instanceof CFloatNative val && toType == CNativeType.LONG_DOUBLE) {

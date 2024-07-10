@@ -94,8 +94,8 @@ class CFloatImpl extends CFloat {
       return new CFloatWrapper(exponent, mantissa);
     } else if (new Format(15, 63).equals(floatValue.getFormat())) {
       long signBit = floatValue.isNegative() ? 1 << 15 : 0;
-      long exponent = signBit + floatValue.extractExpBits() + floatValue.getFormat().bias();
-      long mantissa = floatValue.extractSigBits().longValue();
+      long exponent = signBit + floatValue.getExponent() + floatValue.getFormat().bias();
+      long mantissa = floatValue.getSignificand().longValue();
       return new CFloatWrapper(exponent, mantissa);
     } else {
       throw new IllegalArgumentException();

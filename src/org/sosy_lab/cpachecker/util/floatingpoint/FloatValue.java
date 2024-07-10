@@ -2436,13 +2436,13 @@ public class FloatValue extends Number {
     }
   }
 
-  /** Returns the exponent field of this value */
-  long extractExpBits() {
+  /** Returns the exponent of this value */
+  long getExponent() {
     return exponent;
   }
 
-  /** Returns the significand bits of this value */
-  BigInteger extractSigBits() {
+  /** Returns the significand of this value */
+  BigInteger getSignificand() {
     return significand;
   }
 }
