@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -1373,33 +1374,57 @@ public class SMGState
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
     ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
+    // First, get all SMGValues for possible identifier
+    Map<SymbolicValue, Set<SMGValue>> identToAllValues = new HashMap<>();
+    for (Entry<Wrapper<Value>, SMGValue> mapping :
+        memoryModel.getValueToSMGValueMapping().entrySet()) {
+      Value value = mapping.getKey().get();
+      SMGValue smgValue = mapping.getValue();
+      if (value instanceof SymbolicValue symValue) {
+        for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
+          SymbolicValue usedIdentifier = constSym;
+          if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+            usedIdentifier = symIdent;
+          }
+          if (!identToAllValues.containsKey(usedIdentifier)) {
+            identToAllValues.put(usedIdentifier, new HashSet<>());
+          }
+          identToAllValues.get(usedIdentifier).add(smgValue);
+        }
+      }
+    }
+
     // This removed unused symbolic values from the constraints
     for (Constraint constraint : getConstraints()) {
-      Set<ConstantSymbolicExpression> identifiers = constraint.accept(symIdentVisitor);
+      Set<ConstantSymbolicExpression> identifiersInConstraint = constraint.accept(symIdentVisitor);
       // Check that those are truly used somewhere, otherwise remove the constraint
-      for (ConstantSymbolicExpression identifier : identifiers) {
-        Optional<SMGValue> maybeSMGValue = memoryModel.getSMGValueFromValue(identifier);
-        SymbolicValue usedIdentifier = identifier;
+      for (ConstantSymbolicExpression identifierInConstraint : identifiersInConstraint) {
+        // There might be additional cast expressions etc. that wrap the identifier
+        SymbolicValue usedIdentifier = identifierInConstraint;
         // Current interpretation: if at least 1 symbolic is present and used, keep constraint
-        if (maybeSMGValue.isEmpty()
-            && identifier.getValue() instanceof SymbolicIdentifier symIdent) {
-          maybeSMGValue = memoryModel.getSMGValueFromValue(symIdent);
+        if (identifierInConstraint.getValue() instanceof SymbolicIdentifier symIdent) {
           usedIdentifier = symIdent;
         }
-        if (maybeSMGValue.isPresent()
-            && memoryModel.getSmg().getNumberOfSMGValueUsages(maybeSMGValue.orElseThrow()) > 0) {
-          constraints.add(constraint);
-        }
-        ImmutableSet.Builder<Constraint> tmpCopy = ImmutableSet.builder();
-        for (Constraint constraintToCopy : getConstraints()) {
-          if (constraintToCopy != constraint) {
-            tmpCopy.add(constraintToCopy);
+        Set<SMGValue> maybeSMGValues =
+            identToAllValues.getOrDefault(usedIdentifier, ImmutableSet.of());
+        for (SMGValue smgValue : maybeSMGValues) {
+          if (memoryModel.getSmg().getNumberOfSMGValueUsages(smgValue) > 0) {
+            constraints.add(constraint);
+            break;
           }
-        }
-        // TODO: This is expensive and does not delete isolated cyclic unused sym value constraints
-        // The value might be part of other constraints though
-        if (copyWithNewConstraints(tmpCopy.build()).valueContainedInConstraints(usedIdentifier)) {
-          constraints.add(constraint);
+          ImmutableSet.Builder<Constraint> tmpCopy = ImmutableSet.builder();
+          for (Constraint constraintToCopy : getConstraints()) {
+            if (constraintToCopy != constraint) {
+              tmpCopy.add(constraintToCopy);
+            }
+          }
+          // TODO: This is expensive and does not delete isolated cyclic unused sym value
+          // constraints
+          // The value might be part of other constraints though
+          if (copyWithNewConstraints(tmpCopy.build()).valueContainedInConstraints(usedIdentifier)) {
+            constraints.add(constraint);
+            break;
+          }
         }
       }
     }

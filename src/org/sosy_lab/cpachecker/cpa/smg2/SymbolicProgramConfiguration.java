@@ -2152,4 +2152,8 @@ public class SymbolicProgramConfiguration {
     Preconditions.checkArgument(pte.isPresent());
     return pte.orElseThrow().targetSpecifier();
   }
+
+  ImmutableBiMap<Wrapper<Value>, SMGValue> getValueToSMGValueMapping() {
+    return valueMapping;
+  }
 }
