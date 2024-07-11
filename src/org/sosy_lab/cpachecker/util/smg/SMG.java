@@ -440,6 +440,16 @@ public class SMG {
     return num;
   }
 
+  public Set<SMGSinglyLinkedListSegment> getAllValidAbstractedObjects() {
+    ImmutableSet.Builder<SMGSinglyLinkedListSegment> setBuilder = ImmutableSet.builder();
+    for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
+      if (obj.getValue() && obj.getKey() instanceof SMGSinglyLinkedListSegment ll) {
+        setBuilder.add(ll);
+      }
+    }
+    return setBuilder.build();
+  }
+
   public int getNumberOfValueUsages(SMGValue value) {
     PersistentMap<SMGObject, Integer> sourceObjectsMap =
         valuesToRegionsTheyAreSavedIn.getOrDefault(value, PathCopyingPersistentTreeMap.of());
