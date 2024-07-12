@@ -30,7 +30,6 @@ public class MPORTests {
 
   // computes all possible program states (i.e. all interleavings) and the corresponding preference
   // orders, no matter if they are actually feasible
-  // TODO this does not seem to cover all possible states?
   public void computeAllStates() {
     ImmutableMap.Builder<MPORThread, CFANode> stateBuilder = ImmutableMap.builder();
     for (MPORThread thread : algorithm.getThreads()) {
@@ -42,44 +41,28 @@ public class MPORTests {
   }
 
   private void computeStates(
-      Set<MPORState> pVisitedStates, MPORState pCurrentState, CFANode pFunctionReturnNode) {
+      Set<MPORState> pExistingStates, MPORState pCurrentState, CFANode pFunctionReturnNode) {
 
-    if (isStateVisited(pVisitedStates, pCurrentState)) {
-      return;
-    }
-    for (var entry : pCurrentState.threadNodes.entrySet()) {
-      MPORThread currentThread = entry.getKey();
-      CFANode currentNode = entry.getValue();
-      if (currentNode.equals(currentThread.exitNode)) {
-        continue;
-      }
-      pVisitedStates.add(pCurrentState);
-      for (CFAEdge cfaEdge :
-          MPORAlgorithm.contextSensitiveLeavingEdges(currentNode, pFunctionReturnNode)) {
-        MPORState nextState =
-            algorithm.createUpdatedState(
-                pCurrentState, currentThread, cfaEdge.getSuccessor(), null);
-        computeStates(
-            pVisitedStates,
-            nextState,
-            MPORAlgorithm.getFunctionReturnNode(
-                entry.getValue(), pFunctionReturnNode, algorithm.getFunctionCallMap()));
-      }
-    }
-  }
-
-  private boolean isStateVisited(Set<MPORState> pVisitedStates, MPORState pCurrentState) {
-    for (MPORState state : pVisitedStates) {
-      for (var entry : state.threadNodes.entrySet()) {
-        for (var innerEntry : pCurrentState.threadNodes.entrySet()) {
-          // TODO this is basically an equals method
-          if (entry.getKey().equals(innerEntry.getKey())
-              && entry.getValue().equals(innerEntry.getValue())) {
-            return true;
-          }
+    if (!pExistingStates.contains(pCurrentState)) {
+      for (var entry : pCurrentState.threadNodes.entrySet()) {
+        MPORThread currentThread = entry.getKey();
+        CFANode currentNode = entry.getValue();
+        if (currentNode.equals(currentThread.exitNode)) {
+          continue;
+        }
+        pExistingStates.add(pCurrentState);
+        for (CFAEdge cfaEdge :
+            MPORAlgorithm.contextSensitiveLeavingEdges(currentNode, pFunctionReturnNode)) {
+          MPORState nextState =
+              MPORAlgorithm.createUpdatedState(
+                  pExistingStates, pCurrentState, currentThread, cfaEdge.getSuccessor(), null);
+          computeStates(
+              pExistingStates,
+              nextState,
+              MPORAlgorithm.getFunctionReturnNode(
+                  entry.getValue(), pFunctionReturnNode, algorithm.getFunctionCallMap()));
         }
       }
     }
-    return false;
   }
 }

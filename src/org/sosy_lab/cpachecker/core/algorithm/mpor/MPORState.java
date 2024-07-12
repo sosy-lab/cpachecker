@@ -36,4 +36,32 @@ public class MPORState {
     preferenceOrders = pPreferenceOrders;
     abstractState = pAbstractState;
   }
+
+  /**
+   * Checks whether this state contains the exact same threadNodes as pThreadNodes.
+   *
+   * @param pThreadNodes the other threadNodes
+   * @return true if pState.threadNodes contains all MPORThreads of {@link MPORState#threadNodes}
+   *     and if the mapped CFANodes are equal
+   * @throws IllegalArgumentException if {@link MPORState#threadNodes} or pState.threadNodes is
+   *     empty
+   */
+  public boolean areThreadNodesEqual(ImmutableMap<MPORThread, CFANode> pThreadNodes) {
+    if (!threadNodes.isEmpty() && !pThreadNodes.isEmpty()) {
+      for (var entry : threadNodes.entrySet()) {
+        if (pThreadNodes.containsKey(entry.getKey())) {
+          CFANode cfaNode = pThreadNodes.get(entry.getKey());
+          if (cfaNode != null) {
+            if (!cfaNode.equals(entry.getValue())) {
+              return false;
+            }
+          }
+        } else {
+          return false;
+        }
+      }
+      return true;
+    }
+    throw new IllegalArgumentException("no threadNodes found to compare");
+  }
 }

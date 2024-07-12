@@ -152,6 +152,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   private final ImmutableSet<MPORThread> threads;
 
+  /** The set of already existing states, used to prevent the creation of duplicate states. */
+  private final Set<MPORState> existingStates;
+
   // TODO use CFAToCTranslator translateCfa to generate a C program based on a CFA
   //  this will be used for the reduced and sequentialized CFA
 
@@ -179,6 +182,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     functionCallMap = getFunctionCallMap(cfa);
     threads = getThreads(cfa);
+    existingStates = new HashSet<>();
 
     assignMutexesToThreads(threads);
     assignJoinsToThreads(threads);
@@ -808,14 +812,25 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * Returns a new state with the same threadNodes map except that the key pThread is assigned the
    * new value pUpdatedNode. This function also computes the PreferenceOrders of the new state.
    *
+   * @param pExistingStates The set of already created MPORStates
+   * @param pState The previous MPORState we create try to create a new one from
    * @param pThread The MPORThread that has a new CFANode (= state)
    * @param pUpdatedNode The updated CFANode (= state) of pThread
+   * @param pAbstractState TODO
    * @return a new MPORState with the updated value pUpdatedNode at key pThread and the
    *     corresponding PreferenceOrders
    */
-  public MPORState createUpdatedState(
-      MPORState pState, MPORThread pThread, CFANode pUpdatedNode, AbstractState pAbstractState) {
+  public static MPORState createUpdatedState(
+      Set<MPORState> pExistingStates,
+      MPORState pState,
+      MPORThread pThread,
+      CFANode pUpdatedNode,
+      AbstractState pAbstractState) {
+
     checkArgument(pState.threadNodes.containsKey(pThread), "threadNodes must contain pThread");
+    checkArgument(pUpdatedNode != null, "pUpdatedNode cannot be null");
+
+    // create the threadNodes map for the updatedState
     ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
     for (var entry : pState.threadNodes.entrySet()) {
       if (!entry.getKey().equals(pThread)) {
@@ -824,8 +839,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
     threadNodesBuilder.put(pThread, pUpdatedNode);
     ImmutableMap<MPORThread, CFANode> updatedThreadNodes = threadNodesBuilder.buildOrThrow();
-    return new MPORState(
-        updatedThreadNodes, getPreferenceOrdersForThreadNodes(updatedThreadNodes), pAbstractState);
+
+    // for optimization reasons, check if the threadNodes exist already
+    for (MPORState rExistingState : pExistingStates) {
+      if (rExistingState.areThreadNodesEqual(updatedThreadNodes)) {
+        return rExistingState;
+      }
+    }
+
+    // otherwise, return a new MPORState object
+    MPORState rNewState =
+        new MPORState(
+            updatedThreadNodes,
+            getPreferenceOrdersForThreadNodes(updatedThreadNodes),
+            pAbstractState);
+    pExistingStates.add(rNewState);
+    return rNewState;
   }
 
   // TODO these can be deleted later
