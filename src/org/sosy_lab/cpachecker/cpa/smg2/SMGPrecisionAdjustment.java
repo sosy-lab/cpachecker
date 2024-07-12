@@ -72,8 +72,12 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
                 + " to be enabled for this.")
     private boolean alwaysAtLoop = false;
 
-    @Option(secure = true, description = "toggle liveness abstraction")
-    private boolean doLivenessAbstraction = false;
+    @Option(
+        secure = true,
+        description =
+            "toggle liveness abstraction. Is independent of CEGAR, but dependent on the CFAs"
+                + " liveness variables being tracked.")
+    private boolean doLivenessAbstraction = true;
 
     @Option(
         secure = true,
@@ -256,11 +260,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       UniqueAssignmentsInPathConditionState assignments) {
     SMGState resultState = pState;
 
-    if (options.doLivenessAbstraction && liveVariables.isPresent()) {
+    if ((options.doLivenessAbstraction || options.abstractProgramVariables)
+        && liveVariables.isPresent()) {
       totalLiveness.start();
-      if (options.abstractProgramVariables) {
-        resultState = enforceLiveness(pState, location, resultState);
-      }
+      resultState = enforceLiveness(pState, location, resultState);
       totalLiveness.stop();
     }
 
@@ -354,10 +357,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       // less live
       if (!onlyBlankEdgesEntering) {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
+          String qualifiedVarName = variable.getQualifiedName();
           if (!liveVariables
               .orElseThrow()
-              .isVariableLive(variable.getExtendedQualifiedName(), location.getLocationNode())) {
-            currentState = currentState.copyAndForget(variable).getState();
+              .isVariableLive(qualifiedVarName, location.getLocationNode())) {
+            currentState = currentState.invalidateVariable(variable);
           }
         }
       }

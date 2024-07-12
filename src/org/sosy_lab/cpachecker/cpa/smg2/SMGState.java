@@ -38,7 +38,6 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -4785,6 +4784,8 @@ public class SMGState
 
   @Override
   public StateAndInfo<SMGState, SMGInformation> copyAndForget(MemoryLocation pLocation) {
+    throw new RuntimeException("copyAndForget(): FIX ME");
+    /*
     String qualifiedName = pLocation.getQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(pLocation.getOffset());
     SMGObject memory;
@@ -4830,6 +4831,7 @@ public class SMGState
             getMemoryModel().getSizeObMemoryForSPCWithoutHeap(),
             memoryModel.getVariableTypeMap(),
             memoryModel.getFunctionDeclarationsFromStackFrames()));
+            */
   }
 
   private SMGObject getReturnObjectForMemoryLocation(MemoryLocation memLoc) {
