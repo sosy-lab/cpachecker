@@ -3006,8 +3006,9 @@ cpa.smg2.abstraction.alwaysAtLoop = false
 # computations are performed (and iteration threshold was reached)
 cpa.smg2.abstraction.determinismThreshold = 85
 
-# toggle liveness abstraction
-cpa.smg2.abstraction.doLivenessAbstraction = false
+# toggle liveness abstraction. Is independent of CEGAR, but dependent on the
+# CFAs liveness variables being tracked.
+cpa.smg2.abstraction.doLivenessAbstraction = true
 
 # skip abstraction computations until the given number of iterations are
 # reached, after that decision is based on then current level of determinism,
