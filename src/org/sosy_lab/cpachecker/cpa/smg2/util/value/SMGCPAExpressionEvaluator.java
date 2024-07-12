@@ -166,7 +166,7 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException in case of critical errors
    */
   public Value checkEqualityForAddresses(Value leftValue, Value rightValue, SMGState state)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
     Value isNotEqual = checkNonEqualityForAddresses(leftValue, rightValue, state);
     if (isNotEqual.isUnknown()) {
       return isNotEqual;
@@ -189,7 +189,7 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException in case of critical errors
    */
   public Value checkNonEqualityForAddresses(Value leftValue, Value rightValue, SMGState state)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
     ValueAndSMGState leftValueAndState = unpackAddressExpression(leftValue, state);
     leftValue = leftValueAndState.getValue();
     ValueAndSMGState rightValueAndState =
@@ -1168,14 +1168,15 @@ public class SMGCPAExpressionEvaluator {
       CType pExpressionType, MachineModel pMachineModel) throws SMGException {
     CType canonicalType = getCanonicalType(pExpressionType);
     // TODO: this fails for larger types and types that are non numeric (e.g. structs)
-    if (!(canonicalType instanceof CSimpleType)
-        || ((CSimpleType) canonicalType).getType().equals(CBasicType.UNSPECIFIED)
-        || ((CSimpleType) canonicalType).getType().isFloatingPointType()) {
+    if (!((canonicalType instanceof CPointerType) || (canonicalType instanceof CSimpleType))
+        || ((canonicalType instanceof CSimpleType cst)
+            && cst.getType().equals(CBasicType.UNSPECIFIED)
+            && cst.getType().isFloatingPointType())) {
       throw new SMGException(
           "Unhandled type: " + canonicalType + "; in symbolic memory size calculation.");
     }
 
-    if (((CSimpleType) canonicalType).hasLongLongSpecifier()) {
+    if (canonicalType instanceof CSimpleType simpleType && simpleType.hasLongLongSpecifier()) {
       // This might happen due to a cast.
       // We would need to handle this with casting the source of this type to size_t
       //   and then wrapping that with the long long type.
