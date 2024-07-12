@@ -12,6 +12,10 @@ import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -40,8 +44,9 @@ public class SMGProveNequalityTest extends SMGTest0 {
   }
 
   @Test
-  public void equalValuesAreNotInequal() {
-    SMGProveNequality nequality = new SMGProveNequality(smg);
+  public void equalValuesAreNotInequal()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
+    SMGProveNequality nequality = new SMGProveNequality(SMGCPATest0.stateFromSMG(smg));
 
     assertThat(nequality.proveInequality(value1, value1)).isFalse();
     assertThat(nequality.proveInequality(value2, value2)).isFalse();
@@ -49,7 +54,8 @@ public class SMGProveNequalityTest extends SMGTest0 {
   }
 
   @Test
-  public void pointerValuesThatShareTargetValuesAreNotInEqual() {
+  public void pointerValuesThatShareTargetValuesAreNotInEqual()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     SMGDoublyLinkedListSegment dlls1 = createDLLS(64, 0, 32, 0, 0, 0);
     SMGDoublyLinkedListSegment dlls2 = createDLLS(64, 0, 32, 0, 0, 0);
     SMGPointsToEdge pt1 = createPTEdge(0, SMGTargetSpecifier.IS_FIRST_POINTER, dlls1);
@@ -68,12 +74,13 @@ public class SMGProveNequalityTest extends SMGTest0 {
         createPTEdge(64, SMGTargetSpecifier.IS_FIRST_POINTER, SMGObject.nullInstance());
     smg = smg.copyAndAddPTEdge(pt3, value3);
 
-    SMGProveNequality nequality = new SMGProveNequality(smg);
+    SMGProveNequality nequality = new SMGProveNequality(SMGCPATest0.stateFromSMG(smg));
     assertThat(nequality.proveInequality(value1, value2)).isFalse();
   }
 
   @Test
-  public void pointerValuesThatHaveSharedObjectsAreNotInEqual() {
+  public void pointerValuesThatHaveSharedObjectsAreNotInEqual()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     SMGDoublyLinkedListSegment dlls1 = createDLLS(64, 0, 32, 0, 0, 0);
     SMGDoublyLinkedListSegment dlls2 = createDLLS(64, 0, 32, 0, 0, 0);
     SMGPointsToEdge pt1 = createPTEdge(0, SMGTargetSpecifier.IS_FIRST_POINTER, dlls1);
@@ -113,7 +120,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
     smg = smg.copyAndAddPTEdge(pt6, value5);
     smg = smg.copyAndAddPTEdge(pt7, value6);
 
-    SMGProveNequality nequality = new SMGProveNequality(smg);
+    SMGProveNequality nequality = new SMGProveNequality(SMGCPATest0.stateFromSMG(smg));
     assertThat(nequality.proveInequality(value1, value2)).isFalse();
   }
 }

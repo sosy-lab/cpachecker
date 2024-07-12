@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
-import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -375,23 +374,6 @@ public class SymbolicProgramConfiguration {
       size += frame.getVariables().size();
     }
     return size;
-  }
-
-  /**
-   * Tries to check for inequality of 2 {@link SMGValue}s used in the SMG of this {@link
-   * SymbolicProgramConfiguration}. This does NOT check the (concrete) CValues of the entered
-   * values, but only if they refer to the same memory location in the SMG or not! TODO: remove
-   * CValues and replace by symbolic value ranges.
-   *
-   * @param pValue1 A {@link SMGValue} to be checked for inequality with pValue2.
-   * @param pValue2 A {@link SMGValue} to be checked for inequality with pValue1.
-   * @return True if the 2 {@link SMGValue}s are not equal, false if they are equal.
-   */
-  public boolean proveInequality(SMGValue pValue1, SMGValue pValue2) {
-    // Can this be solved without creating a new SMGProveNequality every time?
-    // TODO: Since we need to rework the values anyway, make a new class for this.
-    SMGProveNequality nequality = new SMGProveNequality(smg);
-    return nequality.proveInequality(pValue1, pValue2);
   }
 
   /**
@@ -731,6 +713,21 @@ public class SymbolicProgramConfiguration {
       validObjectsBuilder.addAll(otherFrame.getAllObjects());
     }
     return validObjectsBuilder.build();
+  }
+
+  /** For Tests only! */
+  public SymbolicProgramConfiguration copyWithNewSMG(SMG pSmg) {
+    return of(
+        pSmg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory,
+        readBlacklist);
   }
 
   /**

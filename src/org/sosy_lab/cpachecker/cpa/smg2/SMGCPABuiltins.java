@@ -1151,7 +1151,7 @@ public class SMGCPABuiltins {
     for (ValueAndSMGState argumentAndState :
         getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge)) {
 
-      if (!argumentAndState.getValue().isNumericValue()) {
+      if (!argumentAndState.getValue().isNumericValue() && !options.trackPredicates()) {
         String infoMsg =
             "Could not determine a concrete size for a memory allocation function: "
                 + functionCall.getFunctionNameExpression();
