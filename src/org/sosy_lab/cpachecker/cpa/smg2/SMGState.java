@@ -1276,9 +1276,9 @@ public class SMGState
       return false;
     }
 
-    if (getMemoryModel().getSmg().getNumberOfAbstractedLists() < 1
-        && pOther.getMemoryModel().getSmg().getNumberOfAbstractedLists() < 1) {
-      // return false;
+    if (getMemoryModel().getSmg().getNumberOfAbstractedLists()
+        != pOther.getMemoryModel().getSmg().getNumberOfAbstractedLists()) {
+      return false;
       // TODO: think about this more
     }
 
