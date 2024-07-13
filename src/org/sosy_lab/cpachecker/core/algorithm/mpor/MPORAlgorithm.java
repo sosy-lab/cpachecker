@@ -149,69 +149,77 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (!pExistingStates.contains(pCurrentState)) {
       pExistingStates.add(pCurrentState);
-      for (var entry : pCurrentState.threadNodes.entrySet()) {
-        MPORThread currentThread = entry.getKey();
-        CFANode currentNode = entry.getValue();
+      // for all threads, find the next node(s) preceding global variable access(es)
+      for (var threadNode : pCurrentState.threadNodes.entrySet()) {
+        MPORThread currentThread = threadNode.getKey();
+        CFANode currentNode = threadNode.getValue();
         // make sure the thread has not yet terminated
         if (!currentNode.equals(currentThread.exitNode)) {
-          Set<CFANode> globalAccessSubsequentNodes = new HashSet<>();
-          findGlobalAccessSubsequentNodes(
-              globalAccessSubsequentNodes,
+          Map<CFANode, CFANode> globalAccessPrecedingNodes = new HashMap<>();
+          findGlobalAccessPrecedingNodes(
+              globalAccessPrecedingNodes,
               currentNode,
               pFunctionReturnNodes.get(currentThread),
               currentThread.exitNode,
               pFunctionCallMap,
               pGlobalAccessChecker);
-          for (CFANode cfaNode : globalAccessSubsequentNodes) {
-            MPORState nextState =
-                createUpdatedState(pExistingStates, pCurrentState, currentThread, cfaNode, null);
-            handleState(
-                pExistingStates,
-                nextState,
-                updateFunctionReturnNodes(
-                    nextState.threadNodes, pFunctionReturnNodes, pFunctionCallMap),
-                pFunctionCallMap,
-                pGlobalAccessChecker);
+          for (var entry : globalAccessPrecedingNodes.entrySet()) {
+            CFANode cfaNode = entry.getKey();
+            CFANode functionReturnNode = entry.getValue();
+            pFunctionReturnNodes.put(currentThread, functionReturnNode);
+            // create and visit a new state for each global variable access edge
+            for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(cfaNode, functionReturnNode)) {
+              // assume that all edges here are global variable accesses
+              MPORState nextState =
+                  createUpdatedState(
+                      pExistingStates, pCurrentState, currentThread, cfaEdge.getSuccessor(), null);
+              handleState(
+                  pExistingStates,
+                  nextState,
+                  updateFunctionReturnNodes(
+                      nextState.threadNodes, pFunctionReturnNodes, pFunctionCallMap),
+                  pFunctionCallMap,
+                  pGlobalAccessChecker);
+            }
           }
         }
       }
     }
   }
 
-  // TODO in the preference order algorithms, we check the leaving edges, not entering edges.
-  //  it would be better to find the nodes preceding global accesses and let the algorithm
-  //  run on that set, because preference orders work with global variables (pthread_t,
-  //  pthread_mutex_t, etc.)
   /**
-   * Recursively finds all global access subsequent nodes (i.e. CFANodes whose entering edges read /
+   * Recursively finds all global access preceding nodes (i.e. CFANodes whose leaving edges read /
    * write a global variable) reachable from the initial value of pCurrentNode. Successors of nodes
-   * after global accesses are not considered, i.e. we consider all paths from pCurrentNode
+   * before global accesses are not considered, i.e. we consider all paths from pCurrentNode
    * containing exactly one global variable access.
    *
-   * @param pGlobalAccessSubsequentNodes the set where we put the CFANodes in
+   * @param pGlobalAccessPrecedingNodes the map of CFANodes whose leaving edges access global
+   *     variables to the CFANodes current FunctionReturnNode
    * @param pCurrentNode the current CFANode whose leaving edges successor nodes we analyze
    * @param pFunctionReturnNode the current FunctionReturnNode of the thread
    * @param pFunctionCallMap the map of
    * @param pGlobalAccessChecker used to check the leaving edges of pCurrentNode for global access
    */
-  private void findGlobalAccessSubsequentNodes(
-      Set<CFANode> pGlobalAccessSubsequentNodes,
+  private void findGlobalAccessPrecedingNodes(
+      Map<CFANode, CFANode> pGlobalAccessPrecedingNodes,
       CFANode pCurrentNode,
       CFANode pFunctionReturnNode,
       CFANode pThreadExitNode,
       ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       GlobalAccessChecker pGlobalAccessChecker) {
 
-    if (!pGlobalAccessSubsequentNodes.contains(pCurrentNode)) {
+    if (!pGlobalAccessPrecedingNodes.containsKey(pCurrentNode)) {
       for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-        CFANode nextNode = cfaEdge.getSuccessor();
+        CFANode updatedFunctionReturnNode =
+            getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, pFunctionCallMap);
         if (pGlobalAccessChecker.hasGlobalAccess(cfaEdge)) {
-          pGlobalAccessSubsequentNodes.add(nextNode);
+          pGlobalAccessPrecedingNodes.put(pCurrentNode, updatedFunctionReturnNode);
+          break;
         } else {
-          findGlobalAccessSubsequentNodes(
-              pGlobalAccessSubsequentNodes,
-              nextNode,
-              getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, pFunctionCallMap),
+          findGlobalAccessPrecedingNodes(
+              pGlobalAccessPrecedingNodes,
+              cfaEdge.getSuccessor(),
+              updatedFunctionReturnNode,
               pThreadExitNode,
               pFunctionCallMap,
               pGlobalAccessChecker);
