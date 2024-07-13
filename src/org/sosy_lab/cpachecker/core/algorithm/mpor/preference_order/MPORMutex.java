@@ -25,16 +25,15 @@ public class MPORMutex {
   /** The CFANode directly after pthread_mutex_lock. */
   public final CFANode entryNode;
 
-  public final ImmutableSet<CFANode> cfaNodes;
+  public final ImmutableSet<CFANode> nodes;
 
   /** Set of CFAEdges inside the lock including mutex_unlock but excluding mutex_lock. */
-  public final ImmutableSet<CFAEdge> cfaEdges;
+  public final ImmutableSet<CFAEdge> edges;
 
   /**
    * Set of CFANodes whose leaving CFAEdges are pthread_mutex_unlocks to pthreadMutexT. Multiple
    * CFANodes can be exitNodes if they are reached in a nondeterministic way.
    */
-  /** The CFANode whose leaving CFAEdges is pthread_mutex_unlock to pthreadMutexT. */
   public final ImmutableSet<CFANode> exitNodes;
 
   /**
@@ -49,13 +48,13 @@ public class MPORMutex {
   public MPORMutex(
       CExpression pPthreadMutexT,
       CFANode pEntryNode,
-      ImmutableSet<CFANode> pCfaNodes,
-      ImmutableSet<CFAEdge> pCfaEdges,
+      ImmutableSet<CFANode> pNodes,
+      ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<CFANode> pExitNodes) {
     pthreadMutexT = pPthreadMutexT;
     entryNode = pEntryNode;
-    cfaNodes = pCfaNodes;
-    cfaEdges = pCfaEdges;
+    nodes = pNodes;
+    edges = pEdges;
     exitNodes = pExitNodes;
   }
 }

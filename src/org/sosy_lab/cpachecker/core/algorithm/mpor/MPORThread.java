@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,42 +40,29 @@ public class MPORThread {
 
   public final ImmutableSet<CFAEdge> edges;
 
-  // TODO make immutable and put the initialize methods from MPORAlgorithm in createThread(...)
-  private Set<MPORMutex> mutexes = new HashSet<>();
+  public final ImmutableSet<MPORMutex> mutexes;
 
-  private Set<MPORJoin> joins = new HashSet<>();
+  public final ImmutableSet<MPORJoin> joins;
 
   public MPORThread(
       Optional<CExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode,
       ImmutableSet<CFANode> pNodes,
-      ImmutableSet<CFAEdge> pEdges) {
+      ImmutableSet<CFAEdge> pEdges,
+      ImmutableSet<MPORMutex> pMutexes,
+      ImmutableSet<MPORJoin> pJoins) {
 
     threadObject = pThreadObject;
     entryNode = pEntryNode;
     exitNode = pExitNode;
     nodes = pNodes;
     edges = pEdges;
+    mutexes = pMutexes;
+    joins = pJoins;
   }
 
   public boolean isMain() {
     return threadObject.isEmpty();
-  }
-
-  public void addMutex(MPORMutex pMutex) {
-    mutexes.add(pMutex);
-  }
-
-  public Set<MPORMutex> getMutexes() {
-    return mutexes;
-  }
-
-  public void addJoin(MPORJoin pJoin) {
-    joins.add(pJoin);
-  }
-
-  public Set<MPORJoin> getJoins() {
-    return joins;
   }
 }
