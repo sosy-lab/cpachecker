@@ -38,9 +38,9 @@ public class MPORThread {
    */
   public final FunctionExitNode exitNode;
 
-  public final ImmutableSet<CFANode> cfaNodes;
+  public final ImmutableSet<CFANode> nodes;
 
-  public final ImmutableSet<CFAEdge> cfaEdges;
+  public final ImmutableSet<CFAEdge> edges;
 
   // TODO make immutable and put the initialize methods from MPORAlgorithm in createThread(...)
   private Set<MPORMutex> mutexes = new HashSet<>();
@@ -51,14 +51,14 @@ public class MPORThread {
       Optional<CExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode,
-      ImmutableSet<CFANode> pCfaNodes,
-      ImmutableSet<CFAEdge> pCfaEdges) {
+      ImmutableSet<CFANode> pNodes,
+      ImmutableSet<CFAEdge> pEdges) {
 
     threadObject = pThreadObject;
     entryNode = pEntryNode;
     exitNode = pExitNode;
-    cfaNodes = pCfaNodes;
-    cfaEdges = pCfaEdges;
+    nodes = pNodes;
+    edges = pEdges;
   }
 
   public boolean isMain() {
