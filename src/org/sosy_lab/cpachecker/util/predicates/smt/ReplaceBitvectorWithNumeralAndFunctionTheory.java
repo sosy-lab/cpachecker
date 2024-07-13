@@ -238,7 +238,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
   @Override
   public BitvectorFormula remainder(
-      BitvectorFormula numerator, BitvectorFormula denumerator, boolean signed) {
+      BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
     throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
