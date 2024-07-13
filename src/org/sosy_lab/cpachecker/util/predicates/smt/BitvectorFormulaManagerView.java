@@ -84,6 +84,13 @@ public class BitvectorFormulaManagerView extends BaseManagerView
    * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
    * (-10)%3==(-1), (-10)%(-3)==(-1)
    */
+  @SuppressWarnings({"deprecation", "removal"})
+  @Override
+  public BitvectorFormula modulo(
+      BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
+    return manager.modulo(pNumber1, pNumbe2, signed);
+  }
+
   @Override
   public BitvectorFormula smodulo(BitvectorFormula numerator, BitvectorFormula denumerator) {
     return manager.smodulo(numerator, denumerator);

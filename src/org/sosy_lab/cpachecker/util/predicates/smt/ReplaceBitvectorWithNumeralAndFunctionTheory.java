@@ -210,6 +210,20 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
         getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
+  @SuppressWarnings({"deprecation", "removal"})
+  @Override
+  public BitvectorFormula modulo(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    if (numericFormulaManager instanceof IntegerFormulaManager) {
+      return wrap(
+          getFormulaType(pNumber1),
+          getC99ReplacementForSMTlib2Modulo(unwrap(pNumber1), unwrap(pNumber2)));
+    } else {
+      return makeUf(getFormulaType(pNumber1), moduloUfDecl, pNumber1, pNumber2);
+    }
+  }
+
   @Override
   public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";

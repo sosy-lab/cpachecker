@@ -792,6 +792,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       bitFmgr = pBitFmgr;
     }
 
+    @SuppressWarnings({"deprecation", "removal"})
     @Override
     BitvectorFormula visit(Texpr0BinNode pNode) {
       BitvectorFormula left = visit(pNode.getLeftArgument());
@@ -799,7 +800,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       return switch (pNode.getOperation()) {
         case Texpr0BinNode.OP_ADD -> bitFmgr.add(left, right);
         case Texpr0BinNode.OP_DIV -> bitFmgr.divide(left, right, true);
-        case Texpr0BinNode.OP_MOD -> bitFmgr.smodulo(left, right);
+        case Texpr0BinNode.OP_MOD -> bitFmgr.modulo(left, right, true);
         case Texpr0BinNode.OP_SUB -> bitFmgr.subtract(left, right);
         case Texpr0BinNode.OP_MUL -> bitFmgr.multiply(left, right);
         case Texpr0BinNode.OP_POW ->

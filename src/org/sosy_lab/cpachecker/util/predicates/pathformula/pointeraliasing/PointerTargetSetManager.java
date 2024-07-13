@@ -651,7 +651,7 @@ class PointerTargetSetManager {
     if (alignment != 0) {
       pConstraints.addConstraint(
           formulaManager.makeModularCongruence(
-              newBaseFormula, formulaManager.makeNumber(pointerType, 0L), alignment));
+              newBaseFormula, formulaManager.makeNumber(pointerType, 0L), alignment, false));
     }
 
     final long typeSize =

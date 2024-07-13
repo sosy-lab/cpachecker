@@ -165,7 +165,9 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
 
         // Test odd <=> isEven is UNSAT.
         try {
-          env.push(fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 0), 2));
+          env.push(
+              fmgr.makeModularCongruence(
+                  formula, makeBv(bvfmgr, formula, 0), 2, !template.isUnsigned()));
           if (env.isUnsat()) {
             abstraction.put(template, Congruence.ODD);
             continue;
@@ -176,7 +178,9 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
 
         // Test even <=> isOdd is UNSAT.
         try {
-          env.push(fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 1), 2));
+          env.push(
+              fmgr.makeModularCongruence(
+                  formula, makeBv(bvfmgr, formula, 1), 2, !template.isUnsigned()));
           if (env.isUnsat()) {
             abstraction.put(template, Congruence.EVEN);
           }
@@ -253,7 +257,8 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
             case ODD -> makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 1);
             case EVEN -> makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 0);
           };
-      constraints.add(pFormulaManager.makeModularCongruence(formula, remainder, 2));
+      constraints.add(
+          pFormulaManager.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
     }
     return pFormulaManager.getBooleanFormulaManager().and(constraints);
   }

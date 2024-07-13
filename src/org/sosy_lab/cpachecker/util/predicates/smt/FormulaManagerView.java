@@ -659,12 +659,14 @@ public class FormulaManagerView {
    * (-10)%3==(-1), (-10)%(-3)==(-1)
    */
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeModulo(T pF1, T pF2) {
+  public <T extends Formula> T makeModulo(T pF1, T pF2, boolean pSigned) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = getIntegerFormulaManager().modulo((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = getBitvectorFormulaManager().smodulo((BitvectorFormula) pF1, (BitvectorFormula) pF2);
+      t =
+          getBitvectorFormulaManager()
+              .modulo((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -672,12 +674,13 @@ public class FormulaManagerView {
     return (T) t;
   }
 
-  public <T extends Formula> BooleanFormula makeModularCongruence(T pF1, T pF2, long pModulo) {
-    return makeModularCongruence(pF1, pF2, BigInteger.valueOf(pModulo));
+  public <T extends Formula> BooleanFormula makeModularCongruence(
+      T pF1, T pF2, long pModulo, boolean pSigned) {
+    return makeModularCongruence(pF1, pF2, BigInteger.valueOf(pModulo), pSigned);
   }
 
   public <T extends Formula> BooleanFormula makeModularCongruence(
-      T pF1, T pF2, BigInteger pModulo) {
+      T pF1, T pF2, BigInteger pModulo, boolean pSigned) {
     BooleanFormula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t =
@@ -699,8 +702,8 @@ public class FormulaManagerView {
             bvmgr.makeBitvector(bvmgr.getLength((BitvectorFormula) pF1), pModulo);
         t =
             bvmgr.equal(
-                bvmgr.smodulo((BitvectorFormula) pF1, constant),
-                bvmgr.smodulo((BitvectorFormula) pF2, constant));
+                bvmgr.modulo((BitvectorFormula) pF1, constant, pSigned),
+                bvmgr.modulo((BitvectorFormula) pF2, constant, pSigned));
       }
     } else {
       throw new IllegalArgumentException("Not supported interface");
