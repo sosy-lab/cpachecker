@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentializer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -247,6 +249,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final GlobalAccessChecker globalAccessChecker;
 
+  private final Sequentializer sequentializer;
+
   /**
    * A map from FunctionCallEdge Predecessors to Return Nodes. Needs to be initialized before {@link
    * MPORAlgorithm#threads}.
@@ -262,16 +266,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /** The set of already existing states, used to prevent the creation of duplicate states. */
   private final Set<MPORState> existingStates;
 
-  // TODO use CFAToCTranslator translateCfa to generate a C program based on a CFA
-  //  this will be used for the reduced and sequentialized CFA
-
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pInputCfa) {
+      CFA pInputCfa)
+      throws InvalidConfigurationException {
 
     cpa = pCpa;
     config = pConfig;
@@ -281,6 +283,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     inputCfa = pInputCfa;
 
     globalAccessChecker = new GlobalAccessChecker();
+    sequentializer = new Sequentializer(config);
 
     // TODO performance stuff:
     //  merge functions that go through each Edge together into one?
