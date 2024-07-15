@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
-public class Sequentializer {
+public class Sequentialization {
 
   private final Configuration config;
 
@@ -27,8 +27,9 @@ public class Sequentializer {
 
   private final CFAToCTranslator cfaToCTranslator;
 
-  public Sequentializer(Configuration pConfig) throws InvalidConfigurationException {
+  public Sequentialization(Configuration pConfig) throws InvalidConfigurationException {
     config = pConfig;
+    // TODO allowSelfLoops? should be false based on my current unterstanding
     mutableNetwork = NetworkBuilder.directed().allowsSelfLoops(true).build();
     cfaToCTranslator = new CFAToCTranslator(config);
   }
@@ -40,5 +41,27 @@ public class Sequentializer {
     //  CfaMutableNetwork takes only a MutableNetwork as a parameter
     //  CCfaTransformer.createCFA takes a CfaMutableNetwork and also other parameters
     //  return cfaToCTranslator.translateCfa(cfa...);
+  }
+
+  /**
+   * Tries to add pNode to the {@link Sequentialization#mutableNetwork}.
+   *
+   * @param pNode CFANode to be added
+   * @return true if {@link Sequentialization#mutableNetwork} was modified as a result of this call
+   */
+  public boolean addNode(CFANode pNode) {
+    return mutableNetwork.addNode(pNode);
+  }
+
+  /**
+   * Tries to add pEdge to the {@link Sequentialization#mutableNetwork}.
+   *
+   * @param pPredecessor CFANode whose leaving CFAEdges contains pEdge
+   * @param pSuccessor CFANode whose entering CFAEdges contains pEdge
+   * @param pEdge CFAEdge to be added
+   * @return true if {@link Sequentialization#mutableNetwork} was modified as a result of this call
+   */
+  public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pEdge) {
+    return mutableNetwork.addEdge(pPredecessor, pSuccessor, pEdge);
   }
 }

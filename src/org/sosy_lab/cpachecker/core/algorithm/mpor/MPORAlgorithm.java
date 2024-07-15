@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -93,7 +93,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         initialState,
         initialFunctionReturnNodes,
         functionCallMap,
-        globalAccessChecker);
+        globalAccessChecker,
+        sequentialization);
 
     /*
     overall algorithm idea:
@@ -145,7 +146,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       MPORState pCurrentState,
       Map<MPORThread, CFANode> pFunctionReturnNodes,
       final ImmutableMap<CFANode, CFANode> pFunctionCallMap,
-      final GlobalAccessChecker pGlobalAccessChecker) {
+      final GlobalAccessChecker pGlobalAccessChecker,
+      Sequentialization pSequentialization) {
 
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (!pExistingStates.contains(pCurrentState)) {
@@ -165,7 +167,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               pFunctionReturnNodes.get(currentThread),
               currentThread.exitNode,
               pFunctionCallMap,
-              pGlobalAccessChecker);
+              pGlobalAccessChecker,
+              pSequentialization);
 
           for (var entry : globalAccessPrecedingNodes.entrySet()) {
             CFANode cfaNode = entry.getKey();
@@ -184,7 +187,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                   updateFunctionReturnNodes(
                       nextState.threadNodes, pFunctionReturnNodes, pFunctionCallMap),
                   pFunctionCallMap,
-                  pGlobalAccessChecker);
+                  pGlobalAccessChecker,
+                  pSequentialization);
             }
           }
         }
@@ -211,9 +215,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode pFunctionReturnNode,
       final CFANode pThreadExitNode,
       final ImmutableMap<CFANode, CFANode> pFunctionCallMap,
-      final GlobalAccessChecker pGlobalAccessChecker) {
+      final GlobalAccessChecker pGlobalAccessChecker,
+      Sequentialization pSequentialization) {
 
     if (!pGlobalAccessPrecedingNodes.containsKey(pCurrentNode)) {
+      pSequentialization.addNode(pCurrentNode);
+      // TODO if we only search for the global access preceding nodes, we will never reach the
+      //  thread exit nodes because they should not have any leaving edges.
+      //  we should change the algorithm so that if we encounter an exit node, the nodes and edges
+      //  are still added to the CFA but the recursion stops
       if (!pCurrentNode.equals(pThreadExitNode)) {
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
           CFANode updatedFunctionReturnNode =
@@ -222,13 +232,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pGlobalAccessPrecedingNodes.put(pCurrentNode, updatedFunctionReturnNode);
             // not using break if for any reason the other leaving edge(s) do not access global vars
           } else {
+            CFANode newNode = cfaEdge.getSuccessor();
+            pSequentialization.addEdge(pCurrentNode, newNode, cfaEdge);
             findGlobalAccessPrecedingNodes(
                 pGlobalAccessPrecedingNodes,
-                cfaEdge.getSuccessor(),
+                newNode,
                 updatedFunctionReturnNode,
                 pThreadExitNode,
                 pFunctionCallMap,
-                pGlobalAccessChecker);
+                pGlobalAccessChecker,
+                pSequentialization);
           }
         }
       }
@@ -249,7 +262,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final GlobalAccessChecker globalAccessChecker;
 
-  private final Sequentializer sequentializer;
+  private final Sequentialization sequentialization;
 
   /**
    * A map from FunctionCallEdge Predecessors to Return Nodes. Needs to be initialized before {@link
@@ -283,7 +296,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     inputCfa = pInputCfa;
 
     globalAccessChecker = new GlobalAccessChecker();
-    sequentializer = new Sequentializer(config);
+    sequentialization = new Sequentialization(config);
 
     // TODO performance stuff:
     //  merge functions that go through each Edge together into one?
