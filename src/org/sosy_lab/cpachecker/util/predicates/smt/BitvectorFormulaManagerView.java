@@ -87,19 +87,19 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   @SuppressWarnings({"deprecation", "removal"})
   @Override
   public BitvectorFormula modulo(
-      BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return manager.modulo(pNumber1, pNumbe2, signed);
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
+    return manager.modulo(pNumber1, pNumber2, signed);
   }
 
   @Override
-  public BitvectorFormula smodulo(BitvectorFormula numerator, BitvectorFormula denumerator) {
-    return manager.smodulo(numerator, denumerator);
+  public BitvectorFormula smodulo(BitvectorFormula numerator, BitvectorFormula denominator) {
+    return manager.smodulo(numerator, denominator);
   }
 
   @Override
   public BitvectorFormula remainder(
-      BitvectorFormula numerator, BitvectorFormula denumerator, boolean signed) {
-    return manager.remainder(numerator, denumerator, signed);
+      BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
+    return manager.remainder(numerator, denominator, signed);
   }
 
   @Override
