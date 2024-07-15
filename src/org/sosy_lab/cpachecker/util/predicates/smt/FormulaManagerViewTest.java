@@ -57,6 +57,8 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
   @Test
   public void testExtractAtoms() {
+    requireIntegers();
+
     BooleanFormula atom1 = imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(1));
     BooleanFormula atom2 = imgr.greaterThan(imgr.makeVariable("b"), imgr.makeNumber(2));
     BooleanFormula atom3 = imgr.greaterOrEquals(imgr.makeVariable("c"), imgr.makeNumber(3));
@@ -111,6 +113,7 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
   @Test
   public void testExtractAtoms_SplitEqualities_int() throws SolverException, InterruptedException {
+    requireIntegers();
     testExtractAtoms_SplitEqualities_numeral(imgr);
   }
 
@@ -163,6 +166,8 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
   @Test
   public void testIsPurelyConjunctive_Atom() {
+    requireIntegers();
+
     BooleanFormula atom = imgr.equal(imgr.makeVariable("x"), imgr.makeNumber(1));
     assertIsConjunctive(atom);
     assertIsConjunctive(bmgrv.not(atom));
@@ -209,6 +214,8 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
   @Test
   public void testIsPurelyConjunctive_IfThenElse() {
+    requireIntegers();
+
     IntegerFormula ifThenElse =
         bmgrv.ifThenElse(bmgrv.makeVariable("a"), imgr.makeNumber(0), imgr.makeNumber(1));
     BooleanFormula atom = imgr.equal(imgr.makeVariable("x"), ifThenElse);

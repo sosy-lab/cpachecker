@@ -179,6 +179,7 @@ public class ToBitvectorFormulaVisitor
     return evaluate(pExclusion, pEnvironment);
   }
 
+  @SuppressWarnings({"deprecation", "removal"})
   @Override
   public BitvectorFormula visit(
       Modulo<CompoundInterval> pModulo,

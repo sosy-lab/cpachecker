@@ -795,6 +795,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       bitFmgr = pBitFmgr;
     }
 
+    @SuppressWarnings({"deprecation", "removal"})
     @Override
     BitvectorFormula visit(Texpr0BinNode pNode) {
       BitvectorFormula left = visit(pNode.getLeftArgument());

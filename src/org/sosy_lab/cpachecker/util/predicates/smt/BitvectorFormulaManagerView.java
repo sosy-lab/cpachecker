@@ -73,8 +73,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView
    */
   @Override
   public BitvectorFormula divide(
-      BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return manager.divide(pNumber1, pNumbe2, signed);
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
+    return manager.divide(pNumber1, pNumber2, signed);
   }
 
   /**
@@ -84,10 +84,22 @@ public class BitvectorFormulaManagerView extends BaseManagerView
    * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
    * (-10)%3==(-1), (-10)%(-3)==(-1)
    */
+  @SuppressWarnings({"deprecation", "removal"})
   @Override
   public BitvectorFormula modulo(
       BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
     return manager.modulo(pNumber1, pNumbe2, signed);
+  }
+
+  @Override
+  public BitvectorFormula smodulo(BitvectorFormula numerator, BitvectorFormula denumerator) {
+    return manager.smodulo(numerator, denumerator);
+  }
+
+  @Override
+  public BitvectorFormula remainder(
+      BitvectorFormula numerator, BitvectorFormula denumerator, boolean signed) {
+    return manager.remainder(numerator, denumerator, signed);
   }
 
   @Override
@@ -182,6 +194,26 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   @Override
   public BitvectorFormula shiftLeft(BitvectorFormula pNumber, BitvectorFormula pToShift) {
     return manager.shiftLeft(pNumber, pToShift);
+  }
+
+  @Override
+  public BitvectorFormula rotateLeft(BitvectorFormula number, int toRotate) {
+    return manager.rotateLeft(number, toRotate);
+  }
+
+  @Override
+  public BitvectorFormula rotateLeft(BitvectorFormula number, BitvectorFormula toRotate) {
+    return manager.rotateLeft(number, toRotate);
+  }
+
+  @Override
+  public BitvectorFormula rotateRight(BitvectorFormula number, int toRotate) {
+    return manager.rotateRight(number, toRotate);
+  }
+
+  @Override
+  public BitvectorFormula rotateRight(BitvectorFormula number, BitvectorFormula toRotate) {
+    return manager.rotateRight(number, toRotate);
   }
 
   @Override

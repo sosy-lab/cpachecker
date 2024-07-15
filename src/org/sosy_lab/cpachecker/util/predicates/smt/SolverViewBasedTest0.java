@@ -57,6 +57,13 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
         // newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
         // newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
         break;
+      case BITWUZLA:
+        newConfig.setOption("cpa.predicate.encodeIntegerAs", "BITVECTOR");
+        break;
+      case OPENSMT:
+        newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
+        newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
+        break;
       case YICES2:
         assume()
             .withMessage(
