@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -208,7 +209,9 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
       // Determine location of recursive calls
       for (CFAEdge cfaEdge : recursion.getInnerLoopEdges()) {
-        if (cfaEdge.getRawStatement().contains(functionName)) {
+        if (cfaEdge.getRawStatement().contains(" " + functionName + "(")
+            || cfaEdge.getRawStatement().contains(functionName + "(")
+                && (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
           locationOfRecursiveCalls.add(cfaEdge.getFileLocation().getStartingLineInOrigin());
         }
       }
