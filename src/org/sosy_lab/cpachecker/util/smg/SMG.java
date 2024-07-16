@@ -262,7 +262,7 @@ public class SMG {
    * @return a new {@link SMG} in which the mapping is removed.
    */
   public SMG copyAndRemovePointsToEdge(SMGValue pValue) {
-    if (!pointsToEdges.containsKey(pValue)) {
+    if (!pointsToEdges.containsKey(pValue) || pValue.isZero()) {
       return this;
     }
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
@@ -888,7 +888,7 @@ public class SMG {
           ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
           for (Entry<SMGValue, SMGPointsToEdge> entry :
               newValuesToRegionsTheyAreSavedIn.pointsToEdges.entrySet()) {
-            if (!entry.getKey().equals(value)) {
+            if (!entry.getKey().equals(value) || entry.getKey().isZero()) {
               builder = builder.put(entry);
             }
           }
@@ -1542,6 +1542,9 @@ public class SMG {
    * @return true if pValue is a pointer.
    */
   public boolean isPointer(SMGValue pValue) {
+    assert pointsToEdges.containsKey(SMGValue.zeroValue())
+        && pointsToEdges.containsKey(SMGValue.zeroFloatValue())
+        && pointsToEdges.containsKey(SMGValue.zeroDoubleValue());
     return pointsToEdges.containsKey(pValue);
   }
 
