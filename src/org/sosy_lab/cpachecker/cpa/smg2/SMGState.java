@@ -5131,13 +5131,11 @@ public class SMGState
           currentState.copyAndReplaceMemoryModel(
               currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
                   root, newDLL, incrementAmount));
-      if (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
-          != 0) {
+      if (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj) != 0) {
         // There is still pointers, e.g. last pointers that need switching
         currentState =
             currentState.copyAndReplaceMemoryModel(
-                currentState.memoryModel.replaceAllPointersTowardsWith(
-                    nextObj, newDLL));
+                currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newDLL));
       }
     } else {
       // Self-pointers are possible in list elements (outside of next and prev)
