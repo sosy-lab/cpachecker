@@ -5118,8 +5118,6 @@ public class SMGState
               .getSmg()
               .getNumberOfSMGValueUsages(nextPointerFromRoot.getSMGValue())
           == 1);
-      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
-          == 1);
 
       // Delete old 0+ pointer
       currentState =
@@ -5133,6 +5131,14 @@ public class SMGState
           currentState.copyAndReplaceMemoryModel(
               currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
                   root, newDLL, incrementAmount));
+      if (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
+          != 0) {
+        // There is still pointers, e.g. last pointers that need switching
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState.memoryModel.replaceAllPointersTowardsWith(
+                    nextObj, newDLL));
+      }
     } else {
       // Self-pointers are possible in list elements (outside of next and prev)
       // We expect those to uniformly point to itself, and not to the same target
